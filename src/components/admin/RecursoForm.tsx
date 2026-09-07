@@ -436,7 +436,7 @@ export default function RecursoForm() {
           />
         </div>
 
-        {/* Modelo Híbrido: Selector Fungible vs Individual */}
+        {/* Selector de Tipo de Recurso */}
         <div
           style={{
             backgroundColor: '#ECEFF3',
@@ -447,7 +447,7 @@ export default function RecursoForm() {
           }}
         >
           <label style={{ fontSize: '14px', fontWeight: 700, color: '#14505A' }}>
-            Naturaleza del Recurso
+            Tipo de Recurso
           </label>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '20px' }}>
             <label
@@ -474,7 +474,7 @@ export default function RecursoForm() {
                 }
                 style={{ accentColor: '#1B6F7D', cursor: 'pointer' }}
               />
-              Fungible / A Granel (Gestionado por volumen o stock acumulado)
+              Material o Insumo (ej. sacos de arena, frazadas, combustible)
             </label>
 
             <label
@@ -501,7 +501,7 @@ export default function RecursoForm() {
                 }
                 style={{ accentColor: '#1B6F7D', cursor: 'pointer' }}
               />
-              Activo Individual / Serializado (Camioneta, grúa, motobomba, etc.)
+              Vehículo o Maquinaria (ej. camioneta, grúa, motobomba)
             </label>
           </div>
         </div>
@@ -534,7 +534,7 @@ export default function RecursoForm() {
               color: '#14505A',
             }}
           >
-            <strong>Cantidad fijada en 1:</strong> Al ser un activo individual, el inventario se registra por unidad única. Su estado inicial será calculado automáticamente como <code>DISPONIBLE</code>.
+            <strong>Cantidad fijada en 1:</strong> Al ser un vehículo o maquinaria, el inventario se registra por unidad única. Su estado inicial será calculado automáticamente como <code>DISPONIBLE</code>.
           </div>
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px' }}>
@@ -1251,10 +1251,10 @@ export default function RecursoForm() {
               )}
 
               <div>
-                <strong style={{ color: '#14505A' }}>Naturaleza:</strong>{' '}
+                <strong style={{ color: '#14505A' }}>Tipo de Recurso:</strong>{' '}
                 {formData.esIndividual
-                  ? 'Activo Individual / Serializado'
-                  : 'Fungible / A Granel'}
+                  ? 'Vehículo o Maquinaria'
+                  : 'Material o Insumo'}
               </div>
 
               <div>

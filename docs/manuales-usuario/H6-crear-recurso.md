@@ -22,17 +22,17 @@
 1. **Nombre del Recurso (Obligatorio):** Ingrese el nombre descriptivo del recurso (mínimo 3 caracteres, ej. *Sacos de Arena*, *Camioneta Rescate 4x4*, *Motobomba 3 HP*).
    > **Nota:** La validación en tiempo real alertará si el campo está vacío o no cumple con el largo mínimo antes de permitir guardar.
 2. **Descripción u Observaciones (Opcional):** Ingrese detalles adicionales relevantes, condiciones de almacenamiento o notas operativas.
-3. **Naturaleza del Recurso:** Seleccione entre:
-   - **Fungible / A Granel:** Recursos gestionados por volumen o cantidad acumulada (sacos de arena, planchas de zinc, combustible).
-   - **Activo Individual / Serializado:** Unidades físicas únicas e identificables (vehículos, grúas, motobombas).
+3. **Tipo de Recurso:** Seleccione entre:
+   - **Material o Insumo:** Recursos fungibles gestionados por volumen o cantidad (ej. sacos de arena, frazadas, combustible).
+   - **Vehículo o Maquinaria:** Unidades físicas únicas e identificables (ej. camioneta, grúa, motobomba).
 
 ![Formulario inicial de nuevo recurso con estilo institucional](assets/H6-crear-recurso/01-formulario-inicial.png)
 
 ### Paso 2: Control de Inventario y Umbral de Stock
-- **Si seleccionó "Fungible / A Granel":**
+- **Si seleccionó "Material o Insumo":**
   - **Cantidad:** Ingrese la cantidad entera inicial disponible ($\ge 0$). Los campos no admiten el ingreso de letras ni caracteres no numéricos.
   - **Cantidad Mínima:** Ingrese el umbral de alerta (*"Si el stock baja a este valor o menos, pasará automáticamente a estado de alerta (0 desactiva la alerta)"*).
-- **Si seleccionó "Activo Individual / Serializado":**
+- **Si seleccionó "Vehículo o Maquinaria":**
   - La cantidad se fija automáticamente en `1` unidad. El sistema calculará su estado inicial como `DISPONIBLE`.
 
 ### Paso 3: Especificaciones Técnicas (Solo para Activos Individuales)
