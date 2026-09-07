@@ -6,6 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "preview": "next start",
     "lint": "eslint",
     "generate-api-types": "openapi-typescript ${API_SPEC_URL:-http://localhost:3001/openapi.json} -o src/types/api-generated.d.ts"
   },
