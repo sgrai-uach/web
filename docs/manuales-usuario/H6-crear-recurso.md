@@ -29,8 +29,9 @@
 ![Formulario inicial de nuevo recurso con estilo institucional](assets/H6-crear-recurso/01-formulario-inicial.png)
 
 ### Paso 2: Control de Inventario y Umbral de Stock
+- **Sin autocompletado por defecto:** El formulario se presenta en blanco para evitar el registro involuntario de valores por omisión.
 - **Si seleccionó "Material o Insumo":**
-  - **Cantidad:** Ingrese la cantidad entera inicial disponible ($\ge 0$). Los campos no admiten el ingreso de letras ni caracteres no numéricos.
+  - **Cantidad:** Ingrese la cantidad entera inicial disponible ($\ge 0$). El casillero inicia vacío y es obligatorio. Los campos no admiten el ingreso de letras ni caracteres no numéricos.
   - **Cantidad Mínima:** Ingrese el umbral de alerta (*"Si el stock baja a este valor o menos, pasará automáticamente a estado de alerta (0 desactiva la alerta)"*).
 - **Si seleccionó "Vehículo o Maquinaria":**
   - La cantidad se fija automáticamente en `1` unidad. El sistema calculará su estado inicial como `DISPONIBLE`.
@@ -49,24 +50,25 @@ Si marcó el recurso como individual, se habilitará la sección de detalles est
 ![Especificaciones técnicas para vehículos](assets/H6-crear-recurso/04-especificaciones-vehiculo.png)
 
 ### Paso 4: Ubicación Geográfica en Valdivia
-El sistema requiere asociar las coordenadas geográficas de la base, bodega o depósito inicial del recurso:
+El sistema requiere asociar las coordenadas geográficas de la base, bodega o depósito inicial del recurso. Inicialmente, no se preasigna ninguna coordenada (aparece como *"Sin seleccionar"*):
 1. **Mini-mapa Interactivo:**
-   - Puede hacer clic en cualquier sector del mapa comunal de Valdivia para mover el pin de ubicación.
-   - Puede arrastrar el marcador con el ratón hasta la posición exacta.
-2. **Botón "Centrar en Valdivia":** En caso de requerir volver rápidamente a las coordenadas céntricas de la ciudad (`-39.8142, -73.2459`), presione este botón utilitario.
+   - Puede hacer clic en cualquier sector del mapa comunal de Valdivia para colocar el pin en la posición exacta.
+   - Una vez colocado el marcador, puede arrastrarlo para ajustar las coordenadas.
+2. **Botón "Centrar en Valdivia":** Si desea ubicarlo en el centro de la ciudad (`-39.8142, -73.2459`), presione este botón utilitario.
 3. **Entrada Manual:** También puede ingresar directamente los valores numéricos de latitud y longitud en los casilleros correspondientes.
 
 ![Mini-mapa interactivo y selección de ubicación](assets/H6-crear-recurso/02-mapa-coordenadas.png)
 
 ### Paso 5: Revisión y Recuadro de Confirmación
-1. Verifique que el botón **"Guardar Recurso"** esté habilitado en color menta/teal. Si los campos obligatorios tienen errores, el botón permanecerá deshabilitado.
-2. Al presionar **"Guardar Recurso"**, el sistema desplegará un **recuadro de confirmación modal** con un resumen estructurado de los datos:
+1. **Prevención de envíos accidentales:** El formulario desactiva la tecla "Enter" dentro de los campos de texto e inputs numéricos para evitar que se envíe el formulario antes de completar la cantidad y la ubicación.
+2. **Habilitación de guardado:** El botón **"Guardar Recurso"** solo se habilitará en color menta/teal una vez que los campos obligatorios (nombre, cantidad y ubicación geográfica) estén debidamente diligenciados.
+3. **Recuadro de confirmación:** Al presionar **"Guardar Recurso"**, el sistema desplegará un **recuadro modal de confirmación** con un resumen estructurado de los datos:
    - Nombre y descripción del recurso.
-   - Naturaleza y cantidad ingresada.
+   - Tipo de recurso y cantidad ingresada.
    - Umbral de alerta de stock.
    - Especificaciones técnicas cargadas (si es un activo individual).
    - Coordenadas geográficas en Valdivia.
-3. En este recuadro dispondrá de dos acciones:
+4. En este recuadro dispondrá de dos acciones:
    - **"Modificar datos":** Cierra la confirmación y le permite continuar editando cualquier campo del formulario.
    - **"Confirmar y Guardar":** Realiza el envío definitivo a la API del sistema.
 

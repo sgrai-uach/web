@@ -46,23 +46,51 @@ export const recursoFormSchema = z
       .min(3, 'El nombre debe tener al menos 3 caracteres'),
     descripcion: z.string().trim().optional(),
     esIndividual: z.boolean().default(false),
-    cantidadInventario: z.coerce
-      .number({ message: 'Ingresa una cantidad válida' })
-      .int('La cantidad debe ser un número entero')
-      .min(0, 'La cantidad no puede ser negativa'),
-    cantidadMinima: z.coerce
-      .number({ message: 'Ingresa una cantidad mínima válida' })
-      .int('La cantidad mínima debe ser un número entero')
-      .min(0, 'La cantidad mínima no puede ser negativa')
-      .default(0),
-    latitud: z.coerce
-      .number({ message: 'Ingresa una latitud válida' })
-      .min(-90, 'La latitud debe estar entre -90 y 90')
-      .max(90, 'La latitud debe estar entre -90 y 90'),
-    longitud: z.coerce
-      .number({ message: 'Ingresa una longitud válida' })
-      .min(-180, 'La longitud debe estar entre -180 y 180')
-      .max(180, 'La longitud debe estar entre -180 y 180'),
+    cantidadInventario: z.preprocess(
+      (val) => {
+        if (val === '' || val === null || val === undefined) return undefined;
+        const num = typeof val === 'number' ? val : parseInt(String(val), 10);
+        return Number.isNaN(num) ? undefined : num;
+      },
+      z
+        .number({ message: 'La cantidad es obligatoria' })
+        .int('La cantidad debe ser un número entero')
+        .min(0, 'La cantidad no puede ser negativa')
+    ),
+    cantidadMinima: z.preprocess(
+      (val) => {
+        if (val === '' || val === null || val === undefined) return 0;
+        const num = typeof val === 'number' ? val : parseInt(String(val), 10);
+        return Number.isNaN(num) ? 0 : num;
+      },
+      z
+        .number({ message: 'Ingresa una cantidad mínima válida' })
+        .int('La cantidad mínima debe ser un número entero')
+        .min(0, 'La cantidad mínima no puede ser negativa')
+        .default(0)
+    ),
+    latitud: z.preprocess(
+      (val) => {
+        if (val === '' || val === null || val === undefined) return undefined;
+        const num = typeof val === 'number' ? val : parseFloat(String(val));
+        return Number.isNaN(num) ? undefined : num;
+      },
+      z
+        .number({ message: 'La ubicación (latitud) es obligatoria' })
+        .min(-90, 'La latitud debe estar entre -90 y 90')
+        .max(90, 'La latitud debe estar entre -90 y 90')
+    ),
+    longitud: z.preprocess(
+      (val) => {
+        if (val === '' || val === null || val === undefined) return undefined;
+        const num = typeof val === 'number' ? val : parseFloat(String(val));
+        return Number.isNaN(num) ? undefined : num;
+      },
+      z
+        .number({ message: 'La ubicación (longitud) es obligatoria' })
+        .min(-180, 'La longitud debe estar entre -180 y 180')
+        .max(180, 'La longitud debe estar entre -180 y 180')
+    ),
     detalles: recursoDetallesSchema.optional(),
   })
   .superRefine((data, ctx) => {

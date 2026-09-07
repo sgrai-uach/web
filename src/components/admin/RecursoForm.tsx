@@ -46,8 +46,8 @@ interface FormState {
   esIndividual: boolean;
   cantidadInventario: number | string;
   cantidadMinima: number | string;
-  latitud: number;
-  longitud: number;
+  latitud: number | string;
+  longitud: number | string;
   subtipoDetalle: SubtipoDetalle;
   detalles: {
     patente: string;
@@ -73,10 +73,10 @@ const initialFormState: FormState = {
   nombre: '',
   descripcion: '',
   esIndividual: false,
-  cantidadInventario: 1,
-  cantidadMinima: 0,
-  latitud: DEFAULT_VALDIVIA_LAT,
-  longitud: DEFAULT_VALDIVIA_LNG,
+  cantidadInventario: '',
+  cantidadMinima: '',
+  latitud: '',
+  longitud: '',
   subtipoDetalle: 'GENERAL' as SubtipoDetalle,
   detalles: {
     patente: '',
@@ -329,6 +329,13 @@ export default function RecursoForm() {
   return (
     <form
       onSubmit={handleOpenConfirmModal}
+      onKeyDown={(e) => {
+        // Evitar que presionar Enter dentro de un input envíe el formulario accidentalmente
+        if (e.key === 'Enter' && (e.target as HTMLElement).tagName !== 'TEXTAREA') {
+          e.preventDefault();
+        }
+      }}
+      autoComplete="off"
       noValidate
       style={{
         backgroundColor: '#FFFFFF',
@@ -389,6 +396,7 @@ export default function RecursoForm() {
             id="nombre"
             type="text"
             required
+            autoComplete="off"
             value={formData.nombre}
             onChange={(e) => setFormData((prev) => ({ ...prev, nombre: e.target.value }))}
             onBlur={() => handleBlur('nombre')}
@@ -469,7 +477,7 @@ export default function RecursoForm() {
                   setFormData((prev) => ({
                     ...prev,
                     esIndividual: false,
-                    cantidadInventario: prev.cantidadInventario === 1 ? 50 : prev.cantidadInventario,
+                    cantidadInventario: prev.cantidadInventario === 1 ? '' : prev.cantidadInventario,
                   }))
                 }
                 style={{ accentColor: '#1B6F7D', cursor: 'pointer' }}
@@ -549,6 +557,7 @@ export default function RecursoForm() {
                 inputMode="numeric"
                 pattern="[0-9]*"
                 required
+                autoComplete="off"
                 value={formData.cantidadInventario}
                 onKeyDown={handleIntegerKeyDown}
                 onChange={(e) => {
@@ -559,6 +568,7 @@ export default function RecursoForm() {
                   }));
                 }}
                 onBlur={() => handleBlur('cantidadInventario')}
+                placeholder="Ej. 50"
                 style={{
                   padding: '10px 12px',
                   fontSize: '14px',
@@ -586,6 +596,7 @@ export default function RecursoForm() {
                 type="text"
                 inputMode="numeric"
                 pattern="[0-9]*"
+                autoComplete="off"
                 value={formData.cantidadMinima}
                 onKeyDown={handleIntegerKeyDown}
                 onChange={(e) => {
@@ -596,6 +607,7 @@ export default function RecursoForm() {
                   }));
                 }}
                 onBlur={() => handleBlur('cantidadMinima')}
+                placeholder="Ej. 10 (0 para desactivar)"
                 style={{
                   padding: '10px 12px',
                   fontSize: '14px',
@@ -1077,19 +1089,24 @@ export default function RecursoForm() {
               type="number"
               step="0.000001"
               required
+              autoComplete="off"
               value={formData.latitud}
               onChange={(e) =>
                 setFormData((prev) => ({
                   ...prev,
-                  latitud: parseFloat(e.target.value) || 0,
+                  latitud: e.target.value,
                 }))
               }
               onBlur={() => handleBlur('latitud')}
+              placeholder="Ej. -39.814200"
               style={{
                 padding: '8px 10px',
                 fontSize: '14px',
                 border: touched.latitud && clientErrors.latitud ? '2px solid #C81E1E' : '1px solid #3B3F45',
                 borderRadius: 0,
+                outline: 'none',
+                backgroundColor: '#FFFFFF',
+                color: '#2B2B2B',
               }}
             />
             {touched.latitud && clientErrors.latitud && (
@@ -1106,19 +1123,24 @@ export default function RecursoForm() {
               type="number"
               step="0.000001"
               required
+              autoComplete="off"
               value={formData.longitud}
               onChange={(e) =>
                 setFormData((prev) => ({
                   ...prev,
-                  longitud: parseFloat(e.target.value) || 0,
+                  longitud: e.target.value,
                 }))
               }
               onBlur={() => handleBlur('longitud')}
+              placeholder="Ej. -73.245900"
               style={{
                 padding: '8px 10px',
                 fontSize: '14px',
                 border: touched.longitud && clientErrors.longitud ? '2px solid #C81E1E' : '1px solid #3B3F45',
                 borderRadius: 0,
+                outline: 'none',
+                backgroundColor: '#FFFFFF',
+                color: '#2B2B2B',
               }}
             />
             {touched.longitud && clientErrors.longitud && (
@@ -1313,7 +1335,7 @@ export default function RecursoForm() {
                 }}
               >
                 <strong style={{ color: '#14505A' }}>Ubicación Geográfica:</strong>{' '}
-                Latitud: {formData.latitud.toFixed(6)}, Longitud: {formData.longitud.toFixed(6)}
+                Latitud: {Number(formData.latitud).toFixed(6)}, Longitud: {Number(formData.longitud).toFixed(6)}
               </div>
             </div>
 
