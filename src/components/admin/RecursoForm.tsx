@@ -107,6 +107,33 @@ export default function RecursoForm() {
   const [serverFieldErrors, setServerFieldErrors] = useState<Record<string, string>>({});
   const [createdResourceName, setCreatedResourceName] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+
+  // Helper para bloquear teclas no numéricas (letras, e, E, +, -, etc.) en campos de cantidad
+  const handleIntegerKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (
+      [
+        'Backspace',
+        'Tab',
+        'Enter',
+        'Delete',
+        'ArrowLeft',
+        'ArrowRight',
+        'ArrowUp',
+        'ArrowDown',
+        'Home',
+        'End',
+      ].includes(e.key) ||
+      e.ctrlKey ||
+      e.metaKey
+    ) {
+      return;
+    }
+    // Bloquear cualquier carácter que no sea dígito numérico 0-9
+    if (!/^[0-9]$/.test(e.key)) {
+      e.preventDefault();
+    }
+  };
 
   // Validación reactiva en tiempo real con Zod
   const validationResult = useMemo(() => {
@@ -176,7 +203,8 @@ export default function RecursoForm() {
     });
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  // Abrir recuadro de confirmación antes del guardado definitivo
+  const handleOpenConfirmModal = (e: React.FormEvent) => {
     e.preventDefault();
 
     // Marcar campos como tocados
@@ -188,6 +216,15 @@ export default function RecursoForm() {
       longitud: true,
     });
 
+    if (!isValid || isSubmitting) {
+      return;
+    }
+
+    setShowConfirmModal(true);
+  };
+
+  // Guardado definitivo tras confirmar en el recuadro
+  const handleConfirmSave = async () => {
     if (!isValid || isSubmitting) {
       return;
     }
@@ -236,9 +273,11 @@ export default function RecursoForm() {
       });
 
       if (response.status === 201 && data) {
+        setShowConfirmModal(false);
         setCreatedResourceName(payload.nombre);
       } else if (error) {
-        // En caso de error, NO borramos los datos ingresados (Criterio 5)
+        // En caso de error, cerramos el modal pero NO borramos los datos ingresados (Criterio 5)
+        setShowConfirmModal(false);
         const errorData = error as { message?: string; errors?: Array<{ campo?: string; mensaje: string }> };
         setServerError(errorData.message || 'Ocurrió un error al registrar el recurso.');
         if (Array.isArray(errorData.errors)) {
@@ -251,10 +290,12 @@ export default function RecursoForm() {
           setServerFieldErrors(fieldErrs);
         }
       } else {
+        setShowConfirmModal(false);
         setServerError('No fue posible completar la creación del recurso. Intente nuevamente.');
       }
     } catch (err: unknown) {
-      // Error de conexión o red: NO borrar datos del formulario (Criterio 5)
+      // Error de conexión o red: cerramos modal y NO borramos datos del formulario (Criterio 5)
+      setShowConfirmModal(false);
       setServerError(
         err instanceof Error
           ? `Error de red: ${err.message}`
@@ -271,6 +312,7 @@ export default function RecursoForm() {
     setServerError(null);
     setServerFieldErrors({});
     setCreatedResourceName(null);
+    setShowConfirmModal(false);
   };
 
   // Si ya se creó exitosamente, mostramos la tarjeta de éxito con las acciones
@@ -286,7 +328,7 @@ export default function RecursoForm() {
 
   return (
     <form
-      onSubmit={handleSubmit}
+      onSubmit={handleOpenConfirmModal}
       noValidate
       style={{
         backgroundColor: '#FFFFFF',
@@ -499,21 +541,23 @@ export default function RecursoForm() {
             {/* Cantidad Inicial */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
               <label htmlFor="cantidadInventario" style={{ fontSize: '14px', fontWeight: 600, color: '#2B2B2B' }}>
-                Cantidad en Inventario <span style={{ color: '#C81E1E' }}>*</span>
+                Cantidad <span style={{ color: '#C81E1E' }}>*</span>
               </label>
               <input
                 id="cantidadInventario"
-                type="number"
-                min="0"
-                step="1"
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
                 required
                 value={formData.cantidadInventario}
-                onChange={(e) =>
+                onKeyDown={handleIntegerKeyDown}
+                onChange={(e) => {
+                  const digitsOnly = e.target.value.replace(/\D/g, '');
                   setFormData((prev) => ({
                     ...prev,
-                    cantidadInventario: e.target.value === '' ? '' : parseInt(e.target.value, 10),
-                  }))
-                }
+                    cantidadInventario: digitsOnly === '' ? '' : parseInt(digitsOnly, 10),
+                  }));
+                }}
                 onBlur={() => handleBlur('cantidadInventario')}
                 style={{
                   padding: '10px 12px',
@@ -539,16 +583,18 @@ export default function RecursoForm() {
               </label>
               <input
                 id="cantidadMinima"
-                type="number"
-                min="0"
-                step="1"
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
                 value={formData.cantidadMinima}
-                onChange={(e) =>
+                onKeyDown={handleIntegerKeyDown}
+                onChange={(e) => {
+                  const digitsOnly = e.target.value.replace(/\D/g, '');
                   setFormData((prev) => ({
                     ...prev,
-                    cantidadMinima: e.target.value === '' ? '' : parseInt(e.target.value, 10),
-                  }))
-                }
+                    cantidadMinima: digitsOnly === '' ? '' : parseInt(digitsOnly, 10),
+                  }));
+                }}
                 onBlur={() => handleBlur('cantidadMinima')}
                 style={{
                   padding: '10px 12px',
@@ -559,7 +605,7 @@ export default function RecursoForm() {
                 }}
               />
               <span style={{ fontSize: '11px', color: '#3B3F45' }}>
-                Si el stock baja a este valor o menos, pasará automáticamente a estado &ldquo;BAJO_STOCK&rdquo;. (0 desactiva la alerta).
+                Si el stock baja a este valor o menos, pasará automáticamente a estado de alerta (0 desactiva la alerta).
               </span>
             </div>
           </div>
@@ -1137,6 +1183,193 @@ export default function RecursoForm() {
           {isSubmitting ? 'Guardando Recurso...' : 'Guardar Recurso'}
         </button>
       </div>
+
+      {/* Recuadro Modal de Confirmación antes de ingresar definitivamente el recurso */}
+      {showConfirmModal && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(20, 80, 90, 0.6)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 9999,
+            padding: '16px',
+          }}
+        >
+          <div
+            style={{
+              backgroundColor: '#FFFFFF',
+              border: '2px solid #14505A',
+              maxWidth: '600px',
+              width: '100%',
+              padding: '28px',
+              boxShadow: '0 8px 30px rgba(0,0,0,0.3)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '20px',
+              maxHeight: '90vh',
+              overflowY: 'auto',
+            }}
+          >
+            {/* Encabezado del Recuadro de Confirmación */}
+            <div style={{ borderBottom: '2px solid #1B6F7D', paddingBottom: '12px' }}>
+              <h3 style={{ margin: 0, fontSize: '20px', fontWeight: 800, color: '#14505A' }}>
+                Confirmar Registro de Recurso
+              </h3>
+              <p style={{ margin: '6px 0 0 0', fontSize: '13px', color: '#3B3F45' }}>
+                Revisa el resumen antes de ingresar definitivamente el recurso al inventario logístico municipal.
+              </p>
+            </div>
+
+            {/* Resumen Estructurado del Recurso */}
+            <div
+              style={{
+                backgroundColor: '#ECEFF3',
+                padding: '18px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '12px',
+                fontSize: '14px',
+                color: '#2B2B2B',
+              }}
+            >
+              <div>
+                <strong style={{ color: '#14505A' }}>Nombre del Recurso:</strong> {formData.nombre}
+              </div>
+
+              {formData.descripcion && (
+                <div>
+                  <strong style={{ color: '#14505A' }}>Descripción:</strong> {formData.descripcion}
+                </div>
+              )}
+
+              <div>
+                <strong style={{ color: '#14505A' }}>Naturaleza:</strong>{' '}
+                {formData.esIndividual
+                  ? 'Activo Individual / Serializado'
+                  : 'Fungible / A Granel'}
+              </div>
+
+              <div>
+                <strong style={{ color: '#14505A' }}>Cantidad:</strong>{' '}
+                {formData.esIndividual
+                  ? '1 unidad'
+                  : `${formData.cantidadInventario} unidades`}
+              </div>
+
+              {!formData.esIndividual && (
+                <div>
+                  <strong style={{ color: '#14505A' }}>Umbral de Alerta:</strong>{' '}
+                  {Number(formData.cantidadMinima) > 0
+                    ? `${formData.cantidadMinima} unidades`
+                    : 'Alerta desactivada (0)'}
+                </div>
+              )}
+
+              {formData.esIndividual && (
+                <div
+                  style={{
+                    borderTop: '1px solid #D5DCE4',
+                    paddingTop: '10px',
+                    marginTop: '4px',
+                  }}
+                >
+                  <strong style={{ color: '#14505A' }}>
+                    Especificaciones ({formData.subtipoDetalle}):
+                  </strong>
+                  <ul style={{ margin: '6px 0 0 20px', fontSize: '13px', padding: 0 }}>
+                    {formData.detalles.patente && <li>Patente: {formData.detalles.patente}</li>}
+                    {formData.detalles.numeroSerie && <li>Nº Serie: {formData.detalles.numeroSerie}</li>}
+                    {formData.detalles.marca && <li>Marca: {formData.detalles.marca}</li>}
+                    {formData.detalles.modelo && <li>Modelo: {formData.detalles.modelo}</li>}
+                    {formData.detalles.anio && <li>Año: {formData.detalles.anio}</li>}
+                    {formData.detalles.kilometraje && <li>Kilometraje: {formData.detalles.kilometraje} km</li>}
+                    {formData.detalles.tipoCombustible && <li>Combustible: {formData.detalles.tipoCombustible}</li>}
+                    {formData.detalles.capacidadPasajeros && <li>Pasajeros: {formData.detalles.capacidadPasajeros}</li>}
+                    {formData.detalles.numeroChasis && <li>Chasis/VIN: {formData.detalles.numeroChasis}</li>}
+                    {formData.detalles.capacidadCargaKg && <li>Carga: {formData.detalles.capacidadCargaKg} kg</li>}
+                    {formData.detalles.alcanceMaximoMetros && <li>Alcance: {formData.detalles.alcanceMaximoMetros} m</li>}
+                    {formData.detalles.tipoGrua && <li>Tipo Grúa: {formData.detalles.tipoGrua}</li>}
+                    {formData.detalles.horometro && <li>Horómetro: {formData.detalles.horometro} hrs</li>}
+                    {formData.detalles.caudalMaximoLpm && <li>Caudal: {formData.detalles.caudalMaximoLpm} L/min</li>}
+                    {formData.detalles.diametroPulgadas && <li>Diámetro: {formData.detalles.diametroPulgadas}&quot;</li>}
+                    {formData.detalles.potenciaHp && <li>Potencia: {formData.detalles.potenciaHp} HP</li>}
+                  </ul>
+                </div>
+              )}
+
+              <div
+                style={{
+                  borderTop: '1px solid #D5DCE4',
+                  paddingTop: '10px',
+                  marginTop: '4px',
+                }}
+              >
+                <strong style={{ color: '#14505A' }}>Ubicación Geográfica:</strong>{' '}
+                Latitud: {formData.latitud.toFixed(6)}, Longitud: {formData.longitud.toFixed(6)}
+              </div>
+            </div>
+
+            {/* Acciones de Confirmación */}
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'flex-end',
+                gap: '12px',
+                alignItems: 'center',
+                flexWrap: 'wrap',
+              }}
+            >
+              <button
+                type="button"
+                onClick={() => setShowConfirmModal(false)}
+                disabled={isSubmitting}
+                style={{
+                  backgroundColor: '#3B3F45',
+                  color: '#FFFFFF',
+                  border: 'none',
+                  borderRadius: 0,
+                  padding: '12px 20px',
+                  fontSize: '14px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  height: '44px',
+                  boxSizing: 'border-box',
+                }}
+              >
+                Modificar datos
+              </button>
+
+              <button
+                type="button"
+                onClick={handleConfirmSave}
+                disabled={isSubmitting}
+                style={{
+                  backgroundColor: isSubmitting ? '#ECEFF3' : '#4FAE9B',
+                  color: isSubmitting ? '#3B3F45' : '#FFFFFF',
+                  border: 'none',
+                  borderRadius: 0,
+                  padding: '12px 28px',
+                  fontSize: '14px',
+                  fontWeight: 700,
+                  cursor: isSubmitting ? 'not-allowed' : 'pointer',
+                  height: '44px',
+                  boxSizing: 'border-box',
+                }}
+              >
+                {isSubmitting ? 'Ingresando Recurso...' : 'Confirmar y Guardar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </form>
   );
 }
