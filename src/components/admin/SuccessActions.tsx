@@ -113,79 +113,51 @@ export default function SuccessActions({
         }}
       >
         {/* Botón Volver al listado con cuenta regresiva y barra inversa */}
-        <div
+        <button
+          type="button"
+          onClick={handleManualGoToList}
           onMouseEnter={handleMouseEnter}
-          style={{ position: 'relative', display: 'inline-block' }}
+          style={{
+            position: 'relative',
+            overflow: 'hidden',
+            backgroundColor: '#1B6F7D',
+            color: '#FFFFFF',
+            border: 'none',
+            borderRadius: 0,
+            padding: '12px 24px',
+            fontSize: '14px',
+            fontWeight: 600,
+            cursor: 'pointer',
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            minWidth: '220px',
+            height: '44px',
+            boxSizing: 'border-box',
+          }}
         >
-          <button
-            type="button"
-            onClick={handleManualGoToList}
-            style={{
-              position: 'relative',
-              overflow: 'hidden',
-              backgroundColor: '#1B6F7D',
-              color: '#FFFFFF',
-              border: 'none',
-              borderRadius: 0,
-              padding: '12px 24px',
-              fontSize: '14px',
-              fontWeight: 600,
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              minWidth: '240px',
-              justifyContent: 'center',
-            }}
-          >
-            {/* Barra de progreso inversa animada en el fondo del botón */}
-            {!isCancelled && (
-              <span
-                style={{
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  bottom: 0,
-                  width: `${progressPercent}%`,
-                  backgroundColor: '#14505A',
-                  opacity: 0.6,
-                  transition: 'width 50ms linear',
-                  zIndex: 0,
-                }}
-              />
-            )}
-            <span style={{ position: 'relative', zIndex: 1 }}>
-              {isCancelled
-                ? 'Volver al listado'
-                : `Volver al listado (${secondsRemaining}s)`}
-            </span>
-          </button>
+          {/* Barra de progreso inversa animada en el fondo del botón */}
           {!isCancelled && (
             <span
               style={{
-                display: 'block',
-                fontSize: '11px',
-                color: '#3B3F45',
-                marginTop: '4px',
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                bottom: 0,
+                width: `${progressPercent}%`,
+                backgroundColor: '#14505A',
+                opacity: 0.6,
+                transition: 'width 50ms linear',
+                zIndex: 0,
               }}
-            >
-              Pasa el cursor para pausar la redirección automática
-            </span>
+            />
           )}
-          {isCancelled && (
-            <span
-              style={{
-                display: 'block',
-                fontSize: '11px',
-                color: '#1B6F7D',
-                marginTop: '4px',
-                fontWeight: 600,
-              }}
-            >
-              Redirección automática pausada
-            </span>
-          )}
-        </div>
+          <span style={{ position: 'relative', zIndex: 1 }}>
+            {isCancelled
+              ? 'Volver al listado'
+              : `Volver al listado (${secondsRemaining}s)`}
+          </span>
+        </button>
 
         {/* Botón Crear otro recurso */}
         <button
@@ -200,6 +172,11 @@ export default function SuccessActions({
             fontSize: '14px',
             fontWeight: 600,
             cursor: 'pointer',
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            height: '44px',
+            boxSizing: 'border-box',
           }}
         >
           + Crear otro recurso
