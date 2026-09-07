@@ -30,8 +30,8 @@
 
 ### Paso 2: Control de Inventario y Umbral de Stock
 - **Si seleccionó "Fungible / A Granel":**
-  - **Cantidad en Inventario:** Ingrese la cantidad entera inicial disponible ($\ge 0$).
-  - **Cantidad Mínima:** Ingrese el umbral de alerta. Si las existencias caen a este número o menos, el sistema marcará automáticamente el recurso en estado `BAJO_STOCK`. Si ingresa `0`, la alerta se desactiva.
+  - **Cantidad:** Ingrese la cantidad entera inicial disponible ($\ge 0$). Los campos no admiten el ingreso de letras ni caracteres no numéricos.
+  - **Cantidad Mínima:** Ingrese el umbral de alerta (*"Si el stock baja a este valor o menos, pasará automáticamente a estado de alerta (0 desactiva la alerta)"*).
 - **Si seleccionó "Activo Individual / Serializado":**
   - La cantidad se fija automáticamente en `1` unidad. El sistema calculará su estado inicial como `DISPONIBLE`.
 
@@ -58,15 +58,23 @@ El sistema requiere asociar las coordenadas geográficas de la base, bodega o de
 
 ![Mini-mapa interactivo y selección de ubicación](assets/H6-crear-recurso/02-mapa-coordenadas.png)
 
-### Paso 5: Guardado del Recurso
+### Paso 5: Revisión y Recuadro de Confirmación
 1. Verifique que el botón **"Guardar Recurso"** esté habilitado en color menta/teal. Si los campos obligatorios tienen errores, el botón permanecerá deshabilitado.
-2. Presione **"Guardar Recurso"**. El botón mostrará el estado *"Guardando Recurso..."* mientras se procesa la solicitud asíncrona.
+2. Al presionar **"Guardar Recurso"**, el sistema desplegará un **recuadro de confirmación modal** con un resumen estructurado de los datos:
+   - Nombre y descripción del recurso.
+   - Naturaleza y cantidad ingresada.
+   - Umbral de alerta de stock.
+   - Especificaciones técnicas cargadas (si es un activo individual).
+   - Coordenadas geográficas en Valdivia.
+3. En este recuadro dispondrá de dos acciones:
+   - **"Modificar datos":** Cierra la confirmación y le permite continuar editando cualquier campo del formulario.
+   - **"Confirmar y Guardar":** Realiza el envío definitivo a la API del sistema.
 
-### Paso 6: Confirmación y Acciones Posteriores
+### Paso 6: Confirmación Final y Acciones Posteriores
 Al crearse el recurso exitosamente, aparecerá un recuadro verde de confirmación con el mensaje:
 > **"Recurso creado exitosamente"** — *El recurso "[Nombre]" ha sido registrado en el inventario logístico municipal.*
 
-Se desplegarán dos acciones:
+Se desplegarán dos botones alineados verticalmente:
 - **Botón "Volver al listado (5s)":**
   - Posee una cuenta regresiva de 5 segundos con una barra de progreso inversa en su fondo.
   - Al completarse el tiempo, redirige automáticamente a `/recursos`.
