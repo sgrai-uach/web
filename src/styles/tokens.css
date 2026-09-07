@@ -1,0 +1,24 @@
+/* ==========================================================================
+   Tokens de diseño — Paleta institucional Municipalidad de Valdivia
+   Referencia: GEMINI.md § 3 (Guía visual)
+   ========================================================================== */
+
+:root {
+  /* --- Colores primarios --- */
+  --color-primary-teal: #1B6F7D;
+  --color-primary-teal-dark: #14505A;
+
+  /* --- Colores de acento --- */
+  --color-accent-mint: #4FAE9B;
+  --color-sage: #A9CBA4;
+
+  /* --- Neutros --- */
+  --color-charcoal: #3B3F45;
+  --color-charcoal-dark: #24272B;
+  --color-bg-light: #ECEFF3;
+  --color-white: #FFFFFF;
+
+  /* --- Texto --- */
+  --color-text-dark: #2B2B2B;
+  --color-text-light: #FFFFFF;
+}
