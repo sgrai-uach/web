@@ -27,6 +27,7 @@ function CallCenterContent() {
   // Estados de datos
   const [avisos, setAvisos] = useState<AvisoItem[]>([]);
   const [cargando, setCargando] = useState(true);
+  const [refrescando, setRefrescando] = useState(false);
   const [paginaActual, setPaginaActual] = useState(1);
   const [limite, setLimite] = useState(20);
   const [totalItems, setTotalItems] = useState(0);
@@ -70,6 +71,13 @@ function CallCenterContent() {
     },
     [paginaActual, limite, showError]
   );
+
+  // Handler para refresco manual del botón
+  const handleRefrescarManual = useCallback(async () => {
+    setRefrescando(true);
+    await cargarAvisos(true);
+    setRefrescando(false);
+  }, [cargarAvisos]);
 
   // Carga inicial y por cambio de página
   useEffect(() => {
@@ -257,8 +265,8 @@ function CallCenterContent() {
           onFiltroOrigenChange={setFiltroOrigen}
           filtroSemaforo={filtroSemaforo}
           onFiltroSemaforoChange={setFiltroSemaforo}
-          onRefrescar={() => cargarAvisos()}
-          cargando={cargando}
+          onRefrescar={handleRefrescarManual}
+          cargando={refrescando}
         />
 
         {/* Tabla Paginada con Semáforo */}

@@ -289,7 +289,10 @@ export default function AvisosTable({
                     </td>
 
                     {/* Fecha y Hora */}
-                    <td style={{ padding: '0.875rem 1rem', fontSize: '0.8125rem', color: '#555' }}>
+                    <td
+                      style={{ padding: '0.875rem 1rem', fontSize: '0.8125rem', color: '#555' }}
+                      suppressHydrationWarning
+                    >
                       {formatearFechaHora(aviso.creadoEn)}
                     </td>
 

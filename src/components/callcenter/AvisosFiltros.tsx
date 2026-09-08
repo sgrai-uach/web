@@ -120,6 +120,7 @@ export default function AvisosFiltros({
           type="button"
           onClick={onRefrescar}
           disabled={cargando}
+          suppressHydrationWarning
           style={{
             backgroundColor: 'var(--color-charcoal, #3B3F45)',
             color: '#FFFFFF',
