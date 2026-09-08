@@ -4,9 +4,10 @@ version: "3.8"
 
 services:
   grupo1_frontend:
-    image: ghcr.io/sgrai-uach/web:latest
+    image: ghcr.io/sgrai-uach/web:${IMAGE_TAG:-develop}
     container_name: grupo1_frontend
     restart: unless-stopped
+    pull_policy: always
     env_file: .env
     networks:
       - red_taller_software
