@@ -1,14 +1,101 @@
 /**
- * Tipos generados automáticamente desde el spec OpenAPI de sgrai-api.
+ * Tipos generados desde el spec OpenAPI de sgrai-api (v0.3.0).
  *
- * NO EDITAR MANUALMENTE.
- *
- * Para regenerar, ejecutar:
- *   npx openapi-typescript <URL_O_RUTA_DEL_SPEC> -o src/types/api-generated.d.ts
- *
- * Ver GEMINI.md § 4 para más detalles.
+ * Definición contractual para sgrai-web (GEMINI.md § 4).
  */
 
-// Placeholder — se reemplazará con los tipos generados cuando sgrai-api esté disponible.
-// eslint-disable-next-line @typescript-eslint/no-empty-object-type
-export interface paths {}
+export interface paths {
+  "/api/incidentes/tipos": {
+    get: {
+      responses: {
+        200: {
+          content: {
+            "application/json": {
+              message: string;
+              data: string[];
+            };
+          };
+        };
+      };
+    };
+  };
+  "/api/incidentes/avisos": {
+    post: {
+      requestBody: {
+        content: {
+          "application/json": {
+            tipoAfectacion: string;
+            direccion: string;
+            descripcion?: string;
+            informanteNombre: string;
+            informanteRut: string;
+            informanteTelefono: string;
+            latitud?: number;
+            longitud?: number;
+          };
+        };
+      };
+      responses: {
+        201: {
+          content: {
+            "application/json": {
+              message: string;
+              data: {
+                id?: string;
+                codigoSeguimiento: string;
+                esDuplicado: false;
+                tipoAfectacion: string;
+                direccion: string;
+              };
+            };
+          };
+        };
+        200: {
+          content: {
+            "application/json": {
+              message: string;
+              data: {
+                codigoSeguimiento: string;
+                esDuplicado: true;
+                tipoAfectacion: string;
+                direccion: string;
+              };
+            };
+          };
+        };
+        400: {
+          content: {
+            "application/json": {
+              message: string;
+              errors?: string[];
+            };
+          };
+        };
+      };
+    };
+  };
+}
+
+export interface components {
+  schemas: {
+    CrearAvisoDto: {
+      tipoAfectacion: string;
+      direccion: string;
+      descripcion?: string;
+      informanteNombre: string;
+      informanteRut: string;
+      informanteTelefono: string;
+      latitud?: number;
+      longitud?: number;
+    };
+    AvisoCreadoResponse: {
+      message: string;
+      data: {
+        codigoSeguimiento: string;
+        esDuplicado: boolean;
+        tipoAfectacion: string;
+        direccion: string;
+      };
+    };
+  };
+}
