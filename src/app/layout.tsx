@@ -7,7 +7,11 @@ export const metadata: Metadata = {
     "Sistema de Gestión de Recursos para Atención de Incidentes, Dirección de Gestión de Riesgos de Desastres, Municipalidad de Valdivia.",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
   return (
     <html lang="es">
       <body>{children}</body>
