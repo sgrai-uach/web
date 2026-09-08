@@ -3,6 +3,7 @@ name: Construir y publicar imágenes de sgrai-web
 on:
   push:
     branches: [develop]
+  workflow_dispatch: # Permite ejecutar manualmente el flujo desde la interfaz de GitHub
 
 jobs:
   build:
