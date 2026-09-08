@@ -8,4 +8,5 @@ services:
     environment:
       - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost:3001}
       - NEXT_PUBLIC_SOCKET_URL=${NEXT_PUBLIC_SOCKET_URL:-http://localhost:3001}
+      - NEXT_PUBLIC_EMERGENCY_PHONE=${NEXT_PUBLIC_EMERGENCY_PHONE:-1451}
     restart: unless-stopped
