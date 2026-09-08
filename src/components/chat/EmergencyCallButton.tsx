@@ -10,11 +10,11 @@ export const EmergencyCallButton: React.FC = () => {
     <a
       href={`tel:${telefonoEmergencia}`}
       className={styles.emergencyButton}
-      title="Llamar a Emergencias Municipales ante riesgo vital"
-      aria-label={`Llamada directa de emergencia al número ${telefonoEmergencia}`}
+      title={`Llamar a Call Center de Emergencias (${telefonoEmergencia})`}
+      aria-label={`Llamada directa al Call Center de Emergencias al número ${telefonoEmergencia}`}
     >
+      <span>Call Center</span>
       <span className={styles.emergencyIcon} aria-hidden="true">📞</span>
-      <span>Emergencia {telefonoEmergencia} (Riesgo Vital)</span>
     </a>
   );
 };

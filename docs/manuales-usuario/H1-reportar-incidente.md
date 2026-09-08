@@ -109,9 +109,9 @@ Si en tu sector ya se había registrado un incidente del mismo tipo dentro de la
 
 ## 3. Casos Especiales y Funcionalidades de Seguridad
 
-### Botón de Emergencia Telefónica (Riesgo Vital)
-- En la esquina inferior derecha de la pantalla encontrarás siempre visible un botón rojo destacado con el texto **"📞 Emergencia 1451 (Riesgo Vital)"**.
-- Si te encuentras ante una situación de peligro inminente para la vida de las personas, pulsa este botón para iniciar una llamada telefónica directa con la central de emergencias municipal.
+### Botón de Emergencia Telefónica (Call Center)
+- En la esquina superior derecha de la barra superior encontrarás siempre visible un botón destacado con el texto **"Call Center 📞"**.
+- Si te encuentras ante una situación de peligro inminente para la vida de las personas o requieres asistencia de emergencia inmediata, pulsa este botón para iniciar una llamada telefónica directa con el Call Center de emergencias municipal (1451).
 
 ### Persistencia del Borrador ante Cortes de Conexión
 - Si pierdes la conexión a internet o recargas accidentalmente la página mientras completas las preguntas, tus respuestas se mantendrán guardadas en tu navegador para que no tengas que escribir todo de nuevo.

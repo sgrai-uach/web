@@ -38,7 +38,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
         }`}
       >
         <div className={styles.messageSender}>
-          {esBot ? 'DGRD Valdivia' : 'Tú'}
+          {esBot ? 'Asistente virtual DGRD' : 'Tú'}
         </div>
         <div style={{ whiteSpace: 'pre-wrap' }}>{mensaje.contenido}</div>
 

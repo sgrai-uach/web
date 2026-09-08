@@ -60,7 +60,7 @@ function getMensajesIniciales(tipos = TIPOS_AFECTACION_DEFAULT): MensajeChat[] {
       id: 'msg-bienvenida-1',
       remitente: 'bot',
       contenido:
-        'Hola, soy el asistente virtual de la Dirección de Gestión de Riesgos de Desastres (DGRD) de la Municipalidad de Valdivia. Te guiaré paso a paso para reportar un incidente de forma rápida.',
+        'Hola, soy el Asistente virtual DGRD de la Municipalidad de Valdivia. Te guiaré paso a paso para reportar un incidente de forma rápida.',
       tipo: 'texto',
       timestamp: 1,
     },

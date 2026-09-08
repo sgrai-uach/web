@@ -31,19 +31,19 @@ export const ChatContainer: React.FC = () => {
       {/* Cabecera Institucional */}
       <header className={styles.header}>
         <div className={styles.headerBrand}>
-          <div className={styles.headerLogoBadge}>VALDIVIA</div>
           <div>
-            <h1 className={styles.headerTitle}>Portal Informante — Reporte de Incidentes</h1>
+            <h1 className={styles.headerTitle}>Asistente virtual DGRD</h1>
             <p className={styles.headerSubtitle}>
-              Dirección de Gestión de Riesgos de Desastres (DGRD)
+              Reporte de Incidentes — Dirección de Gestión de Riesgos de Desastres
             </p>
           </div>
         </div>
+        <EmergencyCallButton />
       </header>
 
       {/* Cuerpo Principal del Chatbot */}
       <main className={styles.chatMain}>
-        <section className={styles.chatWrapper} aria-label="Asistente conversacional de incidentes">
+        <section className={styles.chatWrapper} aria-label="Asistente virtual DGRD">
           <div className={styles.messagesList} role="log" aria-live="polite">
             {mensajes.map((msg, index) => {
               const esUltimo = index === mensajes.length - 1;
@@ -70,7 +70,7 @@ export const ChatContainer: React.FC = () => {
             {isBotTyping && (
               <div className={`${styles.messageRow} ${styles.messageRowBot}`}>
                 <div className={`${styles.bubble} ${styles.bubbleBot}`}>
-                  <div className={styles.messageSender}>DGRD Valdivia</div>
+                  <div className={styles.messageSender}>Asistente virtual DGRD</div>
                   <div className={styles.typingIndicator} aria-label="El asistente está escribiendo">
                     <span className={styles.typingDot} />
                     <span className={styles.typingDot} />
@@ -92,9 +92,6 @@ export const ChatContainer: React.FC = () => {
           />
         </section>
       </main>
-
-      {/* Botón flotante persistente de emergencia */}
-      <EmergencyCallButton />
     </div>
   );
 };
