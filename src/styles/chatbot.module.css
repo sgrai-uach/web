@@ -1,0 +1,529 @@
+/* ==========================================================================
+   Estilos Chatbot Conversacional — Portal Informante (H1)
+   Referencia visual: GEMINI.md § 3 (Bordes rectos, paleta institucional Valdivia)
+   ========================================================================== */
+
+.pageContainer {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--color-bg-light);
+  color: var(--color-text-dark);
+  position: relative;
+}
+
+/* --- Cabecera Municipal --- */
+.header {
+  background-color: var(--color-primary-teal-dark);
+  color: var(--color-text-light);
+  padding: 1rem 1.5rem;
+  border-bottom: 3px solid var(--color-accent-mint);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.headerBrand {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.headerLogoBadge {
+  background-color: var(--color-primary-teal);
+  color: var(--color-white);
+  padding: 0.4rem 0.6rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  border: 1px solid var(--color-accent-mint);
+  border-radius: 0;
+}
+
+.headerTitle {
+  font-size: 1.15rem;
+  font-weight: 700;
+  margin: 0;
+  color: var(--color-white);
+}
+
+.headerSubtitle {
+  font-size: 0.8rem;
+  color: var(--color-sage);
+  margin: 0;
+}
+
+/* --- Layout del Chat --- */
+.chatMain {
+  flex: 1;
+  max-width: 860px;
+  width: 100%;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  padding: 1.25rem 1rem;
+  box-sizing: border-box;
+}
+
+.chatWrapper {
+  background-color: var(--color-white);
+  border: 1px solid #D0D7DE;
+  border-radius: 0;
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 170px);
+  min-height: 520px;
+  overflow: hidden;
+}
+
+.messagesList {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  background-color: var(--color-white);
+}
+
+/* --- Mensajes / Burbujas (Bordes rectos) --- */
+.messageRow {
+  display: flex;
+  width: 100%;
+}
+
+.messageRowBot {
+  justify-content: flex-start;
+}
+
+.messageRowUser {
+  justify-content: flex-end;
+}
+
+.bubble {
+  max-width: 82%;
+  padding: 0.9rem 1.1rem;
+  border-radius: 0;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  box-sizing: border-box;
+  word-break: break-word;
+}
+
+.bubbleBot {
+  background-color: var(--color-bg-light);
+  color: var(--color-text-dark);
+  border-left: 4px solid var(--color-primary-teal);
+  border-top: 1px solid #D5DBE1;
+  border-right: 1px solid #D5DBE1;
+  border-bottom: 1px solid #D5DBE1;
+}
+
+.bubbleUser {
+  background-color: var(--color-primary-teal);
+  color: var(--color-white);
+  border: 1px solid var(--color-primary-teal-dark);
+}
+
+.messageSender {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 0.35rem;
+}
+
+.bubbleBot .messageSender {
+  color: var(--color-primary-teal);
+}
+
+.bubbleUser .messageSender {
+  color: var(--color-sage);
+}
+
+/* --- Indicador de Escritura del Bot --- */
+.typingIndicator {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.5rem 0.2rem;
+}
+
+.typingDot {
+  width: 7px;
+  height: 7px;
+  background-color: var(--color-primary-teal);
+  border-radius: 0;
+  animation: typingBounce 1.2s infinite ease-in-out;
+}
+
+.typingDot:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.typingDot:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes typingBounce {
+  0%, 80%, 100% {
+    opacity: 0.3;
+    transform: translateY(0);
+  }
+  40% {
+    opacity: 1;
+    transform: translateY(-4px);
+  }
+}
+
+/* --- Opciones / Chips de Respuesta Rápida --- */
+.optionsContainer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.optionButton {
+  background-color: var(--color-charcoal);
+  color: var(--color-white);
+  border: none;
+  border-radius: 0;
+  padding: 0.6rem 0.9rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+  text-align: left;
+}
+
+.optionButton:hover:not(:disabled) {
+  background-color: var(--color-primary-teal);
+  color: var(--color-white);
+}
+
+.optionButton:focus-visible {
+  outline: 2px solid var(--color-accent-mint);
+  outline-offset: 2px;
+}
+
+.optionButtonSecondary {
+  background-color: transparent;
+  color: var(--color-charcoal);
+  border: 1px solid var(--color-charcoal);
+}
+
+.optionButtonSecondary:hover:not(:disabled) {
+  background-color: var(--color-bg-light);
+  color: var(--color-text-dark);
+}
+
+/* --- Barra Inferior de Entrada (Input) --- */
+.inputArea {
+  border-top: 1px solid #D0D7DE;
+  background-color: var(--color-white);
+  padding: 0.85rem 1.25rem;
+}
+
+.inputForm {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.textInput {
+  flex: 1;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--color-charcoal);
+  border-radius: 0;
+  font-size: 0.95rem;
+  color: var(--color-text-dark);
+  background-color: var(--color-white);
+  box-sizing: border-box;
+}
+
+.textInput:focus {
+  outline: 2px solid var(--color-primary-teal);
+  border-color: var(--color-primary-teal);
+}
+
+.sendButton {
+  background-color: var(--color-accent-mint);
+  color: var(--color-white);
+  border: none;
+  border-radius: 0;
+  padding: 0 1.4rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sendButton:hover:not(:disabled) {
+  background-color: #3e9684;
+}
+
+.sendButton:disabled {
+  background-color: #B4B9BF;
+  cursor: not-allowed;
+}
+
+.errorMessage {
+  margin-top: 0.4rem;
+  color: #C02626;
+  font-size: 0.85rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+/* --- Tarjeta de Resumen --- */
+.summaryCard {
+  background-color: var(--color-white);
+  border: 2px solid var(--color-primary-teal);
+  border-radius: 0;
+  padding: 1.1rem;
+  margin-top: 0.6rem;
+}
+
+.summaryTitle {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-primary-teal);
+  margin-bottom: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-bottom: 1px solid var(--color-bg-light);
+  padding-bottom: 0.4rem;
+}
+
+.summaryGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.5rem;
+  margin-bottom: 1.1rem;
+}
+
+.summaryItem {
+  display: flex;
+  flex-direction: column;
+}
+
+.summaryLabel {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--color-charcoal);
+  text-transform: uppercase;
+}
+
+.summaryValue {
+  font-size: 0.95rem;
+  color: var(--color-text-dark);
+  font-weight: 500;
+}
+
+.summaryActions {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.btnPrimary {
+  background-color: var(--color-accent-mint);
+  color: var(--color-white);
+  border: none;
+  border-radius: 0;
+  padding: 0.75rem 1.25rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.btnPrimary:hover:not(:disabled) {
+  background-color: #3e9684;
+}
+
+.btnSecondary {
+  background-color: var(--color-charcoal);
+  color: var(--color-white);
+  border: none;
+  border-radius: 0;
+  padding: 0.75rem 1.25rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.btnSecondary:hover:not(:disabled) {
+  background-color: var(--color-charcoal-dark);
+}
+
+/* --- Tarjeta de Confirmación / Resultado --- */
+.resultCard {
+  border-radius: 0;
+  padding: 1.3rem;
+  margin-top: 0.75rem;
+}
+
+.resultCardSuccess {
+  background-color: #F0FDF4;
+  border: 2px solid var(--color-accent-mint);
+}
+
+.resultCardDuplicate {
+  background-color: #F8FAFC;
+  border: 2px solid var(--color-primary-teal);
+}
+
+.resultHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.6rem;
+}
+
+.resultBadge {
+  padding: 0.3rem 0.6rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--color-white);
+  border-radius: 0;
+}
+
+.resultBadgeSuccess {
+  background-color: var(--color-accent-mint);
+}
+
+.resultBadgeDuplicate {
+  background-color: var(--color-primary-teal);
+}
+
+.resultTitle {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--color-text-dark);
+}
+
+.resultDescription {
+  font-size: 0.92rem;
+  line-height: 1.5;
+  color: var(--color-text-dark);
+  margin-bottom: 1rem;
+}
+
+.trackingCodeBlock {
+  background-color: var(--color-white);
+  border: 1px dashed var(--color-charcoal);
+  border-radius: 0;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin: 1rem 0;
+  gap: 0.35rem;
+}
+
+.trackingCodeLabel {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--color-charcoal);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.trackingCodeNumber {
+  font-size: 2.1rem;
+  font-weight: 800;
+  color: var(--color-primary-teal-dark);
+  letter-spacing: 0.15em;
+  font-family: monospace;
+}
+
+.copyCodeButton {
+  background-color: var(--color-bg-light);
+  border: 1px solid var(--color-charcoal);
+  border-radius: 0;
+  padding: 0.4rem 0.8rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  color: var(--color-text-dark);
+}
+
+.copyCodeButton:hover {
+  background-color: #DDE2E8;
+}
+
+/* --- Botón Persistente de Emergencia (Call Center) --- */
+.emergencyButton {
+  position: fixed;
+  bottom: 1.25rem;
+  right: 1.25rem;
+  z-index: 999;
+  background-color: #B91C1C;
+  color: var(--color-white);
+  border: 2px solid var(--color-white);
+  border-radius: 0;
+  padding: 0.85rem 1.2rem;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  text-decoration: none;
+  font-weight: 700;
+  font-size: 0.95rem;
+  cursor: pointer;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
+  transition: transform 0.15s ease, background-color 0.15s ease;
+}
+
+.emergencyButton:hover {
+  background-color: #991B1B;
+  color: var(--color-white);
+  transform: translateY(-2px);
+}
+
+.emergencyButton:focus-visible {
+  outline: 3px solid var(--color-white);
+  outline-offset: 2px;
+}
+
+.emergencyIcon {
+  font-size: 1.2rem;
+  line-height: 1;
+}
+
+/* --- Responsive --- */
+@media (max-width: 640px) {
+  .header {
+    padding: 0.85rem 1rem;
+  }
+
+  .chatMain {
+    padding: 0.5rem;
+  }
+
+  .chatWrapper {
+    height: calc(100vh - 130px);
+    min-height: 480px;
+  }
+
+  .bubble {
+    max-width: 90%;
+  }
+
+  .emergencyButton {
+    bottom: 0.85rem;
+    right: 0.85rem;
+    padding: 0.65rem 0.9rem;
+    font-size: 0.85rem;
+  }
+}
