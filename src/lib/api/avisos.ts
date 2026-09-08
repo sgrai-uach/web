@@ -133,9 +133,20 @@ export async function verificarAviso(
         'No autorizado: Se requiere una sesión válida de operador'
       );
     }
+
+    let mensajeError = 'Error al verificar y promover el aviso a incidente';
+    if (error && typeof error === 'object') {
+      const errObj = error as { error?: string; detalles?: Array<{ message?: string }> };
+      if (errObj.detalles && errObj.detalles.length > 0) {
+        mensajeError = errObj.detalles.map((d) => d.message || '').filter(Boolean).join('. ');
+      } else if (errObj.error) {
+        mensajeError = errObj.error;
+      }
+    }
+
     throw new ApiError(
       response.status,
-      'Error al verificar y promover el aviso a incidente',
+      mensajeError,
       error
     );
   }
@@ -191,9 +202,19 @@ export async function descartarAviso(
         'No autorizado: Se requiere una sesión válida de operador'
       );
     }
+    let mensajeError = 'Error al descartar el aviso';
+    if (error && typeof error === 'object') {
+      const errObj = error as { error?: string; detalles?: Array<{ message?: string }> };
+      if (errObj.detalles && errObj.detalles.length > 0) {
+        mensajeError = errObj.detalles.map((d) => d.message || '').filter(Boolean).join('. ');
+      } else if (errObj.error) {
+        mensajeError = errObj.error;
+      }
+    }
+
     throw new ApiError(
       response.status,
-      'Error al descartar el aviso',
+      mensajeError,
       error
     );
   }

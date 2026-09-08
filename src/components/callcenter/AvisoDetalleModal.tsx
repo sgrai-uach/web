@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import AvisoMap from '@/components/maps/AvisoMap';
 import { useToast } from '@/components/ui/Toast';
 import {
@@ -11,31 +11,36 @@ import {
 } from '@/lib/api/avisos';
 import type { AvisoDetalleResponse, AvisoItem } from '@/types/api';
 
-// Catálogo institucional de tipos de incidente para la Municipalidad de Valdivia
-export const CATALOGO_TIPOS_INCIDENTE = [
+export interface TipoIncidenteOpcion {
+  id: string;
+  nombre: string;
+}
+
+// Catálogo institucional oficial sembrado en PostgreSQL por la migración 001_initial_schema.ts
+export const CATALOGO_TIPOS_INCIDENTE: TipoIncidenteOpcion[] = [
   {
-    id: 'a0000000-0000-0000-0000-000000000001',
-    nombre: 'Inundación / Anegamiento de Viviendas',
+    id: '70889810-f3a7-438d-be2e-eaf6455b6b8d',
+    nombre: 'Inundación',
   },
   {
-    id: 'a0000000-0000-0000-0000-000000000002',
-    nombre: 'Deslizamiento de tierra / Remoción en masa',
+    id: '0aabcd9a-dbd4-428a-9a9b-a137a5f951b5',
+    nombre: 'Deslizamiento de tierra',
   },
   {
-    id: 'a0000000-0000-0000-0000-000000000003',
-    nombre: 'Caída de árbol o ramas en vía pública',
+    id: 'eb5bda50-6a5b-4832-bb42-8a436275cf3d',
+    nombre: 'Caída de árbol',
   },
   {
-    id: 'a0000000-0000-0000-0000-000000000004',
-    nombre: 'Anegamiento severo de calzada o sumideros',
+    id: 'cbba77de-18b2-45f5-97f7-98a64e191bd8',
+    nombre: 'Anegamiento de calzada',
   },
   {
-    id: 'a0000000-0000-0000-0000-000000000005',
-    nombre: 'Incendio estructural o forestal de interfaz',
+    id: 'ad42e026-751b-43b8-820e-86d4169b4806',
+    nombre: 'Incendio estructural / forestal',
   },
   {
-    id: 'a0000000-0000-0000-0000-000000000006',
-    nombre: 'Otro incidente de emergencia municipal',
+    id: '5a341800-1747-46b6-b452-913ca06e0a68',
+    nombre: 'Otro',
   },
 ];
 
@@ -64,15 +69,33 @@ function AvisoDetalleModalContent({
   const [detalle, setDetalle] = useState<AvisoDetalleResponse | null>(null);
   const [cargandoDetalle, setCargandoDetalle] = useState(true);
 
-  // Formulario de Verificación inicializado reactivamente
+  // Tipos disponibles: los de catálogo oficial + si el aviso trae un tipo preliminar válido
+  const tiposDisponibles = useMemo(() => {
+    const lista = [...CATALOGO_TIPOS_INCIDENTE];
+    if (
+      aviso.tipoPreliminarId &&
+      !lista.some((t) => t.id === aviso.tipoPreliminarId)
+    ) {
+      lista.unshift({
+        id: aviso.tipoPreliminarId,
+        nombre: aviso.tipoPreliminarNombre || 'Tipo preliminar del aviso',
+      });
+    }
+    return lista;
+  }, [aviso.tipoPreliminarId, aviso.tipoPreliminarNombre]);
+
+  // Formulario de Verificación inicializado reactivamente con UUID válido
   const [tipoIncidenteId, setTipoIncidenteId] = useState(() => {
-    const tipo = CATALOGO_TIPOS_INCIDENTE.find(
-      (t) =>
-        t.id === aviso.tipoPreliminarId ||
-        (aviso.tipoPreliminarNombre &&
-          t.nombre.toLowerCase().includes(aviso.tipoPreliminarNombre.toLowerCase()))
-    );
-    return tipo ? tipo.id : CATALOGO_TIPOS_INCIDENTE[0].id;
+    if (aviso.tipoPreliminarId) {
+      return aviso.tipoPreliminarId;
+    }
+    if (aviso.tipoPreliminarNombre) {
+      const match = CATALOGO_TIPOS_INCIDENTE.find((t) =>
+        t.nombre.toLowerCase().includes(aviso.tipoPreliminarNombre!.toLowerCase())
+      );
+      if (match) return match.id;
+    }
+    return CATALOGO_TIPOS_INCIDENTE[0].id;
   });
   const [descripcionAjustada, setDescripcionAjustada] = useState(aviso.descripcion || '');
   const [requiereAsistenciaSocial, setRequiereAsistenciaSocial] = useState(false);
@@ -117,8 +140,11 @@ function AvisoDetalleModalContent({
 
   // Manejador de la acción: "Verificar y Enviar"
   async function handleVerificar() {
-    if (!tipoIncidenteId) {
-      showWarning('Debe seleccionar una tipología oficial de incidente');
+    const UUID_REGEX =
+      /^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/;
+
+    if (!tipoIncidenteId || !UUID_REGEX.test(tipoIncidenteId)) {
+      showWarning('Debe seleccionar una tipología oficial de incidente válida');
       return;
     }
 
@@ -646,7 +672,7 @@ function AvisoDetalleModalContent({
                     backgroundColor: '#FFFFFF',
                   }}
                 >
-                  {CATALOGO_TIPOS_INCIDENTE.map((cat) => (
+                  {tiposDisponibles.map((cat) => (
                     <option key={cat.id} value={cat.id}>
                       {cat.nombre}
                     </option>

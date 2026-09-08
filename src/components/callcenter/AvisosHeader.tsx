@@ -10,17 +10,17 @@ export interface OperadorInfo {
 
 export const OPERADORES_PREDEFINIDOS: OperadorInfo[] = [
   {
-    id: 'c0000000-0000-0000-0000-000000000001',
+    id: 'c1111111-1111-4111-8111-111111111111',
     nombre: 'Carlos Miranda (Mesa 1)',
     rol: 'Operador Call Center',
   },
   {
-    id: 'c0000000-0000-0000-0000-000000000002',
+    id: 'c2222222-2222-4222-8222-222222222222',
     nombre: 'Patricia Valenzuela (Mesa 2)',
     rol: 'Operador Call Center',
   },
   {
-    id: 'c0000000-0000-0000-0000-000000000003',
+    id: 'c3333333-3333-4333-8333-333333333333',
     nombre: 'Rodrigo Fuentes (Mesa 3)',
     rol: 'Operador Call Center',
   },
