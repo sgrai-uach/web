@@ -5,7 +5,7 @@ import styles from '@/styles/chatbot.module.css';
 import { useChatbot } from '@/hooks/useChatbot';
 import { ChatMessage } from './ChatMessage';
 import { ChatInput } from './ChatInput';
-import { EmergencyCallButton } from './EmergencyCallButton';
+import { MunicipalHeader } from '@/components/layout/MunicipalHeader';
 
 export const ChatContainer: React.FC = () => {
   const {
@@ -16,6 +16,9 @@ export const ChatContainer: React.FC = () => {
     seleccionarTipoAfectacion,
     enviarTexto,
     confirmarYEnviarReporte,
+    solicitarModificacion,
+    seleccionarCampoModificar,
+    actualizarTipoModificado,
     reiniciarReporte,
   } = useChatbot();
 
@@ -28,18 +31,8 @@ export const ChatContainer: React.FC = () => {
 
   return (
     <div className={styles.pageContainer}>
-      {/* Cabecera Institucional */}
-      <header className={styles.header}>
-        <div className={styles.headerBrand}>
-          <div>
-            <h1 className={styles.headerTitle}>Asistente virtual DGRD</h1>
-            <p className={styles.headerSubtitle}>
-              Reporte de Incidentes — Dirección de Gestión de Riesgos de Desastres
-            </p>
-          </div>
-        </div>
-        <EmergencyCallButton />
-      </header>
+      {/* Cabecera Institucional con Barra Salvia de Redes Sociales y Barra Teal Municipal */}
+      <MunicipalHeader />
 
       {/* Cuerpo Principal del Chatbot */}
       <main className={styles.chatMain}>
@@ -56,10 +49,16 @@ export const ChatContainer: React.FC = () => {
                       seleccionarTipoAfectacion(val);
                     } else if (paso === 'DESCRIPCION' && val === 'OMITIR') {
                       enviarTexto('OMITIR');
+                    } else if (paso === 'MODIFICAR_SELECCION') {
+                      seleccionarCampoModificar(val);
+                    } else if (paso === 'MODIFICAR_TIPO') {
+                      actualizarTipoModificado(val);
+                    } else if (paso === 'MODIFICAR_DESCRIPCION' && val === 'OMITIR') {
+                      enviarTexto('OMITIR');
                     }
                   }}
                   onConfirmarReporte={confirmarYEnviarReporte}
-                  onModificarReporte={reiniciarReporte}
+                  onModificarReporte={solicitarModificacion}
                   onNuevoReporte={reiniciarReporte}
                   deshabilitarAcciones={!esUltimo || isBotTyping || paso === 'ENVIANDO'}
                 />

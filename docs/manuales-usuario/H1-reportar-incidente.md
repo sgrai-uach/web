@@ -81,7 +81,7 @@ Antes del ingreso definitivo al sistema, el asistente presentará una tarjeta co
 
 Opciones disponibles:
 - **Confirmar y Enviar Reporte:** Envía el requerimiento al sistema municipal.
-- **Modificar datos:** Permite reiniciar la conversación para corregir cualquier dato antes de enviarlo.
+- **Modificar datos:** Permite corregir cualquier información **sin perder el resto del reporte**. El asistente desplegará un menú interactivo preguntando específicamente qué campo deseas cambiar (*Tipo de afectación*, *Ubicación / Dirección*, *Detalle adicional*, *Nombre completo*, *RUT* o *Teléfono de contacto*). Una vez ingresado y validado el nuevo dato, se presenta de nuevo el resumen actualizado para confirmar el envío definitivo o realizar otra modificación.
 
 ![Paso 7: Resumen y Confirmación](./assets/H1-reportar-incidente/03-resumen.png)
 

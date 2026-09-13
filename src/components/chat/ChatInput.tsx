@@ -26,7 +26,15 @@ export const ChatInput: React.FC<ChatInputProps> = ({
     pasoActual === 'DESCRIPCION' ||
     pasoActual === 'NOMBRE' ||
     pasoActual === 'RUT' ||
-    pasoActual === 'TELEFONO';
+    pasoActual === 'TELEFONO' ||
+    pasoActual === 'MODIFICAR_DIRECCION' ||
+    pasoActual === 'MODIFICAR_DESCRIPCION' ||
+    pasoActual === 'MODIFICAR_NOMBRE' ||
+    pasoActual === 'MODIFICAR_RUT' ||
+    pasoActual === 'MODIFICAR_TELEFONO';
+
+  const permiteVacio =
+    pasoActual === 'DESCRIPCION' || pasoActual === 'MODIFICAR_DESCRIPCION';
 
   // Foco automático cuando cambia de paso y acepta texto
   useEffect(() => {
@@ -37,7 +45,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!valor.trim() && pasoActual !== 'DESCRIPCION') return;
+    if (!valor.trim() && !permiteVacio) return;
     onEnviar(valor);
     setValor('');
   };
@@ -49,15 +57,15 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   let placeholder = 'Escribe tu respuesta...';
   let inputType = 'text';
 
-  if (pasoActual === 'DIRECCION') {
+  if (pasoActual === 'DIRECCION' || pasoActual === 'MODIFICAR_DIRECCION') {
     placeholder = 'Ej: Av. Alemania 550, Valdivia';
-  } else if (pasoActual === 'DESCRIPCION') {
+  } else if (pasoActual === 'DESCRIPCION' || pasoActual === 'MODIFICAR_DESCRIPCION') {
     placeholder = 'Describe lo que ocurre o presiona "Omitir detalle"...';
-  } else if (pasoActual === 'NOMBRE') {
+  } else if (pasoActual === 'NOMBRE' || pasoActual === 'MODIFICAR_NOMBRE') {
     placeholder = 'Ej: Juan Pérez González';
-  } else if (pasoActual === 'RUT') {
+  } else if (pasoActual === 'RUT' || pasoActual === 'MODIFICAR_RUT') {
     placeholder = 'Ej: 11.111.111-1 o 11111111-1';
-  } else if (pasoActual === 'TELEFONO') {
+  } else if (pasoActual === 'TELEFONO' || pasoActual === 'MODIFICAR_TELEFONO') {
     placeholder = 'Ej: +56912345678 o 912345678 (Obligatorio)';
     inputType = 'tel';
   }
@@ -78,7 +86,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
         <button
           type="submit"
           className={styles.sendButton}
-          disabled={isBotTyping || (!valor.trim() && pasoActual !== 'DESCRIPCION')}
+          disabled={isBotTyping || (!valor.trim() && !permiteVacio)}
         >
           Enviar
         </button>

@@ -20,6 +20,13 @@ export type PasoChat =
   | 'RUT'
   | 'TELEFONO'
   | 'CONFIRMACION'
+  | 'MODIFICAR_SELECCION'
+  | 'MODIFICAR_TIPO'
+  | 'MODIFICAR_DIRECCION'
+  | 'MODIFICAR_DESCRIPCION'
+  | 'MODIFICAR_NOMBRE'
+  | 'MODIFICAR_RUT'
+  | 'MODIFICAR_TELEFONO'
   | 'ENVIANDO'
   | 'FINALIZADO';
 
@@ -386,7 +393,115 @@ export function useChatbot() {
     }
   }, [agregarMensajeBot]);
 
-  // Modificar datos / reiniciar
+  // Iniciar flujo de modificación puntual sin borrar los datos
+  const solicitarModificacion = useCallback(() => {
+    setErrorInput(null);
+    agregarMensajeUsuario('Deseo modificar datos de mi reporte.');
+    pasoRef.current = 'MODIFICAR_SELECCION';
+    setPaso('MODIFICAR_SELECCION');
+
+    agregarMensajeBot(
+      '¿Qué dato de tu reporte deseas modificar?',
+      'opciones',
+      [
+        { label: 'Tipo de afectación', value: 'MOD_TIPO' },
+        { label: 'Ubicación / Dirección', value: 'MOD_DIRECCION' },
+        { label: 'Detalle adicional', value: 'MOD_DESCRIPCION' },
+        { label: 'Nombre completo', value: 'MOD_NOMBRE' },
+        { label: 'RUT', value: 'MOD_RUT' },
+        { label: 'Teléfono de contacto', value: 'MOD_TELEFONO' },
+        { label: '← Volver al resumen', value: 'MOD_CANCELAR' },
+      ]
+    );
+  }, [agregarMensajeBot, agregarMensajeUsuario]);
+
+  // Selección del campo específico que se desea cambiar
+  const seleccionarCampoModificar = useCallback((opcion: string) => {
+    setErrorInput(null);
+    if (opcion === 'MOD_CANCELAR') {
+      agregarMensajeUsuario('Volver al resumen');
+      pasoRef.current = 'CONFIRMACION';
+      setPaso('CONFIRMACION');
+      agregarMensajeBot(
+        'Aquí tienes el resumen de tu reporte. Puedes confirmar y enviarlo o modificar datos:',
+        'resumen',
+        undefined,
+        datosRef.current
+      );
+      return;
+    }
+
+    if (opcion === 'MOD_TIPO') {
+      agregarMensajeUsuario('Modificar tipo de afectación');
+      pasoRef.current = 'MODIFICAR_TIPO';
+      setPaso('MODIFICAR_TIPO');
+      agregarMensajeBot(
+        'Selecciona el nuevo tipo de situación o afectación:',
+        'opciones',
+        tiposAfectacion.map((t) => ({ label: t, value: t }))
+      );
+    } else if (opcion === 'MOD_DIRECCION') {
+      agregarMensajeUsuario('Modificar ubicación / dirección');
+      pasoRef.current = 'MODIFICAR_DIRECCION';
+      setPaso('MODIFICAR_DIRECCION');
+      agregarMensajeBot(
+        `La dirección actual es "${datosRef.current.direccion}". Por favor ingresa la nueva dirección exacta o punto de referencia en Valdivia:`
+      );
+    } else if (opcion === 'MOD_DESCRIPCION') {
+      agregarMensajeUsuario('Modificar detalle adicional');
+      pasoRef.current = 'MODIFICAR_DESCRIPCION';
+      setPaso('MODIFICAR_DESCRIPCION');
+      agregarMensajeBot(
+        'Ingresa el nuevo detalle adicional (o presiona "Omitir detalle" si no deseas agregar información):',
+        'opciones',
+        [{ label: 'Omitir detalle', value: 'OMITIR' }]
+      );
+    } else if (opcion === 'MOD_NOMBRE') {
+      agregarMensajeUsuario('Modificar nombre');
+      pasoRef.current = 'MODIFICAR_NOMBRE';
+      setPaso('MODIFICAR_NOMBRE');
+      agregarMensajeBot(
+        `El nombre actual es "${datosRef.current.informanteNombre}". Ingresa tu nombre completo corregido:`
+      );
+    } else if (opcion === 'MOD_RUT') {
+      agregarMensajeUsuario('Modificar RUT');
+      pasoRef.current = 'MODIFICAR_RUT';
+      setPaso('MODIFICAR_RUT');
+      agregarMensajeBot(
+        `El RUT actual es "${datosRef.current.informanteRut}". Ingresa tu RUT corregido (con o sin puntos y con guión):`
+      );
+    } else if (opcion === 'MOD_TELEFONO') {
+      agregarMensajeUsuario('Modificar teléfono');
+      pasoRef.current = 'MODIFICAR_TELEFONO';
+      setPaso('MODIFICAR_TELEFONO');
+      agregarMensajeBot(
+        `El teléfono actual es "${datosRef.current.informanteTelefono}". Ingresa tu nuevo número de teléfono de contacto (obligatorio):`
+      );
+    }
+  }, [agregarMensajeBot, agregarMensajeUsuario, tiposAfectacion]);
+
+  // Actualizar tipo de afectación modificado
+  const actualizarTipoModificado = useCallback((tipo: string) => {
+    setErrorInput(null);
+    agregarMensajeUsuario(tipo);
+    const datosActualizados: DatosReporte = {
+      ...datosRef.current,
+      tipoAfectacion: tipo,
+    };
+    datosRef.current = datosActualizados;
+    setDatos(datosActualizados);
+    pasoRef.current = 'CONFIRMACION';
+    setPaso('CONFIRMACION');
+
+    agregarMensajeBot(
+      `Tipo de afectación actualizado a "${tipo}".\n\nPor favor revisa el resumen actualizado de tu reporte. Puedes confirmar y enviarlo o modificar otro dato:`,
+      'resumen',
+      undefined,
+      datosActualizados
+    );
+  }, [agregarMensajeBot, agregarMensajeUsuario]);
+
+  // Modificar datos / reiniciar completamente (cuando se desea comenzar de cero)
   const reiniciarReporte = useCallback(() => {
     try {
       localStorage.removeItem(LOCAL_STORAGE_KEY);
@@ -413,8 +528,126 @@ export function useChatbot() {
       procesarRut(texto);
     } else if (pasoActual === 'TELEFONO') {
       procesarTelefono(texto);
+    } else if (pasoActual === 'MODIFICAR_DIRECCION') {
+      const limpio = texto.trim();
+      if (limpio.length < 5) {
+        setErrorInput('Por favor indica una dirección o ubicación con al menos 5 caracteres.');
+        return;
+      }
+      setErrorInput(null);
+      agregarMensajeUsuario(limpio);
+      const datosActualizados: DatosReporte = {
+        ...datosRef.current,
+        direccion: limpio,
+      };
+      datosRef.current = datosActualizados;
+      setDatos(datosActualizados);
+      pasoRef.current = 'CONFIRMACION';
+      setPaso('CONFIRMACION');
+      agregarMensajeBot(
+        `Dirección actualizada a "${limpio}".\n\nPor favor revisa el resumen actualizado de tu reporte. Puedes confirmar y enviarlo o modificar otro dato:`,
+        'resumen',
+        undefined,
+        datosActualizados
+      );
+    } else if (pasoActual === 'MODIFICAR_DESCRIPCION') {
+      setErrorInput(null);
+      const limpio = texto.trim();
+      const esOmision = limpio === 'OMITIR' || limpio.toLowerCase() === 'omitir detalle' || limpio === '';
+      const valorDesc = esOmision ? '' : limpio;
+      agregarMensajeUsuario(esOmision ? 'Sin detalle adicional' : limpio);
+      const datosActualizados: DatosReporte = {
+        ...datosRef.current,
+        descripcion: valorDesc,
+      };
+      datosRef.current = datosActualizados;
+      setDatos(datosActualizados);
+      pasoRef.current = 'CONFIRMACION';
+      setPaso('CONFIRMACION');
+      agregarMensajeBot(
+        'Detalle adicional actualizado.\n\nPor favor revisa el resumen actualizado de tu reporte. Puedes confirmar y enviarlo o modificar otro dato:',
+        'resumen',
+        undefined,
+        datosActualizados
+      );
+    } else if (pasoActual === 'MODIFICAR_NOMBRE') {
+      const limpio = texto.trim();
+      if (limpio.length < 3) {
+        setErrorInput('Por favor ingresa tu nombre completo (mínimo 3 letras).');
+        return;
+      }
+      setErrorInput(null);
+      agregarMensajeUsuario(limpio);
+      const datosActualizados: DatosReporte = {
+        ...datosRef.current,
+        informanteNombre: limpio,
+      };
+      datosRef.current = datosActualizados;
+      setDatos(datosActualizados);
+      pasoRef.current = 'CONFIRMACION';
+      setPaso('CONFIRMACION');
+      agregarMensajeBot(
+        `Nombre actualizado a "${limpio}".\n\nPor favor revisa el resumen actualizado de tu reporte. Puedes confirmar y enviarlo o modificar otro dato:`,
+        'resumen',
+        undefined,
+        datosActualizados
+      );
+    } else if (pasoActual === 'MODIFICAR_RUT') {
+      const limpio = texto.trim();
+      if (!validarRutChileno(limpio)) {
+        setErrorInput('El RUT ingresado no es válido. Verifica los dígitos y el dígito verificador.');
+        return;
+      }
+      const rutFormateado = formatearRut(limpio);
+      setErrorInput(null);
+      agregarMensajeUsuario(rutFormateado);
+      const datosActualizados: DatosReporte = {
+        ...datosRef.current,
+        informanteRut: rutFormateado,
+      };
+      datosRef.current = datosActualizados;
+      setDatos(datosActualizados);
+      pasoRef.current = 'CONFIRMACION';
+      setPaso('CONFIRMACION');
+      agregarMensajeBot(
+        `RUT actualizado a "${rutFormateado}".\n\nPor favor revisa el resumen actualizado de tu reporte. Puedes confirmar y enviarlo o modificar otro dato:`,
+        'resumen',
+        undefined,
+        datosActualizados
+      );
+    } else if (pasoActual === 'MODIFICAR_TELEFONO') {
+      const limpio = texto.trim();
+      if (!validarTelefonoChileno(limpio)) {
+        setErrorInput('El teléfono es obligatorio y debe ser un número chileno válido (ej. 912345678 o +56912345678).');
+        return;
+      }
+      const telNormalizado = normalizarTelefonoParaEnvio(limpio);
+      setErrorInput(null);
+      agregarMensajeUsuario(telNormalizado);
+      const datosActualizados: DatosReporte = {
+        ...datosRef.current,
+        informanteTelefono: telNormalizado,
+      };
+      datosRef.current = datosActualizados;
+      setDatos(datosActualizados);
+      pasoRef.current = 'CONFIRMACION';
+      setPaso('CONFIRMACION');
+      agregarMensajeBot(
+        `Teléfono de contacto actualizado a "${telNormalizado}".\n\nPor favor revisa el resumen actualizado de tu reporte. Puedes confirmar y enviarlo o modificar otro dato:`,
+        'resumen',
+        undefined,
+        datosActualizados
+      );
     }
-  }, [procesarDireccion, procesarDescripcion, procesarNombre, procesarRut, procesarTelefono]);
+  }, [
+    agregarMensajeBot,
+    agregarMensajeUsuario,
+    procesarDireccion,
+    procesarDescripcion,
+    procesarNombre,
+    procesarRut,
+    procesarTelefono,
+  ]);
 
   return {
     paso,
@@ -428,6 +661,9 @@ export function useChatbot() {
     enviarTexto,
     procesarDescripcion,
     confirmarYEnviarReporte,
+    solicitarModificacion,
+    seleccionarCampoModificar,
+    actualizarTipoModificado,
     reiniciarReporte,
   };
 }

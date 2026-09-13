@@ -219,4 +219,131 @@ describe('useChatbot', () => {
     expect(result.current.resultadoFinal?.esDuplicado).toBe(true);
     expect(result.current.resultadoFinal?.codigoSeguimiento).toBe('84920194');
   });
+
+  it('debe permitir solicitar modificación sin borrar los datos del reporte', () => {
+    const { result } = renderHook(() => useChatbot());
+
+    act(() => {
+      result.current.seleccionarTipoAfectacion('Anegamiento');
+      result.current.enviarTexto('Av. Alemania 550, Valdivia');
+      result.current.procesarDescripcion('OMITIR');
+      result.current.enviarTexto('Juan Pérez');
+      result.current.enviarTexto('11.111.111-1');
+      result.current.enviarTexto('+56912345678');
+    });
+
+    expect(result.current.paso).toBe('CONFIRMACION');
+
+    act(() => {
+      result.current.solicitarModificacion();
+    });
+
+    expect(result.current.paso).toBe('MODIFICAR_SELECCION');
+    // Verifica que ningún dato previo fue borrado
+    expect(result.current.datos.tipoAfectacion).toBe('Anegamiento');
+    expect(result.current.datos.direccion).toBe('Av. Alemania 550, Valdivia');
+    expect(result.current.datos.informanteNombre).toBe('Juan Pérez');
+    expect(result.current.datos.informanteRut).toBe('11111111-1');
+    expect(result.current.datos.informanteTelefono).toBe('+56912345678');
+  });
+
+  it('debe permitir modificar solo el tipo de afectación y volver a CONFIRMACION manteniendo los otros datos', () => {
+    const { result } = renderHook(() => useChatbot());
+
+    act(() => {
+      result.current.seleccionarTipoAfectacion('Anegamiento');
+      result.current.enviarTexto('Av. Alemania 550, Valdivia');
+      result.current.procesarDescripcion('OMITIR');
+      result.current.enviarTexto('Juan Pérez');
+      result.current.enviarTexto('11.111.111-1');
+      result.current.enviarTexto('+56912345678');
+    });
+
+    act(() => {
+      result.current.solicitarModificacion();
+    });
+
+    act(() => {
+      result.current.seleccionarCampoModificar('MOD_TIPO');
+    });
+
+    expect(result.current.paso).toBe('MODIFICAR_TIPO');
+
+    act(() => {
+      result.current.actualizarTipoModificado('Caída de árbol');
+    });
+
+    expect(result.current.paso).toBe('CONFIRMACION');
+    expect(result.current.datos.tipoAfectacion).toBe('Caída de árbol');
+    // Los demás campos deben mantenerse exactamente iguales
+    expect(result.current.datos.direccion).toBe('Av. Alemania 550, Valdivia');
+    expect(result.current.datos.informanteNombre).toBe('Juan Pérez');
+    expect(result.current.datos.informanteTelefono).toBe('+56912345678');
+  });
+
+  it('debe permitir modificar la dirección con validación sin alterar el resto del reporte', () => {
+    const { result } = renderHook(() => useChatbot());
+
+    act(() => {
+      result.current.seleccionarTipoAfectacion('Anegamiento');
+      result.current.enviarTexto('Av. Alemania 550, Valdivia');
+      result.current.procesarDescripcion('OMITIR');
+      result.current.enviarTexto('Juan Pérez');
+      result.current.enviarTexto('11.111.111-1');
+      result.current.enviarTexto('+56912345678');
+    });
+
+    act(() => {
+      result.current.solicitarModificacion();
+    });
+
+    act(() => {
+      result.current.seleccionarCampoModificar('MOD_DIRECCION');
+    });
+
+    expect(result.current.paso).toBe('MODIFICAR_DIRECCION');
+
+    // Intento con dirección inválida (muy corta)
+    act(() => {
+      result.current.enviarTexto('Av.');
+    });
+
+    expect(result.current.paso).toBe('MODIFICAR_DIRECCION');
+    expect(result.current.errorInput).not.toBeNull();
+
+    // Dirección válida
+    act(() => {
+      result.current.enviarTexto('Los Boldos con Las Encinas, Isla Teja');
+    });
+
+    expect(result.current.paso).toBe('CONFIRMACION');
+    expect(result.current.datos.direccion).toBe('Los Boldos con Las Encinas, Isla Teja');
+    expect(result.current.datos.tipoAfectacion).toBe('Anegamiento');
+    expect(result.current.datos.informanteNombre).toBe('Juan Pérez');
+  });
+
+  it('debe permitir cancelar la modificación y retornar a CONFIRMACION con los datos intactos', () => {
+    const { result } = renderHook(() => useChatbot());
+
+    act(() => {
+      result.current.seleccionarTipoAfectacion('Anegamiento');
+      result.current.enviarTexto('Av. Alemania 550, Valdivia');
+      result.current.procesarDescripcion('OMITIR');
+      result.current.enviarTexto('Juan Pérez');
+      result.current.enviarTexto('11.111.111-1');
+      result.current.enviarTexto('+56912345678');
+    });
+
+    act(() => {
+      result.current.solicitarModificacion();
+    });
+
+    act(() => {
+      result.current.seleccionarCampoModificar('MOD_CANCELAR');
+    });
+
+    expect(result.current.paso).toBe('CONFIRMACION');
+    expect(result.current.datos.direccion).toBe('Av. Alemania 550, Valdivia');
+    expect(result.current.datos.informanteTelefono).toBe('+56912345678');
+  });
 });
