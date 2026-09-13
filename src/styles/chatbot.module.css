@@ -13,7 +13,7 @@
   overflow: hidden;
 }
 
-/* --- Cabecera Municipal Doble (Estilo Valdivia.cl) --- */
+/* --- Cabecera Municipal Doble --- */
 .municipalHeaderWrapper {
   position: sticky;
   top: 0;
@@ -22,17 +22,17 @@
   width: 100%;
 }
 
-/* 1. Franja Superior Verde Salvia (Noticias y Redes Sociales) */
+/* 1. Franja Superior Verde Salvia (Noticias a la izquierda y Redes Sociales a la derecha) */
 .topSageBar {
   background-color: var(--color-sage);
   color: #14505A;
   border-bottom: 1px solid rgba(20, 80, 90, 0.2);
-  padding: 0.35rem 1.5rem;
+  padding: 0.35rem 2rem;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .topSageContainer {
-  max-width: 1400px;
-  margin: 0 auto;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -72,11 +72,12 @@
   transform: translateY(-1px);
 }
 
-/* 2. Barra Principal Institucional Verde Azulado Oscuro (Teal Dark) */
+/* 2. Barra Principal más gruesa (Teal Dark con espacio para logo a la izquierda y Call Center a la derecha) */
 .header {
   background-color: var(--color-primary-teal-dark);
   color: var(--color-text-light);
-  padding: 0.6rem 1.5rem;
+  min-height: 64px;
+  padding: 0.75rem 2rem;
   border-bottom: 3px solid var(--color-accent-mint);
   display: flex;
   justify-content: space-between;
@@ -87,185 +88,12 @@
   box-sizing: border-box;
 }
 
-.headerLeftArea {
+/* Espacio reservado para posicionar el logo municipal en la izquierda */
+.municipalLogoSlot {
+  min-width: 180px;
+  height: 48px;
   display: flex;
   align-items: center;
-  gap: 1rem;
-  flex-wrap: nowrap;
-}
-
-/* Escudo Valdivia */
-.valdiviaBrandBlock {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  text-decoration: none;
-  color: inherit;
-  flex-shrink: 0;
-}
-
-.valdiviaEscudoSvg {
-  width: 36px;
-  height: 42px;
-  flex-shrink: 0;
-}
-
-.valdiviaBrandText {
-  display: flex;
-  flex-direction: column;
-  line-height: 1;
-}
-
-.brandTitleText {
-  font-size: 0.58rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  color: rgba(255, 255, 255, 0.85);
-}
-
-.brandCityText {
-  font-size: 1.05rem;
-  font-weight: 900;
-  letter-spacing: 0.06em;
-  color: var(--color-white);
-}
-
-/* Distintivo Contigo Valdivia */
-.contigoBadgeBlock {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  justify-content: center;
-  flex-shrink: 0;
-  margin-left: 0.25rem;
-}
-
-.contigoBadgeLabel {
-  background-color: var(--color-white);
-  color: var(--color-primary-teal-dark);
-  font-size: 0.6rem;
-  font-weight: 800;
-  padding: 0.15rem 0.4rem;
-  letter-spacing: 0.05em;
-  line-height: 1;
-}
-
-.contigoBadgeSubtext {
-  font-size: 0.72rem;
-  font-weight: 700;
-  color: var(--color-white);
-  font-style: italic;
-  line-height: 1.1;
-  margin-top: 0.15rem;
-}
-
-/* Menú de Navegación */
-.headerNav {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  margin-left: 0.6rem;
-  flex-shrink: 0;
-}
-
-.headerNavLink {
-  color: var(--color-white);
-  font-size: 0.82rem;
-  font-weight: 600;
-  text-decoration: none;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
-  transition: color 0.15s ease;
-}
-
-.headerNavLink:hover {
-  color: var(--color-accent-mint);
-}
-
-.chevronIcon {
-  font-size: 0.65rem;
-  color: var(--color-sage);
-}
-
-.headerDivider {
-  width: 1px;
-  height: 32px;
-  background-color: rgba(255, 255, 255, 0.25);
-  margin: 0 0.35rem;
-  flex-shrink: 0;
-}
-
-.headerAppTitleBlock {
-  display: flex;
-  flex-direction: column;
-  flex-shrink: 0;
-}
-
-.headerTitle {
-  font-size: 1.05rem;
-  font-weight: 700;
-  margin: 0;
-  color: var(--color-white);
-  line-height: 1.2;
-}
-
-.headerSubtitle {
-  font-size: 0.72rem;
-  color: var(--color-sage);
-  margin: 0;
-  line-height: 1.2;
-}
-
-.headerRightArea {
-  display: flex;
-  align-items: center;
-  gap: 1.2rem;
-  flex-shrink: 0;
-}
-
-/* Enlaces de Transparencia y Lobby */
-.institutionalLinks {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
-
-.transparencyItem {
-  display: flex;
-  align-items: center;
-  gap: 0.45rem;
-  text-decoration: none;
-  color: var(--color-white);
-  transition: opacity 0.15s ease;
-}
-
-.transparencyItem:hover {
-  opacity: 0.85;
-}
-
-.transparencyIcon {
-  flex-shrink: 0;
-  color: var(--color-white);
-  stroke: currentColor;
-}
-
-.transparencyText {
-  display: flex;
-  flex-direction: column;
-  line-height: 1.15;
-}
-
-.transparencyLine1 {
-  font-size: 0.7rem;
-  font-weight: 700;
-  color: var(--color-white);
-}
-
-.transparencyLine2 {
-  font-size: 0.62rem;
-  color: var(--color-sage);
-  font-weight: 500;
 }
 
 /* --- Layout del Chat --- */
@@ -739,37 +567,18 @@
   line-height: 1;
 }
 
-/* --- Breakpoints de Navegación Institucional --- */
-@media (max-width: 1280px) {
-  .institutionalLinks {
-    display: none;
-  }
-}
-
-@media (max-width: 950px) {
-  .headerNav {
-    display: none;
-  }
-  .contigoBadgeBlock {
-    display: none;
-  }
-  .headerDivider {
-    display: none;
-  }
-}
-
 /* --- Responsive para dispositivos móviles --- */
 @media (max-width: 640px) {
   .topSageBar {
-    padding: 0.25rem 0.6rem;
+    padding: 0.25rem 0.75rem;
   }
 
   .topSageNewsLink {
-    font-size: 0.7rem;
+    font-size: 0.72rem;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    max-width: 65%;
+    max-width: 62%;
   }
 
   .socialIconsList {
@@ -777,32 +586,19 @@
   }
 
   .header {
-    padding: 0.5rem 0.65rem;
+    min-height: 52px;
+    padding: 0.5rem 0.75rem;
     gap: 0.5rem;
   }
 
-  .valdiviaEscudoSvg {
-    width: 28px;
-    height: 32px;
-  }
-
-  .valdiviaBrandText {
-    display: none;
-  }
-
-  .headerTitle {
-    font-size: 0.92rem;
-    line-height: 1.2;
-  }
-
-  .headerSubtitle {
-    font-size: 0.68rem;
-    line-height: 1.2;
+  .municipalLogoSlot {
+    min-width: 60px;
+    height: 36px;
   }
 
   .emergencyButton {
     padding: 0.35rem 0.55rem;
-    font-size: 0.78rem;
+    font-size: 0.8rem;
     gap: 0.3rem;
   }
 
