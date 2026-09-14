@@ -119,19 +119,17 @@ function CallCenterContent() {
   const handleAvisoNuevo = useCallback(
     (nuevoAviso: SocketAvisoNuevoPayload) => {
       setAvisos((prev) => {
-        // Si ya existe por id, actualizar; si no, agregar al inicio
         const existe = prev.some((a) => a.id === nuevoAviso.id);
         if (existe) {
           return prev.map((a) => (a.id === nuevoAviso.id ? nuevoAviso : a));
         }
+        setTotalItems((total) => total + 1);
+        showInfo(
+          `Nuevo reporte: ${nuevoAviso.tipoPreliminarNombre || 'Aviso de emergencia'} (${nuevoAviso.origenReporte})`,
+          '🚨 Nuevo Aviso Entrante'
+        );
         return [nuevoAviso, ...prev];
       });
-      setTotalItems((prev) => prev + 1);
-
-      showInfo(
-        `Nuevo reporte: ${nuevoAviso.tipoPreliminarNombre || 'Aviso de emergencia'} (${nuevoAviso.origenReporte})`,
-        '🚨 Nuevo Aviso Entrante'
-      );
     },
     [showInfo]
   );
