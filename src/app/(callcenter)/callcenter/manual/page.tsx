@@ -10,12 +10,12 @@ export const metadata: Metadata = {
 export default function ManualIncidentPage() {
   return (
     <div>
-      {/* Encabezado y migas de pan institucionales centrados sobre el formulario */}
+      {/* Encabezado y migas de pan institucionales alineados con el rectángulo del formulario */}
       <div
         style={{
           maxWidth: '840px',
           margin: '0 auto 24px auto',
-          textAlign: 'center',
+          textAlign: 'left',
         }}
       >
         <div style={{ fontSize: '12px', color: '#666', marginBottom: '6px' }}>
@@ -32,7 +32,7 @@ export default function ManualIncidentPage() {
         >
           Recepción de Reportes de Emergencia
         </h1>
-        <p style={{ margin: '0 auto', maxWidth: '640px', fontSize: '14px', color: '#3B3F45', lineHeight: 1.5 }}>
+        <p style={{ margin: 0, fontSize: '14px', color: '#3B3F45', lineHeight: 1.5 }}>
           Completa los datos del reporte recibido para enviar el aviso directamente al Encargado municipal y coordinar la atención oportuna en terreno.
         </p>
       </div>
