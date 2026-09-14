@@ -71,18 +71,13 @@ Para mantener la trazabilidad y formalidad del registro:
 
 ---
 
-### Paso 7: Asistencia Social (FIBE) y Telefonía Asterisk (Opcional)
-- **Requiere Asistencia Social:** Marca la casilla si la situación amerita derivar el caso al equipo de asistentes sociales para el levantamiento de la **Ficha Básica de Emergencia (FIBE)**.
-- **Telefonía IP Asterisk (Avanzado):** Despliega la pestaña inferior para asociar el identificador único de llamada (`asteriskCallId`) o el número del caller ID entrante (`asteriskCallerPhone`).
-
----
-
-### Paso 8: Envío y Guardado
+### Paso 7: Envío y Notificación Inmediata al Encargado
 Presiona el botón principal:
 ```
 [ ✓ Guardar y Notificar al Encargado ]
 ```
-El sistema validará todos los campos e interactuará con el servidor.
+El sistema validará todos los datos en cliente e interactuará con el servidor para autoverificar el aviso y promoverlo a incidente.
+
 
 ---
 

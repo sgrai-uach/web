@@ -44,13 +44,7 @@ export default function IncidenteManualForm({
   const [informanteRut, setInformanteRut] = useState<string>('');
   const [informanteTelefono, setInformanteTelefono] = useState<string>('');
   const [prioridad, setPrioridad] = useState<PrioridadIncidente>('MEDIA');
-  const [requiereAsistenciaSocial, setRequiereAsistenciaSocial] = useState<boolean>(false);
   const [coordenadas, setCoordenadas] = useState<{ latitud: number; longitud: number } | null>(null);
-
-  // Asterisk (opcionales / colapsable)
-  const [mostrarAsterisk, setMostrarAsterisk] = useState<boolean>(false);
-  const [asteriskCallId, setAsteriskCallId] = useState<string>('');
-  const [asteriskCallerPhone, setAsteriskCallerPhone] = useState<string>('');
 
   // Estados de control de UI y errores
   const [errores, setErrores] = useState<Record<string, string>>({});
@@ -114,10 +108,7 @@ export default function IncidenteManualForm({
     setInformanteRut('');
     setInformanteTelefono('');
     setPrioridad('MEDIA');
-    setRequiereAsistenciaSocial(false);
     setCoordenadas(null);
-    setAsteriskCallId('');
-    setAsteriskCallerPhone('');
     setErrores({});
     setErrorGeneral(null);
     setModalDuplicadosAbierto(false);
@@ -140,11 +131,9 @@ export default function IncidenteManualForm({
       informanteRut,
       informanteTelefono: informanteTelefono || undefined,
       prioridad,
-      requiereAsistenciaSocial,
+      requiereAsistenciaSocial: false,
       latitud: coordenadas?.latitud,
       longitud: coordenadas?.longitud,
-      asteriskCallId: asteriskCallId || undefined,
-      asteriskCallerPhone: asteriskCallerPhone || undefined,
       forzarCreacion: forzar,
     };
 
@@ -542,106 +531,6 @@ export default function IncidenteManualForm({
               </span>
             )}
           </div>
-        </div>
-
-        {/* 6. Asistencia Social (FIBE) */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <input
-            id="requiereAsistenciaSocial"
-            type="checkbox"
-            checked={requiereAsistenciaSocial}
-            onChange={(e) => setRequiereAsistenciaSocial(e.target.checked)}
-            style={{ width: '18px', height: '18px', cursor: 'pointer' }}
-          />
-          <label
-            htmlFor="requiereAsistenciaSocial"
-            style={{ fontSize: '14px', fontWeight: 600, color: '#2B2B2B', cursor: 'pointer' }}
-          >
-            Requiere Asistencia Social (Derivar para levantamiento de Ficha FIBE)
-          </label>
-        </div>
-
-        {/* 7. Datos de Telefonía Asterisk (Opcional / Colapsable) */}
-        <div style={{ borderTop: '1px solid #DFE3E8', paddingTop: '12px' }}>
-          <button
-            type="button"
-            onClick={() => setMostrarAsterisk(!mostrarAsterisk)}
-            style={{
-              background: 'none',
-              border: 'none',
-              padding: 0,
-              color: '#1B6F7D',
-              fontSize: '13px',
-              fontWeight: 700,
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-            }}
-          >
-            <span>{mostrarAsterisk ? '▼' : '▶'}</span>
-            <span>Integración Asterisk / Telefonía IP (Avanzado)</span>
-          </button>
-
-          {mostrarAsterisk && (
-            <div
-              style={{
-                marginTop: '12px',
-                display: 'grid',
-                gridTemplateColumns: '1fr 1fr',
-                gap: '12px',
-                backgroundColor: '#FAFAFA',
-                padding: '12px',
-                border: '1px solid #E0E0E0',
-              }}
-            >
-              <div>
-                <label
-                  htmlFor="asteriskCallId"
-                  style={{ display: 'block', fontSize: '12px', color: '#555', marginBottom: '4px' }}
-                >
-                  Asterisk Call ID
-                </label>
-                <input
-                  id="asteriskCallId"
-                  type="text"
-                  value={asteriskCallId}
-                  onChange={(e) => setAsteriskCallId(e.target.value)}
-                  placeholder="ej. 1726264812.10"
-                  style={{
-                    width: '100%',
-                    padding: '6px 8px',
-                    fontSize: '12px',
-                    border: '1px solid #CCC',
-                    borderRadius: 0,
-                  }}
-                />
-              </div>
-
-              <div>
-                <label
-                  htmlFor="asteriskCallerPhone"
-                  style={{ display: 'block', fontSize: '12px', color: '#555', marginBottom: '4px' }}
-                >
-                  Asterisk Caller Phone
-                </label>
-                <input
-                  id="asteriskCallerPhone"
-                  type="text"
-                  value={asteriskCallerPhone}
-                  onChange={(e) => setAsteriskCallerPhone(e.target.value)}
-                  placeholder="ej. 632280000"
-                  style={{
-                    width: '100%',
-                    padding: '6px 8px',
-                    fontSize: '12px',
-                    border: '1px solid #CCC',
-                    borderRadius: 0,
-                  }}
-                />
-              </div>
-            </div>
-          )}
         </div>
 
         {/* Barra de botones de envío */}
