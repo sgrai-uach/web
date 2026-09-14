@@ -10,9 +10,15 @@ export const metadata: Metadata = {
 export default function ManualIncidentPage() {
   return (
     <div>
-      {/* Encabezado y migas de pan institucionales */}
-      <div style={{ marginBottom: '24px' }}>
-        <div style={{ fontSize: '12px', color: '#666', marginBottom: '4px' }}>
+      {/* Encabezado y migas de pan institucionales centrados sobre el formulario */}
+      <div
+        style={{
+          maxWidth: '840px',
+          margin: '0 auto 24px auto',
+          textAlign: 'center',
+        }}
+      >
+        <div style={{ fontSize: '12px', color: '#666', marginBottom: '6px' }}>
           <span>Call Center</span> &gt; <strong style={{ color: '#14505A' }}>Recepción de Reportes</strong>
         </div>
         <h1
@@ -21,12 +27,12 @@ export default function ManualIncidentPage() {
             fontWeight: 800,
             color: '#14505A',
             letterSpacing: '-0.3px',
-            margin: '0 0 6px 0',
+            margin: '0 0 8px 0',
           }}
         >
           Recepción de Reportes de Emergencia
         </h1>
-        <p style={{ margin: 0, fontSize: '14px', color: '#3B3F45', lineHeight: 1.5 }}>
+        <p style={{ margin: '0 auto', maxWidth: '640px', fontSize: '14px', color: '#3B3F45', lineHeight: 1.5 }}>
           Completa los datos del reporte recibido para enviar el aviso directamente al Encargado municipal y coordinar la atención oportuna en terreno.
         </p>
       </div>
