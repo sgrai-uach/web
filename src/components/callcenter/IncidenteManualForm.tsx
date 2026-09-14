@@ -420,6 +420,10 @@ export default function IncidenteManualForm({
             </span>
           )}
 
+          <p style={{ fontSize: '12px', color: '#555555', margin: '4px 0 8px 0', lineHeight: 1.4 }}>
+            💡 <em>Al ingresar la dirección o presionar <strong>Ubicar en mapa</strong>, el mapa se centrará automáticamente. Puedes afinar el punto exacto haciendo clic o arrastrando el marcador. Se guardarán tanto la dirección escrita como las coordenadas GPS fijadas.</em>
+          </p>
+
           {/* Banner preventivo si la pre-consulta detectó duplicados */}
           <DuplicadoAlertaBanner
             coincidencias={duplicadosPreventivos}

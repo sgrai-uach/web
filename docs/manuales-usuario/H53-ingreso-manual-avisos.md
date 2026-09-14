@@ -28,19 +28,21 @@ Al ingresar al formulario, el operador debe identificar la procedencia de la inf
 
 ### Paso 2: Tipo de Afectación y Nivel de Prioridad
 1. **Tipo de Afectación:** Selecciona en el menú desplegable la tipología del incidente (*Anegamiento*, *Caída de árbol*, *Corte de energía*, *Deslizamiento*, *Daño estructural*, *Corte de agua potable*, etc.). Este catálogo se sincroniza dinámicamente con el servidor municipal.
-2. **Prioridad Operativa:** Clasifica la urgencia en **BAJA**, **MEDIA** (por defecto), **ALTA** o **CRÍTICA ⚠️** según la gravedad y el riesgo potencial para vidas o viviendas.
+2. **Prioridad Operativa:** Clasifica la urgencia en **BAJA**, **MEDIA** (por defecto), **ALTA** o **CRÍTICA** según la gravedad y el riesgo potencial para vidas o viviendas.
 
 ![Paso 2: Tipo y Prioridad](./assets/H53-ingreso-manual-avisos/02-tipo-prioridad.png)
 
 ---
 
-### Paso 3: Ubicación y Mini-Mapa Interactivo de Valdivia
-El sistema combina geocodificación inteligente por texto y fijación cartográfica:
-1. **Dirección escrita:** Escribe la calle, número, sector o referencias en el campo *Dirección o Referencia en Valdivia* (mínimo 5 caracteres, ej. *Av. Alemania 550* o *Picarte con Pedro Montt*).
-   > **Nota:** No es estrictamente necesario marcar el mapa; si solo ingresas la dirección, el servidor de geocodificación de Valdivia calculará las coordenadas de forma automática.
-2. **Mini-mapa interactivo (Opcional):** Si el operador o el informante conocen el punto exacto, puedes hacer clic sobre el mapa centrado en Valdivia o arrastrar el marcador con esquinas rectas (`#1B6F7D`) para afinar las coordenadas GPS de latitud y longitud.
-3. **Botón Centrar Valdivia:** Restablece la vista cartográfica al centro cívico de la comuna.
-4. **Botón Limpiar GPS:** Elimina el pin manual y deja que el sistema geocodifique según el texto de la dirección.
+### Paso 3: Ubicación y Mini-Mapa Interactivo de Valdivia (Sincronización Automática)
+El sistema combina geocodificación inteligente por texto y fijación cartográfica con sincronización automática:
+1. **Dirección escrita:** Escribe la calle, número, sector o referencias en el campo *Dirección o Referencia en Valdivia* (mínimo 5 caracteres, ej. *Av. Alemania 550*, *Picarte 2000* o *Isla Teja*).
+2. **Sincronización automática con el mapa:**
+   - Al salir del campo de texto o presionar el botón **"Ubicar en mapa"**, el sistema geocodifica la dirección y ubica el marcador interactivo en el sector correspondiente de Valdivia.
+   - Si el operador o el informante conocen el punto exacto, pueden hacer clic sobre el mapa o arrastrar el marcador con esquinas rectas (`#1B6F7D`) para afinar la ubicación GPS.
+3. **Persistencia de datos:** En la base de datos se almacenan **ambos datos**: la dirección escrita (como referencia humana legible para despacho en terreno) y las coordenadas exactas de latitud y longitud (para el motor SIG y la detección espacial de duplicados).
+4. **Botón Centrar Valdivia:** Restablece la vista cartográfica al centro cívico de la comuna.
+5. **Botón Limpiar GPS:** Elimina el pin manual en caso de querer depender exclusivamente de la geocodificación textual del servidor.
 
 ![Paso 3: Ubicación y Mapa](./assets/H53-ingreso-manual-avisos/03-direccion-mapa.png)
 
