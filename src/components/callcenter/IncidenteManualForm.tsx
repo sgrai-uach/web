@@ -16,6 +16,7 @@ import {
 } from '@/types/incidente-manual';
 import { formatearRut } from '@/lib/validations/rut';
 import { useVerificarDuplicado } from '@/hooks/useVerificarDuplicado';
+import { geocodificarDireccionEnValdivia } from '@/lib/maps/geocoding';
 import LocationPickerMap from '@/components/maps/LocationPickerMap';
 import DuplicadoAlertaBanner from './DuplicadoAlertaBanner';
 import DuplicadosModal from './DuplicadosModal';
@@ -45,6 +46,7 @@ export default function IncidenteManualForm({
   const [informanteTelefono, setInformanteTelefono] = useState<string>('');
   const [prioridad, setPrioridad] = useState<PrioridadIncidente>('MEDIA');
   const [coordenadas, setCoordenadas] = useState<{ latitud: number; longitud: number } | null>(null);
+  const [geocodificandoMapa, setGeocodificandoMapa] = useState<boolean>(false);
 
   // Estados de control de UI y errores
   const [errores, setErrores] = useState<Record<string, string>>({});
@@ -99,6 +101,19 @@ export default function IncidenteManualForm({
       });
     }
   };
+
+  const handleSincronizarMapaConDireccion = useCallback(async () => {
+    if (direccion.trim().length < 4) return;
+    setGeocodificandoMapa(true);
+    try {
+      const coords = await geocodificarDireccionEnValdivia(direccion.trim());
+      if (coords) {
+        setCoordenadas(coords);
+      }
+    } finally {
+      setGeocodificandoMapa(false);
+    }
+  }, [direccion]);
 
   const limpiarFormulario = useCallback(() => {
     setOrigenReporte('LLAMADA_TELEFONICA');
@@ -346,7 +361,7 @@ export default function IncidenteManualForm({
               <option value="BAJA">BAJA</option>
               <option value="MEDIA">MEDIA</option>
               <option value="ALTA">ALTA</option>
-              <option value="CRITICA">CRÍTICA ⚠️</option>
+              <option value="CRITICA">CRÍTICA</option>
             </select>
           </div>
         </div>
@@ -359,21 +374,46 @@ export default function IncidenteManualForm({
           >
             3. Dirección o Referencia en Valdivia *
           </label>
-          <input
-            id="direccion"
-            type="text"
-            value={direccion}
-            onChange={(e) => setDireccion(e.target.value)}
-            placeholder="Ej: Av. Alemania 550, Picarte 2000, Isla Teja..."
-            style={{
-              width: '100%',
-              padding: '10px 12px',
-              border: errores.direccion ? '2px solid #D32F2F' : '1px solid #3B3F45',
-              fontSize: '14px',
-              borderRadius: 0,
-              marginBottom: '10px',
-            }}
-          />
+          <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
+            <input
+              id="direccion"
+              type="text"
+              value={direccion}
+              onChange={(e) => setDireccion(e.target.value)}
+              onBlur={handleSincronizarMapaConDireccion}
+              placeholder="Ej: Av. Alemania 550, Picarte 2000, Isla Teja..."
+              style={{
+                flex: 1,
+                padding: '10px 12px',
+                border: errores.direccion ? '2px solid #D32F2F' : '1px solid #3B3F45',
+                fontSize: '14px',
+                borderRadius: 0,
+              }}
+            />
+            <button
+              type="button"
+              onClick={handleSincronizarMapaConDireccion}
+              disabled={geocodificandoMapa || direccion.trim().length < 4}
+              title="Ubicar la dirección escrita en el mapa interactivo"
+              style={{
+                backgroundColor: '#1B6F7D',
+                color: '#FFFFFF',
+                border: 'none',
+                padding: '10px 16px',
+                fontSize: '13px',
+                fontWeight: 700,
+                cursor: geocodificandoMapa || direccion.trim().length < 4 ? 'not-allowed' : 'pointer',
+                borderRadius: 0,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                whiteSpace: 'nowrap',
+                opacity: geocodificandoMapa || direccion.trim().length < 4 ? 0.6 : 1,
+              }}
+            >
+              <span>{geocodificandoMapa ? 'Buscando...' : 'Ubicar en mapa'}</span>
+            </button>
+          </div>
           {errores.direccion && (
             <span style={{ color: '#D32F2F', fontSize: '12px', marginBottom: '8px', display: 'block' }}>
               {errores.direccion}
