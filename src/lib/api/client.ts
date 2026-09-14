@@ -9,7 +9,8 @@ import createClient from 'openapi-fetch';
 import type { paths } from '@/types/api-generated';
 
 const apiClient = createClient<paths>({
-  baseUrl: process.env.NEXT_PUBLIC_API_URL,
+  baseUrl: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001',
 });
 
 export default apiClient;
+
