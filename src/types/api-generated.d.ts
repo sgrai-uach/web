@@ -22,8 +22,8 @@ export interface paths {
                     page?: number;
                     /** @description Cantidad de elementos por página (máx. 100) */
                     limit?: number;
-                    /** @description Estado del aviso a consultar (por defecto NO_VERIFICADO) */
-                    estado?: "NO_VERIFICADO" | "VERIFICADO" | "DESCARTADO";
+                    /** @description Estado del aviso a consultar (por defecto PENDIENTE_VERIFICACION) */
+                    estado?: "PENDIENTE_VERIFICACION" | "NO_VERIFICADO" | "VERIFICADO" | "DESCARTADO";
                 };
                 header?: never;
                 path?: never;
@@ -281,6 +281,128 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/seguridad/roles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Listar perfiles y permisos actuales
+         * @description Retorna el listado completo de perfiles/roles registrados con sus respectivos permisos asignados y metadatos de auditoría. Accesible exclusivamente por el rol Administrador.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header: {
+                    /** @description UUID del usuario administrador autenticado */
+                    "x-user-id": string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Listado completo de roles y permisos */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ListarRolesResponse"];
+                    };
+                };
+                /** @description Cabecera de autenticación X-User-Id ausente o usuario no válido */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Acceso denegado. Se requiere perfil de Administrador */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/seguridad/roles/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Obtener detalle de perfil y sus permisos
+         * @description Despliega claramente los permisos, módulos y acciones a los que tiene acceso un perfil específico. Accesible exclusivamente por el rol Administrador.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header: {
+                    /** @description UUID del usuario administrador autenticado */
+                    "x-user-id": string;
+                };
+                path: {
+                    /** @description UUID del rol/perfil a consultar */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Detalle del perfil y sus permisos asignados */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RolDetalleResponse"];
+                    };
+                };
+                /** @description Cabecera de autenticación X-User-Id ausente o usuario no válido */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Acceso denegado. Se requiere perfil de Administrador */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Perfil no encontrado */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -297,16 +419,23 @@ export interface components {
         AvisoItem: {
             /** Format: uuid */
             id: string;
-            /** Format: uuid */
-            tipoPreliminarId: string | null;
+            codigoSeguimiento: string;
+            tipoAfectacion: string;
             tipoPreliminarNombre: string | null;
-            descripcion: string;
+            direccionTexto: string;
+            descripcion: string | null;
             latitud: number;
             longitud: number;
+            informanteNombre: string;
+            informanteRut: string;
+            informanteTelefono: string | null;
             /** @enum {string} */
             origenReporte: "WEB" | "CHATBOT" | "TELEFONO";
             /** @enum {string} */
-            estado: "NO_VERIFICADO" | "VERIFICADO" | "DESCARTADO";
+            estado: "PENDIENTE_VERIFICACION" | "NO_VERIFICADO" | "VERIFICADO" | "DESCARTADO";
+            esDuplicado: boolean;
+            /** Format: uuid */
+            avisoOriginalId?: string | null;
             motivoDescarte: string | null;
             /** Format: uuid */
             operadorId: string | null;
@@ -318,10 +447,39 @@ export interface components {
         };
         CrearAvisoInput: {
             /**
+             * @description Tipo de afectación reportada (ej: Inundación, Anegamiento, etc.)
+             * @default Anegamiento
+             * @example Anegamiento
+             */
+            tipoAfectacion: string;
+            /**
+             * @description Dirección en texto del incidente
+             * @default Valdivia, Los Ríos
+             * @example Avenida Los Robles con Los Laureles, Isla Teja
+             */
+            direccion: string;
+            /**
              * @description Descripción detallada del incidente reportado
              * @example Desborde de río e inundación de viviendas cercanas
              */
-            descripcion: string;
+            descripcion?: string;
+            /**
+             * @description Nombre del informante
+             * @default Vecino Valdivia
+             * @example Juan Pérez
+             */
+            informanteNombre: string;
+            /**
+             * @description RUT del informante
+             * @default 11111111-1
+             * @example 12345678-5
+             */
+            informanteRut: string;
+            /**
+             * @description Teléfono de contacto del informante
+             * @example +56912345678
+             */
+            informanteTelefono?: string;
             /**
              * @description Coordenada latitud en grados decimales
              * @example -39.8142
@@ -333,12 +491,6 @@ export interface components {
              */
             longitud: number;
             /**
-             * Format: uuid
-             * @description ID del catálogo tipo_incidente preliminar (opcional)
-             * @example a0000000-0000-0000-0000-000000000001
-             */
-            tipoPreliminarId?: string;
-            /**
              * @description Canal por el cual ingresó el aviso
              * @default WEB
              * @example WEB
@@ -346,10 +498,12 @@ export interface components {
              */
             origenReporte: "WEB" | "CHATBOT" | "TELEFONO";
             /**
-             * @description Datos de contacto o identificación del informante
-             * @default {}
+             * Format: uuid
+             * @description ID opcional del catálogo de tipo de incidente
              */
-            datosInformante: {
+            tipoPreliminarId?: string;
+            /** @description Datos informante en formato JSON legacy (opcional) */
+            datosInformante?: {
                 nombre?: string;
                 telefono?: string;
                 rut?: string;
@@ -399,6 +553,102 @@ export interface components {
              * @example Reporte duplicado con respecto al aviso ID #1234 verificado anteriormente
              */
             motivoDescarte: string;
+        };
+        ListarRolesResponse: {
+            /** @description Colección de perfiles con sus permisos asignados */
+            data: components["schemas"]["RolItem"][];
+            /**
+             * @description Cantidad total de perfiles registrados
+             * @example 8
+             */
+            total: number;
+        };
+        RolItem: {
+            /**
+             * Format: uuid
+             * @description UUID del rol/perfil
+             * @example 20000000-0000-0000-0000-000000000001
+             */
+            id: string;
+            /**
+             * @description Nombre del perfil institucional
+             * @example Administrador
+             */
+            nombre: string;
+            /**
+             * @description Descripción de las responsabilidades del perfil
+             * @example Acceso total y configuración del sistema
+             */
+            descripcion: string | null;
+            /**
+             * @description Indica si el perfil se encuentra activo en el sistema
+             * @example true
+             */
+            activo: boolean;
+            /**
+             * @description Indica si es un perfil base protegido del sistema
+             * @example true
+             */
+            esSistema: boolean;
+            /**
+             * @description Total de permisos actualmente asignados al rol
+             * @example 9
+             */
+            cantidadPermisos: number;
+            /** @description Lista de permisos asignados. Si no posee ninguno, retorna un arreglo vacío */
+            permisos: components["schemas"]["PermisoAsignado"][];
+            /**
+             * @description Fecha y hora ISO de creación del perfil
+             * @example 2026-09-13T23:00:00.000Z
+             */
+            creadoEn: string;
+            /**
+             * @description Fecha y hora ISO de la última actualización del perfil
+             * @example 2026-09-13T23:00:00.000Z
+             */
+            actualizadoEn: string;
+        };
+        PermisoAsignado: {
+            /**
+             * Format: uuid
+             * @description UUID del permiso
+             * @example 10000000-0000-0000-0000-000000000003
+             */
+            id: string;
+            /**
+             * @description Código único de autorización del permiso
+             * @example seguridad:roles:leer
+             */
+            codigo: string;
+            /**
+             * @description Nombre legible del permiso
+             * @example Visualizar Roles y Permisos
+             */
+            nombre: string;
+            /**
+             * @description Descripción detallada de la acción permitida
+             * @example Permite consultar el listado y detalle de perfiles y sus permisos actuales
+             */
+            descripcion: string | null;
+            /**
+             * @description Módulo funcional al que pertenece el permiso
+             * @example Seguridad
+             */
+            modulo: string;
+            /**
+             * @description Fecha y hora ISO de la asignación del permiso al rol
+             * @example 2026-09-13T23:00:00.000Z
+             */
+            asignadoEn: string;
+            /**
+             * Format: uuid
+             * @description UUID del usuario administrador que realizó la asignación
+             * @example 00000000-0000-0000-0000-000000000001
+             */
+            asignadoPorId: string | null;
+        };
+        RolDetalleResponse: {
+            data: components["schemas"]["RolItem"] & unknown;
         };
     };
     responses: never;
