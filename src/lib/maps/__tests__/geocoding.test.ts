@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { geocodificarDireccionEnValdivia } from '../geocoding';
+import { geocodificarDireccionEnValdivia, geocodificacionInversaEnValdivia } from '../geocoding';
 
 describe('geocodificarDireccionEnValdivia', () => {
   it('debe resolver instantáneamente direcciones conocidas de Valdivia', async () => {
@@ -22,3 +22,23 @@ describe('geocodificarDireccionEnValdivia', () => {
     expect(res).toBeNull();
   });
 });
+
+describe('geocodificacionInversaEnValdivia', () => {
+  it('debe retornar el sector aproximado en Valdivia para coordenadas dadas', async () => {
+    // Coordenadas cercanas a Isla Teja
+    const resultadoTeja = await geocodificacionInversaEnValdivia(-39.8089, -73.2534);
+    expect(resultadoTeja).not.toBeNull();
+    expect(resultadoTeja?.toLowerCase()).toContain('valdivia');
+
+    // Coordenadas cercanas a Niebla
+    const resultadoNiebla = await geocodificacionInversaEnValdivia(-39.8667, -73.3986);
+    expect(resultadoNiebla).not.toBeNull();
+    expect(resultadoNiebla?.toLowerCase()).toContain('niebla');
+  });
+
+  it('debe retornar null para coordenadas no válidas', async () => {
+    const res = await geocodificacionInversaEnValdivia(NaN, NaN);
+    expect(res).toBeNull();
+  });
+});
+

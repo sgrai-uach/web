@@ -13,6 +13,7 @@ interface LocationPickerMapProps {
   latitud?: number | null;
   longitud?: number | null;
   onChange: (coords: { latitud: number; longitud: number } | null) => void;
+  onUserSelectLocation?: (coords: { latitud: number; longitud: number }) => void;
   readOnly?: boolean;
 }
 
@@ -20,6 +21,7 @@ export default function LocationPickerMap({
   latitud,
   longitud,
   onChange,
+  onUserSelectLocation,
   readOnly = false,
 }: LocationPickerMapProps) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
@@ -28,10 +30,15 @@ export default function LocationPickerMap({
   const leafletModuleRef = useRef<typeof import('leaflet') | null>(null);
   const pinIconRef = useRef<LeafletDivIcon | null>(null);
   const onChangeRef = useRef(onChange);
+  const onUserSelectLocationRef = useRef(onUserSelectLocation);
 
   useEffect(() => {
     onChangeRef.current = onChange;
   }, [onChange]);
+
+  useEffect(() => {
+    onUserSelectLocationRef.current = onUserSelectLocation;
+  }, [onUserSelectLocation]);
 
   const initialCoordsRef = useRef({ latitud, longitud });
 
@@ -102,10 +109,12 @@ export default function LocationPickerMap({
           if (!readOnly) {
             marker.on('dragend', () => {
               const pos = marker.getLatLng();
-              onChangeRef.current({
+              const coords = {
                 latitud: parseFloat(pos.lat.toFixed(6)),
                 longitud: parseFloat(pos.lng.toFixed(6)),
-              });
+              };
+              onChangeRef.current(coords);
+              onUserSelectLocationRef.current?.(coords);
             });
           }
 
@@ -116,6 +125,7 @@ export default function LocationPickerMap({
           map.on('click', (e: LeafletMouseEvent) => {
             const newLat = parseFloat(e.latlng.lat.toFixed(6));
             const newLng = parseFloat(e.latlng.lng.toFixed(6));
+            const coords = { latitud: newLat, longitud: newLng };
 
             if (!markerRef.current) {
               const marker = L.marker([newLat, newLng], {
@@ -125,10 +135,12 @@ export default function LocationPickerMap({
 
               marker.on('dragend', () => {
                 const pos = marker.getLatLng();
-                onChangeRef.current({
+                const dragCoords = {
                   latitud: parseFloat(pos.lat.toFixed(6)),
                   longitud: parseFloat(pos.lng.toFixed(6)),
-                });
+                };
+                onChangeRef.current(dragCoords);
+                onUserSelectLocationRef.current?.(dragCoords);
               });
 
               markerRef.current = marker;
@@ -136,7 +148,8 @@ export default function LocationPickerMap({
               markerRef.current.setLatLng([newLat, newLng]);
             }
 
-            onChangeRef.current({ latitud: newLat, longitud: newLng });
+            onChangeRef.current(coords);
+            onUserSelectLocationRef.current?.(coords);
           });
         }
 
@@ -181,10 +194,12 @@ export default function LocationPickerMap({
           if (!readOnly) {
             marker.on('dragend', () => {
               const pos = marker.getLatLng();
-              onChangeRef.current({
+              const coords = {
                 latitud: parseFloat(pos.lat.toFixed(6)),
                 longitud: parseFloat(pos.lng.toFixed(6)),
-              });
+              };
+              onChangeRef.current(coords);
+              onUserSelectLocationRef.current?.(coords);
             });
           }
 
@@ -246,14 +261,14 @@ export default function LocationPickerMap({
         </span>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span>
+          <span style={{ fontSize: '12px', fontFamily: 'inherit' }}>
             GPS:{' '}
             {hasCoords ? (
               <strong style={{ color: '#1B6F7D' }}>
                 {latitud?.toFixed(5)}, {longitud?.toFixed(5)}
               </strong>
             ) : (
-              <span style={{ color: '#666' }}>Geocodificación por dirección</span>
+              <span style={{ color: '#666' }}>Automático por dirección</span>
             )}
           </span>
 
@@ -262,13 +277,18 @@ export default function LocationPickerMap({
               type="button"
               onClick={handleLimpiarPunto}
               style={{
+                fontFamily: 'inherit',
                 backgroundColor: '#3B3F45',
                 color: '#FFFFFF',
-                border: 'none',
-                padding: '3px 8px',
-                fontSize: '11px',
+                border: '1px solid #3B3F45',
+                padding: '5px 12px',
+                fontSize: '12px',
+                fontWeight: 600,
                 cursor: 'pointer',
                 borderRadius: 0,
+                display: 'inline-flex',
+                alignItems: 'center',
+                height: '28px',
               }}
             >
               Limpiar GPS
@@ -279,14 +299,18 @@ export default function LocationPickerMap({
             type="button"
             onClick={handleCentrarValdivia}
             style={{
+              fontFamily: 'inherit',
               backgroundColor: '#ECEFF3',
               color: '#1B6F7D',
               border: '1px solid #1B6F7D',
-              padding: '3px 8px',
-              fontSize: '11px',
+              padding: '5px 12px',
+              fontSize: '12px',
+              fontWeight: 600,
               cursor: 'pointer',
               borderRadius: 0,
-              fontWeight: 600,
+              display: 'inline-flex',
+              alignItems: 'center',
+              height: '28px',
             }}
           >
             Centrar Valdivia

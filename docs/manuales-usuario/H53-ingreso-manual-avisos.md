@@ -7,7 +7,7 @@ Este manual documenta el uso del módulo de **Ingreso Manual de Reportes** en el
 ## 1. Información General
 
 - **Rol al que está dirigido:** Call Center (Operadores de la Mesa Central 1451) y Administrador.
-- **Objetivo de la funcionalidad:** Permitir al operador registrar inmediatamente un incidente recibido vía llamada telefónica o reportado directamente por un funcionario en terreno, garantizando su autoverificación implícita, detección interactiva de duplicados y traspaso directo al Encargado en estado `SIN_ATENDER`.
+- **Objetivo de la funcionalidad:** Permitir al operador registrar inmediatamente un incidente recibido vía llamada telefónica o aviso directo de funcionarios en terreno, enviando la alerta al Encargado municipal para su rápida atención y despacho.
 - **Acceso:** Desde la barra de navegación del Centro Call Center presionando el botón **"➕ Nuevo Reporte Manual"** o ingresando directamente a la ruta:
   ```
   /callcenter/manual
@@ -34,15 +34,16 @@ Al ingresar al formulario, el operador debe identificar la procedencia de la inf
 
 ---
 
-### Paso 3: Ubicación y Mini-Mapa Interactivo de Valdivia (Sincronización Automática)
-El sistema combina geocodificación inteligente por texto y fijación cartográfica con sincronización automática:
-1. **Dirección escrita:** Escribe la calle, número, sector o referencias en el campo *Dirección o Referencia en Valdivia* (mínimo 5 caracteres, ej. *Av. Alemania 550*, *Picarte 2000* o *Isla Teja*).
-2. **Sincronización automática con el mapa:**
-   - Al salir del campo de texto o presionar el botón **"Ubicar en mapa"**, el sistema geocodifica la dirección y ubica el marcador interactivo en el sector correspondiente de Valdivia.
-   - Si el operador o el informante conocen el punto exacto, pueden hacer clic sobre el mapa o arrastrar el marcador con esquinas rectas (`#1B6F7D`) para afinar la ubicación GPS.
-3. **Persistencia de datos:** En la base de datos se almacenan **ambos datos**: la dirección escrita (como referencia humana legible para despacho en terreno) y las coordenadas exactas de latitud y longitud (para el motor SIG y la detección espacial de duplicados).
-4. **Botón Centrar Valdivia:** Restablece la vista cartográfica al centro cívico de la comuna.
-5. **Botón Limpiar GPS:** Elimina el pin manual en caso de querer depender exclusivamente de la geocodificación textual del servidor.
+### Paso 3: Ubicación y Mini-Mapa Interactivo de Valdivia (Sincronización Bidireccional)
+El sistema combina geocodificación inteligente por texto y fijación cartográfica con sincronización automática en ambos sentidos:
+1. **Dirección escrita a Mapa:**
+   - Escribe la calle, número, sector o referencias en el campo *Dirección o Referencia en Valdivia* (mínimo 5 caracteres, ej. *Av. Alemania 550*, *Picarte 2000* o *Isla Teja*).
+   - Al salir del campo de texto o presionar el botón **"Ubicar en mapa"**, el sistema localiza el sector en Valdivia y ubica el marcador interactivo en la posición correspondiente.
+2. **Mapa a Dirección escrita (Geocodificación Inversa):**
+   - Si haces clic directamente sobre el mapa o arrastras el marcador (`#1B6F7D`), el sistema calcula las coordenadas y **actualiza automáticamente el texto de la dirección** con la calle y sector respectivo de Valdivia.
+3. **Persistencia de datos:** En la base de datos se almacenan **ambos datos**: la dirección legible para el personal de despacho y las coordenadas exactas de latitud y longitud para el mapa del Encargado y la detección de duplicados.
+4. **Botón Centrar Valdivia:** Restablece la vista cartográfica al centro de la comuna.
+5. **Botón Limpiar GPS:** Elimina el pin manual en caso de requerir restablecer la ubicación.
 
 ![Paso 3: Ubicación y Mapa](./assets/H53-ingreso-manual-avisos/03-direccion-mapa.png)
 

@@ -16,7 +16,10 @@ import {
 } from '@/types/incidente-manual';
 import { formatearRut } from '@/lib/validations/rut';
 import { useVerificarDuplicado } from '@/hooks/useVerificarDuplicado';
-import { geocodificarDireccionEnValdivia } from '@/lib/maps/geocoding';
+import {
+  geocodificarDireccionEnValdivia,
+  geocodificacionInversaEnValdivia,
+} from '@/lib/maps/geocoding';
 import LocationPickerMap from '@/components/maps/LocationPickerMap';
 import DuplicadoAlertaBanner from './DuplicadoAlertaBanner';
 import DuplicadosModal from './DuplicadosModal';
@@ -114,6 +117,31 @@ export default function IncidenteManualForm({
       setGeocodificandoMapa(false);
     }
   }, [direccion]);
+
+  const handleUserSelectLocation = useCallback(
+    async (coords: { latitud: number; longitud: number }) => {
+      setCoordenadas(coords);
+      try {
+        const direccionInversa = await geocodificacionInversaEnValdivia(
+          coords.latitud,
+          coords.longitud
+        );
+        if (direccionInversa) {
+          setDireccion(direccionInversa);
+          if (errores.direccion) {
+            setErrores((prev) => {
+              const c = { ...prev };
+              delete c.direccion;
+              return c;
+            });
+          }
+        }
+      } catch {
+        // Si falla la red, se mantienen las coordenadas fijadas sin bloquear
+      }
+    },
+    [errores.direccion]
+  );
 
   const limpiarFormulario = useCallback(() => {
     setOrigenReporte('LLAMADA_TELEFONICA');
@@ -421,7 +449,7 @@ export default function IncidenteManualForm({
           )}
 
           <p style={{ fontSize: '12px', color: '#555555', margin: '4px 0 8px 0', lineHeight: 1.4 }}>
-            💡 <em>Al ingresar la dirección o presionar <strong>Ubicar en mapa</strong>, el mapa se centrará automáticamente. Puedes afinar el punto exacto haciendo clic o arrastrando el marcador. Se guardarán tanto la dirección escrita como las coordenadas GPS fijadas.</em>
+            💡 <em>Puedes escribir la dirección o hacer clic directamente en el mapa para marcar el lugar. Ambos se mantendrán sincronizados.</em>
           </p>
 
           {/* Banner preventivo si la pre-consulta detectó duplicados */}
@@ -436,6 +464,7 @@ export default function IncidenteManualForm({
               latitud={coordenadas?.latitud}
               longitud={coordenadas?.longitud}
               onChange={setCoordenadas}
+              onUserSelectLocation={handleUserSelectLocation}
             />
           </div>
         </div>
@@ -577,16 +606,16 @@ export default function IncidenteManualForm({
           </div>
         </div>
 
-        {/* Barra de botones de envío */}
+        {/* Barra de botones de acción */}
         <div
           style={{
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'space-between',
+            justifyContent: 'flex-end',
             borderTop: '2px solid #ECEFF3',
             paddingTop: '20px',
             flexWrap: 'wrap',
-            gap: '12px',
+            gap: '16px',
           }}
         >
           <button
@@ -594,14 +623,20 @@ export default function IncidenteManualForm({
             onClick={limpiarFormulario}
             disabled={enviando}
             style={{
-              backgroundColor: '#ECEFF3',
-              color: '#3B3F45',
-              border: '1px solid #CFD8DC',
-              padding: '12px 20px',
+              fontFamily: 'inherit',
               fontSize: '14px',
               fontWeight: 700,
+              padding: '12px 24px',
+              height: '46px',
+              backgroundColor: '#ECEFF3',
+              color: '#3B3F45',
+              border: '1px solid #3B3F45',
               cursor: enviando ? 'not-allowed' : 'pointer',
               borderRadius: 0,
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              minWidth: '150px',
             }}
           >
             Limpiar campos
@@ -611,31 +646,24 @@ export default function IncidenteManualForm({
             type="submit"
             disabled={enviando}
             style={{
+              fontFamily: 'inherit',
+              fontSize: '14px',
+              fontWeight: 700,
+              padding: '12px 24px',
+              height: '46px',
               backgroundColor: '#4FAE9B',
               color: '#FFFFFF',
-              border: 'none',
-              padding: '14px 28px',
-              fontSize: '15px',
-              fontWeight: 800,
+              border: '1px solid #4FAE9B',
               cursor: enviando ? 'not-allowed' : 'pointer',
               borderRadius: 0,
-              display: 'flex',
+              display: 'inline-flex',
               alignItems: 'center',
-              gap: '8px',
+              justifyContent: 'center',
+              minWidth: '240px',
               boxShadow: 'none',
             }}
           >
-            {enviando ? (
-              <>
-                <span>⏳</span>
-                <span>Enviando reporte...</span>
-              </>
-            ) : (
-              <>
-                <span>✓</span>
-                <span>Guardar y Notificar al Encargado</span>
-              </>
-            )}
+            {enviando ? 'Enviando reporte...' : 'Guardar y Notificar al Encargado'}
           </button>
         </div>
       </form>
