@@ -1,10 +1,3 @@
-/**
- * Cliente Socket.io para actualizaciones en tiempo real.
- *
- * Proporciona la conexión al servidor de WebSocket de sgrai-api
- * para reflejar cambios de estado de incidentes, avisos en el Call Center, etc.
- */
-
 import { io, Socket } from 'socket.io-client';
 
 const SOCKET_URL =
@@ -14,15 +7,17 @@ const SOCKET_URL =
 
 let socket: Socket | null = null;
 
-/**
- * Obtiene la instancia singleton del socket.
- * La conexión se establece con transportes websocket y polling.
- */
 export function getSocket(): Socket {
   if (!socket) {
     socket = io(SOCKET_URL, {
+      path: '/socket.io/',
       transports: ['websocket', 'polling'],
       autoConnect: true,
+      reconnection: true,
+      reconnectionAttempts: Infinity,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
+      withCredentials: true,
     });
   }
   return socket;
