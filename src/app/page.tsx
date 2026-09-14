@@ -10,7 +10,7 @@ export default function Home() {
         Sistema de Gestión de Recursos para Atención de Incidentes &mdash;
         Municipalidad de Valdivia.
       </p>
-      <div>
+      <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
         <Link
           href="/callcenter"
           style={{
@@ -23,6 +23,19 @@ export default function Home() {
           }}
         >
           Ir a Centro Call Center &rarr;
+        </Link>
+        <Link
+          href="/admin/roles-permisos"
+          style={{
+            display: 'inline-block',
+            backgroundColor: 'var(--color-primary-teal, #1B6F7D)',
+            color: '#FFFFFF',
+            padding: '0.75rem 1.5rem',
+            textDecoration: 'none',
+            fontWeight: 700,
+          }}
+        >
+          Ir a Panel Administrador (Roles y Permisos) &rarr;
         </Link>
       </div>
     </main>
