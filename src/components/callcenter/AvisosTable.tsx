@@ -334,7 +334,7 @@ export default function AvisosTable({
                         textOverflow: 'ellipsis',
                         whiteSpace: 'nowrap',
                       }}
-                      title={aviso.descripcion}
+                      title={aviso.descripcion || undefined}
                     >
                       {aviso.descripcion}
                     </td>

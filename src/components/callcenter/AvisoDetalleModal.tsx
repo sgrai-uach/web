@@ -72,26 +72,25 @@ function AvisoDetalleModalContent({
   // Tipos disponibles: los de catálogo oficial + si el aviso trae un tipo preliminar válido
   const tiposDisponibles = useMemo(() => {
     const lista = [...CATALOGO_TIPOS_INCIDENTE];
+    const tipoNombre = aviso.tipoPreliminarNombre || aviso.tipoAfectacion;
     if (
-      aviso.tipoPreliminarId &&
-      !lista.some((t) => t.id === aviso.tipoPreliminarId)
+      tipoNombre &&
+      !lista.some((t) => t.nombre.toLowerCase() === tipoNombre.toLowerCase())
     ) {
       lista.unshift({
-        id: aviso.tipoPreliminarId,
-        nombre: aviso.tipoPreliminarNombre || 'Tipo preliminar del aviso',
+        id: CATALOGO_TIPOS_INCIDENTE[0].id,
+        nombre: tipoNombre,
       });
     }
     return lista;
-  }, [aviso.tipoPreliminarId, aviso.tipoPreliminarNombre]);
+  }, [aviso.tipoPreliminarNombre, aviso.tipoAfectacion]);
 
   // Formulario de Verificación inicializado reactivamente con UUID válido
   const [tipoIncidenteId, setTipoIncidenteId] = useState(() => {
-    if (aviso.tipoPreliminarId) {
-      return aviso.tipoPreliminarId;
-    }
-    if (aviso.tipoPreliminarNombre) {
+    const tipoNombre = aviso.tipoPreliminarNombre || aviso.tipoAfectacion;
+    if (tipoNombre) {
       const match = CATALOGO_TIPOS_INCIDENTE.find((t) =>
-        t.nombre.toLowerCase().includes(aviso.tipoPreliminarNombre!.toLowerCase())
+        t.nombre.toLowerCase().includes(tipoNombre.toLowerCase())
       );
       if (match) return match.id;
     }
