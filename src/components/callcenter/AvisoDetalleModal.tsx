@@ -7,6 +7,7 @@ import {
   ApiError,
   descartarAviso,
   obtenerDetalleAviso,
+  obtenerTiposIncidentes,
   verificarAviso,
 } from '@/lib/api/avisos';
 import type { AvisoDetalleResponse, AvisoItem } from '@/types/api';
@@ -16,33 +17,8 @@ export interface TipoIncidenteOpcion {
   nombre: string;
 }
 
-// Catálogo institucional oficial sembrado en PostgreSQL por la migración 001_initial_schema.ts
-export const CATALOGO_TIPOS_INCIDENTE: TipoIncidenteOpcion[] = [
-  {
-    id: '70889810-f3a7-438d-be2e-eaf6455b6b8d',
-    nombre: 'Inundación',
-  },
-  {
-    id: '0aabcd9a-dbd4-428a-9a9b-a137a5f951b5',
-    nombre: 'Deslizamiento de tierra',
-  },
-  {
-    id: 'eb5bda50-6a5b-4832-bb42-8a436275cf3d',
-    nombre: 'Caída de árbol',
-  },
-  {
-    id: 'cbba77de-18b2-45f5-97f7-98a64e191bd8',
-    nombre: 'Anegamiento de calzada',
-  },
-  {
-    id: 'ad42e026-751b-43b8-820e-86d4169b4806',
-    nombre: 'Incendio estructural / forestal',
-  },
-  {
-    id: '5a341800-1747-46b6-b452-913ca06e0a68',
-    nombre: 'Otro',
-  },
-];
+// Catálogo institucional cargado dinámicamente desde GET /api/incidentes/tipos
+export const CATALOGO_TIPOS_INCIDENTE: TipoIncidenteOpcion[] = [];
 
 interface AvisoDetalleModalProps {
   aviso: AvisoItem | null;
@@ -69,9 +45,50 @@ function AvisoDetalleModalContent({
   const [detalle, setDetalle] = useState<AvisoDetalleResponse | null>(null);
   const [cargandoDetalle, setCargandoDetalle] = useState(true);
 
+  // Tipos de incidentes obtenidos dinámicamente desde el backend
+  const [tiposCatalogo, setTiposCatalogo] = useState<TipoIncidenteOpcion[]>([]);
+  const [cargandoTipos, setCargandoTipos] = useState(true);
+  const [tipoIncidenteId, setTipoIncidenteId] = useState(aviso.tipoPreliminarId || '');
+
+  useEffect(() => {
+    let activo = true;
+    obtenerTiposIncidentes()
+      .then((tipos) => {
+        if (!activo) return;
+        const opciones: TipoIncidenteOpcion[] = tipos.map((t) => ({
+          id: t.id,
+          nombre: t.nombre,
+        }));
+        setTiposCatalogo(opciones);
+
+        // Seleccionar automáticamente el tipo correspondiente o el primero disponible
+        setTipoIncidenteId((idActual) => {
+          if (idActual) return idActual;
+          if (aviso.tipoPreliminarId) return aviso.tipoPreliminarId;
+          if (aviso.tipoPreliminarNombre) {
+            const match = opciones.find((t) =>
+              t.nombre.toLowerCase().includes(aviso.tipoPreliminarNombre!.toLowerCase())
+            );
+            if (match) return match.id;
+          }
+          return opciones[0]?.id || '';
+        });
+      })
+      .catch((err) => {
+        console.error('Error al cargar tipos de incidentes desde la API:', err);
+      })
+      .finally(() => {
+        if (activo) setCargandoTipos(false);
+      });
+
+    return () => {
+      activo = false;
+    };
+  }, [aviso.tipoPreliminarId, aviso.tipoPreliminarNombre]);
+
   // Tipos disponibles: los de catálogo oficial + si el aviso trae un tipo preliminar válido
   const tiposDisponibles = useMemo(() => {
-    const lista = [...CATALOGO_TIPOS_INCIDENTE];
+    const lista = [...tiposCatalogo];
     if (
       aviso.tipoPreliminarId &&
       !lista.some((t) => t.id === aviso.tipoPreliminarId)
@@ -82,21 +99,7 @@ function AvisoDetalleModalContent({
       });
     }
     return lista;
-  }, [aviso.tipoPreliminarId, aviso.tipoPreliminarNombre]);
-
-  // Formulario de Verificación inicializado reactivamente con UUID válido
-  const [tipoIncidenteId, setTipoIncidenteId] = useState(() => {
-    if (aviso.tipoPreliminarId) {
-      return aviso.tipoPreliminarId;
-    }
-    if (aviso.tipoPreliminarNombre) {
-      const match = CATALOGO_TIPOS_INCIDENTE.find((t) =>
-        t.nombre.toLowerCase().includes(aviso.tipoPreliminarNombre!.toLowerCase())
-      );
-      if (match) return match.id;
-    }
-    return CATALOGO_TIPOS_INCIDENTE[0].id;
-  });
+  }, [tiposCatalogo, aviso.tipoPreliminarId, aviso.tipoPreliminarNombre]);
   const [descripcionAjustada, setDescripcionAjustada] = useState(aviso.descripcion || '');
   const [requiereAsistenciaSocial, setRequiereAsistenciaSocial] = useState(false);
   const [procesandoVerificacion, setProcesandoVerificacion] = useState(false);
@@ -663,15 +666,19 @@ function AvisoDetalleModalContent({
                   id="tipo-incidente-select"
                   value={tipoIncidenteId}
                   onChange={(e) => setTipoIncidenteId(e.target.value)}
+                  disabled={cargandoTipos}
                   style={{
                     width: '100%',
                     padding: '0.625rem',
                     border: '1px solid #BAC7D5',
                     fontSize: '0.875rem',
                     borderRadius: 0,
-                    backgroundColor: '#FFFFFF',
+                    backgroundColor: cargandoTipos ? '#F1F3F5' : '#FFFFFF',
                   }}
                 >
+                  {cargandoTipos && (
+                    <option value="">Cargando tipos de incidente...</option>
+                  )}
                   {tiposDisponibles.map((cat) => (
                     <option key={cat.id} value={cat.id}>
                       {cat.nombre}

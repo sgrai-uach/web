@@ -118,21 +118,29 @@ function CallCenterContent() {
   // Handlers para eventos WebSocket en tiempo real
   const handleAvisoNuevo = useCallback(
     (nuevoAviso: SocketAvisoNuevoPayload) => {
+      let esNuevo = false;
+
       setAvisos((prev) => {
         const existe = prev.some((a) => a.id === nuevoAviso.id);
         if (existe) {
           return prev.map((a) => (a.id === nuevoAviso.id ? nuevoAviso : a));
         }
+        esNuevo = true;
+        return [nuevoAviso, ...prev];
+      });
+
+      // Disparar la notificación y contador solo una vez, fuera del updater de React
+      if (esNuevo) {
         setTotalItems((total) => total + 1);
         showInfo(
           `Nuevo reporte: ${nuevoAviso.tipoPreliminarNombre || 'Aviso de emergencia'} (${nuevoAviso.origenReporte})`,
           '🚨 Nuevo Aviso Entrante'
         );
-        return [nuevoAviso, ...prev];
-      });
+      }
     },
     [showInfo]
   );
+
 
   const handleAvisoVerificado = useCallback(
     (payload: SocketAvisoVerificadoPayload) => {

@@ -226,3 +226,24 @@ export async function descartarAviso(
     motivoDescarte: body.motivoDescarte,
   };
 }
+
+export interface TipoIncidenteDTO {
+  id: string;
+  nombre: string;
+  descripcion?: string | null;
+  activo?: boolean;
+}
+
+/**
+ * Obtiene el catálogo oficial de tipos de incidentes habilitados desde la API.
+ */
+export async function obtenerTiposIncidentes(): Promise<TipoIncidenteDTO[]> {
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+  const res = await fetch(`${baseUrl}/api/incidentes/tipos`);
+  if (!res.ok) {
+    throw new ApiError(res.status, 'Error al consultar tipos de incidentes');
+  }
+  const json = await res.json();
+  return json.data || [];
+}
+
