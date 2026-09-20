@@ -25,18 +25,18 @@ export const SeguimientoErrorCard: React.FC<SeguimientoErrorCardProps> = ({
       <p className={styles.errorDescription}>{mensaje}</p>
 
       <div className={styles.errorActionsRow}>
-        {onReintentar ? (
+        <Link href="/seguimiento" className={styles.btnPrimary}>
+          Buscar otro código
+        </Link>
+
+        {onReintentar && (
           <button
             type="button"
             onClick={onReintentar}
-            className={styles.btnPrimary}
+            className={styles.btnSecondary}
           >
-            Buscar otro código
+            Reintentar consulta
           </button>
-        ) : (
-          <Link href="/seguimiento" className={styles.btnPrimary}>
-            Buscar otro código
-          </Link>
         )}
 
         <a
