@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
-import apiClient from '@/lib/api/client';
+import apiClient, { DEFAULT_ADMIN_USER_ID } from '@/lib/api/client';
 import {
   recursoFormSchema,
   type RecursoFormInput,
@@ -269,6 +269,11 @@ export default function RecursoForm() {
       }
 
       const { data, error, response } = await apiClient.POST('/api/recursos', {
+        params: {
+          header: {
+            'x-user-id': DEFAULT_ADMIN_USER_ID,
+          },
+        },
         body: payload as any, // eslint-disable-line @typescript-eslint/no-explicit-any
       });
 
