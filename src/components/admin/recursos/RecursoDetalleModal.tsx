@@ -528,12 +528,13 @@ export default function RecursoDetalleModal({
               </span>
             </div>
 
-            <div style={{ height: '220px', width: '100%', border: '1px solid #D5DCE4' }}>
+            <div style={{ width: '100%', border: '1px solid #D5DCE4', overflow: 'hidden' }}>
               <LocationPickerMap
                 latitud={recurso.latitud}
                 longitud={recurso.longitud}
                 onChange={() => {}}
                 readOnly={true}
+                height="220px"
               />
             </div>
           </div>

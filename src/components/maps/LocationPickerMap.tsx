@@ -14,6 +14,7 @@ interface LocationPickerMapProps {
   longitud: number | string;
   onChange: (coords: { latitud: number; longitud: number }) => void;
   readOnly?: boolean;
+  height?: string;
 }
 
 export default function LocationPickerMap({
@@ -21,6 +22,7 @@ export default function LocationPickerMap({
   longitud,
   onChange,
   readOnly = false,
+  height = '260px',
 }: LocationPickerMapProps) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<LeafletMap | null>(null);
@@ -220,39 +222,41 @@ export default function LocationPickerMap({
         ref={mapContainerRef}
         style={{
           width: '100%',
-          height: '260px',
+          height,
           border: '1px solid #3B3F45',
           backgroundColor: '#ECEFF3',
           zIndex: 1,
         }}
         aria-label="Mapa de selección de ubicación del recurso en Valdivia"
       />
-      <div
-        style={{
-          fontSize: '12px',
-          color: '#3B3F45',
-          display: 'flex',
-          justifyContent: 'space-between',
-          flexWrap: 'wrap',
-          gap: '8px',
-        }}
-      >
-        <span>
-          {hasValidCoords
-            ? 'Haz clic en el mapa o arrastra el marcador para fijar la ubicación del recurso.'
-            : 'Haz clic en el mapa o presiona "Centrar en Valdivia" para fijar la ubicación.'}
-        </span>
-        <span>
-          Coordenadas:{' '}
-          {hasValidCoords ? (
-            <strong>
-              {numLat.toFixed(6)}, {numLng.toFixed(6)}
-            </strong>
-          ) : (
-            <strong style={{ color: '#C81E1E' }}>Sin seleccionar</strong>
-          )}
-        </span>
-      </div>
+      {!readOnly && (
+        <div
+          style={{
+            fontSize: '12px',
+            color: '#3B3F45',
+            display: 'flex',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '8px',
+          }}
+        >
+          <span>
+            {hasValidCoords
+              ? 'Haz clic en el mapa o arrastra el marcador para fijar la ubicación del recurso.'
+              : 'Haz clic en el mapa o presiona "Centrar en Valdivia" para fijar la ubicación.'}
+          </span>
+          <span>
+            Coordenadas:{' '}
+            {hasValidCoords ? (
+              <strong>
+                {numLat.toFixed(6)}, {numLng.toFixed(6)}
+              </strong>
+            ) : (
+              <strong style={{ color: '#C81E1E' }}>Sin seleccionar</strong>
+            )}
+          </span>
+        </div>
+      )}
     </div>
   );
 }
