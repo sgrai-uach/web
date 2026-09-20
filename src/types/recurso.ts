@@ -106,3 +106,88 @@ export const recursoFormSchema = z
 export type RecursoFormInput = z.infer<typeof recursoFormSchema>;
 
 export type SubtipoDetalle = 'NINGUNO' | 'VEHICULO' | 'MAQUINARIA' | 'MOTOBOMBA' | 'SERIALIZADO';
+
+/* ==========================================================================
+   Tipos de Inventario y Listado de Recursos (HU-7)
+   ========================================================================== */
+
+export type EstadoRecurso =
+  | 'DISPONIBLE'
+  | 'ASIGNADO'
+  | 'EN_MANTENCION'
+  | 'BAJO_STOCK'
+  | 'NO_DISPONIBLE';
+
+export interface DelegacionResumen {
+  id: string;
+  codigo: string;
+  nombre: string;
+}
+
+export interface DetallesRecursoTecnico {
+  // Comunes / Serializados
+  patente?: string;
+  numeroSerie?: string;
+  marca?: string;
+  modelo?: string;
+  anio?: number;
+
+  // Vehículos
+  kilometraje?: number;
+  tipoCombustible?: 'GASOLINA' | 'DIESEL' | 'ELECTRICO' | 'HIBRIDO' | 'OTRO';
+  capacidadPasajeros?: number;
+  numeroChasis?: string;
+
+  // Maquinaria y Grúas
+  capacidadCargaKg?: number;
+  alcanceMaximoMetros?: number;
+  tipoGrua?: string;
+  horometro?: number;
+
+  // Motobombas y Equipos
+  caudalMaximoLpm?: number;
+  diametroPulgadas?: number;
+  potenciaHp?: number;
+  potenciaKva?: number;
+
+  [key: string]: unknown;
+}
+
+export interface RecursoItem {
+  id: string;
+  nombre: string;
+  tipo: 'Vehículo o Maquinaria' | 'Material o Insumo';
+  esIndividual: boolean;
+  estado: EstadoRecurso;
+  cantidadInventario: number;
+  cantidadEnUso: number;
+  cantidadDisponible: number;
+  cantidadMinima: number;
+  latitud: number;
+  longitud: number;
+  descripcion: string | null;
+  detalles: DetallesRecursoTecnico;
+  delegacion: DelegacionResumen | null;
+  creadoPorId: string;
+  creadoEn: string;
+  actualizadoEn: string;
+}
+
+export interface ListarRecursosResponse {
+  data: RecursoItem[];
+  meta: {
+    total: number;
+    pagina: number;
+    limite: number;
+    totalPaginas: number;
+  };
+}
+
+export interface FiltrosRecursosState {
+  pagina: number;
+  limite: number;
+  delegacionId?: string;
+  estado?: EstadoRecurso;
+  esIndividual?: boolean;
+  busqueda?: string;
+}
