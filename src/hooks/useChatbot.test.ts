@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { renderHook, act } from '@testing-library/react';
+import { renderHook, act, waitFor } from '@testing-library/react';
 import { useChatbot } from './useChatbot';
 import * as avisosApi from '@/lib/api/avisos';
 
@@ -345,5 +345,35 @@ describe('useChatbot', () => {
     expect(result.current.paso).toBe('CONFIRMACION');
     expect(result.current.datos.direccion).toBe('Av. Alemania 550, Valdivia');
     expect(result.current.datos.informanteTelefono).toBe('+56912345678');
+  });
+
+  it('debe restaurar borrador guardado en localStorage tras el montaje inicial', async () => {
+    const borradorGuardado = {
+      paso: 'DIRECCION',
+      datos: {
+        tipoAfectacion: 'Anegamiento',
+        direccion: '',
+        descripcion: '',
+        informanteNombre: '',
+        informanteRut: '',
+        informanteTelefono: '',
+      },
+      mensajes: [
+        { id: '1', remitente: 'bot', contenido: 'Hola', tipo: 'texto', timestamp: 1 },
+        { id: '2', remitente: 'usuario', contenido: 'Anegamiento', tipo: 'texto', timestamp: 2 },
+      ],
+    };
+
+    localStorage.setItem('sgrai_chat_draft', JSON.stringify(borradorGuardado));
+
+    const { result } = renderHook(() => useChatbot());
+
+    await waitFor(() => {
+      expect(result.current.paso).toBe('DIRECCION');
+    });
+
+    expect(result.current.datos.tipoAfectacion).toBe('Anegamiento');
+    expect(result.current.mensajes.length).toBe(2);
+    expect(result.current.isHydrated).toBe(true);
   });
 });

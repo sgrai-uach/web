@@ -82,45 +82,55 @@ function getMensajesIniciales(tipos = TIPOS_AFECTACION_DEFAULT): MensajeChat[] {
   ];
 }
 
-function cargarBorradorInicial(): { paso: PasoChat; datos: DatosReporte; mensajes: MensajeChat[] } {
-  if (typeof window !== 'undefined') {
-    try {
-      const borrador = localStorage.getItem(LOCAL_STORAGE_KEY);
-      if (borrador) {
-        const parsed = JSON.parse(borrador);
-        if (parsed.datos && parsed.paso && parsed.paso !== 'FINALIZADO' && parsed.mensajes?.length > 0) {
-          return { paso: parsed.paso, datos: parsed.datos, mensajes: parsed.mensajes };
-        }
-      }
-    } catch {
-      // Ignorar error de parsing
-    }
-  }
-  return {
-    paso: 'TIPO_AFECTACION',
-    datos: DATOS_INICIALES,
-    mensajes: getMensajesIniciales(),
-  };
-}
-
 export function useChatbot() {
-  const [estadoInicial] = useState(cargarBorradorInicial);
-  const [paso, setPaso] = useState<PasoChat>(estadoInicial.paso);
-  const [mensajes, setMensajes] = useState<MensajeChat[]>(estadoInicial.mensajes);
-  const [datos, setDatos] = useState<DatosReporte>(estadoInicial.datos);
+  const [paso, setPaso] = useState<PasoChat>('TIPO_AFECTACION');
+  const [mensajes, setMensajes] = useState<MensajeChat[]>(() => getMensajesIniciales());
+  const [datos, setDatos] = useState<DatosReporte>(DATOS_INICIALES);
   const [tiposAfectacion, setTiposAfectacion] = useState<string[]>(TIPOS_AFECTACION_DEFAULT);
   const [isBotTyping, setIsBotTyping] = useState<boolean>(false);
   const [errorInput, setErrorInput] = useState<string | null>(null);
   const [resultadoFinal, setResultadoFinal] = useState<ResultadoAviso | null>(null);
+  const [isHydrated, setIsHydrated] = useState<boolean>(false);
 
-  const pasoRef = useRef(estadoInicial.paso);
-  const datosRef = useRef(estadoInicial.datos);
+  const pasoRef = useRef<PasoChat>('TIPO_AFECTACION');
+  const datosRef = useRef<DatosReporte>(DATOS_INICIALES);
 
   // Mantener las refs sincronizadas en efectos sin mutar durante el render
   useEffect(() => {
     pasoRef.current = paso;
     datosRef.current = datos;
   }, [paso, datos]);
+
+  // Cargar borrador guardado en localStorage tras el montaje inicial en el cliente
+  // Se utiliza queueMicrotask para desacoplar de la fase de render síncrona del efecto
+  // y garantizar que el render inicial coincida con el HTML del servidor (SSR)
+  useEffect(() => {
+    queueMicrotask(() => {
+      try {
+        const borrador = localStorage.getItem(LOCAL_STORAGE_KEY);
+        if (borrador) {
+          const parsed = JSON.parse(borrador);
+          if (
+            parsed.datos &&
+            parsed.paso &&
+            parsed.paso !== 'FINALIZADO' &&
+            Array.isArray(parsed.mensajes) &&
+            parsed.mensajes.length > 0
+          ) {
+            setPaso(parsed.paso);
+            setDatos(parsed.datos);
+            setMensajes(parsed.mensajes);
+            pasoRef.current = parsed.paso;
+            datosRef.current = parsed.datos;
+          }
+        }
+      } catch {
+        // Ignorar error de parsing
+      } finally {
+        setIsHydrated(true);
+      }
+    });
+  }, []);
 
   // Cargar tipos de afectación dinámicos desde la API
   useEffect(() => {
@@ -142,8 +152,10 @@ export function useChatbot() {
     };
   }, []);
 
-  // Guardar borrador en localStorage
+  // Guardar borrador en localStorage únicamente después de haberse completado la hidratación
   useEffect(() => {
+    if (!isHydrated) return;
+
     if (paso === 'FINALIZADO') {
       try {
         localStorage.removeItem(LOCAL_STORAGE_KEY);
@@ -167,7 +179,7 @@ export function useChatbot() {
         // Ignorar
       }
     }
-  }, [paso, datos, mensajes]);
+  }, [paso, datos, mensajes, isHydrated]);
 
   // Agregar mensaje con simulación de escritura
   const agregarMensajeBot = useCallback((
@@ -650,6 +662,7 @@ export function useChatbot() {
   ]);
 
   return {
+    isHydrated,
     paso,
     mensajes,
     datos,
