@@ -1,0 +1,622 @@
+/* ==========================================================================
+   Estilos Centro de Incidentes (Encargado) — Municipalidad de Valdivia
+   Referencia visual: GEMINI.md § 3 (Flat, bordes rectos, paleta institucional)
+   ========================================================================== */
+
+.pageContainer {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background-color: var(--color-bg-light, #ECEFF3);
+  color: var(--color-text-dark, #2B2B2B);
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* --- Barra de Sub-cabecera del Encargado --- */
+.mandoHeader {
+  background-color: var(--color-primary-teal-dark, #14505A);
+  color: var(--color-white, #FFFFFF);
+  padding: 1rem 1.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+  border-bottom: 3px solid var(--color-accent-mint, #4FAE9B);
+}
+
+.mandoTitleGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.mandoTitle {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--color-white, #FFFFFF);
+}
+
+.mandoSubtitle {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--color-sage, #A9CBA4);
+}
+
+.mandoHeaderControls {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+/* Indicador de conexión en tiempo real */
+.liveIndicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background-color: rgba(255, 255, 255, 0.1);
+  padding: 0.4rem 0.8rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-white, #FFFFFF);
+}
+
+.liveDot {
+  width: 10px;
+  height: 10px;
+  background-color: #2ECC71;
+  display: inline-block;
+}
+
+.liveDotOffline {
+  width: 10px;
+  height: 10px;
+  background-color: #E74C3C;
+  display: inline-block;
+}
+
+/* Simulador de Rol (para pruebas rápidas de Criterio 5) */
+.userSimulatorBox {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background-color: rgba(0, 0, 0, 0.25);
+  padding: 0.35rem 0.75rem;
+  font-size: 0.8rem;
+}
+
+.userSimulatorSelect {
+  background-color: var(--color-white, #FFFFFF);
+  color: var(--color-text-dark, #2B2B2B);
+  border: 1px solid var(--color-charcoal, #3B3F45);
+  border-radius: 0;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.8rem;
+}
+
+/* --- Barra de Filtros --- */
+.filtrosContainer {
+  background-color: var(--color-white, #FFFFFF);
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid #D0D7DE;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.filtrosForm {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  flex: 1;
+}
+
+.filtroInput {
+  background-color: var(--color-bg-light, #ECEFF3);
+  border: 1px solid #CBD5E1;
+  border-radius: 0;
+  padding: 0.55rem 0.85rem;
+  font-size: 0.875rem;
+  min-width: 260px;
+  color: var(--color-text-dark, #2B2B2B);
+  outline: none;
+}
+
+.filtroInput:focus {
+  border-color: var(--color-primary-teal, #1B6F7D);
+  background-color: var(--color-white, #FFFFFF);
+}
+
+.filtroSelect {
+  background-color: var(--color-bg-light, #ECEFF3);
+  border: 1px solid #CBD5E1;
+  border-radius: 0;
+  padding: 0.55rem 0.85rem;
+  font-size: 0.875rem;
+  color: var(--color-text-dark, #2B2B2B);
+  outline: none;
+  cursor: pointer;
+}
+
+.filtroSelect:focus {
+  border-color: var(--color-primary-teal, #1B6F7D);
+  background-color: var(--color-white, #FFFFFF);
+}
+
+.btnSecundario {
+  background-color: var(--color-charcoal, #3B3F45);
+  color: var(--color-white, #FFFFFF);
+  border: none;
+  border-radius: 0;
+  padding: 0.55rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.btnSecundario:hover {
+  background-color: var(--color-charcoal-dark, #24272B);
+}
+
+.btnPrimario {
+  background-color: var(--color-accent-mint, #4FAE9B);
+  color: var(--color-white, #FFFFFF);
+  border: none;
+  border-radius: 0;
+  padding: 0.55rem 1.15rem;
+  font-size: 0.875rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.btnPrimario:hover {
+  background-color: var(--color-primary-teal, #1B6F7D);
+}
+
+/* --- Contenedor del Tablero Kanban --- */
+.kanbanArea {
+  flex: 1;
+  padding: 1.5rem;
+  overflow-x: auto;
+}
+
+.kanbanBoard {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(290px, 1fr));
+  gap: 1.25rem;
+  align-items: start;
+  min-width: 1480px;
+}
+
+/* --- Columna Kanban --- */
+.kanbanColumn {
+  background-color: #E2E8F0;
+  border: 1px solid #CBD5E1;
+  border-radius: 0;
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 230px);
+}
+
+.columnHeader {
+  padding: 0.85rem 1rem;
+  background-color: var(--color-white, #FFFFFF);
+  border-bottom: 2px solid transparent;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.columnHeaderReportado {
+  border-top: 4px solid #F1C40F;
+}
+
+.columnHeaderVerificando {
+  border-top: 4px solid #2980B9;
+}
+
+.columnHeaderEnAtencion {
+  border-top: 4px solid #E67E22;
+}
+
+.columnHeaderResuelto {
+  border-top: 4px solid #27AE60;
+}
+
+.columnHeaderNoAbordable {
+  border-top: 4px solid #7F8C8D;
+}
+
+.columnTitle {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--color-charcoal-dark, #24272B);
+  margin: 0;
+}
+
+.columnCounter {
+  background-color: var(--color-bg-light, #ECEFF3);
+  color: var(--color-charcoal-dark, #24272B);
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 0.2rem 0.55rem;
+  border: 1px solid #CBD5E1;
+}
+
+.columnCardsList {
+  padding: 0.85rem;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  flex: 1;
+}
+
+.columnEmptyMessage {
+  padding: 1.5rem 0.5rem;
+  text-align: center;
+  color: #64748B;
+  font-size: 0.85rem;
+}
+
+/* Botón Cargar Más en Columna */
+.btnCargarMas {
+  background-color: var(--color-white, #FFFFFF);
+  border: 1px solid #CBD5E1;
+  border-radius: 0;
+  padding: 0.6rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-primary-teal, #1B6F7D);
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.15s ease;
+}
+
+.btnCargarMas:hover {
+  background-color: var(--color-primary-teal, #1B6F7D);
+  color: var(--color-white, #FFFFFF);
+}
+
+.btnCargarMas:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* --- Tarjeta de Incidente (IncidenteCard) --- */
+.incidenteCard {
+  background-color: var(--color-white, #FFFFFF);
+  border: 1px solid #CBD5E1;
+  border-radius: 0;
+  padding: 0.95rem;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+  position: relative;
+}
+
+.incidenteCard:hover {
+  border-color: var(--color-primary-teal, #1B6F7D);
+  background-color: #F8FAFC;
+}
+
+.cardTopRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.cardCodigo {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--color-primary-teal-dark, #14505A);
+  letter-spacing: -0.01em;
+}
+
+/* Badges de Prioridad Planos */
+.badgePrioridad {
+  font-size: 0.7rem;
+  font-weight: 800;
+  padding: 0.15rem 0.45rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-white, #FFFFFF);
+}
+
+.prioridadBaja {
+  background-color: #718096;
+}
+
+.prioridadMedia {
+  background-color: #2B6CB0;
+}
+
+.prioridadAlta {
+  background-color: #DD6B20;
+}
+
+.prioridadCritica {
+  background-color: #C53030;
+}
+
+.cardTipoAfectacion {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--color-charcoal-dark, #24272B);
+  margin: 0;
+  line-height: 1.25;
+}
+
+.cardDireccion {
+  font-size: 0.8rem;
+  color: #4A5568;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.cardFooter {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 1px solid #E2E8F0;
+  padding-top: 0.5rem;
+  margin-top: 0.25rem;
+  font-size: 0.75rem;
+  color: #718096;
+}
+
+.cardMetaTags {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.tagAsistenciaSocial {
+  background-color: #FED7D7;
+  color: #9B2C2C;
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 0.1rem 0.35rem;
+}
+
+.tagMisiones {
+  background-color: var(--color-bg-light, #ECEFF3);
+  color: var(--color-charcoal, #3B3F45);
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.1rem 0.35rem;
+  border: 1px solid #CBD5E1;
+}
+
+/* --- Panel Lateral Deslizante (Drawer de Detalle) --- */
+.drawerOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(36, 39, 43, 0.65);
+  z-index: 1000;
+  display: flex;
+  justify-content: flex-end;
+  animation: fadeIn 0.2s ease;
+}
+
+.drawerContent {
+  background-color: var(--color-white, #FFFFFF);
+  width: 100%;
+  max-width: 620px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  border-left: 4px solid var(--color-primary-teal, #1B6F7D);
+  animation: slideLeft 0.25s ease;
+}
+
+.drawerHeader {
+  background-color: var(--color-primary-teal-dark, #14505A);
+  color: var(--color-white, #FFFFFF);
+  padding: 1.25rem 1.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.drawerHeaderInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.drawerCodigo {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: var(--color-white, #FFFFFF);
+  margin: 0;
+}
+
+.drawerBadgesRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.drawerCloseBtn {
+  background: none;
+  border: none;
+  color: var(--color-white, #FFFFFF);
+  font-size: 1.75rem;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+}
+
+.drawerBody {
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.drawerSection {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  border-bottom: 1px solid #E2E8F0;
+  padding-bottom: 1.25rem;
+}
+
+.drawerSection:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.drawerSectionTitle {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-primary-teal, #1B6F7D);
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.drawerDataGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.85rem;
+  font-size: 0.875rem;
+}
+
+.drawerDataLabel {
+  font-weight: 600;
+  color: #64748B;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  display: block;
+}
+
+.drawerDataValue {
+  color: var(--color-charcoal-dark, #24272B);
+  font-weight: 500;
+}
+
+/* Tarjetas de Misiones en Drawer */
+.misionCard {
+  background-color: var(--color-bg-light, #ECEFF3);
+  border: 1px solid #CBD5E1;
+  padding: 0.85rem;
+  margin-bottom: 0.5rem;
+  font-size: 0.85rem;
+}
+
+.misionHeader {
+  display: flex;
+  justify-content: space-between;
+  font-weight: 700;
+  color: var(--color-charcoal-dark, #24272B);
+  margin-bottom: 0.35rem;
+}
+
+.misionRechazo {
+  background-color: #FED7D7;
+  color: #742A2A;
+  padding: 0.5rem;
+  margin-top: 0.5rem;
+  font-size: 0.8rem;
+  border-left: 3px solid #E53E3E;
+}
+
+/* Tabla de Recursos Asociados en Drawer */
+.recursosTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.recursosTable th {
+  background-color: var(--color-charcoal, #3B3F45);
+  color: var(--color-white, #FFFFFF);
+  text-align: left;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+}
+
+.recursosTable td {
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid #E2E8F0;
+  color: var(--color-charcoal-dark, #24272B);
+}
+
+/* --- Pantalla Acceso Denegado (403 Forbidden) --- */
+.accesoDenegadoContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 1.5rem;
+  text-align: center;
+  background-color: var(--color-white, #FFFFFF);
+  margin: 3rem auto;
+  max-width: 600px;
+  border: 2px solid #E2E8F0;
+  border-top: 6px solid #C53030;
+}
+
+.accesoDenegadoIcon {
+  width: 64px;
+  height: 64px;
+  color: #C53030;
+  margin-bottom: 1rem;
+}
+
+.accesoDenegadoTitle {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--color-charcoal-dark, #24272B);
+  margin: 0 0 0.5rem 0;
+}
+
+.accesoDenegadoText {
+  color: #4A5568;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  margin-bottom: 1.5rem;
+}
+
+/* Animaciones */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideLeft {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .drawerContent {
+    max-width: 100%;
+  }
+
+  .drawerDataGrid {
+    grid-template-columns: 1fr;
+  }
+}
