@@ -15,7 +15,7 @@ import type { paths } from '@/types/api-generated';
  */
 const getBaseUrl = (): string => {
   if (typeof window !== 'undefined') {
-    return process.env.NEXT_PUBLIC_API_URL || '';
+    return '';
   }
   return (
     process.env.INTERNAL_API_URL ||

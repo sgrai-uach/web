@@ -41,14 +41,39 @@
 }
 
 .topSageNewsLink {
-  color: var(--color-charcoal-dark);
-  font-size: 0.85rem;
+  color: var(--color-sage-text, #306476);
+  font-size: 0.825rem;
   font-weight: 600;
   text-decoration: none;
+  transition: color 0.15s ease, text-decoration 0.15s ease;
 }
 
 .topSageNewsLink:hover {
   text-decoration: underline;
+  color: var(--color-primary-teal-dark);
+}
+
+.topSageSocialGroup {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+.topSageSocialLink {
+  color: var(--color-sage-text, #306476);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  text-decoration: none;
+  transition: color 0.15s ease, transform 0.15s ease, opacity 0.15s ease;
+}
+
+.topSageSocialLink:hover {
+  color: var(--color-primary-teal-dark);
+  transform: translateY(-1px);
+  opacity: 0.85;
 }
 
 .headerMain {
@@ -583,6 +608,30 @@
 
 /* --- Responsividad --- */
 @media (max-width: 640px) {
+  .topSageContainer {
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 0.35rem;
+    text-align: center;
+    padding: 0.2rem 0;
+  }
+
+  .topSageNewsLink {
+    font-size: 0.775rem;
+    text-align: center;
+    line-height: 1.3;
+  }
+
+  .topSageSocialGroup {
+    gap: 1.25rem;
+  }
+
+  .topSageSocialLink {
+    width: 28px;
+    height: 28px;
+  }
+
   .searchInputsRow {
     flex-direction: column;
   }
