@@ -5,12 +5,14 @@ import type { EmpleadoUsuario } from '@/types/empleados';
 
 interface EmpleadoBuscadorProps {
   onSelectUsuario: (usuario: EmpleadoUsuario) => void;
+  onEliminarUsuario?: (usuario: EmpleadoUsuario) => void;
   usuarioSeleccionadoId?: string;
   versionActualizacion?: number;
 }
 
 export default function EmpleadoBuscador({
   onSelectUsuario,
+  onEliminarUsuario,
   usuarioSeleccionadoId,
   versionActualizacion = 0,
 }: EmpleadoBuscadorProps) {
@@ -394,6 +396,29 @@ export default function EmpleadoBuscador({
                       >
                         {usr.rol_nombre || usr.rol_codigo}
                       </span>
+                      {onEliminarUsuario && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onEliminarUsuario(usr);
+                          }}
+                          title={`Dar de baja a ${usr.nombres} ${usr.apellidos}`}
+                          style={{
+                            fontSize: '0.6875rem',
+                            fontWeight: 700,
+                            padding: '0.2rem 0.5rem',
+                            backgroundColor: '#C53030',
+                            color: '#FFFFFF',
+                            border: 'none',
+                            borderRadius: 0,
+                            cursor: 'pointer',
+                            textTransform: 'uppercase',
+                          }}
+                        >
+                          Dar de Baja
+                        </button>
+                      )}
                     </div>
                   </div>
                   <div

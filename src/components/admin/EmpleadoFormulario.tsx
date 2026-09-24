@@ -7,12 +7,14 @@ interface EmpleadoFormularioProps {
   usuario: EmpleadoUsuario;
   onEmpleadoActualizado: (empleado: EmpleadoUsuario) => void;
   onCancelar: () => void;
+  onDarDeBaja?: () => void;
 }
 
 export default function EmpleadoFormulario({
   usuario,
   onEmpleadoActualizado,
   onCancelar,
+  onDarDeBaja,
 }: EmpleadoFormularioProps) {
   const [catalogos, setCatalogos] = useState<CatalogosResponse>({
     roles: [],
@@ -557,46 +559,70 @@ export default function EmpleadoFormulario({
       <div
         style={{
           display: 'flex',
-          justifyContent: 'flex-end',
+          justifyContent: 'space-between',
+          alignItems: 'center',
           gap: '0.75rem',
           borderTop: '1px solid #DFE3E8',
           paddingTop: '1rem',
         }}
       >
-        <button
-          type="button"
-          onClick={onCancelar}
-          disabled={guardando}
-          style={{
-            backgroundColor: 'var(--color-charcoal, #3B3F45)',
-            color: '#FFFFFF',
-            border: 'none',
-            padding: '0.625rem 1.25rem',
-            fontSize: '0.875rem',
-            fontWeight: 600,
-            cursor: guardando ? 'not-allowed' : 'pointer',
-            borderRadius: 0,
-          }}
-        >
-          Cancelar
-        </button>
-        <button
-          type="submit"
-          disabled={guardando}
-          style={{
-            backgroundColor: 'var(--color-accent-mint, #4FAE9B)',
-            color: '#FFFFFF',
-            border: 'none',
-            padding: '0.625rem 1.25rem',
-            fontSize: '0.875rem',
-            fontWeight: 700,
-            cursor: guardando ? 'not-allowed' : 'pointer',
-            opacity: guardando ? 0.65 : 1,
-            borderRadius: 0,
-          }}
-        >
-          {guardando ? 'Guardando...' : 'Guardar Cambios'}
-        </button>
+        <div>
+          {onDarDeBaja && (
+            <button
+              type="button"
+              onClick={onDarDeBaja}
+              disabled={guardando}
+              style={{
+                backgroundColor: '#C53030',
+                color: '#FFFFFF',
+                border: 'none',
+                padding: '0.625rem 1.25rem',
+                fontSize: '0.875rem',
+                fontWeight: 700,
+                cursor: guardando ? 'not-allowed' : 'pointer',
+                borderRadius: 0,
+              }}
+            >
+              Dar de Baja
+            </button>
+          )}
+        </div>
+        <div style={{ display: 'flex', gap: '0.75rem' }}>
+          <button
+            type="button"
+            onClick={onCancelar}
+            disabled={guardando}
+            style={{
+              backgroundColor: 'var(--color-charcoal, #3B3F45)',
+              color: '#FFFFFF',
+              border: 'none',
+              padding: '0.625rem 1.25rem',
+              fontSize: '0.875rem',
+              fontWeight: 600,
+              cursor: guardando ? 'not-allowed' : 'pointer',
+              borderRadius: 0,
+            }}
+          >
+            Cancelar
+          </button>
+          <button
+            type="submit"
+            disabled={guardando}
+            style={{
+              backgroundColor: 'var(--color-accent-mint, #4FAE9B)',
+              color: '#FFFFFF',
+              border: 'none',
+              padding: '0.625rem 1.25rem',
+              fontSize: '0.875rem',
+              fontWeight: 700,
+              cursor: guardando ? 'not-allowed' : 'pointer',
+              opacity: guardando ? 0.65 : 1,
+              borderRadius: 0,
+            }}
+          >
+            {guardando ? 'Guardando...' : 'Guardar Cambios'}
+          </button>
+        </div>
       </div>
     </form>
   );
