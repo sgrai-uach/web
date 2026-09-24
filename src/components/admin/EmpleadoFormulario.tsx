@@ -46,16 +46,9 @@ export default function EmpleadoFormulario({
       ))
   );
 
-  // Campos de personal operativo de terreno
+  // Campos de personal de terreno (Cargo y Especialidad)
   const [especialidad, setEspecialidad] = useState(usuario.especialidad || '');
   const [cargo, setCargo] = useState(usuario.cargo || '');
-  const [estadoOperativo, setEstadoOperativo] = useState(
-    usuario.estado_operativo || 'disponible'
-  );
-  const [disponibleTerreno, setDisponibleTerreno] = useState(
-    usuario.disponible_terreno ?? true
-  );
-  const [observaciones, setObservaciones] = useState(usuario.observaciones || '');
 
   const [guardando, setGuardando] = useState(false);
   const [mensajeExito, setMensajeExito] = useState('');
@@ -90,9 +83,6 @@ export default function EmpleadoFormulario({
 
     setEspecialidad(usuario.especialidad || '');
     setCargo(usuario.cargo || '');
-    setEstadoOperativo(usuario.estado_operativo || 'disponible');
-    setDisponibleTerreno(usuario.disponible_terreno ?? true);
-    setObservaciones(usuario.observaciones || '');
     setMensajeExito('');
     setErrorMsg('');
   }, [usuario]);
@@ -119,9 +109,6 @@ export default function EmpleadoFormulario({
       if (esRolTerreno) {
         payload.especialidad = especialidad.trim() ? especialidad.trim() : null;
         payload.cargo = cargo.trim() ? cargo.trim() : null;
-        payload.estado_operativo = estadoOperativo;
-        payload.disponible_terreno = disponibleTerreno;
-        payload.observaciones = observaciones.trim() ? observaciones.trim() : null;
       }
 
       const targetId = usuario.personal_id || usuario.usuario_id;
@@ -420,7 +407,7 @@ export default function EmpleadoFormulario({
           {/* Fecha de salida: sólo visible si el usuario se encuentra inactivo */}
           {!activo && (
             <div>
-              <label htmlFor="form-fecha-salida" style={labelStyle}>
+              <label style={labelStyle}>
                 Fecha de Salida / Desvinculación
               </label>
               <div
@@ -429,28 +416,14 @@ export default function EmpleadoFormulario({
                   alignItems: 'center',
                   backgroundColor: '#FFF2F2',
                   border: '1px solid #E0B4B4',
-                  padding: '0.55rem 0.85rem',
+                  padding: '0.625rem 0.85rem',
                   fontSize: '0.875rem',
                   color: '#9F3A38',
                   fontWeight: 600,
                   gap: '0.5rem',
                 }}
               >
-                <span>📅 Registrada: <strong>{fechaSalida || new Date().toISOString().slice(0, 10)}</strong></span>
-                <input
-                  type="date"
-                  value={fechaSalida || new Date().toISOString().slice(0, 10)}
-                  onChange={(e) => setFechaSalida(e.target.value)}
-                  style={{
-                    marginLeft: 'auto',
-                    border: '1px solid #BAC7D5',
-                    padding: '0.2rem 0.4rem',
-                    fontSize: '0.8125rem',
-                    backgroundColor: '#FFFFFF',
-                    color: '#2B2B2B',
-                  }}
-                  title="Modificar fecha de salida si es diferente a hoy"
-                />
+                <span>📅 Fecha de Salida Registrada: <strong>{fechaSalida || new Date().toISOString().slice(0, 10)}</strong></span>
               </div>
             </div>
           )}
@@ -538,49 +511,6 @@ export default function EmpleadoFormulario({
                   <option key={cg} value={cg} />
                 ))}
               </datalist>
-            </div>
-
-            <div>
-              <label htmlFor="form-estado-operativo" style={labelStyle}>Estado Operativo</label>
-              <select
-                id="form-estado-operativo"
-                value={estadoOperativo}
-                onChange={(e) => setEstadoOperativo(e.target.value as any)}
-                style={inputStyle}
-              >
-                <option value="disponible">Disponible (Para asignación)</option>
-                <option value="en_mision">En Misión</option>
-                <option value="en_patrulla">En Patrulla</option>
-                <option value="descanso">En Descanso</option>
-                <option value="licencia">Licencia / Permiso</option>
-                <option value="inactivo">Inactivo</option>
-              </select>
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'center', marginTop: '1.25rem' }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
-                <input
-                  type="checkbox"
-                  checked={disponibleTerreno}
-                  onChange={(e) => setDisponibleTerreno(e.target.checked)}
-                  style={{ width: '18px', height: '18px', accentColor: 'var(--color-accent-mint, #4FAE9B)', borderRadius: 0 }}
-                />
-                <span style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--color-charcoal, #3B3F45)' }}>
-                  Apto para Despacho a Terreno
-                </span>
-              </label>
-            </div>
-
-            <div style={{ gridColumn: '1 / -1' }}>
-              <label htmlFor="form-observaciones" style={labelStyle}>Observaciones Operativas</label>
-              <textarea
-                id="form-observaciones"
-                value={observaciones}
-                onChange={(e) => setObservaciones(e.target.value)}
-                rows={2}
-                placeholder="Notas de terreno, restricciones operativas o certificaciones especiales..."
-                style={{ ...inputStyle, resize: 'vertical' }}
-              />
             </div>
           </div>
         </div>
