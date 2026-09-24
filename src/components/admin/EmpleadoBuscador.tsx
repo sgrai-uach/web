@@ -318,7 +318,7 @@ export default function EmpleadoBuscador({
                   onClick={() => {
                     onSelectUsuario(usr);
                     setAbierto(false);
-                    setTermino(`${usr.nombres} ${usr.apellidos} (${usr.rut})`);
+                    setTermino('');
                   }}
                   style={{
                     padding: '0.75rem 1rem',

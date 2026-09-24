@@ -396,12 +396,23 @@ export default function EmpleadoFormulario({
           </div>
 
           <div>
-            <label htmlFor="form-fecha-salida" style={labelStyle}>Fecha de Salida (Opcional)</label>
+            <label htmlFor="form-fecha-salida" style={labelStyle}>
+              Fecha de Salida {activo ? '(Opcional)' : '(Asignada por Desactivación)'}
+            </label>
             <input
               id="form-fecha-salida"
               type="date"
               value={fechaSalida}
-              onChange={(e) => setFechaSalida(e.target.value)}
+              onChange={(e) => {
+                const val = e.target.value;
+                setFechaSalida(val);
+                // Si el usuario introduce una fecha de salida, sugerir/marcar cuenta inactiva
+                if (val && activo) {
+                  setActivo(false);
+                } else if (!val && !activo) {
+                  setActivo(true);
+                }
+              }}
               style={inputStyle}
             />
           </div>
@@ -411,7 +422,17 @@ export default function EmpleadoFormulario({
               <input
                 type="checkbox"
                 checked={activo}
-                onChange={(e) => setActivo(e.target.checked)}
+                onChange={(e) => {
+                  const nuevoActivo = e.target.checked;
+                  setActivo(nuevoActivo);
+                  if (!nuevoActivo && !fechaSalida) {
+                    // Si se desactiva la cuenta y no tenía fecha de salida, asignar la fecha actual
+                    setFechaSalida(new Date().toISOString().slice(0, 10));
+                  } else if (nuevoActivo) {
+                    // Si se reactiva, limpiar fecha de salida
+                    setFechaSalida('');
+                  }
+                }}
                 style={{ width: '18px', height: '18px', accentColor: 'var(--color-primary-teal, #1B6F7D)', borderRadius: 0 }}
               />
               <span style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--color-charcoal, #3B3F45)' }}>
