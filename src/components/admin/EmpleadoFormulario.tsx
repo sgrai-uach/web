@@ -284,7 +284,7 @@ export default function EmpleadoFormulario({
       <div style={{ marginBottom: '1.5rem' }}>
         <h3
           style={{
-            fontSize: '0.875rem',
+            fontSize: '1.275rem',
             fontWeight: 700,
             color: 'var(--color-primary-teal, #1B6F7D)',
             textTransform: 'uppercase',
@@ -292,7 +292,7 @@ export default function EmpleadoFormulario({
             marginBottom: '1rem',
           }}
         >
-          1. Datos de Usuario Institucional
+          1. Datos del Personal Municipal
         </h3>
 
         <div
@@ -395,28 +395,6 @@ export default function EmpleadoFormulario({
             />
           </div>
 
-          <div>
-            <label htmlFor="form-fecha-salida" style={labelStyle}>
-              Fecha de Salida {activo ? '(Opcional)' : '(Asignada por Desactivación)'}
-            </label>
-            <input
-              id="form-fecha-salida"
-              type="date"
-              value={fechaSalida}
-              onChange={(e) => {
-                const val = e.target.value;
-                setFechaSalida(val);
-                // Si el usuario introduce una fecha de salida, sugerir/marcar cuenta inactiva
-                if (val && activo) {
-                  setActivo(false);
-                } else if (!val && !activo) {
-                  setActivo(true);
-                }
-              }}
-              style={inputStyle}
-            />
-          </div>
-
           <div style={{ display: 'flex', alignItems: 'center', marginTop: '1.25rem' }}>
             <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
               <input
@@ -426,10 +404,8 @@ export default function EmpleadoFormulario({
                   const nuevoActivo = e.target.checked;
                   setActivo(nuevoActivo);
                   if (!nuevoActivo && !fechaSalida) {
-                    // Si se desactiva la cuenta y no tenía fecha de salida, asignar la fecha actual
                     setFechaSalida(new Date().toISOString().slice(0, 10));
                   } else if (nuevoActivo) {
-                    // Si se reactiva, limpiar fecha de salida
                     setFechaSalida('');
                   }
                 }}
@@ -440,6 +416,44 @@ export default function EmpleadoFormulario({
               </span>
             </label>
           </div>
+
+          {/* Fecha de salida: sólo visible si el usuario se encuentra inactivo */}
+          {!activo && (
+            <div>
+              <label htmlFor="form-fecha-salida" style={labelStyle}>
+                Fecha de Salida / Desvinculación
+              </label>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  backgroundColor: '#FFF2F2',
+                  border: '1px solid #E0B4B4',
+                  padding: '0.55rem 0.85rem',
+                  fontSize: '0.875rem',
+                  color: '#9F3A38',
+                  fontWeight: 600,
+                  gap: '0.5rem',
+                }}
+              >
+                <span>📅 Registrada: <strong>{fechaSalida || new Date().toISOString().slice(0, 10)}</strong></span>
+                <input
+                  type="date"
+                  value={fechaSalida || new Date().toISOString().slice(0, 10)}
+                  onChange={(e) => setFechaSalida(e.target.value)}
+                  style={{
+                    marginLeft: 'auto',
+                    border: '1px solid #BAC7D5',
+                    padding: '0.2rem 0.4rem',
+                    fontSize: '0.8125rem',
+                    backgroundColor: '#FFFFFF',
+                    color: '#2B2B2B',
+                  }}
+                  title="Modificar fecha de salida si es diferente a hoy"
+                />
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -457,7 +471,7 @@ export default function EmpleadoFormulario({
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
             <h3
               style={{
-                fontSize: '0.875rem',
+                fontSize: '1.275rem',
                 fontWeight: 800,
                 color: 'var(--color-primary-teal-dark, #14505A)',
                 textTransform: 'uppercase',
@@ -465,7 +479,7 @@ export default function EmpleadoFormulario({
                 margin: 0,
               }}
             >
-              2. Ficha Operativa de Terreno (Personal SGRAI)
+              2. Opciones para el personal de terreno.
             </h3>
             <span
               style={{
