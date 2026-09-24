@@ -8,12 +8,14 @@ import type { EmpleadoUsuario } from '@/types/empleados';
 
 export default function AdminEmpleadosPage() {
   const [usuarioSeleccionado, setUsuarioSeleccionado] = useState<EmpleadoUsuario | null>(null);
+  const [versionActualizacion, setVersionActualizacion] = useState(0);
 
   const [notificacion, setNotificacion] = useState<string | null>(null);
 
   const handleActualizado = (actualizado: EmpleadoUsuario) => {
     setNotificacion(`El empleado ${actualizado.nombres} ${actualizado.apellidos} fue actualizado con éxito.`);
     setUsuarioSeleccionado(null); // Redirige al listado / buscador limpio
+    setVersionActualizacion((v) => v + 1); // Forzar refresco inmediato del listado
     setTimeout(() => setNotificacion(null), 6000);
   };
 
@@ -66,6 +68,7 @@ export default function AdminEmpleadosPage() {
         <EmpleadoBuscador
           onSelectUsuario={(usr) => setUsuarioSeleccionado(usr)}
           usuarioSeleccionadoId={usuarioSeleccionado?.usuario_id}
+          versionActualizacion={versionActualizacion}
         />
 
         {/* Formulario modular condicional */}

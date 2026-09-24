@@ -6,11 +6,13 @@ import type { EmpleadoUsuario } from '@/types/empleados';
 interface EmpleadoBuscadorProps {
   onSelectUsuario: (usuario: EmpleadoUsuario) => void;
   usuarioSeleccionadoId?: string;
+  versionActualizacion?: number;
 }
 
 export default function EmpleadoBuscador({
   onSelectUsuario,
   usuarioSeleccionadoId,
+  versionActualizacion = 0,
 }: EmpleadoBuscadorProps) {
   const [termino, setTermino] = useState('');
   const [delegacionFiltro, setDelegacionFiltro] = useState('');
@@ -71,7 +73,7 @@ export default function EmpleadoBuscador({
     }, 250);
 
     return () => clearTimeout(timer);
-  }, [termino, delegacionFiltro, rolFiltro, ordenarPor, orden]);
+  }, [termino, delegacionFiltro, rolFiltro, ordenarPor, orden, versionActualizacion]);
 
   useEffect(() => {
     function handleClickAfuera(e: MouseEvent) {
