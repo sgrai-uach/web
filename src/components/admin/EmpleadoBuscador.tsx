@@ -28,7 +28,6 @@ export default function EmpleadoBuscador({
 
   const [resultados, setResultados] = useState<EmpleadoUsuario[]>([]);
   const [cargando, setCargando] = useState(false);
-  const [abierto, setAbierto] = useState(false);
   const contenedorRef = useRef<HTMLDivElement>(null);
 
   // Cargar roles y delegaciones para los selectores de filtro
@@ -77,19 +76,6 @@ export default function EmpleadoBuscador({
     return () => clearTimeout(timer);
   }, [termino, delegacionFiltro, rolFiltro, ordenarPor, orden, versionActualizacion]);
 
-  useEffect(() => {
-    function handleClickAfuera(e: MouseEvent) {
-      if (
-        contenedorRef.current &&
-        !contenedorRef.current.contains(e.target as Node)
-      ) {
-        setAbierto(false);
-      }
-    }
-    document.addEventListener('mousedown', handleClickAfuera);
-    return () => document.removeEventListener('mousedown', handleClickAfuera);
-  }, []);
-
   // Cuando usuarioSeleccionadoId pasa a estar vacío (después de guardar o cancelar), limpiar la barra
   useEffect(() => {
     if (!usuarioSeleccionadoId) {
@@ -128,11 +114,7 @@ export default function EmpleadoBuscador({
             id="buscar-empleado-input"
             type="text"
             value={termino}
-            onChange={(e) => {
-              setTermino(e.target.value);
-              setAbierto(true);
-            }}
-            onFocus={() => setAbierto(true)}
+            onChange={(e) => setTermino(e.target.value)}
             placeholder="Buscar por RUT, Nombre, Apellidos o Correo Electrónico..."
             style={{
               width: '100%',
@@ -286,140 +268,88 @@ export default function EmpleadoBuscador({
         </div>
       </div>
 
-      {abierto && (
+      {/* Listado permanente de empleados navegable directamente */}
+      <div
+        style={{
+          marginTop: '1.25rem',
+          backgroundColor: '#FFFFFF',
+          border: '1px solid #DFE3E8',
+          maxHeight: '380px',
+          overflowY: 'auto',
+        }}
+      >
         <div
           style={{
-            position: 'absolute',
-            top: '100%',
-            left: '1.5rem',
-            right: '1.5rem',
-            zIndex: 40,
-            backgroundColor: '#FFFFFF',
-            border: '1px solid #BAC7D5',
-            borderTop: 'none',
-            maxHeight: '260px',
-            overflowY: 'auto',
-            boxShadow: '0 4px 10px rgba(0,0,0,0.1)',
+            padding: '0.625rem 1rem',
+            backgroundColor: '#F8FAFC',
+            borderBottom: '1px solid #DFE3E8',
+            fontSize: '0.75rem',
+            fontWeight: 700,
+            textTransform: 'uppercase',
+            letterSpacing: '0.5px',
+            color: '#64748B',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
           }}
         >
-          {resultados.length === 0 ? (
-            <div
-              style={{
-                padding: '1rem',
-                color: '#666',
-                fontSize: '0.875rem',
-                textAlign: 'center',
-              }}
-            >
-              {cargando ? 'Consultando base de datos...' : 'No se encontraron usuarios coincidentes.'}
-            </div>
-          ) : (
-            resultados.map((usr) => {
-              const estaSeleccionado = usr.usuario_id === usuarioSeleccionadoId;
-              return (
-                <div
-                  key={usr.usuario_id}
-                  onClick={() => {
-                    onSelectUsuario(usr);
-                    setAbierto(false);
-                    setTermino('');
-                  }}
-                  style={{
-                    padding: '0.75rem 1rem',
-                    borderBottom: '1px solid #ECEFF3',
-                    cursor: 'pointer',
-                    backgroundColor: estaSeleccionado
-                      ? 'var(--color-bg-light, #ECEFF3)'
-                      : 'transparent',
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = 'var(--color-bg-light, #ECEFF3)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = estaSeleccionado
-                      ? 'var(--color-bg-light, #ECEFF3)'
-                      : 'transparent';
-                  }}
-                >
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      flexWrap: 'wrap',
-                      gap: '0.5rem',
-                    }}
-                  >
+          <span>Listado de Personal ({resultados.length})</span>
+          {cargando && <span style={{ color: 'var(--color-primary-teal, #1B6F7D)' }}>Actualizando...</span>}
+        </div>
+
+        {resultados.length === 0 ? (
+          <div
+            style={{
+              padding: '2rem 1rem',
+              color: '#64748B',
+              fontSize: '0.875rem',
+              textAlign: 'center',
+            }}
+          >
+            {cargando ? 'Consultando base de datos...' : 'No se encontraron funcionarios con los filtros aplicados.'}
+          </div>
+        ) : (
+          resultados.map((usr) => {
+            const estaSeleccionado = usr.usuario_id === usuarioSeleccionadoId;
+            return (
+              <div
+                key={usr.usuario_id}
+                onClick={() => onSelectUsuario(usr)}
+                style={{
+                  padding: '0.875rem 1rem',
+                  borderBottom: '1px solid #ECEFF3',
+                  cursor: 'pointer',
+                  backgroundColor: estaSeleccionado
+                    ? 'var(--color-bg-light, #ECEFF3)'
+                    : 'transparent',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '1rem',
+                  transition: 'background-color 0.15s ease',
+                }}
+                onMouseEnter={(e) => {
+                  if (!estaSeleccionado) {
+                    e.currentTarget.style.backgroundColor = '#F8FAFC';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = estaSeleccionado
+                    ? 'var(--color-bg-light, #ECEFF3)'
+                    : 'transparent';
+                }}
+              >
+                {/* Información del funcionario */}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
                     <span style={{ fontWeight: 700, fontSize: '0.9375rem', color: 'var(--color-text-dark, #2B2B2B)' }}>
                       {usr.nombres} {usr.apellidos}
                     </span>
-                    <div style={{ display: 'flex', gap: '0.35rem' }}>
-                      {usr.es_personal ? (
-                        <span
-                          style={{
-                            fontSize: '0.6875rem',
-                            fontWeight: 700,
-                            padding: '0.2rem 0.5rem',
-                            backgroundColor: 'var(--color-accent-mint, #4FAE9B)',
-                            color: '#FFFFFF',
-                            textTransform: 'uppercase',
-                            borderRadius: 0,
-                          }}
-                        >
-                          Personal Terreno
-                        </span>
-                      ) : (
-                        <span
-                          style={{
-                            fontSize: '0.6875rem',
-                            fontWeight: 700,
-                            padding: '0.2rem 0.5rem',
-                            backgroundColor: '#8D99A6',
-                            color: '#FFFFFF',
-                            textTransform: 'uppercase',
-                            borderRadius: 0,
-                          }}
-                        >
-                          Usuario General
-                        </span>
-                      )}
-                      <span
-                        style={{
-                          fontSize: '0.6875rem',
-                          fontWeight: 700,
-                          padding: '0.2rem 0.5rem',
-                          backgroundColor: 'var(--color-charcoal, #3B3F45)',
-                          color: '#FFFFFF',
-                          textTransform: 'uppercase',
-                          borderRadius: 0,
-                        }}
-                      >
-                        {usr.rol_nombre || usr.rol_codigo}
+                    {usr.rol_nombre && (
+                      <span style={{ fontSize: '0.8125rem', color: '#64748B' }}>
+                        &bull; {usr.rol_nombre}
                       </span>
-                      {onEliminarUsuario && (
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onEliminarUsuario(usr);
-                          }}
-                          title={`Dar de baja a ${usr.nombres} ${usr.apellidos}`}
-                          style={{
-                            fontSize: '0.6875rem',
-                            fontWeight: 700,
-                            padding: '0.2rem 0.5rem',
-                            backgroundColor: '#C53030',
-                            color: '#FFFFFF',
-                            border: 'none',
-                            borderRadius: 0,
-                            cursor: 'pointer',
-                            textTransform: 'uppercase',
-                          }}
-                        >
-                          Dar de Baja
-                        </button>
-                      )}
-                    </div>
+                    )}
                   </div>
                   <div
                     style={{
@@ -427,7 +357,7 @@ export default function EmpleadoBuscador({
                       color: '#666',
                       marginTop: '0.25rem',
                       display: 'flex',
-                      gap: '1rem',
+                      gap: '1.25rem',
                       flexWrap: 'wrap',
                     }}
                   >
@@ -436,11 +366,59 @@ export default function EmpleadoBuscador({
                     {usr.delegacion_nombre && <span>Delegación: {usr.delegacion_nombre}</span>}
                   </div>
                 </div>
-              );
-            })
-          )}
-        </div>
-      )}
+
+                {/* Acciones claras de fila */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  {onEliminarUsuario && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onEliminarUsuario(usr);
+                      }}
+                      title={`Dar de baja a ${usr.nombres} ${usr.apellidos}`}
+                      style={{
+                        fontSize: '0.75rem',
+                        fontWeight: 700,
+                        padding: '0.35rem 0.75rem',
+                        backgroundColor: '#FFFFFF',
+                        color: '#DC2626',
+                        border: '1px solid #DC2626',
+                        borderRadius: 0,
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.3rem',
+                        transition: 'all 0.15s ease',
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = '#DC2626';
+                        e.currentTarget.style.color = '#FFFFFF';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = '#FFFFFF';
+                        e.currentTarget.style.color = '#DC2626';
+                      }}
+                    >
+                      <span>🗑</span> Dar de Baja
+                    </button>
+                  )}
+                  <span
+                    style={{
+                      fontSize: '0.75rem',
+                      fontWeight: 600,
+                      color: 'var(--color-primary-teal, #1B6F7D)',
+                      padding: '0.35rem 0.5rem',
+                    }}
+                  >
+                    {estaSeleccionado ? 'Seleccionado ❯' : 'Editar ❯'}
+                  </span>
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
     </div>
   );
 }
