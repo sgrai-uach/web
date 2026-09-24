@@ -22,6 +22,7 @@ export default function EmpleadoFormulario({
   });
 
   // Campos de usuario general
+  const [rut, setRut] = useState(usuario.rut);
   const [nombres, setNombres] = useState(usuario.nombres);
   const [apellidos, setApellidos] = useState(usuario.apellidos);
   const [email, setEmail] = useState(usuario.email);
@@ -69,6 +70,7 @@ export default function EmpleadoFormulario({
   }, []);
 
   useEffect(() => {
+    setRut(usuario.rut);
     setNombres(usuario.nombres);
     setApellidos(usuario.apellidos);
     setEmail(usuario.email);
@@ -93,10 +95,11 @@ export default function EmpleadoFormulario({
 
     try {
       const payload: Record<string, unknown> = {
+        rut: rut.trim(),
         nombres,
         apellidos,
         email,
-        telefono: telefono.trim() ? telefono.trim() : null,
+        telefono: telefono.trim(),
         rol_id: rolId,
         delegacion_id: delegacionId ? delegacionId : null,
         activo,
@@ -121,6 +124,7 @@ export default function EmpleadoFormulario({
       if (!res.ok) {
         if (data.detalles && Array.isArray(data.detalles) && data.detalles.length > 0) {
           const nombresCampos: Record<string, string> = {
+            rut: 'RUT',
             email: 'Correo Electrónico',
             telefono: 'Teléfono',
             nombres: 'Nombres',
@@ -309,7 +313,20 @@ export default function EmpleadoFormulario({
           }}
         >
           <div>
-            <label htmlFor="form-nombres" style={labelStyle}>Nombres</label>
+            <label htmlFor="form-rut" style={labelStyle}>RUT *</label>
+            <input
+              id="form-rut"
+              type="text"
+              value={rut}
+              onChange={(e) => setRut(e.target.value)}
+              placeholder="12.345.678-K"
+              style={inputStyle}
+              required
+            />
+          </div>
+
+          <div>
+            <label htmlFor="form-nombres" style={labelStyle}>Nombres *</label>
             <input
               id="form-nombres"
               type="text"
