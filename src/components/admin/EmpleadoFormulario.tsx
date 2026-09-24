@@ -36,14 +36,12 @@ export default function EmpleadoFormulario({
     usuario.fecha_salida ? usuario.fecha_salida.slice(0, 10) : ''
   );
 
-  // Determinar si el rol seleccionado corresponde a labores operativas de terreno
+  // Determinar si el rol seleccionado actualmente corresponde a labores operativas de terreno
   const rolSeleccionado = catalogos.roles.find((r) => r.id === rolId);
   const esRolTerreno = Boolean(
-    usuario.es_personal ||
-    (rolSeleccionado &&
-      ['PATRULLA_VERIFICADORA', 'DELEGADO_CUADRILLA', 'BRIGADISTA'].includes(
-        rolSeleccionado.codigo
-      ))
+    rolSeleccionado
+      ? ['PATRULLA_VERIFICADORA', 'DELEGADO_CUADRILLA', 'BRIGADISTA'].includes(rolSeleccionado.codigo)
+      : usuario.es_personal
   );
 
   // Campos de personal de terreno (Cargo y Especialidad)
@@ -121,6 +119,27 @@ export default function EmpleadoFormulario({
       const data = await res.json();
 
       if (!res.ok) {
+        if (data.detalles && Array.isArray(data.detalles) && data.detalles.length > 0) {
+          const nombresCampos: Record<string, string> = {
+            email: 'Correo Electrónico',
+            telefono: 'Teléfono',
+            nombres: 'Nombres',
+            apellidos: 'Apellidos',
+            rol_id: 'Rol',
+            delegacion_id: 'Delegación',
+            fecha_ingreso: 'Fecha de Ingreso',
+            fecha_salida: 'Fecha de Salida',
+            especialidad: 'Especialidad',
+            cargo: 'Cargo',
+          };
+          const listaErrores = data.detalles
+            .map((item: { campo: string; mensaje: string }) => {
+              const label = nombresCampos[item.campo] || item.campo;
+              return `${label}: ${item.mensaje}`;
+            })
+            .join(' | ');
+          throw new Error(`Error en los datos ingresados: ${listaErrores}`);
+        }
         throw new Error(data.error || 'Error al actualizar los datos');
       }
 
@@ -326,7 +345,7 @@ export default function EmpleadoFormulario({
           </div>
 
           <div>
-            <label htmlFor="form-telefono" style={labelStyle}>Teléfono</label>
+            <label htmlFor="form-telefono" style={labelStyle}>Teléfono *</label>
             <input
               id="form-telefono"
               type="text"
@@ -334,6 +353,7 @@ export default function EmpleadoFormulario({
               onChange={(e) => setTelefono(e.target.value)}
               placeholder="+569..."
               style={inputStyle}
+              required
             />
           </div>
 
