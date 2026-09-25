@@ -1,10 +1,9 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useRef } from 'react';
 import type { EmpleadoUsuario } from '@/types/empleados';
-import type { CatalogoItem } from '@/types/catalogos';
-import { getCatalogos } from '@/services/catalogosService';
-import { getPersonal } from '@/services/empleadosService';
+import { useCatalogos } from '@/hooks/useCatalogos';
+import { usePersonalBuscador } from '@/hooks/usePersonalBuscador';
 
 interface EmpleadoBuscadorProps {
   onSelectUsuario: (usuario: EmpleadoUsuario) => void;
@@ -21,74 +20,28 @@ export default function EmpleadoBuscador({
   usuarioEliminadoId,
   versionActualizacion = 0,
 }: EmpleadoBuscadorProps) {
-  const [termino, setTermino] = useState('');
-  const [delegacionFiltro, setDelegacionFiltro] = useState('');
-  const [rolFiltro, setRolFiltro] = useState('');
-  const [ordenarPor, setOrdenarPor] = useState('apellidos'); // apellidos | nombres | rut
-  const [orden, setOrden] = useState<'asc' | 'desc'>('asc');
-  const [catalogos, setCatalogos] = useState<{ roles: CatalogoItem[]; delegaciones: CatalogoItem[] }>({
-    roles: [],
-    delegaciones: [],
-  });
-
-  const [resultados, setResultados] = useState<EmpleadoUsuario[]>([]);
-  const [cargando, setCargando] = useState(false);
   const contenedorRef = useRef<HTMLDivElement>(null);
+  const { catalogos } = useCatalogos();
 
-  // Cargar roles y delegaciones para los selectores de filtro
-  useEffect(() => {
-    async function cargarCatalogos() {
-      try {
-        const data = await getCatalogos();
-        setCatalogos({
-          roles: data.roles || [],
-          delegaciones: data.delegaciones || [],
-        });
-      } catch (err) {
-        console.error('Error al cargar catálogos:', err);
-      }
-    }
-    cargarCatalogos();
-  }, []);
-
-  // Consultar empleados según término y filtros
-  useEffect(() => {
-    const timer = setTimeout(async () => {
-      setCargando(true);
-      try {
-        const data = await getPersonal({
-          q: termino,
-          delegacion_id: delegacionFiltro || undefined,
-          rol_id: rolFiltro || undefined,
-          ordenar_por: ordenarPor,
-          orden,
-        });
-        setResultados(data);
-      } catch (err) {
-        console.error('Error al buscar usuarios:', err);
-      } finally {
-        setCargando(false);
-      }
-    }, 250);
-
-    return () => clearTimeout(timer);
-  }, [termino, delegacionFiltro, rolFiltro, ordenarPor, orden, versionActualizacion]);
-
-  // Cuando usuarioSeleccionadoId pasa a estar vacío (después de guardar o cancelar), limpiar la barra
-  useEffect(() => {
-    if (!usuarioSeleccionadoId) {
-      setTermino('');
-    }
-  }, [usuarioSeleccionadoId]);
-
-  // Remover inmediatamente al empleado dado de baja del estado local de resultados sin esperar recargas
-  useEffect(() => {
-    if (usuarioEliminadoId) {
-      setResultados((prev) =>
-        prev.filter((u) => u.usuario_id !== usuarioEliminadoId && u.personal_id !== usuarioEliminadoId)
-      );
-    }
-  }, [usuarioEliminadoId]);
+  const {
+    termino,
+    setTermino,
+    limpiarTermino,
+    delegacionFiltro,
+    setDelegacionFiltro,
+    rolFiltro,
+    setRolFiltro,
+    ordenarPor,
+    setOrdenarPor,
+    orden,
+    toggleOrden,
+    resultados,
+    cargando,
+  } = usePersonalBuscador({
+    usuarioSeleccionadoId,
+    usuarioEliminadoId,
+    versionActualizacion,
+  });
 
   return (
     <div
@@ -138,7 +91,7 @@ export default function EmpleadoBuscador({
           {termino && (
             <button
               type="button"
-              onClick={() => setTermino('')}
+              onClick={limpiarTermino}
               style={{
                 position: 'absolute',
                 right: cargando ? '6rem' : '0.75rem',
@@ -257,7 +210,7 @@ export default function EmpleadoBuscador({
             </select>
             <button
               type="button"
-              onClick={() => setOrden(orden === 'asc' ? 'desc' : 'asc')}
+              onClick={toggleOrden}
               style={{
                 padding: '0.45rem 0.65rem',
                 border: '1px solid #BAC7D5',

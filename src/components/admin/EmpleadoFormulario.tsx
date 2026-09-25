@@ -1,10 +1,8 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import type { EmpleadoUsuario, CatalogosResponse, UpdatePersonalDTO } from '@/types/empleados';
-import { getCatalogos } from '@/services/catalogosService';
-import { updatePersonal } from '@/services/empleadosService';
-import { getErrorMessage } from '@/lib/utils/errorUtils';
+import React from 'react';
+import type { EmpleadoUsuario } from '@/types/empleados';
+import { useEmpleadoForm } from '@/hooks/useEmpleadoForm';
 
 interface EmpleadoFormularioProps {
   usuario: EmpleadoUsuario;
@@ -19,116 +17,41 @@ export default function EmpleadoFormulario({
   onCancelar,
   onDarDeBaja,
 }: EmpleadoFormularioProps) {
-  const [catalogos, setCatalogos] = useState<CatalogosResponse>({
-    roles: [],
-    delegaciones: [],
-    especialidades: [],
-    cargos: [],
+  const {
+    formData,
+    updateField,
+    catalogos,
+    esRolTerreno,
+    guardando,
+    mensajeExito,
+    errorMsg,
+    handleSubmit,
+  } = useEmpleadoForm({
+    usuario,
+    onEmpleadoActualizado,
   });
 
-  // Campos de usuario general
-  const [rut, setRut] = useState(usuario.rut);
-  const [nombres, setNombres] = useState(usuario.nombres);
-  const [apellidos, setApellidos] = useState(usuario.apellidos);
-  const [email, setEmail] = useState(usuario.email);
-  const [telefono, setTelefono] = useState(usuario.telefono || '');
-  const [rolId, setRolId] = useState(usuario.rol_id);
-  const [delegacionId, setDelegacionId] = useState(usuario.delegacion_id || '');
-  const [activo, setActivo] = useState(usuario.usuario_activo);
-  const [fechaIngreso, setFechaIngreso] = useState(
-    usuario.fecha_ingreso ? usuario.fecha_ingreso.slice(0, 10) : ''
-  );
-  const [fechaSalida, setFechaSalida] = useState(
-    usuario.fecha_salida ? usuario.fecha_salida.slice(0, 10) : ''
-  );
+  const {
+    rut,
+    nombres,
+    apellidos,
+    email,
+    telefono,
+    rolId,
+    delegacionId,
+    activo,
+    fechaIngreso,
+    fechaSalida,
+    especialidad,
+    cargo,
+  } = formData;
 
-  // Determinar si el rol seleccionado actualmente corresponde a labores operativas de terreno
-  const rolSeleccionado = catalogos.roles.find((r) => r.id === rolId);
-  const esRolTerreno = Boolean(
-    rolSeleccionado
-      ? ['PATRULLA_VERIFICADORA', 'DELEGADO_CUADRILLA', 'BRIGADISTA'].includes(rolSeleccionado.codigo)
-      : usuario.es_personal
-  );
-
-  // Campos de personal de terreno (Cargo y Especialidad)
-  const [especialidad, setEspecialidad] = useState(usuario.especialidad || '');
-  const [cargo, setCargo] = useState(usuario.cargo || '');
-
-  const [guardando, setGuardando] = useState(false);
-  const [mensajeExito, setMensajeExito] = useState('');
-  const [errorMsg, setErrorMsg] = useState('');
-
-  // Cargar catálogos de base de datos para autocompletar y prevenir inconsistencias
-  useEffect(() => {
-    async function cargarCatalogos() {
-      try {
-        const data = await getCatalogos();
-        setCatalogos(data);
-      } catch (err) {
-        console.error('Error al cargar catálogos:', err);
-      }
-    }
-    cargarCatalogos();
-  }, []);
-
-  useEffect(() => {
-    setRut(usuario.rut);
-    setNombres(usuario.nombres);
-    setApellidos(usuario.apellidos);
-    setEmail(usuario.email);
-    setTelefono(usuario.telefono || '');
-    setRolId(usuario.rol_id);
-    setDelegacionId(usuario.delegacion_id || '');
-    setActivo(usuario.usuario_activo);
-    setFechaIngreso(usuario.fecha_ingreso ? usuario.fecha_ingreso.slice(0, 10) : '');
-    setFechaSalida(usuario.fecha_salida ? usuario.fecha_salida.slice(0, 10) : '');
-
-    setEspecialidad(usuario.especialidad || '');
-    setCargo(usuario.cargo || '');
-    setMensajeExito('');
-    setErrorMsg('');
-  }, [usuario]);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setGuardando(true);
-    setErrorMsg('');
-    setMensajeExito('');
-
-    try {
-      const payload: UpdatePersonalDTO = {
-        rut: rut.trim(),
-        nombres,
-        apellidos,
-        email,
-        telefono: telefono.trim(),
-        rol_id: rolId,
-        delegacion_id: delegacionId ? delegacionId : null,
-        activo,
-        fecha_ingreso: fechaIngreso ? fechaIngreso : null,
-        fecha_salida: fechaSalida ? fechaSalida : null,
-      };
-
-      if (esRolTerreno) {
-        payload.especialidad = especialidad.trim() ? especialidad.trim() : null;
-        payload.cargo = cargo.trim() ? cargo.trim() : null;
-      }
-
-      const targetId = usuario.personal_id || usuario.usuario_id;
-      const updatedData = await updatePersonal(targetId, payload);
-
-      setMensajeExito('Los datos han sido actualizados exitosamente en la base de datos.');
-      setTimeout(() => {
-        onEmpleadoActualizado({
-          ...usuario,
-          ...updatedData,
-          es_personal: esRolTerreno,
-        });
-      }, 700);
-    } catch (err: unknown) {
-      setErrorMsg(getErrorMessage(err, 'Error al conectar con la API'));
-    } finally {
-      setGuardando(false);
+  const handleActivoChange = (checked: boolean) => {
+    updateField('activo', checked);
+    if (!checked && !fechaSalida) {
+      updateField('fechaSalida', new Date().toISOString().slice(0, 10));
+    } else if (checked) {
+      updateField('fechaSalida', '');
     }
   };
 
@@ -288,7 +211,7 @@ export default function EmpleadoFormulario({
               id="form-rut"
               type="text"
               value={rut}
-              onChange={(e) => setRut(e.target.value)}
+              onChange={(e) => updateField('rut', e.target.value)}
               placeholder="12.345.678-K"
               style={inputStyle}
               required
@@ -301,7 +224,7 @@ export default function EmpleadoFormulario({
               id="form-nombres"
               type="text"
               value={nombres}
-              onChange={(e) => setNombres(e.target.value)}
+              onChange={(e) => updateField('nombres', e.target.value)}
               style={inputStyle}
               required
             />
@@ -313,7 +236,7 @@ export default function EmpleadoFormulario({
               id="form-apellidos"
               type="text"
               value={apellidos}
-              onChange={(e) => setApellidos(e.target.value)}
+              onChange={(e) => updateField('apellidos', e.target.value)}
               style={inputStyle}
               required
             />
@@ -325,7 +248,7 @@ export default function EmpleadoFormulario({
               id="form-email"
               type="email"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) => updateField('email', e.target.value)}
               style={inputStyle}
               required
             />
@@ -337,7 +260,7 @@ export default function EmpleadoFormulario({
               id="form-telefono"
               type="text"
               value={telefono}
-              onChange={(e) => setTelefono(e.target.value)}
+              onChange={(e) => updateField('telefono', e.target.value)}
               placeholder="+569..."
               style={inputStyle}
               required
@@ -349,7 +272,7 @@ export default function EmpleadoFormulario({
             <select
               id="form-rol"
               value={rolId}
-              onChange={(e) => setRolId(e.target.value)}
+              onChange={(e) => updateField('rolId', e.target.value)}
               style={inputStyle}
               required
             >
@@ -366,7 +289,7 @@ export default function EmpleadoFormulario({
             <select
               id="form-delegacion"
               value={delegacionId}
-              onChange={(e) => setDelegacionId(e.target.value)}
+              onChange={(e) => updateField('delegacionId', e.target.value)}
               style={inputStyle}
             >
               <option value="">-- Sin Delegación --</option>
@@ -384,7 +307,7 @@ export default function EmpleadoFormulario({
               id="form-fecha-ingreso"
               type="date"
               value={fechaIngreso}
-              onChange={(e) => setFechaIngreso(e.target.value)}
+              onChange={(e) => updateField('fechaIngreso', e.target.value)}
               style={inputStyle}
             />
           </div>
@@ -394,15 +317,7 @@ export default function EmpleadoFormulario({
               <input
                 type="checkbox"
                 checked={activo}
-                onChange={(e) => {
-                  const nuevoActivo = e.target.checked;
-                  setActivo(nuevoActivo);
-                  if (!nuevoActivo && !fechaSalida) {
-                    setFechaSalida(new Date().toISOString().slice(0, 10));
-                  } else if (nuevoActivo) {
-                    setFechaSalida('');
-                  }
-                }}
+                onChange={(e) => handleActivoChange(e.target.checked)}
                 style={{ width: '18px', height: '18px', accentColor: 'var(--color-primary-teal, #1B6F7D)', borderRadius: 0 }}
               />
               <span style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--color-charcoal, #3B3F45)' }}>
@@ -490,7 +405,7 @@ export default function EmpleadoFormulario({
                 type="text"
                 list="datalist-especialidades"
                 value={especialidad}
-                onChange={(e) => setEspecialidad(e.target.value)}
+                onChange={(e) => updateField('especialidad', e.target.value)}
                 placeholder="Ej. Motosierrista, Conductor, Verificador..."
                 style={inputStyle}
               />
@@ -509,7 +424,7 @@ export default function EmpleadoFormulario({
                 type="text"
                 list="datalist-cargos"
                 value={cargo}
-                onChange={(e) => setCargo(e.target.value)}
+                onChange={(e) => updateField('cargo', e.target.value)}
                 placeholder="Ej. Delegado de Cuadrilla, Brigadista..."
                 style={inputStyle}
               />
