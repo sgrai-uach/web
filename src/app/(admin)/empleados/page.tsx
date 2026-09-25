@@ -31,8 +31,20 @@ export default function AdminEmpleadosPage() {
 
   const handleSelectUsuario = (usr: EmpleadoUsuario) => {
     setUsuarioSeleccionado(usr);
-    scrollToFormulario();
   };
+
+  // Cuando se selecciona un usuario, esperar a que el formulario se monte y expanda en el DOM para desplazarse
+  React.useEffect(() => {
+    if (usuarioSeleccionado) {
+      // doble rAF para asegurar que el navegador haya calculado el nuevo layout y dimensiones del formulario
+      const frameId = requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          scrollToFormulario(true);
+        });
+      });
+      return () => cancelAnimationFrame(frameId);
+    }
+  }, [usuarioSeleccionado, scrollToFormulario]);
 
   const handleActualizado = (actualizado: EmpleadoUsuario) => {
     setNotificacion({

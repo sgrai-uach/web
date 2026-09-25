@@ -204,9 +204,19 @@ export default function EmpleadoFiltros({
                 fontSize: '0.8125rem',
                 fontWeight: 700,
               }}
-              title={`Orden: ${orden === 'asc' ? 'Ascendente (A-Z)' : 'Descendente (Z-A)'}`}
+              title={
+                ordenarPor === 'rut'
+                  ? `Orden: ${orden === 'asc' ? 'Menor a Mayor (0-9)' : 'Mayor a Menor (9-0)'}`
+                  : `Orden: ${orden === 'asc' ? 'Ascendente (A-Z)' : 'Descendente (Z-A)'}`
+              }
             >
-              {orden === 'asc' ? '▲ A-Z' : '▼ Z-A'}
+              {ordenarPor === 'rut'
+                ? orden === 'asc'
+                  ? '▲ 0-9'
+                  : '▼ 9-0'
+                : orden === 'asc'
+                  ? '▲ A-Z'
+                  : '▼ Z-A'}
             </button>
           </div>
         </div>

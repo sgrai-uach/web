@@ -61,12 +61,12 @@ export function useSmartScroll<T extends HTMLElement = HTMLDivElement>(
     };
   }, [threshold]);
 
-  const scrollToTarget = useCallback(() => {
+  const scrollToTarget = useCallback((force = false) => {
     const element = targetRef.current;
     if (!element) return;
 
-    // Solo realiza el scroll si el elemento no está suficientemente visible en el viewport
-    if (!isAdequatelyVisibleRef.current) {
+    // Solo realiza el scroll si el elemento no está suficientemente visible en el viewport (o si se fuerza explícitamente tras expandirse)
+    if (force || !isAdequatelyVisibleRef.current) {
       element.scrollIntoView({
         behavior,
         block,
