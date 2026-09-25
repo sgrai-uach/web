@@ -6,12 +6,15 @@ import EmpleadoBuscador from '@/components/admin/EmpleadoBuscador';
 import EmpleadoFormulario from '@/components/admin/EmpleadoFormulario';
 import { useSmartScroll } from '@/hooks/useSmartScroll';
 import type { EmpleadoUsuario } from '@/types/empleados';
+import type { NotificationState } from '@/types/common';
+import { deletePersonal } from '@/services/empleadosService';
+import { getErrorMessage } from '@/lib/utils/errorUtils';
 
 export default function AdminEmpleadosPage() {
   const [usuarioSeleccionado, setUsuarioSeleccionado] = useState<EmpleadoUsuario | null>(null);
   const [versionActualizacion, setVersionActualizacion] = useState(0);
 
-  const [notificacion, setNotificacion] = useState<{ tipo: 'exito' | 'error'; mensaje: string } | null>(null);
+  const [notificacion, setNotificacion] = useState<NotificationState | null>(null);
   const [empleadoAEliminar, setEmpleadoAEliminar] = useState<EmpleadoUsuario | null>(null);
   const [usuarioEliminadoId, setUsuarioEliminadoId] = useState<string | null>(null);
   const [eliminando, setEliminando] = useState(false);
@@ -46,15 +49,7 @@ export default function AdminEmpleadosPage() {
     setEliminando(true);
     try {
       const targetId = empleadoAEliminar.personal_id || empleadoAEliminar.usuario_id;
-      const res = await fetch(`/api/personal/${targetId}`, {
-        method: 'DELETE',
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.error || 'No fue posible dar de baja al empleado');
-      }
+      await deletePersonal(targetId);
 
       setNotificacion({
         tipo: 'exito',
@@ -70,10 +65,10 @@ export default function AdminEmpleadosPage() {
       setEmpleadoAEliminar(null);
       setVersionActualizacion((v) => v + 1);
       setTimeout(() => setNotificacion(null), 6000);
-    } catch (err: any) {
+    } catch (err: unknown) {
       setNotificacion({
         tipo: 'error',
-        mensaje: err.message || 'Error al procesar la baja del empleado.',
+        mensaje: getErrorMessage(err, 'Error al procesar la baja del empleado.'),
       });
       setTimeout(() => setNotificacion(null), 6000);
     } finally {

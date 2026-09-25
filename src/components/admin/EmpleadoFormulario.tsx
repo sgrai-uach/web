@@ -1,7 +1,10 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import type { EmpleadoUsuario, CatalogosResponse } from '@/types/empleados';
+import type { EmpleadoUsuario, CatalogosResponse, UpdatePersonalDTO } from '@/types/empleados';
+import { getCatalogos } from '@/services/catalogosService';
+import { updatePersonal } from '@/services/empleadosService';
+import { getErrorMessage } from '@/lib/utils/errorUtils';
 
 interface EmpleadoFormularioProps {
   usuario: EmpleadoUsuario;
@@ -59,11 +62,8 @@ export default function EmpleadoFormulario({
   useEffect(() => {
     async function cargarCatalogos() {
       try {
-        const res = await fetch(`/api/catalogos`);
-        if (res.ok) {
-          const json = await res.json();
-          setCatalogos(json.data);
-        }
+        const data = await getCatalogos();
+        setCatalogos(data);
       } catch (err) {
         console.error('Error al cargar catálogos:', err);
       }
@@ -96,7 +96,7 @@ export default function EmpleadoFormulario({
     setMensajeExito('');
 
     try {
-      const payload: Record<string, unknown> = {
+      const payload: UpdatePersonalDTO = {
         rut: rut.trim(),
         nombres,
         apellidos,
@@ -115,50 +115,18 @@ export default function EmpleadoFormulario({
       }
 
       const targetId = usuario.personal_id || usuario.usuario_id;
-      const res = await fetch(`/api/personal/${targetId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        if (data.detalles && Array.isArray(data.detalles) && data.detalles.length > 0) {
-          const nombresCampos: Record<string, string> = {
-            rut: 'RUT',
-            email: 'Correo Electrónico',
-            telefono: 'Teléfono',
-            nombres: 'Nombres',
-            apellidos: 'Apellidos',
-            rol_id: 'Rol',
-            delegacion_id: 'Delegación',
-            fecha_ingreso: 'Fecha de Ingreso',
-            fecha_salida: 'Fecha de Salida',
-            especialidad: 'Especialidad',
-            cargo: 'Cargo',
-          };
-          const listaErrores = data.detalles
-            .map((item: { campo: string; mensaje: string }) => {
-              const label = nombresCampos[item.campo] || item.campo;
-              return `${label}: ${item.mensaje}`;
-            })
-            .join(' | ');
-          throw new Error(`Error en los datos ingresados: ${listaErrores}`);
-        }
-        throw new Error(data.error || 'Error al actualizar los datos');
-      }
+      const updatedData = await updatePersonal(targetId, payload);
 
       setMensajeExito('Los datos han sido actualizados exitosamente en la base de datos.');
       setTimeout(() => {
         onEmpleadoActualizado({
           ...usuario,
-          ...data.data,
+          ...updatedData,
           es_personal: esRolTerreno,
         });
       }, 700);
     } catch (err: unknown) {
-      setErrorMsg(err instanceof Error ? err.message : 'Error al conectar con la API');
+      setErrorMsg(getErrorMessage(err, 'Error al conectar con la API'));
     } finally {
       setGuardando(false);
     }

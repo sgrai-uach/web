@@ -2,6 +2,9 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import type { EmpleadoUsuario } from '@/types/empleados';
+import type { CatalogoItem } from '@/types/catalogos';
+import { getCatalogos } from '@/services/catalogosService';
+import { getPersonal } from '@/services/empleadosService';
 
 interface EmpleadoBuscadorProps {
   onSelectUsuario: (usuario: EmpleadoUsuario) => void;
@@ -23,7 +26,7 @@ export default function EmpleadoBuscador({
   const [rolFiltro, setRolFiltro] = useState('');
   const [ordenarPor, setOrdenarPor] = useState('apellidos'); // apellidos | nombres | rut
   const [orden, setOrden] = useState<'asc' | 'desc'>('asc');
-  const [catalogos, setCatalogos] = useState<{ roles: any[]; delegaciones: any[] }>({
+  const [catalogos, setCatalogos] = useState<{ roles: CatalogoItem[]; delegaciones: CatalogoItem[] }>({
     roles: [],
     delegaciones: [],
   });
@@ -36,14 +39,11 @@ export default function EmpleadoBuscador({
   useEffect(() => {
     async function cargarCatalogos() {
       try {
-        const res = await fetch('/api/catalogos');
-        if (res.ok) {
-          const json = await res.json();
-          setCatalogos({
-            roles: json.data?.roles || [],
-            delegaciones: json.data?.delegaciones || [],
-          });
-        }
+        const data = await getCatalogos();
+        setCatalogos({
+          roles: data.roles || [],
+          delegaciones: data.delegaciones || [],
+        });
       } catch (err) {
         console.error('Error al cargar catálogos:', err);
       }
@@ -56,18 +56,14 @@ export default function EmpleadoBuscador({
     const timer = setTimeout(async () => {
       setCargando(true);
       try {
-        const params = new URLSearchParams();
-        if (termino.trim()) params.set('q', termino.trim());
-        if (delegacionFiltro) params.set('delegacion_id', delegacionFiltro);
-        if (rolFiltro) params.set('rol_id', rolFiltro);
-        params.set('ordenar_por', ordenarPor);
-        params.set('orden', orden);
-
-        const res = await fetch(`/api/personal?${params.toString()}`);
-        if (res.ok) {
-          const json = await res.json();
-          setResultados(json.data || []);
-        }
+        const data = await getPersonal({
+          q: termino,
+          delegacion_id: delegacionFiltro || undefined,
+          rol_id: rolFiltro || undefined,
+          ordenar_por: ordenarPor,
+          orden,
+        });
+        setResultados(data);
       } catch (err) {
         console.error('Error al buscar usuarios:', err);
       } finally {
@@ -203,7 +199,7 @@ export default function EmpleadoBuscador({
             }}
           >
             <option value="">Todas las delegaciones</option>
-            {catalogos.delegaciones.map((d: any) => (
+            {catalogos.delegaciones.map((d) => (
               <option key={d.id} value={d.id}>
                 {d.nombre}
               </option>
@@ -229,7 +225,7 @@ export default function EmpleadoBuscador({
             }}
           >
             <option value="">Todos los roles</option>
-            {catalogos.roles.map((r: any) => (
+            {catalogos.roles.map((r) => (
               <option key={r.id} value={r.id}>
                 {r.nombre}
               </option>

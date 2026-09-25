@@ -1,3 +1,7 @@
+import type { CatalogoItem, CatalogosResponse } from './catalogos';
+
+export type { CatalogoItem, CatalogosResponse };
+
 export interface EmpleadoUsuario {
   usuario_id: string;
   rut: string;
@@ -30,15 +34,25 @@ export interface EmpleadoUsuario {
   observaciones: string | null;
 }
 
-export interface CatalogoItem {
-  id: string;
-  codigo: string;
-  nombre: string;
+export interface FiltrosPersonalParams {
+  q?: string;
+  delegacion_id?: string;
+  rol_id?: string;
+  ordenar_por?: 'apellidos' | 'nombres' | 'rut' | string;
+  orden?: 'asc' | 'desc';
 }
 
-export interface CatalogosResponse {
-  roles: CatalogoItem[];
-  delegaciones: CatalogoItem[];
-  especialidades: string[];
-  cargos: string[];
+export interface UpdatePersonalDTO {
+  rut: string;
+  nombres: string;
+  apellidos: string;
+  email: string;
+  telefono: string;
+  rol_id: string;
+  delegacion_id: string | null;
+  activo: boolean;
+  fecha_ingreso: string | null;
+  fecha_salida: string | null;
+  especialidad?: string | null;
+  cargo?: string | null;
 }
