@@ -7,6 +7,7 @@ interface EmpleadoBuscadorProps {
   onSelectUsuario: (usuario: EmpleadoUsuario) => void;
   onEliminarUsuario?: (usuario: EmpleadoUsuario) => void;
   usuarioSeleccionadoId?: string;
+  usuarioEliminadoId?: string | null;
   versionActualizacion?: number;
 }
 
@@ -14,6 +15,7 @@ export default function EmpleadoBuscador({
   onSelectUsuario,
   onEliminarUsuario,
   usuarioSeleccionadoId,
+  usuarioEliminadoId,
   versionActualizacion = 0,
 }: EmpleadoBuscadorProps) {
   const [termino, setTermino] = useState('');
@@ -82,6 +84,15 @@ export default function EmpleadoBuscador({
       setTermino('');
     }
   }, [usuarioSeleccionadoId]);
+
+  // Remover inmediatamente al empleado dado de baja del estado local de resultados sin esperar recargas
+  useEffect(() => {
+    if (usuarioEliminadoId) {
+      setResultados((prev) =>
+        prev.filter((u) => u.usuario_id !== usuarioEliminadoId && u.personal_id !== usuarioEliminadoId)
+      );
+    }
+  }, [usuarioEliminadoId]);
 
   return (
     <div
@@ -367,8 +378,8 @@ export default function EmpleadoBuscador({
                   </div>
                 </div>
 
-                {/* Acciones claras de fila */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                {/* Acciones de fila */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                   {onEliminarUsuario && (
                     <button
                       type="button"
@@ -379,40 +390,44 @@ export default function EmpleadoBuscador({
                       title={`Dar de baja a ${usr.nombres} ${usr.apellidos}`}
                       style={{
                         fontSize: '0.75rem',
-                        fontWeight: 700,
-                        padding: '0.35rem 0.75rem',
-                        backgroundColor: '#FFFFFF',
-                        color: '#DC2626',
-                        border: '1px solid #DC2626',
+                        fontWeight: 600,
+                        padding: '0.25rem 0.5rem',
+                        backgroundColor: 'transparent',
+                        color: '#991B1B',
+                        border: '1px solid #E5E7EB',
                         borderRadius: 0,
                         cursor: 'pointer',
                         display: 'inline-flex',
                         alignItems: 'center',
-                        gap: '0.3rem',
+                        gap: '0.25rem',
                         transition: 'all 0.15s ease',
                       }}
                       onMouseEnter={(e) => {
-                        e.currentTarget.style.backgroundColor = '#DC2626';
-                        e.currentTarget.style.color = '#FFFFFF';
+                        e.currentTarget.style.backgroundColor = '#FEF2F2';
+                        e.currentTarget.style.borderColor = '#FCA5A5';
+                        e.currentTarget.style.color = '#B91C1C';
                       }}
                       onMouseLeave={(e) => {
-                        e.currentTarget.style.backgroundColor = '#FFFFFF';
-                        e.currentTarget.style.color = '#DC2626';
+                        e.currentTarget.style.backgroundColor = 'transparent';
+                        e.currentTarget.style.borderColor = '#E5E7EB';
+                        e.currentTarget.style.color = '#991B1B';
                       }}
                     >
-                      <span>🗑</span> Dar de Baja
+                      <span style={{ fontSize: '0.7rem' }}>🗑</span>
+                      <span>Dar de baja</span>
                     </button>
                   )}
-                  <span
-                    style={{
-                      fontSize: '0.75rem',
-                      fontWeight: 600,
-                      color: 'var(--color-primary-teal, #1B6F7D)',
-                      padding: '0.35rem 0.5rem',
-                    }}
-                  >
-                    {estaSeleccionado ? 'Seleccionado ❯' : 'Editar ❯'}
-                  </span>
+                  {estaSeleccionado && (
+                    <span
+                      style={{
+                        fontSize: '0.75rem',
+                        fontWeight: 700,
+                        color: 'var(--color-primary-teal, #1B6F7D)',
+                      }}
+                    >
+                      ✓ En edición
+                    </span>
+                  )}
                 </div>
               </div>
             );

@@ -12,7 +12,17 @@ export default function AdminEmpleadosPage() {
 
   const [notificacion, setNotificacion] = useState<{ tipo: 'exito' | 'error'; mensaje: string } | null>(null);
   const [empleadoAEliminar, setEmpleadoAEliminar] = useState<EmpleadoUsuario | null>(null);
+  const [usuarioEliminadoId, setUsuarioEliminadoId] = useState<string | null>(null);
   const [eliminando, setEliminando] = useState(false);
+
+  const formularioRef = React.useRef<HTMLDivElement>(null);
+
+  const handleSelectUsuario = (usr: EmpleadoUsuario) => {
+    setUsuarioSeleccionado(usr);
+    setTimeout(() => {
+      formularioRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 100);
+  };
 
   const handleActualizado = (actualizado: EmpleadoUsuario) => {
     setNotificacion({
@@ -44,6 +54,9 @@ export default function AdminEmpleadosPage() {
         tipo: 'exito',
         mensaje: `El funcionario ${empleadoAEliminar.nombres} ${empleadoAEliminar.apellidos} ha sido dado de baja lógicamente del sistema.`,
       });
+
+      // Actualizar el estado local inmediatamente
+      setUsuarioEliminadoId(empleadoAEliminar.usuario_id);
 
       if (usuarioSeleccionado?.usuario_id === empleadoAEliminar.usuario_id) {
         setUsuarioSeleccionado(null);
@@ -111,45 +124,48 @@ export default function AdminEmpleadosPage() {
 
         {/* Buscador modular de usuarios */}
         <EmpleadoBuscador
-          onSelectUsuario={(usr) => setUsuarioSeleccionado(usr)}
+          onSelectUsuario={handleSelectUsuario}
           onEliminarUsuario={(usr) => setEmpleadoAEliminar(usr)}
           usuarioSeleccionadoId={usuarioSeleccionado?.usuario_id}
+          usuarioEliminadoId={usuarioEliminadoId}
           versionActualizacion={versionActualizacion}
         />
 
         {/* Formulario modular condicional */}
-        {usuarioSeleccionado ? (
-          <EmpleadoFormulario
-            usuario={usuarioSeleccionado}
-            onEmpleadoActualizado={handleActualizado}
-            onCancelar={() => setUsuarioSeleccionado(null)}
-            onDarDeBaja={() => setEmpleadoAEliminar(usuarioSeleccionado)}
-          />
-        ) : (
-          <div
-            style={{
-              backgroundColor: '#FFFFFF',
-              border: '1px dashed #BAC7D5',
-              padding: '3.5rem 1.5rem',
-              textAlign: 'center',
-              marginBottom: '2rem',
-            }}
-          >
+        <div ref={formularioRef}>
+          {usuarioSeleccionado ? (
+            <EmpleadoFormulario
+              usuario={usuarioSeleccionado}
+              onEmpleadoActualizado={handleActualizado}
+              onCancelar={() => setUsuarioSeleccionado(null)}
+              onDarDeBaja={() => setEmpleadoAEliminar(usuarioSeleccionado)}
+            />
+          ) : (
             <div
               style={{
-                fontSize: '1.0625rem',
-                fontWeight: 700,
-                color: 'var(--color-charcoal, #3B3F45)',
-                marginBottom: '0.35rem',
+                backgroundColor: '#FFFFFF',
+                border: '1px dashed #BAC7D5',
+                padding: '3.5rem 1.5rem',
+                textAlign: 'center',
+                marginBottom: '2rem',
               }}
             >
-              Ningún usuario seleccionado
+              <div
+                style={{
+                  fontSize: '1.0625rem',
+                  fontWeight: 700,
+                  color: 'var(--color-charcoal, #3B3F45)',
+                  marginBottom: '0.35rem',
+                }}
+              >
+                Ningún usuario seleccionado
+              </div>
+              <div style={{ fontSize: '0.875rem', color: '#666' }}>
+                Haga clic en cualquiera de los funcionarios del listado superior para editar su ficha técnica.
+              </div>
             </div>
-            <div style={{ fontSize: '0.875rem', color: '#666' }}>
-              Utilice el buscador superior para seleccionar a un funcionario por RUT, nombre o correo.
-            </div>
-          </div>
-        )}
+          )}
+        </div>
 
         {/* Modal Institucional de Confirmación de Eliminación Lógica */}
         {empleadoAEliminar && (
