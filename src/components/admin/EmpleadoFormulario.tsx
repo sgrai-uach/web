@@ -101,25 +101,6 @@ export default function EmpleadoFormulario({
             RUT: <strong>{usuario.rut}</strong> &bull; ID Usuario: {usuario.usuario_id}
           </div>
         </div>
-
-        <div>
-          <span
-            style={{
-              backgroundColor: esRolTerreno
-                ? 'var(--color-accent-mint, #4FAE9B)'
-                : 'var(--color-charcoal, #3B3F45)',
-              color: '#FFFFFF',
-              fontWeight: 700,
-              fontSize: '0.75rem',
-              padding: '0.35rem 0.75rem',
-              textTransform: 'uppercase',
-              letterSpacing: '0.5px',
-              borderRadius: 0,
-            }}
-          >
-            {esRolTerreno ? 'Personal de Terreno' : 'Usuario General'}
-          </span>
-        </div>
       </div>
 
       {/* Alertas de resultado */}
