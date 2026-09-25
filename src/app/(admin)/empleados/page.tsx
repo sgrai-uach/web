@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import AdminHeader from '@/components/admin/AdminHeader';
 import EmpleadoBuscador from '@/components/admin/EmpleadoBuscador';
 import EmpleadoFormulario from '@/components/admin/EmpleadoFormulario';
+import { useSmartScroll } from '@/hooks/useSmartScroll';
 import type { EmpleadoUsuario } from '@/types/empleados';
 
 export default function AdminEmpleadosPage() {
@@ -15,13 +16,18 @@ export default function AdminEmpleadosPage() {
   const [usuarioEliminadoId, setUsuarioEliminadoId] = useState<string | null>(null);
   const [eliminando, setEliminando] = useState(false);
 
-  const formularioRef = React.useRef<HTMLDivElement>(null);
+  // Hook reutilizable para desplazamiento suave e inteligente con IntersectionObserver
+  const { targetRef: formularioRef, scrollToTarget: scrollToFormulario } =
+    useSmartScroll<HTMLDivElement>({
+      threshold: 0.5,
+      block: 'nearest',
+      behavior: 'smooth',
+    });
 
   const handleSelectUsuario = (usr: EmpleadoUsuario) => {
     setUsuarioSeleccionado(usr);
-    setTimeout(() => {
-      formularioRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, 100);
+    // Ejecuta el scroll condicional solo si el formulario está visible en menos del 50% o fuera del viewport
+    scrollToFormulario();
   };
 
   const handleActualizado = (actualizado: EmpleadoUsuario) => {
