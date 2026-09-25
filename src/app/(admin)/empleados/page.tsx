@@ -4,6 +4,8 @@ import React, { useState } from 'react';
 import AdminHeader from '@/components/admin/AdminHeader';
 import EmpleadoBuscador from '@/components/admin/EmpleadoBuscador';
 import EmpleadoFormulario from '@/components/admin/EmpleadoFormulario';
+import NotificationBanner from '@/components/common/NotificationBanner';
+import EmpleadoBajaModal from '@/components/admin/empleados/EmpleadoBajaModal';
 import { useSmartScroll } from '@/hooks/useSmartScroll';
 import type { EmpleadoUsuario } from '@/types/empleados';
 import type { NotificationState } from '@/types/common';
@@ -19,7 +21,7 @@ export default function AdminEmpleadosPage() {
   const [usuarioEliminadoId, setUsuarioEliminadoId] = useState<string | null>(null);
   const [eliminando, setEliminando] = useState(false);
 
-  // Hook reutilizable para desplazamiento suave e inteligente con IntersectionObserver
+  // Hook reutilizable para desplazamiento inteligente basado en IntersectionObserver
   const { targetRef: formularioRef, scrollToTarget: scrollToFormulario } =
     useSmartScroll<HTMLDivElement>({
       threshold: 0.5,
@@ -29,7 +31,6 @@ export default function AdminEmpleadosPage() {
 
   const handleSelectUsuario = (usr: EmpleadoUsuario) => {
     setUsuarioSeleccionado(usr);
-    // Ejecuta el scroll condicional solo si el formulario está visible en menos del 50% o fuera del viewport
     scrollToFormulario();
   };
 
@@ -38,8 +39,8 @@ export default function AdminEmpleadosPage() {
       tipo: 'exito',
       mensaje: `El empleado ${actualizado.nombres} ${actualizado.apellidos} fue actualizado con éxito.`,
     });
-    setUsuarioSeleccionado(null); // Redirige al listado / buscador limpio
-    setVersionActualizacion((v) => v + 1); // Forzar refresco inmediato del listado
+    setUsuarioSeleccionado(null);
+    setVersionActualizacion((v) => v + 1);
     setTimeout(() => setNotificacion(null), 6000);
   };
 
@@ -56,7 +57,6 @@ export default function AdminEmpleadosPage() {
         mensaje: `El funcionario ${empleadoAEliminar.nombres} ${empleadoAEliminar.apellidos} ha sido dado de baja lógicamente del sistema.`,
       });
 
-      // Actualizar el estado local inmediatamente
       setUsuarioEliminadoId(empleadoAEliminar.usuario_id);
 
       if (usuarioSeleccionado?.usuario_id === empleadoAEliminar.usuario_id) {
@@ -90,38 +90,10 @@ export default function AdminEmpleadosPage() {
 
       {/* Contenido Modular */}
       <main style={{ maxWidth: '1100px', width: '100%', margin: '0 auto', padding: '0 1.5rem', flex: 1 }}>
-        {notificacion && (
-          <div
-            style={{
-              backgroundColor: notificacion.tipo === 'exito' ? '#E6F6ED' : '#FDE8E8',
-              color: notificacion.tipo === 'exito' ? '#12633E' : '#9B1C1C',
-              borderLeft: `4px solid ${
-                notificacion.tipo === 'exito' ? 'var(--color-accent-mint, #4FAE9B)' : '#E02424'
-              }`,
-              padding: '0.875rem 1.25rem',
-              fontSize: '0.9375rem',
-              fontWeight: 700,
-              marginBottom: '1.25rem',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-            }}
-          >
-            <span>{notificacion.mensaje}</span>
-            <button
-              onClick={() => setNotificacion(null)}
-              style={{
-                background: 'none',
-                border: 'none',
-                color: notificacion.tipo === 'exito' ? '#12633E' : '#9B1C1C',
-                cursor: 'pointer',
-                fontWeight: 800,
-              }}
-            >
-              ✕
-            </button>
-          </div>
-        )}
+        <NotificationBanner
+          notification={notificacion}
+          onClose={() => setNotificacion(null)}
+        />
 
         {/* Buscador modular de usuarios */}
         <EmpleadoBuscador
@@ -168,109 +140,13 @@ export default function AdminEmpleadosPage() {
           )}
         </div>
 
-        {/* Modal Institucional de Confirmación de Eliminación Lógica */}
-        {empleadoAEliminar && (
-          <div
-            style={{
-              position: 'fixed',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              backgroundColor: 'rgba(0, 0, 0, 0.55)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              zIndex: 1000,
-              padding: '1rem',
-            }}
-          >
-            <div
-              style={{
-                backgroundColor: '#FFFFFF',
-                maxWidth: '520px',
-                width: '100%',
-                borderTop: '5px solid #C53030',
-                padding: '1.75rem',
-                boxShadow: '0 10px 25px rgba(0,0,0,0.2)',
-              }}
-            >
-              <h3
-                style={{
-                  margin: '0 0 0.75rem 0',
-                  color: 'var(--color-text-dark, #2B2B2B)',
-                  fontSize: '1.1875rem',
-                  fontWeight: 700,
-                }}
-              >
-                Confirmar Baja de Funcionario
-              </h3>
-              <p style={{ margin: '0 0 1rem 0', fontSize: '0.875rem', color: '#4B5563', lineHeight: 1.5 }}>
-                ¿Está seguro de que desea dar de baja al empleado{' '}
-                <strong>
-                  {empleadoAEliminar.nombres} {empleadoAEliminar.apellidos}
-                </strong>{' '}
-                (RUT: {empleadoAEliminar.rut})?
-              </p>
-              <div
-                style={{
-                  backgroundColor: '#FEF2F2',
-                  borderLeft: '4px solid #EF4444',
-                  padding: '0.75rem',
-                  marginBottom: '1.5rem',
-                  fontSize: '0.8125rem',
-                  color: '#991B1B',
-                  lineHeight: 1.4,
-                }}
-              >
-                <strong>Efectos de la baja lógica:</strong>
-                <ul style={{ margin: '0.35rem 0 0 1.25rem', padding: 0 }}>
-                  <li>El usuario no podrá volver a iniciar sesión en el sistema.</li>
-                  <li>Su estado operativo y disponibilidad territorial quedarán desactivados.</li>
-                  <li>Se conservará la integridad referencial de misiones e incidentes pasados.</li>
-                </ul>
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
-                <button
-                  type="button"
-                  onClick={() => setEmpleadoAEliminar(null)}
-                  disabled={eliminando}
-                  style={{
-                    backgroundColor: 'var(--color-charcoal, #3B3F45)',
-                    color: '#FFFFFF',
-                    border: 'none',
-                    padding: '0.625rem 1.25rem',
-                    fontSize: '0.875rem',
-                    fontWeight: 600,
-                    cursor: eliminando ? 'not-allowed' : 'pointer',
-                    borderRadius: 0,
-                  }}
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="button"
-                  onClick={handleConfirmarBaja}
-                  disabled={eliminando}
-                  style={{
-                    backgroundColor: '#C53030',
-                    color: '#FFFFFF',
-                    border: 'none',
-                    padding: '0.625rem 1.25rem',
-                    fontSize: '0.875rem',
-                    fontWeight: 700,
-                    cursor: eliminando ? 'not-allowed' : 'pointer',
-                    opacity: eliminando ? 0.65 : 1,
-                    borderRadius: 0,
-                  }}
-                >
-                  {eliminando ? 'Dando de baja...' : 'Sí, dar de baja'}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+        {/* Modal de confirmación de baja lógica */}
+        <EmpleadoBajaModal
+          empleado={empleadoAEliminar}
+          eliminando={eliminando}
+          onConfirmar={handleConfirmarBaja}
+          onCancelar={() => setEmpleadoAEliminar(null)}
+        />
       </main>
 
       {/* Footer Institucional */}

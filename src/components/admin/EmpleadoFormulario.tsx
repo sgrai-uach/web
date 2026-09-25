@@ -3,6 +3,8 @@
 import React from 'react';
 import type { EmpleadoUsuario } from '@/types/empleados';
 import { useEmpleadoForm } from '@/hooks/useEmpleadoForm';
+import DatosPersonalesFields from './empleados/DatosPersonalesFields';
+import DatosTerrenoFields from './empleados/DatosTerrenoFields';
 
 interface EmpleadoFormularioProps {
   usuario: EmpleadoUsuario;
@@ -31,24 +33,9 @@ export default function EmpleadoFormulario({
     onEmpleadoActualizado,
   });
 
-  const {
-    rut,
-    nombres,
-    apellidos,
-    email,
-    telefono,
-    rolId,
-    delegacionId,
-    activo,
-    fechaIngreso,
-    fechaSalida,
-    especialidad,
-    cargo,
-  } = formData;
-
   const handleActivoChange = (checked: boolean) => {
     updateField('activo', checked);
-    if (!checked && !fechaSalida) {
+    if (!checked && !formData.fechaSalida) {
       updateField('fechaSalida', new Date().toISOString().slice(0, 10));
     } else if (checked) {
       updateField('fechaSalida', '');
@@ -116,41 +103,26 @@ export default function EmpleadoFormulario({
         </div>
 
         <div>
-          {esRolTerreno ? (
-            <span
-              style={{
-                backgroundColor: 'var(--color-accent-mint, #4FAE9B)',
-                color: '#FFFFFF',
-                fontWeight: 700,
-                fontSize: '0.75rem',
-                padding: '0.35rem 0.75rem',
-                textTransform: 'uppercase',
-                letterSpacing: '0.5px',
-                borderRadius: 0,
-              }}
-            >
-              Personal de Terreno
-            </span>
-          ) : (
-            <span
-              style={{
-                backgroundColor: 'var(--color-charcoal, #3B3F45)',
-                color: '#FFFFFF',
-                fontWeight: 700,
-                fontSize: '0.75rem',
-                padding: '0.35rem 0.75rem',
-                textTransform: 'uppercase',
-                letterSpacing: '0.5px',
-                borderRadius: 0,
-              }}
-            >
-              Usuario General
-            </span>
-          )}
+          <span
+            style={{
+              backgroundColor: esRolTerreno
+                ? 'var(--color-accent-mint, #4FAE9B)'
+                : 'var(--color-charcoal, #3B3F45)',
+              color: '#FFFFFF',
+              fontWeight: 700,
+              fontSize: '0.75rem',
+              padding: '0.35rem 0.75rem',
+              textTransform: 'uppercase',
+              letterSpacing: '0.5px',
+              borderRadius: 0,
+            }}
+          >
+            {esRolTerreno ? 'Personal de Terreno' : 'Usuario General'}
+          </span>
         </div>
       </div>
 
-      {/* Alertas */}
+      {/* Alertas de resultado */}
       {mensajeExito && (
         <div
           style={{
@@ -184,261 +156,28 @@ export default function EmpleadoFormulario({
       )}
 
       {/* SECCIÓN 1: DATOS DE USUARIO GENERAL */}
-      <div style={{ marginBottom: '1.5rem' }}>
-        <h3
-          style={{
-            fontSize: '1.275rem',
-            fontWeight: 700,
-            color: 'var(--color-primary-teal, #1B6F7D)',
-            textTransform: 'uppercase',
-            letterSpacing: '0.5px',
-            marginBottom: '1rem',
-          }}
-        >
-          1. Datos del Personal Municipal
-        </h3>
-
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
-            gap: '1.25rem',
-          }}
-        >
-          <div>
-            <label htmlFor="form-rut" style={labelStyle}>RUT *</label>
-            <input
-              id="form-rut"
-              type="text"
-              value={rut}
-              onChange={(e) => updateField('rut', e.target.value)}
-              placeholder="12.345.678-K"
-              style={inputStyle}
-              required
-            />
-          </div>
-
-          <div>
-            <label htmlFor="form-nombres" style={labelStyle}>Nombres *</label>
-            <input
-              id="form-nombres"
-              type="text"
-              value={nombres}
-              onChange={(e) => updateField('nombres', e.target.value)}
-              style={inputStyle}
-              required
-            />
-          </div>
-
-          <div>
-            <label htmlFor="form-apellidos" style={labelStyle}>Apellidos</label>
-            <input
-              id="form-apellidos"
-              type="text"
-              value={apellidos}
-              onChange={(e) => updateField('apellidos', e.target.value)}
-              style={inputStyle}
-              required
-            />
-          </div>
-
-          <div>
-            <label htmlFor="form-email" style={labelStyle}>Correo Institucional</label>
-            <input
-              id="form-email"
-              type="email"
-              value={email}
-              onChange={(e) => updateField('email', e.target.value)}
-              style={inputStyle}
-              required
-            />
-          </div>
-
-          <div>
-            <label htmlFor="form-telefono" style={labelStyle}>Teléfono *</label>
-            <input
-              id="form-telefono"
-              type="text"
-              value={telefono}
-              onChange={(e) => updateField('telefono', e.target.value)}
-              placeholder="+569..."
-              style={inputStyle}
-              required
-            />
-          </div>
-
-          <div>
-            <label htmlFor="form-rol" style={labelStyle}>Rol y Permisos</label>
-            <select
-              id="form-rol"
-              value={rolId}
-              onChange={(e) => updateField('rolId', e.target.value)}
-              style={inputStyle}
-              required
-            >
-              {catalogos.roles.map((r: { id: string; nombre: string; codigo: string }) => (
-                <option key={r.id} value={r.id}>
-                  {r.nombre} ({r.codigo})
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label htmlFor="form-delegacion" style={labelStyle}>Delegación Asignada</label>
-            <select
-              id="form-delegacion"
-              value={delegacionId}
-              onChange={(e) => updateField('delegacionId', e.target.value)}
-              style={inputStyle}
-            >
-              <option value="">-- Sin Delegación --</option>
-              {catalogos.delegaciones.map((d: { id: string; nombre: string; codigo: string }) => (
-                <option key={d.id} value={d.id}>
-                  {d.nombre} ({d.codigo})
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label htmlFor="form-fecha-ingreso" style={labelStyle}>Fecha de Ingreso Municipal</label>
-            <input
-              id="form-fecha-ingreso"
-              type="date"
-              value={fechaIngreso}
-              onChange={(e) => updateField('fechaIngreso', e.target.value)}
-              style={inputStyle}
-            />
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', marginTop: '1.25rem' }}>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
-              <input
-                type="checkbox"
-                checked={activo}
-                onChange={(e) => handleActivoChange(e.target.checked)}
-                style={{ width: '18px', height: '18px', accentColor: 'var(--color-primary-teal, #1B6F7D)', borderRadius: 0 }}
-              />
-              <span style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--color-charcoal, #3B3F45)' }}>
-                Cuenta de Usuario Activa
-              </span>
-            </label>
-          </div>
-
-          {/* Fecha de salida: sólo visible si el usuario se encuentra inactivo */}
-          {!activo && (
-            <div>
-              <label style={labelStyle}>
-                Fecha de Salida / Desvinculación
-              </label>
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  backgroundColor: '#FFF2F2',
-                  border: '1px solid #E0B4B4',
-                  padding: '0.625rem 0.85rem',
-                  fontSize: '0.875rem',
-                  color: '#9F3A38',
-                  fontWeight: 600,
-                  gap: '0.5rem',
-                }}
-              >
-                <span>📅 Fecha de Salida Registrada: <strong>{fechaSalida || new Date().toISOString().slice(0, 10)}</strong></span>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
+      <DatosPersonalesFields
+        formData={formData}
+        updateField={updateField}
+        onActivoChange={handleActivoChange}
+        roles={catalogos.roles}
+        delegaciones={catalogos.delegaciones}
+        inputStyle={inputStyle}
+        labelStyle={labelStyle}
+      />
 
       {/* SECCIÓN 2: DATOS CONDICIONALES PARA PERSONAL DE TERRENO */}
-      {esRolTerreno && (
-        <div
-          style={{
-            backgroundColor: '#F8FAFC',
-            border: '1px solid #D1D9E2',
-            borderLeft: '4px solid var(--color-accent-mint, #4FAE9B)',
-            padding: '1.25rem',
-            marginBottom: '1.5rem',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
-            <h3
-              style={{
-                fontSize: '1.275rem',
-                fontWeight: 800,
-                color: 'var(--color-primary-teal-dark, #14505A)',
-                textTransform: 'uppercase',
-                letterSpacing: '0.5px',
-                margin: 0,
-              }}
-            >
-              2. Opciones para el personal de terreno.
-            </h3>
-            <span
-              style={{
-                fontSize: '0.6875rem',
-                backgroundColor: 'var(--color-accent-mint, #4FAE9B)',
-                color: '#FFFFFF',
-                padding: '0.15rem 0.4rem',
-                fontWeight: 700,
-                borderRadius: 0,
-              }}
-            >
-              Opciones Extendidas
-            </span>
-          </div>
+      <DatosTerrenoFields
+        esRolTerreno={esRolTerreno}
+        formData={formData}
+        updateField={updateField}
+        especialidades={catalogos.especialidades}
+        cargos={catalogos.cargos}
+        inputStyle={inputStyle}
+        labelStyle={labelStyle}
+      />
 
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
-              gap: '1.25rem',
-            }}
-          >
-            {/* Especialidad con datalist sugerido de la DB para evitar inconsistencias */}
-            <div>
-              <label htmlFor="form-especialidad" style={labelStyle}>Especialidad Operativa</label>
-              <input
-                id="form-especialidad"
-                type="text"
-                list="datalist-especialidades"
-                value={especialidad}
-                onChange={(e) => updateField('especialidad', e.target.value)}
-                placeholder="Ej. Motosierrista, Conductor, Verificador..."
-                style={inputStyle}
-              />
-              <datalist id="datalist-especialidades">
-                {catalogos.especialidades.map((esp: string) => (
-                  <option key={esp} value={esp} />
-                ))}
-              </datalist>
-            </div>
-
-            {/* Cargo con datalist sugerido de la DB */}
-            <div>
-              <label htmlFor="form-cargo" style={labelStyle}>Cargo en Terreno</label>
-              <input
-                id="form-cargo"
-                type="text"
-                list="datalist-cargos"
-                value={cargo}
-                onChange={(e) => updateField('cargo', e.target.value)}
-                placeholder="Ej. Delegado de Cuadrilla, Brigadista..."
-                style={inputStyle}
-              />
-              <datalist id="datalist-cargos">
-                {catalogos.cargos.map((cg: string) => (
-                  <option key={cg} value={cg} />
-                ))}
-              </datalist>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Botones de acción planos con esquinas rectas */}
+      {/* Botones de acción del formulario */}
       <div
         style={{
           display: 'flex',
