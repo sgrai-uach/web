@@ -27,18 +27,15 @@ export default function RecursosFiltros({
   onCambiarEsIndividual,
   onLimpiarFiltros,
 }: RecursosFiltrosProps) {
-  // Estado local para input de búsqueda con debounce
   const [localBusqueda, setLocalBusqueda] = useState(busqueda);
   const [busquedaPrevia, setBusquedaPrevia] = useState(busqueda);
   const [, startTransition] = useTransition();
 
-  // Ajustar estado local si el prop cambia (patrón oficial React sin useEffect)
   if (busqueda !== busquedaPrevia) {
     setBusquedaPrevia(busqueda);
     setLocalBusqueda(busqueda);
   }
 
-  // Debounce de 300ms sobre el término de búsqueda
   useEffect(() => {
     const handler = setTimeout(() => {
       if (localBusqueda !== busqueda) {
@@ -48,186 +45,79 @@ export default function RecursosFiltros({
       }
     }, 300);
 
-    return () => {
-      clearTimeout(handler);
-    };
+    return () => clearTimeout(handler);
   }, [localBusqueda, busqueda, onCambiarBusqueda]);
 
-  const hayFiltrosActivos =
-    Boolean(busqueda && busqueda.trim().length > 0) ||
-    Boolean(estado) ||
-    Boolean(delegacionId) ||
-    esIndividual !== undefined;
+  const hayFiltrosActivos = Boolean(busqueda?.trim() || estado || delegacionId || esIndividual !== undefined);
+
+  const selectStyle: React.CSSProperties = { padding: '8px 10px', fontSize: '13px', border: '1px solid var(--color-charcoal)', borderRadius: 0, outline: 'none', backgroundColor: 'var(--color-white)', color: 'var(--color-text-dark)' };
 
   return (
-    <div
-      style={{
-        backgroundColor: '#FFFFFF',
-        padding: '16px 20px',
-        border: '1px solid #D5DCE4',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '16px',
-      }}
-    >
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-          gap: '12px',
-          alignItems: 'flex-end',
-        }}
-      >
-        {/* Buscador de texto con Debounce */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-          <label
-            htmlFor="filtro-busqueda-recursos"
-            style={{ fontSize: '13px', fontWeight: 700, color: '#14505A' }}
-          >
+    <div style={{ backgroundColor: 'var(--color-white)', padding: '16px 20px', border: '1px solid var(--color-bg-light)', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px', alignItems: 'flex-end' }}>
+        {/* Buscador */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+          <label htmlFor="filtro-busqueda" style={{ fontSize: '13px', fontWeight: 700, color: 'var(--color-primary-teal-dark)' }}>
             Buscar por nombre o descripción:
           </label>
-          <div style={{ position: 'relative' }}>
-            <input
-              id="filtro-busqueda-recursos"
-              type="text"
-              value={localBusqueda}
-              onChange={(e) => setLocalBusqueda(e.target.value)}
-              placeholder="Ej: Camioneta, Sacos, Motobomba..."
-              style={{
-                width: '100%',
-                padding: '9px 12px',
-                fontSize: '14px',
-                border: '1px solid #D5DCE4',
-                borderRadius: 0,
-                backgroundColor: '#F8FAFC',
-                color: '#2B2B2B',
-                boxSizing: 'border-box',
-                outline: 'none',
-              }}
-            />
-            {localBusqueda && (
-              <button
-                type="button"
-                onClick={() => {
-                  setLocalBusqueda('');
-                  onCambiarBusqueda('');
-                }}
-                title="Borrar término de búsqueda"
-                style={{
-                  position: 'absolute',
-                  right: '8px',
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  background: 'none',
-                  border: 'none',
-                  cursor: 'pointer',
-                  color: '#3B3F45',
-                  fontSize: '14px',
-                  padding: '4px',
-                }}
-              >
-                ✕
-              </button>
-            )}
-          </div>
+          <input
+            id="filtro-busqueda"
+            type="text"
+            value={localBusqueda}
+            onChange={(e) => setLocalBusqueda(e.target.value)}
+            placeholder="Ej: Camioneta, Sacos..."
+            style={{ ...selectStyle, padding: '8px 10px' }}
+          />
         </div>
 
-        {/* Filtro por Estado de Disponibilidad */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-          <label
-            htmlFor="filtro-estado-recurso"
-            style={{ fontSize: '13px', fontWeight: 700, color: '#14505A' }}
-          >
-            Estado de disponibilidad:
+        {/* Delegación */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+          <label htmlFor="filtro-delegacion" style={{ fontSize: '13px', fontWeight: 700, color: 'var(--color-primary-teal-dark)' }}>
+            Delegación Territorial:
           </label>
           <select
-            id="filtro-estado-recurso"
+            id="filtro-delegacion"
+            value={delegacionId || ''}
+            onChange={(e) => onCambiarDelegacion(e.target.value || undefined)}
+            style={selectStyle}
+          >
+            <option value="">Todas las delegaciones</option>
+            {DELEGACIONES_MUNICIPALES.map((del) => (
+              <option key={del.id} value={del.id}>{del.nombre}</option>
+            ))}
+          </select>
+        </div>
+
+        {/* Estado Operativo */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+          <label htmlFor="filtro-estado" style={{ fontSize: '13px', fontWeight: 700, color: 'var(--color-primary-teal-dark)' }}>
+            Estado Operativo:
+          </label>
+          <select
+            id="filtro-estado"
             value={estado || ''}
-            onChange={(e) => {
-              const val = e.target.value as EstadoRecurso | '';
-              onCambiarEstado(val ? val : undefined);
-            }}
-            style={{
-              padding: '9px 12px',
-              fontSize: '14px',
-              border: '1px solid #D5DCE4',
-              borderRadius: 0,
-              backgroundColor: '#F8FAFC',
-              color: '#2B2B2B',
-              cursor: 'pointer',
-              outline: 'none',
-            }}
+            onChange={(e) => onCambiarEstado((e.target.value as EstadoRecurso) || undefined)}
+            style={selectStyle}
           >
             <option value="">Todos los estados</option>
             <option value="DISPONIBLE">Disponible</option>
-            <option value="ASIGNADO">En Terreno / Asignado</option>
+            <option value="ASIGNADO">Asignado a Cuadrilla</option>
             <option value="EN_MANTENCION">En Mantención</option>
             <option value="BAJO_STOCK">Bajo Stock (Alerta)</option>
             <option value="NO_DISPONIBLE">No Disponible</option>
           </select>
         </div>
 
-        {/* Filtro por Delegación Territorial */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-          <label
-            htmlFor="filtro-delegacion-recurso"
-            style={{ fontSize: '13px', fontWeight: 700, color: '#14505A' }}
-          >
-            Delegación territorial:
+        {/* Tipo de Recurso */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+          <label htmlFor="filtro-tipo" style={{ fontSize: '13px', fontWeight: 700, color: 'var(--color-primary-teal-dark)' }}>
+            Tipo de Inventario:
           </label>
           <select
-            id="filtro-delegacion-recurso"
-            value={delegacionId || ''}
-            onChange={(e) => {
-              const val = e.target.value;
-              onCambiarDelegacion(val ? val : undefined);
-            }}
-            style={{
-              padding: '9px 12px',
-              fontSize: '14px',
-              border: '1px solid #D5DCE4',
-              borderRadius: 0,
-              backgroundColor: '#F8FAFC',
-              color: '#2B2B2B',
-              cursor: 'pointer',
-              outline: 'none',
-            }}
-          >
-            <option value="">Todas las delegaciones</option>
-            {DELEGACIONES_MUNICIPALES.map((del) => (
-              <option key={del.id} value={del.id}>
-                {del.nombre}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {/* Filtro por Tipo de Recurso */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-          <label
-            htmlFor="filtro-tipo-recurso"
-            style={{ fontSize: '13px', fontWeight: 700, color: '#14505A' }}
-          >
-            Tipo de recurso:
-          </label>
-          <select
-            id="filtro-tipo-recurso"
+            id="filtro-tipo"
             value={esIndividual === undefined ? '' : esIndividual ? 'true' : 'false'}
-            onChange={(e) => {
-              const val = e.target.value;
-              if (val === '') onCambiarEsIndividual(undefined);
-              else onCambiarEsIndividual(val === 'true');
-            }}
-            style={{
-              padding: '9px 12px',
-              fontSize: '14px',
-              border: '1px solid #D5DCE4',
-              borderRadius: 0,
-              backgroundColor: '#F8FAFC',
-              color: '#2B2B2B',
-              cursor: 'pointer',
-              outline: 'none',
-            }}
+            onChange={(e) => onCambiarEsIndividual(e.target.value === '' ? undefined : e.target.value === 'true')}
+            style={selectStyle}
           >
             <option value="">Todos los tipos</option>
             <option value="true">Vehículo o Maquinaria (Individual)</option>
@@ -236,41 +126,14 @@ export default function RecursosFiltros({
         </div>
       </div>
 
-      {/* Barra de Filtros Activos y Botón de Limpiar */}
       {hayFiltrosActivos && (
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            paddingTop: '12px',
-            borderTop: '1px solid #ECEFF3',
-            fontSize: '13px',
-          }}
-        >
-          <div style={{ color: '#1B6F7D', fontWeight: 600 }}>
-            Filtros activos aplicados sobre el catálogo de recursos
-          </div>
-
+        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
           <button
             type="button"
             onClick={onLimpiarFiltros}
-            style={{
-              backgroundColor: '#ECEFF3',
-              color: '#14505A',
-              border: '1px solid #D5DCE4',
-              borderRadius: 0,
-              padding: '6px 14px',
-              fontSize: '13px',
-              fontWeight: 600,
-              cursor: 'pointer',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-            }}
+            style={{ backgroundColor: 'transparent', color: 'var(--color-primary-teal)', border: 'none', fontSize: '13px', fontWeight: 600, cursor: 'pointer', textDecoration: 'underline' }}
           >
-            <span>✕</span>
-            <span>Limpiar Filtros</span>
+            Limpiar todos los filtros
           </button>
         </div>
       )}
