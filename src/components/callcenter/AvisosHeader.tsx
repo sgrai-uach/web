@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import AvisosKpiCards from './header/AvisosKpiCards';
 
 export interface OperadorInfo {
   id: string;
@@ -46,7 +47,6 @@ export default function AvisosHeader({
 }: AvisosHeaderProps) {
   return (
     <header style={{ width: '100%', marginBottom: '1.5rem' }}>
-      {/* Barra superior de acento institucional */}
       <div
         style={{
           backgroundColor: 'var(--color-primary-teal-dark, #14505A)',
@@ -87,7 +87,6 @@ export default function AvisosHeader({
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', flexWrap: 'wrap' }}>
-          {/* Indicador WebSocket en tiempo real */}
           <div
             style={{
               display: 'flex',
@@ -113,7 +112,6 @@ export default function AvisosHeader({
             <span>{socketConnected ? 'En vivo (WebSockets)' : 'Conectando...'}</span>
           </div>
 
-          {/* Selector de Operador para auditoría y prueba de concurrencia */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8125rem' }}>
             <span style={{ opacity: 0.85 }}>Operador:</span>
             <select
@@ -144,96 +142,7 @@ export default function AvisosHeader({
         </div>
       </div>
 
-      {/* Franja de métricas / KPI Semáforo de Espera */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-          gap: '1rem',
-          padding: '1.25rem 1.5rem 0.5rem 1.5rem',
-          backgroundColor: 'var(--color-bg-light, #ECEFF3)',
-        }}
-      >
-        {/* Total pendientes */}
-        <div
-          style={{
-            backgroundColor: 'var(--color-white, #FFFFFF)',
-            padding: '1rem',
-            borderLeft: '4px solid var(--color-primary-teal, #1B6F7D)',
-            borderTop: '1px solid #DFE3E8',
-            borderRight: '1px solid #DFE3E8',
-            borderBottom: '1px solid #DFE3E8',
-          }}
-        >
-          <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: '#666', fontWeight: 600 }}>
-            Total Pendientes
-          </div>
-          <div style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--color-primary-teal, #1B6F7D)' }}>
-            {metricas.total}
-          </div>
-          <div style={{ fontSize: '0.75rem', color: '#777' }}>Avisos en bandeja</div>
-        </div>
-
-        {/* En tiempo < 15 min */}
-        <div
-          style={{
-            backgroundColor: 'var(--color-white, #FFFFFF)',
-            padding: '1rem',
-            borderLeft: '4px solid #2E7D32',
-            borderTop: '1px solid #DFE3E8',
-            borderRight: '1px solid #DFE3E8',
-            borderBottom: '1px solid #DFE3E8',
-          }}
-        >
-          <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: '#2E7D32', fontWeight: 700 }}>
-            &bull; En Tiempo (&lt; 15 min)
-          </div>
-          <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#2E7D32' }}>
-            {metricas.enTiempo}
-          </div>
-          <div style={{ fontSize: '0.75rem', color: '#777' }}>Atención óptima</div>
-        </div>
-
-        {/* Precaución 15-30 min */}
-        <div
-          style={{
-            backgroundColor: 'var(--color-white, #FFFFFF)',
-            padding: '1rem',
-            borderLeft: '4px solid #F57F17',
-            borderTop: '1px solid #DFE3E8',
-            borderRight: '1px solid #DFE3E8',
-            borderBottom: '1px solid #DFE3E8',
-          }}
-        >
-          <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: '#F57F17', fontWeight: 700 }}>
-            &bull; Precaución (15&ndash;30 min)
-          </div>
-          <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#F57F17' }}>
-            {metricas.precaucion}
-          </div>
-          <div style={{ fontSize: '0.75rem', color: '#777' }}>Prioridad intermedia</div>
-        </div>
-
-        {/* Urgente > 30 min */}
-        <div
-          style={{
-            backgroundColor: 'var(--color-white, #FFFFFF)',
-            padding: '1rem',
-            borderLeft: '4px solid #D32F2F',
-            borderTop: '1px solid #DFE3E8',
-            borderRight: '1px solid #DFE3E8',
-            borderBottom: '1px solid #DFE3E8',
-          }}
-        >
-          <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: '#D32F2F', fontWeight: 700 }}>
-            &bull; Urgente (&gt; 30 min)
-          </div>
-          <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#D32F2F' }}>
-            {metricas.urgentes}
-          </div>
-          <div style={{ fontSize: '0.75rem', color: '#777' }}>Atención inmediata requerida</div>
-        </div>
-      </div>
+      <AvisosKpiCards metricas={metricas} />
     </header>
   );
 }
