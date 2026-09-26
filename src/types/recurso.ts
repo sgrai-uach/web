@@ -1,4 +1,14 @@
 import { z } from 'zod';
+import type { paths } from '@/types/api-generated';
+
+// Extracción directa de los tipos generados de la API para garantizar coherencia
+export type CrearRecursoDTO =
+  paths['/api/recursos']['post']['requestBody']['content']['application/json'];
+
+export type RecursoDetallesDTO = NonNullable<CrearRecursoDTO['detalles']>;
+
+export type RecursoCreado =
+  paths['/api/recursos']['post']['responses'][201]['content']['application/json']['data'];
 
 export const tipoCombustibleEnum = z.enum([
   'GASOLINA',
@@ -105,4 +115,41 @@ export const recursoFormSchema = z
 
 export type RecursoFormInput = z.infer<typeof recursoFormSchema>;
 
-export type SubtipoDetalle = 'NINGUNO' | 'VEHICULO' | 'MAQUINARIA' | 'MOTOBOMBA' | 'SERIALIZADO';
+export type SubtipoDetalle =
+  | 'GENERAL'
+  | 'VEHICULO'
+  | 'MAQUINARIA'
+  | 'MOTOBOMBA'
+  | 'NINGUNO'
+  | 'SERIALIZADO';
+
+export interface RecursoDetallesFormFields {
+  patente: string;
+  numeroSerie: string;
+  marca: string;
+  modelo: string;
+  anio: string;
+  kilometraje: string;
+  tipoCombustible: TipoCombustible | '';
+  capacidadPasajeros: string;
+  numeroChasis: string;
+  capacidadCargaKg: string;
+  alcanceMaximoMetros: string;
+  tipoGrua: string;
+  horometro: string;
+  caudalMaximoLpm: string;
+  diametroPulgadas: string;
+  potenciaHp: string;
+}
+
+export interface RecursoFormState {
+  nombre: string;
+  descripcion: string;
+  esIndividual: boolean;
+  cantidadInventario: number | string;
+  cantidadMinima: number | string;
+  latitud: number | string;
+  longitud: number | string;
+  subtipoDetalle: SubtipoDetalle;
+  detalles: RecursoDetallesFormFields;
+}
