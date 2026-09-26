@@ -3,9 +3,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import type { ListarRecursosResponse, FiltrosRecursosState, RecursoItem } from '@/types/recurso';
 import { DEFAULT_ADMIN_USER_ID } from '@/lib/api/client';
-
-export const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+import { getRecursos, RecursoServiceError } from '@/services/recursoService';
+import { getErrorMessage } from '@/lib/utils/errorUtils';
 
 export const DELEGACIONES_MUNICIPALES = [
   {
@@ -77,7 +76,6 @@ export function useRecursos(
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const fetchData = useCallback(async () => {
-    // Cancelar cualquier petición anterior aún en vuelo
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
     }
@@ -88,67 +86,27 @@ export function useRecursos(
     setError(null);
     setStatusCode(null);
 
-    const params = new URLSearchParams();
-    params.set('pagina', String(filtros.pagina || 1));
-    params.set('limite', String(filtros.limite || 10));
-
-    if (filtros.delegacionId) {
-      params.set('delegacionId', filtros.delegacionId);
-    }
-    if (filtros.estado) {
-      params.set('estado', filtros.estado);
-    }
-    if (filtros.esIndividual !== undefined && filtros.esIndividual !== null) {
-      params.set('esIndividual', String(filtros.esIndividual));
-    }
-    if (filtros.busqueda && filtros.busqueda.trim() !== '') {
-      params.set('busqueda', filtros.busqueda.trim());
-    }
-
-    const url = `${API_BASE_URL}/api/recursos?${params.toString()}`;
-
     try {
-      const res = await fetch(url, {
-        method: 'GET',
-        headers: {
-          'X-User-Id': userId,
-          Authorization: `Bearer ${userId}`,
-          Accept: 'application/json',
-        },
-        signal: controller.signal,
-      });
-
-      setStatusCode(res.status);
-
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => ({}));
-        const err = new Error(
-          errorData.message || `Error HTTP ${res.status}: Fallo al obtener inventario`
-        );
-        (err as unknown as { status: number }).status = res.status;
-        throw err;
-      }
-
-      const json: ListarRecursosResponse = await res.json();
-      setData(json);
+      const response = await getRecursos(filtros, userId, controller.signal);
+      setData(response);
+      setStatusCode(200);
       setError(null);
     } catch (err: unknown) {
       if ((err as Error)?.name === 'AbortError') {
-        // Ignorar cancelaciones manuales
         return;
       }
-      console.error('[useRecursos] Error al consultar API de recursos:', err);
-      setError(err as Error);
+      if (err instanceof RecursoServiceError) {
+        setStatusCode(err.apiError.statusCode ?? 500);
+        setError(new Error(err.apiError.message));
+      } else {
+        setStatusCode(500);
+        setError(new Error(getErrorMessage(err)));
+      }
     } finally {
       setCargando(false);
     }
   }, [
-    filtros.pagina,
-    filtros.limite,
-    filtros.delegacionId,
-    filtros.estado,
-    filtros.esIndividual,
-    filtros.busqueda,
+    filtros,
     userId,
   ]);
 
