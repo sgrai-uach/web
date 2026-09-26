@@ -2,13 +2,15 @@ import { z } from 'zod';
 import type { paths } from '@/types/api-generated';
 
 // Extracción directa de los tipos generados de la API para garantizar coherencia
-export type CrearRecursoDTO =
-  paths['/api/recursos']['post']['requestBody']['content']['application/json'];
+export type CrearRecursoDTO = NonNullable<
+  NonNullable<paths['/api/recursos']['post']['requestBody']>['content']
+>['application/json'];
 
 export type RecursoDetallesDTO = NonNullable<CrearRecursoDTO['detalles']>;
 
-export type RecursoCreado =
-  paths['/api/recursos']['post']['responses'][201]['content']['application/json']['data'];
+export type RecursoCreado = NonNullable<
+  NonNullable<paths['/api/recursos']['post']['responses'][201]['content']
+>['application/json']>['data'];
 
 export const tipoCombustibleEnum = z.enum([
   'GASOLINA',
