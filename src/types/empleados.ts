@@ -1,3 +1,8 @@
+/**
+ * Contratos de datos para el módulo de administración de empleados y usuarios.
+ * Conforme a docs/architecture/architecture.md.
+ */
+
 export interface EmpleadoUsuario {
   usuario_id: string;
   rut: string;
@@ -41,4 +46,27 @@ export interface CatalogosResponse {
   delegaciones: CatalogoItem[];
   especialidades: string[];
   cargos: string[];
+}
+
+export interface EmpleadosQueryParams {
+  q?: string;
+  delegacion_id?: string;
+  rol_id?: string;
+  ordenar_por?: string;
+  orden?: 'asc' | 'desc';
+}
+
+export interface ActualizarEmpleadoPayload {
+  rut: string;
+  nombres: string;
+  apellidos: string;
+  email: string;
+  telefono: string;
+  rol_id: string;
+  delegacion_id: string | null;
+  activo: boolean;
+  fecha_ingreso: string | null;
+  fecha_salida: string | null;
+  especialidad?: string | null;
+  cargo?: string | null;
 }
