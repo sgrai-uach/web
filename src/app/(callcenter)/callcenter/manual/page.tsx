@@ -1,4 +1,5 @@
 import { Metadata } from 'next';
+import Heading from '@/components/ui/Heading';
 import IncidenteManualForm from '@/components/callcenter/IncidenteManualForm';
 
 export const metadata: Metadata = {
@@ -21,17 +22,14 @@ export default function ManualIncidentPage() {
         <div style={{ fontSize: '12px', color: '#666', marginBottom: '6px' }}>
           <span>Call Center</span> &gt; <strong style={{ color: '#14505A' }}>Recepción de Reportes</strong>
         </div>
-        <h1
-          style={{
-            fontSize: '24px',
-            fontWeight: 800,
-            color: '#14505A',
-            letterSpacing: '-0.3px',
-            margin: '0 0 8px 0',
-          }}
+        <Heading
+          as="h1"
+          variant="h2"
+          color="teal-dark"
+          style={{ margin: '0 0 8px 0' }}
         >
           Recepción de Reportes de Emergencia
-        </h1>
+        </Heading>
         <p style={{ margin: 0, fontSize: '14px', color: '#3B3F45', lineHeight: 1.5 }}>
           Completa los datos del reporte recibido para enviar el aviso directamente al Encargado municipal y coordinar la atención oportuna en terreno.
         </p>

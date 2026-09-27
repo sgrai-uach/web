@@ -1,5 +1,7 @@
 import { Metadata } from 'next';
-import Link from 'next/link';
+import { PhoneCall, Plus, Home } from 'lucide-react';
+import Heading from '@/components/ui/Heading';
+import Button from '@/components/ui/Button';
 
 export const metadata: Metadata = {
   title: 'Centro Call Center — SGRAI Valdivia',
@@ -23,60 +25,41 @@ export default function CallCenterIndexPage() {
             height: '64px',
             backgroundColor: '#14505A',
             color: '#FFFFFF',
-            fontSize: '32px',
             display: 'inline-flex',
             alignItems: 'center',
             justifyContent: 'center',
             marginBottom: '16px',
           }}
         >
-          📞
+          <PhoneCall size={32} aria-hidden="true" />
         </div>
 
-        <h1 style={{ fontSize: '24px', fontWeight: 800, color: '#14505A', marginBottom: '8px' }}>
+        <Heading as="h1" variant="h2" color="teal-dark" style={{ marginBottom: '8px' }}>
           Centro Call Center — SGRAI
-        </h1>
+        </Heading>
 
         <p style={{ fontSize: '15px', color: '#555', maxWidth: '560px', margin: '0 auto 28px auto', lineHeight: 1.5 }}>
           Plataforma de recepción y verificación de incidentes comunales para la Dirección de Gestión de Riesgos de Desastres de la Municipalidad de Valdivia.
         </p>
 
         <div style={{ display: 'flex', justifyContent: 'center', gap: '16px', flexWrap: 'wrap' }}>
-          <Link
+          <Button
             href="/callcenter/manual"
-            style={{
-              backgroundColor: '#4FAE9B',
-              color: '#FFFFFF',
-              padding: '14px 28px',
-              fontSize: '15px',
-              fontWeight: 800,
-              textDecoration: 'none',
-              borderRadius: 0,
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '10px',
-            }}
+            variant="primary"
+            size="lg"
+            icon={<Plus size={18} />}
           >
-            <span>➕</span>
-            <span>Nuevo Reporte Manual</span>
-          </Link>
+            Nuevo Reporte Manual
+          </Button>
 
-          <Link
+          <Button
             href="/"
-            style={{
-              backgroundColor: '#3B3F45',
-              color: '#FFFFFF',
-              padding: '14px 24px',
-              fontSize: '15px',
-              fontWeight: 700,
-              textDecoration: 'none',
-              borderRadius: 0,
-              display: 'inline-flex',
-              alignItems: 'center',
-            }}
+            variant="secondary"
+            size="lg"
+            icon={<Home size={18} />}
           >
             Portal Informante
-          </Link>
+          </Button>
         </div>
       </div>
     </div>
