@@ -7,6 +7,7 @@ import {
   BarChart3,
   Boxes,
   ShieldCheck,
+  Users,
 } from 'lucide-react';
 
 export interface NavItem {
@@ -71,6 +72,12 @@ export const NAV_GROUPS: NavGroup[] = [
     id: 'administracion',
     title: 'Administración',
     items: [
+      {
+        id: 'empleados',
+        label: 'Gestión de Personal',
+        href: '/admin/empleados',
+        icon: Users,
+      },
       {
         id: 'recursos',
         label: 'Inventario Logístico',
