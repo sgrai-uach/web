@@ -44,19 +44,72 @@ Toda interfaz de este repositorio debe usar la paleta y el estilo visual del sit
 | `--color-white` | Fondo de tarjetas, fondo principal | `#FFFFFF` |
 | `--color-text-dark` | Texto sobre fondos claros | `#2B2B2B` |
 | `--color-text-light` | Texto sobre fondos oscuros (charcoal, teal-dark) | `#FFFFFF` |
+| `--color-text-muted` | Texto secundario o notas explicativas | `#5F676E` |
+
+### Estados semánticos (Alertas y feedback)
+
+| Token | Propósito | Valor |
+|---|---|---|
+| `--color-danger` / `--color-danger-bg` | Error, rechazo, descarte, 403 Forbidden | `#D32F2F` / `#FFEBEE` |
+| `--color-success` / `--color-success-bg` | Éxito, confirmación, verificación | `#2E7D32` / `#E8F5E9` |
+| `--color-warning` / `--color-warning-bg` | Precaución, SLA en riesgo | `#E65100` / `#FFF3E0` |
+| `--color-info` / `--color-info-bg` | Información neutral o notas | `#1B6F7D` / `#E0F2F1` |
+
+### Escala tipográfica (Fuente institucional: Noto Sans)
+
+Toda la aplicación utiliza **Noto Sans** como tipografía principal, administrada mediante `next/font/google` (`--font-noto-sans`).
+
+| Nivel / Token | Tamaño | Peso | Tracking / Line-height |
+|---|---|---|---|
+| `--font-size-3xl` | `1.75rem` (28px) | 800 (Extrabold) | `-0.5px` / `1.2` (Display / Portadas) |
+| `--font-size-2xl` | `1.5rem` (24px) | 800 (Extrabold) | `-0.3px` / `1.2` (Títulos de vista `h1`) |
+| `--font-size-xl` | `1.25rem` (20px) | 700 (Bold) | `-0.3px` / `1.2` (Títulos de módulo `h2`) |
+| `--font-size-lg` | `1.125rem` (18px) | 700 (Bold) | `0px` / `1.2` (Encabezados de bloque/card `h3`) |
+| `--font-size-md` | `1rem` (16px) | 700 / 600 | `0px` / `1.3` (Subtítulos `h4`, inputs, botones lg) |
+| `--font-size-base` | `0.875rem` (14px) | 400 / 600 | `0px` / `1.5` (Cuerpo de texto, botones md) |
+| `--font-size-sm` | `0.8125rem` (13px) | 500 / 600 | `0px` / `1.5` (Tablas, botones sm, metadata) |
+| `--font-size-xs` | `0.75rem` (12px) | 600 / 700 | `0.5px` / `1.4` (Badges, etiquetas uppercase) |
+
+### Escala de espaciado (Sistema 4px / 8px)
+
+`--space-1: 4px;` &bull; `--space-2: 8px;` &bull; `--space-3: 12px;` &bull; `--space-4: 16px;` &bull; `--space-5: 20px;` &bull; `--space-6: 24px;` &bull; `--space-8: 32px;` &bull; `--space-10: 40px;` &bull; `--space-12: 48px;` &bull; `--space-16: 64px;`.
+
+### Bordes, radios y elevaciones
+
+- **Radios:** `--radius-none: 0px;` (estándar plano municipal para botones, tarjetas, modales e inputs). La única excepción es `--radius-round: 9999px;` exclusivamente para dots/indicadores de estado en línea.
+- **Bordes:** `--border-color-neutral: #DFE3E8;`, `--border-color-neutral-dark: #CCD2D9;`, `--border-color-dark: #3B3F45;`.
+- **Sombras:** `--shadow-none: none;`, `--shadow-sm: 0 1px 3px rgba(0,0,0,0.08);`, `--shadow-md: 0 4px 12px rgba(0,0,0,0.08);`.
+
+### Escala de Z-Index
+
+`--z-base: 1;` &bull; `--z-sticky: 100;` &bull; `--z-dropdown: 500;` &bull; `--z-drawer: 1000;` &bull; `--z-modal-backdrop: 2000;` &bull; `--z-modal: 2010;` &bull; `--z-toast: 9999;`.
+
+### Componentes Base Reutilizables
+
+Queda **estrictamente prohibido** escribir encabezados (`<h1>`-`<h6>`) o botones (`<button>`, `<Link>`) con estilos CSS arbitrarios o inline sueltos. Se debe utilizar siempre:
+- `<Heading as="..." variant="..." color="...">` ([`src/components/ui/Heading.tsx`](file:///home/zetastormy/Development/SGRAI/web/src/components/ui/Heading.tsx)).
+- `<Button variant="..." size="..." href="...">` ([`src/components/ui/Button.tsx`](file:///home/zetastormy/Development/SGRAI/web/src/components/ui/Button.tsx)).
 
 ### Estilo de componentes (observado del sitio de referencia)
 
 - **Botones: esquinas rectas, no redondeadas.** Nada de `border-radius` grande ni estilo "pill" — los bloques de enlace y los CTA son rectángulos sólidos y planos (ver bloques tipo "DOM Digital", "Ordenanzas Municipales", franjas de "Ingresa aquí").
-- **Dos estilos de botón/bloque:**
+- **Estilos de botón/bloque:**
   - *Primario* (acción principal, ej. "Más información", "Ingresa aquí"): fondo `--color-accent-mint` o `--color-primary-teal`, texto blanco, sin sombra, sin degradado.
   - *Secundario* (enlace utilitario/informativo, ej. accesos del panel "¿Qué necesitas?", bloques de trámites): fondo `--color-charcoal`, texto blanco.
+  - *Destructivo* (eliminar, descartar): fondo `--color-danger`, texto blanco.
+  - *Outline / Ghost* (cancelar, acciones secundarias o de cierre modal): fondo blanco/transparente, borde neutro.
 - **Diseño plano (flat):** sin sombras pronunciadas ni degradados; el contraste se logra por bloques de color sólido, no por elevación.
-- **Tarjetas:** fondo blanco, imagen en la parte superior, texto debajo, fecha o etiqueta corta en el color de acento; bordes rectos.
+- **Tarjetas:** fondo blanco, bordes rectos (`borderRadius: 0`).
 - **Encabezados de sección:** ícono simple + texto en negrita en `--color-primary-teal`, casi siempre acompañados de un enlace "Ver todos" al final de la sección.
-- **Carruseles:** para contenido tipo galería (noticias, servicios, videos, álbumes), con flechas de navegación circulares a los costados y paginación por puntos — esta es la única excepción a "no redondeado", ya que son controles de navegación, no botones de acción.
 - **Franjas de acento:** bandas de color sólido (sage o teal oscuro) usadas para agrupar accesos institucionales, tanto en la parte superior como en el pie de página, antes del footer oscuro.
 - **Jerarquía por bloques de color, no por tipografía extensa:** se prioriza el uso de bloques de color plano para diferenciar tipos de contenido (informativo vs. transaccional vs. institucional) por sobre variaciones tipográficas.
+
+### Iconografía Estándar: Lucide Icons (Prohibido el uso de Emojis)
+
+Queda **estrictamente prohibido el uso de emojis** (como 📞, 📦, 🚜, 🔒, 🚨, etc.) o caracteres Unicode informales para representar íconos en la interfaz. Toda la iconografía del sistema debe ser técnica, sobria y profesional, utilizando exclusivamente la biblioteca **`lucide-react`** (SVG vectoriales estandarizados).
+- Los botones de la barra lateral (`AppSidebar`) y enlaces de navegación **nunca deben subrayarse** (`text-decoration: none !important`).
+- El acceso de regreso al portal principal vive exclusivamente al pie de la barra lateral con el ícono `Home` ("Portal Principal") en tono sutil y discreto, sin banners llamativos en la barra superior.
+- La cabecera superior (`AppHeader`) se mantiene limpia, sin franjas duplicadas ni menciones al tipo de entorno de ejecución.
 
 Aplica esta guía a los paneles de todos los roles de este repositorio (Informante, Call Center, Encargado, Supervisor, Administrador, Asistente Social), ajustando qué colores predominan según el contexto (ej. el Centro de Mando, al ser una vista densa en datos, puede apoyarse más en `--color-bg-light` y `--color-charcoal` para tablas/paneles, reservando `--color-accent-mint` solo para acciones de asignación).
 
