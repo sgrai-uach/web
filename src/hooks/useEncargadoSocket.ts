@@ -21,7 +21,9 @@ interface UseEncargadoSocketOptions {
 }
 
 export function useEncargadoSocket(options: UseEncargadoSocketOptions = {}) {
-  const [isConnected, setIsConnected] = useState(false);
+  const [isConnected, setIsConnected] = useState(() =>
+    typeof window !== 'undefined' ? getSocket().connected : false
+  );
   const [ultimoIncidente, setUltimoIncidente] = useState<IncidenteCreadoSocketPayload | null>(null);
   const callbackRef = useRef(options.onIncidenteCreado);
 
@@ -38,7 +40,6 @@ export function useEncargadoSocket(options: UseEncargadoSocketOptions = {}) {
 
     const onConnect = () => {
       setIsConnected(true);
-      // Unirse a la sala de encargados
       socket.emit('unirse:sala', 'sala:encargados');
     };
 
@@ -59,7 +60,9 @@ export function useEncargadoSocket(options: UseEncargadoSocketOptions = {}) {
     socket.on('incidente:creado', handleIncidenteCreado);
 
     if (socket.connected) {
-      setIsConnected(true);
+      setTimeout(() => {
+        setIsConnected(true);
+      }, 0);
       socket.emit('unirse:sala', 'sala:encargados');
     }
 

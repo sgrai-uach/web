@@ -63,8 +63,10 @@ export function useVerificarDuplicado({
         ejecutarVerificacion();
       }, 600);
     } else {
-      setHayDuplicados(false);
-      setCoincidencias([]);
+      timeoutRef.current = setTimeout(() => {
+        setHayDuplicados(false);
+        setCoincidencias([]);
+      }, 0);
     }
 
     return () => {
