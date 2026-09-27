@@ -1,0 +1,88 @@
+import type { ComponentType } from 'react';
+import type { LucideProps } from 'lucide-react';
+import {
+  PhoneCall,
+  MapPin,
+  ClipboardList,
+  BarChart3,
+  Boxes,
+  ShieldCheck,
+} from 'lucide-react';
+
+export interface NavItem {
+  id: string;
+  label: string;
+  href: string;
+  icon: ComponentType<LucideProps>;
+  badge?: string;
+  disabled?: boolean;
+}
+
+export interface NavGroup {
+  id: string;
+  title: string;
+  items: NavItem[];
+}
+
+export const NAV_GROUPS: NavGroup[] = [
+  {
+    id: 'operaciones',
+    title: 'Operaciones',
+    items: [
+      {
+        id: 'callcenter',
+        label: 'Bandeja de Avisos',
+        href: '/callcenter',
+        icon: PhoneCall,
+      },
+      {
+        id: 'mando',
+        label: 'Centro de Mando',
+        href: '/mando',
+        icon: MapPin,
+        disabled: true,
+        badge: 'Próx.',
+      },
+      {
+        id: 'asistente-social',
+        label: 'Fichas FIBE',
+        href: '/asistente-social',
+        icon: ClipboardList,
+        disabled: true,
+        badge: 'Próx.',
+      },
+    ],
+  },
+  {
+    id: 'estrategico',
+    title: 'Estratégico',
+    items: [
+      {
+        id: 'dashboard',
+        label: 'Dashboard y Reportes',
+        href: '/dashboard',
+        icon: BarChart3,
+        disabled: true,
+        badge: 'Próx.',
+      },
+    ],
+  },
+  {
+    id: 'administracion',
+    title: 'Administración',
+    items: [
+      {
+        id: 'recursos',
+        label: 'Inventario Logístico',
+        href: '/admin/recursos',
+        icon: Boxes,
+      },
+      {
+        id: 'roles-permisos',
+        label: 'Roles y Permisos',
+        href: '/admin/roles-permisos',
+        icon: ShieldCheck,
+      },
+    ],
+  },
+];
