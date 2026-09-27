@@ -70,73 +70,85 @@ export function useIncidentesKanban(initialUserId: string = DEFAULT_ENCARGADO_ID
   const [incidenteSeleccionadoId, setIncidenteSeleccionadoId] = useState<string | null>(null);
 
   // Carga inicial o recarga completa por columnas
-  const cargarTablero = useCallback(async () => {
-    setCargando(true);
-    setError(null);
-    setEsForbidden(false);
-
-    try {
-      const promesas = ESTADOS_KANBAN.map((estado) =>
-        listarIncidentes(
-          {
-            page: 1,
-            limit: 20,
-            estado,
-            prioridad: filtros.prioridad || undefined,
-            tipoAfectacion: filtros.tipoAfectacion || undefined,
-            busqueda: filtros.busqueda.trim() || undefined,
-          },
-          userId
-        )
-      );
-
-      const resultados = await Promise.all(promesas);
-
-      // Verificar si hubo 403 en alguna petición
-      const prohibido = resultados.find((r) => r.codigoError === 403);
-      if (prohibido) {
-        setEsForbidden(true);
-        setError(prohibido.mensaje);
-        setCargando(false);
-        return;
+  const ejecutarConsulta = useCallback(
+    async (mostrarCargando: boolean = false) => {
+      if (mostrarCargando) {
+        setCargando(true);
+        setError(null);
+        setEsForbidden(false);
       }
 
-      const nuevasColumnas: Record<EstadoIncidente, IncidenteResumen[]> = {
-        REPORTADO: [],
-        VERIFICANDO: [],
-        EN_ATENCION: [],
-        RESUELTO: [],
-        NO_ABORDABLE: [],
-      };
+      try {
+        const promesas = ESTADOS_KANBAN.map((estado) =>
+          listarIncidentes(
+            {
+              page: 1,
+              limit: 20,
+              estado,
+              prioridad: filtros.prioridad || undefined,
+              tipoAfectacion: filtros.tipoAfectacion || undefined,
+              busqueda: filtros.busqueda.trim() || undefined,
+            },
+            userId
+          )
+        );
 
-      const nuevasPaginaciones: Record<EstadoIncidente, PaginacionMeta | null> = {
-        REPORTADO: null,
-        VERIFICANDO: null,
-        EN_ATENCION: null,
-        RESUELTO: null,
-        NO_ABORDABLE: null,
-      };
+        const resultados = await Promise.all(promesas);
 
-      ESTADOS_KANBAN.forEach((estado, idx) => {
-        const res = resultados[idx];
-        if (res.exito) {
-          nuevasColumnas[estado] = res.incidentes;
-          nuevasPaginaciones[estado] = res.paginacion || null;
+        // Verificar si hubo 403 en alguna petición
+        const prohibido = resultados.find((r) => r.codigoError === 403);
+        if (prohibido) {
+          setEsForbidden(true);
+          setError(prohibido.mensaje);
+          setCargando(false);
+          return;
         }
-      });
 
-      setColumnas(nuevasColumnas);
-      setPaginacionColumna(nuevasPaginaciones);
-    } catch {
-      setError('Error al conectar con el servidor.');
-    } finally {
-      setCargando(false);
-    }
-  }, [filtros, userId]);
+        const nuevasColumnas: Record<EstadoIncidente, IncidenteResumen[]> = {
+          REPORTADO: [],
+          VERIFICANDO: [],
+          EN_ATENCION: [],
+          RESUELTO: [],
+          NO_ABORDABLE: [],
+        };
+
+        const nuevasPaginaciones: Record<EstadoIncidente, PaginacionMeta | null> = {
+          REPORTADO: null,
+          VERIFICANDO: null,
+          EN_ATENCION: null,
+          RESUELTO: null,
+          NO_ABORDABLE: null,
+        };
+
+        ESTADOS_KANBAN.forEach((estado, idx) => {
+          const res = resultados[idx];
+          if (res.exito) {
+            nuevasColumnas[estado] = res.incidentes;
+            nuevasPaginaciones[estado] = res.paginacion || null;
+          }
+        });
+
+        setColumnas(nuevasColumnas);
+        setPaginacionColumna(nuevasPaginaciones);
+      } catch {
+        setError('Error al conectar con el servidor.');
+      } finally {
+        setCargando(false);
+      }
+    },
+    [filtros, userId]
+  );
+
+  const cargarTablero = useCallback(() => {
+    return ejecutarConsulta(true);
+  }, [ejecutarConsulta]);
 
   useEffect(() => {
-    cargarTablero();
-  }, [cargarTablero]);
+    const timer = setTimeout(() => {
+      ejecutarConsulta(false);
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [ejecutarConsulta]);
 
   // Cargar más registros en una columna específica (Paginación histórica)
   const cargarMas = useCallback(
