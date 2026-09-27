@@ -2,6 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
+import { Phone } from 'lucide-react';
 import styles from '@/styles/seguimiento.module.css';
 
 interface SeguimientoErrorCardProps {
@@ -44,7 +45,7 @@ export const SeguimientoErrorCard: React.FC<SeguimientoErrorCardProps> = ({
           className={styles.emergencyCallBtn}
           aria-label={`Llamar a la central de emergencias municipal al número ${emergencyPhone}`}
         >
-          <span>📞</span>
+          <Phone size={16} aria-hidden="true" />
           <span>Llamar al Call Center ({emergencyPhone})</span>
         </a>
       </div>
