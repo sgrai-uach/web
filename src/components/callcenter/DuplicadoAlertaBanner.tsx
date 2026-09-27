@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { Loader2, AlertTriangle } from 'lucide-react';
 import type { DuplicadoItem } from '@/types/incidente-manual';
 
 interface DuplicadoAlertaBannerProps {
@@ -27,7 +28,7 @@ export default function DuplicadoAlertaBanner({
           gap: '8px',
         }}
       >
-        <span style={{ fontSize: '14px' }}>⏳</span>
+        <Loader2 size={16} color="#FFA000" aria-hidden="true" />
         <span>Verificando posibles reportes duplicados cercanos...</span>
       </div>
     );
@@ -54,7 +55,7 @@ export default function DuplicadoAlertaBanner({
       }}
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 700, marginBottom: '4px' }}>
-        <span style={{ fontSize: '16px' }}>⚠️</span>
+        <AlertTriangle size={16} color="#FFA000" aria-hidden="true" />
         <span>Atención: Posible incidente duplicado detectado</span>
       </div>
       <p style={{ margin: '0 0 6px 0', lineHeight: 1.4 }}>

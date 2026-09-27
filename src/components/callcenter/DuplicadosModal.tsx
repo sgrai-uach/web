@@ -1,7 +1,11 @@
 'use client';
 
 import React from 'react';
+import { AlertTriangle } from 'lucide-react';
 import type { DuplicadoItem } from '@/types/incidente-manual';
+import Heading from '@/components/ui/Heading';
+import Button from '@/components/ui/Button';
+import DuplicadosTabla from './DuplicadosTabla';
 
 interface DuplicadosModalProps {
   isOpen: boolean;
@@ -29,10 +33,7 @@ export default function DuplicadosModal({
       aria-labelledby="modal-duplicados-titulo"
       style={{
         position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
+        inset: 0,
         backgroundColor: 'rgba(0, 0, 0, 0.65)',
         display: 'flex',
         alignItems: 'center',
@@ -62,18 +63,13 @@ export default function DuplicadosModal({
             borderBottom: '3px solid #FFA000',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'space-between',
+            gap: '10px',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <span style={{ fontSize: '20px' }}>⚠️</span>
-            <h2
-              id="modal-duplicados-titulo"
-              style={{ margin: 0, fontSize: '18px', fontWeight: 700, letterSpacing: '-0.2px' }}
-            >
-              Posible Incidente Duplicado Detectado
-            </h2>
-          </div>
+          <AlertTriangle size={20} color="#FFA000" aria-hidden="true" />
+          <Heading id="modal-duplicados-titulo" as="h2" variant="h3" color="white" style={{ margin: 0 }}>
+            Posible Incidente Duplicado Detectado
+          </Heading>
         </div>
 
         {/* Cuerpo del modal */}
@@ -83,57 +79,7 @@ export default function DuplicadosModal({
               'Se han registrado los siguientes incidentes o avisos similares en la misma zona durante las últimas 24 horas:'}
           </p>
 
-          {/* Tabla de coincidencias */}
-          <div style={{ border: '1px solid #DFE3E8', marginBottom: '20px', overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', textAlign: 'left' }}>
-              <thead>
-                <tr style={{ backgroundColor: '#ECEFF3', borderBottom: '2px solid #3B3F45' }}>
-                  <th style={{ padding: '10px 12px', fontWeight: 700, color: '#14505A' }}>Código</th>
-                  <th style={{ padding: '10px 12px', fontWeight: 700, color: '#14505A' }}>Tipo</th>
-                  <th style={{ padding: '10px 12px', fontWeight: 700, color: '#14505A' }}>Dirección</th>
-                  <th style={{ padding: '10px 12px', fontWeight: 700, color: '#14505A' }}>Distancia</th>
-                  <th style={{ padding: '10px 12px', fontWeight: 700, color: '#14505A' }}>Estado</th>
-                </tr>
-              </thead>
-              <tbody>
-                {coincidencias.map((item, idx) => (
-                  <tr
-                    key={item.id || idx}
-                    style={{
-                      borderBottom: '1px solid #DFE3E8',
-                      backgroundColor: idx % 2 === 0 ? '#FFFFFF' : '#FAFAFA',
-                    }}
-                  >
-                    <td style={{ padding: '10px 12px', fontWeight: 700, color: '#1B6F7D' }}>
-                      {item.codigo}
-                    </td>
-                    <td style={{ padding: '10px 12px' }}>{item.tipoAfectacion}</td>
-                    <td style={{ padding: '10px 12px', maxWidth: '200px', wordBreak: 'break-word' }}>
-                      {item.direccion}
-                    </td>
-                    <td style={{ padding: '10px 12px', fontWeight: 600 }}>
-                      {Math.round(item.distanciaMetros)} m
-                    </td>
-                    <td style={{ padding: '10px 12px' }}>
-                      <span
-                        style={{
-                          display: 'inline-block',
-                          padding: '3px 8px',
-                          fontSize: '11px',
-                          fontWeight: 700,
-                          backgroundColor: '#ECEFF3',
-                          color: '#3B3F45',
-                          border: '1px solid #CFD8DC',
-                        }}
-                      >
-                        {item.estado}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <DuplicadosTabla coincidencias={coincidencias} />
 
           <div
             style={{
@@ -169,41 +115,13 @@ export default function DuplicadosModal({
             gap: '12px',
           }}
         >
-          <button
-            type="button"
-            onClick={onOmitir}
-            disabled={enviando}
-            style={{
-              backgroundColor: '#3B3F45',
-              color: '#FFFFFF',
-              border: 'none',
-              padding: '10px 20px',
-              fontSize: '14px',
-              fontWeight: 700,
-              cursor: enviando ? 'not-allowed' : 'pointer',
-              borderRadius: 0,
-            }}
-          >
+          <Button variant="secondary" onClick={onOmitir} disabled={enviando}>
             Omitir reporte
-          </button>
+          </Button>
 
-          <button
-            type="button"
-            onClick={onContinuar}
-            disabled={enviando}
-            style={{
-              backgroundColor: '#4FAE9B',
-              color: '#FFFFFF',
-              border: 'none',
-              padding: '10px 22px',
-              fontSize: '14px',
-              fontWeight: 700,
-              cursor: enviando ? 'not-allowed' : 'pointer',
-              borderRadius: 0,
-            }}
-          >
+          <Button variant="primary" onClick={onContinuar} disabled={enviando}>
             {enviando ? 'Guardando...' : 'Continuar de todos modos'}
-          </button>
+          </Button>
         </div>
       </div>
     </div>
