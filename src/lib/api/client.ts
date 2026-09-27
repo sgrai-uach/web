@@ -8,24 +8,14 @@
 import createClient from 'openapi-fetch';
 import type { paths } from '@/types/api-generated';
 
-/**
- * En el navegador usamos rutas relativas ("") para pasar por el proxy rewrites de Next.js,
- * eliminando restricciones de CORS al ser peticiones same-origin.
- * En el servidor (SSR) usamos la URL absoluta hacia sgrai-api.
- */
-const getBaseUrl = (): string => {
-  if (typeof window !== 'undefined') {
-    return '';
-  }
-  return (
-    process.env.INTERNAL_API_URL ||
-    process.env.NEXT_PUBLIC_API_URL ||
-    'http://localhost:3000'
-  );
-};
+export const DEFAULT_ADMIN_USER_ID =
+  process.env.NEXT_PUBLIC_DEFAULT_ADMIN_USER_ID || '00000000-0000-4000-8000-000000000001';
 
 const apiClient = createClient<paths>({
-  baseUrl: getBaseUrl(),
+  baseUrl: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000',
+  headers: {
+    'X-User-Id': DEFAULT_ADMIN_USER_ID,
+  },
 });
 
 export default apiClient;
