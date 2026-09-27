@@ -1,4 +1,6 @@
 import React, { useEffect, useRef } from 'react';
+import Heading from '@/components/ui/Heading';
+import Button from '@/components/ui/Button';
 
 interface ModalProps {
   isOpen: boolean;
@@ -64,8 +66,8 @@ export default function Modal({
           backgroundColor: '#FFFFFF',
           width: '100%',
           maxWidth,
-          border: '1px solid #ECEFF3',
-          boxShadow: '0 8px 24px rgba(0, 0, 0, 0.15)',
+          border: '1px solid var(--border-color-neutral, #DFE3E8)',
+          boxShadow: 'var(--shadow-md, 0 4px 12px rgba(0, 0, 0, 0.08))',
           display: 'flex',
           flexDirection: 'column',
           maxHeight: '90vh',
@@ -83,32 +85,30 @@ export default function Modal({
             justifyContent: 'space-between',
           }}
         >
-          <h3
+          <Heading
             id="modal-title"
-            style={{
-              margin: 0,
-              fontSize: '18px',
-              fontWeight: 700,
-            }}
+            as="h3"
+            variant="h3"
+            color="white"
+            noMargin
           >
             {title}
-          </h3>
-          <button
+          </Heading>
+          <Button
             type="button"
+            variant="ghost"
+            size="sm"
             onClick={onClose}
             aria-label="Cerrar ventana modal"
             style={{
-              background: 'none',
-              border: 'none',
               color: '#FFFFFF',
-              fontSize: '20px',
-              cursor: 'pointer',
-              lineHeight: 1,
-              padding: '2px 6px',
+              fontSize: '1.25rem',
+              minHeight: 'auto',
+              padding: '0 6px',
             }}
           >
-            ✕
-          </button>
+            &times;
+          </Button>
         </div>
 
         {/* Contenido */}

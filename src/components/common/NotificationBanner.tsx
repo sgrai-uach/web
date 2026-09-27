@@ -1,4 +1,6 @@
 import React from 'react';
+import { AlertCircle, Check, Info } from 'lucide-react';
+import Button from '@/components/ui/Button';
 import type { NotificationType } from '@/types/common';
 
 interface NotificationBannerProps {
@@ -74,12 +76,16 @@ export default function NotificationBanner({
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          fontWeight: 'bold',
-          fontSize: '14px',
           flexShrink: 0,
         }}
       >
-        {type === 'error' ? '!' : type === 'success' ? '✓' : 'i'}
+        {type === 'error' ? (
+          <AlertCircle size={15} />
+        ) : type === 'success' ? (
+          <Check size={15} />
+        ) : (
+          <Info size={15} />
+        )}
       </div>
 
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '4px' }}>
@@ -111,22 +117,21 @@ export default function NotificationBanner({
       </div>
 
       {onClose && (
-        <button
+        <Button
           type="button"
+          variant="ghost"
+          size="sm"
           onClick={onClose}
           aria-label="Cerrar notificación"
           style={{
-            background: 'none',
-            border: 'none',
-            fontSize: '16px',
             color: styles.text,
-            cursor: 'pointer',
-            padding: '2px 6px',
-            fontWeight: 'bold',
+            fontSize: '1rem',
+            minHeight: 'auto',
+            padding: '0 4px',
           }}
         >
-          ✕
-        </button>
+          &times;
+        </Button>
       )}
     </div>
   );
