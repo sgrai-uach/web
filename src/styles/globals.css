@@ -1,10 +1,11 @@
 /* ==========================================================================
    Estilos globales — sgrai-web
+   Sistema de Gestión de Recursos para Atención de Incidentes (SGRAI)
    ========================================================================== */
 
 @import './tokens.css';
 
-/* --- Reset mínimo --- */
+/* --- Reset Universal --- */
 *,
 *::before,
 *::after {
@@ -13,20 +14,78 @@
   padding: 0;
 }
 
-/* --- Base --- */
+/* --- Base HTML / Body --- */
 html {
-  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-  line-height: 1.5;
+  font-family: var(--font-family-base);
+  font-size: 16px;
+  line-height: var(--line-height-normal);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  color-scheme: light;
 }
 
 body {
   color: var(--color-text-dark);
-  background-color: var(--color-white);
+  background-color: var(--color-bg-light);
+  min-height: 100vh;
+  font-family: inherit;
 }
 
+/* --- Tipografía Base --- */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-family-heading);
+  color: var(--color-primary-teal-dark);
+  font-weight: var(--font-weight-bold);
+  line-height: var(--line-height-tight);
+}
+
+p {
+  color: var(--color-text-dark);
+  line-height: var(--line-height-normal);
+}
+
+/* --- Enlaces Base --- */
 a {
   color: var(--color-primary-teal);
   text-decoration: none;
+  transition: color var(--transition-fast);
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+/* --- Accesibilidad de Foco Universal --- */
+:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-ring-offset);
+}
+
+/* --- Controles de Formulario e Inputs Base (Estándar Plano Municipal) --- */
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
+  border-radius: var(--radius-none, 0px) !important;
+}
+
+input,
+select,
+textarea {
+  font-family: var(--font-family-base);
+  border-radius: 0 !important;
+}
+
+/* --- Overrides de Leaflet (Estándar Plano Municipal) --- */
+.leaflet-bar,
+.leaflet-bar a {
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  border-color: var(--border-color-neutral, #DFE3E8) !important;
+}
+
+.leaflet-control-zoom a {
+  font-family: inherit !important;
+  color: var(--color-charcoal, #3B3F45) !important;
 }

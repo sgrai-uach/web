@@ -1,6 +1,6 @@
 /**
  * Tipos y contratos transversales para el frontend de SGRAI.
- * Conforme a docs/architecture/ARCHITECTURE.md.
+ * Conforme a docs/architecture/architecture.md.
  */
 
 export interface ApiResponse<T> {

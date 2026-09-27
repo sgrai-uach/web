@@ -1,0 +1,45 @@
+.headerWrapper {
+  width: 100%;
+}
+
+.topBar {
+  height: var(--shell-header-height, 48px);
+  background-color: var(--color-primary-teal-dark, #14505A);
+  color: var(--color-text-light, #FFFFFF);
+  padding: 0 24px;
+  border-bottom: 2px solid var(--color-accent-mint, #4FAE9B);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+}
+
+.topBarInner {
+  max-width: var(--container-max-width, 1400px);
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justifyContent: space-between;
+  gap: 16px;
+}
+
+.sectionInfo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.sectionTitle {
+  font-size: 15px;
+  font-weight: 700;
+  color: #FFFFFF;
+  letter-spacing: 0.2px;
+}
+
+.orgBadge {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-sage, #A9CBA4);
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+}
