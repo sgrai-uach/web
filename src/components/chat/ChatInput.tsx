@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import { AlertTriangle } from 'lucide-react';
 import styles from '@/styles/chatbot.module.css';
 import type { PasoChat } from '@/hooks/useChatbot';
 
@@ -93,7 +94,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
       </form>
       {errorMensaje && (
         <div className={styles.errorMessage} role="alert">
-          <span>⚠️</span>
+          <AlertTriangle size={14} aria-hidden="true" />
           <span>{errorMensaje}</span>
         </div>
       )}

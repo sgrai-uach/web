@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { Phone } from 'lucide-react';
 import styles from '@/styles/chatbot.module.css';
 
 export const EmergencyCallButton: React.FC = () => {
@@ -14,7 +15,9 @@ export const EmergencyCallButton: React.FC = () => {
       aria-label={`Llamada directa al Call Center de Emergencias al número ${telefonoEmergencia}`}
     >
       <span>Call Center</span>
-      <span className={styles.emergencyIcon} aria-hidden="true">📞</span>
+      <span className={styles.emergencyIcon} aria-hidden="true">
+        <Phone size={16} />
+      </span>
     </a>
   );
 };

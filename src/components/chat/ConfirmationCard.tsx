@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { Check } from 'lucide-react';
 import styles from '@/styles/chatbot.module.css';
 import type { ResultadoAviso } from '@/lib/api/avisos';
 
@@ -64,7 +65,13 @@ export const ConfirmationCard: React.FC<ConfirmationCardProps> = ({
             onClick={copiarCodigo}
             aria-label="Copiar código de seguimiento al portapapeles"
           >
-            {copiado ? '✓ Código copiado' : 'Copiar código'}
+            {copiado ? (
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                <Check size={14} aria-hidden="true" /> Código copiado
+              </span>
+            ) : (
+              'Copiar código'
+            )}
           </button>
         </div>
       )}
