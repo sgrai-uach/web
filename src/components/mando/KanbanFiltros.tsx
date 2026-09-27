@@ -1,8 +1,10 @@
 'use client';
 
 import React from 'react';
+import Button from '@/components/ui/Button';
+import { RotateCw } from 'lucide-react';
 import type { FiltrosKanban } from '@/hooks/useIncidentesKanban';
-import type { PrioridadIncidente } from '@/lib/api/incidentes';
+import type { PrioridadIncidente } from '@/services/incidentesService';
 import styles from '@/styles/mando.module.css';
 
 interface KanbanFiltrosProps {
@@ -94,26 +96,29 @@ export const KanbanFiltros: React.FC<KanbanFiltrosProps> = ({
         </select>
 
         {tieneFiltrosActivos && (
-          <button
+          <Button
             type="button"
+            variant="secondary"
+            size="sm"
             onClick={handleLimpiar}
-            className={styles.btnSecundario}
           >
             Limpiar filtros
-          </button>
+          </Button>
         )}
       </div>
 
       <div>
-        <button
+        <Button
           type="button"
+          variant="primary"
+          size="md"
           onClick={onRecargar}
           disabled={cargando}
-          className={styles.btnPrimario}
           aria-label="Actualizar tablero"
         >
+          <RotateCw size={15} className={cargando ? styles.spinner : undefined} />
           {cargando ? 'Actualizando...' : 'Actualizar Tablero'}
-        </button>
+        </Button>
       </div>
     </section>
   );

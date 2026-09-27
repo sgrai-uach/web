@@ -5,7 +5,8 @@ import type {
   IncidenteResumen,
   EstadoIncidente,
   PaginacionMeta,
-} from '@/lib/api/incidentes';
+} from '@/services/incidentesService';
+import Button from '@/components/ui/Button';
 import { IncidenteCard } from './IncidenteCard';
 import styles from '@/styles/mando.module.css';
 
@@ -74,14 +75,18 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({
         )}
 
         {paginacion?.tieneSiguiente && (
-          <button
-            type="button"
-            className={styles.btnCargarMas}
-            onClick={() => onCargarMas(estado)}
-            disabled={cargandoMas}
-          >
-            {cargandoMas ? 'Cargando más...' : 'Cargar más casos'}
-          </button>
+          <div style={{ marginTop: '0.5rem' }}>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              fullWidth
+              onClick={() => onCargarMas(estado)}
+              disabled={cargandoMas}
+            >
+              {cargandoMas ? 'Cargando más...' : 'Cargar más casos'}
+            </Button>
+          </div>
         )}
       </div>
     </div>
