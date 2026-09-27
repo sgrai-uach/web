@@ -1,0 +1,271 @@
+.sidebar {
+  width: 250px;
+  min-width: 250px;
+  background-color: var(--color-charcoal-dark, #24272B);
+  color: var(--color-text-light, #FFFFFF);
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--color-charcoal, #3B3F45);
+  min-height: 100vh;
+  transition: width var(--transition-fast, 150ms ease-in-out), min-width var(--transition-fast, 150ms ease-in-out);
+  position: relative;
+  z-index: var(--z-sticky, 100);
+}
+
+.sidebarCollapsed {
+  width: 68px;
+  min-width: 68px;
+}
+
+.header {
+  height: var(--shell-header-height, 48px);
+  padding: 0 14px;
+  display: flex;
+  align-items: center;
+  justifyContent: space-between;
+  border-bottom: 2px solid var(--color-accent-mint, #4FAE9B);
+  background-color: var(--color-primary-teal-dark, #14505A);
+  box-sizing: border-box;
+  gap: 8px;
+}
+
+.logoArea {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none !important;
+  color: #FFFFFF;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.logoArea:hover,
+.logoArea:focus {
+  text-decoration: none !important;
+}
+
+.logoText {
+  font-weight: 800;
+  font-size: 18px;
+  letter-spacing: 0.5px;
+  color: #FFFFFF;
+}
+
+.logoDivider {
+  color: var(--color-sage, #A9CBA4);
+  font-size: 14px;
+}
+
+.logoSubtitle {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-sage, #A9CBA4);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.toggleBtn {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #FFFFFF;
+  cursor: pointer;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  border-radius: 0;
+  flex-shrink: 0;
+  transition: background-color var(--transition-fast, 150ms ease-in-out);
+}
+
+.toggleBtn:hover {
+  background-color: rgba(255, 255, 255, 0.15);
+}
+
+.nav {
+  flex: 1;
+  padding: 16px 0;
+  overflow-y: auto;
+}
+
+.group {
+  margin-bottom: 20px;
+}
+
+.groupTitle {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--color-sage, #A9CBA4);
+  padding: 0 16px 8px 16px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.itemLink {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  color: #CCD2D9;
+  text-decoration: none !important;
+  font-size: 13px;
+  font-weight: 500;
+  border-left: 4px solid transparent;
+  transition: background-color var(--transition-fast, 150ms ease-in-out), color var(--transition-fast, 150ms ease-in-out);
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.itemLink:hover:not(.itemDisabled) {
+  background-color: rgba(255, 255, 255, 0.06);
+  color: #FFFFFF;
+  text-decoration: none !important;
+}
+
+.itemLink:focus,
+.itemLink:active {
+  text-decoration: none !important;
+}
+
+.itemActive {
+  background-color: rgba(255, 255, 255, 0.08);
+  color: #FFFFFF;
+  font-weight: 700;
+  border-left-color: var(--color-accent-mint, #4FAE9B);
+  text-decoration: none !important;
+}
+
+.itemDisabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.iconWrapper {
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: currentColor;
+}
+
+.label {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  background-color: var(--color-charcoal, #3B3F45);
+  color: var(--color-sage, #A9CBA4);
+  border-radius: 0;
+  margin-left: auto;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.footer {
+  height: var(--shell-footer-height, 42px);
+  padding: 0 10px;
+  border-top: 1px solid var(--color-charcoal, #3B3F45);
+  background-color: var(--color-charcoal-dark, #24272B);
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+}
+
+/* Botón Portal Principal discreto al pie */
+.portalLink {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #8C95A0;
+  background-color: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 4px 8px;
+  height: 28px;
+  box-sizing: border-box;
+  font-size: 11px;
+  font-weight: 600;
+  text-decoration: none !important;
+  white-space: nowrap;
+  overflow: hidden;
+  border-radius: 0;
+  transition: color var(--transition-fast, 150ms ease-in-out), background-color var(--transition-fast, 150ms ease-in-out);
+  width: 100%;
+}
+
+.portalLink:hover {
+  color: #DFE3E8;
+  background-color: rgba(255, 255, 255, 0.08);
+  text-decoration: none !important;
+}
+
+.portalLink:focus,
+.portalLink:active {
+  text-decoration: none !important;
+}
+
+.portalIcon {
+  flex-shrink: 0;
+  color: inherit;
+}
+
+/* ==========================================================================
+   Modo Colapsado Centrado
+   ========================================================================== */
+.sidebarCollapsed .header {
+  padding: 0;
+  justify-content: center;
+}
+
+.sidebarCollapsed .nav {
+  padding: 12px 0;
+}
+
+.sidebarCollapsed .group {
+  margin-bottom: 12px;
+}
+
+.sidebarCollapsed .itemLink {
+  padding: 10px 0;
+  justify-content: center;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  width: 100%;
+}
+
+.sidebarCollapsed .itemActive {
+  border-left-color: var(--color-accent-mint, #4FAE9B);
+  border-right-color: transparent;
+}
+
+.sidebarCollapsed .iconWrapper {
+  margin: 0 auto;
+}
+
+.sidebarCollapsed .footer {
+  padding: 0;
+  justify-content: center;
+}
+
+.sidebarCollapsed .portalLink {
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  justify-content: center;
+  margin: 0 auto;
+}
+
+.sidebarCollapsed .portalIcon {
+  margin: 0;
+}
+
