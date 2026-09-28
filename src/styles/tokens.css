@@ -110,6 +110,10 @@
   --border-color-neutral-dark: #CCD2D9;
   --border-color-dark: #3B3F45;
 
+  /* Franja lateral institucional para bloques estructurales (SessionContextBar, PageTitleCard, etc) */
+  --stripe-width: 4px;
+  --stripe-color: var(--color-primary-teal);
+
   /* ==========================================================================
      6. ELEVACIONES Y SOMBRAS (Diseño plano: contrastes por color sólido)
      ========================================================================== */
