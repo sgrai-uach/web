@@ -1,7 +1,9 @@
 'use client';
 
 import React, { useState } from 'react';
+import { Check } from 'lucide-react';
 import styles from '@/styles/seguimiento.module.css';
+import Button from '@/components/ui/Button';
 import type { DatosSeguimiento, EstadoIncidente } from '@/services/seguimientoService';
 
 interface SeguimientoResumenCardProps {
@@ -65,14 +67,22 @@ export const SeguimientoResumenCard: React.FC<SeguimientoResumenCardProps> = ({
           <span className={styles.codeLabel}>Código de Seguimiento</span>
           <div className={styles.codeNumberRow}>
             <span className={styles.codeNumber}>{datos.codigoSeguimiento}</span>
-            <button
+            <Button
               type="button"
-              className={styles.btnCopy}
+              variant="outline"
+              size="sm"
               onClick={copiarCodigo}
               aria-label="Copiar código de seguimiento al portapapeles"
+              style={{ minHeight: 'auto', padding: '0.2rem 0.5rem', fontSize: '0.75rem' }}
             >
-              {copiado ? '✓ Copiado' : 'Copiar'}
-            </button>
+              {copiado ? (
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                  <Check size={12} aria-hidden="true" /> Copiado
+                </span>
+              ) : (
+                'Copiar'
+              )}
+            </Button>
           </div>
         </div>
 

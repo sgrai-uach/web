@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import styles from '@/styles/seguimiento.module.css';
+import Button from '@/components/ui/Button';
 
 interface SeguimientoBuscadorProps {
   codigoInicial?: string;
@@ -67,13 +68,13 @@ export const SeguimientoBuscador: React.FC<SeguimientoBuscadorProps> = ({
             aria-describedby={error ? 'search-error' : undefined}
             autoComplete="off"
           />
-          <button
+          <Button
             type="submit"
+            variant="primary"
             disabled={disabled || codigo.length !== 8}
-            className={styles.btnPrimary}
           >
             Consultar Estado
-          </button>
+          </Button>
         </div>
 
         {error && (

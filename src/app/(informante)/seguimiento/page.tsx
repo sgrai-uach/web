@@ -1,8 +1,10 @@
 import { Metadata } from 'next';
-import Link from 'next/link';
 import styles from '@/styles/seguimiento.module.css';
 import { MunicipalHeader } from '@/components/layout/MunicipalHeader';
+import AppFooter from '@/components/layout/AppFooter';
 import { SeguimientoBuscador } from '@/components/seguimiento/SeguimientoBuscador';
+import Heading from '@/components/ui/Heading';
+import Button from '@/components/ui/Button';
 
 export const metadata: Metadata = {
   title: 'Consulta de Estado de Incidentes — SGRAI Municipalidad de Valdivia',
@@ -17,7 +19,9 @@ export default function SeguimientoBusquedaPage() {
 
       <main className={styles.mainContainer}>
         <div className={styles.sectionTitleBlock}>
-          <h2 className={styles.sectionTitle}>Consulta de Estado de Incidentes</h2>
+          <Heading as="h2" variant="h2" color="teal-dark" noMargin>
+            Consulta de Estado de Incidentes
+          </Heading>
           <p className={styles.sectionSubtitle}>
             Ingresa el código numérico de 8 dígitos proporcionado tras registrar tu reporte para verificar el avance de su atención en tiempo real.
           </p>
@@ -29,22 +33,13 @@ export default function SeguimientoBusquedaPage() {
           <p style={{ fontSize: '0.9rem', color: '#64748B', marginBottom: '1rem' }}>
             ¿Aún no has reportado un incidente o emergencia en tu sector?
           </p>
-          <Link href="/" className={styles.btnSecondary}>
+          <Button href="/" variant="secondary">
             Reportar un incidente comunal
-          </Link>
+          </Button>
         </div>
       </main>
 
-      <footer className={styles.municipalFooter}>
-        <div className={styles.footerContainer}>
-          <span className={styles.footerAgencyText}>
-            Municipalidad de Valdivia — Dirección de Gestión de Riesgos de Desastres (DGRD)
-          </span>
-          <span>
-            Sistema de Gestión de Recursos para Atención de Incidentes (SGRAI)
-          </span>
-        </div>
-      </footer>
+      <AppFooter />
     </div>
   );
 }

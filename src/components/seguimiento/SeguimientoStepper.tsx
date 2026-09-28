@@ -1,7 +1,9 @@
 'use client';
 
 import React from 'react';
+import { Check, X } from 'lucide-react';
 import styles from '@/styles/seguimiento.module.css';
+import Heading from '@/components/ui/Heading';
 import type { EstadoIncidente } from '@/services/seguimientoService';
 
 interface SeguimientoStepperProps {
@@ -38,7 +40,9 @@ export const SeguimientoStepper: React.FC<SeguimientoStepperProps> = ({ estado }
 
   return (
     <div className={styles.stepperContainer} role="region" aria-label="Progreso del incidente">
-      <h3 className={styles.stepperTitle}>Progreso de la Atención (Ciclo de Vida ICS)</h3>
+      <Heading as="h3" variant="h3" color="charcoal" className={styles.stepperTitle} noMargin>
+        Progreso de la Atención (Ciclo de Vida ICS)
+      </Heading>
       <div className={styles.stepperGrid}>
         {PASOS_ICS.map((paso, index) => {
           const esCompletado = index < indiceActual || (index === 3 && esResuelto);
@@ -74,7 +78,13 @@ export const SeguimientoStepper: React.FC<SeguimientoStepperProps> = ({ estado }
             >
               <div className={barClass} />
               <div className={`${styles.stepNumber} ${numberClass}`}>
-                {esCompletado || esCierreResuelto ? '✓' : esCierreNoAbordable ? '✕' : index + 1}
+                {esCompletado || esCierreResuelto ? (
+                  <Check size={14} aria-label="Completado" />
+                ) : esCierreNoAbordable ? (
+                  <X size={14} aria-label="No abordable" />
+                ) : (
+                  index + 1
+                )}
               </div>
               <span className={`${styles.stepLabel} ${labelClass}`}>{labelPaso}</span>
             </div>

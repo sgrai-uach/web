@@ -47,7 +47,7 @@ describe('SeguimientoResumenCard', () => {
     fireEvent.click(botonCopiar);
 
     expect(navigator.clipboard.writeText).toHaveBeenCalledWith('58291045');
-    expect(screen.getByText('✓ Copiado')).toBeDefined();
+    expect(screen.getByText(/Copiado/i)).toBeDefined();
   });
 
   it('debe desplegar el indicador "Actualizado en vivo" cuando actualizadoEnVivo es true', () => {

@@ -1,9 +1,11 @@
 'use client';
 
 import React, { useEffect, useState, useCallback } from 'react';
-import Link from 'next/link';
 import styles from '@/styles/seguimiento.module.css';
+import Heading from '@/components/ui/Heading';
+import Button from '@/components/ui/Button';
 import { MunicipalHeader } from '@/components/layout/MunicipalHeader';
+import AppFooter from '@/components/layout/AppFooter';
 import { SeguimientoStepper } from './SeguimientoStepper';
 import { SeguimientoResumenCard } from './SeguimientoResumenCard';
 import { SeguimientoErrorCard } from './SeguimientoErrorCard';
@@ -83,7 +85,9 @@ export const SeguimientoDetalleClient: React.FC<SeguimientoDetalleClientProps> =
 
       <main className={styles.mainContainer}>
         <div className={styles.sectionTitleBlock}>
-          <h2 className={styles.sectionTitle}>Seguimiento de Incidente</h2>
+          <Heading as="h2" variant="h2" color="teal-dark" noMargin>
+            Seguimiento de Incidente
+          </Heading>
           <p className={styles.sectionSubtitle}>
             Consulta en tiempo real del estado de atención gestionado por la central municipal y cuadrillas en terreno.
           </p>
@@ -108,27 +112,18 @@ export const SeguimientoDetalleClient: React.FC<SeguimientoDetalleClientProps> =
             />
 
             <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', marginTop: '1.5rem' }}>
-              <Link href="/seguimiento" className={styles.btnSecondary}>
+              <Button href="/seguimiento" variant="secondary">
                 ← Consultar otro código
-              </Link>
-              <Link href="/" className={styles.btnPrimary}>
+              </Button>
+              <Button href="/" variant="primary">
                 + Ingresar nuevo reporte
-              </Link>
+              </Button>
             </div>
           </>
         )}
       </main>
 
-      <footer className={styles.municipalFooter}>
-        <div className={styles.footerContainer}>
-          <span className={styles.footerAgencyText}>
-            Municipalidad de Valdivia — Dirección de Gestión de Riesgos de Desastres (DGRD)
-          </span>
-          <span>
-            Sistema de Gestión de Recursos para Atención de Incidentes (SGRAI)
-          </span>
-        </div>
-      </footer>
+      <AppFooter />
     </div>
   );
 };

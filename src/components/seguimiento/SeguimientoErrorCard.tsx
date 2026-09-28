@@ -1,9 +1,10 @@
 'use client';
 
 import React from 'react';
-import Link from 'next/link';
 import { Phone } from 'lucide-react';
 import styles from '@/styles/seguimiento.module.css';
+import Heading from '@/components/ui/Heading';
+import Button from '@/components/ui/Button';
 
 interface SeguimientoErrorCardProps {
   codigo?: string;
@@ -20,34 +21,34 @@ export const SeguimientoErrorCard: React.FC<SeguimientoErrorCardProps> = ({
 
   return (
     <div className={styles.errorCard} role="alert">
-      <h3 className={styles.errorTitle}>
+      <Heading as="h3" variant="h3" color="charcoal-dark" noMargin className={styles.errorTitle}>
         {codigo ? `Reporte #${codigo} No Encontrado` : 'Código de Seguimiento No Encontrado'}
-      </h3>
+      </Heading>
       <p className={styles.errorDescription}>{mensaje}</p>
 
       <div className={styles.errorActionsRow}>
-        <Link href="/seguimiento" className={styles.btnPrimary}>
+        <Button href="/seguimiento" variant="primary">
           Buscar otro código
-        </Link>
+        </Button>
 
         {onReintentar && (
-          <button
+          <Button
             type="button"
+            variant="secondary"
             onClick={onReintentar}
-            className={styles.btnSecondary}
           >
             Reintentar consulta
-          </button>
+          </Button>
         )}
 
-        <a
+        <Button
           href={`tel:${emergencyPhone}`}
-          className={styles.emergencyCallBtn}
+          variant="destructive"
           aria-label={`Llamar a la central de emergencias municipal al número ${emergencyPhone}`}
         >
           <Phone size={16} aria-hidden="true" />
           <span>Llamar al Call Center ({emergencyPhone})</span>
-        </a>
+        </Button>
       </div>
     </div>
   );
