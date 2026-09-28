@@ -1,30 +1,45 @@
 {
   "name": "sgrai-web",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "preview": "next start",
     "lint": "eslint",
-    "generate-api-types": "openapi-typescript ${API_SPEC_URL:-http://localhost:3001/openapi.json} -o src/types/api-generated.d.ts"
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "generate-api-types": "openapi-typescript http://localhost:3000/openapi.json -o src/types/api-generated.d.ts"
   },
   "dependencies": {
     "leaflet": "^1.9.4",
+    "lucide-react": "^1.48.0",
     "next": "16.3.4",
     "openapi-fetch": "^0.17.0",
     "react": "19.2.8",
     "react-dom": "19.2.8",
-    "socket.io-client": "^4.8.3"
+    "socket.io-client": "^4.8.3",
+    "zod": "^4.5.4"
   },
   "devDependencies": {
+    "@testing-library/dom": "^10.4.1",
+    "@testing-library/jest-dom": "^7.0.1",
+    "@testing-library/react": "^16.3.3",
     "@types/leaflet": "^1.9.22",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@vitejs/plugin-react": "^6.1.1",
     "eslint": "^9",
     "eslint-config-next": "16.3.4",
+    "jsdom": "^30.0.1",
     "openapi-typescript": "^7.13.0",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vite": "^8.2.2",
+    "vitest": "^5.0.0"
+  },
+  "allowScripts": {
+    "unrs-resolver@1.12.2": true
   }
 }
