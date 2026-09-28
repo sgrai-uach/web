@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { Check } from 'lucide-react';
 import styles from '@/styles/chatbot.module.css';
-import type { ResultadoAviso } from '@/lib/api/avisos';
+import type { ResultadoAviso } from '@/services/avisosService';
 
 interface ConfirmationCardProps {
   resultado: ResultadoAviso;

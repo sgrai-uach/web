@@ -7,7 +7,7 @@ import {
   TIPOS_AFECTACION_DEFAULT,
   type CrearAvisoPayload,
   type ResultadoAviso,
-} from '@/lib/api/avisos';
+} from '@/services/avisosService';
 import { validarRutChileno, formatearRut } from '@/lib/validations/rut';
 import { validarTelefonoChileno, normalizarTelefonoParaEnvio } from '@/lib/validations/telefono';
 

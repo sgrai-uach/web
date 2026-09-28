@@ -1,9 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
 import { useChatbot } from './useChatbot';
-import * as avisosApi from '@/lib/api/avisos';
+import * as avisosApi from '@/services/avisosService';
 
-vi.mock('@/lib/api/avisos', () => ({
+vi.mock('@/services/avisosService', () => ({
   TIPOS_AFECTACION_DEFAULT: ['Anegamiento', 'Caída de árbol', 'Otro'],
   obtenerTiposAfectacion: vi.fn().mockResolvedValue(['Anegamiento', 'Caída de árbol', 'Otro']),
   enviarAvisoIncidente: vi.fn(),
