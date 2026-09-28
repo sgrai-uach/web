@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState } from 'react';
-import Heading from '@/components/ui/Heading';
 import EmpleadoBuscador from '@/components/admin/empleados/EmpleadoBuscador';
 import EmpleadoFormulario from '@/components/admin/empleados/EmpleadoFormulario';
 import { Breadcrumbs } from '@/components/common/Breadcrumbs';
