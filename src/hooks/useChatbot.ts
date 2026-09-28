@@ -355,7 +355,7 @@ export function useChatbot() {
 
     const datosActuales = datosRef.current;
     const payload: CrearAvisoPayload = {
-      tipoAfectacion: datosActuales.tipoAfectacion,
+      tipoAfectacion: datosActuales.tipoAfectacion as CrearAvisoPayload['tipoAfectacion'],
       direccion: datosActuales.direccion,
       descripcion: datosActuales.descripcion || undefined,
       informanteNombre: datosActuales.informanteNombre,

@@ -10,16 +10,9 @@ export const TIPOS_AFECTACION_DEFAULT = [
   'Otro',
 ];
 
-export interface CrearAvisoPayload {
-  tipoAfectacion: string;
-  direccion: string;
-  descripcion?: string;
-  informanteNombre: string;
-  informanteRut: string;
-  informanteTelefono: string;
-  latitud?: number;
-  longitud?: number;
-}
+import type { components } from '@/types/api-generated';
+
+export type CrearAvisoPayload = components['schemas']['CrearAvisoIncidenteInput'];
 
 export interface ResultadoAviso {
   exito: boolean;
