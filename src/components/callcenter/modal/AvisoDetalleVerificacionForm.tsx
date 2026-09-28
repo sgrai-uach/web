@@ -1,4 +1,6 @@
 import React from 'react';
+import { Check } from 'lucide-react';
+import Button from '@/components/ui/Button';
 import type { TipoIncidenteOpcion } from '@/types/avisos';
 
 interface AvisoDetalleVerificacionFormProps {
@@ -42,13 +44,15 @@ export default function AvisoDetalleVerificacionForm({
     <div style={{ border: '2px solid var(--color-accent-mint, #4FAE9B)', padding: '1.25rem', backgroundColor: '#FFFFFF' }}>
       <div style={{ fontSize: '0.9375rem', fontWeight: 700, color: 'var(--color-primary-teal, #1B6F7D)', marginBottom: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <span>Acción: Verificar y Enviar a Operaciones (Encargado)</span>
-        <button
+        <Button
           type="button"
+          variant="ghost"
+          size="sm"
           onClick={onActivarDescarte}
-          style={{ backgroundColor: 'transparent', border: 'none', color: '#D32F2F', fontSize: '0.8125rem', fontWeight: 600, textDecoration: 'underline', cursor: 'pointer' }}
+          style={{ color: 'var(--color-danger, #D32F2F)', padding: 0, minHeight: 'auto' }}
         >
           &iquest;Desea descartar este aviso?
-        </button>
+        </Button>
       </div>
 
       <div style={{ marginBottom: '1rem' }}>
@@ -99,26 +103,23 @@ export default function AvisoDetalleVerificacionForm({
         </label>
       </div>
 
-      <button
+      <Button
         type="button"
+        variant="primary"
+        size="lg"
         onClick={onVerificar}
         disabled={procesandoVerificacion}
-        style={{
-          width: '100%',
-          backgroundColor: 'var(--color-accent-mint, #4FAE9B)',
-          color: '#FFFFFF',
-          border: 'none',
-          padding: '0.875rem 1.5rem',
-          fontSize: '1rem',
-          fontWeight: 700,
-          cursor: procesandoVerificacion ? 'not-allowed' : 'pointer',
-          opacity: procesandoVerificacion ? 0.7 : 1,
-          borderRadius: 0,
-          letterSpacing: '0.3px',
-        }}
+        style={{ width: '100%', justifyContent: 'center' }}
       >
-        {procesandoVerificacion ? 'Verificando y Promoviendo a Incidente...' : '✔ Verificar y Enviar a Operaciones'}
-      </button>
+        {procesandoVerificacion ? (
+          'Verificando y Promoviendo a Incidente...'
+        ) : (
+          <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+            <Check size={18} aria-hidden="true" />
+            <span>Verificar y Enviar a Operaciones</span>
+          </span>
+        )}
+      </Button>
     </div>
   );
 }

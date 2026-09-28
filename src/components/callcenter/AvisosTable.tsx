@@ -4,7 +4,7 @@ import React from 'react';
 import type { AvisoItem } from '@/types/avisos';
 import AvisosTableRow from './table/AvisosTableRow';
 import AvisosTableEmpty from './table/AvisosTableEmpty';
-import AvisosPagination from './table/AvisosPagination';
+import Pagination from '@/components/common/Pagination';
 
 interface AvisosTableProps {
   avisos: AvisoItem[];
@@ -49,9 +49,9 @@ export default function AvisosTable({
           <thead>
             <tr
               style={{
-                backgroundColor: 'var(--color-bg-light, #ECEFF3)',
-                color: 'var(--color-charcoal, #3B3F45)',
-                borderBottom: '2px solid #BAC7D5',
+                backgroundColor: 'var(--color-primary-teal-dark, #14505A)',
+                color: 'var(--color-text-light, #FFFFFF)',
+                borderBottom: '2px solid var(--color-primary-teal, #1B6F7D)',
                 fontSize: '0.8125rem',
                 textTransform: 'uppercase',
                 letterSpacing: '0.5px',
@@ -87,13 +87,14 @@ export default function AvisosTable({
         </table>
       </div>
 
-      <AvisosPagination
+      <Pagination
         paginaActual={paginaActual}
         totalPaginas={totalPaginas}
         totalItems={totalItems}
         limite={limite}
         onCambiarPagina={onCambiarPagina}
         onCambiarLimite={onCambiarLimite}
+        nombreEntidad="avisos"
       />
     </div>
   );

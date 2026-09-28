@@ -1,4 +1,7 @@
 import React from 'react';
+import { X } from 'lucide-react';
+import Heading from '@/components/ui/Heading';
+import Button from '@/components/ui/Button';
 import type { AvisoItem } from '@/types/avisos';
 
 interface AvisoDetalleHeaderProps {
@@ -38,18 +41,20 @@ export default function AvisoDetalleHeader({ aviso, onClose }: AvisoDetalleHeade
             Recibido: {formatearFecha(aviso.creadoEn)} ({aviso.minutosEnEspera} min en espera)
           </span>
         </div>
-        <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800, color: 'var(--color-primary-teal-dark, #14505A)' }}>
+        <Heading as="h3" variant="h3" color="teal-dark" noMargin>
           {aviso.tipoPreliminarNombre || 'Aviso de Emergencia sin clasificar'}
-        </h3>
+        </Heading>
       </div>
-      <button
+      <Button
         type="button"
+        variant="ghost"
+        size="sm"
         onClick={onClose}
         aria-label="Cerrar modal"
-        style={{ background: 'none', border: 'none', fontSize: '1.5rem', color: '#666', cursor: 'pointer', lineHeight: 1 }}
+        style={{ minHeight: 'auto', padding: '4px' }}
       >
-        ✕
-      </button>
+        <X size={20} aria-hidden="true" />
+      </Button>
     </div>
   );
 }

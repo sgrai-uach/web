@@ -1,4 +1,5 @@
 import React from 'react';
+import Button from '@/components/ui/Button';
 
 interface AvisoDetalleDescarteFormProps {
   motivoDescarte: string;
@@ -37,21 +38,15 @@ export default function AvisoDetalleDescarteForm({
         }}
       >
         <span>Descartar Aviso Preliminar</span>
-        <button
+        <Button
           type="button"
+          variant="ghost"
+          size="sm"
           onClick={onCancelarDescarte}
-          style={{
-            backgroundColor: 'transparent',
-            border: 'none',
-            color: 'var(--color-primary-teal, #1B6F7D)',
-            fontSize: '0.8125rem',
-            fontWeight: 600,
-            textDecoration: 'underline',
-            cursor: 'pointer',
-          }}
+          style={{ padding: 0, minHeight: 'auto', textDecoration: 'underline' }}
         >
           Volver al flujo de verificación
-        </button>
+        </Button>
       </div>
 
       <p style={{ fontSize: '0.8125rem', color: '#555', marginBottom: '0.75rem' }}>
@@ -86,42 +81,23 @@ export default function AvisoDetalleDescarteForm({
       </div>
 
       <div style={{ display: 'flex', gap: '0.75rem' }}>
-        <button
+        <Button
           type="button"
+          variant="destructive"
           onClick={onDescartar}
           disabled={procesandoDescarte || !esValido}
-          style={{
-            flex: 1,
-            backgroundColor: '#D32F2F',
-            color: '#FFFFFF',
-            border: 'none',
-            padding: '0.75rem',
-            fontSize: '0.875rem',
-            fontWeight: 700,
-            cursor: procesandoDescarte || !esValido ? 'not-allowed' : 'pointer',
-            opacity: procesandoDescarte || !esValido ? 0.6 : 1,
-            borderRadius: 0,
-          }}
+          style={{ flex: 1, justifyContent: 'center' }}
         >
           {procesandoDescarte ? 'Descartando...' : 'Confirmar Descarte de Aviso'}
-        </button>
+        </Button>
 
-        <button
+        <Button
           type="button"
+          variant="secondary"
           onClick={onCancelarDescarte}
-          style={{
-            backgroundColor: 'var(--color-charcoal, #3B3F45)',
-            color: '#FFFFFF',
-            border: 'none',
-            padding: '0.75rem 1.25rem',
-            fontSize: '0.875rem',
-            fontWeight: 600,
-            cursor: 'pointer',
-            borderRadius: 0,
-          }}
         >
           Cancelar
-        </button>
+        </Button>
       </div>
     </div>
   );

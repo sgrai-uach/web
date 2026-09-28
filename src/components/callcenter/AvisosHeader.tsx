@@ -1,7 +1,14 @@
 'use client';
 
 import React from 'react';
+import { Plus } from 'lucide-react';
 import AvisosKpiCards from './header/AvisosKpiCards';
+import Button from '@/components/ui/Button';
+import { Breadcrumbs } from '@/components/common/Breadcrumbs';
+import ConnectionStatusBadge from '@/components/common/ConnectionStatusBadge';
+import SessionContextBar from '@/components/common/SessionContextBar';
+import PageTitleCard from '@/components/common/PageTitleCard';
+import styles from './AvisosHeader.module.css';
 
 export interface OperadorInfo {
   id: string;
@@ -46,103 +53,52 @@ export default function AvisosHeader({
   metricas,
 }: AvisosHeaderProps) {
   return (
-    <header style={{ width: '100%', marginBottom: '1.5rem' }}>
-      <div
-        style={{
-          backgroundColor: 'var(--color-primary-teal-dark, #14505A)',
-          color: 'var(--color-text-light, #FFFFFF)',
-          padding: '0.625rem 1.5rem',
-          display: 'flex',
-          flexWrap: 'wrap',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: '1rem',
-          borderBottom: '3px solid var(--color-accent-mint, #4FAE9B)',
-        }}
+    <div className={styles.avisosHeaderWrapper}>
+      {/* Breadcrumbs Institucionales */}
+      <Breadcrumbs
+        items={[
+          { label: 'Inicio', href: '/' },
+          { label: 'Operaciones' },
+          { label: 'Bandeja de Avisos' },
+        ]}
+      />
+
+      {/* Barra de contexto operacional */}
+      <SessionContextBar
+        leftContent={<ConnectionStatusBadge connected={socketConnected} />}
+        selectorId="select-operador-cc"
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <div
-            style={{
-              backgroundColor: 'var(--color-accent-mint, #4FAE9B)',
-              width: '32px',
-              height: '32px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontWeight: 800,
-              fontSize: '1rem',
-              color: '#FFFFFF',
-            }}
-          >
-            V
-          </div>
-          <div>
-            <div style={{ fontSize: '0.8125rem', letterSpacing: '0.5px', textTransform: 'uppercase', opacity: 0.9 }}>
-              Municipalidad de Valdivia &bull; Gestión de Riesgos de Desastres
-            </div>
-            <div style={{ fontWeight: 700, fontSize: '1.125rem', letterSpacing: '-0.2px' }}>
-              SGRAI &mdash; Centro de Recepción Call Center
-            </div>
-          </div>
-        </div>
+        <select
+          id="select-operador-cc"
+          value={operadorActivo.id}
+          onChange={(e) => {
+            const found = OPERADORES_PREDEFINIDOS.find((o) => o.id === e.target.value);
+            if (found) onCambiarOperador(found);
+          }}
+          className={styles.sessionSelect}
+          aria-label="Seleccionar operador activo"
+        >
+          {OPERADORES_PREDEFINIDOS.map((op) => (
+            <option key={op.id} value={op.id}>
+              {op.nombre}
+            </option>
+          ))}
+        </select>
+      </SessionContextBar>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', flexWrap: 'wrap' }}>
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-              backgroundColor: 'rgba(255, 255, 255, 0.1)',
-              padding: '0.35rem 0.75rem',
-              fontSize: '0.8125rem',
-              border: '1px solid rgba(255, 255, 255, 0.2)',
-            }}
-            title={socketConnected ? 'Suscrito a sala call-center' : 'Reconectando con el servidor'}
-          >
-            <span
-              style={{
-                display: 'inline-block',
-                width: '10px',
-                height: '10px',
-                backgroundColor: socketConnected ? '#4FAE9B' : '#FFA726',
-                borderRadius: '50%',
-                boxShadow: socketConnected ? '0 0 6px #4FAE9B' : 'none',
-              }}
-            />
-            <span>{socketConnected ? 'En vivo (WebSockets)' : 'Conectando...'}</span>
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8125rem' }}>
-            <span style={{ opacity: 0.85 }}>Operador:</span>
-            <select
-              value={operadorActivo.id}
-              onChange={(e) => {
-                const found = OPERADORES_PREDEFINIDOS.find((o) => o.id === e.target.value);
-                if (found) onCambiarOperador(found);
-              }}
-              style={{
-                backgroundColor: '#FFFFFF',
-                color: 'var(--color-charcoal, #3B3F45)',
-                border: 'none',
-                padding: '0.35rem 0.6rem',
-                fontSize: '0.8125rem',
-                fontWeight: 600,
-                cursor: 'pointer',
-                borderRadius: 0,
-              }}
-              aria-label="Seleccionar operador activo"
-            >
-              {OPERADORES_PREDEFINIDOS.map((op) => (
-                <option key={op.id} value={op.id}>
-                  {op.nombre}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-      </div>
+      {/* Tarjeta de Título Institucional */}
+      <PageTitleCard
+        title="Bandeja de Avisos"
+        badge={`${metricas.total} ${metricas.total === 1 ? 'aviso' : 'avisos'}`}
+        description="Recepción, verificación manual y categorización de llamados de emergencia ciudadana."
+        actionSlot={
+          <Button href="/callcenter/manual" variant="primary" size="md" icon={<Plus size={16} />}>
+            Ingreso Manual
+          </Button>
+        }
+      />
 
       <AvisosKpiCards metricas={metricas} />
-    </header>
+    </div>
   );
 }

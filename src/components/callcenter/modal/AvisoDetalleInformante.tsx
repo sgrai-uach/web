@@ -1,4 +1,5 @@
 import React from 'react';
+import { Phone } from 'lucide-react';
 import type { AvisoItem } from '@/types/avisos';
 
 interface DatosInformante {
@@ -54,10 +55,11 @@ export default function AvisoDetalleInformante({ aviso, datosInf }: AvisoDetalle
                 textDecoration: 'underline',
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: '0.25rem',
+                gap: '0.35rem',
               }}
             >
-              📞 {datosInf.telefono}
+              <Phone size={14} aria-hidden="true" />
+              <span>{datosInf.telefono}</span>
             </a>
           ) : (
             'Sin teléfono'
@@ -79,7 +81,9 @@ export default function AvisoDetalleInformante({ aviso, datosInf }: AvisoDetalle
           <a
             href={`tel:${datosInf.telefono}`}
             style={{
-              display: 'inline-block',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.5rem',
               backgroundColor: 'var(--color-charcoal, #3B3F45)',
               color: '#FFFFFF',
               padding: '0.5rem 1rem',
@@ -88,7 +92,8 @@ export default function AvisoDetalleInformante({ aviso, datosInf }: AvisoDetalle
               textDecoration: 'none',
             }}
           >
-            📞 Iniciar Llamada al Informante
+            <Phone size={14} aria-hidden="true" />
+            <span>Iniciar Llamada al Informante</span>
           </a>
         </div>
       )}

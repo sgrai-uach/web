@@ -16,8 +16,7 @@ export default function AvisosKpiCards({ metricas }: AvisosKpiCardsProps) {
         display: 'grid',
         gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
         gap: '1rem',
-        padding: '1.25rem 1.5rem 0.5rem 1.5rem',
-        backgroundColor: 'var(--color-bg-light, #ECEFF3)',
+        padding: '0',
       }}
     >
       <div

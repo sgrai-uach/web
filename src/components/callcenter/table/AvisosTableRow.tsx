@@ -2,6 +2,7 @@
 
 import React from 'react';
 import type { AvisoItem } from '@/types/avisos';
+import Button from '@/components/ui/Button';
 
 interface AvisosTableRowProps {
   aviso: AvisoItem;
@@ -75,30 +76,22 @@ export default function AvisosTableRow({ aviso, idx, onSeleccionarAviso }: Aviso
         </span>
       </td>
       <td style={{ padding: '0.875rem 1rem' }}>{renderOrigen(aviso.origenReporte)}</td>
-      <td style={{ padding: '0.875rem 1rem', maxWidth: '380px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={aviso.descripcion}>
+      <td style={{ padding: '0.875rem 1rem', maxWidth: '380px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={aviso.descripcion || undefined}>
         {aviso.descripcion}
       </td>
       <td style={{ padding: '0.875rem 1rem', fontSize: '0.8125rem', color: '#666' }}>
         {aviso.latitud.toFixed(4)}, {aviso.longitud.toFixed(4)}
       </td>
       <td style={{ padding: '0.875rem 1rem', textAlign: 'right' }}>
-        <button
+        <Button
           type="button"
+          variant="primary"
+          size="sm"
           onClick={() => onSeleccionarAviso(aviso)}
-          style={{
-            backgroundColor: 'var(--color-accent-mint, #4FAE9B)',
-            color: '#FFFFFF',
-            border: 'none',
-            padding: '0.45rem 0.85rem',
-            fontSize: '0.8125rem',
-            fontWeight: 700,
-            cursor: 'pointer',
-            borderRadius: 0,
-            whiteSpace: 'nowrap',
-          }}
+          style={{ whiteSpace: 'nowrap' }}
         >
           Revisar Aviso &rarr;
-        </button>
+        </Button>
       </td>
     </tr>
   );

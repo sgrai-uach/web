@@ -10,8 +10,10 @@ import AvisoDetalleEvidencia from './modal/AvisoDetalleEvidencia';
 import AvisoDetalleVerificacionForm from './modal/AvisoDetalleVerificacionForm';
 import AvisoDetalleDescarteForm from './modal/AvisoDetalleDescarteForm';
 
+import { CATALOGO_TIPOS_INCIDENTE_DEFAULT } from '@/types/avisos';
+
 export type { TipoIncidenteOpcion };
-export const CATALOGO_TIPOS_INCIDENTE: TipoIncidenteOpcion[] = [];
+export const CATALOGO_TIPOS_INCIDENTE: TipoIncidenteOpcion[] = CATALOGO_TIPOS_INCIDENTE_DEFAULT;
 
 interface AvisoDetalleModalProps {
   aviso: AvisoItem | null;
@@ -29,7 +31,7 @@ const overlayStyle: React.CSSProperties = {
 const containerStyle: React.CSSProperties = {
   backgroundColor: 'var(--color-white, #FFFFFF)', width: '100%', maxWidth: '920px',
   maxHeight: '90vh', display: 'flex', flexDirection: 'column',
-  boxShadow: '0 8px 32px rgba(0,0,0,0.2)', border: '1px solid #DFE3E8', position: 'relative',
+  boxShadow: 'var(--shadow-md)', border: '1px solid #DFE3E8', position: 'relative',
 };
 
 const bodyStyle: React.CSSProperties = {
