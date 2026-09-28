@@ -18,11 +18,17 @@ export default function AppSidebar({
 }: AppSidebarProps) {
   const pathname = usePathname();
 
-  const isItemActive = (item: NavItem) => {
-    if (pathname === item.href) return true;
-    if (item.href !== '/' && pathname.startsWith(item.href)) return true;
-    return false;
-  };
+  const allItems = React.useMemo(() => NAV_GROUPS.flatMap((g) => g.items), []);
+
+  const activeItemId = React.useMemo(() => {
+    const matching = allItems.filter(
+      (item) => pathname === item.href || (item.href !== '/' && pathname.startsWith(`${item.href}/`))
+    );
+    if (matching.length === 0) return null;
+    return matching.sort((a, b) => b.href.length - a.href.length)[0].id;
+  }, [allItems, pathname]);
+
+  const isItemActive = (item: NavItem) => item.id === activeItemId;
 
   return (
     <aside
