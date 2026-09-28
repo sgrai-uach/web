@@ -97,13 +97,7 @@ export default function RecursoUbicacionSection({
         </div>
       </div>
 
-      <LocationPickerMap
-        latitud={typeof latitud === 'number' ? latitud : parseFloat(latitud) || null}
-        longitud={typeof longitud === 'number' ? longitud : parseFloat(longitud) || null}
-        onChange={(coords) => {
-          if (coords) onChangeCoords(coords);
-        }}
-      />
+      <LocationPickerMap latitud={latitud} longitud={longitud} onChange={onChangeCoords} />
     </section>
   );
 }
