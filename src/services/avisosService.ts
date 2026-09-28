@@ -7,10 +7,43 @@ import type {
   DescartarAvisoSuccessResponse,
   FiltrosAvisosState,
   TipoIncidenteDTO,
+  TipoIncidenteOpcion,
   VerificarAvisoInput,
   VerificarAvisoSuccessResponse,
 } from '@/types/avisos';
+import { CATALOGO_TIPOS_INCIDENTE_DEFAULT, normalizarTipoIncidente } from '@/types/avisos';
 import type { ApiErrorResponse } from '@/types/common';
+
+/* =========================================================================
+   Tipos y Constantes para Reporte Ciudadano (H1)
+   ========================================================================= */
+
+export const TIPOS_AFECTACION_DEFAULT = [
+  'Inundación o anegamiento de vivienda/vía pública',
+  'Caída de árbol o ramas de gran tamaño',
+  'Colapso o daño estructural en vivienda/edificación',
+  'Deslizamiento de tierra o remoción en masa',
+  'Incendio estructural o de interfase forestal',
+  'Corte o peligro en tendido eléctrico / poste caído',
+  'Derrame de sustancias o peligro ambiental',
+  'Otro incidente de emergencia',
+];
+
+import type { components } from '@/types/api-generated';
+
+export type CrearAvisoPayload = components['schemas']['CrearAvisoIncidenteInput'];
+
+export interface ResultadoAviso {
+  exito: boolean;
+  esDuplicado?: boolean;
+  codigoSeguimiento?: string;
+  mensaje?: string;
+  errores?: string[];
+}
+
+/* =========================================================================
+   Clase de Error para el Servicio de Avisos
+   ========================================================================= */
 
 export class AvisosServiceError extends Error {
   public apiError: ApiErrorResponse;
@@ -29,6 +62,73 @@ export class AvisosServiceError extends Error {
 }
 
 export { AvisosServiceError as ApiError };
+
+/* =========================================================================
+   Operaciones de Reporte Ciudadano (H1)
+   ========================================================================= */
+
+/**
+ * Consulta la lista de tipos de afectación disponibles desde la API.
+ * Si la API falla o no responde, utiliza la lista institucional por defecto.
+ */
+export async function obtenerTiposAfectacion(): Promise<string[]> {
+  try {
+    const { data, error } = await apiClient.GET('/api/incidentes/tipos');
+    if (error || !data?.data || !Array.isArray(data.data) || data.data.length === 0) {
+      return TIPOS_AFECTACION_DEFAULT;
+    }
+    return data.data;
+  } catch {
+    return TIPOS_AFECTACION_DEFAULT;
+  }
+}
+
+/**
+ * Envía el reporte de incidente al endpoint de recepción de avisos.
+ * Maneja tanto reportes nuevos (HTTP 201) como reportes duplicados (HTTP 200 - modelo SAESA).
+ */
+export async function enviarAvisoIncidente(payload: CrearAvisoPayload): Promise<ResultadoAviso> {
+  try {
+    const { data, error, response } = await apiClient.POST('/api/incidentes/avisos', {
+      body: payload,
+    });
+
+    if (error || !response.ok) {
+      const errObj = error as { message?: string; errors?: string[] } | undefined;
+      return {
+        exito: false,
+        esDuplicado: false,
+        mensaje: errObj?.message || 'No fue posible registrar el reporte. Por favor intenta nuevamente.',
+        errores: errObj?.errors,
+      };
+    }
+
+    if (data?.data) {
+      return {
+        exito: true,
+        esDuplicado: Boolean(data.data.esDuplicado),
+        codigoSeguimiento: data.data.codigoSeguimiento,
+        mensaje: data.message || 'Reporte procesado exitosamente.',
+      };
+    }
+
+    return {
+      exito: false,
+      esDuplicado: false,
+      mensaje: 'Respuesta inesperada del servidor.',
+    };
+  } catch {
+    return {
+      exito: false,
+      esDuplicado: false,
+      mensaje: 'Error de conexión con el servidor. Verifica tu conexión e intenta nuevamente.',
+    };
+  }
+}
+
+/* =========================================================================
+   Operaciones de Call Center / Recepción de Avisos (H52)
+   ========================================================================= */
 
 /**
  * Obtiene la lista paginada de avisos para la bandeja del Call Center.
@@ -188,8 +288,9 @@ export async function descartarAviso(
 
 /**
  * Consulta catálogo de tipos de incidentes habilitados.
+ * Retorna opciones normalizadas con UUIDs canónicos garantizados.
  */
-export async function obtenerTiposIncidentes(): Promise<TipoIncidenteDTO[]> {
+export async function obtenerTiposIncidentes(): Promise<TipoIncidenteOpcion[]> {
   const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
   try {
     const res = await fetch(`${baseUrl}/api/incidentes/tipos`);
@@ -197,8 +298,12 @@ export async function obtenerTiposIncidentes(): Promise<TipoIncidenteDTO[]> {
       throw new Error('Error al consultar tipos de incidentes');
     }
     const json = await res.json();
-    return json.data || [];
+    const lista = Array.isArray(json.data) ? json.data : [];
+    if (lista.length === 0) {
+      return CATALOGO_TIPOS_INCIDENTE_DEFAULT;
+    }
+    return lista.map((t: unknown, idx: number) => normalizarTipoIncidente(t, idx));
   } catch {
-    return [];
+    return CATALOGO_TIPOS_INCIDENTE_DEFAULT;
   }
 }

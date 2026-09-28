@@ -119,7 +119,7 @@ export function useAvisos() {
         setTotalItems((total) => total + 1);
         showInfo(
           `Nuevo reporte: ${nuevoAviso.tipoPreliminarNombre || 'Aviso de emergencia'} (${nuevoAviso.origenReporte})`,
-          '🚨 Nuevo Aviso Entrante'
+          'Nuevo Aviso Entrante'
         );
       }
     },

@@ -9,6 +9,7 @@ import {
 } from '@/services/avisosService';
 import { getErrorMessage } from '@/lib/utils/errorUtils';
 import type { AvisoDetalleResponse, AvisoItem, TipoIncidenteOpcion } from '@/types/avisos';
+import { CATALOGO_TIPOS_INCIDENTE_DEFAULT, normalizarTipoIncidente } from '@/types/avisos';
 
 interface UseAvisoDetalleModalParams {
   aviso: AvisoItem;
@@ -30,26 +31,34 @@ export function useAvisoDetalleModal({
 
   const [tiposCatalogo, setTiposCatalogo] = useState<TipoIncidenteOpcion[]>([]);
   const [cargandoTipos, setCargandoTipos] = useState(true);
-  const [tipoIncidenteId, setTipoIncidenteId] = useState(aviso.tipoPreliminarId || '');
+  const [tipoIncidenteId, setTipoIncidenteId] = useState('');
 
   useEffect(() => {
     let activo = true;
     obtenerTiposIncidentes()
       .then((tipos) => {
         if (!activo) return;
-        const opciones: TipoIncidenteOpcion[] = tipos.map((t) => ({
-          id: t.id,
-          nombre: t.nombre,
-        }));
+        const rawLista =
+          Array.isArray(tipos) && tipos.length > 0
+            ? tipos
+            : CATALOGO_TIPOS_INCIDENTE_DEFAULT;
+        const opciones: TipoIncidenteOpcion[] = rawLista.map((t, idx) =>
+          normalizarTipoIncidente(t, idx)
+        );
         setTiposCatalogo(opciones);
 
         setTipoIncidenteId((idActual) => {
           if (idActual) return idActual;
-          if (aviso.tipoPreliminarId) return aviso.tipoPreliminarId;
           if (aviso.tipoPreliminarNombre) {
-            const match = opciones.find((t) =>
-              t.nombre.toLowerCase().includes(aviso.tipoPreliminarNombre!.toLowerCase())
-            );
+            const preliminarNormalizado = aviso.tipoPreliminarNombre.toLowerCase().trim();
+            const match = opciones.find((t) => {
+              if (!t.nombre || typeof t.nombre !== 'string') return false;
+              const nombreNormalizado = t.nombre.toLowerCase().trim();
+              return (
+                nombreNormalizado.includes(preliminarNormalizado) ||
+                preliminarNormalizado.includes(nombreNormalizado)
+              );
+            });
             if (match) return match.id;
           }
           return opciones[0]?.id || '';
@@ -57,6 +66,10 @@ export function useAvisoDetalleModal({
       })
       .catch((err) => {
         console.error('Error al cargar tipos de incidentes desde la API:', err);
+        if (activo) {
+          setTiposCatalogo(CATALOGO_TIPOS_INCIDENTE_DEFAULT);
+          setTipoIncidenteId((idActual) => idActual || CATALOGO_TIPOS_INCIDENTE_DEFAULT[0].id);
+        }
       })
       .finally(() => {
         if (activo) setCargandoTipos(false);
@@ -65,18 +78,11 @@ export function useAvisoDetalleModal({
     return () => {
       activo = false;
     };
-  }, [aviso.tipoPreliminarId, aviso.tipoPreliminarNombre]);
+  }, [aviso.tipoPreliminarNombre]);
 
   const tiposDisponibles = useMemo(() => {
-    const lista = [...tiposCatalogo];
-    if (aviso.tipoPreliminarId && !lista.some((t) => t.id === aviso.tipoPreliminarId)) {
-      lista.unshift({
-        id: aviso.tipoPreliminarId,
-        nombre: aviso.tipoPreliminarNombre || 'Tipo preliminar del aviso',
-      });
-    }
-    return lista;
-  }, [tiposCatalogo, aviso.tipoPreliminarId, aviso.tipoPreliminarNombre]);
+    return [...tiposCatalogo];
+  }, [tiposCatalogo]);
 
   const [descripcionAjustada, setDescripcionAjustada] = useState(aviso.descripcion || '');
   const [requiereAsistenciaSocial, setRequiereAsistenciaSocial] = useState(false);
