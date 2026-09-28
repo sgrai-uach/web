@@ -1,4 +1,5 @@
 import React from 'react';
+import Button from '@/components/ui/Button';
 
 interface RecursoFormActionsProps {
   isValid: boolean;
@@ -23,41 +24,22 @@ export default function RecursoFormActions({
         justifyContent: 'flex-end',
       }}
     >
-      <button
+      <Button
         type="button"
+        variant="secondary"
         onClick={onCancel}
         disabled={isSubmitting}
-        style={{
-          backgroundColor: 'var(--color-charcoal)',
-          color: 'var(--color-white)',
-          border: 'none',
-          borderRadius: 0,
-          padding: '12px 24px',
-          fontSize: '14px',
-          fontWeight: 600,
-          cursor: 'pointer',
-        }}
       >
         Cancelar
-      </button>
+      </Button>
 
-      <button
+      <Button
         type="submit"
+        variant="primary"
         disabled={!isValid || isSubmitting}
-        style={{
-          backgroundColor: isValid && !isSubmitting ? 'var(--color-accent-mint)' : 'var(--color-bg-light)',
-          color: isValid && !isSubmitting ? 'var(--color-white)' : 'var(--color-charcoal)',
-          border: 'none',
-          borderRadius: 0,
-          padding: '12px 32px',
-          fontSize: '14px',
-          fontWeight: 700,
-          cursor: isValid && !isSubmitting ? 'pointer' : 'not-allowed',
-          transition: 'background-color 150ms ease',
-        }}
       >
         {isSubmitting ? 'Guardando Recurso...' : 'Guardar Recurso'}
-      </button>
+      </Button>
     </div>
   );
 }

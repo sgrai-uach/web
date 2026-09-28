@@ -1,4 +1,5 @@
 import React from 'react';
+import Heading from '@/components/ui/Heading';
 
 interface RecursoInventarioSectionProps {
   esIndividual: boolean;
@@ -35,9 +36,9 @@ export default function RecursoInventarioSection({
         <span style={{ color: 'var(--color-primary-teal)', fontWeight: 'bold', fontSize: '18px' }}>
           2.
         </span>
-        <h2 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--color-primary-teal-dark)', margin: 0 }}>
+        <Heading as="h2" variant="h3" color="teal-dark" noMargin>
           Inventario y Stock
-        </h2>
+        </Heading>
       </div>
 
       {esIndividual ? (

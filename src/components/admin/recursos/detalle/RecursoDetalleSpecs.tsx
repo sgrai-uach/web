@@ -1,5 +1,6 @@
 import React from 'react';
 import type { DetallesRecursoTecnico } from '@/types/recurso';
+import Heading from '@/components/ui/Heading';
 
 interface RecursoDetalleSpecsProps {
   detalles: DetallesRecursoTecnico;
@@ -11,9 +12,9 @@ export default function RecursoDetalleSpecs({ detalles: d }: RecursoDetalleSpecs
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-      <h5 style={{ margin: 0, fontSize: '14px', fontWeight: 700, color: 'var(--color-primary-teal-dark)' }}>
+      <Heading as="h5" variant="h4" color="teal-dark" noMargin>
         Especificaciones Técnicas
-      </h5>
+      </Heading>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '8px', fontSize: '13px', backgroundColor: 'var(--color-bg-light)', padding: '12px' }}>
         {d.patente && <div><strong>Patente:</strong> {String(d.patente)}</div>}
         {d.numeroSerie && <div><strong>Nº Serie:</strong> {String(d.numeroSerie)}</div>}

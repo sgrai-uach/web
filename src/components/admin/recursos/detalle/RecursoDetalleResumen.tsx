@@ -1,6 +1,7 @@
 import React from 'react';
 import type { RecursoItem } from '@/types/recurso';
 import BadgeEstado from '../BadgeEstado';
+import Heading from '@/components/ui/Heading';
 
 interface RecursoDetalleResumenProps {
   recurso: RecursoItem;
@@ -14,9 +15,9 @@ export default function RecursoDetalleResumen({ recurso }: RecursoDetalleResumen
           <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--color-primary-teal)', textTransform: 'uppercase' }}>
             {recurso.tipo}
           </span>
-          <h4 style={{ margin: '2px 0 0 0', fontSize: '18px', fontWeight: 800, color: 'var(--color-primary-teal-dark)' }}>
+          <Heading as="h4" variant="h3" color="teal-dark" noMargin style={{ marginTop: '2px' }}>
             {recurso.nombre}
-          </h4>
+          </Heading>
         </div>
         <BadgeEstado estado={recurso.estado} />
       </div>

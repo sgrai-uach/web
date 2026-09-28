@@ -1,5 +1,6 @@
 import React from 'react';
 import dynamic from 'next/dynamic';
+import Heading from '@/components/ui/Heading';
 
 const LocationPickerMap = dynamic(
   () => import('@/components/maps/LocationPickerMap'),
@@ -25,9 +26,9 @@ export default function RecursoDetalleUbicacion({
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h5 style={{ margin: 0, fontSize: '14px', fontWeight: 700, color: 'var(--color-primary-teal-dark)' }}>
+        <Heading as="h5" variant="h4" color="teal-dark" noMargin>
           Ubicación en Base Operativa
-        </h5>
+        </Heading>
         <span style={{ fontSize: '12px', color: 'var(--color-charcoal)' }}>
           {latitud.toFixed(6)}, {longitud.toFixed(6)}
         </span>

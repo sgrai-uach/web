@@ -1,4 +1,5 @@
 import React from 'react';
+import Heading from '@/components/ui/Heading';
 import type { SubtipoDetalle, RecursoDetallesFormFields } from '@/types/recurso';
 import RecursoVehiculoFields from './subtipos/RecursoVehiculoFields';
 import RecursoMaquinariaFields from './subtipos/RecursoMaquinariaFields';
@@ -34,9 +35,9 @@ export default function RecursoEspecificacionesSection({
         <span style={{ color: 'var(--color-primary-teal)', fontWeight: 'bold', fontSize: '18px' }}>
           3.
         </span>
-        <h2 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--color-primary-teal-dark)', margin: 0 }}>
+        <Heading as="h2" variant="h3" color="teal-dark" noMargin>
           Detalles Técnicos del Activo
-        </h2>
+        </Heading>
       </div>
 
       {/* Selector de Categoría */}

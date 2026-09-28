@@ -1,4 +1,5 @@
 import React from 'react';
+import Heading from '@/components/ui/Heading';
 
 interface RecursoDatosBasicosSectionProps {
   nombre: string;
@@ -25,7 +26,9 @@ export default function RecursoDatosBasicosSection({
     <section style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
       <div style={{ borderBottom: '2px solid var(--color-primary-teal)', paddingBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
         <span style={{ color: 'var(--color-primary-teal)', fontWeight: 'bold', fontSize: '18px' }}>1.</span>
-        <h2 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--color-primary-teal-dark)', margin: 0 }}>Información General</h2>
+        <Heading as="h2" variant="h3" color="teal-dark" noMargin>
+          Información General
+        </Heading>
       </div>
 
       {/* Nombre del Recurso */}

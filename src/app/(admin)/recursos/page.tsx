@@ -1,17 +1,20 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import type { FiltrosRecursosState, EstadoRecurso } from '@/types/recurso';
 import { useRecursos, USUARIOS_PRUEBA } from '@/hooks/useRecursos';
 import { DEFAULT_ADMIN_USER_ID } from '@/lib/api/client';
+import { useToast } from '@/components/ui/Toast';
 import RecursosHeader from '@/components/admin/recursos/RecursosHeader';
 import RecursosFiltros from '@/components/admin/recursos/RecursosFiltros';
 import RecursosTabla from '@/components/admin/recursos/RecursosTabla';
-import RecursosPaginacion from '@/components/admin/recursos/RecursosPaginacion';
+import Pagination from '@/components/common/Pagination';
 import AccesoDenegadoState from '@/components/admin/recursos/AccesoDenegadoState';
-import NotificationBanner from '@/components/common/NotificationBanner';
+
+import { toUserFriendlyErrorMessage } from '@/lib/utils/errorUtils';
 
 export default function RecursosPage() {
+  const { showError } = useToast();
   const [usuarioActivoId, setUsuarioActivoId] = useState<string>(DEFAULT_ADMIN_USER_ID);
 
   const [filtros, setFiltros] = useState<FiltrosRecursosState>({
@@ -27,6 +30,12 @@ export default function RecursosPage() {
     filtros,
     usuarioActivoId
   );
+
+  useEffect(() => {
+    if (error && statusCode !== 403) {
+      showError(toUserFriendlyErrorMessage(error), 'Error al cargar recursos');
+    }
+  }, [error, statusCode, showError]);
 
   const handleCambiarBusqueda = useCallback((busqueda: string) => {
     setFiltros((prev) => ({ ...prev, busqueda, pagina: 1 }));
@@ -72,7 +81,7 @@ export default function RecursosPage() {
   if (statusCode === 403) {
     const usuarioActual = USUARIOS_PRUEBA.find((u) => u.id === usuarioActivoId);
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6, 24px)' }}>
         <RecursosHeader
           totalRecursos={0}
           usuarioActivoId={usuarioActivoId}
@@ -87,21 +96,12 @@ export default function RecursosPage() {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6, 24px)' }}>
       <RecursosHeader
         totalRecursos={meta.total}
         usuarioActivoId={usuarioActivoId}
         onCambiarUsuario={setUsuarioActivoId}
       />
-
-      {error && statusCode !== 403 && (
-        <NotificationBanner
-          type="error"
-          title="Error al conectar con el servidor de inventario"
-          message={error.message}
-          onClose={() => recargar()}
-        />
-      )}
 
       <RecursosFiltros
         busqueda={filtros.busqueda || ''}
@@ -123,13 +123,14 @@ export default function RecursosPage() {
           onLimpiarFiltros={handleLimpiarFiltros}
         />
 
-        <RecursosPaginacion
+        <Pagination
           pagina={meta.pagina}
           limite={meta.limite}
           total={meta.total}
           totalPaginas={meta.totalPaginas}
           onCambiarPagina={handleCambiarPagina}
           onCambiarLimite={handleCambiarLimite}
+          nombreEntidad="recursos registrados"
         />
       </div>
     </div>

@@ -29,7 +29,7 @@ export default function RecursosTabla({
           backgroundColor: '#FFFFFF',
           border: '1px solid #D5DCE4',
           overflowX: 'auto',
-          boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+          boxShadow: 'var(--shadow-sm)',
         }}
       >
         <table

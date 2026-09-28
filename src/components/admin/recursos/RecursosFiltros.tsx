@@ -3,6 +3,7 @@
 import { useState, useEffect, useTransition } from 'react';
 import type { EstadoRecurso } from '@/types/recurso';
 import { DELEGACIONES_MUNICIPALES } from '@/hooks/useRecursos';
+import Button from '@/components/ui/Button';
 
 interface RecursosFiltrosProps {
   busqueda: string;
@@ -128,13 +129,15 @@ export default function RecursosFiltros({
 
       {hayFiltrosActivos && (
         <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-          <button
+          <Button
             type="button"
+            variant="ghost"
+            size="sm"
             onClick={onLimpiarFiltros}
-            style={{ backgroundColor: 'transparent', color: 'var(--color-primary-teal)', border: 'none', fontSize: '13px', fontWeight: 600, cursor: 'pointer', textDecoration: 'underline' }}
+            style={{ color: 'var(--color-primary-teal)', padding: '4px 8px', minHeight: 'auto', textDecoration: 'underline' }}
           >
             Limpiar todos los filtros
-          </button>
+          </Button>
         </div>
       )}
     </div>
