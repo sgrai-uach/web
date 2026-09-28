@@ -28,8 +28,6 @@ Al ingresar a la plataforma, el asistente presentará un mensaje institucional d
 
 > Selecciona la opción que mejor describa la situación observada.
 
-![Paso 1: Selección de Tipo de Afectación](./assets/H1-reportar-incidente/01-tipo-afectacion.png)
-
 ---
 
 ### Paso 2: Ubicación o Dirección del Incidente
@@ -37,8 +35,6 @@ El asistente solicitará la ubicación del suceso:
 1. En el campo de texto ubicado al pie del chat, ingresa la calle, número y sector o referencias clave en la comuna de Valdivia (ejemplo: *Av. Alemania 550* o *Los Boldos con Las Encinas, Isla Teja*).
 2. Presiona el botón **Enviar** o la tecla *Enter*.
 3. El sistema verificará que la dirección contenga información suficiente (mínimo 5 caracteres).
-
-![Paso 2: Dirección del Incidente](./assets/H1-reportar-incidente/02-direccion.png)
 
 ---
 
@@ -83,8 +79,6 @@ Opciones disponibles:
 - **Confirmar y Enviar Reporte:** Envía el requerimiento al sistema municipal.
 - **Modificar datos:** Permite corregir cualquier información **sin perder el resto del reporte**. El asistente desplegará un menú interactivo preguntando específicamente qué campo deseas cambiar (*Tipo de afectación*, *Ubicación / Dirección*, *Detalle adicional*, *Nombre completo*, *RUT* o *Teléfono de contacto*). Una vez ingresado y validado el nuevo dato, se presenta de nuevo el resumen actualizado para confirmar el envío definitivo o realizar otra modificación.
 
-![Paso 7: Resumen y Confirmación](./assets/H1-reportar-incidente/03-resumen.png)
-
 ---
 
 ### Paso 8: Confirmación y Número de Seguimiento
@@ -96,8 +90,6 @@ Si es la primera vez que se reporta el incidente en la zona:
 - Se muestra un mensaje de recepción exitosa.
 - Se entrega un **Código de Seguimiento numérico de 8 dígitos** destacado (ejemplo: `84920194`).
 - Puedes presionar el botón **Copiar código** para guardarlo en tu portapapeles.
-
-![Paso 8: Confirmación de Nuevo Reporte](./assets/H1-reportar-incidente/04-exito.png)
 
 #### Caso B: Incidente Duplicado / Previamente Reportado (Modelo SAESA)
 Si en tu sector ya se había registrado un incidente del mismo tipo dentro de las últimas 24 horas:
