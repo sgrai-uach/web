@@ -12,6 +12,7 @@ import type {
 } from '@/types/avisos';
 import { CATALOGO_TIPOS_INCIDENTE_DEFAULT, normalizarTipoIncidente } from '@/types/avisos';
 import type { ApiErrorResponse } from '@/types/common';
+import type { components } from '@/types/api-generated';
 
 /* =========================================================================
    Tipos y Constantes para Reporte Ciudadano (H1)
@@ -28,15 +29,13 @@ export const TIPOS_AFECTACION_DEFAULT = [
   'Otro incidente de emergencia',
 ];
 
-import type { components } from '@/types/api-generated';
-
 export type CrearAvisoPayload = components['schemas']['CrearAvisoIncidenteInput'];
 
 export interface ResultadoAviso {
   exito: boolean;
-  esDuplicado?: boolean;
+  esDuplicado: boolean;
   codigoSeguimiento?: string;
-  mensaje?: string;
+  mensaje: string;
   errores?: string[];
 }
 
