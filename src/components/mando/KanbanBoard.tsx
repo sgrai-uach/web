@@ -12,6 +12,7 @@ import { KanbanColumn } from './KanbanColumn';
 import { IncidenteDetalleDrawer } from './IncidenteDetalleDrawer';
 import { AccesoDenegado } from './AccesoDenegado';
 import { Zap } from 'lucide-react';
+import InlineNotice from '@/components/ui/InlineNotice';
 import styles from '@/styles/mando.module.css';
 
 const TITULOS_COLUMNAS = {
@@ -68,7 +69,7 @@ export const KanbanBoard: React.FC = () => {
               style={{
                 backgroundColor: 'var(--color-info-bg, #E0F2F1)',
                 color: 'var(--color-primary-teal, #1B6F7D)',
-                padding: '0.4rem 1.5rem',
+                padding: '0.5rem 1rem',
                 fontSize: '0.8rem',
                 fontWeight: 600,
                 borderBottom: '1px solid var(--border-color-neutral, #DFE3E8)',
@@ -83,15 +84,10 @@ export const KanbanBoard: React.FC = () => {
           )}
 
           {error && !esForbidden && (
-            <div
-              style={{
-                backgroundColor: 'var(--color-danger-bg, #FFEBEE)',
-                color: 'var(--color-danger, #D32F2F)',
-                padding: '0.75rem 1.5rem',
-                fontSize: '0.875rem',
-              }}
-            >
-              {error}
+            <div style={{ marginBottom: 'var(--space-3)' }}>
+              <InlineNotice variant="error">
+                {error}
+              </InlineNotice>
             </div>
           )}
 

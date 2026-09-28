@@ -6,50 +6,54 @@
 .pageContainer {
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
-  background-color: var(--color-bg-light, #ECEFF3);
-  color: var(--color-text-dark, #2B2B2B);
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  gap: var(--space-4, 16px);
+  width: 100%;
 }
 
-/* --- Barra de Sub-cabecera del Encargado --- */
-.mandoHeader {
-  background-color: var(--color-primary-teal-dark, #14505A);
-  color: var(--color-white, #FFFFFF);
-  padding: 1rem 1.5rem;
+/* --- Cabecera y Contexto Centro de Mando --- */
+.mandoHeaderWrapper {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 1rem;
-  border-bottom: 3px solid var(--color-accent-mint, #4FAE9B);
+  flex-direction: column;
+  gap: var(--space-4, 16px);
+  width: 100%;
 }
 
-.mandoTitleGroup {
+.contextBar {
+  background-color: var(--color-white, #FFFFFF);
+  border: 1px solid var(--border-color-neutral, #DFE3E8);
+  border-left: 4px solid var(--color-primary-teal, #1B6F7D);
+  padding: var(--space-3, 12px) var(--space-4, 16px);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-3, 12px);
+  font-size: var(--font-size-sm, 13px);
+}
+
+.mandoTitleCard {
+  background-color: var(--color-white, #FFFFFF);
+  padding: 1.5rem;
+  border-left: 5px solid var(--color-primary-teal, #1B6F7D);
+  border-bottom: 1px solid var(--border-color-neutral, #DFE3E8);
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
 }
 
-.mandoTitle {
-  margin: 0;
-  font-size: 1.5rem;
+.counterBadge {
+  background-color: var(--color-bg-light, #ECEFF3);
+  color: var(--color-primary-teal-dark, #14505A);
+  padding: 4px 10px;
+  font-size: 12px;
   font-weight: 700;
-  letter-spacing: -0.02em;
-  color: var(--color-white, #FFFFFF);
+  border: 1px solid var(--border-color-neutral, #DFE3E8);
 }
 
 .mandoSubtitle {
-  margin: 0;
-  font-size: 0.85rem;
-  color: var(--color-sage, #A9CBA4);
-}
-
-.mandoHeaderControls {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  flex-wrap: wrap;
+  margin: 6px 0 0 0;
+  font-size: 14px;
+  color: var(--color-charcoal, #3B3F45);
 }
 
 /* Indicador de conexión en tiempo real */
@@ -57,44 +61,48 @@
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  background-color: rgba(255, 255, 255, 0.1);
-  padding: 0.4rem 0.8rem;
+  background-color: var(--color-bg-light, #ECEFF3);
+  border: 1px solid var(--border-color-neutral, #DFE3E8);
+  padding: 0.25rem 0.6rem;
   font-size: 0.8rem;
   font-weight: 600;
-  color: var(--color-white, #FFFFFF);
+  color: var(--color-text-dark, #2B2B2B);
 }
 
 .liveDot {
   width: 10px;
   height: 10px;
-  background-color: #2ECC71;
+  border-radius: var(--radius-round, 9999px);
+  background-color: var(--color-accent-mint, #4FAE9B);
   display: inline-block;
 }
 
 .liveDotOffline {
   width: 10px;
   height: 10px;
-  background-color: #E74C3C;
+  border-radius: var(--radius-round, 9999px);
+  background-color: var(--color-warning, #E65100);
   display: inline-block;
 }
 
-/* Simulador de Rol (para pruebas rápidas de Criterio 5) */
+/* Simulador de Rol */
 .userSimulatorBox {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  background-color: rgba(0, 0, 0, 0.25);
-  padding: 0.35rem 0.75rem;
-  font-size: 0.8rem;
+  font-size: 0.8125rem;
+  color: var(--color-charcoal, #3B3F45);
 }
 
 .userSimulatorSelect {
-  background-color: var(--color-white, #FFFFFF);
+  background-color: var(--color-bg-light, #ECEFF3);
   color: var(--color-text-dark, #2B2B2B);
-  border: 1px solid var(--color-charcoal, #3B3F45);
+  border: 1px solid var(--border-color-neutral, #DFE3E8);
   border-radius: 0;
   padding: 0.25rem 0.5rem;
-  font-size: 0.8rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
 }
 
 /* --- Barra de Filtros --- */
@@ -184,16 +192,32 @@
 /* --- Contenedor del Tablero Kanban --- */
 .kanbanArea {
   flex: 1;
-  padding: 1.5rem;
+  padding: var(--space-2, 8px) 0 var(--space-3, 12px) 0;
   overflow-x: auto;
+  width: 100%;
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-primary-teal, #1B6F7D) var(--color-bg-light, #ECEFF3);
+}
+
+.kanbanArea::-webkit-scrollbar {
+  height: 8px;
+}
+
+.kanbanArea::-webkit-scrollbar-track {
+  background: var(--color-bg-light, #ECEFF3);
+}
+
+.kanbanArea::-webkit-scrollbar-thumb {
+  background-color: var(--color-primary-teal, #1B6F7D);
+  border-radius: var(--radius-none, 0);
 }
 
 .kanbanBoard {
   display: grid;
-  grid-template-columns: repeat(5, minmax(290px, 1fr));
-  gap: 1.25rem;
+  grid-template-columns: repeat(5, minmax(250px, 1fr));
+  gap: var(--space-4, 16px);
   align-items: start;
-  min-width: 1480px;
+  width: 100%;
 }
 
 /* --- Columna Kanban --- */

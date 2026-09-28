@@ -7,6 +7,7 @@ import type {
   PaginacionMeta,
 } from '@/services/incidentesService';
 import Button from '@/components/ui/Button';
+import Heading from '@/components/ui/Heading';
 import { IncidenteCard } from './IncidenteCard';
 import styles from '@/styles/mando.module.css';
 
@@ -53,7 +54,9 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({
       aria-label={`Columna ${titulo} con ${incidentes.length} incidentes visibles`}
     >
       <div className={`${styles.columnHeader} ${getHeaderStyle(estado)}`}>
-        <h3 className={styles.columnTitle}>{titulo}</h3>
+        <Heading as="h3" variant="h3" className={styles.columnTitle} noMargin>
+          {titulo}
+        </Heading>
         <span className={styles.columnCounter} title={`Total registrados: ${total}`}>
           {incidentes.length} / {total}
         </span>

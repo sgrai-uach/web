@@ -2,6 +2,7 @@
 
 import React from 'react';
 import Heading from '@/components/ui/Heading';
+import Button from '@/components/ui/Button';
 import { X } from 'lucide-react';
 import type { IncidenteDetalle } from '@/services/incidentesService';
 import styles from '@/styles/mando.module.css';
@@ -38,14 +39,16 @@ export const IncidenteDetalleHeader: React.FC<IncidenteDetalleHeaderProps> = ({
         )}
       </div>
 
-      <button
+      <Button
         type="button"
+        variant="ghost"
+        size="sm"
         className={styles.drawerCloseBtn}
         onClick={onCerrar}
         aria-label="Cerrar panel de detalle"
       >
         <X size={20} />
-      </button>
+      </Button>
     </div>
   );
 };

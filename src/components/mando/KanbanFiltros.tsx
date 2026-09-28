@@ -110,7 +110,7 @@ export const KanbanFiltros: React.FC<KanbanFiltrosProps> = ({
       <div>
         <Button
           type="button"
-          variant="primary"
+          variant="secondary"
           size="md"
           onClick={onRecargar}
           disabled={cargando}

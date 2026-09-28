@@ -11,6 +11,7 @@ import { IncidenteUbicacionSection } from './drawer/IncidenteUbicacionSection';
 import { IncidenteInformanteSection } from './drawer/IncidenteInformanteSection';
 import { IncidenteMisionesSection } from './drawer/IncidenteMisionesSection';
 import { IncidenteRecursosSection } from './drawer/IncidenteRecursosSection';
+import InlineNotice from '@/components/ui/InlineNotice';
 import styles from '@/styles/mando.module.css';
 
 interface IncidenteDetalleDrawerProps {
@@ -63,8 +64,10 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
           )}
 
           {error && (
-            <div style={{ padding: '1rem', backgroundColor: 'var(--color-danger-bg, #FFEBEE)', color: 'var(--color-danger, #D32F2F)' }}>
-              {error}
+            <div style={{ marginBottom: 'var(--space-3)' }}>
+              <InlineNotice variant="error">
+                {error}
+              </InlineNotice>
             </div>
           )}
 

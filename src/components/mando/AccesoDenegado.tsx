@@ -20,6 +20,7 @@ export const AccesoDenegado: React.FC<AccesoDenegadoProps> = ({ onReintentar }) 
         as="h2"
         variant="h3"
         color="charcoal-dark"
+        align="center"
         style={{ color: 'var(--color-danger, #D32F2F)', marginBottom: '0.75rem' }}
       >
         Acceso Restringido — 403 Forbidden

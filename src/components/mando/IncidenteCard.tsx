@@ -4,6 +4,7 @@ import React from 'react';
 import { MapPin } from 'lucide-react';
 import type { IncidenteResumen } from '@/services/incidentesService';
 import styles from '@/styles/mando.module.css';
+import Heading from '@/components/ui/Heading';
 
 interface IncidenteCardProps {
   incidente: IncidenteResumen;
@@ -51,7 +52,9 @@ export const IncidenteCard: React.FC<IncidenteCardProps> = ({ incidente, onClick
         </span>
       </div>
 
-      <h4 className={styles.cardTipoAfectacion}>{incidente.tipoAfectacion}</h4>
+      <Heading as="h4" variant="h4" color="charcoal" className={styles.cardTipoAfectacion} noMargin>
+        {incidente.tipoAfectacion}
+      </Heading>
 
       <p className={styles.cardDireccion} title={incidente.direccion}>
         <MapPin size={14} aria-hidden="true" style={{ flexShrink: 0 }} />
