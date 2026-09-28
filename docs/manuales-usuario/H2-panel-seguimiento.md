@@ -23,8 +23,6 @@ Si recibiste un enlace directo vía SMS, correo o al finalizar tu reporte en el 
 2. El sistema abrirá inmediatamente la pantalla de detalle correspondiente a tu número de caso.
 3. Se desplegará la línea de tiempo con la etapa actual del incidente y la tarjeta de resumen con la información operativa.
 
-![Consulta Directa](./assets/H2-panel-seguimiento/01-detalle-seguimiento.png)
-
 ---
 
 ### Opción B: Búsqueda Manual con Código de Seguimiento
@@ -35,8 +33,6 @@ Si dispones de tu código numérico de 8 dígitos (ejemplo: `58291045`) y accede
 2. En el recuadro **"Ingresa el Código de Seguimiento de tu Reporte"**, escribe tu código numérico de 8 dígitos. El campo solo acepta números y valida el largo automáticamente.
 3. Presiona el botón **Consultar Estado**.
 4. Serás redirigido automáticamente a la vista de seguimiento de tu caso.
-
-![Búsqueda por Código](./assets/H2-panel-seguimiento/02-buscador-codigo.png)
 
 ---
 
