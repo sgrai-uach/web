@@ -1,6 +1,8 @@
 'use client';
 
 import React from 'react';
+import Button from '@/components/ui/Button';
+import { RotateCw } from 'lucide-react';
 
 export type FiltroOrigen = 'TODOS' | 'WEB' | 'CHATBOT' | 'TELEFONO';
 export type FiltroSemaforo = 'TODOS' | 'EN_TIEMPO' | 'PRECAUCION' | 'URGENTE';
@@ -32,7 +34,6 @@ export default function AvisosFiltros({
         backgroundColor: 'var(--color-white, #FFFFFF)',
         border: '1px solid #DFE3E8',
         padding: '1rem 1.5rem',
-        marginBottom: '1rem',
         display: 'flex',
         flexWrap: 'wrap',
         alignItems: 'center',
@@ -50,7 +51,7 @@ export default function AvisosFiltros({
           style={{
             width: '100%',
             padding: '0.625rem 0.875rem',
-            border: '1px solid #BAC7D5',
+            border: '1px solid var(--border-color-dark, #3B3F45)',
             fontSize: '0.875rem',
             color: 'var(--color-text-dark, #2B2B2B)',
             outline: 'none',
@@ -74,7 +75,7 @@ export default function AvisosFiltros({
             onChange={(e) => onFiltroOrigenChange(e.target.value as FiltroOrigen)}
             style={{
               padding: '0.625rem 0.75rem',
-              border: '1px solid #BAC7D5',
+              border: '1px solid var(--border-color-dark, #3B3F45)',
               fontSize: '0.875rem',
               color: 'var(--color-text-dark, #2B2B2B)',
               backgroundColor: '#FFFFFF',
@@ -100,7 +101,7 @@ export default function AvisosFiltros({
             onChange={(e) => onFiltroSemaforoChange(e.target.value as FiltroSemaforo)}
             style={{
               padding: '0.625rem 0.75rem',
-              border: '1px solid #BAC7D5',
+              border: '1px solid var(--border-color-dark, #3B3F45)',
               fontSize: '0.875rem',
               color: 'var(--color-text-dark, #2B2B2B)',
               backgroundColor: '#FFFFFF',
@@ -116,29 +117,17 @@ export default function AvisosFiltros({
         </div>
 
         {/* Botón Refrescar */}
-        <button
+        <Button
           type="button"
+          variant="secondary"
           onClick={onRefrescar}
           disabled={cargando}
           suppressHydrationWarning
-          style={{
-            backgroundColor: 'var(--color-charcoal, #3B3F45)',
-            color: '#FFFFFF',
-            border: 'none',
-            padding: '0.625rem 1rem',
-            fontSize: '0.875rem',
-            fontWeight: 600,
-            cursor: cargando ? 'not-allowed' : 'pointer',
-            opacity: cargando ? 0.6 : 1,
-            borderRadius: 0,
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.5rem',
-          }}
           title="Refrescar lista de avisos"
         >
-          {cargando ? 'Actualizando...' : 'Refrescar'}
-        </button>
+          <RotateCw size={14} className={cargando ? 'animate-spin' : ''} aria-hidden="true" />
+          <span>{cargando ? 'Actualizando...' : 'Refrescar'}</span>
+        </Button>
       </div>
     </div>
   );
