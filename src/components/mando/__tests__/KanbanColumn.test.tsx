@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { KanbanColumn } from '../KanbanColumn';
-import type { IncidenteResumen } from '@/lib/api/incidentes';
+import type { IncidenteResumen } from '@/services/incidentesService';
 
 const mockIncidentes: IncidenteResumen[] = [
   {

@@ -8,7 +8,7 @@ import {
   type EstadoIncidente,
   type PrioridadIncidente,
   type PaginacionMeta,
-} from '@/lib/api/incidentes';
+} from '@/services/incidentesService';
 import {
   useEncargadoKanbanSocket,
   type IncidenteCreadoPayload,

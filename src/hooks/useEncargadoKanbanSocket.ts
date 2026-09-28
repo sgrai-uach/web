@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { getSocket } from '@/lib/socket/client';
-import type { EstadoIncidente, PrioridadIncidente } from '@/lib/api/incidentes';
+import type { EstadoIncidente, PrioridadIncidente } from '@/services/incidentesService';
 
 export interface IncidenteCreadoPayload {
   evento: 'incidente:creado';

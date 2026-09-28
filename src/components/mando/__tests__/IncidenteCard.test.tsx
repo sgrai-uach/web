@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { IncidenteCard } from '../IncidenteCard';
-import type { IncidenteResumen } from '@/lib/api/incidentes';
+import type { IncidenteResumen } from '@/services/incidentesService';
 
 const mockIncidente: IncidenteResumen = {
   id: 'inc-001',

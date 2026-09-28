@@ -3,10 +3,10 @@ import {
   listarIncidentes,
   obtenerDetalleIncidente,
   DEFAULT_ENCARGADO_ID,
-} from '../incidentes';
-import apiClient from '../client';
+} from '../incidentesService';
+import apiClient from '@/lib/api/client';
 
-vi.mock('../client', () => ({
+vi.mock('@/lib/api/client', () => ({
   default: {
     GET: vi.fn(),
   },
