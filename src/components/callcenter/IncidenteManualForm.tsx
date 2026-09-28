@@ -5,7 +5,7 @@ import {
   DEFAULT_CALLCENTER_OPERADOR_ID,
   type IncidenteCreadoExito,
 } from '@/types/incidente-manual';
-import { useIncidenteManualForm } from './useIncidenteManualForm';
+import { useIncidenteManualForm } from '@/hooks/useIncidenteManualForm';
 import OrigenSelector from './form/OrigenSelector';
 import AfectacionPrioridadFields from './form/AfectacionPrioridadFields';
 import UbicacionFields from './form/UbicacionFields';
@@ -14,6 +14,8 @@ import InformanteFields from './form/InformanteFields';
 import FormSubmitActions from './form/FormSubmitActions';
 import DuplicadosModal from './DuplicadosModal';
 import IncidenteExitoCard from './IncidenteExitoCard';
+import InlineNotice from '@/components/ui/InlineNotice';
+import styles from './IncidenteManualForm.module.css';
 
 interface IncidenteManualFormProps {
   operadorId?: string;
@@ -36,85 +38,78 @@ export default function IncidenteManualForm({
   }
 
   return (
-    <div style={{ maxWidth: '840px', margin: '0 auto' }}>
+    <div className={styles.container}>
       {form.errorGeneral && (
-        <div
-          role="alert"
-          style={{
-            backgroundColor: '#FFEBEE',
-            borderLeft: '4px solid #D32F2F',
-            color: '#C62828',
-            padding: '12px 16px',
-            marginBottom: '20px',
-            fontSize: '14px',
-            fontWeight: 600,
-          }}
-        >
-          {form.errorGeneral}
+        <div className={styles.noticeWrapper}>
+          <InlineNotice variant="error">
+            {form.errorGeneral}
+          </InlineNotice>
         </div>
       )}
 
       <form
         onSubmit={(e) => form.handleSubmit(e, false)}
-        style={{
-          backgroundColor: '#FFFFFF',
-          border: '1px solid #DFE3E8',
-          padding: '24px',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '24px',
-        }}
+        className={styles.form}
       >
-        <OrigenSelector
-          origenReporte={form.origenReporte}
-          onSelect={form.setOrigenReporte}
-        />
+        {/* Columna Izquierda: Origen, Clasificación e Identificación del Informante */}
+        <div className={styles.column}>
+          <OrigenSelector
+            origenReporte={form.origenReporte}
+            onSelect={form.setOrigenReporte}
+          />
 
-        <AfectacionPrioridadFields
-          tipoAfectacion={form.tipoAfectacion}
-          setTipoAfectacion={form.setTipoAfectacion}
-          prioridad={form.prioridad}
-          setPrioridad={form.setPrioridad}
-          tiposAfectacion={form.tiposAfectacion}
-          cargandoTipos={form.cargandoTipos}
-          errorTipo={form.errores.tipoAfectacion}
-        />
+          <AfectacionPrioridadFields
+            tipoAfectacion={form.tipoAfectacion}
+            setTipoAfectacion={form.setTipoAfectacion}
+            prioridad={form.prioridad}
+            setPrioridad={form.setPrioridad}
+            tiposAfectacion={form.tiposAfectacion}
+            cargandoTipos={form.cargandoTipos}
+            errorTipo={form.errores.tipoAfectacion}
+          />
 
-        <UbicacionFields
-          direccion={form.direccion}
-          setDireccion={form.setDireccion}
-          coordenadas={form.coordenadas}
-          setCoordenadas={form.setCoordenadas}
-          onUserSelectLocation={form.handleUserSelectLocation}
-          onSincronizarMapaConDireccion={form.handleSincronizarMapaConDireccion}
-          geocodificandoMapa={form.geocodificandoMapa}
-          duplicadosPreventivos={form.duplicadosPreventivos}
-          verificandoDuplicados={form.verificandoDuplicados}
-          errorDireccion={form.errores.direccion}
-        />
+          <InformanteFields
+            informanteNombre={form.informanteNombre}
+            setInformanteNombre={form.setInformanteNombre}
+            informanteRut={form.informanteRut}
+            onRutChange={form.handleRutChange}
+            informanteTelefono={form.informanteTelefono}
+            setInformanteTelefono={form.setInformanteTelefono}
+            errorNombre={form.errores.informanteNombre}
+            errorRut={form.errores.informanteRut}
+            errorTelefono={form.errores.informanteTelefono}
+          />
+        </div>
 
-        <DescripcionField
-          descripcion={form.descripcion}
-          setDescripcion={form.setDescripcion}
-          errorDescripcion={form.errores.descripcion}
-        />
+        {/* Columna Derecha: Ubicación con Mapa interactivo y Descripción de la Emergencia */}
+        <div className={styles.column}>
+          <UbicacionFields
+            direccion={form.direccion}
+            setDireccion={form.setDireccion}
+            coordenadas={form.coordenadas}
+            setCoordenadas={form.setCoordenadas}
+            onUserSelectLocation={form.handleUserSelectLocation}
+            onSincronizarMapaConDireccion={form.handleSincronizarMapaConDireccion}
+            geocodificandoMapa={form.geocodificandoMapa}
+            duplicadosPreventivos={form.duplicadosPreventivos}
+            verificandoDuplicados={form.verificandoDuplicados}
+            errorDireccion={form.errores.direccion}
+          />
 
-        <InformanteFields
-          informanteNombre={form.informanteNombre}
-          setInformanteNombre={form.setInformanteNombre}
-          informanteRut={form.informanteRut}
-          onRutChange={form.handleRutChange}
-          informanteTelefono={form.informanteTelefono}
-          setInformanteTelefono={form.setInformanteTelefono}
-          errorNombre={form.errores.informanteNombre}
-          errorRut={form.errores.informanteRut}
-          errorTelefono={form.errores.informanteTelefono}
-        />
+          <DescripcionField
+            descripcion={form.descripcion}
+            setDescripcion={form.setDescripcion}
+            errorDescripcion={form.errores.descripcion}
+          />
+        </div>
 
-        <FormSubmitActions
-          enviando={form.enviando}
-          onLimpiar={form.limpiarFormulario}
-        />
+        {/* Pie: Acciones del Formulario abarcando todo el ancho */}
+        <div className={styles.fullWidth}>
+          <FormSubmitActions
+            enviando={form.enviando}
+            onLimpiar={form.limpiarFormulario}
+          />
+        </div>
       </form>
 
       <DuplicadosModal

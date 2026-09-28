@@ -51,7 +51,7 @@ export default function DuplicadosModal({
           display: 'flex',
           flexDirection: 'column',
           border: '2px solid #14505A',
-          boxShadow: '0 8px 24px rgba(0, 0, 0, 0.25)',
+          boxShadow: 'var(--shadow-md)',
         }}
       >
         {/* Cabecera del modal */}

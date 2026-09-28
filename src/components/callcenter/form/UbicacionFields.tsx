@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { MapPin, Info } from 'lucide-react';
+import Button from '@/components/ui/Button';
 import type { DuplicadoItem } from '@/types/incidente-manual';
 import LocationPickerMap from '@/components/maps/LocationPickerMap';
 import DuplicadoAlertaBanner from '../DuplicadoAlertaBanner';
@@ -37,7 +38,7 @@ export default function UbicacionFields({
         htmlFor="direccion"
         style={{ display: 'block', fontWeight: 700, fontSize: '14px', color: '#14505A', marginBottom: '6px' }}
       >
-        3. Dirección o Referencia en Valdivia *
+        4. Dirección o Referencia en Valdivia *
       </label>
       <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
         <input
@@ -55,30 +56,17 @@ export default function UbicacionFields({
             borderRadius: 0,
           }}
         />
-        <button
+        <Button
           type="button"
+          variant="primary"
           onClick={onSincronizarMapaConDireccion}
           disabled={geocodificandoMapa || direccion.trim().length < 4}
           title="Ubicar la dirección escrita en el mapa interactivo"
-          style={{
-            backgroundColor: '#1B6F7D',
-            color: '#FFFFFF',
-            border: 'none',
-            padding: '10px 16px',
-            fontSize: '13px',
-            fontWeight: 700,
-            cursor: geocodificandoMapa || direccion.trim().length < 4 ? 'not-allowed' : 'pointer',
-            borderRadius: 0,
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '6px',
-            whiteSpace: 'nowrap',
-            opacity: geocodificandoMapa || direccion.trim().length < 4 ? 0.6 : 1,
-          }}
+          style={{ whiteSpace: 'nowrap' }}
         >
           <MapPin size={16} aria-hidden="true" />
           <span>{geocodificandoMapa ? 'Buscando...' : 'Ubicar en mapa'}</span>
-        </button>
+        </Button>
       </div>
 
       {errorDireccion && (
@@ -105,6 +93,7 @@ export default function UbicacionFields({
           longitud={coordenadas?.longitud}
           onChange={setCoordenadas}
           onUserSelectLocation={onUserSelectLocation}
+          height="190px"
         />
       </div>
     </div>

@@ -22,15 +22,11 @@ Al ingresar al formulario, el operador debe identificar la procedencia de la inf
 1. **Llamada Telefónica (📞):** Selecciona esta opción si el aviso proviene de un vecino o ciudadano comunicándose vía línea telefónica (Mesa 1451 de Valdivia).
 2. **Funcionario en Terreno (👷):** Selecciona esta opción si la novedad fue transmitida por una patrulla, cuadrilla u otro funcionario municipal desplegado en la comuna.
 
-![Paso 1: Selección de Origen](./assets/H53-ingreso-manual-avisos/01-origen-reporte.png)
-
 ---
 
 ### Paso 2: Tipo de Afectación y Nivel de Prioridad
 1. **Tipo de Afectación:** Selecciona en el menú desplegable la tipología del incidente (*Anegamiento*, *Caída de árbol*, *Corte de energía*, *Deslizamiento*, *Daño estructural*, *Corte de agua potable*, etc.). Este catálogo se sincroniza dinámicamente con el servidor municipal.
 2. **Prioridad Operativa:** Clasifica la urgencia en **BAJA**, **MEDIA** (por defecto), **ALTA** o **CRÍTICA** según la gravedad y el riesgo potencial para vidas o viviendas.
-
-![Paso 2: Tipo y Prioridad](./assets/H53-ingreso-manual-avisos/02-tipo-prioridad.png)
 
 ---
 
@@ -44,8 +40,6 @@ El sistema combina geocodificación inteligente por texto y fijación cartográf
 3. **Persistencia de datos:** En la base de datos se almacenan **ambos datos**: la dirección legible para el personal de despacho y las coordenadas exactas de latitud y longitud para el mapa del Encargado y la detección de duplicados.
 4. **Botón Centrar Valdivia:** Restablece la vista cartográfica al centro de la comuna.
 5. **Botón Limpiar GPS:** Elimina el pin manual en caso de requerir restablecer la ubicación.
-
-![Paso 3: Ubicación y Mapa](./assets/H53-ingreso-manual-avisos/03-direccion-mapa.png)
 
 ---
 
@@ -96,8 +90,6 @@ Cuando el reporte es nuevo y no presenta duplicidad:
 3. El registro queda automáticamente indexado en la tabla de incidentes en estado **`SIN_ATENDER`**, emitiendo un evento en tiempo real que alerta al Encargado.
 4. Botón **"➕ Ingresar otro reporte"**: Restablece el formulario para atender una nueva llamada.
 
-![Escenario A: Éxito](./assets/H53-ingreso-manual-avisos/04-exito.png)
-
 ---
 
 ### Escenario B: Conflicto de Duplicados Detectado (HTTP 409 Conflict)
@@ -107,8 +99,6 @@ Si en la misma zona ya existe un reporte o incidente vigente del mismo tipo:
 3. El operador dispone de dos opciones:
    - **Botón "Omitir reporte" (Recomendado):** Cierra el modal y limpia el formulario, evitando duplicar requerimientos a las cuadrillas en terreno.
    - **Botón "Continuar de todos modos":** Fuerza la creación (`forzarCreacion: true`) si el operador constata con el vecino que se trata de un suceso independiente no abordado previamente.
-
-![Escenario B: Modal de Duplicados](./assets/H53-ingreso-manual-avisos/05-modal-duplicados.png)
 
 ---
 

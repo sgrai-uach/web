@@ -2,7 +2,7 @@ import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import IncidenteManualForm from '../IncidenteManualForm';
-import * as incidentesApi from '@/lib/api/incidentes-manuales';
+import * as incidentesApi from '@/services/incidentesManualesService';
 
 // Mock del mapa interactivo para evitar problemas con Leaflet en jsdom
 vi.mock('@/components/maps/LocationPickerMap', () => ({
@@ -43,10 +43,12 @@ describe('IncidenteManualForm', () => {
   it('debe permitir alternar el origen a Funcionario en Terreno', async () => {
     render(<IncidenteManualForm />);
 
-    const btnFuncionario = screen.getByRole('button', { name: /funcionario en terreno/i });
-    fireEvent.click(btnFuncionario);
+    const radioFuncionario = screen.getByRole('radio', { name: /funcionario en terreno/i });
+    expect(radioFuncionario.getAttribute('aria-checked')).toBe('false');
 
-    expect(btnFuncionario).toBeDefined();
+    fireEvent.click(radioFuncionario);
+
+    expect(radioFuncionario.getAttribute('aria-checked')).toBe('true');
   });
 
   it('debe mostrar errores de validación si se envía con campos vacíos o inválidos', async () => {

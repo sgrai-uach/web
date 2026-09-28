@@ -2,7 +2,7 @@
 
 import React from 'react';
 import 'leaflet/dist/leaflet.css';
-import { useLocationPickerMap } from './useLocationPickerMap';
+import { useLocationPickerMap } from '@/hooks/useLocationPickerMap';
 import Button from '@/components/ui/Button';
 
 interface LocationPickerMapProps {
@@ -11,6 +11,7 @@ interface LocationPickerMapProps {
   onChange: (coords: { latitud: number; longitud: number } | null) => void;
   onUserSelectLocation?: (coords: { latitud: number; longitud: number }) => void;
   readOnly?: boolean;
+  height?: string;
 }
 
 export default function LocationPickerMap({
@@ -19,6 +20,7 @@ export default function LocationPickerMap({
   onChange,
   onUserSelectLocation,
   readOnly = false,
+  height = '240px',
 }: LocationPickerMapProps) {
   const { mapContainerRef, hasCoords, handleLimpiarPunto, handleCentrarValdivia } =
     useLocationPickerMap({
@@ -35,7 +37,7 @@ export default function LocationPickerMap({
         ref={mapContainerRef}
         style={{
           width: '100%',
-          height: '240px',
+          height,
           border: '1px solid #3B3F45',
           backgroundColor: '#ECEFF3',
           zIndex: 1,

@@ -25,7 +25,7 @@ export default function IncidenteExitoCard({
         padding: '28px',
         maxWidth: '720px',
         margin: '0 auto',
-        boxShadow: '0 4px 12px rgba(0,0,0,0.06)',
+        boxShadow: 'var(--shadow-md)',
       }}
     >
       {/* Encabezado de éxito */}
