@@ -48,3 +48,11 @@ export interface SocketAvisoDescartadoPayload {
   avisoId: string;
   motivoDescarte: string;
 }
+
+// Esquemas de Seguridad: Roles y Permisos (Panel Administrador)
+export type RolItem = components['schemas']['RolItem'];
+export type PermisoAsignado = components['schemas']['PermisoAsignado'];
+export type ListarRolesResponse = components['schemas']['ListarRolesResponse'];
+export type RolDetalleResponse = components['schemas']['RolDetalleResponse'];
+
+export type PermisosPorModulo = Record<string, PermisoAsignado[]>;
