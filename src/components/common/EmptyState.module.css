@@ -1,0 +1,41 @@
+.container {
+  padding: 48px 24px;
+  text-align: center;
+  background-color: var(--color-white, #FFFFFF);
+  border: 1px dashed var(--border-color-neutral, #DFE3E8);
+  width: 100%;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.iconBox {
+  width: 56px;
+  height: 56px;
+  background-color: var(--color-bg-light, #ECEFF3);
+  color: var(--color-primary-teal, #1B6F7D);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: var(--space-4, 16px);
+  border-radius: var(--radius-none, 0);
+}
+
+.description {
+  margin: 0 0 var(--space-4, 16px) 0;
+  color: var(--color-text-muted, #5F676E);
+  font-size: var(--font-size-base, 14px);
+  max-width: 520px;
+  line-height: 1.5;
+  text-align: center;
+}
+
+.actionWrapper {
+  display: flex;
+  gap: var(--space-3, 12px);
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: var(--space-2, 8px);
+}
