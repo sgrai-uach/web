@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import type { ListarRecursosResponse, FiltrosRecursosState, RecursoItem } from '@/types/recurso';
 import { DEFAULT_ADMIN_USER_ID } from '@/lib/api/client';
-import { getRecursos, RecursoServiceError } from '@/services/recursoService';
+import { getRecursos, RecursoServiceError } from '@/services/recursosService';
 import { getErrorMessage } from '@/lib/utils/errorUtils';
 
 export const DELEGACIONES_MUNICIPALES = [

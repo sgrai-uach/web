@@ -9,7 +9,7 @@ import {
   type CrearRecursoDTO,
 } from '@/types/recurso';
 import type { ApiFieldError } from '@/types/common';
-import { crearRecurso, RecursoServiceError } from '@/services/recursoService';
+import { crearRecurso, RecursoServiceError } from '@/services/recursosService';
 import { getErrorMessage } from '@/lib/utils/errorUtils';
 
 const DEFAULT_VALDIVIA_LAT = -39.8142;
