@@ -4,6 +4,380 @@
  */
 
 export interface paths {
+    "/api/recursos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Listar recursos logísticos y verificar disponibilidad
+         * @description Retorna una lista paginada de los recursos registrados en el inventario, incluyendo estado de disponibilidad operativa, cantidades y delegación territorial asociada.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description Número de página para paginación (inicia en 1) */
+                    pagina?: number;
+                    /** @description Cantidad de elementos por página (máximo 100) */
+                    limite?: number;
+                    /** @description Filtrar por UUID de delegación territorial */
+                    delegacionId?: string;
+                    /** @description Filtrar por estado de disponibilidad operativa */
+                    estado?: "DISPONIBLE" | "ASIGNADO" | "EN_MANTENCION" | "BAJO_STOCK" | "NO_DISPONIBLE";
+                    /** @description Filtrar por tipo (true: individual/vehículo, false: a granel/material) */
+                    esIndividual?: boolean | null;
+                    /** @description Búsqueda textual por nombre o descripción del recurso */
+                    busqueda?: string;
+                };
+                header: {
+                    /** @description UUID del usuario administrador autenticado */
+                    "x-user-id": string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Listado paginado de recursos de inventario */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @description Listado de recursos en la página solicitada (vacío si no hay recursos) */
+                            data: {
+                                /** Format: uuid */
+                                id: string;
+                                nombre: string;
+                                /**
+                                 * @description Tipo legible (ej. 'Vehículo o Maquinaria' o 'Material o Insumo')
+                                 * @example Vehículo o Maquinaria
+                                 */
+                                tipo: string;
+                                esIndividual: boolean;
+                                /** @enum {string} */
+                                estado: "DISPONIBLE" | "ASIGNADO" | "EN_MANTENCION" | "BAJO_STOCK" | "NO_DISPONIBLE";
+                                cantidadInventario: number;
+                                cantidadEnUso: number;
+                                /**
+                                 * @description Cantidad libre disponible (cantidadInventario - cantidadEnUso)
+                                 * @example 1
+                                 */
+                                cantidadDisponible: number;
+                                cantidadMinima: number;
+                                latitud: number;
+                                longitud: number;
+                                descripcion: string | null;
+                                detalles: {
+                                    [key: string]: unknown;
+                                };
+                                /** @description Datos de la delegación territorial de procedencia */
+                                delegacion: {
+                                    /** Format: uuid */
+                                    id: string;
+                                    codigo: string;
+                                    nombre: string;
+                                } | null;
+                                /** Format: uuid */
+                                creadoPorId: string;
+                                creadoEn: string;
+                                actualizadoEn: string;
+                            }[];
+                            meta: {
+                                /** @description Total general de registros coincidentes */
+                                total: number;
+                                /** @description Página actual */
+                                pagina: number;
+                                /** @description Límite de elementos por página */
+                                limite: number;
+                                /** @description Cantidad total de páginas disponibles */
+                                totalPaginas: number;
+                            };
+                        };
+                    };
+                };
+                /** @description Parámetros de consulta inválidos */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description No autenticado / cabecera X-User-Id ausente */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Acceso denegado. Se requiere perfil de Administrador */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Error interno del servidor */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        /**
+         * Crear recurso
+         * @description Crear un nuevo recurso en el inventario logístico del SGRAI.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    /** @description ID del usuario administrador autenticado */
+                    "x-user-id": string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Datos del nuevo recurso a registrar */
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        nombre: string;
+                        /** @default false */
+                        esIndividual?: boolean;
+                        cantidadInventario: number;
+                        /** @default 0 */
+                        cantidadMinima?: number;
+                        latitud: number;
+                        longitud: number;
+                        descripcion?: string;
+                        /** @default {} */
+                        detalles?: {
+                            patente?: string;
+                            numeroSerie?: string;
+                            marca?: string;
+                            modelo?: string;
+                            anio?: number;
+                            kilometraje?: number;
+                            /** @enum {string} */
+                            tipoCombustible?: "GASOLINA" | "DIESEL" | "ELECTRICO" | "HIBRIDO" | "OTRO";
+                            capacidadPasajeros?: number;
+                            numeroChasis?: string;
+                            capacidadCargaKg?: number;
+                            alcanceMaximoMetros?: number;
+                            tipoGrua?: string;
+                            horometro?: number;
+                            caudalMaximoLpm?: number;
+                            diametroPulgadas?: number;
+                            potenciaHp?: number;
+                            potenciaKva?: number;
+                        } & {
+                            [key: string]: unknown;
+                        };
+                        /** Format: uuid */
+                        delegacionId?: string | null;
+                    };
+                };
+            };
+            responses: {
+                /** @description Recurso creado exitosamente */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            message: string;
+                            data: {
+                                /** Format: uuid */
+                                id: string;
+                                nombre: string;
+                                esIndividual: boolean;
+                                /** @enum {string} */
+                                estado: "DISPONIBLE" | "ASIGNADO" | "EN_MANTENCION" | "BAJO_STOCK" | "NO_DISPONIBLE";
+                                cantidadInventario: number;
+                                cantidadEnUso: number;
+                                cantidadMinima: number;
+                                latitud: number;
+                                longitud: number;
+                                descripcion: string | null;
+                                detalles: {
+                                    [key: string]: unknown;
+                                };
+                                /** Format: uuid */
+                                delegacionId?: string | null;
+                                /** Format: uuid */
+                                creadoPorId: string;
+                                creadoEn: string;
+                                actualizadoEn: string;
+                            };
+                        };
+                    };
+                };
+                /** @description Datos de entrada inválidos */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description No autenticado / cabecera X-User-Id ausente */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description No cuenta con el permiso requerido: recursos:crear */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Error interno del servidor */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/seguridad/roles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Listar perfiles y permisos actuales
+         * @description Retorna el listado completo de perfiles/roles registrados con sus respectivos permisos asignados y metadatos de auditoría.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header: {
+                    /** @description UUID del usuario administrador autenticado */
+                    "x-user-id": string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Listado completo de roles y permisos */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ListarRolesResponse"];
+                    };
+                };
+                /** @description Cabecera de autenticación X-User-Id ausente o usuario no válido */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Acceso denegado. Se requiere perfil de Administrador */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/seguridad/roles/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Obtener detalle de perfil y sus permisos
+         * @description Despliega claramente los permisos, módulos y acciones a los que tiene acceso un perfil específico.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header: {
+                    /** @description UUID del usuario administrador autenticado */
+                    "x-user-id": string;
+                };
+                path: {
+                    /** @description UUID del rol/perfil a consultar */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Detalle del perfil y sus permisos asignados */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RolDetalleResponse"];
+                    };
+                };
+                /** @description Cabecera de autenticación X-User-Id ausente o usuario no válido */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Acceso denegado. Se requiere perfil de Administrador */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Perfil no encontrado */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/incidentes/avisos": {
         parameters: {
             query?: never;
@@ -13,7 +387,7 @@ export interface paths {
         };
         /**
          * Listar avisos pendientes para Call Center
-         * @description Retorna una lista paginada de avisos ordenados por mayor tiempo de espera (creado_en ASC) calculando minutosEnEspera.
+         * @description Retorna una lista paginada de avisos ordenados por mayor tiempo de espera calculando minutosEnEspera.
          */
         get: {
             parameters: {
@@ -51,8 +425,8 @@ export interface paths {
         };
         put?: never;
         /**
-         * Registrar aviso preliminar de informante
-         * @description Permite a un informante ingresar un reporte de emergencia. Notifica en tiempo real vía Socket.io a la sala call-center.
+         * Registrar aviso de incidente (Chatbot Informante)
+         * @description Permite al chatbot registrar un nuevo reporte de emergencia ciudadana con generación de código numérico de 8 dígitos y detección de duplicados.
          */
         post: {
             parameters: {
@@ -61,21 +435,84 @@ export interface paths {
                 path?: never;
                 cookie?: never;
             };
+            /** @description Datos consolidados del flujo conversacional del informante */
             requestBody?: {
                 content: {
-                    "application/json": components["schemas"]["CrearAvisoInput"];
+                    "application/json": {
+                        /** @enum {string} */
+                        tipoAfectacion: "Anegamiento" | "Caída de árbol" | "Corte de energía" | "Deslizamiento" | "Daño estructural" | "Corte de agua potable" | "Otro";
+                        direccion: string;
+                        descripcion?: string;
+                        informanteNombre: string;
+                        informanteRut: string;
+                        informanteTelefono?: string;
+                        latitud?: number;
+                        longitud?: number;
+                    };
                 };
             };
             responses: {
-                /** @description Aviso creado con éxito */
+                /** @description Reporte detectado como duplicado; se retorna el código de seguimiento existente */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            message: string;
+                            data: {
+                                /** Format: uuid */
+                                id: string;
+                                /** @description Código de seguimiento numérico para el informante */
+                                codigoSeguimiento: string;
+                                /** @description Indica si el aviso fue detectado como duplicado de otro reporte reciente */
+                                esDuplicado: boolean;
+                                mensaje: string;
+                                tipoAfectacion: string;
+                                direccion: string;
+                                estado: string;
+                                creadoEn: string;
+                                /** Format: uuid */
+                                avisoOriginalId?: string | null;
+                            };
+                        };
+                    };
+                };
+                /** @description Aviso de incidente registrado exitosamente como nuevo reporte */
                 201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            message: string;
+                            data: {
+                                /** Format: uuid */
+                                id: string;
+                                /** @description Código de seguimiento numérico para el informante */
+                                codigoSeguimiento: string;
+                                /** @description Indica si el aviso fue detectado como duplicado de otro reporte reciente */
+                                esDuplicado: boolean;
+                                mensaje: string;
+                                tipoAfectacion: string;
+                                direccion: string;
+                                estado: string;
+                                creadoEn: string;
+                                /** Format: uuid */
+                                avisoOriginalId?: string | null;
+                            };
+                        };
+                    };
+                };
+                /** @description Datos de entrada inválidos */
+                400: {
                     headers: {
                         [name: string]: unknown;
                     };
                     content?: never;
                 };
-                /** @description Datos del aviso inválidos */
-                400: {
+                /** @description Error interno del servidor */
+                500: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -148,8 +585,8 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Verificar aviso y promover a Incidente formal
-         * @description Transacción atómica PostgreSQL que crea el Incidente formal en estado 'Reportado' y marca el aviso como 'VERIFICADO'.
+         * Verificar y promover aviso a incidente
+         * @description Transforma atómicamente un aviso preliminar en un incidente formal ICS con bloqueo pesimista.
          */
         post: {
             parameters: {
@@ -159,7 +596,7 @@ export interface paths {
                     "x-user-id": string;
                 };
                 path: {
-                    /** @description UUID del aviso */
+                    /** @description UUID del aviso a verificar */
                     id: string;
                 };
                 cookie?: never;
@@ -170,8 +607,15 @@ export interface paths {
                 };
             };
             responses: {
-                /** @description Aviso verificado y registro en Incidente creado exitosamente */
-                201: {
+                /** @description Aviso verificado y promovido a incidente exitosamente */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Datos de entrada inválidos */
+                400: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -191,7 +635,7 @@ export interface paths {
                     };
                     content?: never;
                 };
-                /** @description El aviso ya fue verificado o procesado previamente */
+                /** @description El aviso ya fue verificado o descartado previamente */
                 409: {
                     headers: {
                         [name: string]: unknown;
@@ -216,8 +660,8 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Descartar aviso con justificación
-         * @description Marca un aviso en estado 'DESCARTADO' registrando motivo de descarte obligatorio y operador responsable.
+         * Descartar aviso motivado
+         * @description Descarta un aviso no procedente registrando la justificación obligatoria del operador.
          */
         post: {
             parameters: {
@@ -238,14 +682,14 @@ export interface paths {
                 };
             };
             responses: {
-                /** @description Aviso descartado con éxito */
+                /** @description Aviso descartado correctamente */
                 200: {
                     headers: {
                         [name: string]: unknown;
                     };
                     content?: never;
                 };
-                /** @description Motivo de descarte inválido o menor a 5 caracteres */
+                /** @description Justificación de descarte inválida o faltante */
                 400: {
                     headers: {
                         [name: string]: unknown;
@@ -281,7 +725,273 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/seguridad/roles": {
+    "/api/incidentes/manual": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Ingreso manual de incidente (Call Center / Terreno)
+         * @description Permite a operadores de Call Center y funcionarios ingresar un incidente directamente en estado REPORTADO con autoverificación implícita.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    /** @description UUID del operador autenticado */
+                    "x-user-id": string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Datos del incidente ingresado manualmente */
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        /**
+                         * @description Origen del reporte manual: LLAMADA_TELEFONICA o FUNCIONARIO_TERRENO
+                         * @enum {string}
+                         */
+                        origenReporte: "LLAMADA_TELEFONICA" | "FUNCIONARIO_TERRENO";
+                        /**
+                         * @description Tipo de afectación catalogada
+                         * @enum {string}
+                         */
+                        tipoAfectacion: "Anegamiento" | "Caída de árbol" | "Corte de energía" | "Deslizamiento" | "Daño estructural" | "Corte de agua potable" | "Otro";
+                        descripcion: string;
+                        direccion: string;
+                        latitud?: number;
+                        longitud?: number;
+                        informanteNombre: string;
+                        informanteRut: string;
+                        informanteTelefono?: string;
+                        /** @description ID de llamada telefónica entrante de la central Asterisk para vinculación futura */
+                        asteriskCallId?: string;
+                        /** @description Número de teléfono detectado por CallerID de Asterisk */
+                        asteriskCallerPhone?: string;
+                        /**
+                         * @description Nivel de prioridad del incidente
+                         * @default MEDIA
+                         * @enum {string}
+                         */
+                        prioridad?: "BAJA" | "MEDIA" | "ALTA" | "CRITICA";
+                        /**
+                         * @description Indica si requiere derivación a Asistencia Social para levantamiento de FIBE
+                         * @default false
+                         */
+                        requiereAsistenciaSocial?: boolean;
+                        /**
+                         * @description Si es true, permite continuar y persistir el incidente aun existiendo posibles duplicados cercanos
+                         * @default false
+                         */
+                        forzarCreacion?: boolean;
+                    };
+                };
+            };
+            responses: {
+                /** @description Incidente manual registrado exitosamente */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            mensaje: string;
+                            incidente: {
+                                /** Format: uuid */
+                                id: string;
+                                codigo: string;
+                                codigoSeguimiento?: string;
+                                tipoAfectacion: string;
+                                descripcion: string;
+                                direccion: string;
+                                latitud: number;
+                                longitud: number;
+                                /** @enum {string} */
+                                estado: "REPORTADO" | "VERIFICANDO" | "EN_ATENCION" | "NO_ABORDABLE" | "RESUELTO";
+                                /** @enum {string} */
+                                prioridad: "BAJA" | "MEDIA" | "ALTA" | "CRITICA";
+                                requiereAsistenciaSocial: boolean;
+                                /** Format: uuid */
+                                avisoOrigenId?: string | null;
+                                /** Format: uuid */
+                                creadoPorId?: string | null;
+                                creadoEn: string;
+                            };
+                            aviso: {
+                                /** Format: uuid */
+                                id: string;
+                                /** @description Código de seguimiento numérico para el informante */
+                                codigoSeguimiento: string;
+                                /** @description Indica si el aviso fue detectado como duplicado de otro reporte reciente */
+                                esDuplicado: boolean;
+                                mensaje: string;
+                                tipoAfectacion: string;
+                                direccion: string;
+                                estado: string;
+                                creadoEn: string;
+                                /** Format: uuid */
+                                avisoOriginalId?: string | null;
+                            };
+                        };
+                    };
+                };
+                /** @description Datos de entrada inválidos */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description No autenticado / cabecera X-User-Id ausente */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description No cuenta con el permiso requerido: crear_incidente_manual */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Conflicto por duplicados cercanos */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Error interno del servidor */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/incidentes/verificar-duplicado": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Consultar duplicados para ingreso manual
+         * @description Permite al Call Center consultar incidentes cercanos activos en un radio espacial para alertar visualmente antes de enviar el formulario.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    /** @description UUID del operador autenticado */
+                    "x-user-id": string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Parámetros de búsqueda espacial de incidentes cercanos */
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        /**
+                         * @description Tipo de afectación a comparar
+                         * @enum {string}
+                         */
+                        tipoAfectacion: "Anegamiento" | "Caída de árbol" | "Corte de energía" | "Deslizamiento" | "Daño estructural" | "Corte de agua potable" | "Otro";
+                        direccion: string;
+                        latitud?: number;
+                        longitud?: number;
+                        /**
+                         * @description Radio de búsqueda en metros
+                         * @default 300
+                         */
+                        radioMetros?: number;
+                        /**
+                         * @description Ventana de tiempo retrospectiva en horas
+                         * @default 24
+                         */
+                        horasVentana?: number;
+                    };
+                };
+            };
+            responses: {
+                /** @description Consulta de duplicados completada exitosamente */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            hayDuplicados: boolean;
+                            coincidencias: {
+                                /** Format: uuid */
+                                id: string;
+                                codigo: string;
+                                tipoAfectacion: string;
+                                direccion: string;
+                                estado: string;
+                                distanciaMetros: number;
+                                creadoEn: string;
+                                /** @enum {string} */
+                                origen: "aviso" | "incidente";
+                            }[];
+                        };
+                    };
+                };
+                /** @description Datos de entrada inválidos */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description No autenticado / cabecera X-User-Id ausente */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description No cuenta con el permiso requerido: crear_incidente_manual */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Error interno del servidor */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/incidentes/avisos/seguimiento/{codigo}": {
         parameters: {
             query?: never;
             header?: never;
@@ -289,39 +999,69 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Listar perfiles y permisos actuales
-         * @description Retorna el listado completo de perfiles/roles registrados con sus respectivos permisos asignados y metadatos de auditoría. Accesible exclusivamente por el rol Administrador.
+         * Consultar seguimiento de aviso
+         * @description Permite al ciudadano informante consultar el estado de avance de su reporte mediante su código de seguimiento numérico.
          */
         get: {
             parameters: {
                 query?: never;
-                header: {
-                    /** @description UUID del usuario administrador autenticado */
-                    "x-user-id": string;
+                header?: never;
+                path: {
+                    /** @description Código de seguimiento numérico de 8 dígitos */
+                    codigo: string;
                 };
-                path?: never;
                 cookie?: never;
             };
             requestBody?: never;
             responses: {
-                /** @description Listado completo de roles y permisos */
+                /** @description Estado del aviso obtenido exitosamente */
                 200: {
                     headers: {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["ListarRolesResponse"];
+                        "application/json": {
+                            message: string;
+                            data: {
+                                /** @description Código numérico de 8 dígitos entregado al informante */
+                                codigoSeguimiento: string;
+                                /**
+                                 * @description Estado del incidente en el ciclo de vida ICS
+                                 * @enum {string}
+                                 */
+                                estado: "REPORTADO" | "VERIFICANDO" | "EN_ATENCION" | "NO_ABORDABLE" | "RESUELTO";
+                                /** @description Nombre comprensible para el ciudadano: ej. 'En Atención' */
+                                estadoEtiqueta: string;
+                                /** @description Explicación amigable y clara del estado actual sin jerga técnica */
+                                estadoDescripcion: string;
+                                /** @description Categoría de afectación reportada */
+                                tipoAfectacion: string;
+                                /** @description Ubicación referencial de la emergencia */
+                                direccionAproximada: string;
+                                /** @description Detalle o notas proporcionadas por el informante */
+                                descripcion: string | null;
+                                /** @description Fecha y hora en que se ingresó el reporte */
+                                creadoEn: string;
+                                /** @description Fecha y hora de la última actualización de estado */
+                                actualizadoEn: string;
+                                /**
+                                 * @description Indica si el reporte fue asociado a otro existente en la zona
+                                 * @default false
+                                 */
+                                esDuplicado: boolean;
+                            };
+                        };
                     };
                 };
-                /** @description Cabecera de autenticación X-User-Id ausente o usuario no válido */
-                401: {
+                /** @description No se encontró ningún reporte con el código de seguimiento indicado */
+                404: {
                     headers: {
                         [name: string]: unknown;
                     };
                     content?: never;
                 };
-                /** @description Acceso denegado. Se requiere perfil de Administrador */
-                403: {
+                /** @description Error interno del servidor */
+                500: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -337,7 +1077,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/seguridad/roles/{id}": {
+    "/api/incidentes/tipos": {
         parameters: {
             query?: never;
             header?: never;
@@ -345,49 +1085,655 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Obtener detalle de perfil y sus permisos
-         * @description Despliega claramente los permisos, módulos y acciones a los que tiene acceso un perfil específico. Accesible exclusivamente por el rol Administrador.
+         * Obtener catálogo de tipos de afectación
+         * @description Retorna el listado de opciones de afectación válidas para poblar los botones de respuesta rápida en el chatbot.
          */
         get: {
             parameters: {
                 query?: never;
-                header: {
-                    /** @description UUID del usuario administrador autenticado */
-                    "x-user-id": string;
-                };
-                path: {
-                    /** @description UUID del rol/perfil a consultar */
-                    id: string;
-                };
+                header?: never;
+                path?: never;
                 cookie?: never;
             };
             requestBody?: never;
             responses: {
-                /** @description Detalle del perfil y sus permisos asignados */
+                /** @description Listado de tipos de afectación */
                 200: {
                     headers: {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["RolDetalleResponse"];
+                        "application/json": {
+                            message: string;
+                            data: string[];
+                        };
                     };
                 };
-                /** @description Cabecera de autenticación X-User-Id ausente o usuario no válido */
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/incidentes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Listar incidentes para tablero Kanban (Encargado)
+         * @description Retorna el listado paginado de incidentes registrados en el SGRAI con filtros opcionales para el tablero Kanban del Encargado.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description Número de página para paginación (comienza en 1) */
+                    page?: number;
+                    /** @description Cantidad de elementos por página (máximo 100) */
+                    limit?: number;
+                    /** @description Filtrar por columna/estado específico del Kanban */
+                    estado?: "REPORTADO" | "VERIFICANDO" | "EN_ATENCION" | "NO_ABORDABLE" | "RESUELTO";
+                    /** @description Filtrar por nivel de prioridad */
+                    prioridad?: "BAJA" | "MEDIA" | "ALTA" | "CRITICA";
+                    /** @description Filtrar por tipo de afectación o emergencia */
+                    tipoAfectacion?: string;
+                    /** @description Búsqueda textual sobre código, dirección o descripción del incidente */
+                    busqueda?: string;
+                };
+                header: {
+                    /** @description ID del usuario Encargado o Administrador autenticado */
+                    "x-user-id": string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Listado de incidentes y metadatos de paginación obtenidos exitosamente */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example Listado de incidentes obtenido exitosamente */
+                            message: string;
+                            data: {
+                                /**
+                                 * Format: uuid
+                                 * @description Identificador único UUID del incidente
+                                 */
+                                id: string;
+                                /** @description Código interno del incidente (ej. INC-58291045) */
+                                codigo: string;
+                                /** @description Código numérico de 8 dígitos entregado al informante */
+                                codigoSeguimiento: string;
+                                /** @description Tipo de afectación categorizado */
+                                tipoAfectacion: string;
+                                /** @description Descripción inicial o relato de la emergencia */
+                                descripcion: string | null;
+                                /** @description Dirección o punto de referencia en Valdivia */
+                                direccion: string;
+                                /** @description Latitud geográfica en EPSG:4326 */
+                                latitud: number;
+                                /** @description Longitud geográfica en EPSG:4326 */
+                                longitud: number;
+                                /**
+                                 * @description Estado actual de atención (columna en Kanban)
+                                 * @enum {string}
+                                 */
+                                estado: "REPORTADO" | "VERIFICANDO" | "EN_ATENCION" | "NO_ABORDABLE" | "RESUELTO";
+                                /**
+                                 * @description Nivel de severidad o urgencia
+                                 * @enum {string}
+                                 */
+                                prioridad: "BAJA" | "MEDIA" | "ALTA" | "CRITICA";
+                                /** @description Indica si se requiere derivación para ficha FIBE */
+                                requiereAsistenciaSocial: boolean;
+                                /** @description Fuente de origen del reporte (CHATBOT, LLAMADA, TERRENO, SENAPRED) */
+                                fuenteOrigen: string;
+                                /** @description Nombre de pila del ciudadano informante o null si anónimo */
+                                informanteNombre: string | null;
+                                /** @description Nombre de la delegación territorial correspondiente */
+                                delegacionNombre: string | null;
+                                /** @description Cantidad de misiones tácticas despachadas o generadas para este incidente */
+                                totalMisiones: number;
+                                /** @description Fecha y hora de registro en formato ISO 8601 */
+                                creadoEn: string;
+                                /** @description Última fecha y hora de actualización en formato ISO 8601 */
+                                actualizadoEn: string;
+                            }[];
+                            paginacion: {
+                                /** @description Total de registros coincidentes en la base de datos */
+                                total: number;
+                                /** @description Página actual retornada */
+                                pagina: number;
+                                /** @description Límite de elementos por página solicitado */
+                                limite: number;
+                                /** @description Total de páginas disponibles */
+                                totalPaginas: number;
+                                /** @description Indica si existe una página posterior */
+                                tieneSiguiente: boolean;
+                                /** @description Indica si existe una página previa */
+                                tieneAnterior: boolean;
+                            };
+                        };
+                    };
+                };
+                /** @description Parámetros de consulta no válidos */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description No autenticado / cabecera X-User-Id ausente o inválida */
                 401: {
                     headers: {
                         [name: string]: unknown;
                     };
                     content?: never;
                 };
-                /** @description Acceso denegado. Se requiere perfil de Administrador */
+                /** @description No cuenta con el permiso requerido: incidentes:kanban */
                 403: {
                     headers: {
                         [name: string]: unknown;
                     };
                     content?: never;
                 };
-                /** @description Perfil no encontrado */
+                /** @description Error interno del servidor */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/incidentes/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Consultar detalle completo de un incidente
+         * @description Obtiene la información exhaustiva de un incidente específico, incluyendo informante, delegación, misiones operativas y recursos asociados.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header: {
+                    /** @description ID del usuario Encargado o Administrador autenticado */
+                    "x-user-id": string;
+                };
+                path: {
+                    /** @description Identificador UUID del incidente */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Detalle completo del incidente obtenido exitosamente */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example Detalle de incidente obtenido exitosamente */
+                            message: string;
+                            data: {
+                                /** Format: uuid */
+                                id: string;
+                                codigo: string;
+                                codigoSeguimiento: string;
+                                tipoAfectacion: string;
+                                descripcion: string | null;
+                                direccion: string;
+                                latitud: number;
+                                longitud: number;
+                                /** @enum {string} */
+                                estado: "REPORTADO" | "VERIFICANDO" | "EN_ATENCION" | "NO_ABORDABLE" | "RESUELTO";
+                                /** @enum {string} */
+                                prioridad: "BAJA" | "MEDIA" | "ALTA" | "CRITICA";
+                                requiereAsistenciaSocial: boolean;
+                                fuenteOrigen: string;
+                                asteriskCallId: string | null;
+                                asteriskCallerPhone: string | null;
+                                /** @description Información de contacto del informante ciudadano */
+                                informante: {
+                                    /** Format: uuid */
+                                    id: string;
+                                    rut: string;
+                                    nombre: string;
+                                    telefono: string | null;
+                                } | null;
+                                /** @description Delegación territorial asignada */
+                                delegacion: {
+                                    /** Format: uuid */
+                                    id: string;
+                                    nombre: string;
+                                    descripcion: string | null;
+                                } | null;
+                                /** @description Usuario operador que registró el caso */
+                                creadoPor: {
+                                    /** Format: uuid */
+                                    id: string;
+                                    nombre: string;
+                                    email: string;
+                                } | null;
+                                /** @description Encargado de operaciones asignado */
+                                encargado: {
+                                    /** Format: uuid */
+                                    id: string;
+                                    nombre: string;
+                                    email: string;
+                                } | null;
+                                /** @description Misiones tácticas vinculadas a la atención de este incidente */
+                                misiones: {
+                                    /**
+                                     * Format: uuid
+                                     * @description UUID de la misión operativa
+                                     */
+                                    id: string;
+                                    /** @description Código oficial de la misión (ej. MIS-2026-0001) */
+                                    codigo: string;
+                                    /** @description Título descriptivo de la misión */
+                                    titulo: string;
+                                    /** @description Instrucciones de trabajo en terreno */
+                                    descripcion: string | null;
+                                    /** @description Tipo de misión táctica */
+                                    tipoMision: string;
+                                    /** @description Estado operativo de la misión */
+                                    estado: string;
+                                    /** @description Prioridad táctica de la misión */
+                                    prioridad: string;
+                                    /** @description Justificación en caso de rechazo por la cuadrilla */
+                                    justificacionRechazo: string | null;
+                                    /** @description Patrulla verificadora asignada */
+                                    patrulla: {
+                                        /** Format: uuid */
+                                        id: string;
+                                        nombre: string;
+                                        estado: string;
+                                    } | null;
+                                    /** @description Cuadrilla operativa asignada */
+                                    cuadrilla: {
+                                        /** Format: uuid */
+                                        id: string;
+                                        nombre: string;
+                                        estado: string;
+                                    } | null;
+                                    /** @description Fecha de inicio de trabajos en terreno */
+                                    fechaInicio: string | null;
+                                    /** @description Fecha de finalización o cierre */
+                                    fechaCierre: string | null;
+                                    /** @description Fecha de despacho o creación */
+                                    creadoEn: string;
+                                }[];
+                                /** @description Consolidado de recursos materiales y vehículos asignados en las misiones */
+                                recursosAsociados: {
+                                    /**
+                                     * Format: uuid
+                                     * @description UUID del recurso en el inventario logístico
+                                     */
+                                    recursoId: string;
+                                    /** @description Nombre del recurso (ej. Motobomba 4 pulgadas, Camioneta) */
+                                    nombre: string;
+                                    /** @description Indica si es maquinaria individual o insumo a granel */
+                                    esIndividual: boolean;
+                                    /** @description Cantidad total asignada a cuadrillas en las misiones del incidente */
+                                    cantidadAsignadaTotal: number;
+                                    /** @description Estado actual de inventario del recurso */
+                                    estadoRecurso: string;
+                                    /** @description Nombre de la cuadrilla que tiene asignado el recurso */
+                                    cuadrillaNombre: string | null;
+                                }[];
+                                creadoEn: string;
+                                actualizadoEn: string;
+                            };
+                        };
+                    };
+                };
+                /** @description Identificador de incidente no válido (debe ser UUID) */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description No autenticado */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description No autorizado / falta permiso incidentes:kanban */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Incidente no encontrado */
                 404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Error interno del servidor */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/personal": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Listar empleados y personal
+         * @description Lista y busca empleados y personal operativo del SGRAI con filtros territoriales, de rol y búsqueda textual.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description Término de búsqueda (RUT, nombres, apellidos o email) */
+                    q?: string;
+                    /** @description Filtrar únicamente personal con ficha de terreno */
+                    solo_personal?: "true" | "false";
+                    /** @description Filtrar por delegación municipal */
+                    delegacion_id?: string;
+                    /** @description Filtrar por rol */
+                    rol_id?: string;
+                    /** @description Campo de ordenamiento */
+                    ordenar_por?: "apellidos" | "nombres" | "rut";
+                    /** @description Dirección de ordenamiento */
+                    orden?: "asc" | "desc";
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Lista de empleados obtenida exitosamente */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data: {
+                                /** Format: uuid */
+                                usuario_id: string;
+                                rut: string;
+                                nombres: string;
+                                apellidos: string;
+                                /** Format: email */
+                                email: string;
+                                telefono?: string | null;
+                                usuario_activo: boolean;
+                                fecha_ingreso?: string | null;
+                                fecha_salida?: string | null;
+                                /** Format: uuid */
+                                rol_id: string;
+                                rol_codigo: string;
+                                rol_nombre: string;
+                                /** Format: uuid */
+                                delegacion_id?: string | null;
+                                delegacion_codigo?: string | null;
+                                delegacion_nombre?: string | null;
+                                /** Format: uuid */
+                                personal_id?: string | null;
+                                especialidad?: string | null;
+                                cargo?: string | null;
+                                estado_operativo?: string | null;
+                                disponible_terreno?: boolean | null;
+                                observaciones?: string | null;
+                                es_personal?: boolean;
+                                usuario_updated_at?: string;
+                                personal_updated_at?: string | unknown;
+                            }[];
+                        };
+                    };
+                };
+                /** @description Error interno del servidor */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/personal/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Modificar empleado y ficha operativa
+         * @description Modifica los datos de un empleado, actualizando concurrentemente la información general de usuario y la ficha operativa de personal.
+         */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: {
+                    /** @description UUID del administrador que realiza la modificación */
+                    "x-user-id"?: string;
+                };
+                path: {
+                    /** @description UUID del usuario o de la ficha de personal */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            /** @description Datos a actualizar del empleado */
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        rut?: string;
+                        nombres?: string;
+                        apellidos?: string;
+                        /** Format: email */
+                        email?: string;
+                        telefono?: string;
+                        /** Format: uuid */
+                        rol_id?: string;
+                        /** Format: uuid */
+                        delegacion_id?: string | null;
+                        activo?: boolean;
+                        fecha_ingreso?: string | null;
+                        fecha_salida?: string | null;
+                        especialidad?: string | null;
+                        cargo?: string | null;
+                        /** @enum {string} */
+                        estado_operativo?: "disponible" | "en_mision" | "en_patrulla" | "descanso" | "licencia" | "inactivo";
+                        disponible_terreno?: boolean;
+                        observaciones?: string | null;
+                    };
+                };
+            };
+            responses: {
+                /** @description Empleado actualizado exitosamente */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            mensaje: string;
+                            data: {
+                                /** Format: uuid */
+                                usuario_id: string;
+                                rut: string;
+                                nombres: string;
+                                apellidos: string;
+                                /** Format: email */
+                                email: string;
+                                telefono?: string | null;
+                                usuario_activo: boolean;
+                                fecha_ingreso?: string | null;
+                                fecha_salida?: string | null;
+                                /** Format: uuid */
+                                rol_id: string;
+                                rol_codigo: string;
+                                rol_nombre: string;
+                                /** Format: uuid */
+                                delegacion_id?: string | null;
+                                delegacion_codigo?: string | null;
+                                delegacion_nombre?: string | null;
+                                /** Format: uuid */
+                                personal_id?: string | null;
+                                especialidad?: string | null;
+                                cargo?: string | null;
+                                estado_operativo?: string | null;
+                                disponible_terreno?: boolean | null;
+                                observaciones?: string | null;
+                                es_personal?: boolean;
+                                usuario_updated_at?: string;
+                                personal_updated_at?: string | unknown;
+                            };
+                        };
+                    };
+                };
+                /** @description Rol o delegación inexistente o datos inválidos */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Empleado no encontrado */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Conflicto: Correo electrónico o RUT ya registrado */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Error de validación de campos */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Error interno del servidor */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        trace?: never;
+    };
+    "/api/catalogos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Obtener catálogos de referencia
+         * @description Retorna los catálogos de referencia activos (roles, delegaciones, especialidades y cargos) para alimentar selectores en los frontends.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Catálogos de referencia obtenidos exitosamente */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data: {
+                                roles: {
+                                    /** Format: uuid */
+                                    id: string;
+                                    codigo: string;
+                                    nombre: string;
+                                }[];
+                                delegaciones: {
+                                    /** Format: uuid */
+                                    id: string;
+                                    codigo: string;
+                                    nombre: string;
+                                }[];
+                                especialidades: string[];
+                                cargos: string[];
+                            };
+                        };
+                    };
+                };
+                /** @description Error interno del servidor */
+                500: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -407,152 +1753,252 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
-        AvisosPaginadosResponse: {
-            data: components["schemas"]["AvisoItem"][];
-            pagination: {
-                page: number;
-                limit: number;
-                total: number;
-                totalPages: number;
-            };
-        };
-        AvisoItem: {
-            /** Format: uuid */
-            id: string;
-            codigoSeguimiento: string;
-            tipoAfectacion: string;
-            tipoPreliminarNombre: string | null;
-            direccionTexto: string;
-            descripcion: string | null;
+        CrearRecursoInput: {
+            nombre: string;
+            /** @default false */
+            esIndividual: boolean;
+            cantidadInventario: number;
+            /** @default 0 */
+            cantidadMinima: number;
             latitud: number;
             longitud: number;
-            informanteNombre: string;
-            informanteRut: string;
-            informanteTelefono: string | null;
+            descripcion?: string;
+            /** @default {} */
+            detalles: {
+                patente?: string;
+                numeroSerie?: string;
+                marca?: string;
+                modelo?: string;
+                anio?: number;
+                kilometraje?: number;
+                /** @enum {string} */
+                tipoCombustible?: "GASOLINA" | "DIESEL" | "ELECTRICO" | "HIBRIDO" | "OTRO";
+                capacidadPasajeros?: number;
+                numeroChasis?: string;
+                capacidadCargaKg?: number;
+                alcanceMaximoMetros?: number;
+                tipoGrua?: string;
+                horometro?: number;
+                caudalMaximoLpm?: number;
+                diametroPulgadas?: number;
+                potenciaHp?: number;
+                potenciaKva?: number;
+            } & {
+                [key: string]: unknown;
+            };
+            /** Format: uuid */
+            delegacionId?: string | null;
+        };
+        RecursoResponse: {
+            /** Format: uuid */
+            id: string;
+            nombre: string;
+            esIndividual: boolean;
             /** @enum {string} */
-            origenReporte: "WEB" | "CHATBOT" | "TELEFONO";
-            /** @enum {string} */
-            estado: "PENDIENTE_VERIFICACION" | "NO_VERIFICADO" | "VERIFICADO" | "DESCARTADO";
-            esDuplicado: boolean;
+            estado: "DISPONIBLE" | "ASIGNADO" | "EN_MANTENCION" | "BAJO_STOCK" | "NO_DISPONIBLE";
+            cantidadInventario: number;
+            cantidadEnUso: number;
+            cantidadMinima: number;
+            latitud: number;
+            longitud: number;
+            descripcion: string | null;
+            detalles: {
+                [key: string]: unknown;
+            };
             /** Format: uuid */
-            avisoOriginalId?: string | null;
-            motivoDescarte: string | null;
+            delegacionId?: string | null;
             /** Format: uuid */
-            operadorId: string | null;
-            /** Format: uuid */
-            incidenteId: string | null;
-            minutosEnEspera: number;
+            creadoPorId: string;
             creadoEn: string;
             actualizadoEn: string;
         };
-        CrearAvisoInput: {
-            /**
-             * @description Tipo de afectación reportada (ej: Inundación, Anegamiento, etc.)
-             * @default Anegamiento
-             * @example Anegamiento
-             */
-            tipoAfectacion: string;
-            /**
-             * @description Dirección en texto del incidente
-             * @default Valdivia, Los Ríos
-             * @example Avenida Los Robles con Los Laureles, Isla Teja
-             */
-            direccion: string;
-            /**
-             * @description Descripción detallada del incidente reportado
-             * @example Desborde de río e inundación de viviendas cercanas
-             */
-            descripcion?: string;
-            /**
-             * @description Nombre del informante
-             * @default Vecino Valdivia
-             * @example Juan Pérez
-             */
-            informanteNombre: string;
-            /**
-             * @description RUT del informante
-             * @default 11111111-1
-             * @example 12345678-5
-             */
-            informanteRut: string;
-            /**
-             * @description Teléfono de contacto del informante
-             * @example +56912345678
-             */
-            informanteTelefono?: string;
-            /**
-             * @description Coordenada latitud en grados decimales
-             * @example -39.8142
-             */
-            latitud: number;
-            /**
-             * @description Coordenada longitud en grados decimales
-             * @example -73.2459
-             */
-            longitud: number;
-            /**
-             * @description Canal por el cual ingresó el aviso
-             * @default WEB
-             * @example WEB
-             * @enum {string}
-             */
-            origenReporte: "WEB" | "CHATBOT" | "TELEFONO";
-            /**
-             * Format: uuid
-             * @description ID opcional del catálogo de tipo de incidente
-             */
-            tipoPreliminarId?: string;
-            /** @description Datos informante en formato JSON legacy (opcional) */
-            datosInformante?: {
-                nombre?: string;
-                telefono?: string;
-                rut?: string;
-                direccionAproximada?: string;
-            };
-        };
-        AvisoDetalleResponse: components["schemas"]["AvisoItem"] & {
-            datosInformante: {
-                nombre?: string;
-                telefono?: string;
-                rut?: string;
-                direccionAproximada?: string;
-            };
-            adjuntos: {
+        ListarRecursosPaginadosResponse: {
+            /** @description Listado de recursos en la página solicitada (vacío si no hay recursos) */
+            data: {
                 /** Format: uuid */
                 id: string;
-                nombreArchivo: string;
-                /** Format: uri */
-                url: string;
-                tipoMime: string;
-                tamanoBytes: number;
+                nombre: string;
+                /**
+                 * @description Tipo legible (ej. 'Vehículo o Maquinaria' o 'Material o Insumo')
+                 * @example Vehículo o Maquinaria
+                 */
+                tipo: string;
+                esIndividual: boolean;
+                /** @enum {string} */
+                estado: "DISPONIBLE" | "ASIGNADO" | "EN_MANTENCION" | "BAJO_STOCK" | "NO_DISPONIBLE";
+                cantidadInventario: number;
+                cantidadEnUso: number;
+                /**
+                 * @description Cantidad libre disponible (cantidadInventario - cantidadEnUso)
+                 * @example 1
+                 */
+                cantidadDisponible: number;
+                cantidadMinima: number;
+                latitud: number;
+                longitud: number;
+                descripcion: string | null;
+                detalles: {
+                    [key: string]: unknown;
+                };
+                /** @description Datos de la delegación territorial de procedencia */
+                delegacion: {
+                    /** Format: uuid */
+                    id: string;
+                    codigo: string;
+                    nombre: string;
+                } | null;
+                /** Format: uuid */
+                creadoPorId: string;
                 creadoEn: string;
+                actualizadoEn: string;
+            }[];
+            meta: {
+                /** @description Total general de registros coincidentes */
+                total: number;
+                /** @description Página actual */
+                pagina: number;
+                /** @description Límite de elementos por página */
+                limite: number;
+                /** @description Cantidad total de páginas disponibles */
+                totalPaginas: number;
+            };
+        };
+        ModificarEmpleadoInput: {
+            rut?: string;
+            nombres?: string;
+            apellidos?: string;
+            /** Format: email */
+            email?: string;
+            telefono?: string;
+            /** Format: uuid */
+            rol_id?: string;
+            /** Format: uuid */
+            delegacion_id?: string | null;
+            activo?: boolean;
+            fecha_ingreso?: string | null;
+            fecha_salida?: string | null;
+            especialidad?: string | null;
+            cargo?: string | null;
+            /** @enum {string} */
+            estado_operativo?: "disponible" | "en_mision" | "en_patrulla" | "descanso" | "licencia" | "inactivo";
+            disponible_terreno?: boolean;
+            observaciones?: string | null;
+        };
+        EmpleadoConsolidado: {
+            /** Format: uuid */
+            usuario_id: string;
+            rut: string;
+            nombres: string;
+            apellidos: string;
+            /** Format: email */
+            email: string;
+            telefono?: string | null;
+            usuario_activo: boolean;
+            fecha_ingreso?: string | null;
+            fecha_salida?: string | null;
+            /** Format: uuid */
+            rol_id: string;
+            rol_codigo: string;
+            rol_nombre: string;
+            /** Format: uuid */
+            delegacion_id?: string | null;
+            delegacion_codigo?: string | null;
+            delegacion_nombre?: string | null;
+            /** Format: uuid */
+            personal_id?: string | null;
+            especialidad?: string | null;
+            cargo?: string | null;
+            estado_operativo?: string | null;
+            disponible_terreno?: boolean | null;
+            observaciones?: string | null;
+            es_personal?: boolean;
+            usuario_updated_at?: string;
+            personal_updated_at?: string | unknown;
+        };
+        ListarEmpleadosResponse: {
+            data: {
+                /** Format: uuid */
+                usuario_id: string;
+                rut: string;
+                nombres: string;
+                apellidos: string;
+                /** Format: email */
+                email: string;
+                telefono?: string | null;
+                usuario_activo: boolean;
+                fecha_ingreso?: string | null;
+                fecha_salida?: string | null;
+                /** Format: uuid */
+                rol_id: string;
+                rol_codigo: string;
+                rol_nombre: string;
+                /** Format: uuid */
+                delegacion_id?: string | null;
+                delegacion_codigo?: string | null;
+                delegacion_nombre?: string | null;
+                /** Format: uuid */
+                personal_id?: string | null;
+                especialidad?: string | null;
+                cargo?: string | null;
+                estado_operativo?: string | null;
+                disponible_terreno?: boolean | null;
+                observaciones?: string | null;
+                es_personal?: boolean;
+                usuario_updated_at?: string;
+                personal_updated_at?: string | unknown;
             }[];
         };
-        VerificarAvisoInput: {
-            /**
-             * Format: uuid
-             * @description Clasificación oficial del tipo de incidente confirmado
-             * @example a0000000-0000-0000-0000-000000000001
-             */
-            tipoIncidenteId: string;
-            /**
-             * @description Descripción ajustada por el operador (si se omite, usa la del aviso)
-             * @example Inundación moderada en sector costero por marejadas y colapso de sumideros
-             */
-            descripcion?: string;
-            /**
-             * @description Indica si el incidente requiere activación de Asistencia Social (FIBE)
-             * @default false
-             * @example false
-             */
-            requiereAsistenciaSocial: boolean;
+        ActualizarEmpleadoResponse: {
+            mensaje: string;
+            data: {
+                /** Format: uuid */
+                usuario_id: string;
+                rut: string;
+                nombres: string;
+                apellidos: string;
+                /** Format: email */
+                email: string;
+                telefono?: string | null;
+                usuario_activo: boolean;
+                fecha_ingreso?: string | null;
+                fecha_salida?: string | null;
+                /** Format: uuid */
+                rol_id: string;
+                rol_codigo: string;
+                rol_nombre: string;
+                /** Format: uuid */
+                delegacion_id?: string | null;
+                delegacion_codigo?: string | null;
+                delegacion_nombre?: string | null;
+                /** Format: uuid */
+                personal_id?: string | null;
+                especialidad?: string | null;
+                cargo?: string | null;
+                estado_operativo?: string | null;
+                disponible_terreno?: boolean | null;
+                observaciones?: string | null;
+                es_personal?: boolean;
+                usuario_updated_at?: string;
+                personal_updated_at?: string | unknown;
+            };
         };
-        DescartarAvisoInput: {
-            /**
-             * @description Justificación obligatoria del descarte (información falsa, duplicada, etc.)
-             * @example Reporte duplicado con respecto al aviso ID #1234 verificado anteriormente
-             */
-            motivoDescarte: string;
+        CatalogosResponse: {
+            data: {
+                roles: {
+                    /** Format: uuid */
+                    id: string;
+                    codigo: string;
+                    nombre: string;
+                }[];
+                delegaciones: {
+                    /** Format: uuid */
+                    id: string;
+                    codigo: string;
+                    nombre: string;
+                }[];
+                especialidades: string[];
+                cargos: string[];
+            };
         };
         ListarRolesResponse: {
             /** @description Colección de perfiles con sus permisos asignados */
@@ -649,6 +2095,518 @@ export interface components {
         };
         RolDetalleResponse: {
             data: components["schemas"]["RolItem"] & unknown;
+        };
+        AvisosPaginadosResponse: {
+            data: components["schemas"]["AvisoItem"][];
+            pagination: {
+                page: number;
+                limit: number;
+                total: number;
+                totalPages: number;
+            };
+        };
+        AvisoItem: {
+            /** Format: uuid */
+            id: string;
+            codigoSeguimiento: string;
+            tipoAfectacion: string;
+            tipoPreliminarNombre: string | null;
+            direccionTexto: string;
+            descripcion: string | null;
+            latitud: number;
+            longitud: number;
+            informanteNombre: string;
+            informanteRut: string;
+            informanteTelefono: string | null;
+            /** @enum {string} */
+            origenReporte: "WEB" | "CHATBOT" | "TELEFONO";
+            /** @enum {string} */
+            estado: "PENDIENTE_VERIFICACION" | "NO_VERIFICADO" | "VERIFICADO" | "DESCARTADO";
+            esDuplicado: boolean;
+            /** Format: uuid */
+            avisoOriginalId?: string | null;
+            motivoDescarte: string | null;
+            /** Format: uuid */
+            operadorId: string | null;
+            /** Format: uuid */
+            incidenteId: string | null;
+            minutosEnEspera: number;
+            creadoEn: string;
+            actualizadoEn: string;
+        };
+        AvisoDetalleResponse: components["schemas"]["AvisoItem"] & {
+            datosInformante: {
+                nombre?: string;
+                telefono?: string;
+                rut?: string;
+                direccionAproximada?: string;
+            };
+            adjuntos: {
+                /** Format: uuid */
+                id: string;
+                nombreArchivo: string;
+                /** Format: uri */
+                url: string;
+                tipoMime: string;
+                tamanoBytes: number;
+                creadoEn: string;
+            }[];
+        };
+        CrearAvisoInput: {
+            /**
+             * @description Tipo de afectación reportada (ej: Inundación, Anegamiento, etc.)
+             * @default Anegamiento
+             * @example Anegamiento
+             */
+            tipoAfectacion: string;
+            /**
+             * @description Dirección en texto del incidente
+             * @default Valdivia, Los Ríos
+             * @example Avenida Los Robles con Los Laureles, Isla Teja
+             */
+            direccion: string;
+            /**
+             * @description Descripción detallada del incidente reportado
+             * @example Desborde de río e inundación de viviendas cercanas
+             */
+            descripcion?: string;
+            /**
+             * @description Nombre del informante
+             * @default Vecino Valdivia
+             * @example Juan Pérez
+             */
+            informanteNombre: string;
+            /**
+             * @description RUT del informante
+             * @default 11111111-1
+             * @example 12345678-5
+             */
+            informanteRut: string;
+            /**
+             * @description Teléfono de contacto del informante
+             * @example +56912345678
+             */
+            informanteTelefono?: string;
+            /**
+             * @description Coordenada latitud en grados decimales
+             * @example -39.8142
+             */
+            latitud: number;
+            /**
+             * @description Coordenada longitud en grados decimales
+             * @example -73.2459
+             */
+            longitud: number;
+            /**
+             * @description Canal por el cual ingresó el aviso
+             * @default WEB
+             * @example WEB
+             * @enum {string}
+             */
+            origenReporte: "WEB" | "CHATBOT" | "TELEFONO";
+            /**
+             * Format: uuid
+             * @description ID opcional del catálogo de tipo de incidente
+             */
+            tipoPreliminarId?: string;
+            /** @description Datos informante en formato JSON legacy (opcional) */
+            datosInformante?: {
+                nombre?: string;
+                telefono?: string;
+                rut?: string;
+                direccionAproximada?: string;
+            };
+        };
+        DescartarAvisoInput: {
+            /**
+             * @description Justificación obligatoria del descarte (información falsa, duplicada, etc.)
+             * @example Reporte duplicado con respecto al aviso ID #1234 verificado anteriormente
+             */
+            motivoDescarte: string;
+        };
+        VerificarAvisoInput: {
+            /**
+             * Format: uuid
+             * @description Clasificación oficial del tipo de incidente confirmado
+             * @example a0000000-0000-0000-0000-000000000001
+             */
+            tipoIncidenteId: string;
+            /**
+             * @description Descripción ajustada por el operador (si se omite, usa la del aviso)
+             * @example Inundación moderada en sector costero por marejadas y colapso de sumideros
+             */
+            descripcion?: string;
+            /**
+             * @description Indica si el incidente requiere activación de Asistencia Social (FIBE)
+             * @default false
+             * @example false
+             */
+            requiereAsistenciaSocial: boolean;
+        };
+        CrearAvisoIncidenteInput: {
+            /** @enum {string} */
+            tipoAfectacion: "Anegamiento" | "Caída de árbol" | "Corte de energía" | "Deslizamiento" | "Daño estructural" | "Corte de agua potable" | "Otro";
+            direccion: string;
+            descripcion?: string;
+            informanteNombre: string;
+            informanteRut: string;
+            informanteTelefono?: string;
+            latitud?: number;
+            longitud?: number;
+        };
+        AvisoIncidenteResponse: {
+            /** Format: uuid */
+            id: string;
+            /** @description Código de seguimiento numérico para el informante */
+            codigoSeguimiento: string;
+            /** @description Indica si el aviso fue detectado como duplicado de otro reporte reciente */
+            esDuplicado: boolean;
+            mensaje: string;
+            tipoAfectacion: string;
+            direccion: string;
+            estado: string;
+            creadoEn: string;
+            /** Format: uuid */
+            avisoOriginalId?: string | null;
+        };
+        ConsultaSeguimientoResponse: {
+            /** @description Código numérico de 8 dígitos entregado al informante */
+            codigoSeguimiento: string;
+            /**
+             * @description Estado del incidente en el ciclo de vida ICS
+             * @enum {string}
+             */
+            estado: "REPORTADO" | "VERIFICANDO" | "EN_ATENCION" | "NO_ABORDABLE" | "RESUELTO";
+            /** @description Nombre comprensible para el ciudadano: ej. 'En Atención' */
+            estadoEtiqueta: string;
+            /** @description Explicación amigable y clara del estado actual sin jerga técnica */
+            estadoDescripcion: string;
+            /** @description Categoría de afectación reportada */
+            tipoAfectacion: string;
+            /** @description Ubicación referencial de la emergencia */
+            direccionAproximada: string;
+            /** @description Detalle o notas proporcionadas por el informante */
+            descripcion: string | null;
+            /** @description Fecha y hora en que se ingresó el reporte */
+            creadoEn: string;
+            /** @description Fecha y hora de la última actualización de estado */
+            actualizadoEn: string;
+            /**
+             * @description Indica si el reporte fue asociado a otro existente en la zona
+             * @default false
+             */
+            esDuplicado: boolean;
+        };
+        ListarIncidentesResponse: {
+            /** @example Listado de incidentes obtenido exitosamente */
+            message: string;
+            data: {
+                /**
+                 * Format: uuid
+                 * @description Identificador único UUID del incidente
+                 */
+                id: string;
+                /** @description Código interno del incidente (ej. INC-58291045) */
+                codigo: string;
+                /** @description Código numérico de 8 dígitos entregado al informante */
+                codigoSeguimiento: string;
+                /** @description Tipo de afectación categorizado */
+                tipoAfectacion: string;
+                /** @description Descripción inicial o relato de la emergencia */
+                descripcion: string | null;
+                /** @description Dirección o punto de referencia en Valdivia */
+                direccion: string;
+                /** @description Latitud geográfica en EPSG:4326 */
+                latitud: number;
+                /** @description Longitud geográfica en EPSG:4326 */
+                longitud: number;
+                /**
+                 * @description Estado actual de atención (columna en Kanban)
+                 * @enum {string}
+                 */
+                estado: "REPORTADO" | "VERIFICANDO" | "EN_ATENCION" | "NO_ABORDABLE" | "RESUELTO";
+                /**
+                 * @description Nivel de severidad o urgencia
+                 * @enum {string}
+                 */
+                prioridad: "BAJA" | "MEDIA" | "ALTA" | "CRITICA";
+                /** @description Indica si se requiere derivación para ficha FIBE */
+                requiereAsistenciaSocial: boolean;
+                /** @description Fuente de origen del reporte (CHATBOT, LLAMADA, TERRENO, SENAPRED) */
+                fuenteOrigen: string;
+                /** @description Nombre de pila del ciudadano informante o null si anónimo */
+                informanteNombre: string | null;
+                /** @description Nombre de la delegación territorial correspondiente */
+                delegacionNombre: string | null;
+                /** @description Cantidad de misiones tácticas despachadas o generadas para este incidente */
+                totalMisiones: number;
+                /** @description Fecha y hora de registro en formato ISO 8601 */
+                creadoEn: string;
+                /** @description Última fecha y hora de actualización en formato ISO 8601 */
+                actualizadoEn: string;
+            }[];
+            paginacion: {
+                /** @description Total de registros coincidentes en la base de datos */
+                total: number;
+                /** @description Página actual retornada */
+                pagina: number;
+                /** @description Límite de elementos por página solicitado */
+                limite: number;
+                /** @description Total de páginas disponibles */
+                totalPaginas: number;
+                /** @description Indica si existe una página posterior */
+                tieneSiguiente: boolean;
+                /** @description Indica si existe una página previa */
+                tieneAnterior: boolean;
+            };
+        };
+        IncidenteDetalleResponse: {
+            /** @example Detalle de incidente obtenido exitosamente */
+            message: string;
+            data: {
+                /** Format: uuid */
+                id: string;
+                codigo: string;
+                codigoSeguimiento: string;
+                tipoAfectacion: string;
+                descripcion: string | null;
+                direccion: string;
+                latitud: number;
+                longitud: number;
+                /** @enum {string} */
+                estado: "REPORTADO" | "VERIFICANDO" | "EN_ATENCION" | "NO_ABORDABLE" | "RESUELTO";
+                /** @enum {string} */
+                prioridad: "BAJA" | "MEDIA" | "ALTA" | "CRITICA";
+                requiereAsistenciaSocial: boolean;
+                fuenteOrigen: string;
+                asteriskCallId: string | null;
+                asteriskCallerPhone: string | null;
+                /** @description Información de contacto del informante ciudadano */
+                informante: {
+                    /** Format: uuid */
+                    id: string;
+                    rut: string;
+                    nombre: string;
+                    telefono: string | null;
+                } | null;
+                /** @description Delegación territorial asignada */
+                delegacion: {
+                    /** Format: uuid */
+                    id: string;
+                    nombre: string;
+                    descripcion: string | null;
+                } | null;
+                /** @description Usuario operador que registró el caso */
+                creadoPor: {
+                    /** Format: uuid */
+                    id: string;
+                    nombre: string;
+                    email: string;
+                } | null;
+                /** @description Encargado de operaciones asignado */
+                encargado: {
+                    /** Format: uuid */
+                    id: string;
+                    nombre: string;
+                    email: string;
+                } | null;
+                /** @description Misiones tácticas vinculadas a la atención de este incidente */
+                misiones: {
+                    /**
+                     * Format: uuid
+                     * @description UUID de la misión operativa
+                     */
+                    id: string;
+                    /** @description Código oficial de la misión (ej. MIS-2026-0001) */
+                    codigo: string;
+                    /** @description Título descriptivo de la misión */
+                    titulo: string;
+                    /** @description Instrucciones de trabajo en terreno */
+                    descripcion: string | null;
+                    /** @description Tipo de misión táctica */
+                    tipoMision: string;
+                    /** @description Estado operativo de la misión */
+                    estado: string;
+                    /** @description Prioridad táctica de la misión */
+                    prioridad: string;
+                    /** @description Justificación en caso de rechazo por la cuadrilla */
+                    justificacionRechazo: string | null;
+                    /** @description Patrulla verificadora asignada */
+                    patrulla: {
+                        /** Format: uuid */
+                        id: string;
+                        nombre: string;
+                        estado: string;
+                    } | null;
+                    /** @description Cuadrilla operativa asignada */
+                    cuadrilla: {
+                        /** Format: uuid */
+                        id: string;
+                        nombre: string;
+                        estado: string;
+                    } | null;
+                    /** @description Fecha de inicio de trabajos en terreno */
+                    fechaInicio: string | null;
+                    /** @description Fecha de finalización o cierre */
+                    fechaCierre: string | null;
+                    /** @description Fecha de despacho o creación */
+                    creadoEn: string;
+                }[];
+                /** @description Consolidado de recursos materiales y vehículos asignados en las misiones */
+                recursosAsociados: {
+                    /**
+                     * Format: uuid
+                     * @description UUID del recurso en el inventario logístico
+                     */
+                    recursoId: string;
+                    /** @description Nombre del recurso (ej. Motobomba 4 pulgadas, Camioneta) */
+                    nombre: string;
+                    /** @description Indica si es maquinaria individual o insumo a granel */
+                    esIndividual: boolean;
+                    /** @description Cantidad total asignada a cuadrillas en las misiones del incidente */
+                    cantidadAsignadaTotal: number;
+                    /** @description Estado actual de inventario del recurso */
+                    estadoRecurso: string;
+                    /** @description Nombre de la cuadrilla que tiene asignado el recurso */
+                    cuadrillaNombre: string | null;
+                }[];
+                creadoEn: string;
+                actualizadoEn: string;
+            };
+        };
+        CrearIncidenteManualInput: {
+            /**
+             * @description Origen del reporte manual: LLAMADA_TELEFONICA o FUNCIONARIO_TERRENO
+             * @enum {string}
+             */
+            origenReporte: "LLAMADA_TELEFONICA" | "FUNCIONARIO_TERRENO";
+            /**
+             * @description Tipo de afectación catalogada
+             * @enum {string}
+             */
+            tipoAfectacion: "Anegamiento" | "Caída de árbol" | "Corte de energía" | "Deslizamiento" | "Daño estructural" | "Corte de agua potable" | "Otro";
+            descripcion: string;
+            direccion: string;
+            latitud?: number;
+            longitud?: number;
+            informanteNombre: string;
+            informanteRut: string;
+            informanteTelefono?: string;
+            /** @description ID de llamada telefónica entrante de la central Asterisk para vinculación futura */
+            asteriskCallId?: string;
+            /** @description Número de teléfono detectado por CallerID de Asterisk */
+            asteriskCallerPhone?: string;
+            /**
+             * @description Nivel de prioridad del incidente
+             * @default MEDIA
+             * @enum {string}
+             */
+            prioridad: "BAJA" | "MEDIA" | "ALTA" | "CRITICA";
+            /**
+             * @description Indica si requiere derivación a Asistencia Social para levantamiento de FIBE
+             * @default false
+             */
+            requiereAsistenciaSocial: boolean;
+            /**
+             * @description Si es true, permite continuar y persistir el incidente aun existiendo posibles duplicados cercanos
+             * @default false
+             */
+            forzarCreacion: boolean;
+        };
+        CrearIncidenteManualResponse: {
+            mensaje: string;
+            incidente: {
+                /** Format: uuid */
+                id: string;
+                codigo: string;
+                codigoSeguimiento?: string;
+                tipoAfectacion: string;
+                descripcion: string;
+                direccion: string;
+                latitud: number;
+                longitud: number;
+                /** @enum {string} */
+                estado: "REPORTADO" | "VERIFICANDO" | "EN_ATENCION" | "NO_ABORDABLE" | "RESUELTO";
+                /** @enum {string} */
+                prioridad: "BAJA" | "MEDIA" | "ALTA" | "CRITICA";
+                requiereAsistenciaSocial: boolean;
+                /** Format: uuid */
+                avisoOrigenId?: string | null;
+                /** Format: uuid */
+                creadoPorId?: string | null;
+                creadoEn: string;
+            };
+            aviso: {
+                /** Format: uuid */
+                id: string;
+                /** @description Código de seguimiento numérico para el informante */
+                codigoSeguimiento: string;
+                /** @description Indica si el aviso fue detectado como duplicado de otro reporte reciente */
+                esDuplicado: boolean;
+                mensaje: string;
+                tipoAfectacion: string;
+                direccion: string;
+                estado: string;
+                creadoEn: string;
+                /** Format: uuid */
+                avisoOriginalId?: string | null;
+            };
+        };
+        VerificarDuplicadoInput: {
+            /**
+             * @description Tipo de afectación a comparar
+             * @enum {string}
+             */
+            tipoAfectacion: "Anegamiento" | "Caída de árbol" | "Corte de energía" | "Deslizamiento" | "Daño estructural" | "Corte de agua potable" | "Otro";
+            direccion: string;
+            latitud?: number;
+            longitud?: number;
+            /**
+             * @description Radio de búsqueda en metros
+             * @default 300
+             */
+            radioMetros: number;
+            /**
+             * @description Ventana de tiempo retrospectiva en horas
+             * @default 24
+             */
+            horasVentana: number;
+        };
+        VerificarDuplicadoResponse: {
+            hayDuplicados: boolean;
+            coincidencias: {
+                /** Format: uuid */
+                id: string;
+                codigo: string;
+                tipoAfectacion: string;
+                direccion: string;
+                estado: string;
+                distanciaMetros: number;
+                creadoEn: string;
+                /** @enum {string} */
+                origen: "aviso" | "incidente";
+            }[];
+        };
+        IncidenteResponse: {
+            /** Format: uuid */
+            id: string;
+            codigo: string;
+            codigoSeguimiento?: string;
+            tipoAfectacion: string;
+            descripcion: string;
+            direccion: string;
+            latitud: number;
+            longitud: number;
+            /** @enum {string} */
+            estado: "REPORTADO" | "VERIFICANDO" | "EN_ATENCION" | "NO_ABORDABLE" | "RESUELTO";
+            /** @enum {string} */
+            prioridad: "BAJA" | "MEDIA" | "ALTA" | "CRITICA";
+            requiereAsistenciaSocial: boolean;
+            /** Format: uuid */
+            avisoOrigenId?: string | null;
+            /** Format: uuid */
+            creadoPorId?: string | null;
+            creadoEn: string;
         };
     };
     responses: never;
