@@ -1,0 +1,91 @@
+.rolesHeaderWrapper {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4, 16px);
+  margin-bottom: 0;
+}
+
+.contextBar {
+  background-color: var(--color-white);
+  border: 1px solid var(--border-color-neutral, #DFE3E8);
+  border-left: 4px solid var(--color-primary-teal);
+  padding: var(--space-3) var(--space-4);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  font-size: var(--font-size-sm);
+  margin-bottom: var(--space-4);
+}
+
+.contextLabel {
+  font-weight: 700;
+  color: var(--color-primary-teal-dark);
+}
+
+.contextDescription {
+  color: var(--color-charcoal);
+}
+
+.rbacBadge {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-3);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+}
+
+.rbacBadgeAdmin {
+  composes: rbacBadge;
+  background-color: var(--color-success-bg, #E8F5E9);
+  border: 1px solid var(--color-success-border, #A5D6A7);
+  color: var(--color-success, #2E7D32);
+}
+
+.rbacBadgeBlocked {
+  composes: rbacBadge;
+  background-color: var(--color-danger-bg);
+  border: 1px solid var(--color-danger);
+}
+
+.statusDot {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-radius: var(--radius-round, 9999px);
+}
+
+.statusDotAdmin {
+  composes: statusDot;
+  background-color: var(--color-success, #2E7D32);
+}
+
+.statusDotBlocked {
+  composes: statusDot;
+  background-color: var(--color-danger);
+}
+
+.sessionSelector {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--font-size-sm);
+}
+
+.sessionLabel {
+  font-weight: 600;
+  color: var(--color-charcoal);
+}
+
+.sessionSelect {
+  background-color: var(--color-bg-light);
+  color: var(--color-text-dark);
+  border: 1px solid var(--border-color-neutral, #DFE3E8);
+  padding: var(--space-1) var(--space-3);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  cursor: pointer;
+}

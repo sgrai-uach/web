@@ -1,6 +1,7 @@
 import React from 'react';
 import type { PermisoAsignado } from '@/types/seguridad';
 import PermisoItemRow from './PermisoItemRow';
+import Heading from '@/components/ui/Heading';
 
 interface PermisoModuloSectionProps {
   modulo: string;
@@ -47,9 +48,9 @@ export default function PermisoModuloSection({ modulo, permisos }: PermisoModulo
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <span style={{ width: '8px', height: '8px', backgroundColor: colorModulo, display: 'inline-block' }} />
-          <h4 style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--color-charcoal, #3B3F45)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+          <Heading as="h4" variant="h4" color="charcoal" noMargin style={{ fontSize: '0.9rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
             Módulo: {modulo}
-          </h4>
+          </Heading>
         </div>
 
         <span style={{ backgroundColor: '#ECEFF1', color: 'var(--color-charcoal, #3B3F45)', fontSize: '0.75rem', fontWeight: 700, padding: '0.2rem 0.5rem', borderRadius: 0 }}>

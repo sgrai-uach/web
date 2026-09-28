@@ -8,6 +8,7 @@ import SinPermisosState from './SinPermisosState';
 import RolDetalleHeader from './drawer/RolDetalleHeader';
 import RolDetalleInfo from './drawer/RolDetalleInfo';
 import RolDetalleFooter from './drawer/RolDetalleFooter';
+import Heading from '@/components/ui/Heading';
 
 interface RolDetalleDrawerProps {
   rol: RolItem | null;
@@ -48,7 +49,7 @@ export default function RolDetalleDrawer({ rol, onClose }: RolDetalleDrawerProps
           width: '100%',
           maxWidth: '680px',
           backgroundColor: '#FFFFFF',
-          boxShadow: '-4px 0 20px rgba(0, 0, 0, 0.15)',
+          boxShadow: 'var(--shadow-md)',
           display: 'flex',
           flexDirection: 'column',
           height: '100%',
@@ -79,16 +80,14 @@ export default function RolDetalleDrawer({ rol, onClose }: RolDetalleDrawerProps
                 marginBottom: '0.75rem',
               }}
             >
-              <h3
-                style={{
-                  fontSize: '1rem',
-                  fontWeight: 800,
-                  color: 'var(--color-charcoal, #3B3F45)',
-                  margin: 0,
-                }}
+              <Heading
+                as="h3"
+                variant="h4"
+                color="charcoal"
+                noMargin
               >
                 Matriz de Permisos ({rol.cantidadPermisos})
-              </h3>
+              </Heading>
               {tienePermisos && (
                 <span style={{ fontSize: '0.75rem', color: '#666' }}>
                   Agrupados por módulo funcional

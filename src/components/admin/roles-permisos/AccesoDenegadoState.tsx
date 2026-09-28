@@ -1,6 +1,8 @@
 'use client';
 
 import React from 'react';
+import Heading from '@/components/ui/Heading';
+import Button from '@/components/ui/Button';
 
 interface AccesoDenegadoStateProps {
   rolUsuario: string;
@@ -66,16 +68,15 @@ export default function AccesoDenegadoState({
         HTTP 403 &bull; Acceso Denegado (RBAC)
       </div>
 
-      <h2
-        style={{
-          fontSize: '1.5rem',
-          fontWeight: 800,
-          color: 'var(--color-charcoal, #3B3F45)',
-          marginBottom: '0.75rem',
-        }}
+      <Heading
+        as="h2"
+        variant="h2"
+        color="charcoal"
+        align="center"
+        style={{ marginBottom: '0.75rem' }}
       >
         Se requiere perfil de Administrador
-      </h2>
+      </Heading>
 
       <p
         style={{
@@ -99,39 +100,20 @@ export default function AccesoDenegadoState({
           flexWrap: 'wrap',
         }}
       >
-        <button
+        <Button
           type="button"
+          variant="primary"
           onClick={onCambiarAAdmin}
-          style={{
-            backgroundColor: 'var(--color-primary-teal, #1B6F7D)',
-            color: '#FFFFFF',
-            border: 'none',
-            borderRadius: 0,
-            padding: '0.75rem 1.5rem',
-            fontWeight: 700,
-            fontSize: '0.875rem',
-            cursor: 'pointer',
-            transition: 'background-color 0.15s ease',
-          }}
         >
           Cambiar a Administrador General &rarr;
-        </button>
+        </Button>
 
-        <a
+        <Button
+          variant="secondary"
           href="/callcenter"
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            backgroundColor: 'var(--color-charcoal, #3B3F45)',
-            color: '#FFFFFF',
-            padding: '0.75rem 1.25rem',
-            fontSize: '0.875rem',
-            fontWeight: 600,
-            textDecoration: 'none',
-          }}
         >
           Ir a Centro Call Center
-        </a>
+        </Button>
       </div>
     </div>
   );

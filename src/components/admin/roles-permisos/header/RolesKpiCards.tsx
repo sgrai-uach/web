@@ -12,8 +12,7 @@ export default function RolesKpiCards({ metricas }: RolesKpiCardsProps) {
         display: 'grid',
         gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
         gap: '1rem',
-        padding: '1.25rem 1.5rem 0.5rem 1.5rem',
-        backgroundColor: 'var(--color-bg-light, #ECEFF3)',
+        padding: '0',
       }}
     >
       <div

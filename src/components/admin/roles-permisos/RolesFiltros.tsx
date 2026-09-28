@@ -2,6 +2,8 @@
 
 import React from 'react';
 import type { FiltroEstadoPermisos, FiltroTipoRol } from '@/types/seguridad';
+import Button from '@/components/ui/Button';
+import { RotateCw, X } from 'lucide-react';
 
 export type { FiltroTipoRol, FiltroEstadoPermisos };
 
@@ -46,20 +48,22 @@ function ButtonGroup<T extends string>({
         {options.map((opt) => {
           const activo = value === opt.clave;
           return (
-            <button
+            <Button
               key={opt.clave}
               type="button"
+              variant={activo ? 'primary' : 'ghost'}
+              size="sm"
               onClick={() => onChange(opt.clave)}
               style={{
-                border: 'none', borderRadius: 0, padding: '0.45rem 0.75rem',
-                fontSize: '0.75rem', fontWeight: activo ? 700 : 500,
-                backgroundColor: activo ? 'var(--color-primary-teal, #1B6F7D)' : '#FFFFFF',
+                borderRadius: 0,
+                padding: '0.35rem 0.65rem',
+                fontSize: '0.75rem',
+                minHeight: 'auto',
                 color: activo ? '#FFFFFF' : 'var(--color-charcoal, #3B3F45)',
-                cursor: 'pointer', transition: 'background-color 0.15s ease',
               }}
             >
               {opt.label}
-            </button>
+            </Button>
           );
         })}
       </div>
@@ -81,7 +85,7 @@ export default function RolesFiltros({
     <div
       style={{
         backgroundColor: 'var(--color-white, #FFFFFF)', border: '1px solid #DFE3E8',
-        padding: '1rem 1.25rem', marginBottom: '1.5rem', display: 'flex',
+        padding: '1rem 1.25rem', display: 'flex',
         flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '1rem',
       }}
     >
@@ -92,23 +96,31 @@ export default function RolesFiltros({
           onChange={(e) => onBusquedaChange(e.target.value)}
           placeholder="Buscar perfil por nombre, descripción o módulo..."
           style={{
-            width: '100%', padding: '0.625rem 0.875rem', border: '1px solid #CCD2D9',
+            width: '100%', padding: '0.625rem 0.875rem', border: '1px solid var(--border-color-dark, #3B3F45)',
             borderRadius: 0, fontSize: '0.875rem', color: 'var(--color-charcoal, #3B3F45)',
             backgroundColor: '#FFFFFF', outline: 'none',
           }}
         />
         {busqueda && (
-          <button
+          <Button
             type="button"
+            variant="ghost"
+            size="sm"
             onClick={() => onBusquedaChange('')}
             style={{
-              position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)',
-              border: 'none', backgroundColor: 'transparent', cursor: 'pointer', fontSize: '1rem', color: '#888',
+              position: 'absolute',
+              right: '6px',
+              top: '50%',
+              transform: 'translateY(-50%)',
+              padding: '2px 6px',
+              minHeight: 'auto',
+              color: '#888',
             }}
             title="Limpiar búsqueda"
+            aria-label="Limpiar búsqueda"
           >
-            &times;
-          </button>
+            <X size={14} aria-hidden="true" />
+          </Button>
         )}
       </div>
 
@@ -116,21 +128,16 @@ export default function RolesFiltros({
         <ButtonGroup label="Tipo" options={TIPOS_ROL} value={filtroTipo} onChange={onFiltroTipoChange} />
         <ButtonGroup label="Permisos" options={ESTADOS_PERMISO} value={filtroEstado} onChange={onFiltroEstadoChange} />
 
-        <button
+        <Button
           type="button"
+          variant="secondary"
           onClick={onRefrescar}
           disabled={cargando}
-          style={{
-            display: 'inline-flex', alignItems: 'center', gap: '0.4rem',
-            border: '1px solid #CCD2D9', borderRadius: 0, padding: '0.45rem 0.85rem',
-            fontSize: '0.8125rem', fontWeight: 600, backgroundColor: '#FFFFFF',
-            color: 'var(--color-charcoal, #3B3F45)', cursor: cargando ? 'not-allowed' : 'pointer',
-            opacity: cargando ? 0.7 : 1,
-          }}
           title="Refrescar listado de roles"
         >
+          <RotateCw size={14} className={cargando ? 'animate-spin' : ''} aria-hidden="true" />
           <span>{cargando ? 'Cargando...' : 'Refrescar'}</span>
-        </button>
+        </Button>
       </div>
     </div>
   );

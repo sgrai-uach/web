@@ -2,6 +2,8 @@
 
 import React, { useMemo } from 'react';
 import type { RolItem } from '@/types/seguridad';
+import Heading from '@/components/ui/Heading';
+import Button from '@/components/ui/Button';
 
 interface RolCardProps {
   rol: RolItem;
@@ -31,9 +33,9 @@ export default function RolCard({ rol, onSeleccionar }: RolCardProps) {
     >
       <div>
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '0.75rem', marginBottom: '0.5rem' }}>
-          <h3 style={{ fontSize: '1.125rem', fontWeight: 800, color: 'var(--color-charcoal, #3B3F45)', lineHeight: '1.3', margin: 0 }}>
+          <Heading as="h3" variant="h3" color="charcoal" noMargin>
             {rol.nombre}
-          </h3>
+          </Heading>
           <span
             style={{
               backgroundColor: rol.esSistema ? '#ECEFF1' : '#E8F5E9',
@@ -87,19 +89,14 @@ export default function RolCard({ rol, onSeleccionar }: RolCardProps) {
         )}
       </div>
 
-      <button
+      <Button
         type="button"
+        variant={tienePermisos ? 'primary' : 'secondary'}
         onClick={() => onSeleccionar(rol)}
-        style={{
-          width: '100%',
-          backgroundColor: tienePermisos ? 'var(--color-primary-teal, #1B6F7D)' : 'var(--color-charcoal, #3B3F45)',
-          color: '#FFFFFF', border: 'none', borderRadius: 0, padding: '0.65rem 1rem',
-          fontSize: '0.875rem', fontWeight: 700, cursor: 'pointer', textAlign: 'center',
-          transition: 'background-color 0.15s ease',
-        }}
+        style={{ width: '100%', justifyContent: 'center' }}
       >
         Ver Permisos &rarr;
-      </button>
+      </Button>
     </article>
   );
 }
