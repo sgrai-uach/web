@@ -1,7 +1,10 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { verificarDuplicado } from '@/lib/api/incidentes-manuales';
+import {
+  verificarDuplicado,
+  type VerificarDuplicadoPayload,
+} from '@/services/incidentesManualesService';
 import type { DuplicadoItem } from '@/types/incidente-manual';
 
 interface UseVerificarDuplicadoParams {
@@ -36,9 +39,11 @@ export function useVerificarDuplicado({
       const res = await verificarDuplicado(
         {
           direccion: direccion.trim(),
-          tipoAfectacion: tipoAfectacion.trim(),
+          tipoAfectacion: tipoAfectacion.trim() as VerificarDuplicadoPayload['tipoAfectacion'],
           latitud,
           longitud,
+          radioMetros: 300,
+          horasVentana: 24,
         },
         operadorId
       );

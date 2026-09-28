@@ -4,7 +4,8 @@ import { useState, useEffect, useCallback } from 'react';
 import {
   obtenerTiposAfectacion,
   crearIncidenteManual,
-} from '@/lib/api/incidentes-manuales';
+  type CrearIncidenteManualPayload,
+} from '@/services/incidentesManualesService';
 import {
   incidenteManualSchema,
   TIPOS_AFECTACION_FALLBACK,
@@ -178,7 +179,10 @@ export function useIncidenteManualForm({
 
     setEnviando(true);
     try {
-      const respuesta = await crearIncidenteManual(datosAValidar, operadorId);
+      const respuesta = await crearIncidenteManual(
+        datosAValidar as CrearIncidenteManualPayload,
+        operadorId
+      );
       if (respuesta.tipo === 'EXITO') {
         setModalDuplicadosAbierto(false);
         setResultadoExitoso(respuesta.datos);

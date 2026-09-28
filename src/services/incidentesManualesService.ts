@@ -61,19 +61,21 @@ export async function verificarDuplicado(
 ): Promise<{ hayDuplicados: boolean; coincidencias: DuplicadoItem[] }> {
   try {
     const { data, error, response } = await apiClient.POST('/api/incidentes/verificar-duplicado', {
-      headers: {
-        'X-User-Id': operadorId,
+      params: {
+        header: {
+          'x-user-id': operadorId,
+        },
       },
       body: payload,
     });
 
-    if (error || !response.ok || !data?.data) {
+    if (error || !response.ok || !data) {
       return { hayDuplicados: false, coincidencias: [] };
     }
 
     return {
-      hayDuplicados: Boolean(data.data.hayDuplicados),
-      coincidencias: (data.data.coincidencias || []) as DuplicadoItem[],
+      hayDuplicados: Boolean(data.hayDuplicados),
+      coincidencias: (data.coincidencias || []) as DuplicadoItem[],
     };
   } catch {
     return { hayDuplicados: false, coincidencias: [] };
@@ -90,15 +92,17 @@ export async function crearIncidenteManual(
 ): Promise<ResultadoCreacionManual> {
   try {
     const { data, error, response } = await apiClient.POST('/api/incidentes/manual', {
-      headers: {
-        'X-User-Id': operadorId,
+      params: {
+        header: {
+          'x-user-id': operadorId,
+        },
       },
       body: payload,
     });
 
-    if (response.status === 201 && data?.data) {
-      const incidente = data.data.incidente;
-      const aviso = data.data.aviso;
+    if (response.status === 201 && data) {
+      const incidente = data.incidente;
+      const aviso = data.aviso;
       return {
         tipo: 'EXITO',
         datos: {
@@ -110,7 +114,7 @@ export async function crearIncidenteManual(
           prioridad: incidente.prioridad,
           creadoEn: incidente.creadoEn,
         },
-        mensaje: data.message || 'Incidente ingresado y verificado exitosamente.',
+        mensaje: data.mensaje || 'Incidente ingresado y verificado exitosamente.',
       };
     }
 

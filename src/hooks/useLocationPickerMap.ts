@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import type { Map as LeafletMap, Marker as LeafletMarker, LeafletMouseEvent, DivIcon as LeafletDivIcon } from 'leaflet';
-import { createValdiviaPinIcon } from './valdiviaPinIcon';
+import { createValdiviaPinIcon } from '@/components/maps/valdiviaPinIcon';
 
 interface UseLocationPickerMapParams {
   latitud?: number | null;

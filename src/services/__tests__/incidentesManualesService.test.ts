@@ -1,10 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import apiClient from '../client';
+import apiClient from '@/lib/api/client';
 import {
   obtenerTiposAfectacion,
   verificarDuplicado,
   crearIncidenteManual,
-} from '../incidentes-manuales';
+} from '../incidentesManualesService';
 import { TIPOS_AFECTACION_FALLBACK } from '@/types/incidente-manual';
 
 describe('Servicio incidentes-manuales', () => {
@@ -36,35 +36,35 @@ describe('Servicio incidentes-manuales', () => {
     it('debe enviar X-User-Id y retornar coincidencias si existen', async () => {
       const mockPost = vi.spyOn(apiClient, 'POST').mockResolvedValueOnce({
         data: {
-          data: {
-            hayDuplicados: true,
-            coincidencias: [
-              {
-                id: 'dup-1',
-                codigo: 'INC-0001',
-                tipoAfectacion: 'Anegamiento',
-                direccion: 'Av. Alemania 550',
-                estado: 'SIN_ATENDER',
-                distanciaMetros: 25.4,
-                creadoEn: '2026-09-13T12:00:00Z',
-                origen: 'incidente',
-              },
-            ],
-          },
+          hayDuplicados: true,
+          coincidencias: [
+            {
+              id: 'dup-1',
+              codigo: 'INC-0001',
+              tipoAfectacion: 'Anegamiento',
+              direccion: 'Av. Alemania 550',
+              estado: 'REPORTADO',
+              distanciaMetros: 25.4,
+              creadoEn: '2026-09-13T12:00:00Z',
+              origen: 'incidente',
+            },
+          ],
         },
         error: undefined,
         response: new Response(null, { status: 200 }),
       } as unknown as Awaited<ReturnType<typeof apiClient.POST>>);
 
       const res = await verificarDuplicado(
-        { tipoAfectacion: 'Anegamiento', direccion: 'Av. Alemania 550' },
+        { tipoAfectacion: 'Anegamiento', direccion: 'Av. Alemania 550', radioMetros: 300, horasVentana: 24 },
         'operador-uuid-123'
       );
 
       expect(mockPost).toHaveBeenCalledWith(
         '/api/incidentes/verificar-duplicado',
         expect.objectContaining({
-          headers: { 'X-User-Id': 'operador-uuid-123' },
+          params: expect.objectContaining({
+            header: { 'x-user-id': 'operador-uuid-123' },
+          }),
         })
       );
       expect(res.hayDuplicados).toBe(true);
@@ -78,6 +78,8 @@ describe('Servicio incidentes-manuales', () => {
       const res = await verificarDuplicado({
         tipoAfectacion: 'Caída de árbol',
         direccion: 'Picarte 1000',
+        radioMetros: 300,
+        horasVentana: 24,
       });
 
       expect(res.hayDuplicados).toBe(false);
@@ -88,35 +90,42 @@ describe('Servicio incidentes-manuales', () => {
   describe('crearIncidenteManual', () => {
     const payloadValido = {
       origenReporte: 'LLAMADA_TELEFONICA' as const,
-      tipoAfectacion: 'Anegamiento',
+      tipoAfectacion: 'Anegamiento' as const,
       descripcion: 'Agua sube 20 cm en la calzada',
       direccion: 'Av. Alemania 550',
       informanteNombre: 'Juan Pérez',
       informanteRut: '11.111.111-1',
       prioridad: 'MEDIA' as const,
       requiereAsistenciaSocial: false,
+      forzarCreacion: false,
     };
 
     it('debe manejar 201 Created exitosamente retornando códigos de incidente y aviso', async () => {
       vi.spyOn(apiClient, 'POST').mockResolvedValueOnce({
         data: {
-          message: 'Incidente y aviso creados con éxito',
-          data: {
-            incidente: {
-              id: 'inc-123',
-              codigo: 'INC-0089',
-              tipoAfectacion: 'Anegamiento',
-              direccion: 'Av. Alemania 550',
-              estado: 'SIN_ATENDER',
-              prioridad: 'MEDIA',
-              requiereAsistenciaSocial: false,
-              creadoEn: '2026-09-13T14:00:00Z',
-            },
-            aviso: {
-              id: 'av-456',
-              codigoSeguimiento: '84920194',
-              origenReporte: 'LLAMADA_TELEFONICA',
-            },
+          mensaje: 'Incidente y aviso creados con éxito',
+          incidente: {
+            id: 'inc-123',
+            codigo: 'INC-0089',
+            tipoAfectacion: 'Anegamiento',
+            descripcion: 'Agua sube 20 cm en la calzada',
+            direccion: 'Av. Alemania 550',
+            latitud: -39.81,
+            longitud: -73.24,
+            estado: 'REPORTADO',
+            prioridad: 'MEDIA',
+            requiereAsistenciaSocial: false,
+            creadoEn: '2026-09-13T14:00:00Z',
+          },
+          aviso: {
+            id: 'av-456',
+            codigoSeguimiento: '84920194',
+            esDuplicado: false,
+            mensaje: 'Aviso registrado',
+            tipoAfectacion: 'Anegamiento',
+            direccion: 'Av. Alemania 550',
+            estado: 'PENDIENTE_VERIFICACION',
+            creadoEn: '2026-09-13T14:00:00Z',
           },
         },
         error: undefined,
@@ -129,7 +138,7 @@ describe('Servicio incidentes-manuales', () => {
       if (resultado.tipo === 'EXITO') {
         expect(resultado.datos.codigoIncidente).toBe('INC-0089');
         expect(resultado.datos.codigoAviso).toBe('84920194');
-        expect(resultado.datos.estado).toBe('SIN_ATENDER');
+        expect(resultado.datos.estado).toBe('REPORTADO');
       }
     });
 
