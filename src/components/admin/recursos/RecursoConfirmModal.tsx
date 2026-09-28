@@ -1,6 +1,7 @@
 import React from 'react';
 import type { RecursoFormState } from '@/types/recurso';
 import Modal from '@/components/common/Modal';
+import Button from '@/components/ui/Button';
 
 interface RecursoConfirmModalProps {
   isOpen: boolean;
@@ -19,43 +20,23 @@ export default function RecursoConfirmModal({
 }: RecursoConfirmModalProps) {
   const actions = (
     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', width: '100%' }}>
-      <button
+      <Button
         type="button"
+        variant="secondary"
         onClick={onClose}
         disabled={isSubmitting}
-        style={{
-          backgroundColor: 'var(--color-charcoal)',
-          color: 'var(--color-white)',
-          border: 'none',
-          borderRadius: 0,
-          padding: '12px 20px',
-          fontSize: '14px',
-          fontWeight: 600,
-          cursor: 'pointer',
-          height: '44px',
-        }}
       >
         Modificar datos
-      </button>
+      </Button>
 
-      <button
+      <Button
         type="button"
+        variant="primary"
         onClick={onConfirm}
         disabled={isSubmitting}
-        style={{
-          backgroundColor: isSubmitting ? 'var(--color-bg-light)' : 'var(--color-accent-mint)',
-          color: isSubmitting ? 'var(--color-charcoal)' : 'var(--color-white)',
-          border: 'none',
-          borderRadius: 0,
-          padding: '12px 28px',
-          fontSize: '14px',
-          fontWeight: 700,
-          cursor: isSubmitting ? 'not-allowed' : 'pointer',
-          height: '44px',
-        }}
       >
         {isSubmitting ? 'Ingresando Recurso...' : 'Confirmar y Guardar'}
-      </button>
+      </Button>
     </div>
   );
 

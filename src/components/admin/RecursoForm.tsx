@@ -3,7 +3,7 @@
 import React from 'react';
 import { useRouter } from 'next/navigation';
 import { useRecursoForm } from '@/hooks/useRecursoForm';
-import NotificationBanner from '@/components/common/NotificationBanner';
+import InlineNotice from '@/components/ui/InlineNotice';
 import SuccessActions from './SuccessActions';
 import RecursoDatosBasicosSection from './recursos/RecursoDatosBasicosSection';
 import RecursoInventarioSection from './recursos/RecursoInventarioSection';
@@ -68,12 +68,22 @@ export default function RecursoForm() {
     >
       {/* Alerta de Error de Servidor o Red */}
       {serverError && (
-        <NotificationBanner
-          type="error"
+        <InlineNotice
+          variant="error"
           title="No fue posible registrar el recurso"
-          message={serverError}
-          errors={serverFieldErrors}
-        />
+        >
+          <div>{serverError}</div>
+          {serverFieldErrors && serverFieldErrors.length > 0 && (
+            <ul style={{ margin: '6px 0 0 0', paddingLeft: '18px' }}>
+              {serverFieldErrors.map((err, index) => (
+                <li key={index}>
+                  {err.campo ? <strong>{err.campo}: </strong> : null}
+                  {err.mensaje}
+                </li>
+              ))}
+            </ul>
+          )}
+        </InlineNotice>
       )}
 
       {/* SECCIÓN 1: Información General */}

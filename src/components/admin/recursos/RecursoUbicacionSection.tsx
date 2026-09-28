@@ -1,5 +1,8 @@
 import React from 'react';
 import dynamic from 'next/dynamic';
+import { MapPin } from 'lucide-react';
+import Heading from '@/components/ui/Heading';
+import Button from '@/components/ui/Button';
 
 const LocationPickerMap = dynamic(
   () => import('@/components/maps/LocationPickerMap'),
@@ -65,11 +68,19 @@ export default function RecursoUbicacionSection({
       <div style={{ borderBottom: '2px solid var(--color-primary-teal)', paddingBottom: '8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <span style={{ color: 'var(--color-primary-teal)', fontWeight: 'bold', fontSize: '18px' }}>{sectionNumber}</span>
-          <h2 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--color-primary-teal-dark)', margin: 0 }}>Ubicación Geográfica en Valdivia</h2>
+          <Heading as="h2" variant="h3" color="teal-dark" noMargin>
+            Ubicación Geográfica en Valdivia
+          </Heading>
         </div>
-        <button type="button" onClick={onCenterValdivia} style={{ backgroundColor: 'var(--color-charcoal)', color: 'var(--color-white)', border: 'none', borderRadius: 0, padding: '6px 12px', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}>
-          📍 Centrar en Valdivia
-        </button>
+        <Button
+          type="button"
+          variant="secondary"
+          size="sm"
+          onClick={onCenterValdivia}
+        >
+          <MapPin size={12} aria-hidden="true" />
+          <span>Centrar en Valdivia</span>
+        </Button>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
@@ -86,7 +97,13 @@ export default function RecursoUbicacionSection({
         </div>
       </div>
 
-      <LocationPickerMap latitud={latitud} longitud={longitud} onChange={onChangeCoords} />
+      <LocationPickerMap
+        latitud={typeof latitud === 'number' ? latitud : parseFloat(latitud) || null}
+        longitud={typeof longitud === 'number' ? longitud : parseFloat(longitud) || null}
+        onChange={(coords) => {
+          if (coords) onChangeCoords(coords);
+        }}
+      />
     </section>
   );
 }
