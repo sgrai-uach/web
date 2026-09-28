@@ -6,7 +6,6 @@ import type {
   DescartarAvisoInput,
   DescartarAvisoSuccessResponse,
   FiltrosAvisosState,
-  TipoIncidenteDTO,
   TipoIncidenteOpcion,
   VerificarAvisoInput,
   VerificarAvisoSuccessResponse,
