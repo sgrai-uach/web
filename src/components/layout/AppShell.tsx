@@ -4,7 +4,7 @@ import React from 'react';
 import AppSidebar from './AppSidebar';
 import AppHeader from './AppHeader';
 import AppFooter from './AppFooter';
-import { useSidebarState } from './useSidebarState';
+import { useSidebarState } from '@/hooks/useSidebarState';
 import styles from './AppShell.module.css';
 
 interface AppShellProps {
