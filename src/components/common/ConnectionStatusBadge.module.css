@@ -1,0 +1,28 @@
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2, 8px);
+  background-color: var(--color-bg-light, #ECEFF3);
+  border: 1px solid var(--border-color-neutral, #DFE3E8);
+  padding: 4px 10px;
+  font-size: var(--font-size-xs, 12px);
+  font-weight: 600;
+  color: var(--color-text-dark, #2B2B2B);
+  line-height: 1;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-round, 9999px);
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.connected {
+  background-color: var(--color-success, #2E7D32);
+}
+
+.disconnected {
+  background-color: var(--color-warning, #E65100);
+}
