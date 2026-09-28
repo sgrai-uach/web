@@ -1,0 +1,52 @@
+.card {
+  background-color: var(--color-white, #FFFFFF);
+  padding: var(--space-6, 24px);
+  border-left: var(--stripe-width, 4px) solid var(--stripe-color, var(--color-primary-teal, #1B6F7D));
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-4, 16px);
+  box-shadow: var(--shadow-sm, 0 1px 3px rgba(0, 0, 0, 0.08));
+  border-radius: var(--radius-none, 0px);
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+  min-width: 280px;
+}
+
+.titleRow {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-3, 12px);
+}
+
+.badge {
+  background-color: var(--color-bg-light, #ECEFF3);
+  color: var(--color-primary-teal-dark, #14505A);
+  padding: 4px 10px;
+  font-size: var(--font-size-xs, 12px);
+  font-weight: 700;
+  border: 1px solid var(--border-color-neutral-dark, #CCD2D9);
+  user-select: none;
+  border-radius: var(--radius-none, 0px);
+}
+
+.description {
+  margin: 0;
+  font-size: var(--font-size-base, 14px);
+  color: var(--color-charcoal, #3B3F45);
+  line-height: 1.5;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3, 12px);
+  flex-shrink: 0;
+}
