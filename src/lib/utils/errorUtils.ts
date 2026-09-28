@@ -23,6 +23,25 @@ export function getErrorMessage(err: unknown): string {
 }
 
 /**
+ * Traduce mensajes técnicos o de backend (ej. UUIDs internos) a texto claro y comprensible para el usuario.
+ */
+export function toUserFriendlyErrorMessage(err: unknown): string {
+  const rawMsg = getErrorMessage(err);
+
+  // Sanitizar si expone UUID interno de usuario o recurso no encontrado
+  const hasUuid = /[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}/.test(rawMsg);
+  if (hasUuid && (/no existe|no encontrado|not found/i.test(rawMsg))) {
+    return 'El usuario o recurso solicitado no fue encontrado en el sistema.';
+  }
+
+  if (/Failed to fetch|NetworkError|ERR_CONNECTION_REFUSED/i.test(rawMsg)) {
+    return 'No se pudo conectar con el servidor del sistema. Compruebe la conexión de red.';
+  }
+
+  return rawMsg;
+}
+
+/**
  * Normaliza cualquier error de red, respuesta de API o excepción a un objeto ApiErrorResponse tipado.
  */
 export function formatApiError(err: unknown): ApiErrorResponse {
