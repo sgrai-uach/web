@@ -2,6 +2,7 @@
 
 import React from 'react';
 import styles from '@/styles/chatbot.module.css';
+import Button from '@/components/ui/Button';
 
 interface ChatOptionsProps {
   opciones: Array<{ label: string; value: string }>;
@@ -17,15 +18,16 @@ export const ChatOptions: React.FC<ChatOptionsProps> = ({ opciones, onSelect, di
       {opciones.map((opcion) => {
         const esSecundario = opcion.value === 'OMITIR';
         return (
-          <button
+          <Button
             key={opcion.value}
             type="button"
-            className={`${styles.optionButton} ${esSecundario ? styles.optionButtonSecondary : ''}`}
+            variant={esSecundario ? 'secondary' : 'primary'}
+            size="sm"
             onClick={() => onSelect(opcion.value)}
             disabled={disabled}
           >
             {opcion.label}
-          </button>
+          </Button>
         );
       })}
     </div>

@@ -2,6 +2,8 @@
 
 import React from 'react';
 import styles from '@/styles/chatbot.module.css';
+import Heading from '@/components/ui/Heading';
+import Button from '@/components/ui/Button';
 import type { DatosReporte } from '@/hooks/useChatbot';
 
 interface ReportSummaryCardProps {
@@ -19,7 +21,9 @@ export const ReportSummaryCard: React.FC<ReportSummaryCardProps> = ({
 }) => {
   return (
     <div className={styles.summaryCard} aria-label="Resumen de datos del incidente">
-      <h3 className={styles.summaryTitle}>Resumen del Reporte</h3>
+      <Heading as="h3" variant="h3" color="charcoal" className={styles.summaryTitle} noMargin>
+        Resumen del Reporte
+      </Heading>
       <div className={styles.summaryGrid}>
         <div className={styles.summaryItem}>
           <span className={styles.summaryLabel}>Tipo de Afectación</span>
@@ -48,22 +52,22 @@ export const ReportSummaryCard: React.FC<ReportSummaryCardProps> = ({
       </div>
 
       <div className={styles.summaryActions}>
-        <button
+        <Button
           type="button"
-          className={styles.btnPrimary}
+          variant="primary"
           onClick={onConfirmar}
           disabled={deshabilitado}
         >
           {deshabilitado ? 'Enviando reporte...' : 'Confirmar y Enviar Reporte'}
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
-          className={styles.btnSecondary}
+          variant="secondary"
           onClick={onModificar}
           disabled={deshabilitado}
         >
           Modificar datos
-        </button>
+        </Button>
       </div>
     </div>
   );

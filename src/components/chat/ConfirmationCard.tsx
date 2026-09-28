@@ -3,6 +3,8 @@
 import React, { useState } from 'react';
 import { Check } from 'lucide-react';
 import styles from '@/styles/chatbot.module.css';
+import Heading from '@/components/ui/Heading';
+import Button from '@/components/ui/Button';
 import type { ResultadoAviso } from '@/services/avisosService';
 
 interface ConfirmationCardProps {
@@ -42,11 +44,11 @@ export const ConfirmationCard: React.FC<ConfirmationCardProps> = ({
         >
           {esDuplicado ? 'Aviso Asociado' : 'Reporte Ingresado'}
         </span>
-        <h3 className={styles.resultTitle}>
+        <Heading as="h3" variant="h3" color="charcoal" className={styles.resultTitle} noMargin>
           {esDuplicado
             ? 'Incidente Previamente Reportado'
             : 'Tu reporte ha sido recibido'}
-        </h3>
+        </Heading>
       </div>
 
       <p className={styles.resultDescription}>
@@ -59,11 +61,13 @@ export const ConfirmationCard: React.FC<ConfirmationCardProps> = ({
         <div className={styles.trackingCodeBlock}>
           <span className={styles.trackingCodeLabel}>Número de Seguimiento</span>
           <span className={styles.trackingCodeNumber}>{resultado.codigoSeguimiento}</span>
-          <button
+          <Button
             type="button"
-            className={styles.copyCodeButton}
+            variant="outline"
+            size="sm"
             onClick={copiarCodigo}
             aria-label="Copiar código de seguimiento al portapapeles"
+            style={{ minHeight: 'auto', padding: '0.25rem 0.5rem', fontSize: '0.75rem' }}
           >
             {copiado ? (
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
@@ -72,18 +76,18 @@ export const ConfirmationCard: React.FC<ConfirmationCardProps> = ({
             ) : (
               'Copiar código'
             )}
-          </button>
+          </Button>
         </div>
       )}
 
       <div style={{ marginTop: '1.25rem' }}>
-        <button
+        <Button
           type="button"
-          className={styles.btnSecondary}
+          variant="secondary"
           onClick={onNuevoReporte}
         >
           Realizar otro reporte
-        </button>
+        </Button>
       </div>
     </div>
   );

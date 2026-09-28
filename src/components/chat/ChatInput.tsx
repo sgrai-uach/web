@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { AlertTriangle } from 'lucide-react';
 import styles from '@/styles/chatbot.module.css';
+import Button from '@/components/ui/Button';
 import type { PasoChat } from '@/hooks/useChatbot';
 
 interface ChatInputProps {
@@ -84,13 +85,13 @@ export const ChatInput: React.FC<ChatInputProps> = ({
           disabled={isBotTyping}
           aria-label="Campo de respuesta"
         />
-        <button
+        <Button
           type="submit"
-          className={styles.sendButton}
+          variant="primary"
           disabled={isBotTyping || (!valor.trim() && !permiteVacio)}
         >
           Enviar
-        </button>
+        </Button>
       </form>
       {errorMensaje && (
         <div className={styles.errorMessage} role="alert">
