@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import styles from '@/styles/seguimiento.module.css';
-import type { DatosSeguimiento, EstadoIncidente } from '@/lib/api/seguimiento';
+import type { DatosSeguimiento, EstadoIncidente } from '@/services/seguimientoService';
 
 interface SeguimientoResumenCardProps {
   datos: DatosSeguimiento;

@@ -11,7 +11,7 @@ import { SeguimientoSkeleton } from './SeguimientoSkeleton';
 import {
   consultarSeguimientoIncidente,
   type DatosSeguimiento,
-} from '@/lib/api/seguimiento';
+} from '@/services/seguimientoService';
 import {
   useSeguimientoSocket,
   type EstadoActualizadoPayload,

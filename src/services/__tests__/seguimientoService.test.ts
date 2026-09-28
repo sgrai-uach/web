@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { consultarSeguimientoIncidente } from '../seguimiento';
-import apiClient from '../client';
+import { consultarSeguimientoIncidente } from '../seguimientoService';
+import apiClient from '@/lib/api/client';
 
-vi.mock('../client', () => ({
+vi.mock('@/lib/api/client', () => ({
   default: {
     GET: vi.fn(),
   },

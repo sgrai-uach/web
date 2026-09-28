@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { getSocket } from '@/lib/socket/client';
-import type { EstadoIncidente } from '@/lib/api/seguimiento';
+import type { EstadoIncidente } from '@/services/seguimientoService';
 
 export interface EstadoActualizadoPayload {
   codigoSeguimiento: string;

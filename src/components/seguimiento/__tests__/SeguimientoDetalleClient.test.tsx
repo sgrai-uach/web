@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor, act } from '@testing-library/react';
 import { SeguimientoDetalleClient } from '../SeguimientoDetalleClient';
-import * as seguimientoApi from '@/lib/api/seguimiento';
+import * as seguimientoApi from '@/services/seguimientoService';
 import * as socketHook from '@/hooks/useSeguimientoSocket';
 
 describe('SeguimientoDetalleClient', () => {

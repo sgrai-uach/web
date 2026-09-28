@@ -2,7 +2,7 @@
 
 import React from 'react';
 import styles from '@/styles/seguimiento.module.css';
-import type { EstadoIncidente } from '@/lib/api/seguimiento';
+import type { EstadoIncidente } from '@/services/seguimientoService';
 
 interface SeguimientoStepperProps {
   estado: EstadoIncidente;

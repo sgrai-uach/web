@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { SeguimientoResumenCard } from '../SeguimientoResumenCard';
-import type { DatosSeguimiento } from '@/lib/api/seguimiento';
+import type { DatosSeguimiento } from '@/services/seguimientoService';
 
 describe('SeguimientoResumenCard', () => {
   const mockDatos: DatosSeguimiento = {
