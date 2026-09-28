@@ -1,0 +1,65 @@
+.container {
+  background-color: var(--color-white, #FFFFFF);
+  border: 1px solid var(--border-color-neutral, #DFE3E8);
+  border-left: var(--stripe-width, 4px) solid var(--stripe-color, var(--color-primary-teal, #1B6F7D));
+  padding: 10px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-3, 12px);
+  font-size: var(--font-size-sm, 13px);
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.leftGroup {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2, 8px);
+  flex-wrap: wrap;
+}
+
+.title {
+  font-weight: 700;
+  color: var(--color-primary-teal-dark, #14505A);
+}
+
+.description {
+  color: var(--color-charcoal, #3B3F45);
+}
+
+.rightGroup {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3, 12px);
+  flex-wrap: wrap;
+}
+
+.sessionBox {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2, 8px);
+}
+
+.sessionLabel {
+  font-weight: 600;
+  color: var(--color-charcoal, #3B3F45);
+  font-size: var(--font-size-sm, 13px);
+}
+
+.select {
+  padding: 6px 12px;
+  border: 1px solid var(--border-color-neutral-dark, #CCD2D9);
+  background-color: var(--color-bg-light, #ECEFF3);
+  color: var(--color-text-dark, #2B2B2B);
+  font-size: var(--font-size-sm, 13px);
+  font-weight: 600;
+  border-radius: var(--radius-none, 0);
+  cursor: pointer;
+}
+
+.select:focus-visible {
+  outline: 2px solid var(--color-accent-mint, #4FAE9B);
+  outline-offset: 1px;
+}
