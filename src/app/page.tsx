@@ -1,5 +1,6 @@
 import Heading from '@/components/ui/Heading';
 import HomeModuleCard from '@/components/home/HomeModuleCard';
+import AppFooter from '@/components/layout/AppFooter';
 
 export default function Home() {
   return (
@@ -119,19 +120,7 @@ export default function Home() {
           I. Municipalidad de Valdivia &bull; Dirección de Gestión de Riesgos de Desastres (DGRD)
         </div>
       </div>
-      <footer
-        style={{
-          backgroundColor: 'var(--color-charcoal-dark, #24272B)',
-          color: 'var(--color-text-light, #FFFFFF)',
-          padding: '16px 24px',
-          fontSize: '12px',
-          textAlign: 'center',
-        }}
-      >
-        <div style={{ maxWidth: 'var(--container-max-width, 1400px)', margin: '0 auto' }}>
-          SGRAI &mdash; Sistema de Gestión de Recursos para Atención de Incidentes &bull; I. Municipalidad de Valdivia
-        </div>
-      </footer>
+      <AppFooter />
     </main>
   );
 }

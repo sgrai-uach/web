@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { ArrowDownAZ, ArrowUpZA } from 'lucide-react';
+import Button from '@/components/ui/Button';
 import type { CatalogoItem } from '@/types/empleados';
 import { selectStyle, labelStyle } from './empleadoStyles';
 
@@ -94,26 +95,16 @@ export default function EmpleadoFiltrosBar({
             <option value="nombres">Nombres</option>
             <option value="rut">RUT</option>
           </select>
-          <button
+          <Button
             type="button"
+            variant="outline"
+            size="sm"
             onClick={() => setOrden(orden === 'asc' ? 'desc' : 'asc')}
-            style={{
-              padding: '0.45rem 0.65rem',
-              border: '1px solid var(--border-color-neutral, #DFE3E8)',
-              background: 'var(--color-bg-light, #ECEFF3)',
-              borderRadius: 0,
-              cursor: 'pointer',
-              fontSize: '0.8125rem',
-              fontWeight: 700,
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.25rem',
-            }}
             title={`Orden: ${orden === 'asc' ? 'Ascendente (A-Z)' : 'Descendente (Z-A)'}`}
           >
             {orden === 'asc' ? <ArrowDownAZ size={16} /> : <ArrowUpZA size={16} />}
             <span>{orden === 'asc' ? 'A-Z' : 'Z-A'}</span>
-          </button>
+          </Button>
         </div>
       </div>
     </div>

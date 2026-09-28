@@ -2,6 +2,7 @@
 
 import React from 'react';
 import Heading from '@/components/ui/Heading';
+import Input from '@/components/ui/Input';
 
 interface EmpleadoDatosBasicosSectionProps {
   rut: string;
@@ -15,27 +16,6 @@ interface EmpleadoDatosBasicosSectionProps {
   telefono: string;
   setTelefono: (val: string) => void;
 }
-
-const inputStyle: React.CSSProperties = {
-  width: '100%',
-  padding: '0.625rem 0.875rem',
-  border: '1px solid var(--border-color-neutral, #DFE3E8)',
-  fontSize: '0.875rem',
-  color: 'var(--color-text-dark, #2B2B2B)',
-  backgroundColor: 'var(--color-white, #FFFFFF)',
-  borderRadius: 0,
-  outline: 'none',
-};
-
-const labelStyle: React.CSSProperties = {
-  display: 'block',
-  fontSize: '0.8125rem',
-  fontWeight: 700,
-  color: 'var(--color-charcoal, #3B3F45)',
-  textTransform: 'uppercase',
-  letterSpacing: '0.4px',
-  marginBottom: '0.35rem',
-};
 
 export default function EmpleadoDatosBasicosSection({
   rut,
@@ -61,77 +41,57 @@ export default function EmpleadoDatosBasicosSection({
           gap: '1rem',
         }}
       >
-        <div>
-          <label htmlFor="form-rut" style={labelStyle}>
-            RUT Funcionario *
-          </label>
-          <input
-            id="form-rut"
-            type="text"
-            required
-            value={rut}
-            onChange={(e) => setRut(e.target.value)}
-            placeholder="Ej. 12.345.678-9"
-            style={inputStyle}
-          />
-        </div>
+        <Input
+          id="form-rut"
+          label="RUT Funcionario"
+          requiredIndicator
+          type="text"
+          required
+          value={rut}
+          onChange={(e) => setRut(e.target.value)}
+          placeholder="Ej. 12.345.678-9"
+        />
 
-        <div>
-          <label htmlFor="form-nombres" style={labelStyle}>
-            Nombres *
-          </label>
-          <input
-            id="form-nombres"
-            type="text"
-            required
-            value={nombres}
-            onChange={(e) => setNombres(e.target.value)}
-            style={inputStyle}
-          />
-        </div>
+        <Input
+          id="form-nombres"
+          label="Nombres"
+          requiredIndicator
+          type="text"
+          required
+          value={nombres}
+          onChange={(e) => setNombres(e.target.value)}
+        />
 
-        <div>
-          <label htmlFor="form-apellidos" style={labelStyle}>
-            Apellidos *
-          </label>
-          <input
-            id="form-apellidos"
-            type="text"
-            required
-            value={apellidos}
-            onChange={(e) => setApellidos(e.target.value)}
-            style={inputStyle}
-          />
-        </div>
+        <Input
+          id="form-apellidos"
+          label="Apellidos"
+          requiredIndicator
+          type="text"
+          required
+          value={apellidos}
+          onChange={(e) => setApellidos(e.target.value)}
+        />
 
-        <div>
-          <label htmlFor="form-email" style={labelStyle}>
-            Correo Institucional *
-          </label>
-          <input
-            id="form-email"
-            type="email"
-            required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            style={inputStyle}
-          />
-        </div>
+        <Input
+          id="form-email"
+          label="Correo Institucional"
+          requiredIndicator
+          type="email"
+          required
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+        />
 
-        <div>
-          <label htmlFor="form-telefono" style={labelStyle}>
-            Teléfono de Contacto *
-          </label>
-          <input
-            id="form-telefono"
-            type="tel"
-            required
-            value={telefono}
-            onChange={(e) => setTelefono(e.target.value)}
-            placeholder="+56 9 1234 5678"
-            style={inputStyle}
-          />
-        </div>
+        <Input
+          id="form-telefono"
+          label="Teléfono de Contacto"
+          requiredIndicator
+          type="tel"
+          required
+          value={telefono}
+          onChange={(e) => setTelefono(e.target.value)}
+          placeholder="+56 9 1234 5678"
+        />
       </div>
     </div>
   );

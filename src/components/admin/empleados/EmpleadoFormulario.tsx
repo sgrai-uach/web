@@ -8,6 +8,7 @@ import EmpleadoDatosBasicosSection from './EmpleadoDatosBasicosSection';
 import EmpleadoCuentaRolSection from './EmpleadoCuentaRolSection';
 import EmpleadoTerrenoSection from './EmpleadoTerrenoSection';
 import EmpleadoFormActions from './EmpleadoFormActions';
+import InlineNotice from '@/components/ui/InlineNotice';
 
 interface EmpleadoFormularioProps {
   usuario: EmpleadoUsuario;
@@ -66,32 +67,14 @@ export default function EmpleadoFormulario({
       <EmpleadoFormHeader usuario={usuario} esRolTerreno={esRolTerreno} />
 
       {mensajeExito && (
-        <div
-          style={{
-            backgroundColor: 'var(--color-success-bg, #E8F5E9)',
-            color: 'var(--color-success, #2E7D32)',
-            padding: '0.75rem 1rem',
-            fontSize: '0.875rem',
-            fontWeight: 700,
-            marginBottom: '1rem',
-          }}
-        >
-          {mensajeExito}
+        <div style={{ marginBottom: '1rem' }}>
+          <InlineNotice variant="success">{mensajeExito}</InlineNotice>
         </div>
       )}
 
       {errorMsg && (
-        <div
-          style={{
-            backgroundColor: 'var(--color-danger-bg, #FFEBEE)',
-            color: 'var(--color-danger, #D32F2F)',
-            padding: '0.75rem 1rem',
-            fontSize: '0.875rem',
-            fontWeight: 700,
-            marginBottom: '1rem',
-          }}
-        >
-          {errorMsg}
+        <div style={{ marginBottom: '1rem' }}>
+          <InlineNotice variant="error">{errorMsg}</InlineNotice>
         </div>
       )}
 

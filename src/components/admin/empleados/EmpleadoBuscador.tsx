@@ -65,7 +65,6 @@ export default function EmpleadoBuscador({
         backgroundColor: 'var(--color-white, #FFFFFF)',
         border: '1px solid var(--border-color-neutral, #DFE3E8)',
         padding: '1.25rem 1.5rem',
-        marginBottom: '1.5rem',
         position: 'relative',
       }}
     >

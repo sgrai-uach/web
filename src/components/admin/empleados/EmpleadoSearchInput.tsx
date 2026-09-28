@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { Search, X } from 'lucide-react';
+import Button from '@/components/ui/Button';
 
 interface EmpleadoSearchInputProps {
   termino: string;
@@ -61,23 +62,23 @@ export default function EmpleadoSearchInput({
           autoComplete="off"
         />
         {termino && (
-          <button
+          <Button
             type="button"
+            variant="ghost"
+            size="sm"
             onClick={() => setTermino('')}
             style={{
               position: 'absolute',
               right: cargando ? '6rem' : '0.75rem',
-              background: 'none',
-              border: 'none',
+              minHeight: 'auto',
+              padding: '2px 4px',
               color: 'var(--color-text-muted, #5F676E)',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
             }}
             title="Limpiar búsqueda"
+            aria-label="Limpiar búsqueda"
           >
             <X size={16} />
-          </button>
+          </Button>
         )}
         {cargando && (
           <span
