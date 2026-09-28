@@ -50,7 +50,7 @@ export default function Button({
     <>
       {loading && <span className={styles.spinner} aria-hidden="true" />}
       {!loading && icon && iconPosition === 'left' && <span aria-hidden="true">{icon}</span>}
-      {children && <span>{children}</span>}
+      {children}
       {!loading && icon && iconPosition === 'right' && <span aria-hidden="true">{icon}</span>}
     </>
   );
