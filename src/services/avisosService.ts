@@ -1,13 +1,4 @@
 import apiClient from '@/lib/api/client';
-
-export const TIPOS_AFECTACION_DEFAULT = [
-  'Anegamiento',
-  'Caída de árbol',
-  'Corte de energía',
-  'Deslizamiento',
-  'Daño estructural',
-  'Corte de agua potable',
-  'Otro',
 import { formatApiError } from '@/lib/utils/errorUtils';
 import type {
   AvisoDetalleResponse,
@@ -21,6 +12,7 @@ import type {
 } from '@/types/avisos';
 import { CATALOGO_TIPOS_INCIDENTE_DEFAULT, normalizarTipoIncidente } from '@/types/avisos';
 import type { ApiErrorResponse } from '@/types/common';
+import type { components } from '@/types/api-generated';
 
 /* =========================================================================
    Tipos y Constantes para Reporte Ciudadano (H1)
@@ -37,8 +29,6 @@ export const TIPOS_AFECTACION_DEFAULT = [
   'Otro incidente de emergencia',
 ];
 
-import type { components } from '@/types/api-generated';
-
 export type CrearAvisoPayload = components['schemas']['CrearAvisoIncidenteInput'];
 
 export interface ResultadoAviso {
@@ -46,14 +36,6 @@ export interface ResultadoAviso {
   esDuplicado: boolean;
   codigoSeguimiento?: string;
   mensaje: string;
-  errores?: string[];
-}
-
-/**
- * Obtiene el catálogo dinámico de tipos de afectación desde sgrai-api.
-  esDuplicado?: boolean;
-  codigoSeguimiento?: string;
-  mensaje?: string;
   errores?: string[];
 }
 
