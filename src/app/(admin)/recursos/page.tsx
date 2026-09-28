@@ -26,7 +26,7 @@ export default function RecursosPage() {
     esIndividual: undefined,
   });
 
-  const { recursos, meta, cargando, error, statusCode, recargar } = useRecursos(
+  const { recursos, meta, cargando, error, statusCode } = useRecursos(
     filtros,
     usuarioActivoId
   );
