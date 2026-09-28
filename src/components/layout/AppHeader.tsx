@@ -9,11 +9,13 @@ export default function AppHeader() {
 
   const getSectionTitle = () => {
     if (pathname.startsWith('/admin/recursos/nuevo')) return 'Registro de Nuevo Recurso';
-    if (pathname.startsWith('/admin/recursos')) return 'Inventario Logístico Municipal';
-    if (pathname.startsWith('/admin/roles-permisos')) return 'Seguridad y Privilegios RBAC';
-    if (pathname.startsWith('/callcenter')) return 'Centro Call Center — Recepción de Avisos';
-    if (pathname.startsWith('/mando')) return 'Centro de Mando Operativo';
-    if (pathname.startsWith('/dashboard')) return 'Dashboard Estratégico y Estadísticas';
+    if (pathname.startsWith('/admin/recursos')) return 'Inventario Logístico';
+    if (pathname.startsWith('/admin/roles-permisos')) return 'Roles y Permisos';
+    if (pathname.startsWith('/admin/empleados')) return 'Gestión de Personal';
+    if (pathname.startsWith('/callcenter/manual')) return 'Ingreso Manual';
+    if (pathname.startsWith('/callcenter')) return 'Bandeja de Avisos';
+    if (pathname.startsWith('/centro-incidentes')) return 'Centro de Mando';
+    if (pathname.startsWith('/dashboard')) return 'Dashboard y Reportes';
     return 'Plataforma Operativa SGRAI';
   };
 
