@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import RecursoForm from '@/components/admin/RecursoForm';
+import Heading from '@/components/ui/Heading';
 
 export const metadata: Metadata = {
   title: 'Nuevo Recurso — Inventario Logístico | SGRAI',
@@ -18,47 +19,39 @@ export default function NuevoRecursoPage() {
           alignItems: 'center',
           gap: '8px',
           fontSize: '13px',
-          color: '#3B3F45',
+          color: 'var(--color-charcoal)',
         }}
       >
-        <Link href="/" style={{ color: '#1B6F7D', fontWeight: 500 }}>
+        <Link href="/" style={{ color: 'var(--color-primary-teal)', fontWeight: 500, textDecoration: 'none' }}>
           Inicio
         </Link>
         <span>&rsaquo;</span>
-        <span style={{ color: '#3B3F45' }}>Administración</span>
+        <span style={{ color: 'var(--color-charcoal)' }}>Administración</span>
         <span>&rsaquo;</span>
-        <Link href="/recursos" style={{ color: '#1B6F7D', fontWeight: 500 }}>
+        <Link href="/recursos" style={{ color: 'var(--color-primary-teal)', fontWeight: 500, textDecoration: 'none' }}>
           Inventario Logístico
         </Link>
         <span>&rsaquo;</span>
-        <span style={{ fontWeight: 600, color: '#14505A' }}>Nuevo Recurso</span>
+        <span style={{ fontWeight: 600, color: 'var(--color-primary-teal-dark)' }}>Nuevo Recurso</span>
       </nav>
 
       {/* Encabezado de Página */}
       <div
         style={{
-          backgroundColor: '#FFFFFF',
+          backgroundColor: 'var(--color-white)',
           padding: '24px',
-          borderLeft: '5px solid #1B6F7D',
-          borderBottom: '1px solid #ECEFF3',
+          borderLeft: '5px solid var(--color-primary-teal)',
+          borderBottom: '1px solid var(--color-bg-light)',
         }}
       >
-        <h1
-          style={{
-            margin: 0,
-            fontSize: '24px',
-            fontWeight: 800,
-            color: '#14505A',
-            letterSpacing: '-0.3px',
-          }}
-        >
+        <Heading as="h1" variant="h1" color="teal-dark" noMargin>
           Registrar Nuevo Recurso
-        </h1>
+        </Heading>
         <p
           style={{
             margin: '8px 0 0 0',
             fontSize: '14px',
-            color: '#3B3F45',
+            color: 'var(--color-charcoal)',
             maxWidth: '800px',
           }}
         >
