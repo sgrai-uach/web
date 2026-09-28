@@ -2,7 +2,8 @@
 
 import React from 'react';
 import Link from 'next/link';
-import styles from '@/styles/seguimiento.module.css';
+import { Phone } from 'lucide-react';
+import styles from './MunicipalHeader.module.css';
 
 export const MunicipalHeader: React.FC = () => {
   const newsUrl =
@@ -22,8 +23,8 @@ export const MunicipalHeader: React.FC = () => {
     process.env.NEXT_PUBLIC_EMERGENCY_PHONE || '1451';
 
   return (
-    <header className={styles.municipalHeaderWrapper}>
-      {/* Franja Superior Verde Salvia (Noticias y Redes Sociales) */}
+    <header className={styles.headerWrapper}>
+      {/* Franja Superior Verde Salvia */}
       <div className={styles.topSageBar}>
         <div className={styles.topSageContainer}>
           <a
@@ -31,14 +32,14 @@ export const MunicipalHeader: React.FC = () => {
             target="_blank"
             rel="noopener noreferrer"
             className={styles.topSageNewsLink}
-            title="Revisa acá las últimas noticias de nuestro municipio"
+            title="Ir a las noticias oficiales de la Municipalidad de Valdivia"
           >
             Revisa acá las últimas noticias de nuestro municipio
           </a>
 
           <div
             className={styles.topSageSocialGroup}
-            aria-label="Redes sociales oficiales de la Municipalidad de Valdivia"
+            aria-label="Redes sociales institucionales"
           >
             <a
               href={facebookUrl}
@@ -139,7 +140,7 @@ export const MunicipalHeader: React.FC = () => {
             title={`Llamar a emergencias al ${emergencyPhone}`}
             aria-label={`Llamar a emergencias municipales al número ${emergencyPhone}`}
           >
-            <span>📞</span>
+            <Phone size={16} aria-hidden="true" />
             <span>Emergencias {emergencyPhone}</span>
           </a>
         </div>
