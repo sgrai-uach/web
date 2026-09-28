@@ -1,5 +1,6 @@
 import Heading from '@/components/ui/Heading';
 import HomeModuleCard from '@/components/home/HomeModuleCard';
+import AppFooter from '@/components/layout/AppFooter';
 
 export default function Home() {
   return (
@@ -67,6 +68,18 @@ export default function Home() {
             gap: '20px',
           }}
         >
+          {/* Card Portal Informante (HU-1 y HU-2) */}
+          <HomeModuleCard
+            roleBadge="Portal Ciudadano"
+            title="Portal Informante — Reporte y Seguimiento"
+            description="Reporte asistido de emergencias e incidentes comunales mediante chatbot guiado y consulta del estado de avisos."
+            badgeAccent="var(--color-primary-teal, #1B6F7D)"
+            actions={[
+              { href: '/reportar', label: 'Reportar Incidente con Chatbot', variant: 'primary' },
+              { href: '/seguimiento', label: 'Seguimiento de Avisos', variant: 'secondary' },
+            ]}
+          />
+
           {/* Card Recursos (HU-6 y HU-7) */}
           <HomeModuleCard
             roleBadge="Rol Administrador"
@@ -119,19 +132,7 @@ export default function Home() {
           I. Municipalidad de Valdivia &bull; Dirección de Gestión de Riesgos de Desastres (DGRD)
         </div>
       </div>
-      <footer
-        style={{
-          backgroundColor: 'var(--color-charcoal-dark, #24272B)',
-          color: 'var(--color-text-light, #FFFFFF)',
-          padding: '16px 24px',
-          fontSize: '12px',
-          textAlign: 'center',
-        }}
-      >
-        <div style={{ maxWidth: 'var(--container-max-width, 1400px)', margin: '0 auto' }}>
-          SGRAI &mdash; Sistema de Gestión de Recursos para Atención de Incidentes &bull; I. Municipalidad de Valdivia
-        </div>
-      </footer>
+      <AppFooter />
     </main>
   );
 }
