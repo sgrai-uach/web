@@ -1,0 +1,664 @@
+/* ==========================================================================
+   Estilos del Panel de Seguimiento de Incidentes (Informante)
+   Cumple con la Guía Visual Institucional de la Municipalidad de Valdivia
+   Referencia: GEMINI.md § 3 (Bordes rectos, diseño plano, tokens institucionales)
+   ========================================================================== */
+
+.pageWrapper {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--color-bg-light);
+  color: var(--color-text-dark);
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.mainContainer {
+  flex: 1;
+  max-width: 800px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 2rem 1rem 3rem;
+}
+
+/* --- Cabecera Municipal --- */
+.municipalHeaderWrapper {
+  width: 100%;
+}
+
+.topSageBar {
+  background-color: var(--color-sage);
+  padding: 0.5rem 1rem;
+}
+
+.topSageContainer {
+  max-width: 800px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+
+.topSageNewsLink {
+  color: var(--color-sage-text, #306476);
+  font-size: 0.825rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: color 0.15s ease, text-decoration 0.15s ease;
+}
+
+.topSageNewsLink:hover {
+  text-decoration: underline;
+  color: var(--color-primary-teal-dark);
+}
+
+.topSageSocialGroup {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+.topSageSocialLink {
+  color: var(--color-sage-text, #306476);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  text-decoration: none;
+  transition: color 0.15s ease, transform 0.15s ease, opacity 0.15s ease;
+}
+
+.topSageSocialLink:hover {
+  color: var(--color-primary-teal-dark);
+  transform: translateY(-1px);
+  opacity: 0.85;
+}
+
+.headerMain {
+  background-color: var(--color-primary-teal-dark);
+  padding: 1rem;
+}
+
+.headerMainContainer {
+  max-width: 800px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.headerTitleBlock {
+  display: flex;
+  flex-direction: column;
+}
+
+.headerAgency {
+  color: var(--color-sage);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.headerTitle {
+  color: var(--color-white);
+  font-size: 1.15rem;
+  font-weight: 700;
+  margin: 0.15rem 0 0;
+}
+
+.emergencyCallBtn {
+  background-color: #D9534F;
+  color: var(--color-white);
+  font-size: 0.85rem;
+  font-weight: 700;
+  padding: 0.6rem 1rem;
+  border: none;
+  border-radius: 0;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+
+.emergencyCallBtn:hover {
+  opacity: 0.9;
+}
+
+/* --- Título de Sección --- */
+.sectionTitleBlock {
+  margin-bottom: 1.5rem;
+  border-left: 4px solid var(--color-primary-teal);
+  padding-left: 1rem;
+}
+
+.sectionTitle {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--color-primary-teal);
+  margin: 0 0 0.25rem 0;
+}
+
+.sectionSubtitle {
+  font-size: 0.95rem;
+  color: var(--color-charcoal);
+  margin: 0;
+}
+
+/* --- Buscador de Seguimiento --- */
+.searchCard {
+  background-color: var(--color-white);
+  border: 1px solid #D5DBDB;
+  border-radius: 0;
+  padding: 1.75rem;
+  margin-bottom: 2rem;
+}
+
+.searchForm {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.searchLabel {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--color-charcoal);
+}
+
+.searchInputsRow {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.searchInput {
+  flex: 1;
+  padding: 0.8rem 1rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  border: 2px solid #CBD5E1;
+  border-radius: 0;
+  background-color: var(--color-white);
+  color: var(--color-text-dark);
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.searchInput:focus {
+  border-color: var(--color-primary-teal);
+}
+
+.btnPrimary {
+  background-color: var(--color-accent-mint);
+  color: var(--color-white);
+  font-size: 1rem;
+  font-weight: 700;
+  padding: 0.8rem 1.5rem;
+  border: none;
+  border-radius: 0;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color 0.2s ease;
+}
+
+.btnPrimary:hover:not(:disabled) {
+  background-color: #3d9282;
+}
+
+.btnPrimary:disabled {
+  background-color: #A0AEC0;
+  cursor: not-allowed;
+}
+
+.btnSecondary {
+  background-color: var(--color-charcoal);
+  color: var(--color-white);
+  font-size: 0.95rem;
+  font-weight: 600;
+  padding: 0.75rem 1.25rem;
+  border: none;
+  border-radius: 0;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-block;
+  text-align: center;
+  transition: background-color 0.2s ease;
+}
+
+.btnSecondary:hover {
+  background-color: var(--color-charcoal-dark);
+}
+
+.searchErrorText {
+  color: #C0392B;
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+/* --- Stepper del Ciclo de Vida ICS --- */
+.stepperContainer {
+  background-color: var(--color-white);
+  border: 1px solid #D5DBDB;
+  border-radius: 0;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.stepperTitle {
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--color-charcoal);
+  letter-spacing: 0.05em;
+  margin: 0 0 1.25rem 0;
+}
+
+.stepperGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.5rem;
+}
+
+.stepItem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  position: relative;
+}
+
+.stepBar {
+  width: 100%;
+  height: 6px;
+  background-color: var(--color-bg-light);
+  margin-bottom: 0.75rem;
+  border-radius: 0;
+}
+
+.stepBarCompleted {
+  background-color: var(--color-accent-mint);
+}
+
+.stepBarActive {
+  background-color: var(--color-primary-teal);
+}
+
+.stepBarFailed {
+  background-color: var(--color-charcoal);
+}
+
+.stepNumber {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  font-weight: 700;
+  border-radius: 0;
+  margin-bottom: 0.35rem;
+}
+
+.stepNumberPending {
+  background-color: var(--color-bg-light);
+  color: #718096;
+}
+
+.stepNumberActive {
+  background-color: var(--color-primary-teal);
+  color: var(--color-white);
+}
+
+.stepNumberCompleted {
+  background-color: var(--color-accent-mint);
+  color: var(--color-white);
+}
+
+.stepNumberClosed {
+  background-color: var(--color-charcoal);
+  color: var(--color-white);
+}
+
+.stepLabel {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #718096;
+}
+
+.stepLabelActive {
+  color: var(--color-primary-teal);
+  font-weight: 700;
+}
+
+.stepLabelCompleted {
+  color: var(--color-charcoal-dark);
+}
+
+/* --- Tarjeta de Resumen --- */
+.resultCard {
+  background-color: var(--color-white);
+  border: 1px solid #D5DBDB;
+  border-radius: 0;
+  padding: 1.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.cardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 1rem;
+  padding-bottom: 1.25rem;
+  border-bottom: 1px solid #ECEFF3;
+  margin-bottom: 1.25rem;
+}
+
+.codeBlock {
+  display: flex;
+  flex-direction: column;
+}
+
+.codeLabel {
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--color-charcoal);
+  letter-spacing: 0.05em;
+}
+
+.codeNumberRow {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.25rem;
+}
+
+.codeNumber {
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: var(--color-primary-teal-dark);
+  font-family: monospace;
+  letter-spacing: 0.05em;
+}
+
+.btnCopy {
+  background-color: var(--color-bg-light);
+  color: var(--color-charcoal);
+  border: 1px solid #CBD5E1;
+  border-radius: 0;
+  padding: 0.35rem 0.65rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btnCopy:hover {
+  background-color: #E2E8F0;
+}
+
+/* --- Badges de Estado --- */
+.statusBadgeGroup {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.35rem;
+}
+
+.statusBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 1rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  border-radius: 0;
+  color: var(--color-white);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.badgeReportado {
+  background-color: var(--color-charcoal);
+}
+
+.badgeVerificando {
+  background-color: #D97706; /* Ámbar oscuro accesible */
+}
+
+.badgeEnAtencion {
+  background-color: var(--color-primary-teal);
+}
+
+.badgeResuelto {
+  background-color: var(--color-accent-mint);
+}
+
+.badgeNoAbordable {
+  background-color: var(--color-charcoal-dark);
+}
+
+.liveIndicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--color-accent-mint);
+  animation: pulseLive 2s infinite ease-in-out;
+}
+
+.liveDot {
+  width: 8px;
+  height: 8px;
+  background-color: var(--color-accent-mint);
+  border-radius: 50%;
+}
+
+@keyframes pulseLive {
+  0% { opacity: 0.6; }
+  50% { opacity: 1; }
+  100% { opacity: 0.6; }
+}
+
+@keyframes livePulseBadge {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.03); }
+  100% { transform: scale(1); }
+}
+
+.pulseAnimated {
+  animation: livePulseBadge 0.6s ease-in-out;
+}
+
+/* --- Descripción del Estado Ciudadano --- */
+.statusDescriptionBox {
+  background-color: var(--color-bg-light);
+  border-left: 4px solid var(--color-primary-teal);
+  padding: 1rem 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+.statusDescriptionText {
+  margin: 0;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  color: var(--color-text-dark);
+  font-weight: 500;
+}
+
+/* --- Alerta de Duplicado --- */
+.duplicateNoticeBox {
+  background-color: #EFF6FF;
+  border-left: 4px solid #3B82F6;
+  padding: 0.85rem 1rem;
+  margin-bottom: 1.5rem;
+  font-size: 0.85rem;
+  color: #1E40AF;
+  line-height: 1.4;
+}
+
+/* --- Grid de Detalles --- */
+.detailsGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+.detailItem {
+  display: flex;
+  flex-direction: column;
+}
+
+.detailLabel {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #64748B;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.25rem;
+}
+
+.detailValue {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--color-text-dark);
+  margin: 0;
+}
+
+.detailFullRow {
+  grid-column: 1 / -1;
+}
+
+/* --- Estado de Error / 404 --- */
+.errorCard {
+  background-color: var(--color-white);
+  border: 1px solid #D5DBDB;
+  border-top: 4px solid #D9534F;
+  border-radius: 0;
+  padding: 2rem;
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+.errorTitle {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--color-charcoal-dark);
+  margin: 0 0 0.75rem 0;
+}
+
+.errorDescription {
+  font-size: 0.95rem;
+  color: var(--color-charcoal);
+  margin: 0 0 1.5rem 0;
+  line-height: 1.5;
+}
+
+.errorActionsRow {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+/* --- Skeleton Loader --- */
+.skeletonBox {
+  background-color: #E2E8F0;
+  border-radius: 0;
+  animation: pulseSkeleton 1.5s infinite ease-in-out;
+}
+
+@keyframes pulseSkeleton {
+  0% { opacity: 0.5; }
+  50% { opacity: 1; }
+  100% { opacity: 0.5; }
+}
+
+/* --- Footer Institucional --- */
+.municipalFooter {
+  background-color: var(--color-charcoal-dark);
+  color: var(--color-white);
+  padding: 1.5rem 1rem;
+  text-align: center;
+  font-size: 0.85rem;
+  margin-top: auto;
+}
+
+.footerContainer {
+  max-width: 800px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.footerAgencyText {
+  color: var(--color-sage);
+  font-weight: 600;
+}
+
+/* --- Responsividad --- */
+@media (max-width: 640px) {
+  .topSageContainer {
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 0.35rem;
+    text-align: center;
+    padding: 0.2rem 0;
+  }
+
+  .topSageNewsLink {
+    font-size: 0.775rem;
+    text-align: center;
+    line-height: 1.3;
+  }
+
+  .topSageSocialGroup {
+    gap: 1.25rem;
+  }
+
+  .topSageSocialLink {
+    width: 28px;
+    height: 28px;
+  }
+
+  .searchInputsRow {
+    flex-direction: column;
+  }
+
+  .detailsGrid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .stepperGrid {
+    gap: 0.25rem;
+  }
+
+  .stepLabel {
+    font-size: 0.7rem;
+  }
+
+  .cardHeader {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .statusBadgeGroup {
+    align-items: flex-start;
+  }
+
+  .errorActionsRow {
+    flex-direction: column;
+  }
+}
