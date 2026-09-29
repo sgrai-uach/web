@@ -211,11 +211,14 @@ export async function actualizarPermisosRol(
       } else if (response?.status === 404) {
         mensaje = 'El perfil especificado no existe en el sistema.';
       } else if (response?.status === 400) {
-        const errObj = error as { message?: unknown } | null;
-        mensaje =
-          errObj && typeof errObj.message === 'string'
-            ? errObj.message
-            : 'Parámetros inválidos para actualización de permisos.';
+        const errObj = error as { message?: unknown; error?: unknown } | null;
+        if (errObj && typeof errObj.error === 'string') {
+          mensaje = errObj.error;
+        } else if (errObj && typeof errObj.message === 'string') {
+          mensaje = errObj.message;
+        } else {
+          mensaje = 'Parámetros inválidos para actualización de permisos.';
+        }
       }
 
       const formatted = formatApiError({
