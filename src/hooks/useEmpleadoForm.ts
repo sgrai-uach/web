@@ -1,9 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import type { EmpleadoUsuario, UpdatePersonalDTO } from '@/types/empleados';
-import { useCatalogos } from './useCatalogos';
-import { updatePersonal } from '@/services/empleadosService';
+import type { EmpleadoUsuario, CatalogosResponse } from '@/types/empleados';
+import { empleadosService } from '@/services/empleadosService';
 import { getErrorMessage } from '@/lib/utils/errorUtils';
 
 export interface UseEmpleadoFormProps {
@@ -26,63 +25,112 @@ export interface EmpleadoFormData {
   cargo: string;
 }
 
-/**
- * Custom Hook para gestionar el estado, sincronización, validación y envío del formulario de empleados.
- */
 export function useEmpleadoForm({ usuario, onEmpleadoActualizado }: UseEmpleadoFormProps) {
-  const { catalogos, cargando: cargandoCatalogos } = useCatalogos();
-
-  const [formData, setFormData] = useState<EmpleadoFormData>({
-    rut: usuario.rut,
-    nombres: usuario.nombres,
-    apellidos: usuario.apellidos,
-    email: usuario.email,
-    telefono: usuario.telefono || '',
-    rolId: usuario.rol_id,
-    delegacionId: usuario.delegacion_id || '',
-    activo: usuario.usuario_activo,
-    fechaIngreso: usuario.fecha_ingreso ? usuario.fecha_ingreso.slice(0, 10) : '',
-    fechaSalida: usuario.fecha_salida ? usuario.fecha_salida.slice(0, 10) : '',
-    especialidad: usuario.especialidad || '',
-    cargo: usuario.cargo || '',
+  const [catalogos, setCatalogos] = useState<CatalogosResponse>({
+    roles: [],
+    delegaciones: [],
+    especialidades: [],
+    cargos: [],
   });
+  const [cargandoCatalogos, setCargandoCatalogos] = useState(true);
+
+  const [rut, setRut] = useState(usuario.rut);
+  const [nombres, setNombres] = useState(usuario.nombres);
+  const [apellidos, setApellidos] = useState(usuario.apellidos);
+  const [email, setEmail] = useState(usuario.email);
+  const [telefono, setTelefono] = useState(usuario.telefono || '');
+  const [rolId, setRolId] = useState(usuario.rol_id);
+  const [delegacionId, setDelegacionId] = useState(usuario.delegacion_id || '');
+  const [activo, setActivo] = useState(usuario.usuario_activo);
+  const [fechaIngreso, setFechaIngreso] = useState(usuario.fecha_ingreso ? usuario.fecha_ingreso.slice(0, 10) : '');
+  const [fechaSalida, setFechaSalida] = useState(usuario.fecha_salida ? usuario.fecha_salida.slice(0, 10) : '');
+  const [especialidad, setEspecialidad] = useState(usuario.especialidad || '');
+  const [cargo, setCargo] = useState(usuario.cargo || '');
 
   const [guardando, setGuardando] = useState(false);
   const [mensajeExito, setMensajeExito] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
 
-  // Sincronizar formulario cada vez que cambia el usuario seleccionado
+  // Cargar catálogos
   useEffect(() => {
-    setFormData({
-      rut: usuario.rut,
-      nombres: usuario.nombres,
-      apellidos: usuario.apellidos,
-      email: usuario.email,
-      telefono: usuario.telefono || '',
-      rolId: usuario.rol_id,
-      delegacionId: usuario.delegacion_id || '',
-      activo: usuario.usuario_activo,
-      fechaIngreso: usuario.fecha_ingreso ? usuario.fecha_ingreso.slice(0, 10) : '',
-      fechaSalida: usuario.fecha_salida ? usuario.fecha_salida.slice(0, 10) : '',
-      especialidad: usuario.especialidad || '',
-      cargo: usuario.cargo || '',
-    });
+    let cancelado = false;
+    setCargandoCatalogos(true);
+    empleadosService
+      .getCatalogos()
+      .then((data) => {
+        if (!cancelado) {
+          setCatalogos(data);
+          setCargandoCatalogos(false);
+        }
+      })
+      .catch((err) => {
+        if (!cancelado) {
+          console.error('Error cargando catálogos:', err);
+          setCargandoCatalogos(false);
+        }
+      });
+
+    return () => {
+      cancelado = true;
+    };
+  }, []);
+
+  // Sincronizar formulario si cambia el usuario seleccionado
+  useEffect(() => {
+    setRut(usuario.rut);
+    setNombres(usuario.nombres);
+    setApellidos(usuario.apellidos);
+    setEmail(usuario.email);
+    setTelefono(usuario.telefono || '');
+    setRolId(usuario.rol_id);
+    setDelegacionId(usuario.delegacion_id || '');
+    setActivo(usuario.usuario_activo);
+    setFechaIngreso(usuario.fecha_ingreso ? usuario.fecha_ingreso.slice(0, 10) : '');
+    setFechaSalida(usuario.fecha_salida ? usuario.fecha_salida.slice(0, 10) : '');
+    setEspecialidad(usuario.especialidad || '');
+    setCargo(usuario.cargo || '');
     setMensajeExito('');
     setErrorMsg('');
   }, [usuario]);
 
-  // Actualizador universal de campos del formulario
-  const updateField = <K extends keyof EmpleadoFormData>(field: K, value: EmpleadoFormData[K]) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
-  };
-
-  // Determinar si el rol actual requiere campos operativos de terreno
-  const rolSeleccionado = catalogos.roles.find((r) => r.id === formData.rolId);
+  const rolSeleccionado = catalogos.roles.find((r) => r.id === rolId);
   const esRolTerreno = Boolean(
     rolSeleccionado
       ? ['PATRULLA_VERIFICADORA', 'DELEGADO_CUADRILLA', 'BRIGADISTA'].includes(rolSeleccionado.codigo)
       : usuario.es_personal
   );
+
+  const formData: EmpleadoFormData = {
+    rut,
+    nombres,
+    apellidos,
+    email,
+    telefono,
+    rolId,
+    delegacionId,
+    activo,
+    fechaIngreso,
+    fechaSalida,
+    especialidad,
+    cargo,
+  };
+
+  const updateField = <K extends keyof EmpleadoFormData>(field: K, value: EmpleadoFormData[K]) => {
+    switch (field) {
+      case 'rut': setRut(value as string); break;
+      case 'nombres': setNombres(value as string); break;
+      case 'apellidos': setApellidos(value as string); break;
+      case 'email': setEmail(value as string); break;
+      case 'telefono': setTelefono(value as string); break;
+      case 'rolId': setRolId(value as string); break;
+      case 'delegacionId': setDelegacionId(value as string); break;
+      case 'activo': setActivo(value as boolean); break;
+      case 'fechaIngreso': setFechaIngreso(value as string); break;
+      case 'fechaSalida': setFechaSalida(value as string); break;
+      case 'especialidad': setEspecialidad(value as string); break;
+      case 'cargo': setCargo(value as string); break;
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -91,47 +139,70 @@ export function useEmpleadoForm({ usuario, onEmpleadoActualizado }: UseEmpleadoF
     setMensajeExito('');
 
     try {
-      const payload: UpdatePersonalDTO = {
-        rut: formData.rut.trim(),
-        nombres: formData.nombres,
-        apellidos: formData.apellidos,
-        email: formData.email,
-        telefono: formData.telefono.trim(),
-        rol_id: formData.rolId,
-        delegacion_id: formData.delegacionId ? formData.delegacionId : null,
-        activo: formData.activo,
-        fecha_ingreso: formData.fechaIngreso ? formData.fechaIngreso : null,
-        fecha_salida: formData.fechaSalida ? formData.fechaSalida : null,
+      const payload = {
+        rut: rut.trim(),
+        nombres,
+        apellidos,
+        email,
+        telefono: telefono.trim(),
+        rol_id: rolId,
+        delegacion_id: delegacionId || null,
+        activo,
+        fecha_ingreso: fechaIngreso || null,
+        fecha_salida: fechaSalida || null,
+        ...(esRolTerreno && {
+          especialidad: especialidad.trim() || null,
+          cargo: cargo.trim() || null,
+        }),
       };
 
-      if (esRolTerreno) {
-        payload.especialidad = formData.especialidad.trim() ? formData.especialidad.trim() : null;
-        payload.cargo = formData.cargo.trim() ? formData.cargo.trim() : null;
-      }
-
       const targetId = usuario.personal_id || usuario.usuario_id;
-      const updatedData = await updatePersonal(targetId, payload);
+      const dataActualizada = await empleadosService.updateEmpleado(targetId, payload);
 
       setMensajeExito('Los datos han sido actualizados exitosamente en la base de datos.');
       setTimeout(() => {
         onEmpleadoActualizado({
           ...usuario,
-          ...updatedData,
+          ...dataActualizada,
           es_personal: esRolTerreno,
         });
       }, 700);
     } catch (err: unknown) {
-      setErrorMsg(getErrorMessage(err, 'Error al conectar con la API'));
+      setErrorMsg(getErrorMessage(err, 'Error al conectar con la API para actualizar los datos'));
     } finally {
       setGuardando(false);
     }
   };
 
   return {
-    formData,
-    updateField,
     catalogos,
     cargandoCatalogos,
+    rut,
+    setRut,
+    nombres,
+    setNombres,
+    apellidos,
+    setApellidos,
+    email,
+    setEmail,
+    telefono,
+    setTelefono,
+    rolId,
+    setRolId,
+    delegacionId,
+    setDelegacionId,
+    activo,
+    setActivo,
+    fechaIngreso,
+    setFechaIngreso,
+    fechaSalida,
+    setFechaSalida,
+    especialidad,
+    setEspecialidad,
+    cargo,
+    setCargo,
+    formData,
+    updateField,
     esRolTerreno,
     guardando,
     mensajeExito,

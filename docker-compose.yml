@@ -1,11 +1,28 @@
 services:
-  sgrai-web:
+  grupo1_frontend:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        - NEXT_PUBLIC_API_URL
+        - NEXT_PUBLIC_SOCKET_URL
+    container_name: grupo1_frontend
+    restart: unless-stopped
+    env_file: .env
     ports:
       - "3000:3000"
     environment:
-      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost:3001}
-      - NEXT_PUBLIC_SOCKET_URL=${NEXT_PUBLIC_SOCKET_URL:-http://localhost:3001}
-    restart: unless-stopped
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost:4000}
+      - NEXT_PUBLIC_SOCKET_URL=${NEXT_PUBLIC_SOCKET_URL:-http://localhost:4000}
+      - NEXT_PUBLIC_EMERGENCY_PHONE=${NEXT_PUBLIC_EMERGENCY_PHONE:-1451}
+      - NEXT_PUBLIC_NEWS_URL=${NEXT_PUBLIC_NEWS_URL:-https://munivaldivia.cl/noticias/}
+      - NEXT_PUBLIC_FACEBOOK_URL=${NEXT_PUBLIC_FACEBOOK_URL:-https://www.facebook.com/municipalidaddevaldivia/}
+      - NEXT_PUBLIC_X_URL=${NEXT_PUBLIC_X_URL:-https://x.com/munivaldivia}
+      - NEXT_PUBLIC_YOUTUBE_URL=${NEXT_PUBLIC_YOUTUBE_URL:-https://www.youtube.com/channel/UCetNW4KMclDExRj9CsIyqig}
+      - NEXT_PUBLIC_INSTAGRAM_URL=${NEXT_PUBLIC_INSTAGRAM_URL:-https://www.instagram.com/munivaldivia}
+    networks:
+      - red_taller_software
+
+networks:
+  red_taller_software:
+    driver: bridge

@@ -1,51 +1,80 @@
 'use client';
 
 import React from 'react';
-import type { NotificationState } from '@/types/common';
+import InlineNotice, { type InlineNoticeProps } from '@/components/ui/InlineNotice';
+import type { NotificationType, NotificationState } from '@/types/common';
 
-interface NotificationBannerProps {
-  notification: NotificationState | null;
-  onClose: () => void;
+export interface NotificationBannerProps {
+  notification?: NotificationState | null;
+  type?: NotificationType;
+  title?: string;
+  message?: string;
+  errors?: Array<{ campo?: string; mensaje: string }>;
+  onClose?: () => void;
 }
 
-export default function NotificationBanner({ notification, onClose }: NotificationBannerProps) {
-  if (!notification) return null;
+/**
+ * @deprecated Use `<InlineNotice />` from `@/components/ui/InlineNotice` or `useToast()` instead.
+ */
+export default function NotificationBanner({
+  notification,
+  type,
+  title,
+  message,
+  errors,
+  onClose,
+}: NotificationBannerProps) {
+  // Soporte retrocompatible si se pasa el objeto `notification`
+  if (notification) {
+    const isExito = notification.tipo === 'exito' || notification.type === 'success' || notification.type === 'exito';
+    const variant: InlineNoticeProps['variant'] = isExito ? 'success' : 'error';
+    const text = notification.mensaje || notification.message || '';
 
-  const isExito = notification.tipo === 'exito';
+    return (
+      <div style={{ marginBottom: '1.25rem' }}>
+        <InlineNotice variant={variant} title={notification.title} onClose={onClose}>
+          <div>{text}</div>
+          {notification.details && notification.details.length > 0 && (
+            <ul style={{ margin: '6px 0 0 0', paddingLeft: '18px' }}>
+              {notification.details.map((detail, idx) => (
+                <li key={idx}>{detail}</li>
+              ))}
+            </ul>
+          )}
+        </InlineNotice>
+      </div>
+    );
+  }
+
+  if (!message && (!errors || errors.length === 0)) {
+    return null;
+  }
+
+  const variantMap: Record<string, InlineNoticeProps['variant']> = {
+    error: 'error',
+    success: 'success',
+    exito: 'success',
+    warning: 'warning',
+    info: 'info',
+  };
+
+  const selectedVariant = type ? variantMap[type] || 'info' : 'info';
 
   return (
-    <div
-      role="alert"
-      style={{
-        backgroundColor: isExito ? '#E6F6ED' : '#FDE8E8',
-        color: isExito ? '#12633E' : '#9B1C1C',
-        borderLeft: `4px solid ${isExito ? 'var(--color-accent-mint, #4FAE9B)' : '#E02424'}`,
-        padding: '0.875rem 1.25rem',
-        fontSize: '0.9375rem',
-        fontWeight: 700,
-        marginBottom: '1.25rem',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-      }}
-    >
-      <span>{notification.mensaje}</span>
-      <button
-        type="button"
-        onClick={onClose}
-        aria-label="Cerrar notificación"
-        style={{
-          background: 'none',
-          border: 'none',
-          color: isExito ? '#12633E' : '#9B1C1C',
-          cursor: 'pointer',
-          fontWeight: 800,
-          fontSize: '1rem',
-          padding: '0.25rem',
-        }}
-      >
-        ✕
-      </button>
+    <div style={{ marginBottom: '1.25rem' }}>
+      <InlineNotice variant={selectedVariant} title={title} onClose={onClose}>
+        {message && <div>{message}</div>}
+        {errors && errors.length > 0 && (
+          <ul style={{ margin: '6px 0 0 0', paddingLeft: '18px' }}>
+            {errors.map((err, index) => (
+              <li key={index}>
+                {err.campo ? <strong>{err.campo}: </strong> : null}
+                {err.mensaje}
+              </li>
+            ))}
+          </ul>
+        )}
+      </InlineNotice>
     </div>
   );
 }
