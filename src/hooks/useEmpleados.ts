@@ -1,11 +1,19 @@
+'use client';
+
 import { useState, useEffect } from 'react';
-import type { EmpleadoUsuario, CatalogosResponse } from '@/types/empleados';
+import type { EmpleadoUsuario } from '@/types/empleados';
+import { useCatalogos } from '@/hooks/useCatalogos';
 import { empleadosService } from '@/services/empleadosService';
+import { getErrorMessage } from '@/lib/utils/errorUtils';
 
 interface UseEmpleadosProps {
   versionActualizacion?: number;
 }
 
+/**
+ * Custom Hook para gestionar el listado, filtros, orden y debounce del personal.
+ * Conforme a docs/ARCHITECTURE.md (use{Dominio}Buscador.ts).
+ */
 export function useEmpleados({ versionActualizacion = 0 }: UseEmpleadosProps = {}) {
   const [termino, setTermino] = useState('');
   const [delegacionFiltro, setDelegacionFiltro] = useState('');
@@ -13,37 +21,11 @@ export function useEmpleados({ versionActualizacion = 0 }: UseEmpleadosProps = {
   const [ordenarPor, setOrdenarPor] = useState('apellidos');
   const [orden, setOrden] = useState<'asc' | 'desc'>('asc');
 
-  const [catalogos, setCatalogos] = useState<CatalogosResponse>({
-    roles: [],
-    delegaciones: [],
-    especialidades: [],
-    cargos: [],
-  });
+  const { catalogos } = useCatalogos();
 
   const [resultados, setResultados] = useState<EmpleadoUsuario[]>([]);
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  // Carga inicial de catálogos
-  useEffect(() => {
-    let cancelado = false;
-    async function cargar() {
-      try {
-        const data = await empleadosService.getCatalogos();
-        if (!cancelado) {
-          setCatalogos(data);
-        }
-      } catch (err: unknown) {
-        if (!cancelado) {
-          console.error('Error al cargar catálogos:', err);
-        }
-      }
-    }
-    cargar();
-    return () => {
-      cancelado = true;
-    };
-  }, []);
 
   // Búsqueda con debounce
   useEffect(() => {
@@ -64,7 +46,7 @@ export function useEmpleados({ versionActualizacion = 0 }: UseEmpleadosProps = {
         }
       } catch (err: unknown) {
         if (!cancelado) {
-          setError(err instanceof Error ? err.message : 'Error al buscar empleados');
+          setError(getErrorMessage(err, 'Error al buscar empleados'));
         }
       } finally {
         if (!cancelado) {

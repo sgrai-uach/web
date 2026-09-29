@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import type { EmpleadoUsuario, CatalogosResponse } from '@/types/empleados';
+import type { EmpleadoUsuario } from '@/types/empleados';
+import { useCatalogos } from '@/hooks/useCatalogos';
 import { empleadosService } from '@/services/empleadosService';
 import { getErrorMessage } from '@/lib/utils/errorUtils';
 
@@ -25,14 +26,12 @@ export interface EmpleadoFormData {
   cargo: string;
 }
 
+/**
+ * Custom Hook para gestionar el formulario de modificación de empleados.
+ * Conforme a docs/ARCHITECTURE.md (use{Dominio}Form.ts).
+ */
 export function useEmpleadoForm({ usuario, onEmpleadoActualizado }: UseEmpleadoFormProps) {
-  const [catalogos, setCatalogos] = useState<CatalogosResponse>({
-    roles: [],
-    delegaciones: [],
-    especialidades: [],
-    cargos: [],
-  });
-  const [cargandoCatalogos, setCargandoCatalogos] = useState(true);
+  const { catalogos, cargando: cargandoCatalogos } = useCatalogos();
 
   const [rut, setRut] = useState(usuario.rut);
   const [nombres, setNombres] = useState(usuario.nombres);
@@ -50,30 +49,6 @@ export function useEmpleadoForm({ usuario, onEmpleadoActualizado }: UseEmpleadoF
   const [guardando, setGuardando] = useState(false);
   const [mensajeExito, setMensajeExito] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
-
-  // Cargar catálogos
-  useEffect(() => {
-    let cancelado = false;
-    setCargandoCatalogos(true);
-    empleadosService
-      .getCatalogos()
-      .then((data) => {
-        if (!cancelado) {
-          setCatalogos(data);
-          setCargandoCatalogos(false);
-        }
-      })
-      .catch((err) => {
-        if (!cancelado) {
-          console.error('Error cargando catálogos:', err);
-          setCargandoCatalogos(false);
-        }
-      });
-
-    return () => {
-      cancelado = true;
-    };
-  }, []);
 
   // Sincronizar formulario si cambia el usuario seleccionado
   useEffect(() => {
