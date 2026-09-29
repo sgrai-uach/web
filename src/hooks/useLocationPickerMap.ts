@@ -2,12 +2,18 @@ import { useEffect, useRef } from 'react';
 import type { Map as LeafletMap, Marker as LeafletMarker, LeafletMouseEvent, DivIcon as LeafletDivIcon } from 'leaflet';
 import { createValdiviaPinIcon } from '@/components/maps/valdiviaPinIcon';
 
-interface UseLocationPickerMapParams {
-  latitud?: number | null;
-  longitud?: number | null;
-  onChange: (coords: { latitud: number; longitud: number } | null) => void;
+export interface UseLocationPickerMapParams {
+  latitud?: number | string | null;
+  longitud?: number | string | null;
+  onChange?: ((coords: { latitud: number; longitud: number }) => void) | ((coords: { latitud: number; longitud: number } | null) => void);
   onUserSelectLocation?: (coords: { latitud: number; longitud: number }) => void;
   readOnly?: boolean;
+}
+
+function parseCoord(coord: number | string | null | undefined): number | null {
+  if (coord === null || coord === undefined || coord === '') return null;
+  const num = typeof coord === 'number' ? coord : parseFloat(String(coord));
+  return Number.isFinite(num) ? num : null;
 }
 
 function bindMarkerDrag(marker: LeafletMarker, notify: (coords: { latitud: number; longitud: number }) => void) {
@@ -36,7 +42,7 @@ export function useLocationPickerMap({
   }, [onChange, onUserSelectLocation]);
 
   const notifyChange = (coords: { latitud: number; longitud: number }) => {
-    callbacksRef.current.onChange(coords);
+    callbacksRef.current.onChange?.(coords);
     callbacksRef.current.onUserSelectLocation?.(coords);
   };
 
@@ -52,9 +58,9 @@ export function useLocationPickerMap({
       const pinIcon = createValdiviaPinIcon(L);
       pinIconRef.current = pinIcon;
 
-      const numLat = typeof initialCoordsRef.current.latitud === 'number' ? initialCoordsRef.current.latitud : null;
-      const numLng = typeof initialCoordsRef.current.longitud === 'number' ? initialCoordsRef.current.longitud : null;
-      const hasCoords = numLat !== null && numLng !== null && Number.isFinite(numLat) && Number.isFinite(numLng);
+      const numLat = parseCoord(initialCoordsRef.current.latitud);
+      const numLng = parseCoord(initialCoordsRef.current.longitud);
+      const hasCoords = numLat !== null && numLng !== null;
 
       if (!mapInstanceRef.current) {
         const map = L.map(mapContainerRef.current, {
@@ -64,7 +70,7 @@ export function useLocationPickerMap({
         });
 
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-          attribution: '&copy; OpenStreetMap &bull; Municipalidad de Valdivia',
+          attribution: '&copy; OpenStreetMap contributors &bull; Municipalidad de Valdivia',
           maxZoom: 19,
         }).addTo(map);
 
@@ -102,8 +108,8 @@ export function useLocationPickerMap({
   }, [readOnly]);
 
   useEffect(() => {
-    const numLat = typeof latitud === 'number' && Number.isFinite(latitud) ? latitud : null;
-    const numLng = typeof longitud === 'number' && Number.isFinite(longitud) ? longitud : null;
+    const numLat = parseCoord(latitud);
+    const numLng = parseCoord(longitud);
     const hasValidCoords = numLat !== null && numLng !== null;
 
     if (!mapInstanceRef.current) return;
@@ -130,13 +136,19 @@ export function useLocationPickerMap({
     }
   }, [latitud, longitud, readOnly]);
 
+  const numLat = parseCoord(latitud);
+  const numLng = parseCoord(longitud);
+  const hasCoords = numLat !== null && numLng !== null;
+
   return {
     mapContainerRef,
-    hasCoords: typeof latitud === 'number' && typeof longitud === 'number',
+    hasCoords,
+    numLat,
+    numLng,
     handleLimpiarPunto: () => {
       markerRef.current?.remove();
       markerRef.current = null;
-      callbacksRef.current.onChange(null);
+      callbacksRef.current.onChange?.(null as any);
     },
     handleCentrarValdivia: () => {
       mapInstanceRef.current?.setView([-39.81422, -73.24589], 14, { animate: true });

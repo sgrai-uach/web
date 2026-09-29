@@ -1,0 +1,692 @@
+/* ==========================================================================
+   Estilos Chatbot Conversacional — Portal Informante (H1)
+   Referencia visual: GEMINI.md § 3 (Bordes rectos, paleta institucional Valdivia)
+   ========================================================================== */
+
+.pageContainer {
+  height: 100vh;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--color-bg-light);
+  color: var(--color-text-dark);
+  overflow: hidden;
+}
+
+/* --- Cabecera Municipal Doble --- */
+.municipalHeaderWrapper {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  flex-shrink: 0;
+  width: 100%;
+}
+
+/* 1. Franja Superior Verde Salvia (Noticias a la izquierda y Redes Sociales a la derecha) */
+.topSageBar {
+  background-color: var(--color-sage);
+  color: #14505A;
+  border-bottom: 1px solid rgba(20, 80, 90, 0.2);
+  padding: 0.35rem 2rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.topSageContainer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+.topSageNewsLink {
+  color: #14505A;
+  font-size: 0.82rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: color 0.15s ease, text-decoration 0.15s ease;
+}
+
+.topSageNewsLink:hover {
+  text-decoration: underline;
+  color: #0B292E;
+}
+
+.socialIconsList {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+.socialIconLink {
+  color: #14505A;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  transition: color 0.15s ease, transform 0.1s ease;
+}
+
+.socialIconLink:hover {
+  color: #0B292E;
+  transform: translateY(-1px);
+}
+
+/* 2. Barra Principal más gruesa (Teal Dark con espacio para logo a la izquierda y Call Center a la derecha) */
+.header {
+  background-color: var(--color-primary-teal-dark);
+  color: var(--color-text-light);
+  min-height: 64px;
+  padding: 0.75rem 2rem;
+  border-bottom: 3px solid var(--color-accent-mint);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 1rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Espacio reservado para posicionar el logo municipal en la izquierda */
+.municipalLogoSlot {
+  min-width: 180px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+}
+
+/* --- Layout del Chat --- */
+.chatMain {
+  flex: 1;
+  min-height: 0;
+  max-width: 860px;
+  width: 100%;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  padding: 1rem;
+  box-sizing: border-box;
+}
+
+.chatWrapper {
+  background-color: var(--color-white);
+  border: 1px solid #D0D7DE;
+  border-radius: 0;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.messagesList {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  background-color: var(--color-white);
+}
+
+/* --- Mensajes / Burbujas (Bordes rectos) --- */
+.messageRow {
+  display: flex;
+  width: 100%;
+}
+
+.messageRowBot {
+  justify-content: flex-start;
+}
+
+.messageRowUser {
+  justify-content: flex-end;
+}
+
+.bubble {
+  position: relative;
+  max-width: 82%;
+  padding: 0.9rem 1.1rem;
+  border-radius: 0;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  box-sizing: border-box;
+  word-break: break-word;
+}
+
+.bubbleBot {
+  background-color: var(--color-bg-light);
+  color: var(--color-text-dark);
+  border-left: 4px solid var(--color-primary-teal);
+  border-top: 1px solid #D5DBE1;
+  border-right: 1px solid #D5DBE1;
+  border-bottom: 1px solid #D5DBE1;
+  margin-left: 12px;
+}
+
+/* Cola del mensaje bot apuntando hacia la izquierda */
+.bubbleBot::before {
+  content: '';
+  position: absolute;
+  top: 14px;
+  left: -12px;
+  width: 0;
+  height: 0;
+  border-top: 6px solid transparent;
+  border-bottom: 6px solid transparent;
+  border-right: 12px solid var(--color-primary-teal);
+}
+
+.bubbleUser {
+  background-color: var(--color-primary-teal);
+  color: var(--color-white);
+  border: 1px solid var(--color-primary-teal-dark);
+  margin-right: 12px;
+}
+
+/* Cola del mensaje usuario apuntando hacia la derecha */
+.bubbleUser::before {
+  content: '';
+  position: absolute;
+  top: 14px;
+  right: -12px;
+  width: 0;
+  height: 0;
+  border-top: 6px solid transparent;
+  border-bottom: 6px solid transparent;
+  border-left: 12px solid var(--color-primary-teal);
+}
+
+.messageSender {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 0.35rem;
+}
+
+.bubbleBot .messageSender {
+  color: var(--color-primary-teal);
+}
+
+.bubbleUser .messageSender {
+  color: var(--color-sage);
+}
+
+/* --- Indicador de Escritura del Bot --- */
+.typingIndicator {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.5rem 0.2rem;
+}
+
+.typingDot {
+  width: 7px;
+  height: 7px;
+  background-color: var(--color-primary-teal);
+  border-radius: 0;
+  animation: typingBounce 1.2s infinite ease-in-out;
+}
+
+.typingDot:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.typingDot:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes typingBounce {
+  0%, 80%, 100% {
+    opacity: 0.3;
+    transform: translateY(0);
+  }
+  40% {
+    opacity: 1;
+    transform: translateY(-4px);
+  }
+}
+
+/* --- Opciones / Chips de Respuesta Rápida --- */
+.optionsContainer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.optionButton {
+  background-color: var(--color-charcoal);
+  color: var(--color-white);
+  border: none;
+  border-radius: 0;
+  padding: 0.6rem 0.9rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+  text-align: left;
+}
+
+.optionButton:hover:not(:disabled) {
+  background-color: var(--color-primary-teal);
+  color: var(--color-white);
+}
+
+.optionButton:focus-visible {
+  outline: 2px solid var(--color-accent-mint);
+  outline-offset: 2px;
+}
+
+.optionButtonSecondary {
+  background-color: transparent;
+  color: var(--color-charcoal);
+  border: 1px solid var(--color-charcoal);
+}
+
+.optionButtonSecondary:hover:not(:disabled) {
+  background-color: var(--color-bg-light);
+  color: var(--color-text-dark);
+}
+
+/* --- Barra Inferior de Entrada (Input) --- */
+.inputArea {
+  border-top: 1px solid #D0D7DE;
+  background-color: var(--color-white);
+  padding: 0.85rem 1.25rem;
+}
+
+.inputForm {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.textInput {
+  flex: 1;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--color-charcoal);
+  border-radius: 0;
+  font-size: 0.95rem;
+  color: var(--color-text-dark);
+  background-color: var(--color-white);
+  box-sizing: border-box;
+}
+
+.textInput:focus {
+  outline: 2px solid var(--color-primary-teal);
+  border-color: var(--color-primary-teal);
+}
+
+.sendButton {
+  background-color: var(--color-accent-mint);
+  color: var(--color-white);
+  border: none;
+  border-radius: 0;
+  padding: 0 1.4rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sendButton:hover:not(:disabled) {
+  background-color: #3e9684;
+}
+
+.sendButton:disabled {
+  background-color: #B4B9BF;
+  cursor: not-allowed;
+}
+
+.errorMessage {
+  margin-top: 0.4rem;
+  color: #C02626;
+  font-size: 0.85rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+/* --- Tarjeta de Resumen --- */
+.summaryCard {
+  background-color: var(--color-white);
+  border: 2px solid var(--color-primary-teal);
+  border-radius: 0;
+  padding: 1.1rem;
+  margin-top: 0.6rem;
+}
+
+.summaryTitle {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-primary-teal);
+  margin-bottom: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-bottom: 1px solid var(--color-bg-light);
+  padding-bottom: 0.4rem;
+}
+
+.summaryGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.5rem;
+  margin-bottom: 1.1rem;
+}
+
+.summaryItem {
+  display: flex;
+  flex-direction: column;
+}
+
+.summaryLabel {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--color-charcoal);
+  text-transform: uppercase;
+}
+
+.summaryValue {
+  font-size: 0.95rem;
+  color: var(--color-text-dark);
+  font-weight: 500;
+}
+
+.summaryActions {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.btnPrimary {
+  background-color: var(--color-accent-mint);
+  color: var(--color-white);
+  border: none;
+  border-radius: 0;
+  padding: 0.75rem 1.25rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.btnPrimary:hover:not(:disabled) {
+  background-color: #3e9684;
+}
+
+.btnSecondary {
+  background-color: var(--color-charcoal);
+  color: var(--color-white);
+  border: none;
+  border-radius: 0;
+  padding: 0.75rem 1.25rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.btnSecondary:hover:not(:disabled) {
+  background-color: var(--color-charcoal-dark);
+}
+
+/* --- Tarjeta de Confirmación / Resultado --- */
+.resultCard {
+  border-radius: 0;
+  padding: 1.3rem;
+  margin-top: 0.75rem;
+}
+
+.resultCardSuccess {
+  background-color: #F0FDF4;
+  border: 2px solid var(--color-accent-mint);
+}
+
+.resultCardDuplicate {
+  background-color: #F8FAFC;
+  border: 2px solid var(--color-primary-teal);
+}
+
+.resultHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.6rem;
+}
+
+.resultBadge {
+  padding: 0.3rem 0.6rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--color-white);
+  border-radius: 0;
+}
+
+.resultBadgeSuccess {
+  background-color: var(--color-accent-mint);
+}
+
+.resultBadgeDuplicate {
+  background-color: var(--color-primary-teal);
+}
+
+.resultTitle {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--color-text-dark);
+}
+
+.resultDescription {
+  font-size: 0.92rem;
+  line-height: 1.5;
+  color: var(--color-text-dark);
+  margin-bottom: 1rem;
+}
+
+.trackingCodeBlock {
+  background-color: var(--color-white);
+  border: 1px dashed var(--color-charcoal);
+  border-radius: 0;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin: 1rem 0;
+  gap: 0.35rem;
+}
+
+.trackingCodeLabel {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--color-charcoal);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.trackingCodeNumber {
+  font-size: 2.1rem;
+  font-weight: 800;
+  color: var(--color-primary-teal-dark);
+  letter-spacing: 0.15em;
+  font-family: monospace;
+}
+
+.copyCodeButton {
+  background-color: var(--color-bg-light);
+  border: 1px solid var(--color-charcoal);
+  border-radius: 0;
+  padding: 0.4rem 0.8rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  color: var(--color-text-dark);
+}
+
+.copyCodeButton:hover {
+  background-color: #DDE2E8;
+}
+
+/* --- Botón de Emergencia (Call Center en Esquina Superior Derecha) --- */
+.emergencyButton {
+  background-color: #B91C1C;
+  color: var(--color-white);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 0;
+  padding: 0.5rem 0.9rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  text-decoration: none;
+  font-weight: 700;
+  font-size: 0.9rem;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color 0.15s ease, transform 0.1s ease;
+}
+
+.emergencyButton:hover {
+  background-color: #991B1B;
+  color: var(--color-white);
+}
+
+.emergencyButton:focus-visible {
+  outline: 2px solid var(--color-white);
+  outline-offset: 2px;
+}
+
+.emergencyIcon {
+  font-size: 1rem;
+  line-height: 1;
+}
+
+/* --- Responsive para dispositivos móviles --- */
+@media (max-width: 640px) {
+  .topSageBar {
+    padding: 0.25rem 0.75rem;
+  }
+
+  .topSageNewsLink {
+    font-size: 0.72rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 62%;
+  }
+
+  .socialIconsList {
+    gap: 0.5rem;
+  }
+
+  .header {
+    min-height: 52px;
+    padding: 0.5rem 0.75rem;
+    gap: 0.5rem;
+  }
+
+  .municipalLogoSlot {
+    min-width: 60px;
+    height: 36px;
+  }
+
+  .emergencyButton {
+    padding: 0.35rem 0.55rem;
+    font-size: 0.8rem;
+    gap: 0.3rem;
+  }
+
+  .chatMain {
+    padding: 0;
+  }
+
+  .chatWrapper {
+    border-left: none;
+    border-right: none;
+    border-radius: 0;
+  }
+
+  .messagesList {
+    padding: 0.75rem 0.5rem;
+    gap: 0.75rem;
+  }
+
+  .bubble {
+    max-width: 88%;
+    padding: 0.75rem 0.85rem;
+    font-size: 0.9rem;
+  }
+
+  .bubbleBot {
+    margin-left: 9px;
+  }
+
+  .bubbleUser {
+    margin-right: 9px;
+  }
+
+  .bubbleBot::before {
+    top: 12px;
+    left: -9px;
+    border-top: 5px solid transparent;
+    border-bottom: 5px solid transparent;
+    border-right: 9px solid var(--color-primary-teal);
+  }
+
+  .bubbleUser::before {
+    top: 12px;
+    right: -9px;
+    border-top: 5px solid transparent;
+    border-bottom: 5px solid transparent;
+    border-left: 9px solid var(--color-primary-teal);
+  }
+
+  .inputArea {
+    padding: 0.6rem 0.75rem;
+  }
+
+  .textInput {
+    font-size: 16px; /* Evita zoom automático en Safari iOS */
+    padding: 0.65rem 0.75rem;
+  }
+
+  .sendButton {
+    padding: 0 1rem;
+    font-size: 0.88rem;
+    min-height: 42px;
+  }
+
+  .optionButton {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.85rem;
+    min-height: 40px;
+  }
+
+  .summaryCard,
+  .resultCard {
+    padding: 0.85rem;
+  }
+
+  .summaryActions {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .btnPrimary,
+  .btnSecondary {
+    width: 100%;
+    text-align: center;
+    justify-content: center;
+  }
+
+  .trackingCodeNumber {
+    font-size: clamp(1.4rem, 6vw, 2.1rem);
+    letter-spacing: 0.08em;
+  }
+}

@@ -1,0 +1,105 @@
+.headerWrapper {
+  width: 100%;
+}
+
+.topSageBar {
+  background-color: var(--color-sage);
+  padding: var(--space-2) var(--space-4);
+}
+
+.topSageContainer {
+  max-width: var(--container-max-width, 1400px);
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.topSageNewsLink {
+  color: var(--color-primary-teal-dark);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  text-decoration: none;
+  transition: color 0.15s ease, text-decoration 0.15s ease;
+}
+
+.topSageNewsLink:hover {
+  text-decoration: underline;
+}
+
+.topSageSocialGroup {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.topSageSocialLink {
+  color: var(--color-primary-teal-dark);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  text-decoration: none;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.topSageSocialLink:hover {
+  transform: translateY(-1px);
+  opacity: 0.85;
+}
+
+.headerMain {
+  background-color: var(--color-primary-teal-dark);
+  padding: var(--space-3) var(--space-4);
+}
+
+.headerMainContainer {
+  max-width: var(--container-max-width, 1400px);
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.headerTitleBlock {
+  display: flex;
+  flex-direction: column;
+}
+
+.headerAgency {
+  color: var(--color-sage);
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.headerTitle {
+  color: var(--color-text-light, #FFFFFF);
+  font-size: var(--font-size-lg);
+  font-weight: 700;
+  margin: var(--space-1) 0 0;
+  letter-spacing: -0.2px;
+}
+
+.emergencyCallBtn {
+  background-color: var(--color-danger);
+  color: var(--color-text-light, #FFFFFF);
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  padding: var(--space-2) var(--space-4);
+  border: none;
+  border-radius: var(--radius-none, 0);
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  transition: background-color 0.15s ease;
+}
+
+.emergencyCallBtn:hover {
+  background-color: var(--color-danger-hover, #B71C1C);
+}

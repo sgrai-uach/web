@@ -5,13 +5,14 @@ import 'leaflet/dist/leaflet.css';
 import { useLocationPickerMap } from '@/hooks/useLocationPickerMap';
 import Button from '@/components/ui/Button';
 
-interface LocationPickerMapProps {
-  latitud?: number | null;
-  longitud?: number | null;
-  onChange: (coords: { latitud: number; longitud: number } | null) => void;
+export interface LocationPickerMapProps {
+  latitud?: number | string | null;
+  longitud?: number | string | null;
+  onChange?: ((coords: { latitud: number; longitud: number }) => void) | ((coords: { latitud: number; longitud: number } | null) => void);
   onUserSelectLocation?: (coords: { latitud: number; longitud: number }) => void;
   readOnly?: boolean;
   height?: string;
+  ariaLabel?: string;
 }
 
 export default function LocationPickerMap({
@@ -20,16 +21,23 @@ export default function LocationPickerMap({
   onChange,
   onUserSelectLocation,
   readOnly = false,
-  height = '240px',
+  height = '260px',
+  ariaLabel = 'Mapa interactivo para selección de ubicación en Valdivia',
 }: LocationPickerMapProps) {
-  const { mapContainerRef, hasCoords, handleLimpiarPunto, handleCentrarValdivia } =
-    useLocationPickerMap({
-      latitud,
-      longitud,
-      onChange,
-      onUserSelectLocation,
-      readOnly,
-    });
+  const {
+    mapContainerRef,
+    hasCoords,
+    numLat,
+    numLng,
+    handleLimpiarPunto,
+    handleCentrarValdivia,
+  } = useLocationPickerMap({
+    latitud,
+    longitud,
+    onChange,
+    onUserSelectLocation,
+    readOnly,
+  });
 
   return (
     <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -42,59 +50,61 @@ export default function LocationPickerMap({
           backgroundColor: '#ECEFF3',
           zIndex: 1,
         }}
-        aria-label="Mapa interactivo para selección de coordenadas de incidente"
+        aria-label={ariaLabel}
       />
 
-      <div
-        style={{
-          fontSize: '12px',
-          color: '#3B3F45',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          gap: '8px',
-        }}
-      >
-        <span>
-          {hasCoords
-            ? 'Punto fijado. Puedes arrastrar el marcador para afinar la ubicación.'
-            : 'Haz clic en el mapa para marcar el punto exacto (opcional).'}
-        </span>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span style={{ fontSize: '12px', fontFamily: 'inherit' }}>
-            GPS:{' '}
-            {hasCoords ? (
-              <strong style={{ color: '#1B6F7D' }}>
-                {latitud?.toFixed(5)}, {longitud?.toFixed(5)}
-              </strong>
-            ) : (
-              <span style={{ color: '#666' }}>Automático por dirección</span>
-            )}
+      {!readOnly && (
+        <div
+          style={{
+            fontSize: '12px',
+            color: '#3B3F45',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: '8px',
+          }}
+        >
+          <span>
+            {hasCoords
+              ? 'Punto fijado. Puedes arrastrar el marcador para afinar la ubicación.'
+              : 'Haz clic en el mapa para marcar el punto exacto (opcional).'}
           </span>
 
-          {hasCoords && !readOnly && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ fontSize: '12px', fontFamily: 'inherit' }}>
+              GPS:{' '}
+              {hasCoords && numLat !== null && numLng !== null ? (
+                <strong style={{ color: '#1B6F7D' }}>
+                  {numLat.toFixed(5)}, {numLng.toFixed(5)}
+                </strong>
+              ) : (
+                <span style={{ color: '#666' }}>Automático por dirección</span>
+              )}
+            </span>
+
+            {hasCoords && (
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={handleLimpiarPunto}
+              >
+                Limpiar GPS
+              </Button>
+            )}
+
             <Button
               type="button"
-              variant="secondary"
+              variant="outline"
               size="sm"
-              onClick={handleLimpiarPunto}
+              onClick={handleCentrarValdivia}
             >
-              Limpiar GPS
+              Centrar Valdivia
             </Button>
-          )}
-
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={handleCentrarValdivia}
-          >
-            Centrar Valdivia
-          </Button>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
