@@ -13,6 +13,8 @@ interface AvisosTableProps {
   totalPaginas: number;
   totalItems: number;
   limite: number;
+  hayFiltrosActivos?: boolean;
+  onLimpiarFiltros?: () => void;
   onCambiarPagina: (pagina: number) => void;
   onCambiarLimite: (limite: number) => void;
   onSeleccionarAviso: (aviso: AvisoItem) => void;
@@ -25,6 +27,8 @@ export default function AvisosTable({
   totalPaginas,
   totalItems,
   limite,
+  hayFiltrosActivos = false,
+  onLimpiarFiltros,
   onCambiarPagina,
   onCambiarLimite,
   onSeleccionarAviso,
@@ -62,7 +66,7 @@ export default function AvisosTable({
               <th style={{ padding: '0.875rem 1rem', width: '170px' }}>Tipo Preliminar</th>
               <th style={{ padding: '0.875rem 1rem', width: '130px' }}>Canal Origen</th>
               <th style={{ padding: '0.875rem 1rem' }}>Descripción del Aviso</th>
-              <th style={{ padding: '0.875rem 1rem', width: '150px' }}>Ubicación</th>
+              <th style={{ padding: '0.875rem 1rem', width: '180px' }}>Ubicación / Delegación</th>
               <th style={{ padding: '0.875rem 1rem', textAlign: 'right', width: '120px' }}>
                 Acción
               </th>
@@ -72,7 +76,11 @@ export default function AvisosTable({
             {cargando && avisos.length === 0 ? (
               <AvisosTableEmpty cargando={true} />
             ) : avisos.length === 0 ? (
-              <AvisosTableEmpty cargando={false} />
+              <AvisosTableEmpty
+                cargando={false}
+                hayFiltrosActivos={hayFiltrosActivos}
+                onLimpiarFiltros={onLimpiarFiltros}
+              />
             ) : (
               avisos.map((aviso, idx) => (
                 <AvisosTableRow
