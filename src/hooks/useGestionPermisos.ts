@@ -15,6 +15,7 @@ interface UseGestionPermisosParams {
 
 export function useGestionPermisos({ rol, usuarioId, onExito }: UseGestionPermisosParams) {
   const { showError, showSuccess } = useToast();
+  const [modoEdicion, setModoEdicion] = useState(false);
   const [catalogo, setCatalogo] = useState<PermisoCatalogoItem[]>([]);
   const [cargandoCatalogo, setCargandoCatalogo] = useState(false);
   const [guardando, setGuardando] = useState(false);
@@ -24,11 +25,12 @@ export function useGestionPermisos({ rol, usuarioId, onExito }: UseGestionPermis
   const [busqueda, setBusqueda] = useState('');
   const [prevRolId, setPrevRolId] = useState<string | null>(rol?.id || null);
 
-  // Sincronizar selección y búsqueda cuando cambia el rol editado (patrón recomendado React)
+  // Sincronizar selección, búsqueda y resetear modo edición cuando cambia el rol
   if (rol && rol.id !== prevRolId) {
     setPrevRolId(rol.id);
     setSeleccionados(new Set(rol.permisos ? rol.permisos.map((p) => p.id) : []));
     setBusqueda('');
+    setModoEdicion(false);
   }
 
   // Identificar IDs iniciales asignados al rol
@@ -37,13 +39,16 @@ export function useGestionPermisos({ rol, usuarioId, onExito }: UseGestionPermis
     return new Set(rol.permisos.map((p) => p.id));
   }, [rol]);
 
-  // Bloquear desmarcación de permisos críticos en perfil Administrador (Criterio 3)
+  // Bloquear desmarcación de permisos críticos en perfil Administrador (gestionar y leer)
   const permisosBloqueados = useMemo(() => {
     const bloqueados = new Set<string>();
     if (!rol || rol.nombre !== 'Administrador') return bloqueados;
 
     catalogo.forEach((p) => {
-      if (p.codigo === 'seguridad:roles:gestionar') {
+      if (
+        p.codigo === 'seguridad:roles:gestionar' ||
+        p.codigo === 'seguridad:roles:leer'
+      ) {
         bloqueados.add(p.id);
       }
     });
@@ -155,6 +160,16 @@ export function useGestionPermisos({ rol, usuarioId, onExito }: UseGestionPermis
 
   const tieneCambios = agregadosCount > 0 || revocadosCount > 0;
 
+  const activarModoEdicion = useCallback(() => {
+    setModoEdicion(true);
+  }, []);
+
+  const cancelarEdicion = useCallback(() => {
+    setSeleccionados(new Set(idsIniciales));
+    setBusqueda('');
+    setModoEdicion(false);
+  }, [idsIniciales]);
+
   const guardarCambios = useCallback(async () => {
     if (!rol || !tieneCambios) return;
 
@@ -166,6 +181,7 @@ export function useGestionPermisos({ rol, usuarioId, onExito }: UseGestionPermis
         usuarioId
       );
       showSuccess(res.message, 'Permisos Guardados');
+      setModoEdicion(false);
       if (onExito) onExito();
     } catch (err: unknown) {
       showError(
@@ -178,6 +194,9 @@ export function useGestionPermisos({ rol, usuarioId, onExito }: UseGestionPermis
   }, [rol, tieneCambios, seleccionados, usuarioId, showSuccess, showError, onExito]);
 
   return {
+    modoEdicion,
+    activarModoEdicion,
+    cancelarEdicion,
     catalogo,
     cargandoCatalogo,
     guardando,

@@ -3,7 +3,6 @@
 import React from 'react';
 import AccesoDenegadoState from '@/components/admin/roles-permisos/AccesoDenegadoState';
 import RolDetalleDrawer from '@/components/admin/roles-permisos/RolDetalleDrawer';
-import ModalModificarPermisos from '@/components/admin/roles-permisos/editor/ModalModificarPermisos';
 import RolesFiltros from '@/components/admin/roles-permisos/RolesFiltros';
 import RolesGrid from '@/components/admin/roles-permisos/RolesGrid';
 import RolesHeader, {
@@ -22,10 +21,7 @@ export default function RolesPermisosPage() {
     errorRbac,
     rolSeleccionado,
     setRolSeleccionado,
-    rolAEditar,
-    abrirModalEdicion,
-    cerrarModalEdicion,
-    handlePermisosGuardados,
+    handleRolActualizado,
     busqueda,
     setBusqueda,
     filtroTipo,
@@ -82,16 +78,9 @@ export default function RolesPermisosPage() {
 
       <RolDetalleDrawer
         rol={rolSeleccionado}
-        onClose={() => setRolSeleccionado(null)}
-        onModificarPermisos={abrirModalEdicion}
-      />
-
-      <ModalModificarPermisos
-        isOpen={Boolean(rolAEditar)}
-        rol={rolAEditar}
         usuarioId={usuarioActivo.id}
-        onClose={cerrarModalEdicion}
-        onGuardadoExitoso={handlePermisosGuardados}
+        onClose={() => setRolSeleccionado(null)}
+        onRolActualizado={handleRolActualizado}
       />
     </div>
   );

@@ -24,7 +24,6 @@ export function useRolesPermisos() {
   const [errorRbac, setErrorRbac] = useState(false);
 
   const [rolSeleccionado, setRolSeleccionado] = useState<RolItem | null>(null);
-  const [rolAEditar, setRolAEditar] = useState<RolItem | null>(null);
 
   const [busqueda, setBusqueda] = useState('');
   const [filtroTipo, setFiltroTipo] = useState<FiltroTipoRol>('TODOS');
@@ -164,19 +163,11 @@ export function useRolesPermisos() {
     setFiltroEstado('TODOS');
   };
 
-  const abrirModalEdicion = useCallback((rol: RolItem) => {
-    setRolAEditar(rol);
-  }, []);
-
-  const cerrarModalEdicion = useCallback(() => {
-    setRolAEditar(null);
-  }, []);
-
-  const handlePermisosGuardados = useCallback(async () => {
+  const handleRolActualizado = useCallback(async () => {
     await cargarRoles(usuarioActivo.id, true);
-    if (rolSeleccionado && rolAEditar && rolSeleccionado.id === rolAEditar.id) {
+    if (rolSeleccionado) {
       try {
-        const detalle = await obtenerDetalleRol(rolAEditar.id, usuarioActivo.id);
+        const detalle = await obtenerDetalleRol(rolSeleccionado.id, usuarioActivo.id);
         if (detalle?.data) {
           setRolSeleccionado(detalle.data);
         }
@@ -184,7 +175,7 @@ export function useRolesPermisos() {
         // Fallback silencioso si falla el detalle individual; cargarRoles ya refrescó el listado
       }
     }
-  }, [cargarRoles, usuarioActivo.id, rolSeleccionado, rolAEditar]);
+  }, [cargarRoles, usuarioActivo.id, rolSeleccionado]);
 
   return {
     usuarioActivo,
@@ -195,10 +186,7 @@ export function useRolesPermisos() {
     errorRbac,
     rolSeleccionado,
     setRolSeleccionado,
-    rolAEditar,
-    abrirModalEdicion,
-    cerrarModalEdicion,
-    handlePermisosGuardados,
+    handleRolActualizado,
     busqueda,
     setBusqueda,
     filtroTipo,

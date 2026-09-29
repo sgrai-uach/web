@@ -23,26 +23,29 @@ Permitir al Administrador asignar o revocar de manera masiva e interactiva los p
                                        │
                                        ▼
                        [Panel Lateral Drawer Abierto]
+                     (Modo Lectura / Matriz de Permisos)
                                        │
                                        ▼
-                  [Clic en Botón Primario "Modificar Permisos"]
+                  [Clic en Botón Primario "Modificar Permisos" 
+                    o "Asignar Permisos Ahora" si está vacío]
                                        │
                                        ▼
-                 [Modal-Dialog de Edición de Permisos Abierto]
+             [Drawer Transiciona a Modo Edición Interactivo In-Place]
                ┌───────────────────────────────────────────────┐
-               │ - Barra informativa del rol seleccionado      │
-               │ - Buscador en tiempo real de permisos         │
-               │ - Matriz modular de checkboxes interactivos   │
+               │ - Encabezado y resumen del rol activo         │
+               │ - Catálogo completo de permisos por módulo    │
+               │ - Checkboxes interactivos planos (Activo/Inac)│
                │ - Acciones rápidas "Marcar todos" / "Desmarcar"│
-               │ - Protección de auto-bloqueo para Admin       │
+               │ - Doble protección de auto-bloqueo para Admin │
+               │   (seguridad:roles:gestionar y :leer)         │
                └───────────────────────┬───────────────────────┘
                                        │
                         ┌──────────────┴──────────────┐
                         ▼                             ▼
               [Cancelar / Descartar]       [Guardar Cambios]
-              - Cierra sin persistir       - PUT a la API
+              - Revierte a Modo Lectura    - PUT a la API
                                            - Toast éxito flotante
-                                           - Refresco inmediato
+                                           - Refresco y balance
 ```
 
 ### Paso 1: Localización y Selección del Perfil a Modificar
@@ -51,37 +54,39 @@ Permitir al Administrador asignar o revocar de manera masiva e interactiva los p
 3. Localice el perfil que desea parametrizar utilizando el buscador predictivo o los filtros de tipo (*Sistema / Personalizado*) o de permisos (*Con Permisos / Sin Permisos*).
 4. En la tarjeta del perfil deseado, haga clic en el botón **"Ver Permisos &rarr;"** para abrir el panel lateral (Drawer).
 
-### Paso 2: Apertura del Modal de Edición
-1. En el pie del panel lateral, haga clic en el botón destacado en color Menta: **"Modificar Permisos"**.
-2. Se desplegará la ventana modal centrada: **"Modificar Permisos — [Nombre del Perfil]"**.
-3. El modal cargará automáticamente el catálogo completo de todos los permisos disponibles en el sistema agrupados por su módulo funcional.
+### Paso 2: Activación del Modo Edición en el Drawer
+1. En el panel lateral abierto, haga clic en el botón destacado en color Menta: **"Modificar Permisos"** (o en **"Asignar Permisos Ahora"** si el rol se encuentra sin permisos asignados).
+2. El propio panel lateral transiciona in-place a **Modo Edición**, sin abrir modales flotantes independientes, preservando el contexto visual del perfil.
+3. El drawer carga y despliega el catálogo completo de todos los permisos disponibles en el sistema clasificados por módulo funcional (`Seguridad`, `Incidentes`, `Recursos y Personal`, `Misiones`, `Eventos ATP`, etc.).
 
 ### Paso 3: Selección y Asignación / Revocación de Permisos
 1. **Inspección de Estados:**
-   - Las casillas marcadas representan permisos actualmente asignados y activos para el rol.
-   - Las casillas desmarcadas representan permisos inactivos que pueden ser otorgados.
+   - Las casillas marcadas con fondo Teal y check blanco representan permisos actualmente asignados y activos para el rol.
+   - Las casillas desmarcadas representan permisos inactivos que pueden ser otorgados con un clic.
 2. **Acción Individual:**
    - Haga clic sobre cualquier fila o checkbox para marcar (asignar) o desmarcar (revocar) un permiso individual.
 3. **Acciones Rápidas por Módulo:**
    - En la cabecera de cada módulo (ej. *Incidentes*, *Recursos y Personal*), utilice los botones auxiliares:
      - **Marcar todos:** Asigna simultáneamente todas las acciones del módulo.
-     - **Desmarcar:** Revoca todas las acciones asignadas del módulo.
-4. **Filtro Rápido:**
-   - Puede utilizar el campo de búsqueda superior (*"Filtrar por nombre, código o módulo..."*) para localizar permisos puntuales sin perder la selección de los demás.
+     - **Desmarcar:** Revoca todas las acciones asignadas del módulo (excepto permisos protegidos por el sistema).
 
-### Paso 4: Protección de Auto-Bloqueo para el Rol Administrador (Criterio 3)
-- Cuando se edita el perfil **Administrador**, el sistema protege automáticamente el permiso crítico `seguridad:roles:gestionar` (`Gestionar Roles y Permisos`).
-- Dicha casilla permanece marcada, deshabilitada y acompañada de la insignia **"Protegido"** con ícono de candado, previniendo que un administrador elimine accidentalmente la capacidad de administrar el sistema.
+### Paso 4: Doble Protección de Auto-Bloqueo para el Rol Administrador
+Para garantizar la integridad y operatividad del sistema, cuando se edita el perfil **Administrador**, el sistema bloquea estrictamente la desmarcación de dos permisos esenciales:
+- `seguridad:roles:gestionar` (*Gestionar Roles y Permisos*): Previene que el administrador pierda la capacidad de alterar o restaurar permisos.
+- `seguridad:roles:leer` (*Visualizar Roles y Permisos*): Previene que el administrador pierda la capacidad de listar y visualizar roles en la plataforma.
+
+Ambas casillas se muestran marcadas, deshabilitadas y con un icono de candado e indicador **"Protegido"**, impidiendo cualquier intento de auto-bloqueo accidental.
 
 ### Paso 5: Confirmación y Persistencia de Cambios
-1. En el pie del modal, revise el indicador de balance:
-   - Ejemplo: `Total activos: 5 (+2 a asignar, -1 a revocar)`.
-2. El botón **"Guardar Cambios"** se habilitará únicamente si se han detectado modificaciones respecto al estado inicial.
-3. Haga clic en **"Guardar Cambios"**:
+1. En el pie del panel lateral, revise el indicador de balance:
+   - Ejemplo: `Total activos: 12 (+2 a asignar, -1 a revocar)`.
+2. El botón **"Guardar Cambios"** se habilitará únicamente si se han detectado modificaciones respecto al estado inicial del rol.
+3. Si desea descartar los cambios, haga clic en **"Cancelar"** para regresar al modo de solo lectura sin guardar.
+4. Para confirmar, haga clic en **"Guardar Cambios"**:
    - El botón mostrará un indicador de carga (`loading`) mientras se sincroniza con el backend.
-   - Al finalizar, el modal se cerrará automáticamente y el sistema desplegará una notificación Toast flotante de confirmación verde:
+   - Al finalizar, el Drawer vuelve al modo de visualización actualizado y el sistema despliega una notificación Toast flotante de confirmación verde:
      > *"Permisos del perfil actualizados correctamente en la base de datos"*.
-4. El panel lateral y la tarjeta del rol reflejarán de manera inmediata el nuevo conteo y la nueva lista de permisos activos sin necesidad de recargar la página.
+5. Tanto el listado en el panel lateral como la tarjeta del rol en la vista principal reflejarán de manera inmediata el nuevo conteo de permisos asignados.
 
 ---
 
@@ -89,10 +94,10 @@ Permitir al Administrador asignar o revocar de manera masiva e interactiva los p
 
 | Escenario / Error | Mensaje / Visualización | Causa y Acción de Solución |
 |---|---|---|
-| **Error al cargar catálogo de permisos** | Notificación Toast roja: *"No fue posible cargar el catálogo de permisos desde el servidor — Error de Catálogo"*. | Falla de conexión con `GET /api/seguridad/permisos` o servicio de backend no disponible. Verifique que `sgrai-api` esté en ejecución y vuelva a abrir el modal. |
+| **Error al cargar catálogo de permisos** | Notificación Toast roja: *"No fue posible cargar el catálogo de permisos desde el servidor — Error de Catálogo"*. | Falla de conexión con `GET /api/seguridad/permisos` o servicio de backend no disponible. Verifique que `sgrai-api` esté en ejecución y vuelva a intentar la edición. |
 | **Acceso Denegado (403 Forbidden)** | Notificación Toast roja: *"Acceso denegado. Se requiere perfil de Administrador"*. | La sesión activa no cuenta con el perfil de Administrador. En la barra superior, verifique que el usuario simulado sea el *Administrador General*. |
 | **Pérdida de Sesión / 401 Unauthorized** | Notificación Toast roja: *"Sesión no válida o no autenticada"*. | Cabecera `X-User-Id` ausente o token expirado. Renueve su sesión en la plataforma. |
-| **Intento de cerrar sin guardar** | Botón *"Cancelar"* o tecla `Escape`. | Si el usuario presiona Cancelar o hace clic en la cruz de cierre, los cambios no confirmados se descartan sin alterar la base de datos. |
+| **Intento de cerrar sin guardar** | Botón *"Cancelar"* o clic en cerrar drawer. | Si el usuario presiona Cancelar o cierra el drawer, los cambios no confirmados se descartan sin alterar la base de datos. |
 
 ---
 

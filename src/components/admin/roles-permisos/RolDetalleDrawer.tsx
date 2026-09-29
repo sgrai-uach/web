@@ -9,26 +9,55 @@ import RolDetalleHeader from './drawer/RolDetalleHeader';
 import RolDetalleInfo from './drawer/RolDetalleInfo';
 import RolDetalleFooter from './drawer/RolDetalleFooter';
 import Heading from '@/components/ui/Heading';
+import { useGestionPermisos } from '@/hooks/useGestionPermisos';
 
 interface RolDetalleDrawerProps {
   rol: RolItem | null;
+  usuarioId: string;
   onClose: () => void;
-  onModificarPermisos?: (rol: RolItem) => void;
+  onRolActualizado?: () => void;
 }
 
 export default function RolDetalleDrawer({
   rol,
+  usuarioId,
   onClose,
-  onModificarPermisos,
+  onRolActualizado,
 }: RolDetalleDrawerProps) {
-  const permisosAgrupados = useMemo(() => {
+  const {
+    modoEdicion,
+    activarModoEdicion,
+    cancelarEdicion,
+    cargandoCatalogo,
+    guardando,
+    seleccionados,
+    permisosBloqueados,
+    modulosAgrupados,
+    agregadosCount,
+    revocadosCount,
+    tieneCambios,
+    togglePermiso,
+    marcarModulo,
+    desmarcarModulo,
+    guardarCambios,
+  } = useGestionPermisos({
+    rol,
+    usuarioId,
+    onExito: onRolActualizado,
+  });
+
+  const permisosAgrupadosLectura = useMemo(() => {
     if (!rol || !rol.permisos) return {};
     return agruparPermisosPorModulo(rol.permisos);
   }, [rol]);
 
   if (!rol) return null;
 
-  const tienePermisos = rol.cantidadPermisos > 0 && rol.permisos.length > 0;
+  const tienePermisosLectura = rol.cantidadPermisos > 0 && rol.permisos.length > 0;
+  const handleCerrar = () => {
+    if (modoEdicion) cancelarEdicion();
+    onClose();
+  };
 
   return (
     <div
@@ -43,7 +72,7 @@ export default function RolDetalleDrawer({
         alignItems: 'stretch',
       }}
       onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
+        if (e.target === e.currentTarget && !guardando) handleCerrar();
       }}
       aria-modal="true"
       role="dialog"
@@ -61,7 +90,10 @@ export default function RolDetalleDrawer({
           overflow: 'hidden',
         }}
       >
-        <RolDetalleHeader nombre={rol.nombre} onClose={onClose} />
+        <RolDetalleHeader
+          nombre={rol.nombre}
+          onClose={handleCerrar}
+        />
 
         <div
           style={{
@@ -83,34 +115,56 @@ export default function RolDetalleDrawer({
                 alignItems: 'center',
                 justifyContent: 'space-between',
                 marginBottom: '0.75rem',
+                flexWrap: 'wrap',
+                gap: '8px',
               }}
             >
-              <Heading
-                as="h3"
-                variant="h4"
-                color="charcoal"
-                noMargin
-              >
-                Matriz de Permisos ({rol.cantidadPermisos})
+              <Heading as="h3" variant="h4" color="charcoal" noMargin>
+                Matriz de Permisos ({modoEdicion ? seleccionados.size : rol.cantidadPermisos})
               </Heading>
-              {tienePermisos && (
-                <span style={{ fontSize: '0.75rem', color: '#666' }}>
-                  Agrupados por módulo funcional
-                </span>
-              )}
+              <span style={{ fontSize: '0.75rem', color: modoEdicion ? 'var(--color-primary-teal, #1B6F7D)' : '#666', fontWeight: modoEdicion ? 700 : 400 }}>
+                {modoEdicion ? 'Modo asignación/edición interactivo' : 'Agrupados por módulo funcional'}
+              </span>
             </div>
 
-            {tienePermisos ? (
-              <PermisosAgrupados permisosPorModulo={permisosAgrupados} />
+            {modoEdicion ? (
+              cargandoCatalogo ? (
+                <div style={{ padding: '2rem', textAlign: 'center', color: '#5F676E' }}>
+                  Cargando catálogo completo de permisos...
+                </div>
+              ) : (
+                <PermisosAgrupados
+                  permisosPorModulo={modulosAgrupados}
+                  modoEdicion={true}
+                  seleccionados={seleccionados}
+                  permisosBloqueados={permisosBloqueados}
+                  onToggle={togglePermiso}
+                  onMarcarModulo={marcarModulo}
+                  onDesmarcarModulo={desmarcarModulo}
+                />
+              )
+            ) : tienePermisosLectura ? (
+              <PermisosAgrupados permisosPorModulo={permisosAgrupadosLectura} />
             ) : (
-              <SinPermisosState nombreRol={rol.nombre} />
+              <SinPermisosState
+                nombreRol={rol.nombre}
+                onAsignarPermisos={activarModoEdicion}
+              />
             )}
           </div>
         </div>
 
         <RolDetalleFooter
-          onClose={onClose}
-          onModificarPermisos={onModificarPermisos ? () => onModificarPermisos(rol) : undefined}
+          onClose={handleCerrar}
+          modoEdicion={modoEdicion}
+          guardando={guardando}
+          tieneCambios={tieneCambios}
+          totalSeleccionados={seleccionados.size}
+          agregadosCount={agregadosCount}
+          revocadosCount={revocadosCount}
+          onIniciarEdicion={activarModoEdicion}
+          onCancelarEdicion={cancelarEdicion}
+          onGuardarCambios={guardarCambios}
         />
       </aside>
     </div>
