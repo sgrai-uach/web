@@ -2,6 +2,7 @@ import type { ComponentType } from 'react';
 import type { LucideProps } from 'lucide-react';
 import {
   PhoneCall,
+  FilePlus2,
   MapPin,
   ClipboardList,
   BarChart3,
@@ -35,6 +36,12 @@ export const NAV_GROUPS: NavGroup[] = [
         label: 'Bandeja de Avisos',
         href: '/callcenter',
         icon: PhoneCall,
+      },
+      {
+        id: 'callcenter-manual',
+        label: 'Ingreso Manual',
+        href: '/callcenter/manual',
+        icon: FilePlus2,
       },
       {
         id: 'mando',
