@@ -13,9 +13,14 @@ import Heading from '@/components/ui/Heading';
 interface RolDetalleDrawerProps {
   rol: RolItem | null;
   onClose: () => void;
+  onModificarPermisos?: (rol: RolItem) => void;
 }
 
-export default function RolDetalleDrawer({ rol, onClose }: RolDetalleDrawerProps) {
+export default function RolDetalleDrawer({
+  rol,
+  onClose,
+  onModificarPermisos,
+}: RolDetalleDrawerProps) {
   const permisosAgrupados = useMemo(() => {
     if (!rol || !rol.permisos) return {};
     return agruparPermisosPorModulo(rol.permisos);
@@ -103,7 +108,10 @@ export default function RolDetalleDrawer({ rol, onClose }: RolDetalleDrawerProps
           </div>
         </div>
 
-        <RolDetalleFooter onClose={onClose} />
+        <RolDetalleFooter
+          onClose={onClose}
+          onModificarPermisos={onModificarPermisos ? () => onModificarPermisos(rol) : undefined}
+        />
       </aside>
     </div>
   );

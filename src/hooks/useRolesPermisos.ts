@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useToast } from '@/components/ui/Toast';
-import { ApiError, listarRolesYPermisos } from '@/services/seguridadService';
+import { ApiError, listarRolesYPermisos, obtenerDetalleRol } from '@/services/seguridadService';
 import { getErrorMessage } from '@/lib/utils/errorUtils';
 import type {
   FiltroEstadoPermisos,
@@ -24,6 +24,7 @@ export function useRolesPermisos() {
   const [errorRbac, setErrorRbac] = useState(false);
 
   const [rolSeleccionado, setRolSeleccionado] = useState<RolItem | null>(null);
+  const [rolAEditar, setRolAEditar] = useState<RolItem | null>(null);
 
   const [busqueda, setBusqueda] = useState('');
   const [filtroTipo, setFiltroTipo] = useState<FiltroTipoRol>('TODOS');
@@ -163,6 +164,28 @@ export function useRolesPermisos() {
     setFiltroEstado('TODOS');
   };
 
+  const abrirModalEdicion = useCallback((rol: RolItem) => {
+    setRolAEditar(rol);
+  }, []);
+
+  const cerrarModalEdicion = useCallback(() => {
+    setRolAEditar(null);
+  }, []);
+
+  const handlePermisosGuardados = useCallback(async () => {
+    await cargarRoles(usuarioActivo.id, true);
+    if (rolSeleccionado && rolAEditar && rolSeleccionado.id === rolAEditar.id) {
+      try {
+        const detalle = await obtenerDetalleRol(rolAEditar.id, usuarioActivo.id);
+        if (detalle?.data) {
+          setRolSeleccionado(detalle.data);
+        }
+      } catch {
+        // Fallback silencioso si falla el detalle individual; cargarRoles ya refrescó el listado
+      }
+    }
+  }, [cargarRoles, usuarioActivo.id, rolSeleccionado, rolAEditar]);
+
   return {
     usuarioActivo,
     setUsuarioActivo,
@@ -172,6 +195,10 @@ export function useRolesPermisos() {
     errorRbac,
     rolSeleccionado,
     setRolSeleccionado,
+    rolAEditar,
+    abrirModalEdicion,
+    cerrarModalEdicion,
+    handlePermisosGuardados,
     busqueda,
     setBusqueda,
     filtroTipo,

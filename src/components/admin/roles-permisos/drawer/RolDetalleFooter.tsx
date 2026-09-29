@@ -4,9 +4,13 @@ import { Edit3 } from 'lucide-react';
 
 interface RolDetalleFooterProps {
   onClose: () => void;
+  onModificarPermisos?: () => void;
 }
 
-export default function RolDetalleFooter({ onClose }: RolDetalleFooterProps) {
+export default function RolDetalleFooter({
+  onClose,
+  onModificarPermisos,
+}: RolDetalleFooterProps) {
   return (
     <footer
       style={{
@@ -22,18 +26,20 @@ export default function RolDetalleFooter({ onClose }: RolDetalleFooterProps) {
     >
       <Button
         type="button"
-        variant="secondary"
+        variant="primary"
         size="sm"
-        disabled
-        title="Próximamente en HU-5: Asignación y revocación de permisos"
+        onClick={onModificarPermisos}
+        disabled={!onModificarPermisos}
+        title="Asignar o revocar permisos a este perfil"
       >
         <Edit3 size={14} aria-hidden="true" />
-        <span>Modificar Permisos (HU-5)</span>
+        <span>Modificar Permisos</span>
       </Button>
 
       <Button
         type="button"
         variant="secondary"
+        size="sm"
         onClick={onClose}
       >
         Cerrar Detalle

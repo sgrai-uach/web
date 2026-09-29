@@ -34,3 +34,77 @@ export interface MetricasRoles {
   perfilesSinPermisos: number;
   totalPermisosUnicos: number;
 }
+
+export interface PermisoCatalogoItem {
+  id: string;
+  codigo: string;
+  nombre: string;
+  descripcion: string | null;
+  modulo: string;
+}
+
+export type PermisosCatalogoPorModulo = Record<string, PermisoCatalogoItem[]>;
+
+export interface ActualizarPermisosRolPayload {
+  permisoIds: string[];
+}
+
+export interface ActualizarPermisosRolResponse {
+  message: string;
+  data?: RolItem;
+}
+
+export type SeguridadExtendedPaths = paths & {
+  '/api/seguridad/permisos': {
+    get: {
+      parameters: {
+        header: {
+          'x-user-id': string;
+        };
+      };
+      responses: {
+        200: {
+          content: {
+            'application/json': {
+              data: PermisoCatalogoItem[];
+              total?: number;
+            };
+          };
+        };
+        401: { content: { 'application/json': { error: string } } };
+        403: { content: { 'application/json': { error: string } } };
+      };
+    };
+  };
+  '/api/seguridad/roles/{id}/permisos': {
+    put: {
+      parameters: {
+        path: { id: string };
+        header: {
+          'x-user-id': string;
+        };
+      };
+      requestBody: {
+        content: {
+          'application/json': {
+            permisoIds: string[];
+          };
+        };
+      };
+      responses: {
+        200: {
+          content: {
+            'application/json': {
+              message: string;
+              data?: components['schemas']['RolItem'];
+            };
+          };
+        };
+        400: { content: { 'application/json': { error: string } } };
+        401: { content: { 'application/json': { error: string } } };
+        403: { content: { 'application/json': { error: string } } };
+        404: { content: { 'application/json': { error: string } } };
+      };
+    };
+  };
+};
