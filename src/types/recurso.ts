@@ -12,6 +12,14 @@ export type RecursoCreado = NonNullable<
   NonNullable<paths['/api/recursos']['post']['responses'][201]['content']
 >['application/json']>['data'];
 
+export type EditarRecursoDTO = NonNullable<
+  NonNullable<paths['/api/recursos/{id}']['put']['requestBody']>['content']
+>['application/json'];
+
+export type RecursoDetalleResponse = NonNullable<
+  NonNullable<paths['/api/recursos/{id}']['get']['responses'][200]['content']
+>['application/json']>;
+
 export const tipoCombustibleEnum = z.enum([
   'GASOLINA',
   'DIESEL',
@@ -150,6 +158,22 @@ export interface RecursoFormState {
   esIndividual: boolean;
   cantidadInventario: number | string;
   cantidadMinima: number | string;
+  latitud: number | string;
+  longitud: number | string;
+  subtipoDetalle: SubtipoDetalle;
+  detalles: RecursoDetallesFormFields;
+}
+
+export interface RecursoEditFormState {
+  id: string;
+  nombre: string;
+  descripcion: string;
+  esIndividual: boolean;
+  tipo: string;
+  cantidadInventario: number | string;
+  cantidadMinima: number | string;
+  cantidadEnUso: number;
+  enMantencion: boolean;
   latitud: number | string;
   longitud: number | string;
   subtipoDetalle: SubtipoDetalle;
