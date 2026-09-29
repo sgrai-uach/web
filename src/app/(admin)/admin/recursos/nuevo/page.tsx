@@ -28,7 +28,7 @@ export default function NuevoRecursoPage() {
         <span>&rsaquo;</span>
         <span style={{ color: 'var(--color-charcoal)' }}>Administración</span>
         <span>&rsaquo;</span>
-        <Link href="/recursos" style={{ color: 'var(--color-primary-teal)', fontWeight: 500, textDecoration: 'none' }}>
+        <Link href="/admin/recursos" style={{ color: 'var(--color-primary-teal)', fontWeight: 500, textDecoration: 'none' }}>
           Inventario Logístico
         </Link>
         <span>&rsaquo;</span>
