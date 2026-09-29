@@ -39,10 +39,8 @@ export const NAV_GROUPS: NavGroup[] = [
       {
         id: 'mando',
         label: 'Centro de Mando',
-        href: '/mando',
+        href: '/centro-incidentes',
         icon: MapPin,
-        disabled: true,
-        badge: 'Próx.',
       },
       {
         id: 'asistente-social',
