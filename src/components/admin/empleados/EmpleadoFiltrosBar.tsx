@@ -4,6 +4,7 @@ import React from 'react';
 import { ArrowDownAZ, ArrowUpZA } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import type { CatalogoItem } from '@/types/empleados';
+import type { EstadoFiltro } from '@/hooks/useEmpleados';
 import { selectStyle, labelStyle } from './empleadoStyles';
 
 interface EmpleadoFiltrosBarProps {
@@ -11,6 +12,8 @@ interface EmpleadoFiltrosBarProps {
   setDelegacionFiltro: (val: string) => void;
   rolFiltro: string;
   setRolFiltro: (val: string) => void;
+  estadoFiltro?: EstadoFiltro;
+  setEstadoFiltro?: (val: EstadoFiltro) => void;
   ordenarPor: string;
   setOrdenarPor: (val: string) => void;
   orden: 'asc' | 'desc';
@@ -24,6 +27,8 @@ export default function EmpleadoFiltrosBar({
   setDelegacionFiltro,
   rolFiltro,
   setRolFiltro,
+  estadoFiltro = 'todos',
+  setEstadoFiltro,
   ordenarPor,
   setOrdenarPor,
   orden,
@@ -35,13 +40,28 @@ export default function EmpleadoFiltrosBar({
     <div
       style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
         gap: '0.75rem',
         marginTop: '0.875rem',
         paddingTop: '0.75rem',
         borderTop: '1px solid var(--color-bg-light, #ECEFF3)',
       }}
     >
+      <div>
+        <label htmlFor="filtro-estado" style={labelStyle}>
+          Estado de Cuenta
+        </label>
+        <select
+          id="filtro-estado"
+          value={estadoFiltro}
+          onChange={(e) => setEstadoFiltro?.(e.target.value as EstadoFiltro)}
+          style={selectStyle}
+        >
+          <option value="todos">Todos los estados</option>
+          <option value="activo">Solo Activos</option>
+          <option value="inactivo">Inactivos / Baja Lógica</option>
+        </select>
+      </div>
       <div>
         <label htmlFor="filtro-delegacion" style={labelStyle}>
           Filtrar por Delegación

@@ -83,6 +83,10 @@ export const empleadosService = {
       if (params.rol_id) search.set('rol_id', params.rol_id);
       if (params.ordenar_por) search.set('ordenar_por', params.ordenar_por);
       if (params.orden) search.set('orden', params.orden);
+      if (params.incluir_inactivos) search.set('incluir_inactivos', 'true');
+      if (params.estado) search.set('estado', params.estado);
+      if (params.limite) search.set('limite', params.limite.toString());
+      if (params.pagina) search.set('pagina', params.pagina.toString());
 
       const query = search.toString();
       const url = query ? `/api/personal?${query}` : '/api/personal';

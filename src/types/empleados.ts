@@ -68,6 +68,10 @@ export interface EmpleadosQueryParams {
   rol_id?: string;
   ordenar_por?: string;
   orden?: 'asc' | 'desc';
+  incluir_inactivos?: boolean;
+  estado?: 'todos' | 'activo' | 'inactivo' | string;
+  limite?: number;
+  pagina?: number;
 }
 
 export interface ActualizarEmpleadoPayload {

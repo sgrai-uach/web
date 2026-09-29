@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import type { EmpleadoUsuario } from '@/types/empleados';
 import { useCatalogos } from '@/hooks/useCatalogos';
 import { empleadosService } from '@/services/empleadosService';
@@ -10,16 +10,21 @@ interface UseEmpleadosProps {
   versionActualizacion?: number;
 }
 
+export type EstadoFiltro = 'todos' | 'activo' | 'inactivo';
+
 /**
- * Custom Hook para gestionar el listado, filtros, orden y debounce del personal.
- * Conforme a docs/ARCHITECTURE.md (use{Dominio}Buscador.ts).
+ * Custom Hook para gestionar el listado, filtros, paginación, orden y debounce del personal.
+ * Conforme a docs/ARCHITECTURE.md.
  */
 export function useEmpleados({ versionActualizacion = 0 }: UseEmpleadosProps = {}) {
   const [termino, setTermino] = useState('');
   const [delegacionFiltro, setDelegacionFiltro] = useState('');
   const [rolFiltro, setRolFiltro] = useState('');
+  const [estadoFiltro, setEstadoFiltro] = useState<EstadoFiltro>('todos');
   const [ordenarPor, setOrdenarPor] = useState('apellidos');
   const [orden, setOrden] = useState<'asc' | 'desc'>('asc');
+  const [paginaActual, setPaginaActual] = useState(1);
+  const [limite, setLimite] = useState(10);
 
   const { catalogos } = useCatalogos();
 
@@ -27,7 +32,12 @@ export function useEmpleados({ versionActualizacion = 0 }: UseEmpleadosProps = {
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Búsqueda con debounce
+  // Reiniciar a la primera página cuando cambian los filtros
+  useEffect(() => {
+    setPaginaActual(1);
+  }, [termino, delegacionFiltro, rolFiltro, estadoFiltro, ordenarPor, orden]);
+
+  // Consulta con debounce
   useEffect(() => {
     let cancelado = false;
     const timer = setTimeout(async () => {
@@ -40,6 +50,8 @@ export function useEmpleados({ versionActualizacion = 0 }: UseEmpleadosProps = {
           rol_id: rolFiltro || undefined,
           ordenar_por: ordenarPor,
           orden,
+          incluir_inactivos: true,
+          limite: 200,
         });
         if (!cancelado) {
           setResultados(data);
@@ -61,6 +73,26 @@ export function useEmpleados({ versionActualizacion = 0 }: UseEmpleadosProps = {
     };
   }, [termino, delegacionFiltro, rolFiltro, ordenarPor, orden, versionActualizacion]);
 
+  // Filtrado en memoria por estado (Activos / Inactivos / Todos)
+  const resultadosFiltrados = useMemo(() => {
+    if (estadoFiltro === 'activo') {
+      return resultados.filter((u) => u.usuario_activo);
+    }
+    if (estadoFiltro === 'inactivo') {
+      return resultados.filter((u) => !u.usuario_activo);
+    }
+    return resultados;
+  }, [resultados, estadoFiltro]);
+
+  const totalItems = resultadosFiltrados.length;
+  const totalPaginas = Math.ceil(totalItems / limite);
+
+  // Elementos paginados para la tabla actual
+  const empleadosPaginados = useMemo(() => {
+    const inicio = (paginaActual - 1) * limite;
+    return resultadosFiltrados.slice(inicio, inicio + limite);
+  }, [resultadosFiltrados, paginaActual, limite]);
+
   return {
     termino,
     setTermino,
@@ -68,12 +100,21 @@ export function useEmpleados({ versionActualizacion = 0 }: UseEmpleadosProps = {
     setDelegacionFiltro,
     rolFiltro,
     setRolFiltro,
+    estadoFiltro,
+    setEstadoFiltro,
     ordenarPor,
     setOrdenarPor,
     orden,
     setOrden,
+    paginaActual,
+    setPaginaActual,
+    limite,
+    setLimite,
+    totalItems,
+    totalPaginas,
     catalogos,
-    resultados,
+    resultados: resultadosFiltrados,
+    empleadosPaginados,
     cargando,
     error,
   };

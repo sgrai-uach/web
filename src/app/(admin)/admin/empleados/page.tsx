@@ -1,18 +1,19 @@
 'use client';
 
 import React from 'react';
-import EmpleadoBuscador from '@/components/admin/empleados/EmpleadoBuscador';
-import EmpleadoFormulario from '@/components/admin/empleados/EmpleadoFormulario';
-import EmpleadoBajaModal from '@/components/admin/empleados/EmpleadoBajaModal';
 import { Breadcrumbs } from '@/components/common/Breadcrumbs';
-import PageTitleCard from '@/components/common/PageTitleCard';
-import EmptyState from '@/components/common/EmptyState';
-import { UserX } from 'lucide-react';
+import EmpleadoFiltros from '@/components/admin/empleados/EmpleadoFiltros';
+import EmpleadoTabla from '@/components/admin/empleados/EmpleadoTabla';
+import EmpleadoPanelEdicion from '@/components/admin/empleados/EmpleadoPanelEdicion';
+import EmpleadoBajaModal from '@/components/admin/empleados/EmpleadoBajaModal';
 import { useAdminEmpleados } from '@/hooks/useAdminEmpleados';
+import { useEmpleados } from '@/hooks/useEmpleados';
+import styles from './AdminEmpleadosPage.module.css';
 
 /**
  * Vista de Gestión de Personal (Administración).
- * Conforme a docs/ARCHITECTURE.md: Vista delgada orquestadora sin llamadas directas a APIs.
+ * Conforme a docs/ARCHITECTURE.md: Vista delgada orquestadora Master-Detail.
+ * Lista permanente a la izquierda y ficha de modificación a la derecha (widget sobrepuesto en móvil).
  */
 export default function AdminEmpleadosPage() {
   const {
@@ -20,7 +21,6 @@ export default function AdminEmpleadosPage() {
     versionActualizacion,
     empleadoAEliminar,
     eliminando,
-    formularioRef,
     seleccionarUsuario,
     cancelarSeleccion,
     solicitarBaja,
@@ -29,17 +29,32 @@ export default function AdminEmpleadosPage() {
     confirmarActualizacion,
   } = useAdminEmpleados();
 
+  const {
+    termino,
+    setTermino,
+    delegacionFiltro,
+    setDelegacionFiltro,
+    rolFiltro,
+    setRolFiltro,
+    estadoFiltro,
+    setEstadoFiltro,
+    ordenarPor,
+    setOrdenarPor,
+    orden,
+    setOrden,
+    paginaActual,
+    setPaginaActual,
+    limite,
+    setLimite,
+    totalItems,
+    totalPaginas,
+    catalogos,
+    empleadosPaginados,
+    cargando,
+  } = useEmpleados({ versionActualizacion });
+
   return (
-    <div
-      style={{
-        maxWidth: 'var(--container-max-width, 1400px)',
-        width: '100%',
-        margin: '0 auto',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 'var(--space-6, 24px)',
-      }}
-    >
+    <div className={styles.pageContainer}>
       {/* Breadcrumbs Institucionales */}
       <Breadcrumbs
         items={[
@@ -49,39 +64,65 @@ export default function AdminEmpleadosPage() {
         ]}
       />
 
-      {/* Tarjeta de Título Institucional */}
-      <PageTitleCard
-        title="Gestión de Personal"
-        description="Búsqueda, auditoría y asignación de roles, delegaciones y especialidades para personal municipal y de terreno."
-      />
-
-      {/* Buscador modular de usuarios */}
-      <EmpleadoBuscador
-        onSelectUsuario={seleccionarUsuario}
-        usuarioSeleccionadoId={usuarioSeleccionado?.usuario_id}
-        versionActualizacion={versionActualizacion}
-      />
-
-      {/* Formulario modular condicional */}
-      <div ref={formularioRef}>
-        {usuarioSeleccionado ? (
-          <EmpleadoFormulario
-            key={usuarioSeleccionado.usuario_id}
-            usuario={usuarioSeleccionado}
-            onEmpleadoActualizado={confirmarActualizacion}
-            onCancelar={cancelarSeleccion}
-            onDarDeBaja={() => solicitarBaja(usuarioSeleccionado)}
-          />
-        ) : (
-          <EmptyState
-            icon={<UserX size={28} />}
-            title="Ningún usuario seleccionado"
-            description="Utilice el buscador superior para seleccionar a un funcionario por RUT, nombre o correo institucional."
-          />
-        )}
+      {/* Barra de Búsqueda y Filtros */}
+      <div className={styles.filtersCard}>
+        <EmpleadoFiltros
+          termino={termino}
+          setTermino={setTermino}
+          delegacionFiltro={delegacionFiltro}
+          setDelegacionFiltro={setDelegacionFiltro}
+          rolFiltro={rolFiltro}
+          setRolFiltro={setRolFiltro}
+          estadoFiltro={estadoFiltro}
+          setEstadoFiltro={setEstadoFiltro}
+          ordenarPor={ordenarPor}
+          setOrdenarPor={setOrdenarPor}
+          orden={orden}
+          setOrden={setOrden}
+          delegaciones={catalogos.delegaciones}
+          roles={catalogos.roles}
+          cargando={cargando}
+        />
       </div>
 
-      {/* Modal de confirmación de baja lógica */}
+      {/* Disposición Master-Detail: Lista permanente (izquierda) y Formulario (derecha) */}
+      <div className={styles.masterDetailGrid}>
+        {/* Columna Izquierda: Lista permanente de empleados con paginación estándar */}
+        <div className={styles.tableColumn}>
+          <EmpleadoTabla
+            empleados={empleadosPaginados}
+            cargando={cargando}
+            paginaActual={paginaActual}
+            totalPaginas={totalPaginas}
+            totalItems={totalItems}
+            limite={limite}
+            onCambiarPagina={setPaginaActual}
+            onCambiarLimite={(nuevoLimite) => {
+              setLimite(nuevoLimite);
+              setPaginaActual(1);
+            }}
+            usuarioSeleccionadoId={usuarioSeleccionado?.usuario_id}
+            onSelectUsuario={seleccionarUsuario}
+            onDarDeBaja={solicitarBaja}
+          />
+        </div>
+
+        {/* Columna Derecha: Panel de Modificación (en desktop) / Widget sobrepuesto (en móvil) */}
+        <div className={styles.detailColumn}>
+          <EmpleadoPanelEdicion
+            usuario={usuarioSeleccionado}
+            onEmpleadoActualizado={confirmarActualizacion}
+            onCerrar={cancelarSeleccion}
+            onDarDeBaja={() => {
+              if (usuarioSeleccionado) {
+                solicitarBaja(usuarioSeleccionado);
+              }
+            }}
+          />
+        </div>
+      </div>
+
+      {/* Modal de confirmación de baja lógica (HU-13) */}
       <EmpleadoBajaModal
         empleado={empleadoAEliminar}
         eliminando={eliminando}

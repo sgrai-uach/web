@@ -8,7 +8,7 @@ interface EmpleadoSearchInputProps {
   termino: string;
   setTermino: (val: string) => void;
   cargando: boolean;
-  onFocusInput: () => void;
+  onFocusInput?: () => void;
 }
 
 export default function EmpleadoSearchInput({
