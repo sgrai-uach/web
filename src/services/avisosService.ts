@@ -134,12 +134,27 @@ export async function enviarAvisoIncidente(payload: CrearAvisoPayload): Promise<
 export async function listarAvisos(
   params: Partial<FiltrosAvisosState> = {}
 ): Promise<AvisosPaginadosResponse> {
+  const queryObj: Record<string, unknown> = {
+    page: params.page ?? 1,
+    limit: params.limit ?? 20,
+  };
+
+  if (params.estado && params.estado !== 'TODOS') {
+    queryObj.estado = params.estado;
+  } else if (!params.estado) {
+    queryObj.estado = 'NO_VERIFICADO';
+  }
+
+  if (params.delegacion && params.delegacion !== 'TODAS') {
+    queryObj.delegacion = params.delegacion;
+  }
+
   const { data, error, response } = await apiClient.GET('/api/incidentes/avisos', {
     params: {
-      query: {
-        page: params.page ?? 1,
-        limit: params.limit ?? 20,
-        estado: params.estado ?? 'NO_VERIFICADO',
+      query: queryObj as unknown as {
+        page?: number;
+        limit?: number;
+        estado?: 'PENDIENTE_VERIFICACION' | 'NO_VERIFICADO' | 'VERIFICADO' | 'DESCARTADO';
       },
     },
   });
