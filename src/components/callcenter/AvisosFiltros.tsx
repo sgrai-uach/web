@@ -53,24 +53,32 @@ export default function AvisosFiltros({
         flexDirection: 'column',
       }}
     >
-      {/* Barra principal de controles */}
+      {/* Barra principal unificada en una sola fila */}
       <div
         style={{
-          padding: '1rem 1.25rem',
+          padding: '0.75rem 1rem',
           display: 'flex',
           flexWrap: 'wrap',
           alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: '0.875rem',
+          gap: '0.625rem',
         }}
       >
-        {/* Campo de búsqueda */}
-        <div style={{ flex: '1 1 240px', position: 'relative', display: 'flex', alignItems: 'center' }}>
+        {/* Campo de búsqueda con ancho acotado */}
+        <div
+          style={{
+            flex: '1 1 220px',
+            maxWidth: '320px',
+            minWidth: '200px',
+            position: 'relative',
+            display: 'flex',
+            alignItems: 'center',
+          }}
+        >
           <Search
-            size={16}
+            size={15}
             style={{
               position: 'absolute',
-              left: '0.75rem',
+              left: '0.65rem',
               color: 'var(--color-text-muted, #5F676E)',
               pointerEvents: 'none',
             }}
@@ -80,12 +88,12 @@ export default function AvisosFiltros({
             type="text"
             value={busqueda}
             onChange={(e) => onBusquedaChange(e.target.value)}
-            placeholder="Buscar por descripción, calle o informante..."
+            placeholder="Buscar por calle, informante..."
             style={{
               width: '100%',
-              padding: '0.55rem 0.75rem 0.55rem 2.25rem',
+              padding: '0.5rem 2rem 0.5rem 2.1rem',
               border: '1px solid var(--border-color-dark, #3B3F45)',
-              fontSize: '0.875rem',
+              fontSize: '0.8125rem',
               color: 'var(--color-text-dark, #2B2B2B)',
               outline: 'none',
               borderRadius: 0,
@@ -99,144 +107,130 @@ export default function AvisosFiltros({
               onClick={() => onBusquedaChange('')}
               style={{
                 position: 'absolute',
-                right: '0.5rem',
+                right: '0.4rem',
                 background: 'none',
                 border: 'none',
                 cursor: 'pointer',
                 color: 'var(--color-text-muted, #5F676E)',
                 display: 'inline-flex',
                 alignItems: 'center',
-                padding: '0.25rem',
+                padding: '0.2rem',
               }}
               title="Borrar búsqueda"
               aria-label="Borrar búsqueda"
             >
-              <X size={14} />
+              <X size={13} />
             </button>
           )}
         </div>
 
-        {/* Selectores de filtro */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', flexWrap: 'wrap' }}>
-          {/* Filtro por Delegación */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.875rem' }}>
-            <label
-              htmlFor="filtro-delegacion"
-              style={{ color: 'var(--color-charcoal, #3B3F45)', fontWeight: 600, whiteSpace: 'nowrap' }}
-            >
-              Delegación:
-            </label>
-            <select
-              id="filtro-delegacion"
-              value={filtroDelegacion}
-              onChange={(e) => onFiltroDelegacionChange(e.target.value as FiltroDelegacion)}
-              style={{
-                padding: '0.55rem 0.65rem',
-                border: '1px solid var(--border-color-dark, #3B3F45)',
-                fontSize: '0.875rem',
-                color: 'var(--color-text-dark, #2B2B2B)',
-                backgroundColor: '#FFFFFF',
-                borderRadius: 0,
-                cursor: 'pointer',
-              }}
-            >
-              {DELEGACIONES_OPCIONES.map((opcion) => (
-                <option key={opcion.valor} value={opcion.valor}>
-                  {opcion.etiqueta}
-                </option>
-              ))}
-            </select>
-          </div>
+        {/* Separador vertical sutil */}
+        <div
+          style={{
+            width: '1px',
+            height: '22px',
+            backgroundColor: '#DFE3E8',
+            margin: '0 0.15rem',
+          }}
+          aria-hidden="true"
+        />
 
-          {/* Filtro por Estado */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.875rem' }}>
-            <label
-              htmlFor="filtro-estado"
-              style={{ color: 'var(--color-charcoal, #3B3F45)', fontWeight: 600, whiteSpace: 'nowrap' }}
-            >
-              Estado:
-            </label>
-            <select
-              id="filtro-estado"
-              value={filtroEstado}
-              onChange={(e) => onFiltroEstadoChange(e.target.value as FiltroEstado)}
-              style={{
-                padding: '0.55rem 0.65rem',
-                border: '1px solid var(--border-color-dark, #3B3F45)',
-                fontSize: '0.875rem',
-                color: 'var(--color-text-dark, #2B2B2B)',
-                backgroundColor: '#FFFFFF',
-                borderRadius: 0,
-                cursor: 'pointer',
-              }}
-            >
-              {ESTADOS_OPCIONES.map((opcion) => (
-                <option key={opcion.valor} value={opcion.valor}>
-                  {opcion.etiqueta}
-                </option>
-              ))}
-            </select>
-          </div>
+        {/* Selector Delegación */}
+        <select
+          id="filtro-delegacion"
+          aria-label="Delegación"
+          value={filtroDelegacion}
+          onChange={(e) => onFiltroDelegacionChange(e.target.value as FiltroDelegacion)}
+          style={{
+            padding: '0.5rem 0.65rem',
+            border: '1px solid var(--border-color-dark, #3B3F45)',
+            fontSize: '0.8125rem',
+            color: 'var(--color-text-dark, #2B2B2B)',
+            backgroundColor: '#FFFFFF',
+            borderRadius: 0,
+            cursor: 'pointer',
+            flex: '0 0 auto',
+          }}
+        >
+          {DELEGACIONES_OPCIONES.map((opcion) => (
+            <option key={opcion.valor} value={opcion.valor}>
+              {opcion.valor === 'TODAS' ? 'Todas las delegaciones' : `Del. ${opcion.etiqueta}`}
+            </option>
+          ))}
+        </select>
 
-          {/* Filtro por origen / canal */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.875rem' }}>
-            <label
-              htmlFor="filtro-origen"
-              style={{ color: 'var(--color-charcoal, #3B3F45)', fontWeight: 600, whiteSpace: 'nowrap' }}
-            >
-              Canal:
-            </label>
-            <select
-              id="filtro-origen"
-              value={filtroOrigen}
-              onChange={(e) => onFiltroOrigenChange(e.target.value as FiltroOrigen)}
-              style={{
-                padding: '0.55rem 0.65rem',
-                border: '1px solid var(--border-color-dark, #3B3F45)',
-                fontSize: '0.875rem',
-                color: 'var(--color-text-dark, #2B2B2B)',
-                backgroundColor: '#FFFFFF',
-                borderRadius: 0,
-                cursor: 'pointer',
-              }}
-            >
-              <option value="TODOS">Todos los canales</option>
-              <option value="WEB">Portal Web</option>
-              <option value="CHATBOT">Chatbot</option>
-              <option value="TELEFONO">Teléfono 14XX</option>
-            </select>
-          </div>
+        {/* Selector Estado */}
+        <select
+          id="filtro-estado"
+          aria-label="Estado"
+          value={filtroEstado}
+          onChange={(e) => onFiltroEstadoChange(e.target.value as FiltroEstado)}
+          style={{
+            padding: '0.5rem 0.65rem',
+            border: '1px solid var(--border-color-dark, #3B3F45)',
+            fontSize: '0.8125rem',
+            color: 'var(--color-text-dark, #2B2B2B)',
+            backgroundColor: '#FFFFFF',
+            borderRadius: 0,
+            cursor: 'pointer',
+            flex: '0 0 auto',
+          }}
+        >
+          {ESTADOS_OPCIONES.map((opcion) => (
+            <option key={opcion.valor} value={opcion.valor}>
+              {opcion.valor === 'TODOS' ? 'Todos los estados' : `Estado: ${opcion.etiqueta}`}
+            </option>
+          ))}
+        </select>
 
-          {/* Filtro por prioridad / semáforo */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.875rem' }}>
-            <label
-              htmlFor="filtro-semaforo"
-              style={{ color: 'var(--color-charcoal, #3B3F45)', fontWeight: 600, whiteSpace: 'nowrap' }}
-            >
-              Prioridad:
-            </label>
-            <select
-              id="filtro-semaforo"
-              value={filtroSemaforo}
-              onChange={(e) => onFiltroSemaforoChange(e.target.value as FiltroSemaforo)}
-              style={{
-                padding: '0.55rem 0.65rem',
-                border: '1px solid var(--border-color-dark, #3B3F45)',
-                fontSize: '0.875rem',
-                color: 'var(--color-text-dark, #2B2B2B)',
-                backgroundColor: '#FFFFFF',
-                borderRadius: 0,
-                cursor: 'pointer',
-              }}
-            >
-              <option value="TODOS">Todas las prioridades</option>
-              <option value="EN_TIEMPO">En Tiempo (&lt; 15 min)</option>
-              <option value="PRECAUCION">Precaución (15-30 min)</option>
-              <option value="URGENTE">Urgente (&gt; 30 min)</option>
-            </select>
-          </div>
+        {/* Selector Canal Origen */}
+        <select
+          id="filtro-origen"
+          aria-label="Canal de origen"
+          value={filtroOrigen}
+          onChange={(e) => onFiltroOrigenChange(e.target.value as FiltroOrigen)}
+          style={{
+            padding: '0.5rem 0.65rem',
+            border: '1px solid var(--border-color-dark, #3B3F45)',
+            fontSize: '0.8125rem',
+            color: 'var(--color-text-dark, #2B2B2B)',
+            backgroundColor: '#FFFFFF',
+            borderRadius: 0,
+            cursor: 'pointer',
+            flex: '0 0 auto',
+          }}
+        >
+          <option value="TODOS">Todos los canales</option>
+          <option value="WEB">Canal: Portal Web</option>
+          <option value="CHATBOT">Canal: Chatbot</option>
+          <option value="TELEFONO">Canal: Teléfono 14XX</option>
+        </select>
 
-          {/* Botón Refrescar */}
+        {/* Selector Prioridad */}
+        <select
+          id="filtro-semaforo"
+          aria-label="Prioridad"
+          value={filtroSemaforo}
+          onChange={(e) => onFiltroSemaforoChange(e.target.value as FiltroSemaforo)}
+          style={{
+            padding: '0.5rem 0.65rem',
+            border: '1px solid var(--border-color-dark, #3B3F45)',
+            fontSize: '0.8125rem',
+            color: 'var(--color-text-dark, #2B2B2B)',
+            backgroundColor: '#FFFFFF',
+            borderRadius: 0,
+            cursor: 'pointer',
+            flex: '0 0 auto',
+          }}
+        >
+          <option value="TODOS">Todas las prioridades</option>
+          <option value="EN_TIEMPO">Prioridad: En Tiempo</option>
+          <option value="PRECAUCION">Prioridad: Precaución</option>
+          <option value="URGENTE">Prioridad: Urgente</option>
+        </select>
+
+        {/* Botón Refrescar al extremo derecho */}
+        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center' }}>
           <Button
             type="button"
             variant="secondary"
@@ -245,6 +239,7 @@ export default function AvisosFiltros({
             disabled={cargando}
             suppressHydrationWarning
             title="Refrescar lista de avisos"
+            style={{ padding: '0.45rem 0.75rem', fontSize: '0.8125rem' }}
           >
             <RotateCw size={13} className={cargando ? 'animate-spin' : ''} aria-hidden="true" />
             <span>{cargando ? 'Actualizando...' : 'Refrescar'}</span>
@@ -259,7 +254,7 @@ export default function AvisosFiltros({
           style={{
             backgroundColor: 'var(--color-bg-light, #ECEFF3)',
             borderTop: '1px solid #DFE3E8',
-            padding: '0.625rem 1.25rem',
+            padding: '0.5rem 1rem',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
@@ -273,14 +268,14 @@ export default function AvisosFiltros({
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '0.35rem',
-                fontSize: '0.8125rem',
+                fontSize: '0.75rem',
                 fontWeight: 700,
                 color: 'var(--color-primary-teal-dark, #14505A)',
                 textTransform: 'uppercase',
                 letterSpacing: '0.4px',
               }}
             >
-              <Filter size={14} aria-hidden="true" />
+              <Filter size={13} aria-hidden="true" />
               Filtros activos:
             </span>
 
@@ -293,7 +288,7 @@ export default function AvisosFiltros({
                   gap: '0.35rem',
                   backgroundColor: '#FFFFFF',
                   border: '1px solid #CCD2D9',
-                  padding: '0.2rem 0.5rem',
+                  padding: '0.15rem 0.45rem',
                   fontSize: '0.75rem',
                   fontWeight: 600,
                   color: 'var(--color-text-dark, #2B2B2B)',
@@ -329,7 +324,7 @@ export default function AvisosFiltros({
                   gap: '0.35rem',
                   backgroundColor: '#FFFFFF',
                   border: '1px solid var(--color-primary-teal, #1B6F7D)',
-                  padding: '0.2rem 0.5rem',
+                  padding: '0.15rem 0.45rem',
                   fontSize: '0.75rem',
                   fontWeight: 700,
                   color: 'var(--color-primary-teal, #1B6F7D)',
@@ -365,7 +360,7 @@ export default function AvisosFiltros({
                   gap: '0.35rem',
                   backgroundColor: '#FFFFFF',
                   border: '1px solid #CCD2D9',
-                  padding: '0.2rem 0.5rem',
+                  padding: '0.15rem 0.45rem',
                   fontSize: '0.75rem',
                   fontWeight: 600,
                   color: 'var(--color-text-dark, #2B2B2B)',
@@ -406,7 +401,7 @@ export default function AvisosFiltros({
                   gap: '0.35rem',
                   backgroundColor: '#FFFFFF',
                   border: '1px solid #CCD2D9',
-                  padding: '0.2rem 0.5rem',
+                  padding: '0.15rem 0.45rem',
                   fontSize: '0.75rem',
                   fontWeight: 600,
                   color: 'var(--color-text-dark, #2B2B2B)',
@@ -442,7 +437,7 @@ export default function AvisosFiltros({
                   gap: '0.35rem',
                   backgroundColor: '#FFFFFF',
                   border: '1px solid #CCD2D9',
-                  padding: '0.2rem 0.5rem',
+                  padding: '0.15rem 0.45rem',
                   fontSize: '0.75rem',
                   fontWeight: 600,
                   color: 'var(--color-text-dark, #2B2B2B)',
@@ -485,11 +480,11 @@ export default function AvisosFiltros({
             style={{
               borderColor: 'var(--color-charcoal, #3B3F45)',
               color: 'var(--color-charcoal, #3B3F45)',
-              padding: '0.35rem 0.75rem',
-              fontSize: '0.8125rem',
+              padding: '0.3rem 0.65rem',
+              fontSize: '0.75rem',
             }}
           >
-            <FilterX size={14} aria-hidden="true" />
+            <FilterX size={13} aria-hidden="true" />
             <span>Limpiar filtros</span>
           </Button>
         </div>
