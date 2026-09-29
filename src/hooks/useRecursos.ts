@@ -5,6 +5,7 @@ import type { ListarRecursosResponse, FiltrosRecursosState, RecursoItem } from '
 import { DEFAULT_ADMIN_USER_ID } from '@/lib/api/client';
 import { getRecursos, RecursoServiceError } from '@/services/recursosService';
 import { getErrorMessage } from '@/lib/utils/errorUtils';
+import { getSocket } from '@/lib/socket/client';
 
 export const DELEGACIONES_MUNICIPALES = [
   {
@@ -62,6 +63,7 @@ export interface UseRecursosReturn {
   error: Error | null;
   statusCode: number | null;
   recargar: () => Promise<void>;
+  actualizarRecursoEnLista: (recursoActualizado: RecursoItem) => void;
 }
 
 export function useRecursos(
@@ -128,6 +130,39 @@ export function useRecursos(
     };
   }, [fetchData]);
 
+  const actualizarRecursoEnLista = useCallback((recursoActualizado: RecursoItem) => {
+    if (!recursoActualizado || !recursoActualizado.id) return;
+    setData((prev) => {
+      if (!prev) return prev;
+      const index = prev.data.findIndex((r) => r.id === recursoActualizado.id);
+      if (index === -1) return prev;
+      const updatedList = [...prev.data];
+      updatedList[index] = {
+        ...updatedList[index],
+        ...recursoActualizado,
+      };
+      return {
+        ...prev,
+        data: updatedList,
+      };
+    });
+  }, []);
+
+  // Suscripción en tiempo real vía WebSockets (Socket.io)
+  useEffect(() => {
+    const socket = getSocket();
+
+    function handleRecursoActualizado(recursoActualizado: RecursoItem) {
+      actualizarRecursoEnLista(recursoActualizado);
+    }
+
+    socket.on('recurso:actualizado', handleRecursoActualizado);
+
+    return () => {
+      socket.off('recurso:actualizado', handleRecursoActualizado);
+    };
+  }, [actualizarRecursoEnLista]);
+
   return {
     recursos: data?.data ?? [],
     meta: data?.meta ?? {
@@ -140,5 +175,6 @@ export function useRecursos(
     error,
     statusCode,
     recargar: fetchData,
+    actualizarRecursoEnLista,
   };
 }

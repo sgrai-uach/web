@@ -1,21 +1,23 @@
 'use client';
 
 import { useState, useCallback, useEffect } from 'react';
-import type { FiltrosRecursosState, EstadoRecurso } from '@/types/recurso';
+import type { FiltrosRecursosState, EstadoRecurso, RecursoItem } from '@/types/recurso';
 import { useRecursos, USUARIOS_PRUEBA } from '@/hooks/useRecursos';
 import { DEFAULT_ADMIN_USER_ID } from '@/lib/api/client';
 import { useToast } from '@/components/ui/Toast';
 import RecursosHeader from '@/components/admin/recursos/RecursosHeader';
 import RecursosFiltros from '@/components/admin/recursos/RecursosFiltros';
 import RecursosTabla from '@/components/admin/recursos/RecursosTabla';
+import RecursoEditarModal from '@/components/admin/recursos/RecursoEditarModal';
 import Pagination from '@/components/common/Pagination';
 import AccesoDenegadoState from '@/components/admin/recursos/AccesoDenegadoState';
 
 import { toUserFriendlyErrorMessage } from '@/lib/utils/errorUtils';
 
 export default function RecursosPage() {
-  const { showError } = useToast();
+  const { showError, showSuccess } = useToast();
   const [usuarioActivoId, setUsuarioActivoId] = useState<string>(DEFAULT_ADMIN_USER_ID);
+  const [recursoAEditar, setRecursoAEditar] = useState<RecursoItem | null>(null);
 
   const [filtros, setFiltros] = useState<FiltrosRecursosState>({
     pagina: 1,
@@ -26,9 +28,20 @@ export default function RecursosPage() {
     esIndividual: undefined,
   });
 
-  const { recursos, meta, cargando, error, statusCode } = useRecursos(
+  const { recursos, meta, cargando, error, statusCode, actualizarRecursoEnLista } = useRecursos(
     filtros,
     usuarioActivoId
+  );
+
+  const handleGuardadoExitoso = useCallback(
+    (recursoActualizado: RecursoItem) => {
+      actualizarRecursoEnLista(recursoActualizado);
+      showSuccess(
+        `El recurso "${recursoActualizado.nombre}" ha sido actualizado exitosamente.`,
+        'Recurso Actualizado'
+      );
+    },
+    [actualizarRecursoEnLista, showSuccess]
   );
 
   useEffect(() => {
@@ -121,6 +134,7 @@ export default function RecursosPage() {
           cargando={cargando}
           esFiltroActivo={esFiltroActivo}
           onLimpiarFiltros={handleLimpiarFiltros}
+          onEditarRecurso={setRecursoAEditar}
         />
 
         <Pagination
@@ -133,6 +147,15 @@ export default function RecursosPage() {
           nombreEntidad="recursos registrados"
         />
       </div>
+
+      {/* Modal Interactivo de Edición de Recurso */}
+      <RecursoEditarModal
+        isOpen={Boolean(recursoAEditar)}
+        recurso={recursoAEditar}
+        usuarioActivoId={usuarioActivoId}
+        onCerrar={() => setRecursoAEditar(null)}
+        onGuardadoExitoso={handleGuardadoExitoso}
+      />
     </div>
   );
 }
