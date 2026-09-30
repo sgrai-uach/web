@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import type { FiltrosRecursosState, EstadoRecurso } from '@/types/recurso';
-import { useRecursos, USUARIOS_PRUEBA } from '@/hooks/useRecursos';
+import { useRecursos } from '@/hooks/useRecursos';
 import { DEFAULT_ADMIN_USER_ID } from '@/lib/api/client';
 import { useToast } from '@/components/ui/Toast';
 import { useSimulatedSession } from '@/context/SimulatedSessionContext';

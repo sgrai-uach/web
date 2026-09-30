@@ -10,7 +10,7 @@ import type {
   VerificarAvisoInput,
   VerificarAvisoSuccessResponse,
 } from '@/types/avisos';
-import { CATALOGO_TIPOS_INCIDENTE_DEFAULT, normalizarTipoIncidente, normalizarListaTiposIncidentes } from '@/types/avisos';
+import { CATALOGO_TIPOS_INCIDENTE_DEFAULT, normalizarListaTiposIncidentes } from '@/types/avisos';
 import type { ApiErrorResponse } from '@/types/common';
 import type { components } from '@/types/api-generated';
 

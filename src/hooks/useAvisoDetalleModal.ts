@@ -9,7 +9,7 @@ import {
 } from '@/services/avisosService';
 import { getErrorMessage } from '@/lib/utils/errorUtils';
 import type { AvisoDetalleResponse, AvisoItem, TipoIncidenteOpcion } from '@/types/avisos';
-import { CATALOGO_TIPOS_INCIDENTE_DEFAULT, normalizarTipoIncidente, normalizarListaTiposIncidentes } from '@/types/avisos';
+import { CATALOGO_TIPOS_INCIDENTE_DEFAULT, normalizarListaTiposIncidentes } from '@/types/avisos';
 
 interface UseAvisoDetalleModalParams {
   aviso: AvisoItem;

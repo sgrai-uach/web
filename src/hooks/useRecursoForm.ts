@@ -256,7 +256,7 @@ export function useRecursoForm() {
     } finally {
       setIsSubmitting(false);
     }
-  }, [isValid, isSubmitting, validationResult]);
+  }, [isValid, isSubmitting, validationResult, usuarioActivo.id]);
 
   const handleReset = useCallback(() => {
     setFormData(initialFormState);

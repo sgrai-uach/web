@@ -72,26 +72,8 @@ function obtenerPermisosFallback(rol: string, esAdmin: boolean): Set<string> {
   return new Set();
 }
 
-export function SimulatedSessionProvider({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  const [usuarioActivo, setUsuarioActivoState] = useState<UsuarioSimulado>(
-    USUARIOS_SIMULADOS_SISTEMA[0]
-  );
-  const [permisos, setPermisos] = useState<Set<string>>(() =>
-    obtenerPermisosFallback(
-      USUARIOS_SIMULADOS_SISTEMA[0].rol,
-      USUARIOS_SIMULADOS_SISTEMA[0].esAdmin
-    )
-  );
-  const [cargandoPermisos, setCargandoPermisos] = useState(false);
-  const [usuarioDetalleServidor, setUsuarioDetalleServidor] =
-    useState<UsuarioActivoDetalle | null>(null);
-
-  // Inicializar desde localStorage si existe
-  useEffect(() => {
+function obtenerSesionInicial(): UsuarioSimulado {
+  if (typeof window !== 'undefined') {
     try {
       const guardadoId = localStorage.getItem(STORAGE_KEY);
       if (guardadoId) {
@@ -99,37 +81,59 @@ export function SimulatedSessionProvider({
           (u) => u.id === guardadoId
         );
         if (encontrado) {
-          setUsuarioActivoState(encontrado);
+          return encontrado;
         }
       }
     } catch {
-      // Ignorar errores de acceso a localStorage en navegadores restrictivos
+      // Ignorar fallos de lectura de localStorage
     }
-  }, []);
+  }
+  return USUARIOS_SIMULADOS_SISTEMA[0];
+}
 
-  // Función para consultar permisos frescos del backend
-  const cargarPermisosUsuario = useCallback(async (usuario: UsuarioSimulado) => {
-    setCargandoPermisos(true);
-    try {
-      const detalle = await obtenerUsuarioActivo(usuario.id);
-      setUsuarioDetalleServidor(detalle);
-      if (detalle && Array.isArray(detalle.permisos)) {
-        setPermisos(new Set(detalle.permisos));
-      } else {
-        setPermisos(obtenerPermisosFallback(usuario.rol, usuario.esAdmin));
-      }
-    } catch {
-      // Si la API falla o está offline, aplicar fallback por rol
-      setPermisos(obtenerPermisosFallback(usuario.rol, usuario.esAdmin));
-    } finally {
-      setCargandoPermisos(false);
-    }
-  }, []);
+export function SimulatedSessionProvider({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const [usuarioActivo, setUsuarioActivoState] = useState<UsuarioSimulado>(
+    obtenerSesionInicial
+  );
+  const [permisos, setPermisos] = useState<Set<string>>(() => {
+    const inicial = obtenerSesionInicial();
+    return obtenerPermisosFallback(inicial.rol, inicial.esAdmin);
+  });
+  const [cargandoPermisos, setCargandoPermisos] = useState(false);
+  const [usuarioDetalleServidor, setUsuarioDetalleServidor] =
+    useState<UsuarioActivoDetalle | null>(null);
 
-  // Cargar permisos cada vez que cambia el usuario activo
+  // Sincronizar permisos frescos del backend cuando cambia el usuario activo
   useEffect(() => {
-    cargarPermisosUsuario(usuarioActivo);
-  }, [usuarioActivo, cargarPermisosUsuario]);
+    let cancelado = false;
+    void obtenerUsuarioActivo(usuarioActivo.id)
+      .then((detalle) => {
+        if (cancelado) return;
+        setUsuarioDetalleServidor(detalle);
+        if (detalle && Array.isArray(detalle.permisos)) {
+          setPermisos(new Set(detalle.permisos));
+        } else {
+          setPermisos(obtenerPermisosFallback(usuarioActivo.rol, usuarioActivo.esAdmin));
+        }
+      })
+      .catch(() => {
+        if (cancelado) return;
+        setPermisos(obtenerPermisosFallback(usuarioActivo.rol, usuarioActivo.esAdmin));
+      })
+      .finally(() => {
+        if (!cancelado) {
+          setCargandoPermisos(false);
+        }
+      });
+
+    return () => {
+      cancelado = true;
+    };
+  }, [usuarioActivo]);
 
   const setUsuarioActivo = useCallback(
     (nuevoUsuario: UsuarioSimulado) => {
@@ -154,8 +158,21 @@ export function SimulatedSessionProvider({
   );
 
   const refrescarPermisos = useCallback(async () => {
-    await cargarPermisosUsuario(usuarioActivo);
-  }, [cargarPermisosUsuario, usuarioActivo]);
+    setCargandoPermisos(true);
+    try {
+      const detalle = await obtenerUsuarioActivo(usuarioActivo.id);
+      setUsuarioDetalleServidor(detalle);
+      if (detalle && Array.isArray(detalle.permisos)) {
+        setPermisos(new Set(detalle.permisos));
+      } else {
+        setPermisos(obtenerPermisosFallback(usuarioActivo.rol, usuarioActivo.esAdmin));
+      }
+    } catch {
+      setPermisos(obtenerPermisosFallback(usuarioActivo.rol, usuarioActivo.esAdmin));
+    } finally {
+      setCargandoPermisos(false);
+    }
+  }, [usuarioActivo]);
 
   const hasPermission = useCallback(
     (codigo: string): boolean => {

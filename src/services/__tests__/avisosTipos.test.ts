@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { normalizarListaTiposIncidentes, normalizarTipoIncidente } from '@/types/avisos';
+import { normalizarListaTiposIncidentes } from '@/types/avisos';
 
 describe('normalizarListaTiposIncidentes', () => {
   it('garantiza UUIDs únicos para la lista oficial completa de tipos del backend sin duplicados de key/id', () => {
