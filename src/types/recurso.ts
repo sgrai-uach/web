@@ -240,3 +240,12 @@ export interface FiltrosRecursosState {
   esIndividual?: boolean;
   busqueda?: string;
 }
+
+export interface EliminarRecursoResponse {
+  message: string;
+  id: string;
+  nombre: string;
+  eliminadoEn: string;
+  eliminadoPorId: string;
+}
+

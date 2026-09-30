@@ -256,6 +256,125 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/recursos/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Eliminar lógicamente un recurso del sistema (Baja lógica)
+         * @description Aplica soft-delete sobre el recurso, verificando que no tenga unidades en uso ni esté asignado a cuadrillas en misión activa. Notifica vía Socket.io ("recurso:eliminado").
+         */
+        delete: {
+            parameters: {
+                query?: never;
+                header: {
+                    /** @description UUID del usuario administrador autenticado */
+                    "x-user-id": string;
+                };
+                path: {
+                    /** @description UUID del recurso logístico a dar de baja */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Recurso eliminado lógicamente con éxito */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            message: string;
+                            /** Format: uuid */
+                            id: string;
+                            nombre: string;
+                            eliminadoEn: string;
+                            /** Format: uuid */
+                            eliminadoPorId: string;
+                        };
+                    };
+                };
+                /** @description Identificador UUID inválido */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            message: string;
+                        };
+                    };
+                };
+                /** @description No autenticado / cabecera X-User-Id ausente */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            message: string;
+                        };
+                    };
+                };
+                /** @description Acceso denegado. Se requiere rol de Administrador o permiso recursos:eliminar */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            message: string;
+                        };
+                    };
+                };
+                /** @description Recurso no encontrado o ya eliminado previamente */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            message: string;
+                        };
+                    };
+                };
+                /** @description Conflicto operativo: recurso con unidades en uso o asignado a misión activa */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            message: string;
+                        };
+                    };
+                };
+                /** @description Error interno del servidor */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            message: string;
+                        };
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/seguridad/roles": {
         parameters: {
             query?: never;
