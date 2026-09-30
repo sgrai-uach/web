@@ -122,8 +122,19 @@ export default function RolDetalleDrawer({
               <Heading as="h3" variant="h4" color="charcoal" noMargin>
                 Matriz de Permisos ({modoEdicion ? seleccionados.size : rol.cantidadPermisos})
               </Heading>
-              <span style={{ fontSize: '0.75rem', color: modoEdicion ? 'var(--color-primary-teal, #1B6F7D)' : '#666', fontWeight: modoEdicion ? 700 : 400 }}>
-                {modoEdicion ? 'Modo asignación/edición interactivo' : 'Agrupados por módulo funcional'}
+              <span
+                style={{
+                  fontSize: '0.75rem',
+                  fontWeight: 700,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.5px',
+                  padding: '0.2rem 0.55rem',
+                  backgroundColor: modoEdicion ? '#E0F2F1' : '#ECEFF3',
+                  color: modoEdicion ? 'var(--color-primary-teal, #1B6F7D)' : 'var(--color-charcoal, #3B3F45)',
+                  border: `1px solid ${modoEdicion ? '#80CBC4' : '#CFD8DC'}`,
+                }}
+              >
+                {modoEdicion ? 'Modo Edición' : 'Modo Lectura'}
               </span>
             </div>
 

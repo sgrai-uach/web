@@ -159,7 +159,7 @@ describe('RolDetalleDrawer con Edición Integrada (HU-5)', () => {
     fireEvent.click(botonModificar);
 
     await waitFor(() => {
-      expect(screen.getByText(/Modo asignación\/edición interactivo/i)).toBeInTheDocument();
+      expect(screen.getByText(/Modo Edición/i)).toBeInTheDocument();
       expect(screen.getByText('Crear Recursos')).toBeInTheDocument();
       expect(screen.getByText('Asignar Misiones')).toBeInTheDocument();
     });
