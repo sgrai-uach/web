@@ -9,18 +9,29 @@ import type {
   PermisosPorModulo,
   RolDetalleResponse,
   RolItem,
+  UsuarioActivoDetalle,
 } from '@/types/seguridad';
 import type { ApiErrorResponse } from '@/types/common';
 
 interface ExtendedClient {
-  GET: (
-    url: '/api/seguridad/permisos',
-    init?: { params?: { header?: { 'x-user-id': string } } }
-  ) => Promise<{
-    data?: { data?: PermisoCatalogoItem[] } | PermisoCatalogoItem[];
-    error?: unknown;
-    response: Response;
-  }>;
+  GET: {
+    (
+      url: '/api/seguridad/permisos',
+      init?: { params?: { header?: { 'x-user-id': string } } }
+    ): Promise<{
+      data?: { data?: PermisoCatalogoItem[] } | PermisoCatalogoItem[];
+      error?: unknown;
+      response: Response;
+    }>;
+    (
+      url: '/api/seguridad/usuario-activo',
+      init?: { params?: { header?: { 'x-user-id': string } } }
+    ): Promise<{
+      data?: { data?: UsuarioActivoDetalle };
+      error?: unknown;
+      response: Response;
+    }>;
+  };
   PUT: (
     url: '/api/seguridad/roles/{id}/permisos',
     init?: {
@@ -271,3 +282,46 @@ export function agruparCatalogoPorModulo(
     return acc;
   }, {});
 }
+
+/**
+ * Consulta la sesión e introspección de permisos del usuario activo.
+ */
+export async function obtenerUsuarioActivo(
+  userId: string
+): Promise<UsuarioActivoDetalle> {
+  try {
+    const { data, error, response } = await extendedClient.GET(
+      '/api/seguridad/usuario-activo',
+      {
+        params: {
+          header: {
+            'x-user-id': userId,
+          },
+        },
+      }
+    );
+
+    if (error || !data || !('data' in data) || !data.data) {
+      let mensaje = 'Error al consultar la sesión y permisos del usuario activo';
+      if (response?.status === 401) {
+        mensaje = 'Sesión no válida o usuario no autenticado.';
+      } else if (response?.status === 403) {
+        mensaje = 'Acceso denegado al perfil de usuario.';
+      }
+
+      const formatted = formatApiError({
+        ...(typeof error === 'object' && error !== null ? error : {}),
+        status: response?.status || 500,
+        message: mensaje,
+      });
+      throw new SeguridadServiceError(response?.status || 500, formatted.message, formatted);
+    }
+
+    return data.data;
+  } catch (err: unknown) {
+    if (err instanceof SeguridadServiceError) throw err;
+    const formatted = formatApiError(err);
+    throw new SeguridadServiceError(500, formatted.message, formatted);
+  }
+}
+

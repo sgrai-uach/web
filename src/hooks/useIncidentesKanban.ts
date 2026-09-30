@@ -23,14 +23,31 @@ export const ESTADOS_KANBAN: EstadoIncidente[] = [
   'NO_ABORDABLE',
 ];
 
+import { useSimulatedSession } from '@/context/SimulatedSessionContext';
+
 export interface FiltrosKanban {
   busqueda: string;
   prioridad: PrioridadIncidente | '';
   tipoAfectacion: string;
 }
 
-export function useIncidentesKanban(initialUserId: string = DEFAULT_ENCARGADO_ID) {
-  const [userId, setUserId] = useState<string>(initialUserId);
+export function useIncidentesKanban(initialUserId?: string) {
+  let sessionUserId: string | undefined;
+  let sessionSetUser: ((id: string) => void) | undefined;
+  try {
+    const session = useSimulatedSession();
+    sessionUserId = session.usuarioActivo.id;
+    sessionSetUser = session.cambiarUsuarioPorId;
+  } catch {
+    // Modo fallback en pruebas unitarias fuera del provider
+  }
+
+  const [localUserId, setLocalUserId] = useState<string>(
+    initialUserId || sessionUserId || DEFAULT_ENCARGADO_ID
+  );
+
+  const userId = sessionUserId || localUserId;
+  const setUserId = sessionSetUser || setLocalUserId;
   const [cargando, setCargando] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [esForbidden, setEsForbidden] = useState<boolean>(false);

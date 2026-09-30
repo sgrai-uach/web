@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { usePathname } from 'next/navigation';
+import HeaderSessionWidget from './HeaderSessionWidget';
 import styles from './AppHeader.module.css';
 
 export default function AppHeader() {
@@ -27,8 +28,11 @@ export default function AppHeader() {
             <span className={styles.sectionTitle}>{getSectionTitle()}</span>
           </div>
 
-          <div className={styles.orgBadge}>
-            <span>DGRD &bull; Municipalidad de Valdivia</span>
+          <div className={styles.headerRight}>
+            <div className={styles.orgBadge}>
+              <span>DGRD &bull; Municipalidad de Valdivia</span>
+            </div>
+            <HeaderSessionWidget />
           </div>
         </div>
       </div>

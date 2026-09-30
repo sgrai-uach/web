@@ -43,6 +43,7 @@ export default function RolesPermisosPage() {
           setRolSeleccionado(null);
         }}
         metricas={metricas}
+        tieneAcceso={!errorRbac}
       />
 
       {errorRbac ? (

@@ -95,14 +95,16 @@ Ambas casillas se muestran marcadas, deshabilitadas y con un icono de candado e 
 | Escenario / Error | Mensaje / Visualización | Causa y Acción de Solución |
 |---|---|---|
 | **Error al cargar catálogo de permisos** | Notificación Toast roja: *"No fue posible cargar el catálogo de permisos desde el servidor — Error de Catálogo"*. | Falla de conexión con `GET /api/seguridad/permisos` o servicio de backend no disponible. Verifique que `sgrai-api` esté en ejecución y vuelva a intentar la edición. |
-| **Acceso Denegado (403 Forbidden)** | Notificación Toast roja: *"Acceso denegado. Se requiere perfil de Administrador"*. | La sesión activa no cuenta con el perfil de Administrador. En la barra superior, verifique que el usuario simulado sea el *Administrador General*. |
+| **Acceso Denegado (403 Forbidden)** | Notificación Toast roja o banner RBAC: *"Acceso denegado: este rol no cuenta con permisos suficientes"*. | La sesión activa no cuenta con los permisos requeridos (`seguridad:roles:leer` o `seguridad:roles:gestionar`). En la esquina superior derecha del encabezado (`AppHeader`), verifique o cambie el usuario simulado, o presione el botón de sincronización de permisos. |
 | **Pérdida de Sesión / 401 Unauthorized** | Notificación Toast roja: *"Sesión no válida o no autenticada"*. | Cabecera `X-User-Id` ausente o token expirado. Renueve su sesión en la plataforma. |
 | **Intento de cerrar sin guardar** | Botón *"Cancelar"* o clic en cerrar drawer. | Si el usuario presiona Cancelar o cierra el drawer, los cambios no confirmados se descartan sin alterar la base de datos. |
 
 ---
 
-## 4. Relación con Otros Módulos y Repositorios
+## 4. Simulación Global de Sesión y Verificación de Permisos Dinámicos
 
-- **`sgrai-api`:** Es el repositorio responsable de procesar la petición `PUT /api/seguridad/roles/{id}/permisos`. Ejecuta una transacción atómica en PostgreSQL (mediante Kysely) sobre la tabla intermedia `rol_permiso`, garantizando consistencia total ante fallos y registrando la auditoría del usuario que aplicó los cambios (`asignado_por_id`).
-- **Propagación en Tiempo Real y Sesiones:** Al persistir la revocación o asignación de permisos, los usuarios que posean el rol modificado ven ajustadas sus restricciones inmediatamente en su próxima petición o revalidación de credenciales.
+- **Selector Global en el Encabezado (`AppHeader`):** En la esquina superior derecha de la cabecera institucional se encuentra el widget global de simulación de sesión (`HeaderSessionWidget`). Permite alternar entre los distintos perfiles institucionales (Administrador, Encargado, Call Center, Asistente Social, etc.) de forma unificada para toda la aplicación y sincronizar los permisos activos en tiempo real mediante el botón de refresco.
+- **Validación Dinámica de Permisos:** Cuando el Administrador modifica los permisos asignados a un rol (por ejemplo, otorgando permisos de lectura y gestión de roles a un operador de *Call Center*), al cambiar la sesión activa a ese usuario mediante el selector global del header, las vistas y los endpoints del backend (`sgrai-api`) evalúan dinámicamente la tabla `rol_permiso` en lugar de limitar el acceso a nombres de rol estáticos.
+- **`sgrai-api`:** Procesa la petición `PUT /api/seguridad/roles/{id}/permisos` y expone `GET /api/seguridad/usuario-activo`. Ejecuta una transacción atómica en PostgreSQL (mediante Kysely) sobre la tabla intermedia `rol_permiso`, garantizando consistencia total ante fallos y registrando la auditoría del usuario que aplicó los cambios (`asignado_por_id`).
+- **Propagación en Tiempo Real:** Al persistir la revocación o asignación de permisos, el contexto global `SimulatedSessionContext` actualiza de forma reactiva el conjunto de permisos autorizados del usuario simulado.
 - **PWA de Terreno (`sgrai-pwa`):** Si se modifican permisos para los roles *Patrulla Verificadora* o *Delegado de Cuadrilla*, la PWA sincronizará las nuevas capacidades autorizadas en su próxima sincronización de catálogo.

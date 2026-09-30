@@ -1,0 +1,92 @@
+.sessionWidget {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background-color: rgba(255, 255, 255, 0.12);
+  padding: 3px 8px 3px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 0;
+}
+
+.userIcon {
+  color: var(--color-accent-mint, #4FAE9B);
+  display: flex;
+  align-items: center;
+}
+
+.selectorLabel {
+  display: none;
+}
+
+@media (min-width: 900px) {
+  .selectorLabel {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--color-sage, #A9CBA4);
+  }
+}
+
+.sessionSelect {
+  background-color: var(--color-primary-teal-dark, #14505A);
+  color: #FFFFFF;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 0;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 8px;
+  cursor: pointer;
+  outline: none;
+  font-family: inherit;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+  max-width: 280px;
+}
+
+.sessionSelect:hover {
+  border-color: var(--color-accent-mint, #4FAE9B);
+  background-color: #103F47;
+}
+
+.sessionSelect:focus {
+  border-color: var(--color-accent-mint, #4FAE9B);
+  box-shadow: 0 0 0 1px var(--color-accent-mint, #4FAE9B);
+}
+
+.refreshButton {
+  background: none;
+  border: none;
+  color: var(--color-text-light, #FFFFFF);
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0;
+  transition: color 0.15s ease, opacity 0.15s ease;
+  opacity: 0.85;
+}
+
+.refreshButton:hover {
+  color: var(--color-accent-mint, #4FAE9B);
+  opacity: 1;
+}
+
+.refreshButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.spinning {
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}

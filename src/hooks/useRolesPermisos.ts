@@ -7,16 +7,12 @@ import type {
   FiltroTipoRol,
   MetricasRoles,
   RolItem,
-  UsuarioSimulado,
 } from '@/types/seguridad';
-import { USUARIOS_SIMULADOS } from '@/components/admin/roles-permisos/RolesHeader';
+import { useSimulatedSession } from '@/context/SimulatedSessionContext';
 
 export function useRolesPermisos() {
   const { showError, showSuccess } = useToast();
-
-  const [usuarioActivo, setUsuarioActivo] = useState<UsuarioSimulado>(
-    USUARIOS_SIMULADOS[0]
-  );
+  const { usuarioActivo, setUsuarioActivo, refrescarPermisos } = useSimulatedSession();
 
   const [roles, setRoles] = useState<RolItem[]>([]);
   const [cargando, setCargando] = useState(true);
@@ -165,6 +161,7 @@ export function useRolesPermisos() {
 
   const handleRolActualizado = useCallback(async () => {
     await cargarRoles(usuarioActivo.id, true);
+    await refrescarPermisos();
     if (rolSeleccionado) {
       try {
         const detalle = await obtenerDetalleRol(rolSeleccionado.id, usuarioActivo.id);
@@ -175,7 +172,7 @@ export function useRolesPermisos() {
         // Fallback silencioso si falla el detalle individual; cargarRoles ya refrescó el listado
       }
     }
-  }, [cargarRoles, usuarioActivo.id, rolSeleccionado]);
+  }, [cargarRoles, usuarioActivo.id, rolSeleccionado, refrescarPermisos]);
 
   return {
     usuarioActivo,

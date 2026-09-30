@@ -107,4 +107,41 @@ export type SeguridadExtendedPaths = paths & {
       };
     };
   };
+  '/api/seguridad/usuario-activo': {
+    get: {
+      parameters: {
+        header: {
+          'x-user-id': string;
+        };
+      };
+      responses: {
+        200: {
+          content: {
+            'application/json': {
+              data: UsuarioActivoDetalle;
+            };
+          };
+        };
+        401: { content: { 'application/json': { error: string } } };
+        403: { content: { 'application/json': { error: string } } };
+      };
+    };
+  };
 };
+
+export interface UsuarioActivoDetalle {
+  id: string;
+  rut: string;
+  nombre: string;
+  email: string;
+  activo: boolean;
+  delegacionId?: string | null;
+  rol: {
+    id: string;
+    nombre: string;
+    codigo: string;
+    esAdmin: boolean;
+  };
+  permisos: string[];
+}
+
