@@ -5,6 +5,7 @@ import type { ListarRecursosResponse, FiltrosRecursosState, RecursoItem } from '
 import { DEFAULT_ADMIN_USER_ID } from '@/lib/api/client';
 import { getRecursos, RecursoServiceError } from '@/services/recursosService';
 import { getErrorMessage } from '@/lib/utils/errorUtils';
+import { getSocket } from '@/lib/socket/client';
 
 export const DELEGACIONES_MUNICIPALES = [
   {
@@ -62,6 +63,7 @@ export interface UseRecursosReturn {
   error: Error | null;
   statusCode: number | null;
   recargar: () => Promise<void>;
+  removerRecursoDeLista: (id: string) => void;
 }
 
 export function useRecursos(
@@ -128,6 +130,41 @@ export function useRecursos(
     };
   }, [fetchData]);
 
+  const removerRecursoDeLista = useCallback((id: string) => {
+    if (!id) return;
+    setData((prev) => {
+      if (!prev) return prev;
+      const index = prev.data.findIndex((r) => r.id === id);
+      if (index === -1) return prev;
+      const updatedList = prev.data.filter((r) => r.id !== id);
+      return {
+        ...prev,
+        data: updatedList,
+        meta: {
+          ...prev.meta,
+          total: Math.max(0, prev.meta.total - 1),
+        },
+      };
+    });
+  }, []);
+
+  // Suscripción en tiempo real vía WebSockets (Socket.io)
+  useEffect(() => {
+    const socket = getSocket();
+
+    function handleRecursoEliminado(payload: { id: string; nombre?: string }) {
+      if (payload?.id) {
+        removerRecursoDeLista(payload.id);
+      }
+    }
+
+    socket.on('recurso:eliminado', handleRecursoEliminado);
+
+    return () => {
+      socket.off('recurso:eliminado', handleRecursoEliminado);
+    };
+  }, [removerRecursoDeLista]);
+
   return {
     recursos: data?.data ?? [],
     meta: data?.meta ?? {
@@ -140,5 +177,6 @@ export function useRecursos(
     error,
     statusCode,
     recargar: fetchData,
+    removerRecursoDeLista,
   };
 }

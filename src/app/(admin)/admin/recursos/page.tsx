@@ -1,21 +1,23 @@
 'use client';
 
 import { useState, useCallback, useEffect } from 'react';
-import type { FiltrosRecursosState, EstadoRecurso } from '@/types/recurso';
+import type { FiltrosRecursosState, EstadoRecurso, RecursoItem } from '@/types/recurso';
 import { useRecursos, USUARIOS_PRUEBA } from '@/hooks/useRecursos';
 import { DEFAULT_ADMIN_USER_ID } from '@/lib/api/client';
 import { useToast } from '@/components/ui/Toast';
 import RecursosHeader from '@/components/admin/recursos/RecursosHeader';
 import RecursosFiltros from '@/components/admin/recursos/RecursosFiltros';
 import RecursosTabla from '@/components/admin/recursos/RecursosTabla';
+import RecursoEliminarModal from '@/components/admin/recursos/RecursoEliminarModal';
 import Pagination from '@/components/common/Pagination';
 import AccesoDenegadoState from '@/components/admin/recursos/AccesoDenegadoState';
 
 import { toUserFriendlyErrorMessage } from '@/lib/utils/errorUtils';
 
 export default function RecursosPage() {
-  const { showError } = useToast();
+  const { showError, showSuccess } = useToast();
   const [usuarioActivoId, setUsuarioActivoId] = useState<string>(DEFAULT_ADMIN_USER_ID);
+  const [recursoAEliminar, setRecursoAEliminar] = useState<RecursoItem | null>(null);
 
   const [filtros, setFiltros] = useState<FiltrosRecursosState>({
     pagina: 1,
@@ -26,9 +28,23 @@ export default function RecursosPage() {
     esIndividual: undefined,
   });
 
-  const { recursos, meta, cargando, error, statusCode } = useRecursos(
+  const { recursos, meta, cargando, error, statusCode, removerRecursoDeLista } = useRecursos(
     filtros,
     usuarioActivoId
+  );
+
+  const usuarioActual = USUARIOS_PRUEBA.find((u) => u.id === usuarioActivoId);
+  const esAdmin = usuarioActual ? usuarioActual.rol === 'Administrador' : usuarioActivoId === DEFAULT_ADMIN_USER_ID;
+
+  const handleEliminacionExitosa = useCallback(
+    (recursoEliminado: RecursoItem) => {
+      removerRecursoDeLista(recursoEliminado.id);
+      showSuccess(
+        `El recurso "${recursoEliminado.nombre}" ha sido dado de baja exitosamente del inventario activo.`,
+        'Baja de Recurso Confirmada'
+      );
+    },
+    [removerRecursoDeLista, showSuccess]
   );
 
   useEffect(() => {
@@ -121,6 +137,8 @@ export default function RecursosPage() {
           cargando={cargando}
           esFiltroActivo={esFiltroActivo}
           onLimpiarFiltros={handleLimpiarFiltros}
+          onEliminarRecurso={setRecursoAEliminar}
+          puedeEliminar={esAdmin}
         />
 
         <Pagination
@@ -133,6 +151,16 @@ export default function RecursosPage() {
           nombreEntidad="recursos registrados"
         />
       </div>
+
+      {/* Modal Interactivo de Confirmación de Baja Lógica */}
+      <RecursoEliminarModal
+        isOpen={Boolean(recursoAEliminar)}
+        recurso={recursoAEliminar}
+        usuarioActivoId={usuarioActivoId}
+        onCerrar={() => setRecursoAEliminar(null)}
+        onEliminacionExitosa={handleEliminacionExitosa}
+      />
     </div>
   );
 }
+
