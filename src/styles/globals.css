@@ -22,6 +22,8 @@ html {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   color-scheme: light;
+  overscroll-behavior: none;
+  overscroll-behavior-y: none;
 }
 
 body {
@@ -29,6 +31,8 @@ body {
   background-color: var(--color-bg-light);
   min-height: 100vh;
   font-family: inherit;
+  overscroll-behavior: none;
+  overscroll-behavior-y: none;
 }
 
 /* --- Tipografía Base --- */

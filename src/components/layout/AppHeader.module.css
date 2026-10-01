@@ -1,5 +1,8 @@
 .headerWrapper {
   width: 100%;
+  position: sticky;
+  top: 0;
+  z-index: var(--z-sticky, 100);
 }
 
 .topBar {
