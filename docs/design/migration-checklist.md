@@ -48,15 +48,19 @@ Este checklist registra el estado de adopción de los componentes base (`<Headin
 - [x] `RecursoDetalleSpecs.tsx`: Título de especificaciones migrado a `<Heading />`.
 - [x] `RecursoDetalleUbicacion.tsx`: Título de base operativa migrado a `<Heading />`.
 
-### 3.3 Módulo de Roles y Permisos (HU-4)
+### 3.3 Módulo de Roles y Permisos (HU-4 y HU-5)
 - [x] `RolesHeader.tsx`: Título principal migrado a `<Heading as="h1" variant="h1" />`.
 - [x] `RolesFiltros.tsx`: Botón Refrescar con spinner migrado a `<Button variant="outline" />`.
 - [x] `RolCard.tsx`: Título de rol migrado a `<Heading />` y botón "Ver Permisos" a `<Button />`.
 - [x] `RolesGrid.tsx`: Estado vacío migrado a `<Heading />` y `<Button />`.
 - [x] `AccesoDenegadoState.tsx`: Encabezado y botones migrados a `<Heading />` y `<Button />`.
 - [x] `drawer/RolDetalleHeader.tsx`: Título migrado a `<Heading />` y botón cerrar a `<Button variant="ghost" />`.
-- [x] `drawer/RolDetalleFooter.tsx`: Acciones del pie de drawer migradas a `<Button />`.
+- [x] `drawer/RolDetalleFooter.tsx`: Botón "Modificar Permisos" activado y migrado a `<Button variant="primary" />`.
 - [x] `drawer/PermisoModuloSection.tsx`: Encabezado de módulo migrado a `<Heading />`.
+- [x] `editor/ModalModificarPermisos.tsx`: Modal dialog con títulos `<Heading />`, buscador accesible y footer de acciones.
+- [x] `editor/PermisosEditorModuloSection.tsx`: Encabezados con `<Heading />` y acciones rápidas con `<Button />`.
+- [x] `editor/PermisoCheckboxItem.tsx`: Fila accesible con esquinas rectas (`borderRadius: 0`) y protección de auto-bloqueo.
+- [x] `editor/PermisosEditorFooter.tsx`: Resumen de balance y acciones con `<Button />`.
 
 ### 3.4 Módulo Call Center (HU-52)
 - [x] `AvisosFiltros.tsx`: Botón Refrescar migrado a `<Button variant="secondary" />`.

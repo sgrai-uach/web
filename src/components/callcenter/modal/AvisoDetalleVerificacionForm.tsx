@@ -67,8 +67,8 @@ export default function AvisoDetalleVerificacionForm({
           style={{ ...inputStyle, backgroundColor: cargandoTipos ? '#F1F3F5' : '#FFFFFF' }}
         >
           {cargandoTipos && <option value="">Cargando tipos de incidente...</option>}
-          {tiposDisponibles.map((cat) => (
-            <option key={cat.id} value={cat.id}>{cat.nombre}</option>
+          {tiposDisponibles.map((cat, idx) => (
+            <option key={`${cat.id}-${idx}`} value={cat.id}>{cat.nombre}</option>
           ))}
         </select>
       </div>

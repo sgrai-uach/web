@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Noto_Sans } from "next/font/google";
 import "@/styles/globals.css";
 import { ToastProvider } from "@/components/ui/Toast";
+import { SimulatedSessionProvider } from "@/context/SimulatedSessionContext";
 
 const notoSans = Noto_Sans({
   subsets: ["latin"],
@@ -24,7 +25,9 @@ export default function RootLayout({
   return (
     <html lang="es" className={notoSans.variable}>
       <body className={notoSans.className}>
-        <ToastProvider>{children}</ToastProvider>
+        <SimulatedSessionProvider>
+          <ToastProvider>{children}</ToastProvider>
+        </SimulatedSessionProvider>
       </body>
     </html>
   );

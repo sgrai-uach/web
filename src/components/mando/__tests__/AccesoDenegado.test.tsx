@@ -3,12 +3,12 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { AccesoDenegado } from '../AccesoDenegado';
 
 describe('AccesoDenegado', () => {
-  it('debe renderizar el título de acceso restringido y mensaje de rol Encargado', () => {
+  it('debe renderizar el título amigable de acceso restringido y el permiso legible', () => {
     render(<AccesoDenegado />);
 
-    expect(screen.getByText(/Acceso Restringido — 403 Forbidden/i)).toBeDefined();
-    expect(screen.getByText(/Encargado de Operaciones/i)).toBeDefined();
-    expect(screen.getByText(/incidentes:kanban/i)).toBeDefined();
+    expect(screen.getByText(/Acceso Restringido/i)).toBeDefined();
+    expect(screen.getByText(/Permisos insuficientes para el Centro de Mando/i)).toBeDefined();
+    expect(screen.getByText(/Gestión Táctica del Tablero de Incidentes/i)).toBeDefined();
   });
 
   it('debe permitir reintentar si se proporciona la función onReintentar', () => {
@@ -16,7 +16,7 @@ describe('AccesoDenegado', () => {
     render(<AccesoDenegado onReintentar={handleReintentar} />);
 
     const boton = screen.getByRole('button', {
-      name: /Reintentar con Sesión de Encargado/i,
+      name: /Reintentar acceso/i,
     });
     expect(boton).toBeDefined();
 
