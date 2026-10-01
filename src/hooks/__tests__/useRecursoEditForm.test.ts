@@ -3,14 +3,15 @@ import { renderHook, act } from '@testing-library/react';
 import { useRecursoEditForm, inferSubtipo, populateDetallesFormFields } from '../useRecursoEditForm';
 import * as recursosService from '@/services/recursosService';
 import type { RecursoItem } from '@/types/recurso';
+import type { ApiErrorResponse } from '@/types/common';
 
 vi.mock('@/services/recursosService', () => ({
   getRecursoById: vi.fn(),
   actualizarRecurso: vi.fn(),
   RecursoServiceError: class extends Error {
-    public apiError: unknown;
-    constructor(apiError: unknown) {
-      super((apiError as any)?.message || 'Error');
+    public apiError: ApiErrorResponse;
+    constructor(apiError: ApiErrorResponse) {
+      super(apiError?.message || 'Error');
       this.apiError = apiError;
     }
   },

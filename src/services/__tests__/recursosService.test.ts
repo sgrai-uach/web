@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import {
-  crearRecurso,
   getRecursoById,
   actualizarRecurso,
   RecursoServiceError,
@@ -50,10 +49,10 @@ describe('recursosService (Edición y Consulta HU-8)', () => {
   describe('getRecursoById', () => {
     it('debe enviar la cabecera x-user-id y retornar el recurso en 200 OK', async () => {
       vi.mocked(apiClient.GET).mockResolvedValueOnce({
-        data: mockRecurso,
+        data: mockRecurso as unknown as never,
         error: undefined,
         response: { ok: true, status: 200 } as Response,
-      } as any);
+      });
 
       const resultado = await getRecursoById('11111111-1111-4000-8000-111111111111');
 
@@ -70,9 +69,9 @@ describe('recursosService (Edición y Consulta HU-8)', () => {
     it('debe lanzar RecursoServiceError con código 404 si el recurso no existe', async () => {
       vi.mocked(apiClient.GET).mockResolvedValueOnce({
         data: undefined,
-        error: { message: 'Recurso no encontrado' },
+        error: { message: 'Recurso no encontrado' } as unknown as never,
         response: { ok: false, status: 404 } as Response,
-      } as any);
+      });
 
       await expect(
         getRecursoById('00000000-0000-0000-0000-000000000000')
@@ -82,9 +81,9 @@ describe('recursosService (Edición y Consulta HU-8)', () => {
     it('debe lanzar RecursoServiceError con código 403 si el usuario carece de permisos', async () => {
       vi.mocked(apiClient.GET).mockResolvedValueOnce({
         data: undefined,
-        error: { message: 'Acceso denegado' },
+        error: { message: 'Acceso denegado' } as unknown as never,
         response: { ok: false, status: 403 } as Response,
-      } as any);
+      });
 
       await expect(
         getRecursoById(mockRecurso.id, 'usuario-sin-permisos')
@@ -118,10 +117,10 @@ describe('recursosService (Edición y Consulta HU-8)', () => {
         data: {
           message: 'Recurso actualizado exitosamente',
           data: recursoActualizado,
-        },
+        } as unknown as never,
         error: undefined,
         response: { ok: true, status: 200 } as Response,
-      } as any);
+      });
 
       const resultado = await actualizarRecurso(
         mockRecurso.id,
@@ -144,9 +143,9 @@ describe('recursosService (Edición y Consulta HU-8)', () => {
         data: undefined,
         error: {
           message: 'La cantidad en inventario no puede ser inferior a las 5 unidades en uso',
-        },
+        } as unknown as never,
         response: { ok: false, status: 400 } as Response,
-      } as any);
+      });
 
       await expect(
         actualizarRecurso(mockRecurso.id, {

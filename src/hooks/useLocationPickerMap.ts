@@ -148,7 +148,7 @@ export function useLocationPickerMap({
     handleLimpiarPunto: () => {
       markerRef.current?.remove();
       markerRef.current = null;
-      callbacksRef.current.onChange?.(null as any);
+      (callbacksRef.current.onChange as ((coords: { latitud: number; longitud: number } | null) => void) | undefined)?.(null);
     },
     handleCentrarValdivia: () => {
       mapInstanceRef.current?.setView([-39.81422, -73.24589], 14, { animate: true });

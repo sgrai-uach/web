@@ -88,7 +88,6 @@ export function useRecursoEditForm({
   // Inicializar o recargar datos al cambiar de recursoInicial
   useEffect(() => {
     if (!recursoInicial) {
-      setFormData(null);
       return;
     }
 
