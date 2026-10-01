@@ -51,7 +51,7 @@ export default function LoginForm() {
 
     const idLimpio = identificador.trim();
     if (!idLimpio) {
-      setErrorIdentificador('Ingrese su RUT o correo institucional.');
+      setErrorIdentificador('Ingrese su RUT o correo.');
       esValido = false;
     } else if (idLimpio.includes('@')) {
       // Validar formato de correo

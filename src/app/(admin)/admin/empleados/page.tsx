@@ -57,7 +57,7 @@ export default function AdminEmpleadosPage() {
         <EmptyState
           icon={<UserX size={28} />}
           title="Ningún usuario seleccionado"
-          description="Utilice el buscador superior para seleccionar a un funcionario por RUT, nombre o correo institucional."
+          description="Utilice el buscador superior para seleccionar a un funcionario por RUT, nombre o correo."
         />
       )}
     </div>

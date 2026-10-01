@@ -67,7 +67,7 @@ describe('LoginForm', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /Ingresar al Sistema/i }));
 
-    expect(await screen.findByText('Ingrese su RUT o correo institucional.')).toBeDefined();
+    expect(await screen.findByText('Ingrese su RUT o correo.')).toBeDefined();
     expect(await screen.findByText('Ingrese su contraseña.')).toBeDefined();
   });
 
