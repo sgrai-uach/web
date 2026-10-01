@@ -37,10 +37,14 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL(`/ciudadania/seguimiento/${codigo}${search}`, request.url));
   }
 
-  // 2. Si ya está autenticado e intenta ingresar a /login: redirigir al portal de gestión
+  // 2. Si ya está autenticado e intenta ingresar a /login: redirigir al portal de gestión o a returnUrl
   if (pathname === '/login' && token) {
-    const defaultUrl = new URL('/gestion', request.url);
-    return NextResponse.redirect(defaultUrl);
+    const rawReturnUrl = request.nextUrl.searchParams.get('returnUrl');
+    let target = '/gestion';
+    if (rawReturnUrl && rawReturnUrl.startsWith('/') && !rawReturnUrl.startsWith('/login')) {
+      target = rawReturnUrl;
+    }
+    return NextResponse.redirect(new URL(target, request.url));
   }
 
   // 3. Si es ruta pública, permitir el paso sin importar el estado de sesión

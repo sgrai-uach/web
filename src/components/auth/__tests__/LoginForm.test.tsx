@@ -5,11 +5,13 @@ import LoginForm, { obtenerRutaPorRol } from '../LoginForm';
 import { AuthContext, type AuthContextValue } from '@/context/AuthContext';
 
 const mockPush = vi.fn();
+const mockRefresh = vi.fn();
 let mockSearchParams = new URLSearchParams();
 
 vi.mock('next/navigation', () => ({
   useRouter: () => ({
     push: mockPush,
+    refresh: mockRefresh,
   }),
   useSearchParams: () => mockSearchParams,
 }));
@@ -43,14 +45,14 @@ describe('LoginForm', () => {
 
   describe('obtenerRutaPorRol', () => {
     it('debe mapear cada rol a su ruta de aterrizaje correspondiente', () => {
-      expect(obtenerRutaPorRol('ADMIN')).toBe('/admin/recursos');
-      expect(obtenerRutaPorRol('admin')).toBe('/admin/recursos');
-      expect(obtenerRutaPorRol('ENCARGADO')).toBe('/centro-incidentes');
-      expect(obtenerRutaPorRol('OPERACIONES')).toBe('/centro-incidentes');
-      expect(obtenerRutaPorRol('CALL_CENTER')).toBe('/callcenter');
-      expect(obtenerRutaPorRol('ASISTENTE_SOCIAL')).toBe('/asistente-social');
-      expect(obtenerRutaPorRol('SUPERVISOR')).toBe('/dashboard');
-      expect(obtenerRutaPorRol('OTRO')).toBe('/');
+      expect(obtenerRutaPorRol('ADMIN')).toBe('/gestion/admin/recursos');
+      expect(obtenerRutaPorRol('admin')).toBe('/gestion/admin/recursos');
+      expect(obtenerRutaPorRol('ENCARGADO')).toBe('/gestion/centro-incidentes');
+      expect(obtenerRutaPorRol('OPERACIONES')).toBe('/gestion/centro-incidentes');
+      expect(obtenerRutaPorRol('CALL_CENTER')).toBe('/gestion/callcenter');
+      expect(obtenerRutaPorRol('ASISTENTE_SOCIAL')).toBe('/gestion/asistente-social');
+      expect(obtenerRutaPorRol('SUPERVISOR')).toBe('/gestion/dashboard');
+      expect(obtenerRutaPorRol('OTRO')).toBe('/gestion');
     });
   });
 
@@ -121,7 +123,7 @@ describe('LoginForm', () => {
     expect(passInput.type).toBe('password');
   });
 
-  it('debe llamar a login con credenciales válidas y redirigir a /admin/recursos para Administrador', async () => {
+  it('debe llamar a login con credenciales válidas y redirigir a /gestion/admin/recursos para Administrador', async () => {
     const mockLogin = vi.fn().mockResolvedValue({
       id: 'usr-1',
       rolCodigo: 'ADMIN',
@@ -143,7 +145,7 @@ describe('LoginForm', () => {
         identificador: 'admin@valdivia.cl',
         password: 'Valdivia2026!',
       });
-      expect(mockPush).toHaveBeenCalledWith('/admin/recursos');
+      expect(mockPush).toHaveBeenCalledWith('/gestion/admin/recursos');
     });
   });
 
@@ -198,5 +200,37 @@ describe('LoginForm', () => {
     expect(
       screen.getByText(/Su sesión ha expirado o no es válida\. Por favor, ingrese sus credenciales nuevamente\./i)
     ).toBeDefined();
+  });
+
+  it('debe redirigir automáticamente si el usuario ya está autenticado al montar el componente', async () => {
+    renderLoginForm({
+      estaAutenticado: true,
+      usuario: {
+        id: 'usr-admin',
+        rolCodigo: 'ADMIN',
+        nombre: 'Administrador',
+      },
+    });
+
+    await waitFor(() => {
+      expect(mockPush).toHaveBeenCalledWith('/gestion/admin/recursos');
+    });
+  });
+
+  it('debe priorizar returnUrl al redirigir automáticamente si ya está autenticado', async () => {
+    mockSearchParams = new URLSearchParams('returnUrl=/gestion/callcenter');
+
+    renderLoginForm({
+      estaAutenticado: true,
+      usuario: {
+        id: 'usr-operador',
+        rolCodigo: 'CALL_CENTER',
+        nombre: 'Operador',
+      },
+    });
+
+    await waitFor(() => {
+      expect(mockPush).toHaveBeenCalledWith('/gestion/callcenter');
+    });
   });
 });

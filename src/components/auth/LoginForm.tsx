@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
   AlertCircle,
@@ -19,18 +19,18 @@ import styles from './LoginForm.module.css';
 
 export function obtenerRutaPorRol(rolCodigo: string): string {
   const codigo = rolCodigo.toUpperCase();
-  if (codigo === 'ADMIN') return '/admin/recursos';
-  if (codigo === 'ENCARGADO' || codigo === 'OPERACIONES') return '/centro-incidentes';
-  if (codigo === 'CALL_CENTER') return '/callcenter';
-  if (codigo === 'ASISTENTE_SOCIAL') return '/asistente-social';
-  if (codigo === 'SUPERVISOR') return '/dashboard';
-  return '/';
+  if (codigo === 'ADMIN') return '/gestion/admin/recursos';
+  if (codigo === 'ENCARGADO' || codigo === 'OPERACIONES') return '/gestion/centro-incidentes';
+  if (codigo === 'CALL_CENTER') return '/gestion/callcenter';
+  if (codigo === 'ASISTENTE_SOCIAL') return '/gestion/asistente-social';
+  if (codigo === 'SUPERVISOR') return '/gestion/dashboard';
+  return '/gestion';
 }
 
 export default function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { login } = useAuth();
+  const { login, estaAutenticado, usuario } = useAuth();
 
   const returnUrl = searchParams.get('returnUrl');
   const motivo = searchParams.get('motivo');
@@ -79,6 +79,26 @@ export default function LoginForm() {
     return esValido;
   };
 
+  // Redirección reactiva si el usuario ya cuenta con sesión activa
+  useEffect(() => {
+    if (estaAutenticado && usuario) {
+      const destino =
+        returnUrl && returnUrl.startsWith('/') && !returnUrl.startsWith('/login')
+          ? returnUrl
+          : obtenerRutaPorRol(usuario.rolCodigo);
+
+      router.push(destino);
+      router.refresh?.();
+      try {
+        if (typeof window !== 'undefined' && window.location) {
+          window.location.assign(destino);
+        }
+      } catch {
+        // Ignorado en pruebas unitarias
+      }
+    }
+  }, [estaAutenticado, usuario, returnUrl, router]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -96,10 +116,19 @@ export default function LoginForm() {
       });
 
       // Redirección inteligente: returnUrl prioritario o destino según rol institucional
-      if (returnUrl && returnUrl.startsWith('/') && !returnUrl.startsWith('/login')) {
-        router.push(returnUrl);
-      } else {
-        router.push(obtenerRutaPorRol(usuario.rolCodigo));
+      const destino =
+        returnUrl && returnUrl.startsWith('/') && !returnUrl.startsWith('/login')
+          ? returnUrl
+          : obtenerRutaPorRol(usuario.rolCodigo);
+
+      router.push(destino);
+      router.refresh?.();
+      try {
+        if (typeof window !== 'undefined' && window.location) {
+          window.location.assign(destino);
+        }
+      } catch {
+        // Ignorado en pruebas unitarias
       }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Error al iniciar sesión.';

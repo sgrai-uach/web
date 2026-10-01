@@ -13,14 +13,20 @@ export const AUTH_COOKIE_NAME = 'sgrai_auth_token';
 export function setAuthCookie(token: string, expiraEn?: string): void {
   if (typeof document === 'undefined') return;
 
-  let cookieString = `${AUTH_COOKIE_NAME}=${encodeURIComponent(token)}; path=/; SameSite=Lax`;
+  let maxAgeSeconds = 86400; // 24 horas por defecto
 
   if (expiraEn) {
     const expireDate = new Date(expiraEn);
     if (!isNaN(expireDate.getTime())) {
-      cookieString += `; expires=${expireDate.toUTCString()}`;
+      const diffSeconds = Math.floor((expireDate.getTime() - Date.now()) / 1000);
+      if (diffSeconds > 60) {
+        maxAgeSeconds = diffSeconds;
+      }
     }
   }
+
+  const expireDate = new Date(Date.now() + maxAgeSeconds * 1000);
+  let cookieString = `${AUTH_COOKIE_NAME}=${encodeURIComponent(token)}; path=/; max-age=${maxAgeSeconds}; expires=${expireDate.toUTCString()}; SameSite=Lax`;
 
   if (typeof window !== 'undefined' && window.location.protocol === 'https:') {
     cookieString += '; Secure';
