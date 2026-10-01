@@ -39,7 +39,7 @@ export default function RecursoDetalleModal({
             icon={<Trash2 size={16} aria-hidden="true" />}
             iconPosition="left"
           >
-            Dar de Baja Recurso
+            Dar de baja recurso
           </Button>
         )}
       </div>

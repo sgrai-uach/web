@@ -134,16 +134,16 @@ export default function RecursoEliminarModal({
           animation: 'fadeInModal 0.2s ease-out',
         }}
       >
-        {/* Cabecera del Modal con Franja de Advertencia Destructiva */}
+        {/* Cabecera del Modal con Franja Clásica Institucional */}
         <div
           style={{
-            backgroundColor: 'var(--color-danger, #D32F2F)',
+            backgroundColor: 'var(--color-primary-teal-dark, #14505A)',
             color: 'var(--color-white, #FFFFFF)',
             padding: '16px 20px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            borderBottom: '2px solid #B71C1C',
+            borderBottom: '2px solid var(--color-primary-teal, #1B6F7D)',
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -264,11 +264,9 @@ export default function RecursoEliminarModal({
               alignItems: 'flex-start',
             }}
           >
-            <ShieldAlert size={20} color="#B78103" style={{ flexShrink: 0, marginTop: '2px' }} aria-hidden="true" />
+            <ShieldAlert size={18} color="#B78103" style={{ flexShrink: 0, marginTop: '2px' }} aria-hidden="true" />
             <div style={{ fontSize: '13px', color: '#5D4037', lineHeight: 1.4 }}>
-              <strong>Baja Lógica Institucional:</strong> Esta acción retirará el recurso del inventario activo y de
-              futuras asignaciones. El historial de misiones pasadas, incidentes y reportes asociados se mantendrá
-              inalterable para trazabilidad y auditoría oficial (Informe Alfa 37G SENAPRED).
+              El recurso se retirará del inventario activo. El historial de misiones pasadas e incidentes asociados se mantendrá para auditoría y trazabilidad SENAPRED.
             </div>
           </div>
 
@@ -330,7 +328,7 @@ export default function RecursoEliminarModal({
               icon={<Trash2 size={16} aria-hidden="true" />}
               iconPosition="left"
             >
-              Sí, Dar de Baja Recurso
+              Sí, dar de baja recurso
             </Button>
           )}
         </div>

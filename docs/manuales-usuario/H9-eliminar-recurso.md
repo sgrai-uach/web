@@ -34,25 +34,25 @@ El Administrador dispone de dos puntos de acceso dentro del módulo de inventari
    - En la columna **Acción**, presione el botón destructivo **"Eliminar"** (identificado con el ícono de basurero en rojo institucional).
 2. **Desde la Ficha Técnica de Detalle:**
    - En la misma fila, haga clic en el botón **"Ver Ficha"** (o directamente sobre la fila).
-   - En el pie del modal de la ficha técnica, presione el botón destructivo **"Dar de Baja Recurso"**.
+   - En el pie del modal de la ficha técnica, presione el botón destructivo **"Dar de baja recurso"**.
 
 ---
 
 ## 4. Flujo Paso a Paso de Baja Lógica
 
 ### Paso 1: Apertura del Modal de Confirmación
-Al presionar el botón de eliminación, el sistema despliega el modal interactivo de confirmación con franja de alerta en rojo municipal (`--color-danger`).
+Al presionar el botón de eliminación, el sistema despliega el modal interactivo de confirmación con cabecera clásica institucional (`--color-primary-teal-dark`).
 
 En esta ventana se exhibe:
 - Denominación e identificador del recurso.
 - Clasificación del activo (*Vehículo o Maquinaria* / *Material o Insumo*).
 - Cantidades registradas (Inventario total, disponibles y en terreno).
 - Procedencia territorial (Delegación asignada o Reserva Central).
-- Mensaje de advertencia institucional sobre el alcance de la baja.
+- Mensaje de advertencia breve sobre auditoría SENAPRED.
 
 ### Paso 2: Validación y Confirmación Definitiva
 - Si el Administrador decide no continuar, puede presionar el botón **"Cancelar"** o la tecla `Escape`, cerrando el diálogo sin alterar la base de datos.
-- Para proceder con la baja, presione **"Sí, Dar de Baja Recurso"**. Durante la ejecución de la petición `DELETE /api/recursos/{id}`, ambos botones quedan deshabilitados y el botón primario muestra un indicador de carga animado (*spinner*).
+- Para proceder con la baja, presione el botón rojo **"Sí, dar de baja recurso"**. Durante la ejecución de la petición `DELETE /api/recursos/{id}`, ambos botones quedan deshabilitados y el botón primario muestra un indicador de carga animado (*spinner*).
 
 ### Paso 3: Confirmación y Actualización Reactiva
 - Al completarse exitosamente la baja en la base de datos PostgreSQL, el modal se cierra automáticamente.

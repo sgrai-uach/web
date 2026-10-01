@@ -77,8 +77,8 @@ describe('RecursoEliminarModal', () => {
     expect(screen.getByText('Confirmar Baja de Recurso')).toBeDefined();
     expect(screen.getByText('Retroexcavadora CAT 420F')).toBeDefined();
     expect(screen.getByText(/Delegación Municipal Norte/)).toBeDefined();
-    expect(screen.getByText(/Baja Lógica Institucional/)).toBeDefined();
-    expect(screen.getByText(/Informe Alfa 37G SENAPRED/)).toBeDefined();
+    expect(screen.getByText(/El recurso se retirará del inventario activo/)).toBeDefined();
+    expect(screen.getByText(/auditoría SENAPRED/)).toBeDefined();
   });
 
   it('debe invocar onCerrar al hacer clic en el botón Cancelar', () => {
