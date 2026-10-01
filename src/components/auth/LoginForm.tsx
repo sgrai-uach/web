@@ -71,7 +71,7 @@ export default function LoginForm() {
     }
 
     if (!password) {
-      setErrorPassword('Ingrese su contraseña institucional.');
+      setErrorPassword('Ingrese su contraseña.');
       esValido = false;
     }
 
@@ -117,14 +117,14 @@ export default function LoginForm() {
           <span style={{ fontSize: '14px', fontWeight: 600 }}>DGRD</span>
         </div>
         <p className={styles.subtitle}>
-          Municipalidad de Valdivia &bull; Gestión de Incidentes
+          Sistema de Gestión y Respuesta ante Incidentes
         </p>
       </header>
 
       <div className={styles.body}>
-        <h1 className={styles.title}>Inicio de Sesión Institucional</h1>
+        <h1 className={styles.title}>Inicio de Sesión</h1>
         <p className={styles.instruction}>
-          Ingrese sus credenciales municipales para acceder al sistema operativo.
+          Ingrese sus credenciales para acceder a la plataforma operativa.
         </p>
 
         {motivo === 'sesion_expirada' && (
@@ -154,8 +154,8 @@ export default function LoginForm() {
         <form onSubmit={handleSubmit} noValidate>
           <Input
             id="identificador"
-            label="Identificador Institucional"
-            placeholder="ej. admin@valdivia.cl o 11111111-1"
+            label="Identificador"
+            placeholder="RUT o correo institucional"
             value={identificador}
             onChange={(e) => {
               setIdentificador(e.target.value);
@@ -165,7 +165,7 @@ export default function LoginForm() {
             requiredIndicator
             disabled={cargando}
             autoComplete="username"
-            helperText="Puede ingresar su correo corporativo o RUT con dígito verificador."
+            helperText="RUT con dígito verificador o correo corporativo."
           />
 
           <div className={styles.passwordWrapper} style={{ marginTop: '16px' }}>
@@ -216,10 +216,8 @@ export default function LoginForm() {
         </form>
 
         <footer className={styles.footerNotes}>
-          <p>
-            Acceso restringido a personal autorizado de la I. Municipalidad de Valdivia.
-          </p>
-          <p>Todas las acciones quedan registradas en la bitácora de auditoría.</p>
+          <p>Acceso restringido a personal autorizado.</p>
+          <p>Las acciones quedan registradas en la bitácora de auditoría.</p>
         </footer>
       </div>
     </div>

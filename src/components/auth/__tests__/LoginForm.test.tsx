@@ -57,7 +57,7 @@ describe('LoginForm', () => {
   it('debe renderizar los campos de identificador, contraseña y botón de ingreso', () => {
     renderLoginForm();
 
-    expect(screen.getByLabelText(/Identificador Institucional/i)).toBeDefined();
+    expect(screen.getByLabelText(/Identificador/i)).toBeDefined();
     expect(screen.getByLabelText(/^Contraseña/i)).toBeDefined();
     expect(screen.getByRole('button', { name: /Ingresar al Sistema/i })).toBeDefined();
   });
@@ -68,13 +68,13 @@ describe('LoginForm', () => {
     fireEvent.click(screen.getByRole('button', { name: /Ingresar al Sistema/i }));
 
     expect(await screen.findByText('Ingrese su RUT o correo institucional.')).toBeDefined();
-    expect(await screen.findByText('Ingrese su contraseña institucional.')).toBeDefined();
+    expect(await screen.findByText('Ingrese su contraseña.')).toBeDefined();
   });
 
   it('debe validar algoritmo de RUT chileno (Módulo 11) si no contiene arroba', async () => {
     renderLoginForm();
 
-    const idInput = screen.getByLabelText(/Identificador Institucional/i);
+    const idInput = screen.getByLabelText(/Identificador/i);
     const passInput = screen.getByLabelText(/^Contraseña/i);
 
     // RUT con DV inválido: 11.111.111-9 (el correcto es 11.111.111-1)
@@ -91,7 +91,7 @@ describe('LoginForm', () => {
   it('debe validar formato de correo electrónico si contiene arroba', async () => {
     renderLoginForm();
 
-    const idInput = screen.getByLabelText(/Identificador Institucional/i);
+    const idInput = screen.getByLabelText(/Identificador/i);
     const passInput = screen.getByLabelText(/^Contraseña/i);
 
     fireEvent.change(idInput, { target: { value: 'correo-sin-dominio@' } });
@@ -128,7 +128,7 @@ describe('LoginForm', () => {
 
     renderLoginForm({ login: mockLogin });
 
-    const idInput = screen.getByLabelText(/Identificador Institucional/i);
+    const idInput = screen.getByLabelText(/Identificador/i);
     const passInput = screen.getByLabelText(/^Contraseña/i);
 
     fireEvent.change(idInput, { target: { value: 'admin@valdivia.cl' } });
@@ -156,7 +156,7 @@ describe('LoginForm', () => {
 
     renderLoginForm({ login: mockLogin });
 
-    const idInput = screen.getByLabelText(/Identificador Institucional/i);
+    const idInput = screen.getByLabelText(/Identificador/i);
     const passInput = screen.getByLabelText(/^Contraseña/i);
 
     fireEvent.change(idInput, { target: { value: 'callcenter@valdivia.cl' } });
@@ -176,7 +176,7 @@ describe('LoginForm', () => {
 
     renderLoginForm({ login: mockLogin });
 
-    const idInput = screen.getByLabelText(/Identificador Institucional/i);
+    const idInput = screen.getByLabelText(/Identificador/i);
     const passInput = screen.getByLabelText(/^Contraseña/i);
 
     fireEvent.change(idInput, { target: { value: 'admin@valdivia.cl' } });

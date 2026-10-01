@@ -12,16 +12,34 @@ import { getAuthCookie, removeAuthCookie } from '@/lib/utils/cookieUtils';
 export const DEFAULT_ADMIN_USER_ID =
   process.env.NEXT_PUBLIC_DEFAULT_ADMIN_USER_ID || '00000000-0000-4000-8000-000000000001';
 
+const RUTAS_PROTEGIDAS = [
+  '/admin',
+  '/centro-incidentes',
+  '/callcenter',
+  '/asistente-social',
+  '/dashboard',
+];
+
 export function handleUnauthorizedSession() {
   if (typeof window === 'undefined') return;
+  const hadToken = Boolean(getAuthCookie());
   removeAuthCookie();
-  if (!window.location.pathname.startsWith('/login')) {
-    const returnUrl = encodeURIComponent(window.location.pathname + window.location.search);
-    try {
-      // eslint-disable-next-line @next/next/no-location-assign-relative-destination
-      window.location.assign(`/login?motivo=sesion_expirada&returnUrl=${returnUrl}`);
-    } catch {
-      // Ignorar excepciones en entornos de prueba jsdom
+
+  const pathname = window.location.pathname;
+  if (!pathname.startsWith('/login')) {
+    const esRutaProtegida = RUTAS_PROTEGIDAS.some(
+      (ruta) => pathname === ruta || pathname.startsWith(`${ruta}/`)
+    );
+
+    // Solo redirigir a login si el usuario tenía token activo que expiró o si está en ruta protegida
+    if (hadToken || esRutaProtegida) {
+      const returnUrl = encodeURIComponent(pathname + window.location.search);
+      try {
+        // eslint-disable-next-line @next/next/no-location-assign-relative-destination
+        window.location.assign(`/login?motivo=sesion_expirada&returnUrl=${returnUrl}`);
+      } catch {
+        // Ignorar excepciones en entornos de prueba jsdom
+      }
     }
   }
 }
