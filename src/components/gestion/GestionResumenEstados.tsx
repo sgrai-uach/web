@@ -51,7 +51,7 @@ export default function GestionResumenEstados() {
   const puedeVerCallCenter = tieneAlgunPermiso(['incidentes:avisos:leer', 'crear_incidente_manual']);
   const puedeVerInventario = tieneAlgunPermiso(['recursos:leer', 'recursos:crear']);
   const puedeVerSeguridad = tieneAlgunPermiso(['seguridad:roles:leer', 'seguridad:roles:gestionar']);
-  const puedeVerPersonal = tieneAlgunPermiso(['personal:gestionar']);
+  const puedeVerPersonal = tieneAlgunPermiso(['personal:gestionar', 'personal:crear', 'personal:leer']);
 
   const [metricasMando, setMetricasMando] = useState<MetricasMando>({
     reportados: 0,

@@ -3,16 +3,17 @@
 ## 1. Información General
 
 - **Código de Historia de Usuario:** H10 (Backlog SGRAI)
-- **Rol(es) Destinatario(s):** Administrador de Seguridad y Personal Municipal.
+- **Rol(es) Destinatario(s):** Administrador de Seguridad y Personal Municipal o cualquier perfil con permiso `personal:crear` o `personal:gestionar`.
 - **Objetivo:** Permitir el aprovisionamiento oficial de nuevas cuentas institucionales para funcionarios y personal operativo del SGRAI, configurando sus datos personales, asignación territorial, rol y credenciales de acceso iniciales para habilitar su inicio de sesión inmediato en el sistema.
+- **Permiso Requerido:** `personal:crear` (o `personal:gestionar`). Este permiso es personalizable y puede asignarse o revocarse a cualquier rol desde la Matriz de Roles y Permisos.
 
 ---
 
 ## 2. Acceso a la Funcionalidad
 
-1. Inicie sesión en la plataforma web institucional del SGRAI con una cuenta que cuente con privilegios de **Administrador**.
+1. Inicie sesión en la plataforma web institucional del SGRAI con una cuenta que posea el permiso de **Registro de Nuevos Funcionarios (`personal:crear`)** o permiso de administración (`personal:gestionar`).
 2. Diríjase a la sección **Administración** en la barra lateral o mediante la navegación superior y seleccione **Gestión de Personal** (ruta `/admin/empleados`).
-3. En la cabecera principal, junto al título de la página, localice el botón institucional de acción destacada: **"+ Nuevo Funcionario"**.
+3. En la cabecera principal, junto al título de la página, los usuarios autorizados visualizarán el botón institucional de acción destacada: **"+ Nuevo Funcionario"** (aquellos perfiles con permisos exclusivamente de lectura no verán este botón).
 4. Al hacer clic en este botón, se desplegará el modal interactivo **"Registrar Nuevo Funcionario Municipal"**.
 
 ---
@@ -70,13 +71,14 @@ Esta sección se despliega **únicamente si el rol seleccionado corresponde a pe
 | **Error: El RUT ingresado ya pertenece a un funcionario registrado (409 Conflict)** | El RUT ya se encuentra registrado en la tabla `usuario`. | Verifique en el buscador de personal si el funcionario ya existe. De ser así, edite su perfil en lugar de registrarlo nuevamente. |
 | **Error: El correo electrónico ya está en uso (409 Conflict)** | La dirección de correo electrónico institucional ya fue asignada a otra cuenta activa o inactiva. | Utilice una dirección de correo alternativa o verifique con el área de TI municipal. |
 | **Advertencia: El RUT ingresado no es válido (Módulo 11)** | Error tipográfico en el cuerpo del RUT o en el dígito verificador. | Corrija el número conforme a la cédula de identidad del funcionario. |
-| **Error 403 Forbidden** | La sesión actual no cuenta con privilegios de Administrador. | El sistema restringirá el acceso al formulario y requerirá autenticarse con una cuenta administrativa. |
+| **Error 403 Forbidden** | La sesión actual no cuenta con el permiso requerido (`personal:crear` o `personal:gestionar`). | El sistema restringirá la acción y requerirá que un Administrador asigne el permiso correspondiente a través de `/gestion/admin/roles-permisos`. |
 | **Campos obligatorios incompletos** | Se omitieron campos mandatorios como la delegación municipal, nombres o contraseña. | Complete los campos señalados con borde rojo e indicador de error antes de presionar guardar. |
 
 ---
 
 ## 6. Relación con Otros Módulos y Repositorios
 
+- **Personalización de Permisos (`/gestion/admin/roles-permisos`):** El permiso `personal:crear` (*"Registro de Nuevos Funcionarios"*) se administra desde el catálogo del módulo de Roles y Permisos. Puede ser asignado a perfiles estándar o personalizados según los requerimientos operativos de la municipalidad.
 - **Aprovisionamiento y Login (`/login`):** Una vez registrado, el funcionario queda habilitado en la base de datos central de `sgrai-api` con su contraseña cifrada mediante `bcrypt` y puede autenticarse de inmediato a través del portal de inicio de sesión institucional.
 - **Operatividad en Terreno (`sgrai-pwa`):** Si el funcionario fue asignado como Patrulla Verificadora o Delegado de Cuadrilla, sus credenciales y ficha técnica le permitirán ingresar a la aplicación progresiva móvil (PWA) para recibir misiones y registrar evaluaciones de incidentes.
-- **Trazabilidad y Auditoría:** Cada alta de funcionario registra automáticamente un evento en la tabla `log_cambios_usuarios` asociando el ID del administrador que realizó la operación.
+- **Trazabilidad y Auditoría:** Cada alta de funcionario registra automáticamente un evento en la tabla `log_cambios_usuarios` asociando el ID del usuario autor que realizó la operación.

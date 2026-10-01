@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import AdminEmpleadosPage from '../page';
 import { ToastProvider } from '@/components/ui/Toast';
+import { AuthContext, type AuthContextValue } from '@/context/AuthContext';
 import * as empleadosServiceModule from '@/services/empleadosService';
 import type { EmpleadoUsuario } from '@/types/empleados';
 
@@ -13,8 +14,44 @@ const mockCatalogos = {
   cargos: [],
 };
 
-const renderConProveedores = (ui: React.ReactElement) => {
-  return render(<ToastProvider>{ui}</ToastProvider>);
+const createMockAuth = (
+  permisos: string[] = ['personal:leer', 'personal:crear'],
+  rolCodigo = 'ADMIN',
+  rolNombre = 'Administrador'
+): AuthContextValue => ({
+  usuario: {
+    id: 'usr-test-1',
+    rut: '12.345.678-5',
+    nombre: 'Valdiviano de Prueba',
+    email: 'test@valdivia.cl',
+    rolId: 'rol-1',
+    rolNombre,
+    rolCodigo,
+    delegacionId: 'del-1',
+    delegacionNombre: 'Delegación Norte',
+    permisos,
+  },
+  token: 'mock-jwt-token',
+  estaAutenticado: true,
+  cargando: false,
+  login: vi.fn(),
+  logout: vi.fn(),
+  tienePermiso: (codigo) =>
+    rolCodigo === 'ADMIN' ? true : permisos.includes(codigo),
+  tieneAlgunPermiso: (codigos) =>
+    rolCodigo === 'ADMIN' ? true : codigos.some((c) => permisos.includes(c)),
+  refrescarPerfil: vi.fn(),
+});
+
+const renderConProveedores = (
+  ui: React.ReactElement,
+  authValue: AuthContextValue = createMockAuth()
+) => {
+  return render(
+    <AuthContext.Provider value={authValue}>
+      <ToastProvider>{ui}</ToastProvider>
+    </AuthContext.Provider>
+  );
 };
 
 describe('AdminEmpleadosPage', () => {
@@ -137,5 +174,54 @@ describe('AdminEmpleadosPage', () => {
         screen.queryByText('Registrar Nuevo Funcionario Municipal')
       ).toBeNull();
     });
+  });
+
+  it('permite ver y accionar "+ Nuevo Funcionario" a un perfil no-admin que posea el permiso personal:crear', () => {
+    const customAuth = createMockAuth(
+      ['personal:leer', 'personal:crear'],
+      'ENCARGADO_RRHH',
+      'Encargado de Personal'
+    );
+    renderConProveedores(<AdminEmpleadosPage />, customAuth);
+
+    const boton = screen.getByRole('button', { name: /\+ nuevo funcionario/i });
+    expect(boton).toBeDefined();
+
+    fireEvent.click(boton);
+    expect(
+      screen.getByText('Registrar Nuevo Funcionario Municipal')
+    ).toBeDefined();
+  });
+
+  it('oculta el botón "+ Nuevo Funcionario" si el usuario solo tiene permiso personal:leer', () => {
+    const soloLecturaAuth = createMockAuth(
+      ['personal:leer'],
+      'SUPERVISOR_OPERATIVO',
+      'Supervisor'
+    );
+    renderConProveedores(<AdminEmpleadosPage />, soloLecturaAuth);
+
+    expect(
+      screen.queryByRole('button', { name: /\+ nuevo funcionario/i })
+    ).toBeNull();
+    // Pero la búsqueda y directorio sí deben estar disponibles
+    expect(screen.getByPlaceholderText(/buscar por rut/i)).toBeDefined();
+  });
+
+  it('muestra AccesoDenegadoState si el usuario no tiene ningún permiso de personal', () => {
+    const sinPermisosAuth = createMockAuth(
+      ['avisos:leer'],
+      'OPERADOR_CALLCENTER',
+      'Operador Call Center'
+    );
+    renderConProveedores(<AdminEmpleadosPage />, sinPermisosAuth);
+
+    expect(screen.getByRole('alert')).toBeDefined();
+    expect(
+      screen.getByText(/permisos insuficientes para gestión de personal/i)
+    ).toBeDefined();
+    expect(
+      screen.queryByRole('button', { name: /\+ nuevo funcionario/i })
+    ).toBeNull();
   });
 });

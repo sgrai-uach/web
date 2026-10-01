@@ -153,6 +153,37 @@ export async function obtenerDetalleRol(
 }
 
 /**
+ * Catálogo base de permisos del sistema que garantiza la disponibilidad de permisos
+ * estándar para personalización de roles incluso si aún no han sido sincronizados en BD.
+ */
+export const PERMISOS_DEFAULT_SISTEMA: PermisoCatalogoItem[] = [
+  {
+    id: 'perm-personal-crear',
+    codigo: 'personal:crear',
+    nombre: 'Registro de Nuevos Funcionarios',
+    descripcion:
+      'Permite dar de alta y aprovisionar nuevos funcionarios en el sistema, credenciales de acceso iniciales y ficha operativa de terreno.',
+    modulo: 'Gestión de Personal',
+  },
+  {
+    id: 'perm-personal-leer',
+    codigo: 'personal:leer',
+    nombre: 'Consulta del Directorio de Personal',
+    descripcion:
+      'Permite consultar el listado y detalle de funcionarios municipales y personal operativo.',
+    modulo: 'Gestión de Personal',
+  },
+  {
+    id: 'perm-personal-gestionar',
+    codigo: 'personal:gestionar',
+    nombre: 'Administración de Cuentas y Personal',
+    descripcion:
+      'Permite modificar roles, delegaciones, cargos y especialidades de funcionarios.',
+    modulo: 'Gestión de Personal',
+  },
+];
+
+/**
  * Obtiene el catálogo completo de todos los permisos disponibles en el sistema (HU-5).
  * Criterio 2: Desplegar lista completa de módulos y permisos disponibles.
  */

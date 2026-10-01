@@ -218,8 +218,17 @@ export const empleadosService = {
           throw new EmpleadosServiceError(
             data.error ||
               data.message ||
-              'Se requiere iniciar sesión con perfil de Administrador para registrar funcionarios.',
+              'Sesión expirada o no autenticada. Se requiere iniciar sesión con permisos de gestión de personal.',
             401
+          );
+        }
+
+        if (res.status === 403) {
+          throw new EmpleadosServiceError(
+            data.error ||
+              data.message ||
+              'Acceso denegado. No dispone del permiso requerido (personal:crear) para registrar funcionarios en el sistema.',
+            403
           );
         }
 

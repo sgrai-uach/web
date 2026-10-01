@@ -171,6 +171,42 @@ describe('empleadosService', () => {
       });
     });
 
+    it('debe manejar error de autenticación (401 Unauthorized)', async () => {
+      vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce({
+        ok: false,
+        status: 401,
+        json: async () => ({
+          error: 'Sesión expirada o no autenticada. Se requiere iniciar sesión con permisos de gestión de personal.',
+        }),
+      } as Response);
+
+      await expect(createEmpleado(payloadValido)).rejects.toSatisfy((err) => {
+        expect(err).toBeInstanceOf(EmpleadosServiceError);
+        const serviceErr = err as EmpleadosServiceError;
+        expect(serviceErr.status).toBe(401);
+        expect(serviceErr.message).toContain('permisos de gestión de personal');
+        return true;
+      });
+    });
+
+    it('debe manejar error de permisos insuficientes (403 Forbidden)', async () => {
+      vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce({
+        ok: false,
+        status: 403,
+        json: async () => ({
+          error: 'Acceso denegado. No dispone del permiso requerido (personal:crear) para registrar funcionarios en el sistema.',
+        }),
+      } as Response);
+
+      await expect(createEmpleado(payloadValido)).rejects.toSatisfy((err) => {
+        expect(err).toBeInstanceOf(EmpleadosServiceError);
+        const serviceErr = err as EmpleadosServiceError;
+        expect(serviceErr.status).toBe(403);
+        expect(serviceErr.message).toContain('personal:crear');
+        return true;
+      });
+    });
+
     it('debe manejar error genérico cuando el servidor falla (500)', async () => {
       vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce({
         ok: false,
