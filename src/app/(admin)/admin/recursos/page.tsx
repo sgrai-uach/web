@@ -16,7 +16,8 @@ import { toUserFriendlyErrorMessage } from '@/lib/utils/errorUtils';
 
 export default function RecursosPage() {
   const { showError } = useToast();
-  const { usuarioActivo, cambiarUsuarioPorId } = useSimulatedSession();
+  const { usuarioActivo, cambiarUsuarioPorId, hasPermission } = useSimulatedSession();
+  const puedeCrear = hasPermission('recursos:crear');
 
   const [filtros, setFiltros] = useState<FiltrosRecursosState>({
     pagina: 1,
@@ -87,6 +88,7 @@ export default function RecursosPage() {
           usuarioActivoId={usuarioActivo.id}
           onCambiarUsuario={cambiarUsuarioPorId}
           tieneAcceso={false}
+          puedeCrear={false}
         />
         <AccesoDenegadoState
           rolUsuario={usuarioActivo.rol}
@@ -103,6 +105,7 @@ export default function RecursosPage() {
         usuarioActivoId={usuarioActivo.id}
         onCambiarUsuario={cambiarUsuarioPorId}
         tieneAcceso={true}
+        puedeCrear={puedeCrear}
       />
 
       <RecursosFiltros
@@ -123,6 +126,7 @@ export default function RecursosPage() {
           cargando={cargando}
           esFiltroActivo={esFiltroActivo}
           onLimpiarFiltros={handleLimpiarFiltros}
+          puedeCrear={puedeCrear}
         />
 
         <Pagination
