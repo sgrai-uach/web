@@ -4,6 +4,9 @@ import { AUTH_COOKIE_NAME } from '@/lib/utils/cookieUtils';
 
 /**
  * Rutas operativas que requieren autenticación formal.
+ * 
+ * Nota: Las rutas públicas de atención ciudadana (/reportar, /seguimiento, /)
+ * no requieren sesión ni permisos y son accesibles por cualquier usuario anónimo.
  */
 const RUTAS_PROTEGIDAS = [
   '/admin',

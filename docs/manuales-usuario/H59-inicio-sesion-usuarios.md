@@ -90,6 +90,13 @@ Si había intentado entrar a un enlace específico, el sistema le redirigirá di
 1. En la esquina superior derecha del encabezado institucional observará el componente **`HeaderUserWidget`**, el cual muestra su nombre, rol y delegación.
 2. Para salir del sistema en forma segura al terminar su turno, haga clic en el botón **"Salir"** (icono `LogOut`). Esto eliminará inmediatamente la cookie criptográfica y lo regresará a `/login`.
 
+### Paso 6: Navegación y Visibilidad Dinámica de Módulos (Sidebar)
+1. **Control de Acceso Visual:** La barra lateral de navegación (`AppSidebar`) adapta dinámicamente sus opciones al perfil y permisos del usuario activo. Solo se mostrarán los enlaces y módulos a los que el usuario tenga autorización expresa:
+   * Los operadores de Call Center únicamente visualizarán la Bandeja de Avisos y módulos operativos asignados.
+   * Los grupos completos sin módulos autorizados (como *Estratégico* o *Administración*) se ocultan automáticamente para reducir saturación visual y evitar accesos no permitidos.
+   * El perfil Administrador (`ADMIN`) tiene visibilidad completa de todos los módulos.
+2. **Atención Ciudadana y Módulos Públicos:** Las herramientas ciudadanas (**Chatbot de Reportes** `/reportar` y **Seguimiento de Avisos** `/seguimiento`) son completamente públicas e irrestrictas. Se mantienen siempre visibles y accesibles para cualquier funcionario o ciudadano sin necesidad de permisos especiales ni inicio de sesión previo.
+
 ---
 
 ## 4. Credenciales de Prueba Disponibles (Semillas Institucionales)
