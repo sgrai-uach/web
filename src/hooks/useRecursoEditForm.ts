@@ -105,36 +105,56 @@ export function useRecursoEditForm({
         const fresco = await getRecursoById(recursoInicial.id, usuarioActivoId);
         if (!activo) return;
 
+        const cantInventarioFresco = fresco.esIndividual
+          ? Math.max(Number(fresco.cantidadInventario) || 1, Number(fresco.cantidadEnUso) || 0)
+          : Math.max(Number(fresco.cantidadInventario) || 0, Number(fresco.cantidadEnUso) || 0);
+
         setFormData({
           id: fresco.id,
-          nombre: fresco.nombre,
+          nombre: fresco.nombre || '',
           descripcion: fresco.descripcion || '',
-          esIndividual: fresco.esIndividual,
+          esIndividual: Boolean(fresco.esIndividual),
           tipo: fresco.tipo,
-          cantidadInventario: fresco.cantidadInventario,
-          cantidadMinima: fresco.cantidadMinima,
-          cantidadEnUso: fresco.cantidadEnUso,
+          cantidadInventario: cantInventarioFresco,
+          cantidadMinima: fresco.cantidadMinima ?? 0,
+          cantidadEnUso: fresco.cantidadEnUso ?? 0,
           enMantencion: fresco.estado === 'EN_MANTENCION',
-          latitud: fresco.latitud,
-          longitud: fresco.longitud,
+          latitud:
+            fresco.latitud != null && !Number.isNaN(Number(fresco.latitud))
+              ? Number(fresco.latitud)
+              : DEFAULT_VALDIVIA_LAT,
+          longitud:
+            fresco.longitud != null && !Number.isNaN(Number(fresco.longitud))
+              ? Number(fresco.longitud)
+              : DEFAULT_VALDIVIA_LNG,
           subtipoDetalle: inferSubtipo(fresco.esIndividual, fresco.detalles),
           detalles: populateDetallesFormFields(fresco.detalles),
         });
       } catch {
         if (!activo) return;
         // Fallback con datos recibidos inicialmente
+        const cantInventarioFallback = recursoInicial.esIndividual
+          ? Math.max(Number(recursoInicial.cantidadInventario) || 1, Number(recursoInicial.cantidadEnUso) || 0)
+          : Math.max(Number(recursoInicial.cantidadInventario) || 0, Number(recursoInicial.cantidadEnUso) || 0);
+
         setFormData({
           id: recursoInicial.id,
-          nombre: recursoInicial.nombre,
+          nombre: recursoInicial.nombre || '',
           descripcion: recursoInicial.descripcion || '',
-          esIndividual: recursoInicial.esIndividual,
+          esIndividual: Boolean(recursoInicial.esIndividual),
           tipo: recursoInicial.tipo,
-          cantidadInventario: recursoInicial.cantidadInventario,
-          cantidadMinima: recursoInicial.cantidadMinima,
-          cantidadEnUso: recursoInicial.cantidadEnUso,
+          cantidadInventario: cantInventarioFallback,
+          cantidadMinima: recursoInicial.cantidadMinima ?? 0,
+          cantidadEnUso: recursoInicial.cantidadEnUso ?? 0,
           enMantencion: recursoInicial.estado === 'EN_MANTENCION',
-          latitud: recursoInicial.latitud,
-          longitud: recursoInicial.longitud,
+          latitud:
+            recursoInicial.latitud != null && !Number.isNaN(Number(recursoInicial.latitud))
+              ? Number(recursoInicial.latitud)
+              : DEFAULT_VALDIVIA_LAT,
+          longitud:
+            recursoInicial.longitud != null && !Number.isNaN(Number(recursoInicial.longitud))
+              ? Number(recursoInicial.longitud)
+              : DEFAULT_VALDIVIA_LNG,
           subtipoDetalle: inferSubtipo(recursoInicial.esIndividual, recursoInicial.detalles),
           detalles: populateDetallesFormFields(recursoInicial.detalles),
         });
@@ -160,13 +180,12 @@ export function useRecursoEditForm({
     }
 
     if (formData.esIndividual) {
-      if (Number(formData.cantidadInventario) !== 1) {
-        errs.cantidadInventario = 'Para activos individuales la cantidad fija debe ser 1';
-      }
+      // Para activos individuales la cantidad fija siempre es 1 en inventario
     } else {
       if (
         formData.cantidadInventario === '' ||
         formData.cantidadInventario === undefined ||
+        formData.cantidadInventario === null ||
         Number.isNaN(Number(formData.cantidadInventario))
       ) {
         errs.cantidadInventario = 'La cantidad es obligatoria';
@@ -174,7 +193,7 @@ export function useRecursoEditForm({
         const cant = Number(formData.cantidadInventario);
         if (cant < 0 || !Number.isInteger(cant)) {
           errs.cantidadInventario = 'La cantidad debe ser un número entero mayor o igual a 0';
-        } else if (cant < formData.cantidadEnUso) {
+        } else if (cant < (formData.cantidadEnUso ?? 0)) {
           errs.cantidadInventario = `No puedes reducir el inventario a menos de ${formData.cantidadEnUso} unidades que están actualmente desplegadas en terreno`;
         }
       }
@@ -183,6 +202,7 @@ export function useRecursoEditForm({
     if (
       formData.cantidadMinima !== '' &&
       formData.cantidadMinima !== undefined &&
+      formData.cantidadMinima !== null &&
       (Number.isNaN(Number(formData.cantidadMinima)) ||
         Number(formData.cantidadMinima) < 0 ||
         !Number.isInteger(Number(formData.cantidadMinima)))
@@ -191,12 +211,26 @@ export function useRecursoEditForm({
     }
 
     const lat = Number(formData.latitud);
-    if (formData.latitud === '' || Number.isNaN(lat) || lat < -90 || lat > 90) {
+    if (
+      formData.latitud === '' ||
+      formData.latitud === null ||
+      formData.latitud === undefined ||
+      Number.isNaN(lat) ||
+      lat < -90 ||
+      lat > 90
+    ) {
       errs.latitud = 'Latitud inválida (-90 a 90)';
     }
 
     const lng = Number(formData.longitud);
-    if (formData.longitud === '' || Number.isNaN(lng) || lng < -180 || lng > 180) {
+    if (
+      formData.longitud === '' ||
+      formData.longitud === null ||
+      formData.longitud === undefined ||
+      Number.isNaN(lng) ||
+      lng < -180 ||
+      lng > 180
+    ) {
       errs.longitud = 'Longitud inválida (-180 a 180)';
     }
 
@@ -272,8 +306,10 @@ export function useRecursoEditForm({
   }, []);
 
   const handleSubmit = useCallback(
-    async (e: React.FormEvent) => {
-      e.preventDefault();
+    async (e?: React.FormEvent) => {
+      if (e && typeof e.preventDefault === 'function') {
+        e.preventDefault();
+      }
       if (!formData) return;
 
       setTouched({
@@ -325,11 +361,15 @@ export function useRecursoEditForm({
         const payload: EditarRecursoDTO = {
           nombre: formData.nombre.trim(),
           descripcion: formData.descripcion.trim() !== '' ? formData.descripcion.trim() : null,
-          cantidadInventario: formData.esIndividual ? 1 : Number(formData.cantidadInventario),
+          cantidadInventario: formData.esIndividual
+            ? Math.max(Number(formData.cantidadInventario) || 1, Number(formData.cantidadEnUso) || 0)
+            : Number(formData.cantidadInventario),
           cantidadMinima:
-            formData.cantidadMinima !== '' ? Number(formData.cantidadMinima) : 0,
-          latitud: Number(formData.latitud),
-          longitud: Number(formData.longitud),
+            formData.cantidadMinima !== '' && formData.cantidadMinima != null
+              ? Number(formData.cantidadMinima)
+              : 0,
+          latitud: Number(formData.latitud) || DEFAULT_VALDIVIA_LAT,
+          longitud: Number(formData.longitud) || DEFAULT_VALDIVIA_LNG,
           enMantencion: formData.enMantencion,
           ...(formData.esIndividual ? { detalles: cleanDetalles || {} } : {}),
         };

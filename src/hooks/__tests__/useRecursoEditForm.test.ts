@@ -129,4 +129,89 @@ describe('useRecursoEditForm', () => {
     expect(onGuardado).toHaveBeenCalledWith(mockActualizado);
     expect(onCerrar).toHaveBeenCalled();
   });
+
+  it('debe inicializar válidamente recursos individuales con valores nulos o cantidad irregular', async () => {
+    const recursoIndividualIrregular = {
+      ...mockRecurso,
+      id: '22222222-2222-4000-8000-222222222222',
+      nombre: 'Camioneta Rescate 4x4',
+      tipo: 'Vehículo o Maquinaria' as const,
+      esIndividual: true,
+      cantidadInventario: 0,
+      cantidadEnUso: 0,
+      cantidadMinima: 0,
+      latitud: (null as unknown as number),
+      longitud: (undefined as unknown as number),
+      detalles: { patente: 'ZZ-99-99' },
+    };
+    vi.mocked(recursosService.getRecursoById).mockResolvedValue(recursoIndividualIrregular);
+
+    const { result } = renderHook(() =>
+      useRecursoEditForm({
+        recursoInicial: recursoIndividualIrregular,
+        usuarioActivoId: '00000000-0000-4000-8000-000000000001',
+        onGuardadoExitoso: vi.fn(),
+        onCerrar: vi.fn(),
+      })
+    );
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(result.current.formData?.cantidadInventario).toBe(1);
+    expect(result.current.formData?.latitud).toBe(-39.8142);
+    expect(result.current.formData?.longitud).toBe(-73.2459);
+    expect(result.current.isValid).toBe(true);
+  });
+
+  it('debe mantener cantidadInventario igual o superior a unidades en uso para recursos individuales desplegados', async () => {
+    const recursoEnUsoMultiple = {
+      ...mockRecurso,
+      id: '33333333-3333-4000-8000-333333333333',
+      nombre: 'Camioneta 4x4 Cuadrilla Navara (Patente: CD-FG-23)',
+      tipo: 'Vehículo o Maquinaria' as const,
+      esIndividual: true,
+      cantidadInventario: 2,
+      cantidadEnUso: 2,
+      cantidadDisponible: 0,
+      cantidadMinima: 0,
+      detalles: { patente: 'CD-FG-23' },
+    };
+    vi.mocked(recursosService.getRecursoById).mockResolvedValue(recursoEnUsoMultiple);
+    vi.mocked(recursosService.actualizarRecurso).mockResolvedValue(recursoEnUsoMultiple);
+
+    const onGuardado = vi.fn();
+    const onCerrar = vi.fn();
+
+    const { result } = renderHook(() =>
+      useRecursoEditForm({
+        recursoInicial: recursoEnUsoMultiple,
+        usuarioActivoId: '00000000-0000-4000-8000-000000000001',
+        onGuardadoExitoso: onGuardado,
+        onCerrar,
+      })
+    );
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    // Debe conservar al menos 2 unidades y no forzar 1
+    expect(result.current.formData?.cantidadInventario).toBe(2);
+    expect(result.current.isValid).toBe(true);
+
+    // Al guardar, el payload debe enviar 2 y no reducir a 1
+    await act(async () => {
+      await result.current.handleSubmit();
+    });
+
+    expect(recursosService.actualizarRecurso).toHaveBeenCalledWith(
+      recursoEnUsoMultiple.id,
+      expect.objectContaining({
+        cantidadInventario: 2,
+      }),
+      '00000000-0000-4000-8000-000000000001'
+    );
+  });
 });

@@ -33,7 +33,6 @@ export default function RecursoEditarModal({
     serverError,
     serverFieldErrors,
     isSubmitting,
-    isValid,
     clientErrors,
     handleBlur,
     handleFieldChange,
@@ -67,7 +66,7 @@ export default function RecursoEditarModal({
         variant="primary"
         size="md"
         onClick={handleSubmit}
-        disabled={!isValid || isSubmitting || cargandoDetalle}
+        disabled={isSubmitting || cargandoDetalle}
         style={{
           backgroundColor: 'var(--color-accent-mint)',
           color: 'var(--color-white)',
@@ -305,7 +304,16 @@ export default function RecursoEditarModal({
                   color: 'var(--color-primary-teal-dark)',
                 }}
               >
-                <strong>Unidad Individual Fija:</strong> Este activo se computa exactamente como 1 unidad en inventario.
+                <div>
+                  <strong>Activo Físico Individual:</strong> Este recurso cuenta con{' '}
+                  <strong>{formData.cantidadInventario}</strong> unidad{Number(formData.cantidadInventario) !== 1 ? 'es' : ''} registrada{Number(formData.cantidadInventario) !== 1 ? 's' : ''} en inventario.
+                  {formData.cantidadEnUso > 0 && (
+                    <div style={{ fontSize: '12px', color: '#D97706', marginTop: '4px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <AlertTriangle size={14} />
+                      <span>{formData.cantidadEnUso} unidad{formData.cantidadEnUso !== 1 ? 'es' : ''} desplegada{formData.cantidadEnUso !== 1 ? 's' : ''} actualmente en terreno.</span>
+                    </div>
+                  )}
+                </div>
               </div>
             ) : (
               <div
@@ -453,7 +461,9 @@ export default function RecursoEditarModal({
                       color: formData.enMantencion ? '#E65100' : 'var(--color-text-dark)',
                     }}
                   >
-                    Marcar recurso en Mantenimiento Técnico (Fuera de Servicio)
+                    {formData.enMantencion
+                      ? 'Desmarcar recurso de mantenimiento técnico (Reintegrar al servicio)'
+                      : 'Marcar recurso en mantenimiento técnico (Fuera de servicio)'}
                   </span>
                 </div>
               </label>
@@ -471,12 +481,12 @@ export default function RecursoEditarModal({
                 >
                   <AlertTriangle size={14} />
                   <span>
-                    El estado operativo del recurso cambiará a <strong>EN_MANTENCION</strong>. No estará disponible para asignaciones de emergencia en el Centro de Mando hasta desmarcar esta casilla.
+                    El recurso se encuentra fuera de servicio. Al desmarcar esta casilla, volverá a estar operativo y disponible para asignaciones de emergencia en el Centro de Mando.
                   </span>
                 </div>
               ) : (
                 <div style={{ fontSize: '12px', color: 'var(--color-charcoal)', paddingLeft: '30px' }}>
-                  El estado operativo se calculará automáticamente entre <code>DISPONIBLE</code>, <code>ASIGNADO</code> o <code>BAJO_STOCK</code>.
+                  Al marcar esta casilla, el recurso quedará fuera de servicio temporalmente y no estará disponible para asignaciones de emergencia en el Centro de Mando hasta desmarcarla.
                 </div>
               )}
             </div>
