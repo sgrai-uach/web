@@ -41,8 +41,14 @@ export const AuthContext = createContext<AuthContextValue | null>(null);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const [usuario, setUsuario] = useState<UsuarioPerfilSesion | null>(null);
-  const [token, setToken] = useState<string | null>(null);
-  const [cargando, setCargando] = useState<boolean>(true);
+  const [token, setToken] = useState<string | null>(() => {
+    if (typeof window === 'undefined') return null;
+    return getAuthCookie();
+  });
+  const [cargando, setCargando] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    return Boolean(getAuthCookie());
+  });
 
   // Mapear UsuarioActivoDetalle del endpoint usuario-activo a UsuarioPerfilSesion
   const mapDetalleAUsuarioPerfil = useCallback(
@@ -66,16 +72,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Inicialización de sesión desde cookie al montar en cliente
   useEffect(() => {
-    let cancelado = false;
     const cookieToken = getAuthCookie();
+    if (!cookieToken) return;
 
-    if (!cookieToken) {
-      setCargando(false);
-      return;
-    }
-
-    setToken(cookieToken);
-
+    let cancelado = false;
     void obtenerUsuarioActivo()
       .then((detalle) => {
         if (cancelado) return;
@@ -122,6 +122,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       router.push('/login');
     } catch {
       if (typeof window !== 'undefined') {
+        // eslint-disable-next-line @next/next/no-location-assign-relative-destination
         window.location.href = '/login';
       }
     }

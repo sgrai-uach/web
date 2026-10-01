@@ -18,6 +18,7 @@ export function handleUnauthorizedSession() {
   if (!window.location.pathname.startsWith('/login')) {
     const returnUrl = encodeURIComponent(window.location.pathname + window.location.search);
     try {
+      // eslint-disable-next-line @next/next/no-location-assign-relative-destination
       window.location.assign(`/login?motivo=sesion_expirada&returnUrl=${returnUrl}`);
     } catch {
       // Ignorar excepciones en entornos de prueba jsdom
