@@ -105,7 +105,7 @@ export default function GestionResumenEstados() {
                 resueltos: resu,
               });
             })
-            .catch(() => {})
+            .catch(() => { })
         );
       }
 
@@ -133,7 +133,7 @@ export default function GestionResumenEstados() {
                 totalHoy: res.data.length,
               });
             })
-            .catch(() => {})
+            .catch(() => { })
         );
       }
 
@@ -151,7 +151,7 @@ export default function GestionResumenEstados() {
                 asignados: asig,
               });
             })
-            .catch(() => {})
+            .catch(() => { })
         );
       }
 
@@ -167,7 +167,7 @@ export default function GestionResumenEstados() {
                 rolesActivos: activos,
               });
             })
-            .catch(() => {})
+            .catch(() => { })
         );
       }
 
@@ -402,7 +402,7 @@ export default function GestionResumenEstados() {
                   }}
                 >
                   <AlertTriangle size={12} />
-                  SLA Crítico (&gt;15m)
+                  Urgente (&gt;15m)
                 </span>
                 <span
                   style={{
