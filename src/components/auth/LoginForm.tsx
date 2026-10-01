@@ -17,14 +17,12 @@ import { useAuth } from '@/context/AuthContext';
 import { validarRutChileno } from '@/lib/validations/rut';
 import styles from './LoginForm.module.css';
 
-export function obtenerRutaPorRol(rolCodigo: string): string {
-  const codigo = rolCodigo.toUpperCase();
-  if (codigo === 'ADMIN') return '/gestion/admin/recursos';
-  if (codigo === 'ENCARGADO' || codigo === 'OPERACIONES') return '/gestion/centro-incidentes';
-  if (codigo === 'CALL_CENTER') return '/gestion/callcenter';
-  if (codigo === 'ASISTENTE_SOCIAL') return '/gestion/asistente-social';
-  if (codigo === 'SUPERVISOR') return '/gestion/dashboard';
-  return '/gestion';
+export const RUTA_INICIO_GESTION = '/gestion';
+
+export function obtenerRutaPorRol(rolCodigo?: string): string {
+  // Siempre al iniciar sesión se muestra la pantalla de Inicio de Gestión
+  void rolCodigo;
+  return RUTA_INICIO_GESTION;
 }
 
 export default function LoginForm() {
@@ -32,7 +30,6 @@ export default function LoginForm() {
   const searchParams = useSearchParams();
   const { login, estaAutenticado, usuario } = useAuth();
 
-  const returnUrl = searchParams.get('returnUrl');
   const motivo = searchParams.get('motivo');
 
   const [identificador, setIdentificador] = useState('');
@@ -79,25 +76,23 @@ export default function LoginForm() {
     return esValido;
   };
 
-  // Redirección reactiva si el usuario ya cuenta con sesión activa
+  // Redirección reactiva si el usuario ya cuenta con sesión activa: siempre a la pantalla de Inicio de Gestión
   useEffect(() => {
     if (estaAutenticado && usuario) {
-      const destino =
-        returnUrl && returnUrl.startsWith('/') && !returnUrl.startsWith('/login')
-          ? returnUrl
-          : obtenerRutaPorRol(usuario.rolCodigo);
+      const destino = RUTA_INICIO_GESTION;
 
       router.push(destino);
       router.refresh?.();
       try {
         if (typeof window !== 'undefined' && window.location) {
+          // eslint-disable-next-line @next/next/no-location-assign-relative-destination
           window.location.assign(destino);
         }
       } catch {
         // Ignorado en pruebas unitarias
       }
     }
-  }, [estaAutenticado, usuario, returnUrl, router]);
+  }, [estaAutenticado, usuario, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -110,21 +105,19 @@ export default function LoginForm() {
     setErrorServidor(null);
 
     try {
-      const usuario = await login({
+      await login({
         identificador: identificador.trim(),
         password,
       });
 
-      // Redirección inteligente: returnUrl prioritario o destino según rol institucional
-      const destino =
-        returnUrl && returnUrl.startsWith('/') && !returnUrl.startsWith('/login')
-          ? returnUrl
-          : obtenerRutaPorRol(usuario.rolCodigo);
+      // Siempre al iniciar sesión se muestra la pantalla de Inicio de Gestión (/gestion)
+      const destino = RUTA_INICIO_GESTION;
 
       router.push(destino);
       router.refresh?.();
       try {
         if (typeof window !== 'undefined' && window.location) {
+          // eslint-disable-next-line @next/next/no-location-assign-relative-destination
           window.location.assign(destino);
         }
       } catch {

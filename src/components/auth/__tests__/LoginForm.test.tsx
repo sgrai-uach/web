@@ -44,14 +44,14 @@ describe('LoginForm', () => {
   });
 
   describe('obtenerRutaPorRol', () => {
-    it('debe mapear cada rol a su ruta de aterrizaje correspondiente', () => {
-      expect(obtenerRutaPorRol('ADMIN')).toBe('/gestion/admin/recursos');
-      expect(obtenerRutaPorRol('admin')).toBe('/gestion/admin/recursos');
-      expect(obtenerRutaPorRol('ENCARGADO')).toBe('/gestion/centro-incidentes');
-      expect(obtenerRutaPorRol('OPERACIONES')).toBe('/gestion/centro-incidentes');
-      expect(obtenerRutaPorRol('CALL_CENTER')).toBe('/gestion/callcenter');
-      expect(obtenerRutaPorRol('ASISTENTE_SOCIAL')).toBe('/gestion/asistente-social');
-      expect(obtenerRutaPorRol('SUPERVISOR')).toBe('/gestion/dashboard');
+    it('debe mapear cualquier rol a la pantalla de Inicio de Gestión (/gestion)', () => {
+      expect(obtenerRutaPorRol('ADMIN')).toBe('/gestion');
+      expect(obtenerRutaPorRol('admin')).toBe('/gestion');
+      expect(obtenerRutaPorRol('ENCARGADO')).toBe('/gestion');
+      expect(obtenerRutaPorRol('OPERACIONES')).toBe('/gestion');
+      expect(obtenerRutaPorRol('CALL_CENTER')).toBe('/gestion');
+      expect(obtenerRutaPorRol('ASISTENTE_SOCIAL')).toBe('/gestion');
+      expect(obtenerRutaPorRol('SUPERVISOR')).toBe('/gestion');
       expect(obtenerRutaPorRol('OTRO')).toBe('/gestion');
     });
   });
@@ -123,7 +123,7 @@ describe('LoginForm', () => {
     expect(passInput.type).toBe('password');
   });
 
-  it('debe llamar a login con credenciales válidas y redirigir a /gestion/admin/recursos para Administrador', async () => {
+  it('debe llamar a login con credenciales válidas y redirigir a /gestion para cualquier rol', async () => {
     const mockLogin = vi.fn().mockResolvedValue({
       id: 'usr-1',
       rolCodigo: 'ADMIN',
@@ -145,11 +145,11 @@ describe('LoginForm', () => {
         identificador: 'admin@valdivia.cl',
         password: 'Valdivia2026!',
       });
-      expect(mockPush).toHaveBeenCalledWith('/gestion/admin/recursos');
+      expect(mockPush).toHaveBeenCalledWith('/gestion');
     });
   });
 
-  it('debe priorizar returnUrl en la redirección post-login si está presente', async () => {
+  it('debe redirigir siempre a la pantalla de Inicio de Gestión (/gestion) post-login', async () => {
     mockSearchParams = new URLSearchParams('returnUrl=/callcenter/manual');
 
     const mockLogin = vi.fn().mockResolvedValue({
@@ -169,7 +169,7 @@ describe('LoginForm', () => {
     fireEvent.click(screen.getByRole('button', { name: /Ingresar al Sistema/i }));
 
     await waitFor(() => {
-      expect(mockPush).toHaveBeenCalledWith('/callcenter/manual');
+      expect(mockPush).toHaveBeenCalledWith('/gestion');
     });
   });
 
@@ -202,7 +202,7 @@ describe('LoginForm', () => {
     ).toBeDefined();
   });
 
-  it('debe redirigir automáticamente si el usuario ya está autenticado al montar el componente', async () => {
+  it('debe redirigir automáticamente a /gestion si el usuario ya está autenticado al montar el componente', async () => {
     renderLoginForm({
       estaAutenticado: true,
       usuario: {
@@ -213,11 +213,11 @@ describe('LoginForm', () => {
     });
 
     await waitFor(() => {
-      expect(mockPush).toHaveBeenCalledWith('/gestion/admin/recursos');
+      expect(mockPush).toHaveBeenCalledWith('/gestion');
     });
   });
 
-  it('debe priorizar returnUrl al redirigir automáticamente si ya está autenticado', async () => {
+  it('debe redirigir siempre a /gestion aun cuando existan parámetros al estar ya autenticado', async () => {
     mockSearchParams = new URLSearchParams('returnUrl=/gestion/callcenter');
 
     renderLoginForm({
@@ -230,7 +230,7 @@ describe('LoginForm', () => {
     });
 
     await waitFor(() => {
-      expect(mockPush).toHaveBeenCalledWith('/gestion/callcenter');
+      expect(mockPush).toHaveBeenCalledWith('/gestion');
     });
   });
 });

@@ -65,7 +65,7 @@ export default function GestionWelcomeBanner() {
 
           {nombreDelegacion && (
             <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--color-sage, #A9CBA4)' }}>
-              {nombreDelegacion}
+              Delegación Asignada: {nombreDelegacion}
             </span>
           )}
         </div>

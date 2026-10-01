@@ -4,6 +4,12 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import HeaderUserWidget from '../HeaderUserWidget';
 import { AuthContext, type AuthContextValue } from '@/context/AuthContext';
 
+let mockPathname = '/';
+
+vi.mock('next/navigation', () => ({
+  usePathname: () => mockPathname,
+}));
+
 function renderWithAuth(authOverrides: Partial<AuthContextValue>) {
   const defaultAuth: AuthContextValue = {
     usuario: null,
@@ -28,6 +34,7 @@ function renderWithAuth(authOverrides: Partial<AuthContextValue>) {
 describe('HeaderUserWidget', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockPathname = '/';
   });
 
   it('debe renderizar enlace a Iniciar Sesión cuando el usuario no está autenticado', () => {
@@ -36,6 +43,14 @@ describe('HeaderUserWidget', () => {
     const link = screen.getByRole('link', { name: /Iniciar Sesión/i });
     expect(link).toBeDefined();
     expect(link.getAttribute('href')).toBe('/login');
+  });
+
+  it('no debe renderizar el botón Iniciar Sesión en el header cuando la ruta es /login', () => {
+    mockPathname = '/login';
+    const { container } = renderWithAuth({ estaAutenticado: false, usuario: null });
+
+    expect(screen.queryByRole('link', { name: /Iniciar Sesión/i })).toBeNull();
+    expect(container.firstChild).toBeNull();
   });
 
   it('debe desplegar el nombre y rol del funcionario autenticado', () => {

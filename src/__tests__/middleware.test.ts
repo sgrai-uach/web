@@ -81,7 +81,7 @@ describe('Middleware de Autenticación y Perímetro de Portales', () => {
     expect(location).toContain('/gestion');
   });
 
-  it('debe priorizar returnUrl si un usuario ya autenticado accede a /login con dicho parámetro', () => {
+  it('debe redirigir siempre a /gestion aun cuando se acceda a /login con parámetros si ya está autenticado', () => {
     const req = createMockRequest('http://localhost:3000/login?returnUrl=%2Fgestion%2Fcallcenter', {
       [AUTH_COOKIE_NAME]: 'fake-jwt-token',
     });
@@ -89,7 +89,7 @@ describe('Middleware de Autenticación y Perímetro de Portales', () => {
 
     expect(res.status).toBe(307);
     const location = res.headers.get('location');
-    expect(location).toContain('/gestion/callcenter');
+    expect(location).toBe('http://localhost:3000/gestion');
   });
 
   it('debe redirigir rutas operativas heredadas hacia su versión canónica con prefijo /gestion/ si hay sesión', () => {

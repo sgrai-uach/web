@@ -17,6 +17,8 @@ export default function AppHeader() {
     if (pathname.startsWith('/callcenter')) return 'Bandeja de Avisos';
     if (pathname.startsWith('/centro-incidentes')) return 'Centro de Mando';
     if (pathname.startsWith('/dashboard')) return 'Dashboard y Reportes';
+    if (pathname === '/gestion' || pathname.startsWith('/gestion/')) return 'Portal de Gestión';
+    if (pathname.startsWith('/login')) return 'Autenticación Institucional';
     return 'Plataforma Operativa SGRAI';
   };
 

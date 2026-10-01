@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { usePathname } from 'next/navigation';
 import { LogOut, LogIn } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import Button from '@/components/ui/Button';
@@ -10,6 +11,7 @@ import styles from './HeaderUserWidget.module.css';
 const emptySubscribe = () => () => {};
 
 export default function HeaderUserWidget() {
+  const pathname = usePathname();
   const { usuario, estaAutenticado, logout, cargando } = useAuth();
   const isClient = React.useSyncExternalStore(
     emptySubscribe,
@@ -28,6 +30,11 @@ export default function HeaderUserWidget() {
   }
 
   if (!estaAutenticado || !usuario) {
+    // Si estamos en la pantalla de login, no mostrar el botón de iniciar sesión en el header
+    if (pathname === '/login' || pathname?.startsWith('/login')) {
+      return null;
+    }
+
     return (
       <Button
         href="/login"
