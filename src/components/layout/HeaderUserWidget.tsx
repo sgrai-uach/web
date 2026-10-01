@@ -21,18 +21,16 @@ export default function HeaderUserWidget() {
 
   if (!estaAutenticado || !usuario) {
     return (
-      <div className={styles.userWidget}>
-        <Button
-          href="/login"
-          variant="primary"
-          size="sm"
-          icon={<LogIn size={14} />}
-          className={styles.loginBtn}
-          title="Iniciar sesión en SGRAI"
-        >
-          Iniciar Sesión
-        </Button>
-      </div>
+      <Button
+        href="/login"
+        variant="primary"
+        size="sm"
+        icon={<LogIn size={14} />}
+        className={styles.loginBtn}
+        title="Iniciar sesión en SGRAI"
+      >
+        Iniciar Sesión
+      </Button>
     );
   }
 
