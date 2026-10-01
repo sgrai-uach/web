@@ -1,10 +1,18 @@
 import React from 'react';
+import { SearchX, Inbox } from 'lucide-react';
+import Button from '@/components/ui/Button';
 
 interface AvisosTableEmptyProps {
   cargando: boolean;
+  hayFiltrosActivos?: boolean;
+  onLimpiarFiltros?: () => void;
 }
 
-export default function AvisosTableEmpty({ cargando }: AvisosTableEmptyProps) {
+export default function AvisosTableEmpty({
+  cargando,
+  hayFiltrosActivos = false,
+  onLimpiarFiltros,
+}: AvisosTableEmptyProps) {
   if (cargando) {
     return (
       <tr>
@@ -27,6 +35,70 @@ export default function AvisosTableEmpty({ cargando }: AvisosTableEmptyProps) {
     );
   }
 
+  // Estado cuando la combinación de filtros no arrojó resultados
+  if (hayFiltrosActivos) {
+    return (
+      <tr>
+        <td
+          colSpan={7}
+          style={{
+            padding: '3.5rem 1rem',
+            textAlign: 'center',
+            backgroundColor: '#FAFAFA',
+          }}
+        >
+          <div
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: 'var(--color-bg-light, #ECEFF3)',
+              color: 'var(--color-charcoal, #3B3F45)',
+              border: '1px solid #CCD2D9',
+              width: '48px',
+              height: '48px',
+              marginBottom: '0.75rem',
+            }}
+          >
+            <SearchX size={24} aria-hidden="true" />
+          </div>
+          <div
+            style={{
+              fontWeight: 700,
+              fontSize: '1.125rem',
+              color: 'var(--color-charcoal, #3B3F45)',
+              marginBottom: '0.35rem',
+            }}
+          >
+            No se encontraron avisos coincidentes
+          </div>
+          <div
+            style={{
+              fontSize: '0.875rem',
+              color: 'var(--color-text-muted, #5F676E)',
+              maxWidth: '420px',
+              margin: '0 auto 1.25rem',
+            }}
+          >
+            No existen reportes que coincidan con la totalidad de los criterios aplicados. Prueba ajustando los filtros o restableciendo la búsqueda.
+          </div>
+          {onLimpiarFiltros && (
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={onLimpiarFiltros}
+              title="Restablecer todos los filtros"
+            >
+              Limpiar filtros
+            </Button>
+          )}
+        </td>
+      </tr>
+    );
+  }
+
+  // Estado bandeja vacía sin filtros
   return (
     <tr>
       <td
@@ -49,21 +121,7 @@ export default function AvisosTableEmpty({ cargando }: AvisosTableEmptyProps) {
             marginBottom: '0.75rem',
           }}
         >
-          <svg
-            width="22"
-            height="22"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2.2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
-          >
-            <polyline points="22 12 16 12 14 15 10 15 8 12 2 12" />
-            <path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z" />
-            <path d="m9 8 2 2 4-4" />
-          </svg>
+          <Inbox size={22} aria-hidden="true" />
         </div>
         <div
           style={{
