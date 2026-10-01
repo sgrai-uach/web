@@ -31,7 +31,7 @@ export default function AdminEmpleadosPage() {
   };
 
   return (
-    <div style={{ maxWidth: 'var(--container-max-width, 1400px)', width: '100%', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 'var(--space-6, 24px)' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6, 24px)' }}>
       {/* Breadcrumbs Institucionales */}
       <Breadcrumbs
         items={[
@@ -57,7 +57,6 @@ export default function AdminEmpleadosPage() {
         }
       />
 
-
       {/* Buscador modular de usuarios */}
       <EmpleadoBuscador
         onSelectUsuario={(usr) => setUsuarioSeleccionado(usr)}
@@ -77,7 +76,7 @@ export default function AdminEmpleadosPage() {
         <EmptyState
           icon={<UserX size={28} />}
           title="Ningún usuario seleccionado"
-          description="Utilice el buscador superior para seleccionar a un funcionario por RUT, nombre o correo institucional."
+          description="Utilice el buscador superior para seleccionar a un funcionario por RUT, nombre o correo."
         />
       )}
 

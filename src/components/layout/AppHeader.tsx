@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { usePathname } from 'next/navigation';
+import HeaderUserWidget from './HeaderUserWidget';
 import styles from './AppHeader.module.css';
 
 export default function AppHeader() {
@@ -16,6 +17,8 @@ export default function AppHeader() {
     if (pathname.startsWith('/callcenter')) return 'Bandeja de Avisos';
     if (pathname.startsWith('/centro-incidentes')) return 'Centro de Mando';
     if (pathname.startsWith('/dashboard')) return 'Dashboard y Reportes';
+    if (pathname === '/gestion' || pathname.startsWith('/gestion/')) return 'Portal de Gestión';
+    if (pathname.startsWith('/login')) return 'Autenticación Institucional';
     return 'Plataforma Operativa SGRAI';
   };
 
@@ -27,8 +30,8 @@ export default function AppHeader() {
             <span className={styles.sectionTitle}>{getSectionTitle()}</span>
           </div>
 
-          <div className={styles.orgBadge}>
-            <span>DGRD &bull; Municipalidad de Valdivia</span>
+          <div className={styles.headerRight}>
+            <HeaderUserWidget />
           </div>
         </div>
       </div>

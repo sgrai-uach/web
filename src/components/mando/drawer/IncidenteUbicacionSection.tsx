@@ -4,6 +4,7 @@ import React from 'react';
 import Heading from '@/components/ui/Heading';
 import { MapPin } from 'lucide-react';
 import type { IncidenteDetalle } from '@/services/incidentesService';
+import { obtenerNombreDelegacion } from '@/lib/utils/delegacionUtils';
 import styles from '@/styles/mando.module.css';
 
 interface IncidenteUbicacionSectionProps {
@@ -11,6 +12,10 @@ interface IncidenteUbicacionSectionProps {
 }
 
 export const IncidenteUbicacionSection: React.FC<IncidenteUbicacionSectionProps> = ({ detalle }) => {
+  const nombreDelegacion = detalle.delegacion
+    ? obtenerNombreDelegacion(detalle.delegacion.nombre || detalle.delegacion.id, 'No asignada')
+    : 'No asignada';
+
   return (
     <div className={styles.drawerSection}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
@@ -28,7 +33,7 @@ export const IncidenteUbicacionSection: React.FC<IncidenteUbicacionSectionProps>
         <div>
           <span className={styles.drawerDataLabel}>Delegación Asignada</span>
           <span className={styles.drawerDataValue}>
-            {detalle.delegacion?.nombre || 'No asignada'}
+            {nombreDelegacion}
           </span>
         </div>
         <div>

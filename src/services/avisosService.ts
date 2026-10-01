@@ -10,7 +10,7 @@ import type {
   VerificarAvisoInput,
   VerificarAvisoSuccessResponse,
 } from '@/types/avisos';
-import { CATALOGO_TIPOS_INCIDENTE_DEFAULT, normalizarTipoIncidente } from '@/types/avisos';
+import { CATALOGO_TIPOS_INCIDENTE_DEFAULT, normalizarListaTiposIncidentes } from '@/types/avisos';
 import type { ApiErrorResponse } from '@/types/common';
 import type { components } from '@/types/api-generated';
 
@@ -297,10 +297,7 @@ export async function obtenerTiposIncidentes(): Promise<TipoIncidenteOpcion[]> {
     }
     const json = await res.json();
     const lista = Array.isArray(json.data) ? json.data : [];
-    if (lista.length === 0) {
-      return CATALOGO_TIPOS_INCIDENTE_DEFAULT;
-    }
-    return lista.map((t: unknown, idx: number) => normalizarTipoIncidente(t, idx));
+    return normalizarListaTiposIncidentes(lista);
   } catch {
     return CATALOGO_TIPOS_INCIDENTE_DEFAULT;
   }

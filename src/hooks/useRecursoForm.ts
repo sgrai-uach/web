@@ -11,6 +11,7 @@ import {
 import type { ApiFieldError } from '@/types/common';
 import { crearRecurso, RecursoServiceError } from '@/services/recursosService';
 import { getErrorMessage } from '@/lib/utils/errorUtils';
+import { useSimulatedSession } from '@/context/SimulatedSessionContext';
 
 const DEFAULT_VALDIVIA_LAT = -39.8142;
 const DEFAULT_VALDIVIA_LNG = -73.2459;
@@ -47,6 +48,7 @@ export const initialFormState: RecursoFormState = {
 export function useRecursoForm() {
   const [formData, setFormData] = useState<RecursoFormState>(initialFormState);
   const [touched, setTouched] = useState<Record<string, boolean>>({});
+  const { usuarioActivo } = useSimulatedSession();
   const [serverError, setServerError] = useState<string | null>(null);
   const [serverFieldErrors, setServerFieldErrors] = useState<ApiFieldError[]>([]);
   const [createdResourceName, setCreatedResourceName] = useState<string | null>(null);
@@ -239,7 +241,7 @@ export function useRecursoForm() {
         ...(cleanDetalles ? { detalles: cleanDetalles } : {}),
       };
 
-      const creado = await crearRecurso(payload);
+      const creado = await crearRecurso(payload, usuarioActivo.id);
 
       setShowConfirmModal(false);
       setCreatedResourceName(creado.nombre);
@@ -254,7 +256,7 @@ export function useRecursoForm() {
     } finally {
       setIsSubmitting(false);
     }
-  }, [isValid, isSubmitting, validationResult]);
+  }, [isValid, isSubmitting, validationResult, usuarioActivo.id]);
 
   const handleReset = useCallback(() => {
     setFormData(initialFormState);

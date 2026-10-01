@@ -15,6 +15,7 @@ import FormSubmitActions from './form/FormSubmitActions';
 import DuplicadosModal from './DuplicadosModal';
 import IncidenteExitoCard from './IncidenteExitoCard';
 import InlineNotice from '@/components/ui/InlineNotice';
+import { useSimulatedSession } from '@/context/SimulatedSessionContext';
 import styles from './IncidenteManualForm.module.css';
 
 interface IncidenteManualFormProps {
@@ -23,9 +24,17 @@ interface IncidenteManualFormProps {
 }
 
 export default function IncidenteManualForm({
-  operadorId = DEFAULT_CALLCENTER_OPERADOR_ID,
+  operadorId: operadorIdProp,
   onExito,
 }: IncidenteManualFormProps) {
+  let sessionUserId: string | undefined;
+  try {
+    const session = useSimulatedSession();
+    sessionUserId = session.usuarioActivo.id;
+  } catch {
+    // Entorno de prueba aislado sin provider
+  }
+  const operadorId = operadorIdProp || sessionUserId || DEFAULT_CALLCENTER_OPERADOR_ID;
   const form = useIncidenteManualForm({ operadorId, onExito });
 
   if (form.resultadoExitoso) {

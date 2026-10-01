@@ -12,14 +12,14 @@
   display: flex;
   align-items: center;
   box-sizing: border-box;
+  width: 100%;
 }
 
 .topBarInner {
-  max-width: var(--container-max-width, 1400px);
-  margin: 0 auto;
+  width: 100%;
   display: flex;
   align-items: center;
-  justifyContent: space-between;
+  justify-content: space-between;
   gap: 16px;
 }
 
@@ -34,6 +34,14 @@
   font-weight: 700;
   color: #FFFFFF;
   letter-spacing: 0.2px;
+  text-transform: uppercase;
+}
+
+.headerRight {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-left: auto;
 }
 
 .orgBadge {
@@ -42,4 +50,11 @@
   color: var(--color-sage, #A9CBA4);
   letter-spacing: 0.3px;
   text-transform: uppercase;
+  white-space: nowrap;
+}
+
+@media (max-width: 768px) {
+  .orgBadge {
+    display: none;
+  }
 }

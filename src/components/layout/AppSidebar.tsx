@@ -4,6 +4,7 @@ import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { ChevronLeft, ChevronRight, Home } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
 import { NAV_GROUPS, type NavItem } from './navItems';
 import styles from './AppSidebar.module.css';
 
@@ -17,16 +18,42 @@ export default function AppSidebar({
   onToggleCollapse,
 }: AppSidebarProps) {
   const pathname = usePathname();
+  const { usuario, tieneAlgunPermiso } = useAuth();
 
-  const allItems = React.useMemo(() => NAV_GROUPS.flatMap((g) => g.items), []);
+  const visibleGroups = React.useMemo(() => {
+    return NAV_GROUPS.map((group) => {
+      const filteredItems = group.items.filter((item) => {
+        // 1. Módulos públicos o sin permisos requeridos: visibles para todos
+        if (item.publico || !item.requiredPermissions || item.requiredPermissions.length === 0) {
+          return true;
+        }
+        // 2. Administrador total: acceso irrestricto
+        if (usuario?.rolCodigo === 'ADMIN') {
+          return true;
+        }
+        // 3. Comprobar si el usuario posee al menos uno de los permisos requeridos
+        return tieneAlgunPermiso(item.requiredPermissions);
+      });
+
+      return {
+        ...group,
+        items: filteredItems,
+      };
+    }).filter((group) => group.items.length > 0);
+  }, [usuario, tieneAlgunPermiso]);
+
+  const allVisibleItems = React.useMemo(
+    () => visibleGroups.flatMap((g) => g.items),
+    [visibleGroups]
+  );
 
   const activeItemId = React.useMemo(() => {
-    const matching = allItems.filter(
+    const matching = allVisibleItems.filter(
       (item) => pathname === item.href || (item.href !== '/' && pathname.startsWith(`${item.href}/`))
     );
     if (matching.length === 0) return null;
     return matching.sort((a, b) => b.href.length - a.href.length)[0].id;
-  }, [allItems, pathname]);
+  }, [allVisibleItems, pathname]);
 
   const isItemActive = (item: NavItem) => item.id === activeItemId;
 
@@ -37,7 +64,7 @@ export default function AppSidebar({
     >
       <div className={styles.header}>
         {!collapsed && (
-          <Link href="/" className={styles.logoArea} title="Ir al Portal Principal">
+          <Link href="/gestion" className={styles.logoArea} title="Ir al Inicio de Gestión">
             <span className={styles.logoText}>SGRAI</span>
             <span className={styles.logoDivider}>|</span>
             <span className={styles.logoSubtitle}>DGRD Valdivia</span>
@@ -55,7 +82,7 @@ export default function AppSidebar({
       </div>
 
       <nav className={styles.nav}>
-        {NAV_GROUPS.map((group) => (
+        {visibleGroups.map((group) => (
           <div key={group.id} className={styles.group}>
             {!collapsed && (
               <div className={styles.groupTitle}>{group.title}</div>
@@ -113,10 +140,10 @@ export default function AppSidebar({
         <Link
           href="/"
           className={styles.portalLink}
-          title="Portal Principal — Inicio"
+          title="Cambiar de Portal — Selector Institucional"
         >
           <Home size={17} className={styles.portalIcon} />
-          {!collapsed && <span>Portal Principal</span>}
+          {!collapsed && <span>Cambiar de Portal</span>}
         </Link>
       </div>
     </aside>

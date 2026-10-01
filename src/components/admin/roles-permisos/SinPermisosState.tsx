@@ -1,12 +1,15 @@
 'use client';
 
 import React from 'react';
+import Button from '@/components/ui/Button';
+import { ShieldAlert } from 'lucide-react';
 
 interface SinPermisosStateProps {
   nombreRol?: string;
+  onAsignarPermisos?: () => void;
 }
 
-export default function SinPermisosState({ nombreRol }: SinPermisosStateProps) {
+export default function SinPermisosState({ nombreRol, onAsignarPermisos }: SinPermisosStateProps) {
   return (
     <div
       style={{
@@ -17,7 +20,6 @@ export default function SinPermisosState({ nombreRol }: SinPermisosStateProps) {
         margin: '1rem 0',
       }}
     >
-      {/* Ícono de escudo/candado plano */}
       <div
         style={{
           display: 'inline-flex',
@@ -30,20 +32,7 @@ export default function SinPermisosState({ nombreRol }: SinPermisosStateProps) {
           marginBottom: '1rem',
         }}
       >
-        <svg
-          width="26"
-          height="26"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          aria-hidden="true"
-        >
-          <rect x="3" y="11" width="18" height="11" rx="0" ry="0" />
-          <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-        </svg>
+        <ShieldAlert size={26} aria-hidden="true" />
       </div>
 
       <div
@@ -70,19 +59,18 @@ export default function SinPermisosState({ nombreRol }: SinPermisosStateProps) {
         asignados actualmente en el sistema.
       </p>
 
-      <div
-        style={{
-          display: 'inline-block',
-          backgroundColor: '#FFF3E0',
-          color: '#E65100',
-          border: '1px solid #FFE0B2',
-          padding: '0.35rem 0.75rem',
-          fontSize: '0.75rem',
-          fontWeight: 600,
-        }}
-      >
-        Nota: La asignación de permisos estará disponible a través del módulo de gestión (HU-5)
-      </div>
+      {onAsignarPermisos && (
+        <div style={{ marginTop: '0.5rem' }}>
+          <Button
+            type="button"
+            variant="primary"
+            size="sm"
+            onClick={onAsignarPermisos}
+          >
+            Asignar Permisos Ahora
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
