@@ -14,6 +14,7 @@ import {
 } from '@/config/usuariosSimulados';
 import { obtenerUsuarioActivo } from '@/services/seguridadService';
 import type { UsuarioActivoDetalle } from '@/types/seguridad';
+import { AuthContext } from '@/context/AuthContext';
 
 const STORAGE_KEY = 'sgrai_simulated_user_id';
 
@@ -107,8 +108,26 @@ export function SimulatedSessionProvider({
   const [usuarioDetalleServidor, setUsuarioDetalleServidor] =
     useState<UsuarioActivoDetalle | null>(null);
 
+  const auth = useContext(AuthContext);
+
+  // Sincronizar automáticamente si existe sesión real en AuthContext
+  useEffect(() => {
+    if (auth && auth.estaAutenticado && auth.usuario) {
+      setUsuarioActivoState({
+        id: auth.usuario.id,
+        nombre: auth.usuario.nombre,
+        email: auth.usuario.email,
+        rut: auth.usuario.rut,
+        rol: auth.usuario.rolNombre,
+        esAdmin: auth.usuario.rolCodigo === 'ADMIN',
+      });
+      setPermisos(new Set(auth.usuario.permisos));
+    }
+  }, [auth?.estaAutenticado, auth?.usuario]);
+
   // Sincronizar permisos frescos del backend cuando cambia el usuario activo
   useEffect(() => {
+    if (auth?.estaAutenticado) return; // Si ya hay sesión real activa, no sobreescribir con simulación
     let cancelado = false;
     void obtenerUsuarioActivo(usuarioActivo.id)
       .then((detalle) => {

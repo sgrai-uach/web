@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { usePathname } from 'next/navigation';
-import HeaderSessionWidget from './HeaderSessionWidget';
+import HeaderUserWidget from './HeaderUserWidget';
 import styles from './AppHeader.module.css';
 
 export default function AppHeader() {
@@ -32,7 +32,7 @@ export default function AppHeader() {
             <div className={styles.orgBadge}>
               <span>DGRD &bull; Municipalidad de Valdivia</span>
             </div>
-            <HeaderSessionWidget />
+            <HeaderUserWidget />
           </div>
         </div>
       </div>
