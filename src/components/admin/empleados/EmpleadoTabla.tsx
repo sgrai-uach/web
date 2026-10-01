@@ -3,8 +3,7 @@
 import React from 'react';
 import type { EmpleadoUsuario } from '@/types/empleados';
 import Pagination from '@/components/common/Pagination';
-import Button from '@/components/ui/Button';
-import { Edit2, Trash2, CheckCircle2, XCircle, Shield, MapPin, Phone, Mail } from 'lucide-react';
+import { Trash2, CheckCircle2, XCircle, Shield, MapPin, Phone, Mail } from 'lucide-react';
 
 interface EmpleadoTablaProps {
   empleados: EmpleadoUsuario[];
@@ -63,14 +62,12 @@ export default function EmpleadoTabla({
                 letterSpacing: '0.5px',
               }}
             >
-              <th style={{ padding: '0.875rem 1rem', width: '220px' }}>Funcionario</th>
-              <th style={{ padding: '0.875rem 1rem', width: '220px' }}>Contacto</th>
-              <th style={{ padding: '0.875rem 1rem', width: '170px' }}>Rol Institucional</th>
-              <th style={{ padding: '0.875rem 1rem', width: '170px' }}>Delegación</th>
-              <th style={{ padding: '0.875rem 1rem', width: '120px' }}>Estado</th>
-              <th style={{ padding: '0.875rem 1rem', textAlign: 'right', width: '150px' }}>
-                Acciones
-              </th>
+              <th style={{ padding: '0.75rem 0.875rem' }}>Funcionario</th>
+              <th style={{ padding: '0.75rem 0.875rem' }}>Contacto</th>
+              <th style={{ padding: '0.75rem 0.875rem', width: '150px' }}>Rol</th>
+              <th style={{ padding: '0.75rem 0.875rem', width: '150px' }}>Delegación</th>
+              <th style={{ padding: '0.75rem 0.875rem', width: '100px' }}>Estado</th>
+              <th style={{ padding: '0.75rem 0.5rem', textAlign: 'center', width: '46px' }} title="Baja lógica"></th>
             </tr>
           </thead>
           <tbody>
@@ -222,67 +219,41 @@ export default function EmpleadoTabla({
                       )}
                     </td>
 
-                    {/* Acciones */}
-                    <td style={{ padding: '0.875rem 1rem', textAlign: 'right' }}>
-                      <div
-                        style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          justifyContent: 'flex-end',
-                          gap: '0.4rem',
-                        }}
-                      >
-                        <Button
+                    {/* Botón pequeño de icono solo para dar de baja */}
+                    <td style={{ padding: '0.75rem 0.5rem', textAlign: 'center', width: '46px' }}>
+                      {usr.usuario_activo && onDarDeBaja && (
+                        <button
                           type="button"
-                          variant={estaSeleccionado ? 'primary' : 'outline'}
-                          size="sm"
                           onClick={(e) => {
                             e.stopPropagation();
-                            onSelectUsuario(usr);
+                            onDarDeBaja(usr);
                           }}
-                          style={{ fontSize: '0.75rem', padding: '0.25rem 0.6rem' }}
-                          title="Modificar datos del funcionario"
+                          title={`Dar de baja a ${usr.nombres} ${usr.apellidos}`}
+                          aria-label={`Dar de baja a ${usr.nombres} ${usr.apellidos}`}
+                          style={{
+                            background: 'transparent',
+                            border: '1px solid #FECACA',
+                            borderRadius: '4px',
+                            padding: '0.35rem',
+                            color: '#DC2626',
+                            cursor: 'pointer',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            transition: 'all 0.15s ease',
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.backgroundColor = '#FEF2F2';
+                            e.currentTarget.style.borderColor = '#EF4444';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.backgroundColor = 'transparent';
+                            e.currentTarget.style.borderColor = '#FECACA';
+                          }}
                         >
-                          <Edit2 size={13} />
-                          <span>{estaSeleccionado ? 'Editando' : 'Editar'}</span>
-                        </Button>
-
-                        {usr.usuario_activo && onDarDeBaja && (
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              onDarDeBaja(usr);
-                            }}
-                            title={`Dar de baja a ${usr.nombres} ${usr.apellidos}`}
-                            style={{
-                              fontSize: '0.75rem',
-                              fontWeight: 600,
-                              padding: '0.25rem 0.5rem',
-                              backgroundColor: 'transparent',
-                              color: '#991B1B',
-                              border: '1px solid #FECACA',
-                              borderRadius: 0,
-                              cursor: 'pointer',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '0.2rem',
-                              transition: 'all 0.15s ease',
-                            }}
-                            onMouseEnter={(e) => {
-                              e.currentTarget.style.backgroundColor = '#FEF2F2';
-                              e.currentTarget.style.color = '#B91C1C';
-                            }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.style.backgroundColor = 'transparent';
-                              e.currentTarget.style.color = '#991B1B';
-                            }}
-                          >
-                            <Trash2 size={13} />
-                            <span>Baja</span>
-                          </button>
-                        )}
-                      </div>
+                          <Trash2 size={14} />
+                        </button>
+                      )}
                     </td>
                   </tr>
                 );

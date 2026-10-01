@@ -64,31 +64,31 @@ export default function AdminEmpleadosPage() {
         ]}
       />
 
-      {/* Barra de Búsqueda y Filtros */}
-      <div className={styles.filtersCard}>
-        <EmpleadoFiltros
-          termino={termino}
-          setTermino={setTermino}
-          delegacionFiltro={delegacionFiltro}
-          setDelegacionFiltro={setDelegacionFiltro}
-          rolFiltro={rolFiltro}
-          setRolFiltro={setRolFiltro}
-          estadoFiltro={estadoFiltro}
-          setEstadoFiltro={setEstadoFiltro}
-          ordenarPor={ordenarPor}
-          setOrdenarPor={setOrdenarPor}
-          orden={orden}
-          setOrden={setOrden}
-          delegaciones={catalogos.delegaciones}
-          roles={catalogos.roles}
-          cargando={cargando}
-        />
-      </div>
-
       {/* Disposición Master-Detail: Lista permanente (izquierda) y Formulario (derecha) */}
       <div className={styles.masterDetailGrid}>
-        {/* Columna Izquierda: Lista permanente de empleados con paginación estándar */}
+        {/* Columna Izquierda: Barra de Búsqueda/Filtros + Lista permanente con paginación */}
         <div className={styles.tableColumn}>
+          {/* Barra de Búsqueda y Filtros compactada */}
+          <div className={styles.filtersCard}>
+            <EmpleadoFiltros
+              termino={termino}
+              setTermino={setTermino}
+              delegacionFiltro={delegacionFiltro}
+              setDelegacionFiltro={setDelegacionFiltro}
+              rolFiltro={rolFiltro}
+              setRolFiltro={setRolFiltro}
+              estadoFiltro={estadoFiltro}
+              setEstadoFiltro={setEstadoFiltro}
+              ordenarPor={ordenarPor}
+              setOrdenarPor={setOrdenarPor}
+              orden={orden}
+              setOrden={setOrden}
+              delegaciones={catalogos.delegaciones}
+              roles={catalogos.roles}
+              cargando={cargando}
+            />
+          </div>
+
           <EmpleadoTabla
             empleados={empleadosPaginados}
             cargando={cargando}
