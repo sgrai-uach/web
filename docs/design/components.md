@@ -79,7 +79,7 @@ import Button from '@/components/ui/Button';
 
 // Enlace estilo botón a otra página
 <Button
-  href="/recursos/nuevo"
+  href="/admin/recursos/nuevo"
   variant="primary"
   size="md"
 >

@@ -42,7 +42,7 @@ export default function RecursoForm() {
       <SuccessActions
         recursoNombre={createdResourceName}
         onReset={handleReset}
-        listPath="/recursos"
+        listPath="/admin/recursos"
       />
     );
   }
