@@ -73,6 +73,10 @@ function obtenerPermisosFallback(rol: string, esAdmin: boolean): Set<string> {
     ]);
   }
 
+  if (rol === 'Supervisor Estratégico' || rol === 'Supervisor') {
+    return new Set(['recursos:leer']);
+  }
+
   return new Set();
 }
 
