@@ -7,12 +7,14 @@ interface EmpleadoFormActionsProps {
   guardando: boolean;
   onCancelar: () => void;
   onDarDeBaja?: () => void;
+  deshabilitarBaja?: boolean;
 }
 
 export default function EmpleadoFormActions({
   guardando,
   onCancelar,
   onDarDeBaja,
+  deshabilitarBaja = false,
 }: EmpleadoFormActionsProps) {
   return (
     <div
@@ -31,7 +33,12 @@ export default function EmpleadoFormActions({
           variant="destructive"
           size="md"
           onClick={onDarDeBaja}
-          disabled={guardando}
+          disabled={guardando || deshabilitarBaja}
+          title={
+            deshabilitarBaja
+              ? 'El funcionario ya se encuentra inactivo / dado de baja'
+              : 'Dar de baja al funcionario'
+          }
           style={{ marginRight: 'auto' }}
         >
           Dar de baja

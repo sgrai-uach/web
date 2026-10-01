@@ -47,6 +47,7 @@ export function useAdminEmpleados() {
   }, []);
 
   const solicitarBaja = useCallback((usr: EmpleadoUsuario) => {
+    if (!usr.usuario_activo) return;
     setEmpleadoAEliminar(usr);
   }, []);
 

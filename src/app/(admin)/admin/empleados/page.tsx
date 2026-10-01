@@ -114,7 +114,7 @@ export default function AdminEmpleadosPage() {
             onEmpleadoActualizado={confirmarActualizacion}
             onCerrar={cancelarSeleccion}
             onDarDeBaja={() => {
-              if (usuarioSeleccionado) {
+              if (usuarioSeleccionado && usuarioSeleccionado.usuario_activo) {
                 solicitarBaja(usuarioSeleccionado);
               }
             }}

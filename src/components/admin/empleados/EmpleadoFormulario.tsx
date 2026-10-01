@@ -123,6 +123,7 @@ export default function EmpleadoFormulario({
         guardando={guardando}
         onCancelar={onCancelar}
         onDarDeBaja={onDarDeBaja}
+        deshabilitarBaja={!usuario.usuario_activo || !activo}
       />
     </form>
   );
