@@ -8,8 +8,13 @@ import styles from './HeaderUserWidget.module.css';
 
 export default function HeaderUserWidget() {
   const { usuario, estaAutenticado, logout, cargando } = useAuth();
+  const [mounted, setMounted] = React.useState(false);
 
-  if (cargando) {
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted || cargando) {
     return (
       <div className={styles.userWidget} aria-busy="true">
         <span className={styles.userName} style={{ opacity: 0.7 }}>
