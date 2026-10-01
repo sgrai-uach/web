@@ -21,25 +21,26 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
-  margin-bottom: 4px;
 }
 
 .logoText {
-  font-size: 22px;
   font-weight: 800;
-  letter-spacing: -0.5px;
+  font-size: 22px;
+  letter-spacing: 0.5px;
+  color: #FFFFFF;
 }
 
 .logoDivider {
-  color: var(--color-accent-mint, #4FAE9B);
-  font-weight: 300;
+  color: var(--color-sage, #A9CBA4);
+  font-size: 18px;
 }
 
-.subtitle {
-  font-size: 13px;
-  color: var(--color-bg-light, #ECEFF3);
-  margin: 0;
-  font-weight: 500;
+.logoSubtitle {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-sage, #A9CBA4);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
 }
 
 .body {

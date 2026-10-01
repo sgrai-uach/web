@@ -114,17 +114,14 @@ export default function LoginForm() {
         <div className={styles.logoRow}>
           <span className={styles.logoText}>SGRAI</span>
           <span className={styles.logoDivider}>|</span>
-          <span style={{ fontSize: '14px', fontWeight: 600 }}>DGRD</span>
+          <span className={styles.logoSubtitle}>DGRD Valdivia</span>
         </div>
-        <p className={styles.subtitle}>
-          Sistema de Gestión y Respuesta ante Incidentes
-        </p>
       </header>
 
       <div className={styles.body}>
         <h1 className={styles.title}>Inicio de Sesión</h1>
         <p className={styles.instruction}>
-          Ingrese sus credenciales para acceder a la plataforma operativa.
+          Ingrese sus credenciales para acceder a la plataforma.
         </p>
 
         {motivo === 'sesion_expirada' && (
@@ -155,7 +152,7 @@ export default function LoginForm() {
           <Input
             id="identificador"
             label="Identificador"
-            placeholder="RUT o correo institucional"
+            placeholder="Correo o RUT con dígito verificador"
             value={identificador}
             onChange={(e) => {
               setIdentificador(e.target.value);
@@ -165,7 +162,6 @@ export default function LoginForm() {
             requiredIndicator
             disabled={cargando}
             autoComplete="username"
-            helperText="RUT con dígito verificador o correo corporativo."
           />
 
           <div className={styles.passwordWrapper} style={{ marginTop: '16px' }}>
@@ -174,7 +170,7 @@ export default function LoginForm() {
                 id="password"
                 type={showPassword ? 'text' : 'password'}
                 label="Contraseña"
-                placeholder="••••••••"
+                placeholder="•••••••••••••"
                 value={password}
                 onChange={(e) => {
                   setPassword(e.target.value);
@@ -217,7 +213,6 @@ export default function LoginForm() {
 
         <footer className={styles.footerNotes}>
           <p>Acceso restringido a personal autorizado.</p>
-          <p>Las acciones quedan registradas en la bitácora de auditoría.</p>
         </footer>
       </div>
     </div>

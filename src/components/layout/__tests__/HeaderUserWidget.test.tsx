@@ -56,7 +56,7 @@ describe('HeaderUserWidget', () => {
 
     expect(screen.getByText('Cristóbal Administrador')).toBeDefined();
     expect(screen.getByText('Administrador')).toBeDefined();
-    expect(screen.getByRole('button', { name: /Cerrar sesión institucional/i })).toBeDefined();
+    expect(screen.getByRole('button', { name: /Cerrar sesión/i })).toBeDefined();
   });
 
   it('debe invocar la función logout al hacer clic en Salir', () => {
@@ -77,7 +77,7 @@ describe('HeaderUserWidget', () => {
       logout: mockLogout,
     });
 
-    const logoutBtn = screen.getByRole('button', { name: /Cerrar sesión institucional/i });
+    const logoutBtn = screen.getByRole('button', { name: /Cerrar sesión/i });
     fireEvent.click(logoutBtn);
 
     expect(mockLogout).toHaveBeenCalledTimes(1);

@@ -3,7 +3,7 @@
   align-items: center;
   gap: 12px;
   background-color: rgba(255, 255, 255, 0.12);
-  padding: 4px 12px;
+  padding: 4px 10px;
   border: 1px solid rgba(255, 255, 255, 0.25);
   border-radius: var(--radius-none, 0px);
 }
@@ -18,12 +18,6 @@
   display: flex;
   align-items: center;
   gap: 6px;
-}
-
-.userIcon {
-  color: var(--color-accent-mint, #4FAE9B);
-  display: flex;
-  align-items: center;
 }
 
 .userName {
@@ -59,44 +53,36 @@
   font-weight: 500;
 }
 
+.loginBtn {
+  text-decoration: none !important;
+  font-size: 12px !important;
+  padding: 4px 10px !important;
+  min-height: 28px !important;
+}
+
+.loginBtn:hover,
+.loginBtn:focus,
+.loginBtn:active {
+  text-decoration: none !important;
+}
+
 .logoutBtn {
-  background-color: transparent;
-  color: var(--color-text-light, #FFFFFF);
-  border: 1px solid rgba(255, 255, 255, 0.35);
-  border-radius: var(--radius-none, 0px);
-  padding: 5px 8px;
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+  background-color: transparent !important;
+  color: var(--color-text-light, #FFFFFF) !important;
+  border: 1px solid rgba(255, 255, 255, 0.35) !important;
+  border-radius: var(--radius-none, 0px) !important;
+  padding: 4px 8px !important;
+  font-size: 12px !important;
+  min-height: 28px !important;
+  text-decoration: none !important;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease !important;
 }
 
 .logoutBtn:hover {
-  background-color: var(--color-danger, #D32F2F);
-  border-color: var(--color-danger, #D32F2F);
-  color: #FFFFFF;
-}
-
-.loginLink {
-  background-color: var(--color-accent-mint, #4FAE9B);
-  color: #FFFFFF;
-  border: none;
-  border-radius: var(--radius-none, 0px);
-  padding: 5px 12px;
-  font-size: 12px;
-  font-weight: 700;
-  text-decoration: none;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  transition: background-color 0.15s ease;
-}
-
-.loginLink:hover {
-  background-color: #3d9382;
+  background-color: var(--color-danger, #D32F2F) !important;
+  border-color: var(--color-danger, #D32F2F) !important;
+  color: #FFFFFF !important;
+  text-decoration: none !important;
 }
 
 @media (max-width: 768px) {

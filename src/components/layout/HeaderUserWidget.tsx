@@ -1,9 +1,9 @@
 'use client';
 
 import React from 'react';
-import Link from 'next/link';
-import { LogOut, LogIn, UserCheck } from 'lucide-react';
+import { LogOut, LogIn } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import Button from '@/components/ui/Button';
 import styles from './HeaderUserWidget.module.css';
 
 export default function HeaderUserWidget() {
@@ -22,14 +22,16 @@ export default function HeaderUserWidget() {
   if (!estaAutenticado || !usuario) {
     return (
       <div className={styles.userWidget}>
-        <Link
+        <Button
           href="/login"
-          className={styles.loginLink}
-          title="Iniciar sesión institucional en SGRAI"
+          variant="primary"
+          size="sm"
+          icon={<LogIn size={14} />}
+          className={styles.loginBtn}
+          title="Iniciar sesión en SGRAI"
         >
-          <LogIn size={14} />
-          <span>Iniciar Sesión</span>
-        </Link>
+          Iniciar Sesión
+        </Button>
       </div>
     );
   }
@@ -42,9 +44,6 @@ export default function HeaderUserWidget() {
     >
       <div className={styles.userInfo}>
         <div className={styles.userNameRow}>
-          <span className={styles.userIcon} title="Usuario autenticado">
-            <UserCheck size={14} />
-          </span>
           <span className={styles.userName} title={usuario.nombre}>
             {usuario.nombre}
           </span>
@@ -57,16 +56,18 @@ export default function HeaderUserWidget() {
         </div>
       </div>
 
-      <button
+      <Button
         type="button"
         onClick={logout}
+        variant="ghost"
+        size="sm"
+        icon={<LogOut size={13} />}
         className={styles.logoutBtn}
-        title="Cerrar sesión institucional"
-        aria-label="Cerrar sesión institucional"
+        title="Cerrar sesión"
+        aria-label="Cerrar sesión"
       >
-        <LogOut size={13} />
-        <span>Salir</span>
-      </button>
+        Salir
+      </Button>
     </div>
   );
 }

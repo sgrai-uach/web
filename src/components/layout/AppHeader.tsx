@@ -29,9 +29,6 @@ export default function AppHeader() {
           </div>
 
           <div className={styles.headerRight}>
-            <div className={styles.orgBadge}>
-              <span>DGRD &bull; Municipalidad de Valdivia</span>
-            </div>
             <HeaderUserWidget />
           </div>
         </div>
