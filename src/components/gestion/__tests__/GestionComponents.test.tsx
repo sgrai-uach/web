@@ -91,7 +91,7 @@ describe('GestionWelcomeBanner', () => {
 
     expect(screen.getByText(/Bienvenido\/a, Rodrigo Valenzuela/i)).toBeInTheDocument();
     expect(screen.getByText(/Rol: Operador Call Center/i)).toBeInTheDocument();
-    expect(screen.getByText(/Delegación Asignada: Delegación Municipal Costa/i)).toBeInTheDocument();
+    expect(screen.getByText(/Delegación Municipal Costa/i)).toBeInTheDocument();
   });
 });
 
