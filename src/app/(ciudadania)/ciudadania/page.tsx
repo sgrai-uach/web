@@ -4,7 +4,7 @@ import AppFooter from '@/components/layout/AppFooter';
 import { SeguimientoBuscador } from '@/components/seguimiento/SeguimientoBuscador';
 import Heading from '@/components/ui/Heading';
 import Button from '@/components/ui/Button';
-import { Bot, PhoneCall, ArrowRight, ShieldCheck, CheckCircle2 } from 'lucide-react';
+import { Bot, PhoneCall, ArrowRight, CheckCircle2 } from 'lucide-react';
 import styles from '@/styles/seguimiento.module.css';
 
 export const metadata: Metadata = {
@@ -28,41 +28,10 @@ export default function PortalCiudadaniaPage() {
         }}
       >
         {/* Encabezado Principal del Portal Ciudadano */}
-        <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
-          <div
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              backgroundColor: 'var(--color-sage, #A9CBA4)',
-              color: 'var(--color-charcoal-dark, #24272B)',
-              padding: '4px 12px',
-              fontSize: '12px',
-              fontWeight: 700,
-              textTransform: 'uppercase',
-              letterSpacing: '0.5px',
-              marginBottom: '12px',
-            }}
-          >
-            <ShieldCheck size={14} />
-            <span>Canal Oficial de Emergencias y Reportes Comunales</span>
-          </div>
-
+        <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
           <Heading as="h1" variant="h1" color="teal-dark" style={{ marginBottom: '8px' }}>
             Portal de Atención Ciudadana
           </Heading>
-          <p
-            style={{
-              maxWidth: '720px',
-              margin: '0 auto',
-              fontSize: '15px',
-              lineHeight: 1.5,
-              color: 'var(--color-charcoal, #3B3F45)',
-            }}
-          >
-            Dirección de Gestión de Riesgos de Desastres (DGRD) &bull; I. Municipalidad de Valdivia.
-            Ingresa tu reporte mediante nuestro asistente virtual interactivo o consulta el estado de avance de tu solicitud con tu código de seguimiento.
-          </p>
         </div>
 
         {/* Grilla Responsiva Principal (2 columnas en escritorio, 1 en móviles) */}
@@ -202,19 +171,6 @@ export default function PortalCiudadaniaPage() {
               <div style={{ marginBottom: '16px' }}>
                 <SeguimientoBuscador />
               </div>
-            </div>
-
-            <div
-              style={{
-                backgroundColor: 'var(--color-bg-light, #ECEFF3)',
-                padding: '14px 16px',
-                borderLeft: '3px solid var(--color-primary-teal, #1B6F7D)',
-                fontSize: '12px',
-                color: 'var(--color-charcoal, #3B3F45)',
-                lineHeight: 1.45,
-              }}
-            >
-              <strong>Nota sobre la consulta:</strong> El estado detallado y el cronograma de avance de tu incidente se abrirán en una página separada para optimizar la visualización y permitirte compartir el enlace directo de tu caso.
             </div>
           </section>
         </div>

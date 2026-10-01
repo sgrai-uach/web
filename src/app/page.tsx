@@ -12,7 +12,6 @@ import {
   Boxes,
   ArrowRight,
   Phone,
-  Radio,
 } from 'lucide-react';
 
 export default function Home() {
@@ -73,25 +72,6 @@ export default function Home() {
             gap: '6px',
           }}
         >
-          <div
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              backgroundColor: 'rgba(255, 255, 255, 0.12)',
-              color: 'var(--color-sage, #A9CBA4)',
-              padding: '4px 10px',
-              fontSize: '11px',
-              fontWeight: 700,
-              textTransform: 'uppercase',
-              letterSpacing: '0.5px',
-              width: 'fit-content',
-            }}
-          >
-            <Radio size={14} />
-            <span>Plataforma Unificada SGRAI</span>
-          </div>
-
           <Heading as="h1" variant="display" color="white" noMargin>
             SGRAI Valdivia
           </Heading>
@@ -124,15 +104,6 @@ export default function Home() {
           <Heading as="h2" variant="h2" color="teal-dark" noMargin>
             Portales de Acceso
           </Heading>
-          <p
-            style={{
-              margin: '6px 0 0 0',
-              fontSize: '14px',
-              color: 'var(--color-text-muted, #5F676E)',
-            }}
-          >
-            Acceso público para la comunidad y acceso restringido para funcionarios autorizados.
-          </p>
         </div>
 
         <div
@@ -204,7 +175,7 @@ export default function Home() {
                   color: 'var(--color-text-muted, #5F676E)',
                 }}
               >
-                Espacio diseñado para vecinas y vecinos de Valdivia. Reporte emergencias comunales de
+                Reporte emergencias comunales de
                 forma guiada mediante asistente virtual o consulte el estado de avance de su
                 reporte con su código numérico de 8 dígitos.
               </p>
@@ -365,22 +336,6 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Franja de Pie Institucional */}
-      <div
-        style={{
-          backgroundColor: 'var(--color-sage, #A9CBA4)',
-          color: 'var(--color-charcoal-dark, #24272B)',
-          padding: '12px 24px',
-          fontSize: '13px',
-          fontWeight: 600,
-          textAlign: 'center',
-          marginTop: 'auto',
-        }}
-      >
-        <div style={{ maxWidth: 'var(--container-max-width, 1400px)', margin: '0 auto' }}>
-          Municipalidad de Valdivia &bull; Dirección de Gestión de Riesgos de Desastres (DGRD)
-        </div>
-      </div>
       <AppFooter />
     </main>
   );

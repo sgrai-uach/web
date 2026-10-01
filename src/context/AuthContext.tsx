@@ -18,6 +18,7 @@ import {
   getAuthCookie,
   removeAuthCookie,
 } from '@/lib/utils/cookieUtils';
+import { obtenerNombreDelegacion } from '@/lib/utils/delegacionUtils';
 import type {
   LoginRequest,
   UsuarioPerfilSesion,
@@ -53,6 +54,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Mapear UsuarioActivoDetalle del endpoint usuario-activo a UsuarioPerfilSesion
   const mapDetalleAUsuarioPerfil = useCallback(
     (detalle: UsuarioActivoDetalle): UsuarioPerfilSesion => {
+      const delegacionId = detalle.delegacionId || detalle.delegacion?.id || null;
+      const delegacionNombre =
+        detalle.delegacion?.nombre ||
+        (delegacionId ? obtenerNombreDelegacion(delegacionId) : null);
+
       return {
         id: detalle.id,
         rut: detalle.rut,
@@ -61,7 +67,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         rolId: detalle.rol?.id || '',
         rolNombre: detalle.rol?.nombre || '',
         rolCodigo: detalle.rol?.codigo || '',
-        delegacionId: detalle.delegacionId || detalle.delegacion?.id || null,
+        delegacionId,
+        delegacionNombre,
         permisos: Array.isArray(detalle.permisos)
           ? detalle.permisos
           : detalle.rol?.permisos || [],

@@ -164,6 +164,7 @@ export interface UsuarioPerfilSesion {
   rolNombre: string;
   rolCodigo: string;
   delegacionId: string | null;
+  delegacionNombre?: string | null;
   permisos: string[];
 }
 

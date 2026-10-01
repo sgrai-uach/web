@@ -60,6 +60,8 @@ describe('LoginForm', () => {
     expect(screen.getByLabelText(/Identificador/i)).toBeDefined();
     expect(screen.getByLabelText(/^Contraseña/i)).toBeDefined();
     expect(screen.getByRole('button', { name: /Ingresar al Sistema/i })).toBeDefined();
+    expect(screen.getByRole('link', { name: /Volver al Inicio de SGRAI/i })).toBeDefined();
+    expect(screen.getByRole('link', { name: /Volver al Inicio de SGRAI/i }).getAttribute('href')).toBe('/');
   });
 
   it('debe mostrar errores de validación si se envía el formulario vacío', async () => {

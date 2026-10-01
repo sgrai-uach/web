@@ -4,6 +4,7 @@ import React from 'react';
 import { LogOut, LogIn } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import Button from '@/components/ui/Button';
+import { obtenerNombreDelegacion } from '@/lib/utils/delegacionUtils';
 import styles from './HeaderUserWidget.module.css';
 
 const emptySubscribe = () => () => {};
@@ -55,8 +56,10 @@ export default function HeaderUserWidget() {
         </div>
         <div className={styles.userRoleRow}>
           <span className={styles.userRoleBadge}>{usuario.rolNombre}</span>
-          {usuario.delegacionId && (
-            <span className={styles.userDelegation}>&bull; Delegación</span>
+          {(usuario.delegacionNombre || usuario.delegacionId) && (
+            <span className={styles.userDelegation}>
+              &bull; {usuario.delegacionNombre || obtenerNombreDelegacion(usuario.delegacionId)}
+            </span>
           )}
         </div>
       </div>

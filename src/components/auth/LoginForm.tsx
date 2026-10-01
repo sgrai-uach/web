@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
   AlertCircle,
+  ArrowLeft,
   Eye,
   EyeOff,
   Info,
@@ -207,6 +208,18 @@ export default function LoginForm() {
               icon={<LogIn size={18} />}
             >
               {cargando ? 'Ingresando...' : 'Ingresar al Sistema'}
+            </Button>
+
+            <Button
+              type="button"
+              variant="outline"
+              size="md"
+              fullWidth
+              href="/"
+              icon={<ArrowLeft size={16} />}
+              style={{ marginTop: '12px' }}
+            >
+              Volver al Inicio de SGRAI
             </Button>
           </div>
         </form>
