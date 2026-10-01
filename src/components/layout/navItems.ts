@@ -1,8 +1,7 @@
 import type { ComponentType } from 'react';
 import type { LucideProps } from 'lucide-react';
 import {
-  Bot,
-  Search,
+  LayoutDashboard,
   PhoneCall,
   FilePlus2,
   MapPin,
@@ -32,54 +31,40 @@ export interface NavGroup {
 
 export const NAV_GROUPS: NavGroup[] = [
   {
-    id: 'ciudadano',
-    title: 'Atención Ciudadana',
-    items: [
-      {
-        id: 'reportar',
-        label: 'Chatbot de Reportes',
-        href: '/reportar',
-        icon: Bot,
-        publico: true,
-      },
-      {
-        id: 'seguimiento',
-        label: 'Seguimiento de Avisos',
-        href: '/seguimiento',
-        icon: Search,
-        publico: true,
-      },
-    ],
-  },
-  {
     id: 'operaciones',
     title: 'Operaciones',
     items: [
       {
+        id: 'gestion-inicio',
+        label: 'Inicio Gestión',
+        href: '/gestion',
+        icon: LayoutDashboard,
+      },
+      {
         id: 'callcenter',
         label: 'Bandeja de Avisos',
-        href: '/callcenter',
+        href: '/gestion/callcenter',
         icon: PhoneCall,
         requiredPermissions: ['incidentes:avisos:leer'],
       },
       {
         id: 'callcenter-manual',
         label: 'Ingreso Manual',
-        href: '/callcenter/manual',
+        href: '/gestion/callcenter/manual',
         icon: FilePlus2,
         requiredPermissions: ['crear_incidente_manual'],
       },
       {
         id: 'mando',
         label: 'Centro de Mando',
-        href: '/centro-incidentes',
+        href: '/gestion/centro-incidentes',
         icon: MapPin,
         requiredPermissions: ['incidentes:kanban', 'misiones:asignar'],
       },
       {
         id: 'asistente-social',
         label: 'Fichas FIBE',
-        href: '/asistente-social',
+        href: '/gestion/asistente-social',
         icon: ClipboardList,
         disabled: true,
         badge: 'Próx.',
@@ -94,7 +79,7 @@ export const NAV_GROUPS: NavGroup[] = [
       {
         id: 'dashboard',
         label: 'Dashboard y Reportes',
-        href: '/dashboard',
+        href: '/gestion/dashboard',
         icon: BarChart3,
         disabled: true,
         badge: 'Próx.',
@@ -109,21 +94,21 @@ export const NAV_GROUPS: NavGroup[] = [
       {
         id: 'empleados',
         label: 'Gestión de Personal',
-        href: '/admin/empleados',
+        href: '/gestion/admin/empleados',
         icon: Users,
         requiredPermissions: ['personal:gestionar', 'seguridad:roles:gestionar'],
       },
       {
         id: 'recursos',
         label: 'Inventario Logístico',
-        href: '/admin/recursos',
+        href: '/gestion/admin/recursos',
         icon: Boxes,
         requiredPermissions: ['recursos:leer', 'recursos:crear'],
       },
       {
         id: 'roles-permisos',
         label: 'Roles y Permisos',
-        href: '/admin/roles-permisos',
+        href: '/gestion/admin/roles-permisos',
         icon: ShieldCheck,
         requiredPermissions: ['seguridad:roles:leer', 'seguridad:roles:gestionar'],
       },

@@ -6,15 +6,17 @@ import { useAuth } from '@/context/AuthContext';
 import Button from '@/components/ui/Button';
 import styles from './HeaderUserWidget.module.css';
 
+const emptySubscribe = () => () => {};
+
 export default function HeaderUserWidget() {
   const { usuario, estaAutenticado, logout, cargando } = useAuth();
-  const [mounted, setMounted] = React.useState(false);
+  const isClient = React.useSyncExternalStore(
+    emptySubscribe,
+    () => true,
+    () => false
+  );
 
-  React.useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  if (!mounted || cargando) {
+  if (!isClient || cargando) {
     return (
       <div className={styles.userWidget} aria-busy="true">
         <span className={styles.userName} style={{ opacity: 0.7 }}>

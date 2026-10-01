@@ -4,7 +4,7 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import AppSidebar from '../AppSidebar';
 import { AuthContext, type AuthContextValue } from '@/context/AuthContext';
 
-let currentPathname = '/callcenter';
+let currentPathname = '/gestion/callcenter';
 
 vi.mock('next/navigation', () => ({
   usePathname: () => currentPathname,
@@ -43,10 +43,10 @@ function renderSidebar(
   );
 }
 
-describe('AppSidebar — Control de Acceso y Visibilidad RBAC', () => {
+describe('AppSidebar — Control de Acceso y Visibilidad RBAC en Portal de Gestión', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    currentPathname = '/callcenter';
+    currentPathname = '/gestion/callcenter';
   });
 
   it('debe mostrar todos los módulos y grupos cuando el usuario es Administrador (ADMIN)', () => {
@@ -65,16 +65,12 @@ describe('AppSidebar — Control de Acceso y Visibilidad RBAC', () => {
     });
 
     // Grupos visibles
-    expect(screen.getByText('Atención Ciudadana')).toBeDefined();
     expect(screen.getByText('Operaciones')).toBeDefined();
     expect(screen.getByText('Estratégico')).toBeDefined();
     expect(screen.getByText('Administración')).toBeDefined();
 
-    // Módulos públicos
-    expect(screen.getByText('Chatbot de Reportes')).toBeDefined();
-    expect(screen.getByText('Seguimiento de Avisos')).toBeDefined();
-
     // Módulos operativos
+    expect(screen.getByText('Inicio Gestión')).toBeDefined();
     expect(screen.getByText('Bandeja de Avisos')).toBeDefined();
     expect(screen.getByText('Ingreso Manual')).toBeDefined();
     expect(screen.getByText('Centro de Mando')).toBeDefined();
@@ -85,6 +81,11 @@ describe('AppSidebar — Control de Acceso y Visibilidad RBAC', () => {
     expect(screen.getByText('Gestión de Personal')).toBeDefined();
     expect(screen.getByText('Inventario Logístico')).toBeDefined();
     expect(screen.getByText('Roles y Permisos')).toBeDefined();
+
+    // Atención ciudadana NO debe existir en la barra lateral operativa (aislamiento total)
+    expect(screen.queryByText('Atención Ciudadana')).toBeNull();
+    expect(screen.queryByText('Chatbot de Reportes')).toBeNull();
+    expect(screen.queryByText('Seguimiento de Avisos')).toBeNull();
   });
 
   it('debe filtrar módulos no autorizados y ocultar grupos vacíos para rol Call Center', () => {
@@ -102,9 +103,8 @@ describe('AppSidebar — Control de Acceso y Visibilidad RBAC', () => {
       },
     });
 
-    // Módulos públicos y autorizados presentes
-    expect(screen.getByText('Chatbot de Reportes')).toBeDefined();
-    expect(screen.getByText('Seguimiento de Avisos')).toBeDefined();
+    // Módulos autorizados presentes
+    expect(screen.getByText('Inicio Gestión')).toBeDefined();
     expect(screen.getByText('Bandeja de Avisos')).toBeDefined();
     expect(screen.getByText('Operaciones')).toBeDefined();
 
@@ -136,8 +136,9 @@ describe('AppSidebar — Control de Acceso y Visibilidad RBAC', () => {
       },
     });
 
-    // Operaciones con Centro de Mando
+    // Operaciones con Centro de Mando e Inicio
     expect(screen.getByText('Operaciones')).toBeDefined();
+    expect(screen.getByText('Inicio Gestión')).toBeDefined();
     expect(screen.getByText('Centro de Mando')).toBeDefined();
     expect(screen.queryByText('Bandeja de Avisos')).toBeNull();
 
@@ -151,7 +152,7 @@ describe('AppSidebar — Control de Acceso y Visibilidad RBAC', () => {
     expect(screen.queryByText('Estratégico')).toBeNull();
   });
 
-  it('debe desplegar únicamente los módulos públicos cuando el usuario no tiene permisos', () => {
+  it('debe desplegar únicamente Inicio Gestión cuando el usuario no tiene permisos operativos', () => {
     renderSidebar({
       usuario: {
         id: 'usr-sin-permisos',
@@ -166,28 +167,13 @@ describe('AppSidebar — Control de Acceso y Visibilidad RBAC', () => {
       },
     });
 
-    // Módulos públicos
-    expect(screen.getByText('Atención Ciudadana')).toBeDefined();
-    expect(screen.getByText('Chatbot de Reportes')).toBeDefined();
-    expect(screen.getByText('Seguimiento de Avisos')).toBeDefined();
+    // Solo Inicio Gestión en Operaciones
+    expect(screen.getByText('Operaciones')).toBeDefined();
+    expect(screen.getByText('Inicio Gestión')).toBeDefined();
 
-    // Ningún grupo restringido
-    expect(screen.queryByText('Operaciones')).toBeNull();
-    expect(screen.queryByText('Estratégico')).toBeNull();
-    expect(screen.queryByText('Administración')).toBeNull();
-  });
-
-  it('debe permitir acceso a módulos públicos cuando no hay sesión iniciada (anónimo)', () => {
-    renderSidebar({
-      usuario: null,
-      estaAutenticado: false,
-    });
-
-    expect(screen.getByText('Atención Ciudadana')).toBeDefined();
-    expect(screen.getByText('Chatbot de Reportes')).toBeDefined();
-    expect(screen.getByText('Seguimiento de Avisos')).toBeDefined();
-
-    expect(screen.queryByText('Operaciones')).toBeNull();
+    // Ningún módulo restringido
+    expect(screen.queryByText('Bandeja de Avisos')).toBeNull();
+    expect(screen.queryByText('Centro de Mando')).toBeNull();
     expect(screen.queryByText('Estratégico')).toBeNull();
     expect(screen.queryByText('Administración')).toBeNull();
   });

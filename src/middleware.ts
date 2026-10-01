@@ -3,38 +3,68 @@ import type { NextRequest } from 'next/server';
 import { AUTH_COOKIE_NAME } from '@/lib/utils/cookieUtils';
 
 /**
- * Rutas operativas que requieren autenticación formal.
+ * Rutas públicas del sistema.
  * 
- * Nota: Las rutas públicas de atención ciudadana (/reportar, /seguimiento, /)
- * no requieren sesión ni permisos y son accesibles por cualquier usuario anónimo.
+ * Regla Perimetral Estricta:
+ * Ni la página principal de acceso (/) ni el portal de atención ciudadana (/ciudadania/*)
+ * ni el formulario de autenticación (/login) requieren inicio de sesión bajo ninguna circunstancia.
+ * 
+ * Todo el resto del sistema (/gestion/* y herramientas operativas) requiere sesión obligatoria.
  */
-const RUTAS_PROTEGIDAS = [
-  '/admin',
-  '/centro-incidentes',
-  '/callcenter',
-  '/asistente-social',
-  '/dashboard',
-];
+function esRutaPublica(pathname: string): boolean {
+  if (pathname === '/' || pathname === '/login' || pathname === '/ciudadania') {
+    return true;
+  }
+  if (pathname.startsWith('/ciudadania/')) {
+    return true;
+  }
+  return false;
+}
 
 export function middleware(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
   const token = request.cookies.get(AUTH_COOKIE_NAME)?.value;
 
-  const esRutaProtegida = RUTAS_PROTEGIDAS.some(
-    (ruta) => pathname === ruta || pathname.startsWith(`${ruta}/`)
-  );
+  // 1. Redirecciones de compatibilidad para rutas heredadas del informante hacia el portal ciudadano
+  if (pathname === '/reportar') {
+    return NextResponse.redirect(new URL('/ciudadania/reportar', request.url));
+  }
+  if (pathname === '/seguimiento') {
+    return NextResponse.redirect(new URL('/ciudadania', request.url));
+  }
+  if (pathname.startsWith('/seguimiento/')) {
+    const codigo = pathname.replace('/seguimiento/', '');
+    return NextResponse.redirect(new URL(`/ciudadania/seguimiento/${codigo}${search}`, request.url));
+  }
 
-  // 1. Si es ruta protegida y no tiene token de sesión: redirigir al login
-  if (esRutaProtegida && !token) {
+  // 2. Si ya está autenticado e intenta ingresar a /login: redirigir al portal de gestión
+  if (pathname === '/login' && token) {
+    const defaultUrl = new URL('/gestion', request.url);
+    return NextResponse.redirect(defaultUrl);
+  }
+
+  // 3. Si es ruta pública, permitir el paso sin importar el estado de sesión
+  if (esRutaPublica(pathname)) {
+    return NextResponse.next();
+  }
+
+  // 4. Todo el resto del sistema exige sesión: Si no hay token de autenticación, redirigir a login
+  if (!token) {
     const returnUrl = encodeURIComponent(pathname + search);
     const loginUrl = new URL(`/login?returnUrl=${returnUrl}`, request.url);
     return NextResponse.redirect(loginUrl);
   }
 
-  // 2. Si ya está autenticado e intenta ingresar a /login: redirigir al panel operativo
-  if (pathname === '/login' && token) {
-    const defaultUrl = new URL('/admin/recursos', request.url);
-    return NextResponse.redirect(defaultUrl);
+  // 5. Si está autenticado pero accede a una ruta operativa heredada sin prefijo /gestion, redirigir al canónico
+  if (
+    pathname.startsWith('/admin') ||
+    pathname.startsWith('/centro-incidentes') ||
+    pathname.startsWith('/callcenter') ||
+    pathname.startsWith('/asistente-social') ||
+    pathname.startsWith('/dashboard')
+  ) {
+    const canonicalUrl = new URL(`/gestion${pathname}${search}`, request.url);
+    return NextResponse.redirect(canonicalUrl);
   }
 
   return NextResponse.next();
@@ -42,11 +72,12 @@ export function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    '/admin/:path*',
-    '/centro-incidentes/:path*',
-    '/callcenter/:path*',
-    '/asistente-social/:path*',
-    '/dashboard/:path*',
-    '/login',
+    /*
+     * Interceptar todas las rutas excepto:
+     * - API routes (/api/*)
+     * - Archivos internos de Next.js (_next/static, _next/image)
+     * - Archivos estáticos con extensión (favicon.ico, imágenes, etc.)
+     */
+    '/((?!api|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 };

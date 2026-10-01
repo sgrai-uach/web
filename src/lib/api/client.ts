@@ -13,6 +13,7 @@ export const DEFAULT_ADMIN_USER_ID =
   process.env.NEXT_PUBLIC_DEFAULT_ADMIN_USER_ID || '00000000-0000-4000-8000-000000000001';
 
 const RUTAS_PROTEGIDAS = [
+  '/gestion',
   '/admin',
   '/centro-incidentes',
   '/callcenter',

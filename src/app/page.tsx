@@ -1,6 +1,19 @@
+import React from 'react';
 import Heading from '@/components/ui/Heading';
-import HomeModuleCard from '@/components/home/HomeModuleCard';
+import Button from '@/components/ui/Button';
 import AppFooter from '@/components/layout/AppFooter';
+import {
+  Users,
+  ShieldCheck,
+  Bot,
+  Search,
+  PhoneCall,
+  MapPin,
+  Boxes,
+  ArrowRight,
+  Phone,
+  Radio,
+} from 'lucide-react';
 
 export default function Home() {
   return (
@@ -18,8 +31,9 @@ export default function Home() {
           backgroundColor: 'var(--color-sage, #A9CBA4)',
           color: 'var(--color-charcoal-dark, #24272B)',
           fontSize: '12px',
-          fontWeight: 600,
-          padding: '6px 24px',
+          fontWeight: 700,
+          padding: '8px 24px',
+          letterSpacing: '0.4px',
         }}
       >
         <div
@@ -29,94 +43,329 @@ export default function Home() {
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: '8px',
           }}
         >
-          <span>MUNICIPALIDAD DE VALDIVIA — DIRECCIÓN DE GESTIÓN DE RIESGOS DE DESASTRES</span>
-          <span>Plataforma Web SGRAI</span>
+          <span>DIRECCIÓN DE GESTIÓN DE RIESGOS DE DESASTRES &bull; MUNICIPALIDAD DE VALDIVIA</span>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+            <Phone size={13} />
+            Mesa Central de Emergencias 1412 / 1451
+          </span>
         </div>
       </div>
 
-      {/* Header Principal Institucional */}
+      {/* Header Institucional */}
       <header
         style={{
           backgroundColor: 'var(--color-primary-teal-dark, #14505A)',
           color: 'var(--color-text-light, #FFFFFF)',
-          padding: '24px',
-          borderBottom: '4px solid var(--color-accent-mint, #4FAE9B)',
+          padding: '36px 24px',
+          borderBottom: '5px solid var(--color-accent-mint, #4FAE9B)',
         }}
       >
-        <div style={{ maxWidth: 'var(--container-max-width, 1400px)', margin: '0 auto' }}>
+        <div
+          style={{
+            maxWidth: 'var(--container-max-width, 1400px)',
+            margin: '0 auto',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '6px',
+          }}
+        >
+          <div
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              backgroundColor: 'rgba(255, 255, 255, 0.12)',
+              color: 'var(--color-sage, #A9CBA4)',
+              padding: '4px 10px',
+              fontSize: '11px',
+              fontWeight: 700,
+              textTransform: 'uppercase',
+              letterSpacing: '0.5px',
+              width: 'fit-content',
+            }}
+          >
+            <Radio size={14} />
+            <span>Plataforma Unificada SGRAI</span>
+          </div>
+
           <Heading as="h1" variant="display" color="white" noMargin>
-            SGRAI
+            SGRAI Valdivia
           </Heading>
-          <p style={{ margin: '4px 0 0 0', fontSize: '15px', color: 'var(--color-bg-light, #ECEFF3)' }}>
-            Sistema de Gestión de Recursos para Atención de Incidentes — Municipalidad de Valdivia
+          <p
+            style={{
+              margin: '4px 0 0 0',
+              fontSize: '16px',
+              lineHeight: 1.5,
+              color: 'var(--color-bg-light, #ECEFF3)',
+              maxWidth: '800px',
+            }}
+          >
+            Sistema de Gestión de Recursos para Atención de Incidentes de la Ilustre Municipalidad
+            de Valdivia. Seleccione el portal correspondiente para continuar.
           </p>
         </div>
       </header>
 
-      {/* Grid de Módulos */}
-      <div style={{ maxWidth: 'var(--container-max-width, 1400px)', width: '100%', margin: '32px auto', padding: '0 24px', flex: 1 }}>
-        <Heading as="h2" variant="h2" color="teal-dark" style={{ marginBottom: '20px' }}>
-          Módulos y Portales del Sistema
-        </Heading>
+      {/* Selector de Portales */}
+      <div
+        style={{
+          maxWidth: 'var(--container-max-width, 1400px)',
+          width: '100%',
+          margin: '40px auto',
+          padding: '0 24px',
+          flex: 1,
+        }}
+      >
+        <div style={{ marginBottom: '24px' }}>
+          <Heading as="h2" variant="h2" color="teal-dark" noMargin>
+            Portales de Acceso
+          </Heading>
+          <p
+            style={{
+              margin: '6px 0 0 0',
+              fontSize: '14px',
+              color: 'var(--color-text-muted, #5F676E)',
+            }}
+          >
+            Acceso público para la comunidad y acceso restringido para funcionarios autorizados.
+          </p>
+        </div>
 
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
-            gap: '20px',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))',
+            gap: '28px',
           }}
         >
-          {/* Card Portal Informante (HU-1 y HU-2) */}
-          <HomeModuleCard
-            roleBadge="Portal Ciudadano"
-            title="Portal Informante — Reporte y Seguimiento"
-            description="Reporte asistido de emergencias e incidentes comunales mediante chatbot guiado y consulta del estado de avisos."
-            badgeAccent="var(--color-primary-teal, #1B6F7D)"
-            actions={[
-              { href: '/reportar', label: 'Reportar Incidente con Chatbot', variant: 'primary' },
-              { href: '/seguimiento', label: 'Seguimiento de Avisos', variant: 'secondary' },
-            ]}
-          />
+          {/* Tarjeta 1: Portal de Atención Ciudadana */}
+          <div
+            style={{
+              backgroundColor: 'var(--color-white, #FFFFFF)',
+              border: '1px solid var(--border-color-neutral, #DFE3E8)',
+              borderTop: '5px solid var(--color-accent-mint, #4FAE9B)',
+              padding: '32px',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'space-between',
+              boxShadow: 'var(--shadow-sm, 0 1px 3px rgba(0,0,0,0.08))',
+            }}
+          >
+            <div>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  marginBottom: '20px',
+                }}
+              >
+                <div
+                  style={{
+                    width: '48px',
+                    height: '48px',
+                    backgroundColor: 'var(--color-accent-mint, #4FAE9B)',
+                    color: 'var(--color-charcoal-dark, #24272B)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <Users size={26} />
+                </div>
+                <span
+                  style={{
+                    backgroundColor: 'var(--color-bg-light, #ECEFF3)',
+                    color: 'var(--color-primary-teal, #1B6F7D)',
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    textTransform: 'uppercase',
+                    padding: '4px 10px',
+                    letterSpacing: '0.4px',
+                  }}
+                >
+                  Canal Público y Abierto
+                </span>
+              </div>
 
-          {/* Card Recursos (HU-6 y HU-7) */}
-          <HomeModuleCard
-            roleBadge="Rol Administrador"
-            title="Inventario Logístico y Recursos"
-            description="Alta de recursos fungibles y activos individuales, control de stock por delegación y fichas técnicas."
-            badgeAccent="var(--color-primary-teal, #1B6F7D)"
-            actions={[
-              { href: '/admin/recursos/nuevo', label: '+ Registrar Nuevo Recurso', variant: 'primary' },
-              { href: '/admin/recursos', label: 'Consultar Inventario Completo', variant: 'secondary' },
-            ]}
-          />
+              <Heading as="h3" variant="h3" color="teal" noMargin>
+                Portal de Atención Ciudadana
+              </Heading>
 
-          {/* Card Roles y Permisos (HU-4) */}
-          <HomeModuleCard
-            roleBadge="Rol Administrador"
-            title="Seguridad: Roles y Permisos"
-            description="Matriz RBAC, auditoría de privilegios, simulación de perfiles y control de acceso por delegación."
-            badgeAccent="var(--color-primary-teal-dark, #14505A)"
-            actions={[
-              { href: '/admin/roles-permisos', label: 'Auditar Roles y Permisos (RBAC)', variant: 'primary' },
-            ]}
-          />
+              <p
+                style={{
+                  margin: '12px 0 20px 0',
+                  fontSize: '14px',
+                  lineHeight: '1.6',
+                  color: 'var(--color-text-muted, #5F676E)',
+                }}
+              >
+                Espacio diseñado para vecinas y vecinos de Valdivia. Reporte emergencias comunales de
+                forma guiada mediante asistente virtual o consulte el estado de avance de su
+                reporte con su código numérico de 8 dígitos.
+              </p>
 
-          {/* Card Call Center (HU-52) */}
-          <HomeModuleCard
-            roleBadge="Rol Call Center"
-            title="Recepción y Verificación de Avisos"
-            description="Bandeja en tiempo real (WebSockets), semáforo SLA de 15 minutos, filtros geográficos y mapa de incidentes."
-            badgeAccent="var(--color-accent-mint, #4FAE9B)"
-            actions={[
-              { href: '/callcenter', label: 'Ingresar a Bandeja de Avisos', variant: 'primary' },
-            ]}
-          />
+              <div
+                style={{
+                  backgroundColor: 'var(--color-bg-light, #ECEFF3)',
+                  padding: '16px',
+                  marginBottom: '24px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '10px',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px' }}>
+                  <Bot size={16} color="var(--color-primary-teal, #1B6F7D)" />
+                  <span>Reporte asistido mediante Chatbot</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px' }}>
+                  <Search size={16} color="var(--color-primary-teal, #1B6F7D)" />
+                  <span>Consulta de estado por código de seguimiento</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px' }}>
+                  <PhoneCall size={16} color="var(--color-primary-teal, #1B6F7D)" />
+                  <span>Acceso directo a central telefónica 1412</span>
+                </div>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <Button
+                variant="primary"
+                size="lg"
+                href="/ciudadania"
+                style={{
+                  width: '100%',
+                  justifyContent: 'center',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                }}
+              >
+                <span>Ingresar al Portal Ciudadano</span>
+                <ArrowRight size={18} />
+              </Button>
+            </div>
+          </div>
+
+          {/* Tarjeta 2: Portal de Gestión de Recursos e Incidentes */}
+          <div
+            style={{
+              backgroundColor: 'var(--color-white, #FFFFFF)',
+              border: '1px solid var(--border-color-neutral, #DFE3E8)',
+              borderTop: '5px solid var(--color-primary-teal-dark, #14505A)',
+              padding: '32px',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'space-between',
+              boxShadow: 'var(--shadow-sm, 0 1px 3px rgba(0,0,0,0.08))',
+            }}
+          >
+            <div>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  marginBottom: '20px',
+                }}
+              >
+                <div
+                  style={{
+                    width: '48px',
+                    height: '48px',
+                    backgroundColor: 'var(--color-primary-teal-dark, #14505A)',
+                    color: 'var(--color-white, #FFFFFF)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <ShieldCheck size={26} />
+                </div>
+                <span
+                  style={{
+                    backgroundColor: 'var(--color-warning-bg, #FFF3E0)',
+                    color: 'var(--color-warning, #E65100)',
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    textTransform: 'uppercase',
+                    padding: '4px 10px',
+                    letterSpacing: '0.4px',
+                  }}
+                >
+                  Acceso Restringido &bull; Requiere Sesión
+                </span>
+              </div>
+
+              <Heading as="h3" variant="h3" color="teal-dark" noMargin>
+                Portal de Gestión de Recursos e Incidentes
+              </Heading>
+
+              <p
+                style={{
+                  margin: '12px 0 20px 0',
+                  fontSize: '14px',
+                  lineHeight: '1.6',
+                  color: 'var(--color-text-muted, #5F676E)',
+                }}
+              >
+                Plataforma operacional para funcionarios municipales, operadores de central de
+                emergencias, despachadores, encargados comunales y administradores del sistema.
+              </p>
+
+              <div
+                style={{
+                  backgroundColor: 'var(--color-bg-light, #ECEFF3)',
+                  padding: '16px',
+                  marginBottom: '24px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '10px',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px' }}>
+                  <MapPin size={16} color="var(--color-primary-teal-dark, #14505A)" />
+                  <span>Centro de Mando y Despacho Táctico</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px' }}>
+                  <PhoneCall size={16} color="var(--color-primary-teal-dark, #14505A)" />
+                  <span>Bandeja de Call Center y Verificación</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px' }}>
+                  <Boxes size={16} color="var(--color-primary-teal-dark, #14505A)" />
+                  <span>Inventario Logístico, Personal y Seguridad RBAC</span>
+                </div>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <Button
+                variant="secondary"
+                size="lg"
+                href="/gestion"
+                style={{
+                  width: '100%',
+                  justifyContent: 'center',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                }}
+              >
+                <span>Acceder al Portal de Gestión</span>
+                <ArrowRight size={18} />
+              </Button>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Franja y Footer Institucional */}
+      {/* Franja de Pie Institucional */}
       <div
         style={{
           backgroundColor: 'var(--color-sage, #A9CBA4)',
@@ -129,7 +378,7 @@ export default function Home() {
         }}
       >
         <div style={{ maxWidth: 'var(--container-max-width, 1400px)', margin: '0 auto' }}>
-          I. Municipalidad de Valdivia &bull; Dirección de Gestión de Riesgos de Desastres (DGRD)
+          Municipalidad de Valdivia &bull; Dirección de Gestión de Riesgos de Desastres (DGRD)
         </div>
       </div>
       <AppFooter />

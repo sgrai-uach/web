@@ -64,7 +64,7 @@ export default function AppSidebar({
     >
       <div className={styles.header}>
         {!collapsed && (
-          <Link href="/" className={styles.logoArea} title="Ir al Portal Principal">
+          <Link href="/gestion" className={styles.logoArea} title="Ir al Inicio de Gestión">
             <span className={styles.logoText}>SGRAI</span>
             <span className={styles.logoDivider}>|</span>
             <span className={styles.logoSubtitle}>DGRD Valdivia</span>
@@ -140,10 +140,10 @@ export default function AppSidebar({
         <Link
           href="/"
           className={styles.portalLink}
-          title="Portal Principal — Inicio"
+          title="Cambiar de Portal — Selector Institucional"
         >
           <Home size={17} className={styles.portalIcon} />
-          {!collapsed && <span>Portal Principal</span>}
+          {!collapsed && <span>Cambiar de Portal</span>}
         </Link>
       </div>
     </aside>
