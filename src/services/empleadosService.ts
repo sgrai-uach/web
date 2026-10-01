@@ -12,6 +12,18 @@ import type {
 } from '@/types/empleados';
 import { getErrorMessage } from '@/lib/utils/errorUtils';
 import { DEFAULT_ADMIN_USER_ID } from '@/lib/api/client';
+import { getAuthCookie } from '@/lib/utils/cookieUtils';
+
+function getAuthorizationHeader(explicitToken?: string): string | undefined {
+  const token =
+    explicitToken ||
+    getAuthCookie() ||
+    (typeof window !== 'undefined'
+      ? localStorage.getItem('sgrai_auth_token') || localStorage.getItem('token')
+      : null);
+
+  return token ? `Bearer ${token}` : undefined;
+}
 
 export class EmpleadosServiceError extends Error {
   public status?: number;
@@ -52,7 +64,14 @@ export const empleadosService = {
    */
   async getCatalogos(): Promise<CatalogosResponse> {
     try {
-      const res = await fetch('/api/catalogos');
+      const headers: Record<string, string> = {};
+      const authHeader = getAuthorizationHeader();
+      if (authHeader) {
+        headers['Authorization'] = authHeader;
+      }
+      headers['X-User-Id'] = DEFAULT_ADMIN_USER_ID;
+
+      const res = await fetch('/api/catalogos', { headers });
       if (!res.ok) {
         throw new EmpleadosServiceError(
           'Error al cargar catálogos del sistema.',
@@ -77,7 +96,7 @@ export const empleadosService = {
   /**
    * Consulta el personal filtrado y paginado/ordenado.
    */
-  async getEmpleados(params: EmpleadosQueryParams = {}): Promise<EmpleadoUsuario[]> {
+  async getEmpleados(params: EmpleadosQueryParams = {}, token?: string): Promise<EmpleadoUsuario[]> {
     try {
       const search = new URLSearchParams();
       if (params.q?.trim()) search.set('q', params.q.trim());
@@ -89,7 +108,14 @@ export const empleadosService = {
       const query = search.toString();
       const url = query ? `/api/personal?${query}` : '/api/personal';
 
-      const res = await fetch(url);
+      const headers: Record<string, string> = {};
+      const authHeader = getAuthorizationHeader(token);
+      if (authHeader) {
+        headers['Authorization'] = authHeader;
+      }
+      headers['X-User-Id'] = DEFAULT_ADMIN_USER_ID;
+
+      const res = await fetch(url, { headers });
       if (!res.ok) {
         throw new EmpleadosServiceError(
           'Error al consultar el listado de empleados.',
@@ -111,12 +137,22 @@ export const empleadosService = {
    */
   async updateEmpleado(
     targetId: string,
-    payload: ActualizarEmpleadoPayload
+    payload: ActualizarEmpleadoPayload,
+    token?: string
   ): Promise<EmpleadoUsuario> {
     try {
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      const authHeader = getAuthorizationHeader(token);
+      if (authHeader) {
+        headers['Authorization'] = authHeader;
+      }
+      headers['X-User-Id'] = DEFAULT_ADMIN_USER_ID;
+
       const res = await fetch(`/api/personal/${targetId}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify(payload),
       });
 
@@ -163,17 +199,9 @@ export const empleadosService = {
         'Content-Type': 'application/json',
       };
 
-      const authToken =
-        token ||
-        (typeof document !== 'undefined'
-          ? document.cookie
-              .split('; ')
-              .find((row) => row.startsWith('auth_token='))
-              ?.split('=')[1]
-          : undefined);
-
-      if (authToken) {
-        headers['Authorization'] = `Bearer ${authToken}`;
+      const authHeader = getAuthorizationHeader(token);
+      if (authHeader) {
+        headers['Authorization'] = authHeader;
       }
       headers['X-User-Id'] = DEFAULT_ADMIN_USER_ID;
 
@@ -186,6 +214,15 @@ export const empleadosService = {
       const data = await res.json();
 
       if (!res.ok) {
+        if (res.status === 401) {
+          throw new EmpleadosServiceError(
+            data.error ||
+              data.message ||
+              'Se requiere iniciar sesión con perfil de Administrador para registrar funcionarios.',
+            401
+          );
+        }
+
         if (data.detalles && Array.isArray(data.detalles) && data.detalles.length > 0) {
           const listaErrores = data.detalles
             .map((item: { campo: string; mensaje: string }) => {
