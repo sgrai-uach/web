@@ -13,6 +13,20 @@ import type {
 } from '@/types/empleados';
 import type { ApiResponse } from '@/types/common';
 import { formatApiError, getErrorMessage } from '@/lib/utils/errorUtils';
+import { DEFAULT_ADMIN_USER_ID } from '@/lib/api/client';
+
+function getActiveUserId(userId?: string): string {
+  if (userId) return userId;
+  if (typeof window !== 'undefined') {
+    try {
+      const stored = localStorage.getItem('sgrai_simulated_user_id');
+      if (stored) return stored;
+    } catch {
+      // Ignorar fallo de lectura de localStorage
+    }
+  }
+  return DEFAULT_ADMIN_USER_ID;
+}
 
 export class EmpleadosServiceError extends Error {
   public status?: number;
@@ -113,12 +127,17 @@ export const empleadosService = {
    */
   async updateEmpleado(
     targetId: string,
-    payload: ActualizarEmpleadoPayload
+    payload: ActualizarEmpleadoPayload,
+    userId?: string
   ): Promise<EmpleadoUsuario> {
     try {
+      const activeUserId = getActiveUserId(userId);
       const res = await fetch(`/api/personal/${targetId}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'x-user-id': activeUserId,
+        },
         body: JSON.stringify(payload),
       });
 
@@ -156,11 +175,15 @@ export const empleadosService = {
   /**
    * Realiza la baja lógica de un empleado/usuario del sistema.
    */
-  async deleteEmpleado(targetId: string): Promise<void> {
+  async deleteEmpleado(targetId: string, userId?: string): Promise<void> {
     try {
+      const activeUserId = getActiveUserId(userId);
       const res = await fetch(`/api/personal/${targetId}`, {
         method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'x-user-id': activeUserId,
+        },
       });
 
       if (!res.ok) {
@@ -188,11 +211,12 @@ export async function getPersonal(filtros: FiltrosPersonalParams = {}): Promise<
 
 export async function updatePersonal(
   personalOrUsuarioId: string,
-  payload: UpdatePersonalDTO
+  payload: UpdatePersonalDTO,
+  userId?: string
 ): Promise<Partial<EmpleadoUsuario>> {
-  return empleadosService.updateEmpleado(personalOrUsuarioId, payload as ActualizarEmpleadoPayload);
+  return empleadosService.updateEmpleado(personalOrUsuarioId, payload as ActualizarEmpleadoPayload, userId);
 }
 
-export async function deletePersonal(personalOrUsuarioId: string): Promise<void> {
-  return empleadosService.deleteEmpleado(personalOrUsuarioId);
+export async function deletePersonal(personalOrUsuarioId: string, userId?: string): Promise<void> {
+  return empleadosService.deleteEmpleado(personalOrUsuarioId, userId);
 }

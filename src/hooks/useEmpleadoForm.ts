@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import type { EmpleadoUsuario } from '@/types/empleados';
 import { useCatalogos } from '@/hooks/useCatalogos';
 import { empleadosService } from '@/services/empleadosService';
@@ -50,8 +50,10 @@ export function useEmpleadoForm({ usuario, onEmpleadoActualizado }: UseEmpleadoF
   const [mensajeExito, setMensajeExito] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
 
-  // Sincronizar formulario si cambia el usuario seleccionado
-  useEffect(() => {
+  // Sincronizar formulario si cambia el usuario seleccionado sin provocar renders en cascada
+  const [prevUsuario, setPrevUsuario] = useState(usuario);
+  if (usuario !== prevUsuario) {
+    setPrevUsuario(usuario);
     setRut(usuario.rut);
     setNombres(usuario.nombres);
     setApellidos(usuario.apellidos);
@@ -66,7 +68,7 @@ export function useEmpleadoForm({ usuario, onEmpleadoActualizado }: UseEmpleadoF
     setCargo(usuario.cargo || '');
     setMensajeExito('');
     setErrorMsg('');
-  }, [usuario]);
+  }
 
   const rolSeleccionado = catalogos.roles.find((r) => r.id === rolId);
   const esRolTerreno = Boolean(

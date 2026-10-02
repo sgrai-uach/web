@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import type { EmpleadoUsuario } from '@/types/empleados';
 import { useCatalogos } from '@/hooks/useCatalogos';
 import { empleadosService } from '@/services/empleadosService';
@@ -32,10 +32,41 @@ export function useEmpleados({ versionActualizacion = 0 }: UseEmpleadosProps = {
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Reiniciar a la primera página cuando cambian los filtros
-  useEffect(() => {
+  // Handlers para filtros que resetean la página sin provocar renders en cascada vía useEffect
+  const handleSetTermino = useCallback((val: string | ((prev: string) => string)) => {
+    setTermino(val);
     setPaginaActual(1);
-  }, [termino, delegacionFiltro, rolFiltro, estadoFiltro, ordenarPor, orden]);
+  }, []);
+
+  const handleSetDelegacionFiltro = useCallback((val: string | ((prev: string) => string)) => {
+    setDelegacionFiltro(val);
+    setPaginaActual(1);
+  }, []);
+
+  const handleSetRolFiltro = useCallback((val: string | ((prev: string) => string)) => {
+    setRolFiltro(val);
+    setPaginaActual(1);
+  }, []);
+
+  const handleSetEstadoFiltro = useCallback((val: EstadoFiltro | ((prev: EstadoFiltro) => EstadoFiltro)) => {
+    setEstadoFiltro(val);
+    setPaginaActual(1);
+  }, []);
+
+  const handleSetOrdenarPor = useCallback((val: string | ((prev: string) => string)) => {
+    setOrdenarPor(val);
+    setPaginaActual(1);
+  }, []);
+
+  const handleSetOrden = useCallback((val: ('asc' | 'desc') | ((prev: 'asc' | 'desc') => 'asc' | 'desc')) => {
+    setOrden(val);
+    setPaginaActual(1);
+  }, []);
+
+  const handleSetLimite = useCallback((val: number | ((prev: number) => number)) => {
+    setLimite(val);
+    setPaginaActual(1);
+  }, []);
 
   // Consulta con debounce
   useEffect(() => {
@@ -95,21 +126,21 @@ export function useEmpleados({ versionActualizacion = 0 }: UseEmpleadosProps = {
 
   return {
     termino,
-    setTermino,
+    setTermino: handleSetTermino,
     delegacionFiltro,
-    setDelegacionFiltro,
+    setDelegacionFiltro: handleSetDelegacionFiltro,
     rolFiltro,
-    setRolFiltro,
+    setRolFiltro: handleSetRolFiltro,
     estadoFiltro,
-    setEstadoFiltro,
+    setEstadoFiltro: handleSetEstadoFiltro,
     ordenarPor,
-    setOrdenarPor,
+    setOrdenarPor: handleSetOrdenarPor,
     orden,
-    setOrden,
+    setOrden: handleSetOrden,
     paginaActual,
     setPaginaActual,
     limite,
-    setLimite,
+    setLimite: handleSetLimite,
     totalItems,
     totalPaginas,
     catalogos,
