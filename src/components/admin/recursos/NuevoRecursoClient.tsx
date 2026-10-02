@@ -8,9 +8,13 @@ import AccesoDenegadoState from '@/components/common/AccesoDenegadoState';
 import { useSimulatedSession } from '@/context/SimulatedSessionContext';
 
 export default function NuevoRecursoClient() {
-  const { hasPermission, usuarioActivo } = useSimulatedSession();
+  const { hasPermission, usuarioActivo, isMounted } = useSimulatedSession();
 
-  const puedeCrear = hasPermission('recursos:crear');
+  const puedeCrear = isMounted === false ? false : hasPermission('recursos:crear');
+
+  if (isMounted === false) {
+    return null;
+  }
 
   if (!puedeCrear) {
     return (

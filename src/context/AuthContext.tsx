@@ -12,6 +12,7 @@ import { useRouter } from 'next/navigation';
 import {
   loginUsuario,
   obtenerUsuarioActivo,
+  obtenerDetalleRol,
 } from '@/services/seguridadService';
 import {
   setAuthCookie,
@@ -51,6 +52,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return Boolean(getAuthCookie());
   });
 
+  // Función auxiliar para obtener los permisos vigentes del rol en base de datos
+  const sincronizarPermisosRol = useCallback(
+    async (rolId: string, permisosActuales: string[]): Promise<string[]> => {
+      if (!rolId) return permisosActuales;
+      try {
+        const rolDetalle = await obtenerDetalleRol(rolId);
+        if (rolDetalle?.data?.permisos && Array.isArray(rolDetalle.data.permisos)) {
+          return rolDetalle.data.permisos.map((p) => p.codigo);
+        }
+      } catch {
+        // En caso de que no se pueda consultar el rol individual, mantener permisos actuales
+      }
+      return permisosActuales;
+    },
+    []
+  );
+
   // Mapear UsuarioActivoDetalle del endpoint usuario-activo a UsuarioPerfilSesion
   const mapDetalleAUsuarioPerfil = useCallback(
     (detalle: UsuarioActivoDetalle): UsuarioPerfilSesion => {
@@ -84,9 +102,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     let cancelado = false;
     void obtenerUsuarioActivo()
-      .then((detalle) => {
+      .then(async (detalle) => {
         if (cancelado) return;
-        setUsuario(mapDetalleAUsuarioPerfil(detalle));
+        const perfilBase = mapDetalleAUsuarioPerfil(detalle);
+        const permisosReales = await sincronizarPermisosRol(
+          perfilBase.rolId,
+          perfilBase.permisos
+        );
+        if (cancelado) return;
+        setUsuario({
+          ...perfilBase,
+          permisos: permisosReales,
+        });
       })
       .catch(() => {
         if (cancelado) return;
@@ -103,7 +130,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => {
       cancelado = true;
     };
-  }, [mapDetalleAUsuarioPerfil]);
+  }, [mapDetalleAUsuarioPerfil, sincronizarPermisosRol]);
 
   const login = useCallback(
     async (credenciales: LoginRequest): Promise<UsuarioPerfilSesion> => {
@@ -112,13 +139,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const respuesta = await loginUsuario(credenciales);
         setAuthCookie(respuesta.token, respuesta.expiraEn);
         setToken(respuesta.token);
-        setUsuario(respuesta.usuario);
-        return respuesta.usuario;
+
+        let usuarioFinal = respuesta.usuario;
+        if (respuesta.usuario.rolId) {
+          try {
+            const permisosReales = await sincronizarPermisosRol(
+              respuesta.usuario.rolId,
+              respuesta.usuario.permisos
+            );
+            usuarioFinal = {
+              ...respuesta.usuario,
+              permisos: permisosReales,
+            };
+          } catch {
+            // Mantener permisos originales de respuesta de login
+          }
+        }
+
+        setUsuario(usuarioFinal);
+        return usuarioFinal;
       } finally {
         setCargando(false);
       }
     },
-    []
+    [sincronizarPermisosRol]
   );
 
   const logout = useCallback(() => {
@@ -138,11 +182,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const refrescarPerfil = useCallback(async () => {
     try {
       const detalle = await obtenerUsuarioActivo();
-      setUsuario(mapDetalleAUsuarioPerfil(detalle));
+      const perfilBase = mapDetalleAUsuarioPerfil(detalle);
+      const permisosReales = await sincronizarPermisosRol(
+        perfilBase.rolId,
+        perfilBase.permisos
+      );
+      setUsuario({
+        ...perfilBase,
+        permisos: permisosReales,
+      });
     } catch {
       // Interceptor maneja 401
     }
-  }, [mapDetalleAUsuarioPerfil]);
+  }, [mapDetalleAUsuarioPerfil, sincronizarPermisosRol]);
 
   const tienePermiso = useCallback(
     (codigo: string): boolean => {

@@ -29,14 +29,30 @@ interface SimulatedSessionContextValue {
   hasPermission: (codigo: string) => boolean;
   hasAnyPermission: (codigos: string[]) => boolean;
   usuarioDetalleServidor: UsuarioActivoDetalle | null;
+  isMounted: boolean;
 }
 
 export const SimulatedSessionContext = createContext<SimulatedSessionContextValue | null>(null);
 
 /**
  * Fallback de permisos cuando la API no está disponible o durante la carga inicial.
+ * Soporta permisos personalizados guardados en localStorage.
  */
 function obtenerPermisosFallback(rol: string, esAdmin: boolean): Set<string> {
+  if (typeof window !== 'undefined') {
+    try {
+      const customPermsStr = localStorage.getItem(`sgrai_simulated_perms_${rol}`);
+      if (customPermsStr) {
+        const parsed = JSON.parse(customPermsStr);
+        if (Array.isArray(parsed)) {
+          return new Set(parsed);
+        }
+      }
+    } catch {
+      // Ignorar fallos de lectura de localStorage
+    }
+  }
+
   if (esAdmin || rol === 'Administrador') {
     return new Set([
       'seguridad:roles:leer',
@@ -80,8 +96,26 @@ function obtenerPermisosFallback(rol: string, esAdmin: boolean): Set<string> {
   return new Set();
 }
 
-function obtenerSesionInicial(): UsuarioSimulado {
-  if (typeof window !== 'undefined') {
+export function SimulatedSessionProvider({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const [isMounted, setIsMounted] = useState(false);
+  const [usuarioSimuladoManual, setUsuarioSimuladoManual] = useState<UsuarioSimulado>(
+    () => USUARIOS_SIMULADOS_SISTEMA[0]
+  );
+  const [permisosSimulados, setPermisosSimulados] = useState<Set<string>>(() => {
+    const inicial = USUARIOS_SIMULADOS_SISTEMA[0];
+    return obtenerPermisosFallback(inicial.rol, inicial.esAdmin);
+  });
+  const [cargandoPermisos, setCargandoPermisos] = useState(false);
+  const [usuarioDetalleServidor, setUsuarioDetalleServidor] =
+    useState<UsuarioActivoDetalle | null>(null);
+
+  // Sincronizar usuario guardado en localStorage tras montar en cliente para evitar hydration mismatch
+  useEffect(() => {
+    setIsMounted(true);
     try {
       const guardadoId = localStorage.getItem(STORAGE_KEY);
       if (guardadoId) {
@@ -89,31 +123,16 @@ function obtenerSesionInicial(): UsuarioSimulado {
           (u) => u.id === guardadoId
         );
         if (encontrado) {
-          return encontrado;
+          setUsuarioSimuladoManual(encontrado);
+          setPermisosSimulados(
+            obtenerPermisosFallback(encontrado.rol, encontrado.esAdmin)
+          );
         }
       }
     } catch {
       // Ignorar fallos de lectura de localStorage
     }
-  }
-  return USUARIOS_SIMULADOS_SISTEMA[0];
-}
-
-export function SimulatedSessionProvider({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  const [usuarioSimuladoManual, setUsuarioSimuladoManual] = useState<UsuarioSimulado>(
-    obtenerSesionInicial
-  );
-  const [permisosSimulados, setPermisosSimulados] = useState<Set<string>>(() => {
-    const inicial = obtenerSesionInicial();
-    return obtenerPermisosFallback(inicial.rol, inicial.esAdmin);
-  });
-  const [cargandoPermisos, setCargandoPermisos] = useState(false);
-  const [usuarioDetalleServidor, setUsuarioDetalleServidor] =
-    useState<UsuarioActivoDetalle | null>(null);
+  }, []);
 
   const auth = useContext(AuthContext);
 
@@ -246,6 +265,7 @@ export function SimulatedSessionProvider({
       hasPermission,
       hasAnyPermission,
       usuarioDetalleServidor,
+      isMounted,
     }),
     [
       usuarioActivo,
@@ -257,6 +277,7 @@ export function SimulatedSessionProvider({
       hasPermission,
       hasAnyPermission,
       usuarioDetalleServidor,
+      isMounted,
     ]
   );
 

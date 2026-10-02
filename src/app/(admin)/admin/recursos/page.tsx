@@ -16,8 +16,8 @@ import { toUserFriendlyErrorMessage } from '@/lib/utils/errorUtils';
 
 export default function RecursosPage() {
   const { showError } = useToast();
-  const { usuarioActivo, cambiarUsuarioPorId, hasPermission } = useSimulatedSession();
-  const puedeCrear = hasPermission('recursos:crear');
+  const { usuarioActivo, cambiarUsuarioPorId, hasPermission, isMounted } = useSimulatedSession();
+  const puedeCrear = Boolean(isMounted && hasPermission('recursos:crear'));
 
   const [filtros, setFiltros] = useState<FiltrosRecursosState>({
     pagina: 1,
