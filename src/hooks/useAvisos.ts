@@ -1,10 +1,13 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { useToast } from '@/components/ui/Toast';
 import { useCallCenterSocket } from '@/hooks/useCallCenterSocket';
 import { listarAvisos } from '@/services/avisosService';
 import { getErrorMessage } from '@/lib/utils/errorUtils';
 import type {
   AvisoItem,
+  FiltroDelegacion,
+  FiltroEstado,
   FiltroOrigen,
   FiltroSemaforo,
   OperadorInfo,
@@ -12,10 +15,61 @@ import type {
   SocketAvisoNuevoPayload,
   SocketAvisoVerificadoPayload,
 } from '@/types/avisos';
+import { normalizarEstadoAviso, obtenerDelegacionAviso } from '@/types/avisos';
 import { OPERADORES_PREDEFINIDOS } from '@/components/callcenter/AvisosHeader';
+
+function mapearEstadoParaApi(
+  filtro: FiltroEstado
+): 'NO_VERIFICADO' | 'VERIFICADO' | 'DESCARTADO' | 'TODOS' {
+  switch (filtro) {
+    case 'VERIFICADO':
+      return 'VERIFICADO';
+    case 'RECHAZADO':
+      return 'DESCARTADO';
+    case 'TODOS':
+      return 'TODOS';
+    case 'PENDIENTE':
+    default:
+      return 'NO_VERIFICADO';
+  }
+}
 
 export function useAvisos() {
   const { showInfo, showWarning, showError } = useToast();
+  const searchParams = useSearchParams();
+  const pathname = usePathname();
+
+  // Inicialización a partir de query parameters en la URL
+  const initialParams = useMemo(() => {
+    const q = searchParams?.get('q') || '';
+    const origenRaw = searchParams?.get('origen');
+    const origen: FiltroOrigen =
+      origenRaw === 'WEB' || origenRaw === 'CHATBOT' || origenRaw === 'TELEFONO'
+        ? origenRaw
+        : 'TODOS';
+    const prioridadRaw = searchParams?.get('prioridad');
+    const prioridad: FiltroSemaforo =
+      prioridadRaw === 'EN_TIEMPO' || prioridadRaw === 'PRECAUCION' || prioridadRaw === 'URGENTE'
+        ? prioridadRaw
+        : 'TODOS';
+    const delegacionRaw = searchParams?.get('delegacion');
+    const delegacion: FiltroDelegacion =
+      delegacionRaw === 'Norte' ||
+      delegacionRaw === 'Sur' ||
+      delegacionRaw === 'Costa' ||
+      delegacionRaw === 'Calle Calle' ||
+      delegacionRaw === 'Calle-Calle'
+        ? (delegacionRaw === 'Calle-Calle' ? 'Calle Calle' : (delegacionRaw as FiltroDelegacion))
+        : 'TODAS';
+    const estadoRaw = searchParams?.get('estado')?.toUpperCase();
+    const estado: FiltroEstado =
+      estadoRaw === 'TODOS' || estadoRaw === 'VERIFICADO' || estadoRaw === 'RECHAZADO'
+        ? (estadoRaw as FiltroEstado)
+        : 'PENDIENTE';
+
+    return { q, origen, prioridad, delegacion, estado };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const [avisos, setAvisos] = useState<AvisoItem[]>([]);
   const [cargando, setCargando] = useState(true);
@@ -30,52 +84,47 @@ export function useAvisos() {
   );
   const [avisoSeleccionado, setAvisoSeleccionado] = useState<AvisoItem | null>(null);
 
-  const [busqueda, setBusqueda] = useState('');
-  const [filtroOrigen, setFiltroOrigen] = useState<FiltroOrigen>('TODOS');
-  const [filtroSemaforo, setFiltroSemaforo] = useState<FiltroSemaforo>('TODOS');
+  // Estados locales de filtrado
+  const [busqueda, setBusqueda] = useState(initialParams.q);
+  const [filtroOrigen, setFiltroOrigen] = useState<FiltroOrigen>(initialParams.origen);
+  const [filtroSemaforo, setFiltroSemaforo] = useState<FiltroSemaforo>(initialParams.prioridad);
+  const [filtroDelegacion, setFiltroDelegacion] = useState<FiltroDelegacion>(initialParams.delegacion);
+  const [filtroEstado, setFiltroEstado] = useState<FiltroEstado>(initialParams.estado);
 
-  const cargarAvisos = useCallback(
-    async (silent = false) => {
-      if (!silent) setCargando(true);
-      try {
-        const respuesta = await listarAvisos({
-          page: paginaActual,
-          limit: limite,
-          estado: 'NO_VERIFICADO',
-        });
+  // Sincronización de filtros con los Query Strings de la URL
+  const primerRenderRef = useRef(true);
+  useEffect(() => {
+    if (primerRenderRef.current) {
+      primerRenderRef.current = false;
+      return;
+    }
 
-        setAvisos(respuesta.data || []);
-        setTotalItems(respuesta.pagination.total || 0);
-        setTotalPaginas(respuesta.pagination.totalPages || 1);
-      } catch (err: unknown) {
-        if (!silent) {
-          showError(
-            getErrorMessage(err),
-            'Error al cargar avisos'
-          );
-        }
-      } finally {
-        if (!silent) setCargando(false);
-      }
-    },
-    [paginaActual, limite, showError]
-  );
+    if (typeof window === 'undefined') return;
 
-  const handleRefrescarManual = useCallback(async () => {
-    setRefrescando(true);
-    await cargarAvisos(true);
-    setRefrescando(false);
-  }, [cargarAvisos]);
+    const params = new URLSearchParams();
+    if (busqueda.trim()) params.set('q', busqueda.trim());
+    if (filtroOrigen !== 'TODOS') params.set('origen', filtroOrigen);
+    if (filtroSemaforo !== 'TODOS') params.set('prioridad', filtroSemaforo);
+    if (filtroDelegacion !== 'TODAS') params.set('delegacion', filtroDelegacion);
+    if (filtroEstado !== 'PENDIENTE') params.set('estado', filtroEstado);
+
+    const queryString = params.toString();
+    const nuevaUrl = queryString ? `${pathname || '/callcenter'}?${queryString}` : (pathname || '/callcenter');
+
+    window.history.replaceState(null, '', nuevaUrl);
+  }, [busqueda, filtroOrigen, filtroSemaforo, filtroDelegacion, filtroEstado, pathname]);
 
   useEffect(() => {
     let activo = true;
 
     async function fetchData() {
       try {
+        const estadoApi = mapearEstadoParaApi(filtroEstado);
         const respuesta = await listarAvisos({
           page: paginaActual,
           limit: limite,
-          estado: 'NO_VERIFICADO',
+          estado: estadoApi,
+          delegacion: filtroDelegacion !== 'TODAS' ? filtroDelegacion : undefined,
         });
 
         if (activo) {
@@ -86,10 +135,7 @@ export function useAvisos() {
         }
       } catch (err: unknown) {
         if (activo) {
-          showError(
-            getErrorMessage(err),
-            'Error al cargar avisos'
-          );
+          showError(getErrorMessage(err), 'Error al cargar avisos');
           setCargando(false);
         }
       }
@@ -100,7 +146,39 @@ export function useAvisos() {
     return () => {
       activo = false;
     };
-  }, [paginaActual, limite, showError]);
+  }, [paginaActual, limite, filtroEstado, filtroDelegacion, showError]);
+
+  const cargarAvisos = useCallback(
+    async (silent = false) => {
+      if (!silent) setCargando(true);
+      try {
+        const estadoApi = mapearEstadoParaApi(filtroEstado);
+        const respuesta = await listarAvisos({
+          page: paginaActual,
+          limit: limite,
+          estado: estadoApi,
+          delegacion: filtroDelegacion !== 'TODAS' ? filtroDelegacion : undefined,
+        });
+
+        setAvisos(respuesta.data || []);
+        setTotalItems(respuesta.pagination.total || 0);
+        setTotalPaginas(respuesta.pagination.totalPages || 1);
+      } catch (err: unknown) {
+        if (!silent) {
+          showError(getErrorMessage(err), 'Error al cargar avisos');
+        }
+      } finally {
+        if (!silent) setCargando(false);
+      }
+    },
+    [paginaActual, limite, filtroEstado, filtroDelegacion, showError]
+  );
+
+  const handleRefrescarManual = useCallback(async () => {
+    setRefrescando(true);
+    await cargarAvisos(true);
+    setRefrescando(false);
+  }, [cargarAvisos]);
 
   const handleAvisoNuevo = useCallback(
     (nuevoAviso: SocketAvisoNuevoPayload) => {
@@ -192,19 +270,28 @@ export function useAvisos() {
     };
   }, [avisos, totalItems]);
 
+  // Filtrado multicriterio reactivo
   const avisosFiltrados = useMemo(() => {
     return avisos.filter((aviso) => {
+      // 1. Filtro por término de búsqueda
       if (busqueda.trim()) {
         const query = busqueda.toLowerCase().trim();
         const coincideDesc = aviso.descripcion?.toLowerCase().includes(query);
         const coincideTipo = aviso.tipoPreliminarNombre?.toLowerCase().includes(query);
-        if (!coincideDesc && !coincideTipo) return false;
+        const coincideDir = aviso.direccionTexto?.toLowerCase().includes(query);
+        const coincideInf = aviso.informanteNombre?.toLowerCase().includes(query);
+        const coincideSeg = aviso.codigoSeguimiento?.toLowerCase().includes(query);
+        if (!coincideDesc && !coincideTipo && !coincideDir && !coincideInf && !coincideSeg) {
+          return false;
+        }
       }
 
+      // 2. Filtro por canal de origen
       if (filtroOrigen !== 'TODOS' && aviso.origenReporte !== filtroOrigen) {
         return false;
       }
 
+      // 3. Filtro por prioridad/semáforo de antigüedad
       if (filtroSemaforo === 'EN_TIEMPO' && aviso.minutosEnEspera >= 15) {
         return false;
       }
@@ -218,9 +305,71 @@ export function useAvisos() {
         return false;
       }
 
+      // 4. Filtro por delegación territorial
+      if (filtroDelegacion !== 'TODAS') {
+        const delegacionAviso = obtenerDelegacionAviso(aviso);
+        if (!delegacionAviso || delegacionAviso.toLowerCase() !== filtroDelegacion.toLowerCase()) {
+          return false;
+        }
+      }
+
+      // 5. Filtro por estado del aviso
+      if (filtroEstado !== 'TODOS') {
+        const estadoNorm = normalizarEstadoAviso(aviso.estado);
+        if (estadoNorm !== filtroEstado) {
+          return false;
+        }
+      }
+
       return true;
     });
-  }, [avisos, busqueda, filtroOrigen, filtroSemaforo]);
+  }, [avisos, busqueda, filtroOrigen, filtroSemaforo, filtroDelegacion, filtroEstado]);
+
+  // Indicador si hay filtros activos más allá de los valores por defecto
+  const hayFiltrosActivos = useMemo(() => {
+    return (
+      Boolean(busqueda.trim()) ||
+      filtroOrigen !== 'TODOS' ||
+      filtroSemaforo !== 'TODOS' ||
+      filtroDelegacion !== 'TODAS' ||
+      filtroEstado !== 'PENDIENTE'
+    );
+  }, [busqueda, filtroOrigen, filtroSemaforo, filtroDelegacion, filtroEstado]);
+
+  // Restablecer todos los filtros a su estado original
+  const limpiarFiltros = useCallback(() => {
+    setBusqueda('');
+    setFiltroOrigen('TODOS');
+    setFiltroSemaforo('TODOS');
+    setFiltroDelegacion('TODAS');
+    setFiltroEstado('PENDIENTE');
+    setPaginaActual(1);
+  }, []);
+
+  const handleSetBusqueda = useCallback((val: string) => {
+    setBusqueda(val);
+    setPaginaActual(1);
+  }, []);
+
+  const handleSetFiltroOrigen = useCallback((val: FiltroOrigen) => {
+    setFiltroOrigen(val);
+    setPaginaActual(1);
+  }, []);
+
+  const handleSetFiltroSemaforo = useCallback((val: FiltroSemaforo) => {
+    setFiltroSemaforo(val);
+    setPaginaActual(1);
+  }, []);
+
+  const handleSetFiltroDelegacion = useCallback((val: FiltroDelegacion) => {
+    setFiltroDelegacion(val);
+    setPaginaActual(1);
+  }, []);
+
+  const handleSetFiltroEstado = useCallback((val: FiltroEstado) => {
+    setFiltroEstado(val);
+    setPaginaActual(1);
+  }, []);
 
   return {
     avisos: avisosFiltrados,
@@ -237,11 +386,17 @@ export function useAvisos() {
     avisoSeleccionado,
     setAvisoSeleccionado,
     busqueda,
-    setBusqueda,
+    setBusqueda: handleSetBusqueda,
     filtroOrigen,
-    setFiltroOrigen,
+    setFiltroOrigen: handleSetFiltroOrigen,
     filtroSemaforo,
-    setFiltroSemaforo,
+    setFiltroSemaforo: handleSetFiltroSemaforo,
+    filtroDelegacion,
+    setFiltroDelegacion: handleSetFiltroDelegacion,
+    filtroEstado,
+    setFiltroEstado: handleSetFiltroEstado,
+    hayFiltrosActivos,
+    limpiarFiltros,
     cargarAvisos,
     handleRefrescarManual,
     isConnected,

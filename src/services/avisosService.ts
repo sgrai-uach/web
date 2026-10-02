@@ -10,7 +10,7 @@ import type {
   VerificarAvisoInput,
   VerificarAvisoSuccessResponse,
 } from '@/types/avisos';
-import { CATALOGO_TIPOS_INCIDENTE_DEFAULT, normalizarTipoIncidente } from '@/types/avisos';
+import { CATALOGO_TIPOS_INCIDENTE_DEFAULT, normalizarListaTiposIncidentes } from '@/types/avisos';
 import type { ApiErrorResponse } from '@/types/common';
 import type { components } from '@/types/api-generated';
 
@@ -134,12 +134,27 @@ export async function enviarAvisoIncidente(payload: CrearAvisoPayload): Promise<
 export async function listarAvisos(
   params: Partial<FiltrosAvisosState> = {}
 ): Promise<AvisosPaginadosResponse> {
+  const queryObj: Record<string, unknown> = {
+    page: params.page ?? 1,
+    limit: params.limit ?? 20,
+  };
+
+  if (params.estado && params.estado !== 'TODOS') {
+    queryObj.estado = params.estado;
+  } else if (!params.estado) {
+    queryObj.estado = 'NO_VERIFICADO';
+  }
+
+  if (params.delegacion && params.delegacion !== 'TODAS') {
+    queryObj.delegacion = params.delegacion;
+  }
+
   const { data, error, response } = await apiClient.GET('/api/incidentes/avisos', {
     params: {
-      query: {
-        page: params.page ?? 1,
-        limit: params.limit ?? 20,
-        estado: params.estado ?? 'NO_VERIFICADO',
+      query: queryObj as unknown as {
+        page?: number;
+        limit?: number;
+        estado?: 'PENDIENTE_VERIFICACION' | 'NO_VERIFICADO' | 'VERIFICADO' | 'DESCARTADO';
       },
     },
   });
@@ -297,10 +312,7 @@ export async function obtenerTiposIncidentes(): Promise<TipoIncidenteOpcion[]> {
     }
     const json = await res.json();
     const lista = Array.isArray(json.data) ? json.data : [];
-    if (lista.length === 0) {
-      return CATALOGO_TIPOS_INCIDENTE_DEFAULT;
-    }
-    return lista.map((t: unknown, idx: number) => normalizarTipoIncidente(t, idx));
+    return normalizarListaTiposIncidentes(lista);
   } catch {
     return CATALOGO_TIPOS_INCIDENTE_DEFAULT;
   }
