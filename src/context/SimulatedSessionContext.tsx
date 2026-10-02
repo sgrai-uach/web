@@ -222,18 +222,16 @@ export function SimulatedSessionProvider({
 
   const hasPermission = useCallback(
     (codigo: string): boolean => {
-      if (usuarioActivo.esAdmin) return true;
       return permisos.has(codigo);
     },
-    [usuarioActivo.esAdmin, permisos]
+    [permisos]
   );
 
   const hasAnyPermission = useCallback(
     (codigos: string[]): boolean => {
-      if (usuarioActivo.esAdmin) return true;
       return codigos.some((c) => permisos.has(c));
     },
-    [usuarioActivo.esAdmin, permisos]
+    [permisos]
   );
 
   const contextValue = useMemo<SimulatedSessionContextValue>(

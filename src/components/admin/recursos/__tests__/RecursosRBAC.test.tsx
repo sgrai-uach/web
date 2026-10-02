@@ -127,6 +127,30 @@ describe('H50: Control de Acceso por Permisos Granulares en Recursos', () => {
       const botonNuevo = screen.queryByRole('link', { name: /Registrar Nuevo Recurso/i });
       expect(botonNuevo).toBeNull();
     });
+
+    it('NO renderiza el botón si el usuario es Administrador pero se le desactivó el permiso recursos:crear', () => {
+      const mockAdminSinCrear = createMockSession(
+        ['seguridad:roles:leer', 'seguridad:roles:gestionar', 'recursos:leer'],
+        {
+          rol: 'Administrador',
+          esAdmin: true,
+          email: 'admin@valdivia.cl',
+        }
+      );
+
+      const puedeCrear = mockAdminSinCrear.hasPermission('recursos:crear');
+      expect(puedeCrear).toBe(false);
+
+      render(
+        <RecursosHeader
+          totalRecursos={10}
+          tieneAcceso={true}
+          puedeCrear={puedeCrear}
+        />
+      );
+
+      expect(screen.queryByRole('link', { name: /Registrar Nuevo Recurso/i })).toBeNull();
+    });
   });
 
   describe('2. RecursosEmptyState — Visibilidad condicionada en estado vacío', () => {
@@ -210,6 +234,27 @@ describe('H50: Control de Acceso por Permisos Granulares en Recursos', () => {
       expect(screen.getByText('Registrar Nuevo Recurso')).toBeDefined();
       expect(screen.getByTestId('recurso-form-mock')).toBeDefined();
       expect(screen.queryByText(/Acceso Restringido/i)).toBeNull();
+    });
+
+    it('bloquea la ruta de creación incluso a un Administrador si se le revocó recursos:crear', () => {
+      const mockAdminSinCrear = createMockSession(
+        ['seguridad:roles:leer', 'recursos:leer'],
+        {
+          rol: 'Administrador',
+          esAdmin: true,
+          email: 'admin@valdivia.cl',
+        }
+      );
+
+      render(
+        <SimulatedSessionContext.Provider value={mockAdminSinCrear}>
+          <NuevoRecursoClient />
+        </SimulatedSessionContext.Provider>
+      );
+
+      expect(screen.getByText(/Acceso Restringido/i)).toBeDefined();
+      expect(screen.getByText(/Permisos insuficientes para el Registro de Recursos/i)).toBeDefined();
+      expect(screen.queryByTestId('recurso-form-mock')).toBeNull();
     });
   });
 

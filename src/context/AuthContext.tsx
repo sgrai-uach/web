@@ -147,7 +147,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const tienePermiso = useCallback(
     (codigo: string): boolean => {
       if (!usuario) return false;
-      if (usuario.rolCodigo === 'ADMIN') return true;
       return usuario.permisos.includes(codigo);
     },
     [usuario]
@@ -156,7 +155,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const tieneAlgunPermiso = useCallback(
     (codigos: string[]): boolean => {
       if (!usuario) return false;
-      if (usuario.rolCodigo === 'ADMIN') return true;
       return codigos.some((c) => usuario.permisos.includes(c));
     },
     [usuario]
