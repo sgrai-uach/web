@@ -34,22 +34,8 @@ export const DELEGACIONES_MUNICIPALES = [
   },
 ];
 
-export const USUARIOS_PRUEBA = [
-  {
-    id: '00000000-0000-4000-8000-000000000001',
-    nombre: 'Administrador General',
-    email: 'admin@valdivia.cl',
-    rol: 'Administrador',
-    permitido: true,
-  },
-  {
-    id: '00000000-0000-4000-8000-000000000002',
-    nombre: 'Operador Call Center',
-    email: 'callcenter@valdivia.cl',
-    rol: 'Call Center',
-    permitido: false,
-  },
-];
+import { USUARIOS_SIMULADOS_SISTEMA } from '@/config/usuariosSimulados';
+export const USUARIOS_PRUEBA = USUARIOS_SIMULADOS_SISTEMA;
 
 export interface UseRecursosReturn {
   recursos: RecursoItem[];

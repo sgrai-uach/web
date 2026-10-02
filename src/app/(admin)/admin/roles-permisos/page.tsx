@@ -21,6 +21,7 @@ export default function RolesPermisosPage() {
     errorRbac,
     rolSeleccionado,
     setRolSeleccionado,
+    handleRolActualizado,
     busqueda,
     setBusqueda,
     filtroTipo,
@@ -42,6 +43,7 @@ export default function RolesPermisosPage() {
           setRolSeleccionado(null);
         }}
         metricas={metricas}
+        tieneAcceso={!errorRbac}
       />
 
       {errorRbac ? (
@@ -77,7 +79,9 @@ export default function RolesPermisosPage() {
 
       <RolDetalleDrawer
         rol={rolSeleccionado}
+        usuarioId={usuarioActivo.id}
         onClose={() => setRolSeleccionado(null)}
+        onRolActualizado={handleRolActualizado}
       />
     </div>
   );
