@@ -47,11 +47,11 @@ describe('recursosService - eliminarRecurso (HU-9)', () => {
       response: new Response(null, { status: 409 }),
     } as unknown as Awaited<ReturnType<typeof apiClient.DELETE>>);
 
-    await expect(eliminarRecurso(mockRecursoId, mockAdminId)).rejects.toThrow(RecursoServiceError);
-
     try {
       await eliminarRecurso(mockRecursoId, mockAdminId);
+      expect.fail('Debería haber lanzado RecursoServiceError');
     } catch (err: unknown) {
+      expect(err).toBeInstanceOf(RecursoServiceError);
       if (err instanceof RecursoServiceError) {
         expect(err.apiError.statusCode).toBe(409);
         expect(err.apiError.message).toContain('unidades actualmente en uso en terreno');

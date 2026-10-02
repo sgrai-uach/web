@@ -22,7 +22,7 @@ export default function AdminEmpleadosPage() {
   };
 
   return (
-    <div style={{ maxWidth: 'var(--container-max-width, 1400px)', width: '100%', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 'var(--space-6, 24px)' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6, 24px)' }}>
       {/* Breadcrumbs Institucionales */}
       <Breadcrumbs
         items={[
@@ -37,7 +37,6 @@ export default function AdminEmpleadosPage() {
         title="Gestión de Personal"
         description="Búsqueda, auditoría y asignación de roles, delegaciones y especialidades para personal municipal y de terreno."
       />
-
 
       {/* Buscador modular de usuarios */}
       <EmpleadoBuscador

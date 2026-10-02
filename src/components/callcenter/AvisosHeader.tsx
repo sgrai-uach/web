@@ -6,7 +6,6 @@ import AvisosKpiCards from './header/AvisosKpiCards';
 import Button from '@/components/ui/Button';
 import { Breadcrumbs } from '@/components/common/Breadcrumbs';
 import ConnectionStatusBadge from '@/components/common/ConnectionStatusBadge';
-import SessionContextBar from '@/components/common/SessionContextBar';
 import PageTitleCard from '@/components/common/PageTitleCard';
 import styles from './AvisosHeader.module.css';
 
@@ -36,8 +35,8 @@ export const OPERADORES_PREDEFINIDOS: OperadorInfo[] = [
 
 interface AvisosHeaderProps {
   socketConnected: boolean;
-  operadorActivo: OperadorInfo;
-  onCambiarOperador: (op: OperadorInfo) => void;
+  operadorActivo?: OperadorInfo;
+  onCambiarOperador?: (op: OperadorInfo) => void;
   metricas: {
     total: number;
     enTiempo: number;
@@ -48,8 +47,6 @@ interface AvisosHeaderProps {
 
 export default function AvisosHeader({
   socketConnected,
-  operadorActivo,
-  onCambiarOperador,
   metricas,
 }: AvisosHeaderProps) {
   return (
@@ -63,33 +60,15 @@ export default function AvisosHeader({
         ]}
       />
 
-      {/* Barra de contexto operacional */}
-      <SessionContextBar
-        leftContent={<ConnectionStatusBadge connected={socketConnected} />}
-        selectorId="select-operador-cc"
-      >
-        <select
-          id="select-operador-cc"
-          value={operadorActivo.id}
-          onChange={(e) => {
-            const found = OPERADORES_PREDEFINIDOS.find((o) => o.id === e.target.value);
-            if (found) onCambiarOperador(found);
-          }}
-          className={styles.sessionSelect}
-          aria-label="Seleccionar operador activo"
-        >
-          {OPERADORES_PREDEFINIDOS.map((op) => (
-            <option key={op.id} value={op.id}>
-              {op.nombre}
-            </option>
-          ))}
-        </select>
-      </SessionContextBar>
-
       {/* Tarjeta de Título Institucional */}
       <PageTitleCard
         title="Bandeja de Avisos"
-        badge={`${metricas.total} ${metricas.total === 1 ? 'aviso' : 'avisos'}`}
+        badge={
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+            <span>{`${metricas.total} ${metricas.total === 1 ? 'aviso' : 'avisos'}`}</span>
+            <ConnectionStatusBadge connected={socketConnected} />
+          </div>
+        }
         description="Recepción, verificación manual y categorización de llamados de emergencia ciudadana."
         actionSlot={
           <Button href="/callcenter/manual" variant="primary" size="md" icon={<Plus size={16} />}>

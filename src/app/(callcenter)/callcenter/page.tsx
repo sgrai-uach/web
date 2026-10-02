@@ -1,13 +1,13 @@
 'use client';
 
-import React from 'react';
+import React, { Suspense } from 'react';
 import AvisoDetalleModal from '@/components/callcenter/AvisoDetalleModal';
 import AvisosFiltros from '@/components/callcenter/AvisosFiltros';
 import AvisosHeader from '@/components/callcenter/AvisosHeader';
 import AvisosTable from '@/components/callcenter/AvisosTable';
 import { useAvisos } from '@/hooks/useAvisos';
 
-export default function CallCenterPage() {
+function CallCenterContent() {
   const {
     avisos,
     cargando,
@@ -28,6 +28,12 @@ export default function CallCenterPage() {
     setFiltroOrigen,
     filtroSemaforo,
     setFiltroSemaforo,
+    filtroDelegacion,
+    setFiltroDelegacion,
+    filtroEstado,
+    setFiltroEstado,
+    hayFiltrosActivos,
+    limpiarFiltros,
     cargarAvisos,
     handleRefrescarManual,
     isConnected,
@@ -50,6 +56,12 @@ export default function CallCenterPage() {
         onFiltroOrigenChange={setFiltroOrigen}
         filtroSemaforo={filtroSemaforo}
         onFiltroSemaforoChange={setFiltroSemaforo}
+        filtroDelegacion={filtroDelegacion}
+        onFiltroDelegacionChange={setFiltroDelegacion}
+        filtroEstado={filtroEstado}
+        onFiltroEstadoChange={setFiltroEstado}
+        hayFiltrosActivos={hayFiltrosActivos}
+        onLimpiarFiltros={limpiarFiltros}
         onRefrescar={handleRefrescarManual}
         cargando={refrescando}
       />
@@ -61,6 +73,8 @@ export default function CallCenterPage() {
         totalPaginas={totalPaginas}
         totalItems={totalItems}
         limite={limite}
+        hayFiltrosActivos={hayFiltrosActivos}
+        onLimpiarFiltros={limpiarFiltros}
         onCambiarPagina={setPaginaActual}
         onCambiarLimite={(l) => {
           setLimite(l);
@@ -76,5 +90,19 @@ export default function CallCenterPage() {
         onAccionCompletada={() => cargarAvisos(true)}
       />
     </div>
+  );
+}
+
+export default function CallCenterPage() {
+  return (
+    <Suspense
+      fallback={
+        <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--color-charcoal, #3B3F45)' }}>
+          Cargando Centro de Atención Call Center...
+        </div>
+      }
+    >
+      <CallCenterContent />
+    </Suspense>
   );
 }

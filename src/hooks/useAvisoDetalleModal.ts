@@ -9,7 +9,7 @@ import {
 } from '@/services/avisosService';
 import { getErrorMessage } from '@/lib/utils/errorUtils';
 import type { AvisoDetalleResponse, AvisoItem, TipoIncidenteOpcion } from '@/types/avisos';
-import { CATALOGO_TIPOS_INCIDENTE_DEFAULT, normalizarTipoIncidente } from '@/types/avisos';
+import { CATALOGO_TIPOS_INCIDENTE_DEFAULT, normalizarListaTiposIncidentes } from '@/types/avisos';
 
 interface UseAvisoDetalleModalParams {
   aviso: AvisoItem;
@@ -42,9 +42,7 @@ export function useAvisoDetalleModal({
           Array.isArray(tipos) && tipos.length > 0
             ? tipos
             : CATALOGO_TIPOS_INCIDENTE_DEFAULT;
-        const opciones: TipoIncidenteOpcion[] = rawLista.map((t, idx) =>
-          normalizarTipoIncidente(t, idx)
-        );
+        const opciones: TipoIncidenteOpcion[] = normalizarListaTiposIncidentes(rawLista);
         setTiposCatalogo(opciones);
 
         setTipoIncidenteId((idActual) => {

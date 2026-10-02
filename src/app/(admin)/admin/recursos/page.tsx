@@ -2,9 +2,10 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import type { FiltrosRecursosState, EstadoRecurso, RecursoItem } from '@/types/recurso';
-import { useRecursos, USUARIOS_PRUEBA } from '@/hooks/useRecursos';
+import { useRecursos } from '@/hooks/useRecursos';
 import { DEFAULT_ADMIN_USER_ID } from '@/lib/api/client';
 import { useToast } from '@/components/ui/Toast';
+import { useSimulatedSession } from '@/context/SimulatedSessionContext';
 import RecursosHeader from '@/components/admin/recursos/RecursosHeader';
 import RecursosFiltros from '@/components/admin/recursos/RecursosFiltros';
 import RecursosTabla from '@/components/admin/recursos/RecursosTabla';
@@ -16,7 +17,7 @@ import { toUserFriendlyErrorMessage } from '@/lib/utils/errorUtils';
 
 export default function RecursosPage() {
   const { showError, showSuccess } = useToast();
-  const [usuarioActivoId, setUsuarioActivoId] = useState<string>(DEFAULT_ADMIN_USER_ID);
+  const { usuarioActivo, cambiarUsuarioPorId } = useSimulatedSession();
   const [recursoAEliminar, setRecursoAEliminar] = useState<RecursoItem | null>(null);
 
   const [filtros, setFiltros] = useState<FiltrosRecursosState>({
@@ -30,11 +31,11 @@ export default function RecursosPage() {
 
   const { recursos, meta, cargando, error, statusCode, removerRecursoDeLista } = useRecursos(
     filtros,
-    usuarioActivoId
+    usuarioActivo.id
   );
 
-  const usuarioActual = USUARIOS_PRUEBA.find((u) => u.id === usuarioActivoId);
-  const esAdmin = usuarioActual ? usuarioActual.rol === 'Administrador' : usuarioActivoId === DEFAULT_ADMIN_USER_ID;
+  const esAdmin =
+    usuarioActivo.rol === 'Administrador' || usuarioActivo.id === DEFAULT_ADMIN_USER_ID;
 
   const handleEliminacionExitosa = useCallback(
     (recursoEliminado: RecursoItem) => {
@@ -95,17 +96,17 @@ export default function RecursosPage() {
     filtros.esIndividual !== undefined;
 
   if (statusCode === 403) {
-    const usuarioActual = USUARIOS_PRUEBA.find((u) => u.id === usuarioActivoId);
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6, 24px)' }}>
         <RecursosHeader
           totalRecursos={0}
-          usuarioActivoId={usuarioActivoId}
-          onCambiarUsuario={setUsuarioActivoId}
+          usuarioActivoId={usuarioActivo.id}
+          onCambiarUsuario={cambiarUsuarioPorId}
+          tieneAcceso={false}
         />
         <AccesoDenegadoState
-          rolUsuario={usuarioActual?.nombre || 'Perfil sin privilegios'}
-          onCambiarAAdmin={() => setUsuarioActivoId(DEFAULT_ADMIN_USER_ID)}
+          rolUsuario={usuarioActivo.rol}
+          onCambiarAAdmin={() => cambiarUsuarioPorId(DEFAULT_ADMIN_USER_ID)}
         />
       </div>
     );
@@ -115,8 +116,9 @@ export default function RecursosPage() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6, 24px)' }}>
       <RecursosHeader
         totalRecursos={meta.total}
-        usuarioActivoId={usuarioActivoId}
-        onCambiarUsuario={setUsuarioActivoId}
+        usuarioActivoId={usuarioActivo.id}
+        onCambiarUsuario={cambiarUsuarioPorId}
+        tieneAcceso={true}
       />
 
       <RecursosFiltros
@@ -156,7 +158,7 @@ export default function RecursosPage() {
       <RecursoEliminarModal
         isOpen={Boolean(recursoAEliminar)}
         recurso={recursoAEliminar}
-        usuarioActivoId={usuarioActivoId}
+        usuarioActivoId={usuarioActivo.id}
         onCerrar={() => setRecursoAEliminar(null)}
         onEliminacionExitosa={handleEliminacionExitosa}
       />

@@ -1,22 +1,18 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useToast } from '@/components/ui/Toast';
-import { ApiError, listarRolesYPermisos } from '@/services/seguridadService';
+import { ApiError, listarRolesYPermisos, obtenerDetalleRol } from '@/services/seguridadService';
 import { getErrorMessage } from '@/lib/utils/errorUtils';
 import type {
   FiltroEstadoPermisos,
   FiltroTipoRol,
   MetricasRoles,
   RolItem,
-  UsuarioSimulado,
 } from '@/types/seguridad';
-import { USUARIOS_SIMULADOS } from '@/components/admin/roles-permisos/RolesHeader';
+import { useSimulatedSession } from '@/context/SimulatedSessionContext';
 
 export function useRolesPermisos() {
   const { showError, showSuccess } = useToast();
-
-  const [usuarioActivo, setUsuarioActivo] = useState<UsuarioSimulado>(
-    USUARIOS_SIMULADOS[0]
-  );
+  const { usuarioActivo, setUsuarioActivo, refrescarPermisos } = useSimulatedSession();
 
   const [roles, setRoles] = useState<RolItem[]>([]);
   const [cargando, setCargando] = useState(true);
@@ -163,6 +159,21 @@ export function useRolesPermisos() {
     setFiltroEstado('TODOS');
   };
 
+  const handleRolActualizado = useCallback(async () => {
+    await cargarRoles(usuarioActivo.id, true);
+    await refrescarPermisos();
+    if (rolSeleccionado) {
+      try {
+        const detalle = await obtenerDetalleRol(rolSeleccionado.id, usuarioActivo.id);
+        if (detalle?.data) {
+          setRolSeleccionado(detalle.data);
+        }
+      } catch {
+        // Fallback silencioso si falla el detalle individual; cargarRoles ya refrescó el listado
+      }
+    }
+  }, [cargarRoles, usuarioActivo.id, rolSeleccionado, refrescarPermisos]);
+
   return {
     usuarioActivo,
     setUsuarioActivo,
@@ -172,6 +183,7 @@ export function useRolesPermisos() {
     errorRbac,
     rolSeleccionado,
     setRolSeleccionado,
+    handleRolActualizado,
     busqueda,
     setBusqueda,
     filtroTipo,
