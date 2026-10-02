@@ -17,7 +17,7 @@ import { toUserFriendlyErrorMessage } from '@/lib/utils/errorUtils';
 
 export default function RecursosPage() {
   const { showError, showSuccess } = useToast();
-  const { usuarioActivo, cambiarUsuarioPorId } = useSimulatedSession();
+  const { usuarioActivo, cambiarUsuarioPorId, hasPermission } = useSimulatedSession();
   const [recursoAEliminar, setRecursoAEliminar] = useState<RecursoItem | null>(null);
 
   const [filtros, setFiltros] = useState<FiltrosRecursosState>({
@@ -34,8 +34,10 @@ export default function RecursosPage() {
     usuarioActivo.id
   );
 
-  const esAdmin =
-    usuarioActivo.rol === 'Administrador' || usuarioActivo.id === DEFAULT_ADMIN_USER_ID;
+  const puedeEliminar =
+    usuarioActivo.rol === 'Administrador' ||
+    usuarioActivo.id === DEFAULT_ADMIN_USER_ID ||
+    hasPermission('recursos:eliminar');
 
   const handleEliminacionExitosa = useCallback(
     (recursoEliminado: RecursoItem) => {
@@ -140,7 +142,7 @@ export default function RecursosPage() {
           esFiltroActivo={esFiltroActivo}
           onLimpiarFiltros={handleLimpiarFiltros}
           onEliminarRecurso={setRecursoAEliminar}
-          puedeEliminar={esAdmin}
+          puedeEliminar={puedeEliminar}
         />
 
         <Pagination
