@@ -294,14 +294,6 @@ export default function PuntoCriticoDetalleModal({
                   {punto.delegacion?.nombre || 'Central Comunal'}
                 </span>
               </div>
-              {punto.delegacion?.codigo && (
-                <div>
-                  <span style={{ color: 'var(--color-text-muted, #5F676E)', fontWeight: 600 }}>Código Delegación: </span>
-                  <span style={{ fontFamily: 'monospace', color: 'var(--color-charcoal, #3B3F45)' }}>
-                    {punto.delegacion.codigo}
-                  </span>
-                </div>
-              )}
             </div>
           </div>
         </div>

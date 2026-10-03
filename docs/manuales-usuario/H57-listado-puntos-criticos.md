@@ -66,7 +66,7 @@ Al hacer clic sobre cualquier fila de la tabla de puntos críticos, se despliega
 * **Cabecera Institucional:** Código del punto crítico, badge de prioridad operativa con semántica de colores, estado y nombre oficial del sector.
 * **Descripción Detallada:** Información extendida sobre la vulnerabilidad, causas de desborde y observaciones preventivas.
 * **Evaluación de Amenaza y Riesgo:** Clasificación de la tipología de riesgo y nivel de prioridad asignado.
-* **Jurisdicción Territorial:** Delegación municipal asignada y su respectivo código operativo.
+* **Jurisdicción Territorial:** Nombre oficial de la delegación municipal asignada (ej. *"Delegación Municipal Sur"*).
 * **Coordenadas Espaciales (PostGIS WGS 84):** Desglose numérico de latitud y longitud, botón utilitario para copiar las coordenadas y botón principal para abrir la ubicación directamente en el mapa (OpenStreetMap).
 * **Metadatos:** Fecha y hora exacta en que el punto fue registrado en el catastro municipal.
 
@@ -86,7 +86,7 @@ Al hacer clic sobre cualquier fila de la tabla de puntos críticos, se despliega
 
 * **Fallo de Conexión o Error del Servidor (500):** Se notifica al usuario mediante un Toast de advertencia con un mensaje amigable y se activa el fallback de datos local para no interrumpir la navegación en modo desconectado.
 * **Sesión Expirada (401):** El sistema redirige automáticamente a la pantalla de autenticación.
-* **Permiso Insuficiente (403):** El componente `AccesoDenegadoState` bloquea la visualización del listado y explica qué permiso es requerido (`puntos_criticos:leer`).
+* **Permiso Insuficiente (403):** El componente `AccesoDenegadoState` bloquea la visualización del listado indicando un mensaje claro y conciso: *"No cuenta con los permisos necesarios para acceder a esta sección. Si requiere acceso, puede solicitarlos a un administrador."* con un botón directo para retornar a la Bandeja de Avisos.
 
 ---
 

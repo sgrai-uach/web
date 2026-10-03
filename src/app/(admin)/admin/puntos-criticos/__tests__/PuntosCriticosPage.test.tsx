@@ -108,7 +108,12 @@ describe('PuntosCriticosPage - RBAC y Renderizado (CA-1, CA-4)', () => {
     render(<PuntosCriticosPage />);
 
     expect(screen.getByText('Acceso Restringido')).toBeInTheDocument();
-    expect(screen.getByText(/puntos_criticos:leer/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/No cuenta con los permisos necesarios para acceder a esta sección/i)
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/puede solicitarlos a un administrador/i)
+    ).toBeInTheDocument();
     expect(screen.queryByText('PC-ANG-01')).toBeNull();
   });
 });

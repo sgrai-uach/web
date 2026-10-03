@@ -46,7 +46,7 @@ describe('PuntoCriticoDetalleModal', () => {
     expect(screen.getByText('Inundación y anegamiento')).toBeInTheDocument();
     expect(screen.getByText('Prioridad Alta')).toBeInTheDocument();
     expect(screen.getByText('Delegación Municipal Sur')).toBeInTheDocument();
-    expect(screen.getByText('DEL_SUR')).toBeInTheDocument();
+    expect(screen.queryByText('DEL_SUR')).toBeNull();
     expect(screen.getByText('-39.8456')).toBeInTheDocument();
     expect(screen.getByText('-73.2389')).toBeInTheDocument();
   });

@@ -15,7 +15,7 @@ export default function AccesoDenegadoState({
     <CommonAccesoDenegadoState
       rolUsuario={rolUsuario}
       modulo="el Listado de Puntos Críticos"
-      permisoRequerido="puntos_criticos:leer"
+      mensajePersonalizado="No cuenta con los permisos necesarios para acceder a esta sección. Si requiere acceso, puede solicitarlos a un administrador."
       botonVolverHref="/callcenter"
       botonVolverTexto="Ir a Bandeja de Avisos"
     />
