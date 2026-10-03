@@ -105,7 +105,7 @@ export const KanbanBoard: React.FC = () => {
       />
 
       {esForbidden ? (
-        <AccesoDenegado onReintentar={() => setUserId(DEFAULT_ENCARGADO_ID)} />
+        <AccesoDenegado />
       ) : (
         <>
           <IncidentesKpiCards

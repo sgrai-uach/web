@@ -23,8 +23,8 @@ Proporcionar al Encargado un panorama rápido e interactivo de la jornada actual
 3. Si un usuario sin el permiso requerido intenta acceder directamente mediante la URL `/centro-incidentes` o `/mando`, el sistema desplegará automáticamente la pantalla institucional de **Acceso Restringido (HTTP 403)**:
    * **Encabezado:** *Acceso Restringido*.
    * **Título:** *Permisos insuficientes para el Centro de Mando*.
-   * **Mensaje:** *"La sesión activa no cuenta con los privilegios requeridos para consultar o gestionar esta sección (Gestión Táctica del Tablero de Incidentes). Si necesita acceso para realizar sus labores operativas, solicite al Administrador la asignación de los permisos correspondientes. También puede alternar a un usuario autorizado desde el selector de sesión en la esquina superior derecha del encabezado."*
-   * **Acciones:** Provee botones de acción para **"Reintentar acceso"** (reconectando con las credenciales de Encargado) y retorno seguro hacia **"Ir a Bandeja de Avisos"**.
+   * **Mensaje:** *"No cuenta con los permisos necesarios para acceder a esta sección. Si requiere acceso, puede solicitarlos a un administrador."*
+   * **Acción:** Provee un botón de retorno seguro hacia **"Ir a Bandeja de Avisos"**.
 
 ---
 
