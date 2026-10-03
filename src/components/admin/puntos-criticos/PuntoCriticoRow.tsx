@@ -7,6 +7,7 @@ import type { PuntoCriticoItem, PrioridadPuntoCritico } from '@/types/puntoCriti
 interface PuntoCriticoRowProps {
   punto: PuntoCriticoItem;
   indice: number;
+  onSeleccionar?: (punto: PuntoCriticoItem) => void;
 }
 
 const PRIORIDAD_CONFIG: Record<
@@ -39,7 +40,11 @@ const PRIORIDAD_CONFIG: Record<
   },
 };
 
-export default function PuntoCriticoRow({ punto, indice }: PuntoCriticoRowProps) {
+export default function PuntoCriticoRow({
+  punto,
+  indice,
+  onSeleccionar,
+}: PuntoCriticoRowProps) {
   const esFilaPar = indice % 2 === 0;
   const [copiado, setCopiado] = useState(false);
 
@@ -61,9 +66,11 @@ export default function PuntoCriticoRow({ punto, indice }: PuntoCriticoRowProps)
 
   return (
     <tr
+      onClick={() => onSeleccionar?.(punto)}
       style={{
         backgroundColor: esFilaPar ? 'var(--color-white, #FFFFFF)' : '#F8FAFC',
         borderBottom: '1px solid var(--border-color-neutral, #DFE3E8)',
+        cursor: 'pointer',
         transition: 'background-color 0.15s ease',
       }}
       onMouseEnter={(e) => {
@@ -206,6 +213,7 @@ export default function PuntoCriticoRow({ punto, indice }: PuntoCriticoRowProps)
               href={urlMapa}
               target="_blank"
               rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
               title="Ver en OpenStreetMap"
               style={{
                 display: 'inline-flex',

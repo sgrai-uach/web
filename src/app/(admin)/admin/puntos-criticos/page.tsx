@@ -12,13 +12,16 @@ import { useSimulatedSession } from '@/context/SimulatedSessionContext';
 import PuntosCriticosHeader from '@/components/admin/puntos-criticos/PuntosCriticosHeader';
 import PuntosCriticosFiltros from '@/components/admin/puntos-criticos/PuntosCriticosFiltros';
 import PuntosCriticosTabla from '@/components/admin/puntos-criticos/PuntosCriticosTabla';
+import PuntoCriticoDetalleModal from '@/components/admin/puntos-criticos/PuntoCriticoDetalleModal';
 import AccesoDenegadoState from '@/components/admin/puntos-criticos/AccesoDenegadoState';
 import Pagination from '@/components/common/Pagination';
 import { toUserFriendlyErrorMessage } from '@/lib/utils/errorUtils';
+import type { PuntoCriticoItem } from '@/types/puntoCritico';
 
 export default function PuntosCriticosPage() {
   const { showError } = useToast();
   const { usuarioActivo, cambiarUsuarioPorId, hasPermission } = useSimulatedSession();
+  const [puntoSeleccionado, setPuntoSeleccionado] = useState<PuntoCriticoItem | null>(null);
 
   const [filtros, setFiltros] = useState<FiltrosPuntosCriticosState>({
     pagina: 1,
@@ -130,6 +133,7 @@ export default function PuntosCriticosPage() {
           cargando={cargando}
           esFiltroActivo={esFiltroActivo}
           onLimpiarFiltros={handleLimpiarFiltros}
+          onSeleccionarPunto={setPuntoSeleccionado}
         />
 
         <Pagination
@@ -142,6 +146,12 @@ export default function PuntosCriticosPage() {
           nombreEntidad="puntos críticos"
         />
       </div>
+
+      {/* Modal de Detalle de Atributos del Punto Crítico */}
+      <PuntoCriticoDetalleModal
+        punto={puntoSeleccionado}
+        onCerrar={() => setPuntoSeleccionado(null)}
+      />
     </div>
   );
 }
