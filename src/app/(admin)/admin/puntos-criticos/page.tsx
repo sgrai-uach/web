@@ -39,6 +39,7 @@ export default function PuntosCriticosPage() {
 
   const tienePermiso =
     usuarioActivo.rol === 'Administrador' ||
+    Boolean(usuarioActivo.esAdmin) ||
     usuarioActivo.id === DEFAULT_ADMIN_USER_ID ||
     hasPermission('puntos_criticos:leer');
 
@@ -92,8 +93,11 @@ export default function PuntosCriticosPage() {
     Boolean(filtros.prioridad) ||
     filtros.activo !== undefined;
 
-  // Control RBAC: Si el usuario no tiene rol/permiso o la API responde 403
-  if (!tienePermiso || statusCode === 403) {
+  const accesoDenegado =
+    statusCode === 403 || (!cargando && !tienePermiso && statusCode !== 200);
+
+  // Control RBAC: Si el usuario recibe 403 o no tiene permiso y no fue autorizado por la API
+  if (accesoDenegado) {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6, 24px)' }}>
         <PuntosCriticosHeader
