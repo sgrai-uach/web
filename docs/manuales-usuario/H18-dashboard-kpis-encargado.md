@@ -4,7 +4,7 @@
 > **Historia de Usuario:** HU-18 — Vista Rápida y KPIs de Incidentes  
 > **Rol Destinatario:** Encargado de Centro de Mando / Operaciones  
 > **Sistema:** SGRAI — Dirección de Gestión de Riesgos de Desastres, Municipalidad de Valdivia  
-> **Ruta del Módulo:** `/centro-incidentes` (o `/mando`)
+> **Ruta del Módulo:** `/centro-incidentes`
 
 ---
 
