@@ -47,9 +47,14 @@ export const MisionContextoSection: React.FC<MisionContextoSectionProps> = ({
 
       <div className={styles.seccionBody}>
         {descripcionMision && (
-          <div style={{ marginBottom: 'var(--space-2, 8px)' }}>
+          <div
+            style={{
+              paddingBottom: 'var(--space-3, 12px)',
+              borderBottom: '1px solid var(--border-color-neutral, #DFE3E8)',
+            }}
+          >
             <span className={styles.dataLabel}>Instrucciones de la Misión:</span>
-            <p style={{ margin: '4px 0 0 0', fontSize: '14px', color: 'var(--color-text-dark, #2B2B2B)' }}>
+            <p style={{ margin: '4px 0 0 0', fontSize: '14px', color: 'var(--color-text-dark, #2B2B2B)', lineHeight: 1.4 }}>
               {descripcionMision}
             </p>
           </div>
