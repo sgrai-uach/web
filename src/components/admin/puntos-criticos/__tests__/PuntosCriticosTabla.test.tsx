@@ -80,4 +80,22 @@ describe('PuntosCriticosTabla', () => {
 
     expect(screen.getByText('No hay puntos críticos registrados')).toBeInTheDocument();
   });
+
+  it('debe invocar onSeleccionarPunto al hacer clic sobre una fila de la tabla', () => {
+    const handleSeleccionar = vi.fn();
+    render(
+      <PuntosCriticosTabla
+        puntosCriticos={[mockPunto]}
+        cargando={false}
+        esFiltroActivo={false}
+        onLimpiarFiltros={vi.fn()}
+        onSeleccionarPunto={handleSeleccionar}
+      />
+    );
+
+    const filaPunto = screen.getByText('Sector Humedal Angachilla');
+    fireEvent.click(filaPunto);
+
+    expect(handleSeleccionar).toHaveBeenCalledWith(mockPunto);
+  });
 });
