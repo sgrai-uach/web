@@ -9,6 +9,7 @@ import {
   Boxes,
   ShieldCheck,
   Users,
+  AlertTriangle,
 } from 'lucide-react';
 
 export interface NavItem {
@@ -88,6 +89,12 @@ export const NAV_GROUPS: NavGroup[] = [
         label: 'Inventario Logístico',
         href: '/admin/recursos',
         icon: Boxes,
+      },
+      {
+        id: 'puntos-criticos',
+        label: 'Puntos Críticos',
+        href: '/admin/puntos-criticos',
+        icon: AlertTriangle,
       },
       {
         id: 'roles-permisos',
