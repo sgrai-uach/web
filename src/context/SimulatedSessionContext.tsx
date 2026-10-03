@@ -49,6 +49,7 @@ function obtenerPermisosFallback(rol: string, esAdmin: boolean): Set<string> {
       'crear_incidente_manual',
       'misiones:asignar',
       'eventos_atp:crear',
+      'puntos_criticos:leer',
     ]);
   }
 
