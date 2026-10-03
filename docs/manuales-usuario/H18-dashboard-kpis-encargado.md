@@ -1,26 +1,30 @@
-# Manual de Usuario: H18 - Vista Rápida y KPIs de Incidentes para Encargado
+# Manual de Usuario: Vista Rápida y KPIs de Incidentes para Encargado (HU-18)
 
-Este manual documenta el funcionamiento y uso de la **Vista Rápida y KPIs de Incidentes del Día** integrada en la cabecera del **Centro de Mando / Incidentes** (`/centro-incidentes`) en la plataforma web del Sistema de Gestión de Recursos para Atención de Incidentes (SGRAI) de la Municipalidad de Valdivia.
-
----
-
-## 1. Información General
-
-- **Rol al que está dirigido:** Encargado de Operaciones / Jefe de Centro de Mando (Dirección de Gestión de Riesgos de Desastres).
-- **Objetivo de la funcionalidad:** Proporcionar al Encargado un panorama rápido e interactivo de la jornada actual ("panorama del día"), consolidando el volumen de emergencias en sus 5 estados operativos mediante un semáforo de priorización visual y permitiendo enfocar de forma ágil el tablero táctico sin perder la visión global.
-- **Ruta de acceso en la plataforma web:** `/centro-incidentes` (o `/mando`).
+> **Módulo:** Operaciones / Centro de Mando e Incidentes  
+> **Historia de Usuario:** HU-18 — Vista Rápida y KPIs de Incidentes  
+> **Rol Destinatario:** Encargado de Centro de Mando / Operaciones  
+> **Sistema:** SGRAI — Dirección de Gestión de Riesgos de Desastres, Municipalidad de Valdivia  
+> **Ruta del Módulo:** `/centro-incidentes` (o `/mando`)
 
 ---
 
-## 2. Acceso y Control de Permisos (RBAC)
+## 1. Objetivo de la Funcionalidad
 
-Para interactuar con el panel de KPIs se valida la autorización del usuario:
+Proporcionar al Encargado un panorama rápido e interactivo de la jornada actual ("panorama del día"), consolidando el volumen de emergencias en sus 5 estados operativos mediante un semáforo de priorización visual y permitiendo enfocar de forma ágil el tablero táctico sin perder la visión global.
 
-1. **Usuario con rol Encargado:** El sistema autentica la identidad y otorga acceso pleno a los indicadores, contadores de delegación y al tablero de incidentes.
-2. **Usuario no autorizado (otro rol o sin permisos):** Si un usuario sin el permiso `incidentes:kanban` intenta ingresar a `/centro-incidentes`, el sistema desplegará la pantalla de advertencia:
-   - **"Acceso Restringido — 403 Forbidden"** bloqueando la consulta a la API de KPIs y al tablero táctico.
+---
 
-> En entorno de desarrollo o pruebas, el selector superior de sesión permite alternar entre el usuario **Encargado (Con Permisos)** y un usuario no autorizado para auditar esta validación.
+## 2. Acceso y Control de Seguridad (RBAC)
+
+1. El acceso a esta vista y al consumo de datos está restringido exclusivamente a usuarios autenticados con rol de **Encargado** o que cuenten expresamente con el permiso del sistema `'incidentes:kanban'`.
+2. **Identificadores de Sesión de Prueba (Simulador):**
+   * **Encargado de Centro de Mando:** UUID `00000000-0000-4000-8000-000000000003` (`encargado@valdivia.cl`) &rarr; **Permitido (200 OK)**.
+   * **Operador Call Center:** UUID `00000000-0000-4000-8000-000000000002` (`callcenter@valdivia.cl`) &rarr; **Restringido (403 Forbidden)**.
+3. Si un usuario sin el permiso requerido intenta acceder directamente mediante la URL `/centro-incidentes` o `/mando`, el sistema desplegará automáticamente la pantalla institucional de **Acceso Restringido (HTTP 403)**:
+   * **Encabezado:** *Acceso Restringido*.
+   * **Título:** *Permisos insuficientes para el Centro de Mando*.
+   * **Mensaje:** *"La sesión activa no cuenta con los privilegios requeridos para consultar o gestionar esta sección (Gestión Táctica del Tablero de Incidentes). Si necesita acceso para realizar sus labores operativas, solicite al Administrador la asignación de los permisos correspondientes. También puede alternar a un usuario autorizado desde el selector de sesión en la esquina superior derecha del encabezado."*
+   * **Acciones:** Provee botones de acción para **"Reintentar acceso"** (reconectando con las credenciales de Encargado) y retorno seguro hacia **"Ir a Bandeja de Avisos"**.
 
 ---
 
@@ -46,10 +50,10 @@ En la cabecera del panel dispones del selector desplegable de **Delegación Terr
 
 1. **Toda la Comuna (Valdivia):** Vista por defecto que suma los incidentes de toda la jurisdicción comunal.
 2. **Delegaciones Específicas:** Permite acotar instantáneamente tanto los contadores superiores como las columnas del tablero a una delegación en particular:
-   - *Delegación Norte*
-   - *Delegación Sur*
-   - *Delegación Costa*
-   - *Delegación Calle Calle*
+   * *Delegación Municipal Norte*
+   * *Delegación Municipal Sur*
+   * *Delegación Municipal Costa*
+   * *Delegación Municipal Calle Calle*
 
 Al cambiar de delegación, los contadores numéricos y las columnas del Kanban se sincronizan automáticamente sin requerir recargar la página.
 
@@ -60,20 +64,20 @@ Al cambiar de delegación, los contadores numéricos y las columnas del Kanban s
 El panel superior está sincronizado bidireccionalmente con el tablero Kanban:
 
 1. **Clic en una Tarjeta de Estado:**
-   - Al pulsar cualquiera de las 5 tarjetas (ej. *"En Atención"*), el sistema activa automáticamente el filtro **"Solo hoy"** en la barra de filtros tácticos.
-   - La pantalla realiza un desplazamiento suave (*smooth scroll*) horizontal hacia la columna seleccionada y la resalta con un marco de foco pulsante (`columnaResaltada`).
-   - La tarjeta superior muestra el distintivo **"Enfocado"**.
+   * Al pulsar cualquiera de las 5 tarjetas (ej. *"En Atención"*), el sistema activa automáticamente el filtro **"Solo hoy"** en la barra de filtros tácticos.
+   * La pantalla realiza un desplazamiento suave (*smooth scroll*) horizontal hacia la columna seleccionada y la resalta con un marco de foco pulsante (`columnaResaltada`).
+   * La tarjeta superior muestra el distintivo **"Enfocado"**.
 2. **Deseleccionar / Quitar Enfoque:**
-   - Vuelve a hacer clic sobre la misma tarjeta de estado para retirar el resalte visual.
-   - Puedes desmarcar la casilla **"Solo hoy"** en la barra de filtros o hacer clic en **"Limpiar filtros"** para volver a ver los incidentes históricos acumulados.
+   * Vuelve a hacer clic sobre la misma tarjeta de estado para retirar el resalte visual.
+   * Puedes desmarcar la casilla **"Solo hoy"** en la barra de filtros o hacer clic en **"Limpiar filtros"** para volver a ver los incidentes históricos acumulados.
 
 ---
 
-## 6. Sincronización en Tiempo Real (Socket.io)
+## 6. Sincronización en Tiempo Real
 
-El panel cuenta con invalidación reactiva inmediata ante cualquier cambio operacional en terreno:
+El panel cuenta con invalidación reactiva e inmediata ante cualquier cambio operacional en terreno:
 
-- En la cabecera superior verás la insignia **"En Vivo"** con un indicador verde cuando la conexión WebSocket con `sala:encargados` está activa.
+- En la cabecera superior verás la insignia **"En vivo"** con un indicador verde cuando la conexión con la sala de operaciones del Centro de Mando está activa.
 - **Nuevo incidente ingresado:** Si un ciudadano reporta un incidente vía chatbot o un operador lo ingresa en Call Center, el contador de **Reportados** se actualiza automáticamente en segundo plano.
 - **Cambio de estado o cierre:** Cuando una cuadrilla actualiza una misión desde `sgrai-pwa` (por ejemplo, pasando de atención a resuelto), el contador de **En Atención** disminuye y el de **Resueltos** incrementa al instante, sin parpadeos de pantalla ni pérdidas de datos en formularios.
 - **Actualización manual:** En caso de intermitencia de red, puedes pulsar el botón **"Actualizar"** con el ícono circular para sincronizar manualmente contadores y tarjetas desde el servidor.
@@ -89,5 +93,5 @@ El panel cuenta con invalidación reactiva inmediata ante cualquier cambio opera
 
 ## 8. Relación con Otros Repositorios del Sistema
 
-- **`sgrai-api`:** Provee el endpoint optimizado `GET /api/incidentes/kpis` (con agregación condicional SQL e índices compuestos) y emite los eventos `incidente:creado` e `incidente:actualizado` por WebSockets.
+- **`sgrai-api`:** Provee el endpoint optimizado `GET /api/incidentes/kpis` (con agregación condicional SQL e índices compuestos) y emite los eventos en tiempo real `incidente:creado` e `incidente:actualizado`.
 - **`sgrai-pwa`:** Es la aplicación en terreno de las patrullas y cuadrillas, cuyas transiciones de estado gatillan las actualizaciones en vivo que el Encargado visualiza en este panel.
