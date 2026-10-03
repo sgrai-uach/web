@@ -61,6 +61,15 @@ La tabla se actualiza de manera automática al aplicar cualquiera de los siguien
 | **Delegación Asociada** | Nombre de la delegación territorial responsable o *"Central Comunal"*. |
 | **Estado** | Badge con punto indicador circular: *"Activo"* (verde) o *"Inactivo"* (gris). |
 
+### 4.1. Visualización Detallada (Ficha Técnica en Ventana Modal)
+Al hacer clic sobre cualquier fila de la tabla de puntos críticos, se despliega una ventana modal interactiva con la ficha técnica completa:
+* **Cabecera Institucional:** Código del punto crítico, badge de prioridad operativa con semántica de colores, estado y nombre oficial del sector.
+* **Descripción Detallada:** Información extendida sobre la vulnerabilidad, causas de desborde y observaciones preventivas.
+* **Evaluación de Amenaza y Riesgo:** Clasificación de la tipología de riesgo y nivel de prioridad asignado.
+* **Jurisdicción Territorial:** Delegación municipal asignada y su respectivo código operativo.
+* **Coordenadas Espaciales (PostGIS WGS 84):** Desglose numérico de latitud y longitud, botón utilitario para copiar las coordenadas y botón principal para abrir la ubicación directamente en el mapa (OpenStreetMap).
+* **Metadatos:** Fecha y hora exacta en que el punto fue registrado en el catastro municipal.
+
 ---
 
 ## 5. Paginación y Estados de la Interfaz
