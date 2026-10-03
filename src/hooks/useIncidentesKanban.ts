@@ -29,6 +29,8 @@ export interface FiltrosKanban {
   busqueda: string;
   prioridad: PrioridadIncidente | '';
   tipoAfectacion: string;
+  delegacionId?: string;
+  soloHoy?: boolean;
 }
 
 export function useIncidentesKanban(initialUserId?: string) {
@@ -105,6 +107,8 @@ export function useIncidentesKanban(initialUserId?: string) {
               prioridad: filtros.prioridad || undefined,
               tipoAfectacion: filtros.tipoAfectacion || undefined,
               busqueda: filtros.busqueda.trim() || undefined,
+              delegacionId: filtros.delegacionId?.trim() || undefined,
+              soloHoy: filtros.soloHoy ? true : undefined,
             },
             userId
           )
@@ -184,6 +188,8 @@ export function useIncidentesKanban(initialUserId?: string) {
             prioridad: filtros.prioridad || undefined,
             tipoAfectacion: filtros.tipoAfectacion || undefined,
             busqueda: filtros.busqueda.trim() || undefined,
+            delegacionId: filtros.delegacionId?.trim() || undefined,
+            soloHoy: filtros.soloHoy ? true : undefined,
           },
           userId
         );
