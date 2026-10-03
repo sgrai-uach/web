@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Truck, Package } from 'lucide-react';
+import { Truck, Package, Pencil } from 'lucide-react';
 import type { RecursoItem } from '@/types/recurso';
 import BadgeEstado from './BadgeEstado';
 import Button from '@/components/ui/Button';
@@ -10,9 +10,10 @@ interface RecursoRowProps {
   recurso: RecursoItem;
   indice: number;
   onSeleccionar: (recurso: RecursoItem) => void;
+  onEditar?: (recurso: RecursoItem) => void;
 }
 
-export default function RecursoRow({ recurso, indice, onSeleccionar }: RecursoRowProps) {
+export default function RecursoRow({ recurso, indice, onSeleccionar, onEditar }: RecursoRowProps) {
   const esFilaPar = indice % 2 === 0;
   const tieneBajoStock =
     recurso.estado === 'BAJO_STOCK' ||
@@ -95,17 +96,41 @@ export default function RecursoRow({ recurso, indice, onSeleccionar }: RecursoRo
 
       {/* Acciones */}
       <td style={{ padding: '14px 16px', verticalAlign: 'middle', textAlign: 'center' }}>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={(e) => {
-            e.stopPropagation();
-            onSeleccionar(recurso);
-          }}
-        >
-          Ver Ficha
-        </Button>
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={(e) => {
+              e.stopPropagation();
+              onSeleccionar(recurso);
+            }}
+          >
+            Ver Ficha
+          </Button>
+          {onEditar && (
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={(e) => {
+                e.stopPropagation();
+                onEditar(recurso);
+              }}
+              title={`Editar ${recurso.nombre}`}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+                backgroundColor: 'var(--color-primary-teal)',
+                color: 'var(--color-white)',
+              }}
+            >
+              <Pencil size={13} aria-hidden="true" />
+              <span>Editar</span>
+            </Button>
+          )}
+        </div>
       </td>
     </tr>
   );

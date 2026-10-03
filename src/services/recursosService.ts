@@ -5,6 +5,8 @@ import type {
   RecursoCreado,
   ListarRecursosResponse,
   FiltrosRecursosState,
+  EditarRecursoDTO,
+  RecursoItem,
 } from '@/types/recurso';
 import type { ApiErrorResponse } from '@/types/common';
 
@@ -110,5 +112,93 @@ export async function getRecursos(
       throw err;
     }
     throw new RecursoServiceError(formatApiError(err));
+  }
+}
+
+/**
+ * Obtiene el detalle completo de un recurso logístico por su ID.
+ */
+export async function getRecursoById(
+  id: string,
+  userId: string = DEFAULT_ADMIN_USER_ID,
+  signal?: AbortSignal
+): Promise<RecursoItem> {
+  try {
+    const { data, error, response } = await apiClient.GET('/api/recursos/{id}', {
+      params: {
+        path: { id },
+        header: {
+          'x-user-id': userId,
+        },
+      },
+      signal,
+    });
+
+    if (response.status === 200 && data) {
+      return data as unknown as RecursoItem;
+    }
+
+    if (error) {
+      const formatted = formatApiError({
+        ...(typeof error === 'object' && error !== null ? error : {}),
+        status: response.status,
+      });
+      throw new RecursoServiceError(formatted);
+    }
+
+    throw new RecursoServiceError({
+      message: `Error HTTP ${response.status}: No fue posible obtener la información del recurso`,
+      statusCode: response.status,
+    });
+  } catch (err: unknown) {
+    if (err instanceof RecursoServiceError) {
+      throw err;
+    }
+    const formatted = formatApiError(err);
+    throw new RecursoServiceError(formatted);
+  }
+}
+
+/**
+ * Actualiza las características, inventario y estado de un recurso logístico.
+ */
+export async function actualizarRecurso(
+  id: string,
+  payload: EditarRecursoDTO,
+  userId: string = DEFAULT_ADMIN_USER_ID
+): Promise<RecursoItem> {
+  try {
+    const { data, error, response } = await apiClient.PUT('/api/recursos/{id}', {
+      params: {
+        path: { id },
+        header: {
+          'x-user-id': userId,
+        },
+      },
+      body: payload,
+    });
+
+    if (response.status === 200 && data?.data) {
+      return data.data as unknown as RecursoItem;
+    }
+
+    if (error) {
+      const formatted = formatApiError({
+        ...(typeof error === 'object' && error !== null ? error : {}),
+        status: response.status,
+      });
+      throw new RecursoServiceError(formatted);
+    }
+
+    throw new RecursoServiceError({
+      message: `Error HTTP ${response.status}: No fue posible actualizar el recurso`,
+      statusCode: response.status,
+    });
+  } catch (err: unknown) {
+    if (err instanceof RecursoServiceError) {
+      throw err;
+    }
+    const formatted = formatApiError(err);
+    throw new RecursoServiceError(formatted);
   }
 }
