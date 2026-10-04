@@ -1,6 +1,7 @@
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import {
+  FilterBar,
   FilterSearchInput,
   SegmentedButtonGroup,
   FilterSelect,
@@ -139,15 +140,76 @@ describe('Componentes de Filtrado Híbridos Reutilizables', () => {
         <ActiveFilterChips chips={chips} onClearAll={handleClearAll} />
       );
 
-      expect(screen.getByText('Norte')).toBeDefined();
+      expect(screen.getByText(/Norte/)).toBeDefined();
 
-      const removeBtn = screen.getByLabelText('Quitar filtro Delegación');
+      const removeBtn = screen.getByLabelText(/quitar filtro.*delegación/i);
       fireEvent.click(removeBtn);
       expect(handleRemove).toHaveBeenCalled();
 
       const clearAllBtn = screen.getByRole('button', { name: /Limpiar todos los filtros/i });
       fireEvent.click(clearAllBtn);
       expect(handleClearAll).toHaveBeenCalled();
+    });
+  });
+
+  describe('FilterBar', () => {
+    beforeEach(() => {
+      localStorage.clear();
+    });
+
+    it('debe alternar entre colapsado y expandido al hacer clic en el botón toggle', () => {
+      render(
+        <FilterBar titulo="Filtros del Sistema" totalFiltrosActivos={2}>
+          <div data-testid="contenido-filtros">Contenido de Filtros</div>
+        </FilterBar>
+      );
+
+      // Inicialmente está expandido
+      expect(screen.getByTestId('contenido-filtros')).toBeDefined();
+      expect(screen.getByText('Filtros del Sistema')).toBeDefined();
+      expect(screen.getByTestId('badge-filtros-activos').textContent).toContain('2 activos');
+
+      const toggleBtn = screen.getByTestId('btn-toggle-filtros');
+      expect(toggleBtn.textContent).toContain('Minimizar filtros');
+
+      // Hacer clic para minimizar
+      fireEvent.click(toggleBtn);
+      expect(screen.queryByTestId('contenido-filtros')).toBeNull();
+      expect(toggleBtn.textContent).toContain('Expandir filtros');
+
+      // Hacer clic para expandir nuevamente
+      fireEvent.click(toggleBtn);
+      expect(screen.getByTestId('contenido-filtros')).toBeDefined();
+      expect(toggleBtn.textContent).toContain('Minimizar filtros');
+    });
+
+    it('debe persistir el estado de colapsado en localStorage con storageKey', () => {
+      const storageKey = 'test:filtros:collapsed';
+
+      // Primera instancia: usuario minimiza
+      const { unmount } = render(
+        <FilterBar storageKey={storageKey}>
+          <div data-testid="contenido-persistente">Contenido</div>
+        </FilterBar>
+      );
+
+      const toggleBtn = screen.getByTestId('btn-toggle-filtros');
+      fireEvent.click(toggleBtn); // Minimizar
+
+      expect(localStorage.getItem(storageKey)).toBe('true');
+      expect(screen.queryByTestId('contenido-persistente')).toBeNull();
+
+      unmount();
+
+      // Segunda instancia (simula recarga de página): debe montar minimizado automáticamente
+      render(
+        <FilterBar storageKey={storageKey}>
+          <div data-testid="contenido-persistente-2">Contenido</div>
+        </FilterBar>
+      );
+
+      expect(screen.queryByTestId('contenido-persistente-2')).toBeNull();
+      expect(screen.getByTestId('btn-toggle-filtros').textContent).toContain('Expandir filtros');
     });
   });
 });

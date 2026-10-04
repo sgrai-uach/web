@@ -39,14 +39,14 @@ export function ActiveFilterChips({
             className={`${styles.chipTag} ${chip.esDelegacion ? styles.chipTagDelegacion : ''}`}
           >
             <span>
-              {chip.etiqueta}: <strong>{chip.valorVisible}</strong>
+              {chip.etiqueta}: {chip.valorVisible}
             </span>
             <button
               type="button"
               onClick={chip.onRemove}
               className={styles.chipRemoveBtn}
-              title={`Quitar filtro ${chip.etiqueta}`}
-              aria-label={`Quitar filtro ${chip.etiqueta}`}
+              title={`Quitar filtro de ${chip.etiqueta.toLowerCase()}`}
+              aria-label={`Quitar filtro de ${chip.etiqueta.toLowerCase()}`}
             >
               <X size={12} aria-hidden="true" />
             </button>

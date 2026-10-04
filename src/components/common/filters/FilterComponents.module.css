@@ -4,7 +4,78 @@
   padding: 16px 20px;
   display: flex;
   flex-direction: column;
+  gap: 12px;
+}
+
+.filterHeaderBar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.filterHeaderLeft {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.filterHeaderTitle {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-primary-teal-dark, #14505A);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.activeBadge {
+  background-color: var(--color-accent-mint, #4FAE9B);
+  color: #FFFFFF;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.filterHeaderRight {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
+}
+
+.toggleCollapseBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background-color: var(--color-white, #FFFFFF);
+  border: 1px solid var(--border-color-neutral-dark, #CCD2D9);
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-charcoal, #3B3F45);
+  cursor: pointer;
+  border-radius: 0;
+  transition: all 0.15s ease;
+}
+
+.toggleCollapseBtn:hover {
+  background-color: var(--color-bg-light, #ECEFF3);
+  color: var(--color-primary-teal-dark, #14505A);
+  border-color: var(--color-primary-teal, #1B6F7D);
+}
+
+.filterBody {
+  display: flex;
+  flex-direction: column;
   gap: 14px;
+  width: 100%;
 }
 
 .filterGrid {
