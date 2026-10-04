@@ -208,7 +208,7 @@ export const incidentesService = {
     userId: string = DEFAULT_ENCARGADO_ID
   ): Promise<ResultadoKpisIncidentes> {
     try {
-      const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
       const url = new URL('/api/incidentes/kpis', baseUrl);
       if (query.fecha && query.fecha.trim()) {
         url.searchParams.set('fecha', query.fecha.trim());
