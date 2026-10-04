@@ -5,8 +5,11 @@ import type {
   ListarPuntosCriticosResponse,
   FiltrosPuntosCriticosState,
   PuntoCriticoItem,
+  PuntoCriticoEliminadoSocketPayload,
 } from '@/types/puntoCritico';
 import { DEFAULT_ADMIN_USER_ID } from '@/lib/api/client';
+import { getSocket } from '@/lib/socket/client';
+import type { Socket } from 'socket.io-client';
 import {
   getPuntosCriticos,
   PuntoCriticoServiceError,
@@ -52,6 +55,7 @@ export interface UsePuntosCriticosReturn {
   error: Error | null;
   statusCode: number | null;
   recargar: () => Promise<void>;
+  removerPuntoLocalmente: (id: string) => void;
 }
 
 export function usePuntosCriticos(
@@ -115,6 +119,57 @@ export function usePuntosCriticos(
     };
   }, [fetchData]);
 
+  // Actualización reactiva en tiempo real ante evento Socket.io "punto_critico:eliminado"
+  useEffect(() => {
+    let socketInstance: Socket | null = null;
+    try {
+      socketInstance = getSocket();
+    } catch {
+      return;
+    }
+
+    if (!socketInstance) return;
+
+    const handlePuntoCriticoEliminado = (payload: PuntoCriticoEliminadoSocketPayload) => {
+      setData((prev) => {
+        if (!prev) return prev;
+        const index = prev.data.findIndex((item) => item.id === payload.id);
+        if (index === -1) return prev;
+
+        // Si el filtro activo exige activos, removerlo; si no, marcar inactivo
+        const nuevosDatos = prev.data.filter((item) => item.id !== payload.id);
+        return {
+          ...prev,
+          data: nuevosDatos,
+          meta: {
+            ...prev.meta,
+            total: Math.max(0, prev.meta.total - 1),
+          },
+        };
+      });
+    };
+
+    socketInstance.on('punto_critico:eliminado', handlePuntoCriticoEliminado);
+
+    return () => {
+      socketInstance.off('punto_critico:eliminado', handlePuntoCriticoEliminado);
+    };
+  }, []);
+
+  const removerPuntoLocalmente = useCallback((id: string) => {
+    setData((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        data: prev.data.filter((item) => item.id !== id),
+        meta: {
+          ...prev.meta,
+          total: Math.max(0, prev.meta.total - 1),
+        },
+      };
+    });
+  }, []);
+
   return {
     puntosCriticos: data?.data ?? [],
     meta: data?.meta ?? {
@@ -127,5 +182,6 @@ export function usePuntosCriticos(
     error,
     statusCode,
     recargar: fetchData,
+    removerPuntoLocalmente,
   };
 }

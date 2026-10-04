@@ -30,3 +30,20 @@ export interface FiltrosPuntosCriticosState {
   prioridad?: PrioridadPuntoCritico;
   busqueda?: string;
 }
+
+/* ==========================================================================
+   Tipos para Eliminación / Desactivación Lógica (HU-56)
+   ========================================================================== */
+
+export type EliminarPuntoCriticoResponse = NonNullable<
+  paths['/api/puntos-criticos/{id}']['delete']['responses'][200]['content']['application/json']
+>;
+
+export interface PuntoCriticoEliminadoSocketPayload {
+  id: string;
+  codigo: string;
+  nombre: string;
+  eliminadoPorId?: string;
+  eliminadoEn?: string;
+}
+
