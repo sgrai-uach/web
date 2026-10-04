@@ -1,0 +1,196 @@
+.filterContainer {
+  background-color: var(--color-white, #FFFFFF);
+  border: 1px solid var(--border-color-neutral, #DFE3E8);
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.filterGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+  align-items: flex-end;
+}
+
+.filterField {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.filterLabel {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-primary-teal-dark, #14505A);
+  letter-spacing: 0.2px;
+}
+
+.filterInput,
+.filterSelect {
+  padding: 8px 10px;
+  font-size: 13px;
+  border: 1px solid var(--border-color-dark, #3B3F45);
+  border-radius: 0;
+  outline: none;
+  background-color: var(--color-white, #FFFFFF);
+  color: var(--color-text-dark, #2B2B2B);
+  width: 100%;
+  height: 38px;
+  box-sizing: border-box;
+}
+
+.filterInput:focus,
+.filterSelect:focus {
+  border-color: var(--color-primary-teal, #1B6F7D);
+  box-shadow: 0 0 0 1px var(--color-primary-teal, #1B6F7D);
+}
+
+.searchWrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.searchClearBtn {
+  position: absolute;
+  right: 8px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--color-text-muted, #5F676E);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+}
+
+.searchClearBtn:hover {
+  color: var(--color-text-dark, #2B2B2B);
+}
+
+/* Segmented button group (Formato Imagen 1) */
+.segmentedGroupContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.segmentedButtons {
+  display: inline-flex;
+  border: 1px solid var(--border-color-neutral-dark, #CCD2D9);
+  height: 38px;
+  box-sizing: border-box;
+}
+
+.segmentedBtn {
+  border: none;
+  background-color: transparent;
+  color: var(--color-charcoal, #3B3F45);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 0 12px;
+  cursor: pointer;
+  border-radius: 0;
+  transition: background-color 0.15s ease, color 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+}
+
+.segmentedBtn:not(:last-child) {
+  border-right: 1px solid var(--border-color-neutral-dark, #CCD2D9);
+}
+
+.segmentedBtn:hover:not(.segmentedBtnActive) {
+  background-color: var(--color-bg-light, #ECEFF3);
+}
+
+.segmentedBtnActive {
+  background-color: var(--color-accent-mint, #4FAE9B);
+  color: #FFFFFF;
+}
+
+/* Barra inferior de chips activos */
+.activeChipsRow {
+  border-top: 1px solid var(--color-bg-light, #ECEFF3);
+  padding-top: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.chipsList {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.chipsHeader {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--color-primary-teal-dark, #14505A);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.chipTag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background-color: var(--color-bg-light, #ECEFF3);
+  border: 1px solid var(--border-color-neutral-dark, #CCD2D9);
+  padding: 3px 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-dark, #2B2B2B);
+  border-radius: 0;
+}
+
+.chipTagDelegacion {
+  border-color: var(--color-primary-teal, #1B6F7D);
+  color: var(--color-primary-teal, #1B6F7D);
+  font-weight: 700;
+}
+
+.chipRemoveBtn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  color: inherit;
+  opacity: 0.75;
+}
+
+.chipRemoveBtn:hover {
+  opacity: 1;
+}
+
+.clearAllBtn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--color-primary-teal, #1B6F7D);
+  text-decoration: underline;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 4px 8px;
+}
+
+.clearAllBtn:hover {
+  color: var(--color-primary-teal-dark, #14505A);
+}
