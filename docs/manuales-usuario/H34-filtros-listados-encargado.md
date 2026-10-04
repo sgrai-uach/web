@@ -70,8 +70,19 @@ El Centro de Mando cuenta con una barra de filtrado estandarizada con diseño h�
    - En la botonera segmentada superior (`TODOS`, `REPORTADO`, `VERIFICANDO`, `EN_ATENCION`, `NO_ABORDBLE`, `RESUELTO`), haga clic en cualquier estado específico.
    - El tablero **ocultará automáticamente las columnas no deseadas**, maximizando el espacio de pantalla para concentrarse en la columna activa (por ejemplo, ver únicamente los incidentes en estado `VERIFICANDO` para despachar patrullas).
    - Para restaurar la visualización del tablero completo de 5 columnas, seleccione `TODOS`.
+   - *Nota de Estandarización Canónica:* El estado inicial se denomina formalmente **"Reportado"** (en lugar de "Pendiente"), representando los avisos ingresados a la espera de verificación en terreno.
 
-6. **Indicadores de Filtros Activos y Limpieza Global:**
+6. **Sincronización Inteligente de Enfoque desde KPIs Superiores:**
+   - Al pulsar una de las tarjetas de métricas o KPIs ubicadas sobre el tablero (ej. "Reportados", "En Atención"):
+     - Si el tablero está filtrado por una columna distinta (ej: está filtrado en "Resuelto" y pulsa "Reportados"), el sistema **sincroniza automáticamente el filtro de estado a "Reportado"**, evitando dejar al usuario frente a una vista vacía e iluminando de inmediato la columna deseada.
+     - Si el tablero muestra todas las columnas (`TODOS`), el sistema preserva la visualización global y simplemente realiza un desplazamiento suave (*smooth scroll*) para enfocar visualmente la categoría seleccionada.
+
+7. **Minimización Persistente de Filtros:**
+   - En la esquina superior derecha del panel de filtros se dispone del botón **"Minimizar filtros"** / **"Expandir filtros"**.
+   - Su preferencia se **guarda automáticamente en el navegador (`localStorage`)**, por lo que permanecerá minimizada o expandida incluso al recargar la página o volver desde otra vista.
+   - Cuando la barra está minimizada, el encabezado conserva el badge verde de **"X ACTIVOS"** para advertirle si existen filtros operando en ese momento.
+
+8. **Indicadores de Filtros Activos y Limpieza Global:**
    - Cada criterio activo genera un chip en la franja inferior con su etiqueta correspondiente.
    - Puede descartar cualquier filtro individual haciendo clic en su botón `[✕]`.
    - Para restablecer todos los parámetros simultáneamente, haga clic en el enlace **"Limpiar todos los filtros"**.
@@ -148,6 +159,8 @@ En la vista de personal operativo, el Encargado puede focalizar cuadrillas y fun
 |---|---|---|
 | **Combinación sin resultados** | El listado o columna afectada despliega un mensaje amigable: *"No se encontraron registros coincidentes con los filtros aplicados"*. | Presione el botón **"Limpiar filtros"** en la franja de filtros activos o flexibilice los criterios. |
 | **Columna Kanban aislada** | Al seleccionar un estado específico (ej. `EN_ATENCION`), las demás columnas del tablero se ocultan. | Para volver a monitorear el flujo completo del ciclo de vida de los incidentes, seleccione `TODOS` en la botonera de estados. |
+| **Panel de filtros minimizado** | La barra de filtros se encuentra compactada para ganar espacio visual vertical. | Si requiere ajustar algún criterio, presione **"Expandir filtros"**; el badge numérico le recuerda cuántos filtros siguen activos. |
+| **Enfoque de KPI con tablero filtrado** | El usuario hace clic en un KPI de una columna que actualmente se encuentra oculta por un filtro de estado previo. | El sistema conmuta el filtro de estado automáticamente a la columna del KPI para revelarla y enfocarla de inmediato sin requerir desfiltrar primero. |
 | **Paginación al cambiar filtros** | El sistema restablece automáticamente la vista a la Página 1 para asegurar que los nuevos resultados sean visibles de inmediato. | Utilice los controles de paginación al pie de la tabla si el resultado supera el límite configurado por página. |
 | **Persistencia de sesión simulada** | Al alternar entre perfiles de Encargado o Administrador, los filtros se preservan en memoria de la vista activa. | Puede refrescar los datos en cualquier instante mediante el botón **"Refrescar"**. |
 
