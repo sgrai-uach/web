@@ -1,19 +1,22 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useContext } from 'react';
 import type { EmpleadoUsuario } from '@/types/empleados';
 import { empleadosService } from '@/services/empleadosService';
 import { toUserFriendlyErrorMessage } from '@/lib/utils/errorUtils';
 import { useToast } from '@/components/ui/Toast';
 import { useSmartScroll } from '@/hooks/useSmartScroll';
-import { useSimulatedSession } from '@/context/SimulatedSessionContext';
+import { SimulatedSessionContext } from '@/context/SimulatedSessionContext';
+import { AuthContext } from '@/context/AuthContext';
 
 /**
  * Custom Hook para orquestar la vista de administración de empleados.
  * Conforme a docs/ARCHITECTURE.md (Separación de Responsabilidades y Vistas Delgadas).
  */
 export function useAdminEmpleados() {
-  const { usuarioActivo } = useSimulatedSession();
+  const auth = useContext(AuthContext);
+  const session = useContext(SimulatedSessionContext);
+  const usuarioActivoId = auth?.usuario?.id || session?.usuarioActivo?.id;
   const [usuarioSeleccionado, setUsuarioSeleccionado] = useState<EmpleadoUsuario | null>(null);
   const [versionActualizacion, setVersionActualizacion] = useState(0);
   const [empleadoAEliminar, setEmpleadoAEliminar] = useState<EmpleadoUsuario | null>(null);
@@ -72,7 +75,7 @@ export function useAdminEmpleados() {
     setEliminando(true);
     try {
       const targetId = empleadoAEliminar.personal_id || empleadoAEliminar.usuario_id;
-      await empleadosService.deleteEmpleado(targetId, usuarioActivo?.id);
+      await empleadosService.deleteEmpleado(targetId, usuarioActivoId);
 
       showSuccess(
         `El funcionario ${empleadoAEliminar.nombres} ${empleadoAEliminar.apellidos} ha sido dado de baja lógicamente del sistema.`
@@ -88,7 +91,7 @@ export function useAdminEmpleados() {
     } finally {
       setEliminando(false);
     }
-  }, [empleadoAEliminar, usuarioSeleccionado, usuarioActivo, showSuccess, showError]);
+  }, [empleadoAEliminar, usuarioSeleccionado, usuarioActivoId, showSuccess, showError]);
 
   return {
     usuarioSeleccionado,
