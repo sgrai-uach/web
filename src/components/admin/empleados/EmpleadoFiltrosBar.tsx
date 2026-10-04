@@ -6,6 +6,7 @@ import Button from '@/components/ui/Button';
 import type { CatalogoItem } from '@/types/empleados';
 import { selectStyle, labelStyle } from './empleadoStyles';
 import { SegmentedButtonGroup } from '@/components/common/filters/SegmentedButtonGroup';
+import { FilterBar } from '@/components/common/filters/FilterBar';
 
 interface EmpleadoFiltrosBarProps {
   delegacionFiltro: string;
@@ -73,8 +74,20 @@ export default function EmpleadoFiltrosBar({
     especialidadFiltro
   );
 
+  const totalActivos = [
+    delegacionFiltro,
+    rolFiltro,
+    estadoOperativoFiltro,
+    especialidadFiltro,
+  ].filter(Boolean).length;
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '0.875rem', paddingTop: '0.75rem', borderTop: '1px solid var(--color-bg-light, #ECEFF3)' }}>
+    <FilterBar
+      titulo="Filtros de Personal y Cuadrillas"
+      storageKey="sgrai:filtros:personal:colapsado"
+      totalFiltrosActivos={totalActivos}
+      style={{ marginTop: '0.875rem' }}
+    >
       {/* Botonera segmentada para selección rápida de perfiles operativos de terreno */}
       {quickRoleOptions.length > 1 && (
         <SegmentedButtonGroup
@@ -225,6 +238,6 @@ export default function EmpleadoFiltrosBar({
           </Button>
         </div>
       )}
-    </div>
+    </FilterBar>
   );
 }

@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Button from '@/components/ui/Button';
-import { RotateCw, Filter, FilterX, X } from 'lucide-react';
+import { RotateCw } from 'lucide-react';
 import type {
   FiltroDelegacion,
   FiltroEstado,
@@ -11,6 +11,13 @@ import type {
 } from '@/types/avisos';
 import { ESTADOS_OPCIONES } from '@/types/avisos';
 import { useCatalogos } from '@/hooks/useCatalogos';
+import {
+  FilterBar,
+  FilterSearchInput,
+  FilterSelect,
+  ActiveFilterChips,
+  type ActiveChipItem,
+} from '@/components/common/filters';
 
 interface AvisosFiltrosProps {
   busqueda: string;
@@ -47,42 +54,118 @@ export default function AvisosFiltros({
 }: AvisosFiltrosProps) {
   const { nombresDelegaciones } = useCatalogos();
 
-  const delegacionesOpciones: { valor: FiltroDelegacion; etiqueta: string }[] = [
+  const delegacionesOpciones = [
     { valor: 'TODAS', etiqueta: 'Todas las delegaciones' },
     ...nombresDelegaciones.map((n) => ({
-      valor: n as FiltroDelegacion,
+      valor: n,
       etiqueta: n,
     })),
   ];
 
-  const selectStyle: React.CSSProperties = {
-    padding: '8px 10px',
-    fontSize: '13px',
-    border: '1px solid var(--border-color-dark, #3B3F45)',
-    borderRadius: 0,
-    outline: 'none',
-    backgroundColor: '#FFFFFF',
-    color: 'var(--color-text-dark, #2B2B2B)',
-    width: '100%',
-    height: '38px',
-  };
+  const estadosOpciones = ESTADOS_OPCIONES.map((e) => ({
+    valor: e.valor,
+    etiqueta: e.etiqueta,
+  }));
 
-  const labelStyle: React.CSSProperties = {
-    fontSize: '13px',
-    fontWeight: 700,
-    color: 'var(--color-primary-teal-dark, #14505A)',
-  };
+  const origenOpciones = [
+    { valor: 'TODOS', etiqueta: 'Todos los canales' },
+    { valor: 'WEB', etiqueta: 'Portal Web' },
+    { valor: 'CHATBOT', etiqueta: 'Chatbot Municipal' },
+    { valor: 'TELEFONO', etiqueta: 'Central Telefónica' },
+  ];
+
+  const semaforoOpciones = [
+    { valor: 'TODOS', etiqueta: 'Todas las prioridades' },
+    { valor: 'EN_TIEMPO', etiqueta: 'En Tiempo (< 15 min)' },
+    { valor: 'PRECAUCION', etiqueta: 'Precaución (15-30 min)' },
+    { valor: 'URGENTE', etiqueta: 'Urgente (> 30 min)' },
+  ];
+
+  // Construcción de chips activos
+  const chipsActivos: ActiveChipItem[] = [];
+
+  if (busqueda.trim()) {
+    chipsActivos.push({
+      id: 'busqueda',
+      etiqueta: 'Texto',
+      valorVisible: `"${busqueda.trim()}"`,
+      onRemove: () => onBusquedaChange(''),
+    });
+  }
+
+  if (filtroDelegacion !== 'TODAS') {
+    chipsActivos.push({
+      id: 'delegacion',
+      etiqueta: 'Delegación',
+      valorVisible: filtroDelegacion,
+      onRemove: () => onFiltroDelegacionChange('TODAS'),
+      esDelegacion: true,
+    });
+  }
+
+  if (filtroEstado !== 'PENDIENTE') {
+    const labelEstado =
+      filtroEstado === 'VERIFICADO'
+        ? 'Verificado'
+        : filtroEstado === 'RECHAZADO'
+        ? 'Rechazado'
+        : 'Todos';
+    chipsActivos.push({
+      id: 'estado',
+      etiqueta: 'Estado',
+      valorVisible: labelEstado,
+      onRemove: () => onFiltroEstadoChange('PENDIENTE'),
+    });
+  }
+
+  if (filtroOrigen !== 'TODOS') {
+    const labelOrigen =
+      filtroOrigen === 'WEB'
+        ? 'Portal Web'
+        : filtroOrigen === 'CHATBOT'
+        ? 'Chatbot'
+        : 'Teléfono';
+    chipsActivos.push({
+      id: 'origen',
+      etiqueta: 'Canal',
+      valorVisible: labelOrigen,
+      onRemove: () => onFiltroOrigenChange('TODOS'),
+    });
+  }
+
+  if (filtroSemaforo !== 'TODOS') {
+    const labelSemaforo =
+      filtroSemaforo === 'EN_TIEMPO'
+        ? 'En Tiempo'
+        : filtroSemaforo === 'PRECAUCION'
+        ? 'Precaución'
+        : 'Urgente';
+    chipsActivos.push({
+      id: 'semaforo',
+      etiqueta: 'Prioridad',
+      valorVisible: labelSemaforo,
+      onRemove: () => onFiltroSemaforoChange('TODOS'),
+    });
+  }
 
   return (
-    <div
-      style={{
-        backgroundColor: 'var(--color-white, #FFFFFF)',
-        padding: '16px 20px',
-        border: '1px solid #DFE3E8',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '14px',
-      }}
+    <FilterBar
+      titulo="Bandeja de Avisos"
+      storageKey="sgrai:filtros:avisos:colapsado"
+      totalFiltrosActivos={chipsActivos.length}
+      headerActions={
+        <Button
+          type="button"
+          variant="secondary"
+          size="sm"
+          onClick={onRefrescar}
+          disabled={cargando}
+          title="Refrescar lista de avisos"
+        >
+          <RotateCw size={14} className={cargando ? 'animate-spin' : ''} aria-hidden="true" />
+          <span>{cargando ? 'Actualizando...' : 'Refrescar'}</span>
+        </Button>
+      }
     >
       {/* Grilla principal de controles estandarizada */}
       <div
@@ -93,399 +176,58 @@ export default function AvisosFiltros({
           alignItems: 'flex-end',
         }}
       >
-        {/* Buscador */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-          <label htmlFor="filtro-busqueda" style={labelStyle}>
-            Buscar por descripción o calle:
-          </label>
-          <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-            <input
-              id="filtro-busqueda"
-              type="text"
-              value={busqueda}
-              onChange={(e) => onBusquedaChange(e.target.value)}
-              placeholder="Ej: Inundación, Picarte..."
-              style={{
-                ...selectStyle,
-                paddingRight: busqueda ? '30px' : '10px',
-              }}
-              aria-label="Buscar aviso"
-            />
-            {busqueda && (
-              <button
-                type="button"
-                onClick={() => onBusquedaChange('')}
-                style={{
-                  position: 'absolute',
-                  right: '6px',
-                  background: 'none',
-                  border: 'none',
-                  cursor: 'pointer',
-                  color: 'var(--color-text-muted, #5F676E)',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  padding: '2px',
-                }}
-                title="Borrar búsqueda"
-                aria-label="Borrar búsqueda"
-              >
-                <X size={14} />
-              </button>
-            )}
-          </div>
-        </div>
+        <FilterSearchInput
+          id="filtro-busqueda"
+          label="Buscar por descripción o calle:"
+          value={busqueda}
+          onChange={onBusquedaChange}
+          placeholder="Ej: Inundación, Picarte..."
+          debounceMs={300}
+        />
 
-        {/* Delegación */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-          <label htmlFor="filtro-delegacion" style={labelStyle}>
-            Delegación Territorial:
-          </label>
-          <select
-            id="filtro-delegacion"
-            value={filtroDelegacion}
-            onChange={(e) => onFiltroDelegacionChange(e.target.value as FiltroDelegacion)}
-            style={selectStyle}
-            aria-label="Delegación Territorial"
-          >
-            {delegacionesOpciones.map((opcion) => (
-              <option key={opcion.valor} value={opcion.valor}>
-                {opcion.etiqueta}
-              </option>
-            ))}
-          </select>
-        </div>
+        <FilterSelect
+          id="filtro-delegacion"
+          label="Delegación Territorial:"
+          value={filtroDelegacion}
+          options={delegacionesOpciones}
+          onChange={(val) => onFiltroDelegacionChange(val as FiltroDelegacion)}
+        />
 
-        {/* Estado Operativo */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-          <label htmlFor="filtro-estado" style={labelStyle}>
-            Estado del Aviso:
-          </label>
-          <select
-            id="filtro-estado"
-            value={filtroEstado}
-            onChange={(e) => onFiltroEstadoChange(e.target.value as FiltroEstado)}
-            style={selectStyle}
-            aria-label="Estado del Aviso"
-          >
-            {ESTADOS_OPCIONES.map((opcion) => (
-              <option key={opcion.valor} value={opcion.valor}>
-                {opcion.etiqueta}
-              </option>
-            ))}
-          </select>
-        </div>
+        <FilterSelect
+          id="filtro-estado"
+          label="Estado del Aviso:"
+          value={filtroEstado}
+          options={estadosOpciones}
+          onChange={(val) => onFiltroEstadoChange(val as FiltroEstado)}
+        />
 
-        {/* Canal de Origen */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-          <label htmlFor="filtro-origen" style={labelStyle}>
-            Canal de Origen:
-          </label>
-          <select
-            id="filtro-origen"
-            value={filtroOrigen}
-            onChange={(e) => onFiltroOrigenChange(e.target.value as FiltroOrigen)}
-            style={selectStyle}
-            aria-label="Canal de Origen"
-          >
-            <option value="TODOS">Todos los canales</option>
-            <option value="WEB">Portal Web</option>
-            <option value="CHATBOT">Chatbot Municipal</option>
-            <option value="TELEFONO">Central Telefónica</option>
-          </select>
-        </div>
+        <FilterSelect
+          id="filtro-origen"
+          label="Canal de Origen:"
+          value={filtroOrigen}
+          options={origenOpciones}
+          onChange={(val) => onFiltroOrigenChange(val as FiltroOrigen)}
+        />
 
-        {/* Prioridad de Espera */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-          <label htmlFor="filtro-semaforo" style={labelStyle}>
-            Prioridad de Espera:
-          </label>
-          <select
-            id="filtro-semaforo"
-            value={filtroSemaforo}
-            onChange={(e) => onFiltroSemaforoChange(e.target.value as FiltroSemaforo)}
-            style={selectStyle}
-            aria-label="Prioridad de Espera"
-          >
-            <option value="TODOS">Todas las prioridades</option>
-            <option value="EN_TIEMPO">En Tiempo (&lt; 15 min)</option>
-            <option value="PRECAUCION">Precaución (15-30 min)</option>
-            <option value="URGENTE">Urgente (&gt; 30 min)</option>
-          </select>
-        </div>
-
-        {/* Botón Refrescar */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-          <Button
-            type="button"
-            variant="secondary"
-            size="md"
-            onClick={onRefrescar}
-            disabled={cargando}
-            suppressHydrationWarning
-            title="Refrescar lista de avisos"
-            style={{
-              height: '38px',
-              width: '100%',
-              justifyContent: 'center',
-              fontSize: '13px',
-            }}
-          >
-            <RotateCw size={14} className={cargando ? 'animate-spin' : ''} aria-hidden="true" />
-            <span>{cargando ? 'Actualizando...' : 'Refrescar'}</span>
-          </Button>
-        </div>
+        <FilterSelect
+          id="filtro-semaforo"
+          label="Prioridad de Espera:"
+          value={filtroSemaforo}
+          options={semaforoOpciones}
+          onChange={(val) => onFiltroSemaforoChange(val as FiltroSemaforo)}
+        />
       </div>
 
       {/* Indicador visual de filtros activos y acción Limpiar Filtros */}
-      {hayFiltrosActivos && (
-        <div
-          data-testid="indicador-filtros-activos"
-          style={{
-            borderTop: '1px solid var(--color-bg-light, #ECEFF3)',
-            paddingTop: '10px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: '8px',
-            flexWrap: 'wrap',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-            <span
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '4px',
-                fontSize: '12px',
-                fontWeight: 700,
-                color: 'var(--color-primary-teal-dark, #14505A)',
-                textTransform: 'uppercase',
-                letterSpacing: '0.4px',
-              }}
-            >
-              <Filter size={13} aria-hidden="true" />
-              Filtros activos:
-            </span>
-
-            {/* Chip Búsqueda */}
-            {busqueda.trim() && (
-              <span
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  backgroundColor: 'var(--color-bg-light, #ECEFF3)',
-                  border: '1px solid #CCD2D9',
-                  padding: '3px 8px',
-                  fontSize: '12px',
-                  fontWeight: 600,
-                  color: 'var(--color-text-dark, #2B2B2B)',
-                }}
-              >
-                Texto: &ldquo;{busqueda.trim()}&rdquo;
-                <button
-                  type="button"
-                  onClick={() => onBusquedaChange('')}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    cursor: 'pointer',
-                    padding: 0,
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    color: 'var(--color-text-muted, #5F676E)',
-                  }}
-                  title="Quitar filtro de texto"
-                  aria-label="Quitar filtro de texto"
-                >
-                  <X size={12} />
-                </button>
-              </span>
-            )}
-
-            {/* Chip Delegación */}
-            {filtroDelegacion !== 'TODAS' && (
-              <span
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  backgroundColor: 'var(--color-bg-light, #ECEFF3)',
-                  border: '1px solid var(--color-primary-teal, #1B6F7D)',
-                  padding: '3px 8px',
-                  fontSize: '12px',
-                  fontWeight: 700,
-                  color: 'var(--color-primary-teal, #1B6F7D)',
-                }}
-              >
-                Delegación: {filtroDelegacion}
-                <button
-                  type="button"
-                  onClick={() => onFiltroDelegacionChange('TODAS')}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    cursor: 'pointer',
-                    padding: 0,
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    color: 'var(--color-primary-teal, #1B6F7D)',
-                  }}
-                  title="Quitar filtro de delegación"
-                  aria-label="Quitar filtro de delegación"
-                >
-                  <X size={12} />
-                </button>
-              </span>
-            )}
-
-            {/* Chip Estado */}
-            {filtroEstado !== 'PENDIENTE' && (
-              <span
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  backgroundColor: 'var(--color-bg-light, #ECEFF3)',
-                  border: '1px solid #CCD2D9',
-                  padding: '3px 8px',
-                  fontSize: '12px',
-                  fontWeight: 600,
-                  color: 'var(--color-text-dark, #2B2B2B)',
-                }}
-              >
-                Estado:{' '}
-                {filtroEstado === 'VERIFICADO'
-                  ? 'Verificado'
-                  : filtroEstado === 'RECHAZADO'
-                  ? 'Rechazado'
-                  : 'Todos'}
-                <button
-                  type="button"
-                  onClick={() => onFiltroEstadoChange('PENDIENTE')}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    cursor: 'pointer',
-                    padding: 0,
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    color: 'var(--color-text-muted, #5F676E)',
-                  }}
-                  title="Restablecer a Pendientes"
-                  aria-label="Restablecer a Pendientes"
-                >
-                  <X size={12} />
-                </button>
-              </span>
-            )}
-
-            {/* Chip Canal Origen */}
-            {filtroOrigen !== 'TODOS' && (
-              <span
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  backgroundColor: 'var(--color-bg-light, #ECEFF3)',
-                  border: '1px solid #CCD2D9',
-                  padding: '3px 8px',
-                  fontSize: '12px',
-                  fontWeight: 600,
-                  color: 'var(--color-text-dark, #2B2B2B)',
-                }}
-              >
-                Canal:{' '}
-                {filtroOrigen === 'WEB'
-                  ? 'Portal Web'
-                  : filtroOrigen === 'CHATBOT'
-                  ? 'Chatbot'
-                  : 'Teléfono'}
-                <button
-                  type="button"
-                  onClick={() => onFiltroOrigenChange('TODOS')}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    cursor: 'pointer',
-                    padding: 0,
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    color: 'var(--color-text-muted, #5F676E)',
-                  }}
-                  title="Quitar filtro de canal"
-                  aria-label="Quitar filtro de canal"
-                >
-                  <X size={12} />
-                </button>
-              </span>
-            )}
-
-            {/* Chip Prioridad Semáforo */}
-            {filtroSemaforo !== 'TODOS' && (
-              <span
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  backgroundColor: 'var(--color-bg-light, #ECEFF3)',
-                  border: '1px solid #CCD2D9',
-                  padding: '3px 8px',
-                  fontSize: '12px',
-                  fontWeight: 600,
-                  color: 'var(--color-text-dark, #2B2B2B)',
-                }}
-              >
-                Prioridad:{' '}
-                {filtroSemaforo === 'EN_TIEMPO'
-                  ? 'En Tiempo'
-                  : filtroSemaforo === 'PRECAUCION'
-                  ? 'Precaución'
-                  : 'Urgente'}
-                <button
-                  type="button"
-                  onClick={() => onFiltroSemaforoChange('TODOS')}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    cursor: 'pointer',
-                    padding: 0,
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    color: 'var(--color-text-muted, #5F676E)',
-                  }}
-                  title="Quitar filtro de prioridad"
-                  aria-label="Quitar filtro de prioridad"
-                >
-                  <X size={12} />
-                </button>
-              </span>
-            )}
-          </div>
-
-          {/* Botón Limpiar filtros estilo RecursosFiltros */}
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={onLimpiarFiltros}
-            title="Restablecer todos los filtros aplicados"
-            style={{
-              color: 'var(--color-primary-teal, #1B6F7D)',
-              padding: '4px 8px',
-              minHeight: 'auto',
-              textDecoration: 'underline',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '4px',
-              fontSize: '13px',
-            }}
-          >
-            <FilterX size={13} aria-hidden="true" />
-            <span>Limpiar filtros</span>
-          </Button>
+      {(hayFiltrosActivos || chipsActivos.length > 0) && (
+        <div data-testid="indicador-filtros-activos">
+          <ActiveFilterChips
+            chips={chipsActivos}
+            onClearAll={onLimpiarFiltros}
+            clearAllText="Limpiar filtros"
+          />
         </div>
       )}
-    </div>
+    </FilterBar>
   );
 }

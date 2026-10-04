@@ -53,9 +53,12 @@ export default function PuntosCriticosPage() {
     setFiltros((prev) => ({ ...prev, busqueda, pagina: 1 }));
   }, []);
 
-  const handleCambiarDelegacion = useCallback((delegacionId?: string) => {
-    setFiltros((prev) => ({ ...prev, delegacionId, pagina: 1 }));
-  }, []);
+  const handleCambiarDelegacion = useCallback(
+    (delegacionId?: string, delegacionNombre?: string) => {
+      setFiltros((prev) => ({ ...prev, delegacionId, delegacionNombre, pagina: 1 }));
+    },
+    []
+  );
 
   const handleCambiarPrioridad = useCallback(
     (prioridad?: PrioridadPuntoCritico) => {
@@ -122,6 +125,7 @@ export default function PuntosCriticosPage() {
       <PuntosCriticosFiltros
         busqueda={filtros.busqueda || ''}
         delegacionId={filtros.delegacionId}
+        delegacionNombre={filtros.delegacionNombre}
         prioridad={filtros.prioridad}
         activo={filtros.activo}
         onCambiarBusqueda={handleCambiarBusqueda}

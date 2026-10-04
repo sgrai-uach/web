@@ -12,6 +12,7 @@ import {
   PuntoCriticoServiceError,
 } from '@/services/puntosCriticosService';
 import { getErrorMessage } from '@/lib/utils/errorUtils';
+import { catalogosService } from '@/services/catalogosService';
 
 export const DELEGACIONES_MUNICIPALES = [
   {
@@ -77,7 +78,16 @@ export function usePuntosCriticos(
     setStatusCode(null);
 
     try {
-      const response = await getPuntosCriticos(filtros, userId, controller.signal);
+      let resolvedDelegacionId = filtros.delegacionId;
+      if (!resolvedDelegacionId && filtros.delegacionNombre && filtros.delegacionNombre !== 'TODAS') {
+        resolvedDelegacionId = catalogosService.resolverDelegacionId(filtros.delegacionNombre);
+      }
+
+      const response = await getPuntosCriticos(
+        { ...filtros, delegacionId: resolvedDelegacionId },
+        userId,
+        controller.signal
+      );
       setData(response);
       setStatusCode(200);
       setError(null);
