@@ -80,13 +80,19 @@ export const ConfirmationCard: React.FC<ConfirmationCardProps> = ({
         </div>
       )}
 
-      <div style={{ marginTop: '1.25rem' }}>
+      <div style={{ marginTop: '1.25rem', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
         <Button
           type="button"
           variant="secondary"
           onClick={onNuevoReporte}
         >
           Realizar otro reporte
+        </Button>
+        <Button
+          variant="outline"
+          href="/ciudadania"
+        >
+          Volver al Portal Ciudadano
         </Button>
       </div>
     </div>

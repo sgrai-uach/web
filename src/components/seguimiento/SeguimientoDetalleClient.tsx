@@ -112,10 +112,10 @@ export const SeguimientoDetalleClient: React.FC<SeguimientoDetalleClientProps> =
             />
 
             <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', marginTop: '1.5rem' }}>
-              <Button href="/seguimiento" variant="secondary">
+              <Button href="/ciudadania" variant="secondary">
                 ← Consultar otro código
               </Button>
-              <Button href="/" variant="primary">
+              <Button href="/ciudadania/reportar" variant="primary">
                 + Ingresar nuevo reporte
               </Button>
             </div>

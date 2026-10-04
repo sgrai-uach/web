@@ -34,6 +34,8 @@ export interface FiltrosKanban {
   prioridad: PrioridadIncidente | '';
   tipoAfectacion: string;
   fuenteOrigen: string; // '', 'CHATBOT', 'LLAMADA_TELEFONICA', 'FUNCIONARIO_TERRENO', 'WEB'
+  delegacionId?: string;
+  soloHoy?: boolean;
 }
 
 export function useIncidentesKanban(initialUserId?: string) {
@@ -113,7 +115,11 @@ export function useIncidentesKanban(initialUserId?: string) {
       }
 
       try {
-        const delegacionId = catalogosService.resolverDelegacionId(filtros.delegacion);
+        const delegacionIdResuelta =
+          filtros.delegacionId?.trim() ||
+          catalogosService.resolverDelegacionId(filtros.delegacion) ||
+          undefined;
+
         const columnasAConsultar = filtros.estado && filtros.estado !== 'TODOS'
           ? [filtros.estado as EstadoIncidente]
           : ESTADOS_KANBAN;
@@ -124,11 +130,12 @@ export function useIncidentesKanban(initialUserId?: string) {
               page: 1,
               limit: 20,
               estado,
-              delegacionId,
+              delegacionId: delegacionIdResuelta,
               fuenteOrigen: (filtros.fuenteOrigen as ListarIncidentesQuery['fuenteOrigen']) || undefined,
               prioridad: filtros.prioridad || undefined,
               tipoAfectacion: filtros.tipoAfectacion || undefined,
               busqueda: filtros.busqueda.trim() || undefined,
+              soloHoy: filtros.soloHoy ? true : undefined,
             },
             userId
           )
@@ -200,17 +207,22 @@ export function useIncidentesKanban(initialUserId?: string) {
       setCargandoColumna((prev) => ({ ...prev, [estado]: true }));
 
       try {
-        const delegacionId = catalogosService.resolverDelegacionId(filtros.delegacion);
+        const delegacionIdResuelta =
+          filtros.delegacionId?.trim() ||
+          catalogosService.resolverDelegacionId(filtros.delegacion) ||
+          undefined;
+
         const res = await listarIncidentes(
           {
             page: meta.pagina + 1,
             limit: meta.limite,
             estado,
-            delegacionId,
+            delegacionId: delegacionIdResuelta,
             fuenteOrigen: (filtros.fuenteOrigen as ListarIncidentesQuery['fuenteOrigen']) || undefined,
             prioridad: filtros.prioridad || undefined,
             tipoAfectacion: filtros.tipoAfectacion || undefined,
             busqueda: filtros.busqueda.trim() || undefined,
+            soloHoy: filtros.soloHoy ? true : undefined,
           },
           userId
         );
@@ -240,6 +252,8 @@ export function useIncidentesKanban(initialUserId?: string) {
       prioridad: '',
       tipoAfectacion: '',
       fuenteOrigen: '',
+      delegacionId: undefined,
+      soloHoy: false,
     });
   }, []);
 

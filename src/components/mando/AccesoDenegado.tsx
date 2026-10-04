@@ -9,15 +9,13 @@ interface AccesoDenegadoProps {
 }
 
 export const AccesoDenegado: React.FC<AccesoDenegadoProps> = ({
-  onReintentar,
   rolUsuario,
 }) => {
   return (
     <CommonAccesoDenegadoState
       rolUsuario={rolUsuario}
       modulo="el Centro de Mando"
-      permisoRequerido="incidentes:kanban"
-      onReintentar={onReintentar}
+      mensajePersonalizado="No cuenta con los permisos necesarios para acceder a esta sección. Si requiere acceso, puede solicitarlos a un administrador."
       botonVolverHref="/callcenter"
       botonVolverTexto="Ir a Bandeja de Avisos"
     />

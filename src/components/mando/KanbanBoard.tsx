@@ -1,16 +1,22 @@
 'use client';
 
-import React from 'react';
-import { useIncidentesKanban } from '@/hooks/useIncidentesKanban';
-import { DEFAULT_ENCARGADO_ID } from '@/services/incidentesService';
+import React, { useState } from 'react';
+import {
+  useIncidentesKanban,
+  ESTADOS_KANBAN,
+} from '@/hooks/useIncidentesKanban';
+import { useIncidentesKpis } from '@/hooks/useIncidentesKpis';
+import { DEFAULT_ENCARGADO_ID, type EstadoIncidente } from '@/services/incidentesService';
 import { KanbanHeader } from './KanbanHeader';
 import { KanbanFiltros } from './KanbanFiltros';
 import { KanbanColumn } from './KanbanColumn';
+import { IncidentesKpiCards } from './IncidentesKpiCards';
 import { IncidenteDetalleDrawer } from './IncidenteDetalleDrawer';
 import { AccesoDenegado } from './AccesoDenegado';
 import { Zap } from 'lucide-react';
 import InlineNotice from '@/components/ui/InlineNotice';
 import styles from '@/styles/mando.module.css';
+import { MisionesModal } from './misiones/MisionesModal';
 
 const TITULOS_COLUMNAS = {
   REPORTADO: 'Pendiente / Reportado',
@@ -19,9 +25,6 @@ const TITULOS_COLUMNAS = {
   RESUELTO: 'Resuelto',
   NO_ABORDABLE: 'No Abordable',
 } as const;
-
-import { useState } from 'react';
-import { MisionesModal } from './misiones/MisionesModal';
 
 export const KanbanBoard: React.FC = () => {
   const {
@@ -47,6 +50,54 @@ export const KanbanBoard: React.FC = () => {
   } = useIncidentesKanban();
 
   const [misionesModalAbierto, setMisionesModalAbierto] = useState<boolean>(false);
+  const [estadoEnfocado, setEstadoEnfocado] = useState<EstadoIncidente | null>(null);
+
+  const {
+    kpis,
+    cargando: cargandoKpis,
+    delegacionId,
+    setDelegacionId,
+    delegaciones,
+    refrescarKpis,
+    conectado: conectadoKpis,
+  } = useIncidentesKpis({ userId });
+
+  // Manejo de cambio de delegación sincronizado entre KPIs y Kanban
+  const handleDelegacionChange = (nuevaDelegacionId: string) => {
+    setDelegacionId(nuevaDelegacionId);
+    setFiltros({
+      ...filtros,
+      delegacionId: nuevaDelegacionId || undefined,
+    });
+  };
+
+  // Manejo de clic en tarjeta de estado (Opción B: enfocar columna y activar soloHoy)
+  const handleSelectEstado = (estado: EstadoIncidente) => {
+    if (estadoEnfocado === estado) {
+      setEstadoEnfocado(null);
+    } else {
+      setEstadoEnfocado(estado);
+      // Activar filtro "soloHoy"
+      if (!filtros.soloHoy) {
+        setFiltros({
+          ...filtros,
+          soloHoy: true,
+        });
+      }
+      // Desplazamiento suave hacia la columna seleccionada
+      setTimeout(() => {
+        const colEl = document.getElementById(`kanban-col-${estado}`);
+        if (colEl) {
+          colEl.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+        }
+      }, 50);
+    }
+  };
+
+  const handleRefrescoCompleto = () => {
+    refrescarKpis(true);
+    recargar();
+  };
 
   return (
     <div className={styles.pageContainer}>
@@ -58,14 +109,26 @@ export const KanbanBoard: React.FC = () => {
       />
 
       {esForbidden ? (
-        <AccesoDenegado onReintentar={() => setUserId(DEFAULT_ENCARGADO_ID)} />
+        <AccesoDenegado />
       ) : (
         <>
+          <IncidentesKpiCards
+            kpis={kpis}
+            cargando={cargandoKpis}
+            delegacionId={delegacionId}
+            onDelegacionChange={handleDelegacionChange}
+            delegaciones={delegaciones}
+            onRefrescar={handleRefrescoCompleto}
+            estadoSeleccionado={estadoEnfocado}
+            onSelectEstado={handleSelectEstado}
+            conectado={conectadoKpis || conectado}
+          />
+
           <KanbanFiltros
             filtros={filtros}
             onFiltrosChange={setFiltros}
             onLimpiarFiltros={limpiarFiltros}
-            onRecargar={recargar}
+            onRecargar={handleRefrescoCompleto}
             cargando={cargando}
             onAbrirMisiones={() => setMisionesModalAbierto(true)}
           />
@@ -102,11 +165,13 @@ export const KanbanBoard: React.FC = () => {
               {estadosVisibles.map((estado) => (
                 <KanbanColumn
                   key={estado}
+                  id={`kanban-col-${estado}`}
                   estado={estado}
                   titulo={TITULOS_COLUMNAS[estado]}
                   incidentes={columnas[estado]}
                   paginacion={paginacionColumna[estado]}
                   cargandoMas={cargandoColumna[estado]}
+                  resaltada={estadoEnfocado === estado}
                   onCargarMas={cargarMas}
                   onSeleccionarIncidente={(inc) => setIncidenteSeleccionadoId(inc.id)}
                 />
@@ -130,4 +195,3 @@ export const KanbanBoard: React.FC = () => {
     </div>
   );
 };
-

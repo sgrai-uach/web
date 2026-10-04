@@ -16,6 +16,7 @@ const DICCIONARIO_PERMISOS_LEGIBLES: Record<string, string> = {
   'avisos:leer': 'Recepción y Revisión de Avisos Ciudadanos',
   'avisos:crear': 'Ingreso Manual de Avisos',
   'personal:leer': 'Consulta del Directorio de Personal',
+  'personal:crear': 'Registro y Aprovisionamiento de Funcionarios',
   'personal:gestionar': 'Administración de Cuentas y Personal',
 };
 

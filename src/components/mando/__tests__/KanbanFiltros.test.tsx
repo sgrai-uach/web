@@ -44,6 +44,7 @@ describe('KanbanFiltros', () => {
     expect(screen.getByLabelText(/Tipo de Afectación/i)).toBeDefined();
     expect(screen.getByRole('button', { name: /Actualizar tablero/i })).toBeDefined();
     expect(screen.getByRole('button', { name: /En Atención/i })).toBeDefined();
+    expect(screen.getByLabelText(/Filtrar incidentes solo de hoy/i)).toBeDefined();
   });
 
   it('debe emitir cambios de búsqueda con debounce de 300ms', () => {
@@ -140,7 +141,37 @@ describe('KanbanFiltros', () => {
     );
   });
 
-  it('debe mostrar chips de filtros activos con nombres y permitir restablecer todos los filtros', () => {
+  it('debe emitir soloHoy al alternar el checkbox de jornada de hoy', () => {
+    const onFiltrosChange = vi.fn();
+
+    render(
+      <KanbanFiltros
+        filtros={{
+          busqueda: '',
+          delegacion: 'TODAS',
+          estado: 'TODOS',
+          prioridad: '',
+          tipoAfectacion: '',
+          fuenteOrigen: '',
+          soloHoy: false,
+        }}
+        onFiltrosChange={onFiltrosChange}
+        onRecargar={vi.fn()}
+        cargando={false}
+      />
+    );
+
+    const checkbox = screen.getByLabelText(/Filtrar incidentes solo de hoy/i);
+    fireEvent.click(checkbox);
+
+    expect(onFiltrosChange).toHaveBeenCalledWith(
+      expect.objectContaining({
+        soloHoy: true,
+      })
+    );
+  });
+
+  it('debe mostrar chips de filtros activos con nombres y permitir restablecer todos los filtros con onLimpiarFiltros', () => {
     const onFiltrosChange = vi.fn();
     const onLimpiarFiltros = vi.fn();
 
@@ -153,6 +184,7 @@ describe('KanbanFiltros', () => {
           prioridad: 'ALTA',
           tipoAfectacion: 'Inundación',
           fuenteOrigen: 'WEB',
+          soloHoy: true,
         }}
         onFiltrosChange={onFiltrosChange}
         onLimpiarFiltros={onLimpiarFiltros}
@@ -164,10 +196,46 @@ describe('KanbanFiltros', () => {
     // Debe mostrar chips con nombres
     expect(screen.getAllByText('Costa').length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText('En Atención').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('Solo hoy').length).toBeGreaterThanOrEqual(1);
 
     const btnLimpiar = screen.getByRole('button', { name: /Limpiar todos los filtros/i });
     fireEvent.click(btnLimpiar);
 
     expect(onLimpiarFiltros).toHaveBeenCalled();
+  });
+
+  it('debe restablecer filtros a los valores por defecto cuando no se provee onLimpiarFiltros', () => {
+    const onFiltrosChange = vi.fn();
+
+    render(
+      <KanbanFiltros
+        filtros={{
+          busqueda: 'Picarte',
+          delegacion: 'Costa',
+          estado: 'EN_ATENCION',
+          prioridad: 'ALTA',
+          tipoAfectacion: 'Inundación',
+          fuenteOrigen: 'WEB',
+          soloHoy: true,
+        }}
+        onFiltrosChange={onFiltrosChange}
+        onRecargar={vi.fn()}
+        cargando={false}
+      />
+    );
+
+    const btnLimpiar = screen.getByRole('button', { name: /Limpiar todos los filtros/i });
+    fireEvent.click(btnLimpiar);
+
+    expect(onFiltrosChange).toHaveBeenCalledWith({
+      busqueda: '',
+      delegacion: 'TODAS',
+      estado: 'TODOS',
+      prioridad: '',
+      tipoAfectacion: '',
+      fuenteOrigen: '',
+      delegacionId: undefined,
+      soloHoy: false,
+    });
   });
 });

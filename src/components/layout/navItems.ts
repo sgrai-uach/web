@@ -1,6 +1,7 @@
 import type { ComponentType } from 'react';
 import type { LucideProps } from 'lucide-react';
 import {
+  LayoutDashboard,
   PhoneCall,
   FilePlus2,
   MapPin,
@@ -9,6 +10,7 @@ import {
   Boxes,
   ShieldCheck,
   Users,
+  AlertTriangle,
 } from 'lucide-react';
 
 export interface NavItem {
@@ -18,6 +20,8 @@ export interface NavItem {
   icon: ComponentType<LucideProps>;
   badge?: string;
   disabled?: boolean;
+  requiredPermissions?: string[];
+  publico?: boolean;
 }
 
 export interface NavGroup {
@@ -32,30 +36,40 @@ export const NAV_GROUPS: NavGroup[] = [
     title: 'Operaciones',
     items: [
       {
+        id: 'gestion-inicio',
+        label: 'Inicio Gestión',
+        href: '/gestion',
+        icon: LayoutDashboard,
+      },
+      {
         id: 'callcenter',
         label: 'Bandeja de Avisos',
-        href: '/callcenter',
+        href: '/gestion/callcenter',
         icon: PhoneCall,
+        requiredPermissions: ['incidentes:avisos:leer'],
       },
       {
         id: 'callcenter-manual',
         label: 'Ingreso Manual',
-        href: '/callcenter/manual',
+        href: '/gestion/callcenter/manual',
         icon: FilePlus2,
+        requiredPermissions: ['crear_incidente_manual'],
       },
       {
         id: 'mando',
         label: 'Centro de Mando',
-        href: '/centro-incidentes',
+        href: '/gestion/centro-incidentes',
         icon: MapPin,
+        requiredPermissions: ['incidentes:kanban', 'misiones:asignar'],
       },
       {
         id: 'asistente-social',
         label: 'Fichas FIBE',
-        href: '/asistente-social',
+        href: '/gestion/asistente-social',
         icon: ClipboardList,
         disabled: true,
         badge: 'Próx.',
+        requiredPermissions: ['asistencia_social:fibe:gestionar', 'fibe:gestionar'],
       },
     ],
   },
@@ -66,10 +80,11 @@ export const NAV_GROUPS: NavGroup[] = [
       {
         id: 'dashboard',
         label: 'Dashboard y Reportes',
-        href: '/dashboard',
+        href: '/gestion/dashboard',
         icon: BarChart3,
         disabled: true,
         badge: 'Próx.',
+        requiredPermissions: ['dashboard:estadisticas:leer', 'reportes:senapred:exportar'],
       },
     ],
   },
@@ -80,20 +95,35 @@ export const NAV_GROUPS: NavGroup[] = [
       {
         id: 'empleados',
         label: 'Gestión de Personal',
-        href: '/admin/empleados',
+        href: '/gestion/admin/empleados',
         icon: Users,
+        requiredPermissions: [
+          'personal:gestionar',
+          'personal:crear',
+          'personal:leer',
+          'seguridad:roles:gestionar',
+        ],
       },
       {
         id: 'recursos',
         label: 'Inventario Logístico',
-        href: '/admin/recursos',
+        href: '/gestion/admin/recursos',
         icon: Boxes,
+        requiredPermissions: ['recursos:leer', 'recursos:crear'],
+      },
+      {
+        id: 'puntos-criticos',
+        label: 'Puntos Críticos',
+        href: '/admin/puntos-criticos',
+        icon: AlertTriangle,
+        requiredPermissions: ['puntos_criticos:leer'],
       },
       {
         id: 'roles-permisos',
         label: 'Roles y Permisos',
-        href: '/admin/roles-permisos',
+        href: '/gestion/admin/roles-permisos',
         icon: ShieldCheck,
+        requiredPermissions: ['seguridad:roles:leer', 'seguridad:roles:gestionar'],
       },
     ],
   },

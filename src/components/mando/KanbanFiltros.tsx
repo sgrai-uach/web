@@ -123,6 +123,8 @@ export const KanbanFiltros: React.FC<KanbanFiltrosProps> = ({
         prioridad: '',
         tipoAfectacion: '',
         fuenteOrigen: '',
+        delegacionId: undefined,
+        soloHoy: false,
       });
     }
   };
@@ -195,6 +197,15 @@ export const KanbanFiltros: React.FC<KanbanFiltrosProps> = ({
     });
   }
 
+  if (filtros.soloHoy) {
+    chipsActivos.push({
+      id: 'soloHoy',
+      etiqueta: 'Jornada',
+      valorVisible: 'Solo hoy',
+      onRemove: () => onFiltrosChange({ ...filtros, soloHoy: false }),
+    });
+  }
+
   return (
     <FilterBar collapsibleOnMobile totalFiltrosActivos={chipsActivos.length}>
       {/* Botonera de Estados para enfocar u ocultar columnas */}
@@ -208,6 +219,37 @@ export const KanbanFiltros: React.FC<KanbanFiltrosProps> = ({
         />
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <label
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              fontSize: 'var(--font-size-sm, 13px)',
+              fontWeight: 600,
+              cursor: 'pointer',
+              padding: '6px 10px',
+              backgroundColor: filtros.soloHoy ? 'var(--color-info-bg, #E0F2F1)' : 'var(--color-white, #FFFFFF)',
+              color: filtros.soloHoy ? 'var(--color-primary-teal, #1B6F7D)' : 'var(--color-text-dark, #2B2B2B)',
+              border: '1px solid var(--border-color-neutral-dark, #CCD2D9)',
+              borderRadius: 'var(--radius-none, 0px)',
+              height: '38px',
+            }}
+            title="Ver únicamente incidentes registrados en la jornada de hoy"
+          >
+            <input
+              type="checkbox"
+              checked={Boolean(filtros.soloHoy)}
+              onChange={(e) =>
+                onFiltrosChange({
+                  ...filtros,
+                  soloHoy: e.target.checked,
+                })
+              }
+              aria-label="Filtrar incidentes solo de hoy"
+            />
+            <span>Solo hoy</span>
+          </label>
+
           {onAbrirMisiones && (
             <Button
               type="button"

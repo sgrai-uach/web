@@ -4,6 +4,7 @@ import {
   actualizarPermisosRol,
   agruparCatalogoPorModulo,
   obtenerCatalogoPermisos,
+  PERMISOS_DEFAULT_SISTEMA,
 } from '@/services/seguridadService';
 import type { PermisoCatalogoItem, RolItem } from '@/types/seguridad';
 
@@ -63,7 +64,12 @@ export function useGestionPermisos({ rol, usuarioId, onExito }: UseGestionPermis
       try {
         const items = await obtenerCatalogoPermisos(usuarioId);
         if (activo) {
-          setCatalogo(items);
+          const codigosExistentes = new Set(items.map((p) => p.codigo));
+          const defaults = Array.isArray(PERMISOS_DEFAULT_SISTEMA) ? PERMISOS_DEFAULT_SISTEMA : [];
+          const itemsFaltantes = defaults.filter(
+            (p) => !codigosExistentes.has(p.codigo)
+          );
+          setCatalogo([...items, ...itemsFaltantes]);
         }
       } catch {
         if (activo) {
