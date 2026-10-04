@@ -25,13 +25,21 @@ interface ExtendedClient {
     }>;
     (
       url: '/api/seguridad/usuario-activo',
-      init?: { params?: { header?: { 'x-user-id': string } } }
+      init?: { params?: { header?: { 'x-user-id'?: string; authorization?: string } } }
     ): Promise<{
       data?: { data?: UsuarioActivoDetalle };
       error?: unknown;
       response: Response;
     }>;
   };
+  POST: (
+    url: '/api/seguridad/login',
+    init: { body: import('@/types/seguridad').LoginRequest }
+  ) => Promise<{
+    data?: import('@/types/seguridad').LoginResponse;
+    error?: unknown;
+    response: Response;
+  }>;
   PUT: (
     url: '/api/seguridad/roles/{id}/permisos',
     init?: {
@@ -143,6 +151,37 @@ export async function obtenerDetalleRol(
 
   return data;
 }
+
+/**
+ * Catálogo base de permisos del sistema que garantiza la disponibilidad de permisos
+ * estándar para personalización de roles incluso si aún no han sido sincronizados en BD.
+ */
+export const PERMISOS_DEFAULT_SISTEMA: PermisoCatalogoItem[] = [
+  {
+    id: 'perm-personal-crear',
+    codigo: 'personal:crear',
+    nombre: 'Registro de Nuevos Funcionarios',
+    descripcion:
+      'Permite dar de alta y aprovisionar nuevos funcionarios en el sistema, credenciales de acceso iniciales y ficha operativa de terreno.',
+    modulo: 'Gestión de Personal',
+  },
+  {
+    id: 'perm-personal-leer',
+    codigo: 'personal:leer',
+    nombre: 'Consulta del Directorio de Personal',
+    descripcion:
+      'Permite consultar el listado y detalle de funcionarios municipales y personal operativo.',
+    modulo: 'Gestión de Personal',
+  },
+  {
+    id: 'perm-personal-gestionar',
+    codigo: 'personal:gestionar',
+    nombre: 'Administración de Cuentas y Personal',
+    descripcion:
+      'Permite modificar roles, delegaciones, cargos y especialidades de funcionarios.',
+    modulo: 'Gestión de Personal',
+  },
+];
 
 /**
  * Obtiene el catálogo completo de todos los permisos disponibles en el sistema (HU-5).
@@ -284,21 +323,73 @@ export function agruparCatalogoPorModulo(
 }
 
 /**
+ * Inicia sesión en el sistema con identificador (correo corporativo o RUT) y contraseña.
+ */
+export async function loginUsuario(
+  credenciales: import('@/types/seguridad').LoginRequest
+): Promise<import('@/types/seguridad').LoginResponseData> {
+  try {
+    const { data, error, response } = await extendedClient.POST('/api/seguridad/login', {
+      body: credenciales,
+    });
+
+    if (error || !data || !data.data) {
+      let mensaje = 'Error al procesar el inicio de sesión.';
+      const errObj = error as { error?: string; message?: string } | null;
+
+      if (response?.status === 401) {
+        mensaje = 'Credenciales inválidas. Verifique su identificador o contraseña.';
+      } else if (response?.status === 403) {
+        const apiMsg = (errObj?.error || errObj?.message || '').toLowerCase();
+        if (apiMsg.includes('inactiv') || apiMsg.includes('deshabilitad')) {
+          mensaje = 'El usuario se encuentra inactivo en el sistema. Contacte al Administrador.';
+        } else {
+          // Bloqueo temporal por seguridad: se ofusca el tiempo de bloqueo intencionalmente
+          mensaje =
+            'Cuenta bloqueada temporalmente por seguridad debido a múltiples intentos fallidos. Intente más tarde o contacte al Administrador.';
+        }
+      } else if (response?.status === 400) {
+        mensaje = errObj?.error || 'Datos de entrada inválidos. Complete todos los campos.';
+      } else if (response?.status >= 500) {
+        mensaje = 'Error interno del servidor al procesar el inicio de sesión.';
+      }
+
+      const formatted = formatApiError({
+        ...(typeof error === 'object' && error !== null ? error : {}),
+        status: response?.status || 500,
+        message: mensaje,
+      });
+      throw new SeguridadServiceError(response?.status || 500, formatted.message, formatted);
+    }
+
+    return data.data;
+  } catch (err: unknown) {
+    if (err instanceof SeguridadServiceError) throw err;
+    const formatted = formatApiError(err);
+    throw new SeguridadServiceError(500, formatted.message, formatted);
+  }
+}
+
+/**
  * Consulta la sesión e introspección de permisos del usuario activo.
  */
 export async function obtenerUsuarioActivo(
-  userId: string
+  userId?: string
 ): Promise<UsuarioActivoDetalle> {
   try {
+    const params = userId
+      ? {
+          params: {
+            header: {
+              'x-user-id': userId,
+            },
+          },
+        }
+      : undefined;
+
     const { data, error, response } = await extendedClient.GET(
       '/api/seguridad/usuario-activo',
-      {
-        params: {
-          header: {
-            'x-user-id': userId,
-          },
-        },
-      }
+      params
     );
 
     if (error || !data || !('data' in data) || !data.data) {

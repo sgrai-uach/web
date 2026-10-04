@@ -1,0 +1,95 @@
+.userWidget {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background-color: rgba(255, 255, 255, 0.12);
+  padding: 4px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: var(--radius-none, 0px);
+}
+
+.userInfo {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+
+.userNameRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.userName {
+  color: var(--color-text-light, #FFFFFF);
+  font-size: 13px;
+  font-weight: 700;
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.userRoleRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+}
+
+.userRoleBadge {
+  background-color: var(--color-accent-mint, #4FAE9B);
+  color: var(--color-charcoal-dark, #24272B);
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  padding: 1px 5px;
+  border-radius: var(--radius-none, 0px);
+  letter-spacing: 0.4px;
+}
+
+.userDelegation {
+  color: var(--color-sage, #A9CBA4);
+  font-weight: 500;
+}
+
+.loginBtn {
+  text-decoration: none !important;
+  font-size: 12px !important;
+  padding: 4px 10px !important;
+  min-height: 28px !important;
+}
+
+.loginBtn:hover,
+.loginBtn:focus,
+.loginBtn:active {
+  text-decoration: none !important;
+}
+
+.logoutBtn {
+  background-color: transparent !important;
+  color: var(--color-text-light, #FFFFFF) !important;
+  border: 1px solid rgba(255, 255, 255, 0.35) !important;
+  border-radius: var(--radius-none, 0px) !important;
+  padding: 4px 8px !important;
+  font-size: 12px !important;
+  min-height: 28px !important;
+  text-decoration: none !important;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease !important;
+}
+
+.logoutBtn:hover {
+  background-color: var(--color-danger, #D32F2F) !important;
+  border-color: var(--color-danger, #D32F2F) !important;
+  color: #FFFFFF !important;
+  text-decoration: none !important;
+}
+
+@media (max-width: 768px) {
+  .userName {
+    max-width: 110px;
+  }
+  .userDelegation {
+    display: none;
+  }
+}

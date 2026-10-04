@@ -1,0 +1,698 @@
+/* ==========================================================================
+   Estilos Vista Detallada de Misión (HU-17) — Municipalidad de Valdivia
+   Referencia visual: GEMINI.md § 3 (Flat, bordes rectos, paleta institucional)
+   ========================================================================== */
+
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(36, 39, 43, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-4, 16px);
+  z-index: var(--z-modal-backdrop, 2000);
+  animation: fadeIn 0.2s ease-out;
+  backdrop-filter: blur(2px);
+}
+
+.modalContent {
+  background-color: var(--color-white, #FFFFFF);
+  width: 100%;
+  max-width: 980px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border-color-neutral-dark, #CCD2D9);
+  border-radius: var(--radius-none, 0px);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.16);
+  z-index: var(--z-modal, 2010);
+  overflow: hidden;
+  animation: scaleIn 0.2s ease-out;
+}
+
+/* --- Cabecera del Modal --- */
+.modalHeader {
+  background-color: var(--color-primary-teal-dark, #14505A);
+  color: var(--color-white, #FFFFFF);
+  padding: var(--space-4, 16px) var(--space-6, 24px);
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4, 16px);
+  border-bottom: 2px solid var(--color-primary-teal, #1B6F7D);
+  flex-shrink: 0;
+}
+
+.headerInfo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2, 8px);
+  flex: 1;
+}
+
+.headerTopRow {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2, 8px);
+}
+
+.codigoBadge {
+  background-color: var(--color-white, #FFFFFF);
+  color: var(--color-primary-teal-dark, #14505A);
+  padding: 3px 8px;
+  font-size: var(--font-size-xs, 12px);
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  border-radius: var(--radius-none, 0px);
+}
+
+.tipoBadge {
+  background-color: rgba(255, 255, 255, 0.15);
+  color: var(--color-white, #FFFFFF);
+  padding: 3px 8px;
+  font-size: var(--font-size-xs, 12px);
+  font-weight: 700;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: var(--radius-none, 0px);
+}
+
+.headerTitle {
+  margin: 0;
+  color: var(--color-white, #FFFFFF);
+  font-size: var(--font-size-xl, 20px);
+  font-weight: 800;
+  line-height: 1.25;
+}
+
+.headerMetaRow {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-3, 12px);
+  font-size: var(--font-size-sm, 13px);
+  color: var(--color-sage, #A9CBA4);
+}
+
+.headerCloseBtn {
+  background: transparent;
+  border: none;
+  color: var(--color-white, #FFFFFF);
+  cursor: pointer;
+  padding: var(--space-1, 4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.85;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  line-height: 1;
+}
+
+.headerCloseBtn:hover {
+  opacity: 1;
+  transform: scale(1.08);
+}
+
+/* Badges Semánticos */
+.badgeEstado {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  font-size: var(--font-size-xs, 12px);
+  font-weight: 700;
+  text-transform: uppercase;
+  border-radius: var(--radius-none, 0px);
+}
+
+.estadoPlanificada {
+  background-color: var(--color-bg-light, #ECEFF3);
+  color: var(--color-charcoal, #3B3F45);
+  border: 1px solid var(--border-color-neutral-dark, #CCD2D9);
+}
+
+.estadoDespachada {
+  background-color: var(--color-info-bg, #E0F2F1);
+  color: var(--color-primary-teal, #1B6F7D);
+  border: 1px solid var(--color-primary-teal, #1B6F7D);
+}
+
+.estadoEnCurso {
+  background-color: #E8F5E9;
+  color: var(--color-success, #2E7D32);
+  border: 1px solid var(--color-success, #2E7D32);
+}
+
+.estadoCompletada {
+  background-color: #E8F5E9;
+  color: var(--color-success, #2E7D32);
+  border: 1px solid var(--color-success, #2E7D32);
+}
+
+.estadoCancelada {
+  background-color: var(--color-bg-light, #ECEFF3);
+  color: var(--color-text-muted, #5F676E);
+  border: 1px solid #CBD5E1;
+}
+
+.estadoRechazada {
+  background-color: var(--color-danger-bg, #FFEBEE);
+  color: var(--color-danger, #D32F2F);
+  border: 1px solid var(--color-danger, #D32F2F);
+}
+
+/* Prioridades */
+.badgePrioridad {
+  display: inline-block;
+  padding: 3px 8px;
+  font-size: var(--font-size-xs, 12px);
+  font-weight: 700;
+  text-transform: uppercase;
+  border-radius: var(--radius-none, 0px);
+}
+
+.prioridadCritica {
+  background-color: var(--color-danger, #D32F2F);
+  color: var(--color-white, #FFFFFF);
+}
+
+.prioridadAlta {
+  background-color: var(--color-warning, #E65100);
+  color: var(--color-white, #FFFFFF);
+}
+
+.prioridadMedia {
+  background-color: #F59E0B;
+  color: var(--color-white, #FFFFFF);
+}
+
+.prioridadBaja {
+  background-color: var(--color-primary-teal, #1B6F7D);
+  color: var(--color-white, #FFFFFF);
+}
+
+/* --- Cuerpo del Modal (Scrollable) --- */
+.modalBody {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5, 20px);
+  padding: var(--space-6, 24px);
+  background-color: var(--color-white, #FFFFFF);
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-color-neutral-dark, #CCD2D9) var(--color-bg-light, #ECEFF3);
+}
+
+.modalBody::-webkit-scrollbar {
+  width: 8px;
+}
+
+.modalBody::-webkit-scrollbar-track {
+  background: var(--color-bg-light, #ECEFF3);
+}
+
+.modalBody::-webkit-scrollbar-thumb {
+  background: var(--border-color-neutral-dark, #CCD2D9);
+}
+
+.modalBody::-webkit-scrollbar-thumb:hover {
+  background: var(--color-primary-teal, #1B6F7D);
+}
+
+/* Banner de Alerta / Rechazo */
+.bannerRechazo {
+  background-color: var(--color-danger-bg, #FFEBEE);
+  border: 1px solid #FFCDD2;
+  border-left: 5px solid var(--color-danger, #D32F2F);
+  padding: var(--space-4, 16px);
+  display: flex;
+  gap: var(--space-3, 12px);
+  align-items: flex-start;
+  color: #5C1D1D;
+  border-radius: var(--radius-none, 0px);
+  flex-shrink: 0;
+}
+
+.bannerRechazoIcon {
+  color: var(--color-danger, #D32F2F);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+/* Secciones Genéricas */
+.seccionBloque {
+  border: 1px solid var(--border-color-neutral, #DFE3E8);
+  background-color: var(--color-white, #FFFFFF);
+  border-radius: var(--radius-none, 0px);
+  flex-shrink: 0;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.seccionHeader {
+  background-color: var(--color-bg-light, #ECEFF3);
+  padding: var(--space-3, 12px) var(--space-4, 16px);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border-color-neutral, #DFE3E8);
+  flex-shrink: 0;
+}
+
+.seccionTituloGroup {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2, 8px);
+}
+
+.seccionBody {
+  padding: var(--space-4, 16px);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3, 12px);
+}
+
+/* Grid de Datos Clave-Valor */
+.dataGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--space-3, 12px) var(--space-4, 16px);
+}
+
+.dataItem {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.dataLabel {
+  font-size: var(--font-size-xs, 12px);
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--color-text-muted, #5F676E);
+  letter-spacing: 0.3px;
+  line-height: 1.3;
+}
+
+.dataValue {
+  font-size: var(--font-size-base, 14px);
+  color: var(--color-text-dark, #2B2B2B);
+  font-weight: 500;
+  line-height: 1.4;
+  word-break: break-word;
+}
+
+/* Tabla de Recursos Asignados */
+.recursosTableContainer {
+  overflow-x: auto;
+  margin-top: var(--space-2, 8px);
+}
+
+.recursosTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-size-sm, 13px);
+  text-align: left;
+}
+
+.recursosTable th {
+  background-color: var(--color-charcoal, #3B3F45);
+  color: var(--color-white, #FFFFFF);
+  padding: 8px 12px;
+  font-weight: 700;
+  font-size: var(--font-size-xs, 12px);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.recursosTable td {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border-color-neutral, #DFE3E8);
+  color: var(--color-text-dark, #2B2B2B);
+}
+
+.recursosTable tr:nth-child(even) {
+  background-color: var(--color-bg-light, #ECEFF3);
+}
+
+/* Bitácora de Tiempos */
+.timelineList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4, 16px);
+  position: relative;
+  padding-left: var(--space-6, 24px);
+}
+
+.timelineList::before {
+  content: '';
+  position: absolute;
+  left: 9px;
+  top: 6px;
+  bottom: 6px;
+  width: 2px;
+  background-color: var(--border-color-neutral-dark, #CCD2D9);
+}
+
+.timelineItem {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.timelineDot {
+  position: absolute;
+  left: -24px;
+  top: 4px;
+  width: 12px;
+  height: 12px;
+  background-color: var(--color-primary-teal, #1B6F7D);
+  border: 2px solid var(--color-white, #FFFFFF);
+  box-shadow: 0 0 0 1px var(--color-primary-teal, #1B6F7D);
+}
+
+.timelineHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2, 8px);
+  flex-wrap: wrap;
+}
+
+.timelineHito {
+  font-weight: 700;
+  font-size: var(--font-size-base, 14px);
+  color: var(--color-primary-teal-dark, #14505A);
+}
+
+.timelineDate {
+  font-size: var(--font-size-xs, 12px);
+  color: var(--color-text-muted, #5F676E);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.timelineDesc {
+  font-size: var(--font-size-sm, 13px);
+  color: var(--color-text-dark, #2B2B2B);
+  margin: 0;
+  line-height: 1.4;
+}
+
+/* Tarjetas de Reportes de Terreno */
+.reporteCard {
+  border: 1px solid var(--border-color-neutral, #DFE3E8);
+  border-left: 4px solid var(--color-accent-mint, #4FAE9B);
+  background-color: var(--color-white, #FFFFFF);
+  padding: var(--space-4, 16px);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3, 12px);
+  border-radius: var(--radius-none, 0px);
+  flex-shrink: 0;
+}
+
+.reporteHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-2, 8px);
+  border-bottom: 1px solid var(--border-color-neutral, #DFE3E8);
+  padding-bottom: var(--space-2, 8px);
+}
+
+.evaluadorInfo {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2, 8px);
+  font-size: var(--font-size-sm, 13px);
+}
+
+.evaluadorNombre {
+  font-weight: 700;
+  color: var(--color-charcoal-dark, #24272B);
+}
+
+.evaluadorRut {
+  color: var(--color-text-muted, #5F676E);
+  font-size: var(--font-size-xs, 12px);
+}
+
+.reporteMetaTags {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2, 8px);
+}
+
+.badgeTerreno {
+  background-color: var(--color-bg-light, #ECEFF3);
+  color: var(--color-charcoal, #3B3F45);
+  font-size: var(--font-size-xs, 12px);
+  font-weight: 700;
+  padding: 2px 6px;
+  border: 1px solid var(--border-color-neutral, #DFE3E8);
+}
+
+.badgeApoyo {
+  background-color: #FFF3E0;
+  color: #B45309;
+  font-size: var(--font-size-xs, 12px);
+  font-weight: 700;
+  padding: 2px 6px;
+  border: 1px solid #FCD34D;
+}
+
+/* Galería de Evidencia Multimedia */
+.galeriaContenedor {
+  margin-top: var(--space-2, 8px);
+}
+
+.galeriaTitulo {
+  font-size: var(--font-size-xs, 12px);
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--color-text-muted, #5F676E);
+  margin-bottom: var(--space-2, 8px);
+  display: flex;
+  align-items: center;
+  gap: var(--space-1, 4px);
+}
+
+.galeriaGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: var(--space-3, 12px);
+}
+
+.miniaturaCard {
+  background-color: var(--color-bg-light, #ECEFF3);
+  border: 1px solid var(--border-color-neutral, #DFE3E8);
+  border-radius: var(--radius-none, 0px);
+  padding: var(--space-1, 4px);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+  text-align: center;
+  overflow: hidden;
+}
+
+.miniaturaCard:hover {
+  border-color: var(--color-primary-teal, #1B6F7D);
+  background-color: #E2E8F0;
+}
+
+.miniaturaImgBox {
+  width: 100%;
+  height: 90px;
+  background-color: #CBD5E1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  position: relative;
+}
+
+.miniaturaImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.miniaturaInfo {
+  padding: var(--space-1, 4px) 2px;
+  width: 100%;
+}
+
+.miniaturaNombre {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text-dark, #2B2B2B);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: block;
+}
+
+.miniaturaPeso {
+  font-size: 10px;
+  color: var(--color-text-muted, #5F676E);
+}
+
+/* Visor Lightbox */
+.lightboxOverlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(15, 17, 19, 0.92);
+  z-index: 3000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-4, 16px);
+  animation: fadeIn 0.15s ease-out;
+}
+
+.lightboxHeader {
+  position: absolute;
+  top: var(--space-4, 16px);
+  right: var(--space-4, 16px);
+  display: flex;
+  align-items: center;
+  gap: var(--space-4, 16px);
+  color: var(--color-white, #FFFFFF);
+}
+
+.lightboxTitle {
+  color: var(--color-white, #FFFFFF);
+  font-size: var(--font-size-sm, 13px);
+  font-weight: 600;
+}
+
+.lightboxCloseBtn {
+  background: transparent;
+  border: none;
+  color: var(--color-white, #FFFFFF);
+  cursor: pointer;
+  padding: var(--space-2, 8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.lightboxImgContainer {
+  max-width: 90vw;
+  max-height: 80vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.lightboxImg {
+  max-width: 100%;
+  max-height: 80vh;
+  object-fit: contain;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Empty States */
+.emptyStateContainer {
+  background-color: var(--color-bg-light, #ECEFF3);
+  border: 1px dashed var(--border-color-neutral-dark, #CCD2D9);
+  padding: var(--space-6, 24px);
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2, 8px);
+  border-radius: var(--radius-none, 0px);
+  flex-shrink: 0;
+}
+
+.emptyStateTitle {
+  font-size: var(--font-size-base, 14px);
+  font-weight: 700;
+  color: var(--color-charcoal, #3B3F45);
+  margin: 0;
+}
+
+.emptyStateSubtitle {
+  font-size: var(--font-size-sm, 13px);
+  color: var(--color-text-muted, #5F676E);
+  margin: 0;
+  max-width: 480px;
+  line-height: 1.4;
+}
+
+/* Skeleton Loading */
+.skeletonBox {
+  background: linear-gradient(90deg, #E2E8F0 25%, #F1F5F9 50%, #E2E8F0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: var(--radius-none, 0px);
+}
+
+/* Pie del modal */
+.modalFooter {
+  background-color: var(--color-bg-light, #ECEFF3);
+  border-top: 1px solid var(--border-color-neutral, #DFE3E8);
+  padding: var(--space-3, 12px) var(--space-6, 24px);
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-3, 12px);
+  flex-shrink: 0;
+}
+
+/* Animaciones */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .modalContent {
+    max-height: 98vh;
+  }
+
+  .modalHeader {
+    padding: var(--space-3, 12px) var(--space-4, 16px);
+  }
+
+  .modalBody {
+    padding: var(--space-4, 16px);
+    gap: var(--space-4, 16px);
+  }
+
+  .dataGrid {
+    grid-template-columns: 1fr;
+  }
+}

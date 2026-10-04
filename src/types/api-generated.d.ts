@@ -4,6 +4,95 @@
  */
 
 export interface paths {
+    "/api/puntos-criticos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Listar puntos críticos y sectores de prevención
+         * @description Retorna una lista paginada de los puntos críticos registrados, incluyendo coordenadas espaciales, tipo de riesgo, prioridad y delegación territorial asociada.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    pagina?: number;
+                    limite?: number;
+                    delegacionId?: string;
+                    activo?: boolean;
+                    prioridad?: "BAJA" | "MEDIA" | "ALTA" | "CRITICA";
+                    busqueda?: string;
+                };
+                header: {
+                    "x-user-id": string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data: {
+                                id: string;
+                                codigo: string;
+                                nombre: string;
+                                descripcion: string | null;
+                                tipoRiesgo: string | null;
+                                prioridad: "BAJA" | "MEDIA" | "ALTA" | "CRITICA";
+                                activo: boolean;
+                                estadoTexto: string;
+                                latitud: number;
+                                longitud: number;
+                                delegacion: {
+                                    id: string;
+                                    codigo: string;
+                                    nombre: string;
+                                } | null;
+                                creadoEn: string;
+                            }[];
+                            meta: {
+                                total: number;
+                                pagina: number;
+                                limite: number;
+                                totalPaginas: number;
+                            };
+                        };
+                    };
+                };
+                400: {
+                    content: {
+                        "application/json": {
+                            message: string;
+                            statusCode?: number;
+                        };
+                    };
+                };
+                403: {
+                    content: {
+                        "application/json": {
+                            message: string;
+                            statusCode?: number;
+                        };
+                    };
+                };
+                500: {
+                    content: {
+                        "application/json": {
+                            message: string;
+                            statusCode?: number;
+                        };
+                    };
+                };
+            };
+        };
+    };
     "/api/recursos": {
         parameters: {
             query?: never;
@@ -250,6 +339,284 @@ export interface paths {
                 };
             };
         };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/recursos/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Obtener detalle completo de un recurso logístico
+         * @description Retorna la información completa pre-cargada de un recurso (cantidades, disponibilidad operativa, delegación territorial y auditoría) para alimentar el formulario de edición. Accesible por perfil de Administrador.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header: {
+                    /** @description UUID del usuario administrador autenticado */
+                    "x-user-id": string;
+                };
+                path: {
+                    /** @description UUID del recurso logístico */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Detalle completo del recurso */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** Format: uuid */
+                            id: string;
+                            nombre: string;
+                            /**
+                             * @description Tipo legible (ej. 'Vehículo o Maquinaria' o 'Material o Insumo')
+                             * @example Vehículo o Maquinaria
+                             */
+                            tipo: string;
+                            esIndividual: boolean;
+                            /** @enum {string} */
+                            estado: "DISPONIBLE" | "ASIGNADO" | "EN_MANTENCION" | "BAJO_STOCK" | "NO_DISPONIBLE";
+                            cantidadInventario: number;
+                            cantidadEnUso: number;
+                            cantidadDisponible: number;
+                            cantidadMinima: number;
+                            latitud: number;
+                            longitud: number;
+                            descripcion: string | null;
+                            detalles: {
+                                [key: string]: unknown;
+                            };
+                            /** @description Datos de la delegación territorial de procedencia */
+                            delegacion: {
+                                /** Format: uuid */
+                                id: string;
+                                codigo: string;
+                                nombre: string;
+                            } | null;
+                            /** Format: uuid */
+                            delegacionId?: string | null;
+                            /** Format: uuid */
+                            creadoPorId: string;
+                            /** Format: uuid */
+                            actualizadoPorId?: string | null;
+                            creadoEn: string;
+                            actualizadoEn: string;
+                        };
+                    };
+                };
+                /** @description Identificador de recurso inválido */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description No autenticado / cabecera X-User-Id ausente */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Acceso denegado. Se requiere perfil de Administrador */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Recurso no encontrado */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Error interno del servidor */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        /**
+         * Editar características de un recurso logístico
+         * @description Modifica inventario físico, ubicación geográfica, detalles técnicos y estado operativo del recurso. Notifica en tiempo real vía WebSockets (Socket.io) a las salas de Encargado y Supervisor. Mantiene inmutable el tipo de recurso (esIndividual).
+         */
+        put: {
+            parameters: {
+                query?: never;
+                header: {
+                    /** @description UUID del usuario administrador autenticado */
+                    "x-user-id": string;
+                };
+                path: {
+                    /** @description UUID del recurso logístico */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        /** @example Camioneta Rescate 4x4 - Actualizada */
+                        nombre: string;
+                        /** @example 1 */
+                        cantidadInventario: number;
+                        /**
+                         * @default 0
+                         * @example 0
+                         */
+                        cantidadMinima?: number;
+                        /**
+                         * @description Indica manualmente si el activo se encuentra fuera de servicio en mantenimiento
+                         * @default false
+                         * @example false
+                         */
+                        enMantencion?: boolean;
+                        /** @example -39.8142 */
+                        latitud: number;
+                        /** @example -73.2459 */
+                        longitud: number;
+                        /** @example Unidad operativa de rescate en mantención preventiva */
+                        descripcion?: string | null;
+                        /**
+                         * @description Especificaciones técnicas detalladas según el tipo de maquinaria
+                         * @default {}
+                         */
+                        detalles?: {
+                            patente?: string;
+                            numeroSerie?: string;
+                            marca?: string;
+                            modelo?: string;
+                            anio?: number;
+                            kilometraje?: number;
+                            /** @enum {string} */
+                            tipoCombustible?: "GASOLINA" | "DIESEL" | "ELECTRICO" | "HIBRIDO" | "OTRO";
+                            capacidadPasajeros?: number;
+                            numeroChasis?: string;
+                            capacidadCargaKg?: number;
+                            alcanceMaximoMetros?: number;
+                            tipoGrua?: string;
+                            horometro?: number;
+                            caudalMaximoLpm?: number;
+                            diametroPulgadas?: number;
+                            potenciaHp?: number;
+                            potenciaKva?: number;
+                        } & {
+                            [key: string]: unknown;
+                        };
+                        /**
+                         * Format: uuid
+                         * @example 30000000-0000-4000-8000-000000000001
+                         */
+                        delegacionId?: string | null;
+                    };
+                };
+            };
+            responses: {
+                /** @description Recurso actualizado exitosamente */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            message: string;
+                            data: {
+                                /** Format: uuid */
+                                id: string;
+                                nombre: string;
+                                /**
+                                 * @description Tipo legible (ej. 'Vehículo o Maquinaria' o 'Material o Insumo')
+                                 * @example Vehículo o Maquinaria
+                                 */
+                                tipo: string;
+                                esIndividual: boolean;
+                                /** @enum {string} */
+                                estado: "DISPONIBLE" | "ASIGNADO" | "EN_MANTENCION" | "BAJO_STOCK" | "NO_DISPONIBLE";
+                                cantidadInventario: number;
+                                cantidadEnUso: number;
+                                cantidadDisponible: number;
+                                cantidadMinima: number;
+                                latitud: number;
+                                longitud: number;
+                                descripcion: string | null;
+                                detalles: {
+                                    [key: string]: unknown;
+                                };
+                                /** @description Datos de la delegación territorial de procedencia */
+                                delegacion: {
+                                    /** Format: uuid */
+                                    id: string;
+                                    codigo: string;
+                                    nombre: string;
+                                } | null;
+                                /** Format: uuid */
+                                delegacionId?: string | null;
+                                /** Format: uuid */
+                                creadoPorId: string;
+                                /** Format: uuid */
+                                actualizadoPorId?: string | null;
+                                creadoEn: string;
+                                actualizadoEn: string;
+                            };
+                        };
+                    };
+                };
+                /** @description Datos de entrada inválidos o inventario menor a unidades en uso en terreno */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description No autenticado / cabecera X-User-Id ausente */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Acceso denegado. Se requiere perfil de Administrador */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Recurso no encontrado */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Error interno del servidor */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;

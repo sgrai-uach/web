@@ -62,6 +62,6 @@ describe('SeguimientoBuscador', () => {
     fireEvent.change(input, { target: { value: '58291045' } });
     fireEvent.click(button);
 
-    expect(mockPush).toHaveBeenCalledWith('/seguimiento/58291045');
+    expect(mockPush).toHaveBeenCalledWith('/ciudadania/seguimiento/58291045');
   });
 });

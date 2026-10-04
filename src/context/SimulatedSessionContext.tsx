@@ -14,6 +14,7 @@ import {
 } from '@/config/usuariosSimulados';
 import { obtenerUsuarioActivo } from '@/services/seguridadService';
 import type { UsuarioActivoDetalle } from '@/types/seguridad';
+import { AuthContext } from '@/context/AuthContext';
 
 const STORAGE_KEY = 'sgrai_simulated_user_id';
 
@@ -30,7 +31,7 @@ interface SimulatedSessionContextValue {
   usuarioDetalleServidor: UsuarioActivoDetalle | null;
 }
 
-const SimulatedSessionContext = createContext<SimulatedSessionContextValue | null>(null);
+export const SimulatedSessionContext = createContext<SimulatedSessionContextValue | null>(null);
 
 /**
  * Fallback de permisos cuando la API no está disponible o durante la carga inicial.
@@ -49,6 +50,10 @@ function obtenerPermisosFallback(rol: string, esAdmin: boolean): Set<string> {
       'crear_incidente_manual',
       'misiones:asignar',
       'eventos_atp:crear',
+      'puntos_criticos:leer',
+      'personal:leer',
+      'personal:crear',
+      'personal:gestionar',
     ]);
   }
 
@@ -96,10 +101,10 @@ export function SimulatedSessionProvider({
 }: {
   children: React.ReactNode;
 }) {
-  const [usuarioActivo, setUsuarioActivoState] = useState<UsuarioSimulado>(
+  const [usuarioSimuladoManual, setUsuarioSimuladoManual] = useState<UsuarioSimulado>(
     obtenerSesionInicial
   );
-  const [permisos, setPermisos] = useState<Set<string>>(() => {
+  const [permisosSimulados, setPermisosSimulados] = useState<Set<string>>(() => {
     const inicial = obtenerSesionInicial();
     return obtenerPermisosFallback(inicial.rol, inicial.esAdmin);
   });
@@ -107,22 +112,52 @@ export function SimulatedSessionProvider({
   const [usuarioDetalleServidor, setUsuarioDetalleServidor] =
     useState<UsuarioActivoDetalle | null>(null);
 
-  // Sincronizar permisos frescos del backend cuando cambia el usuario activo
+  const auth = useContext(AuthContext);
+
+  // Derivar usuario activo: si hay sesión real activa en AuthContext, tiene precedencia
+  const usuarioActivo = useMemo<UsuarioSimulado>(() => {
+    if (auth && auth.estaAutenticado && auth.usuario) {
+      return {
+        id: auth.usuario.id,
+        nombre: auth.usuario.nombre,
+        email: auth.usuario.email,
+        rut: auth.usuario.rut,
+        rol: auth.usuario.rolNombre,
+        esAdmin: auth.usuario.rolCodigo === 'ADMIN',
+      };
+    }
+    return usuarioSimuladoManual;
+  }, [auth, usuarioSimuladoManual]);
+
+  // Derivar permisos activos: si hay sesión real activa en AuthContext, sincronizar
+  const permisos = useMemo<Set<string>>(() => {
+    if (auth && auth.estaAutenticado && auth.usuario) {
+      return new Set(auth.usuario.permisos);
+    }
+    return permisosSimulados;
+  }, [auth, permisosSimulados]);
+
+  // Sincronizar permisos frescos del backend cuando cambia el usuario simulado
   useEffect(() => {
+    if (auth?.estaAutenticado) return;
     let cancelado = false;
-    void obtenerUsuarioActivo(usuarioActivo.id)
+    void obtenerUsuarioActivo(usuarioSimuladoManual.id)
       .then((detalle) => {
         if (cancelado) return;
         setUsuarioDetalleServidor(detalle);
         if (detalle && Array.isArray(detalle.permisos)) {
-          setPermisos(new Set(detalle.permisos));
+          setPermisosSimulados(new Set(detalle.permisos));
         } else {
-          setPermisos(obtenerPermisosFallback(usuarioActivo.rol, usuarioActivo.esAdmin));
+          setPermisosSimulados(
+            obtenerPermisosFallback(usuarioSimuladoManual.rol, usuarioSimuladoManual.esAdmin)
+          );
         }
       })
       .catch(() => {
         if (cancelado) return;
-        setPermisos(obtenerPermisosFallback(usuarioActivo.rol, usuarioActivo.esAdmin));
+        setPermisosSimulados(
+          obtenerPermisosFallback(usuarioSimuladoManual.rol, usuarioSimuladoManual.esAdmin)
+        );
       })
       .finally(() => {
         if (!cancelado) {
@@ -133,11 +168,11 @@ export function SimulatedSessionProvider({
     return () => {
       cancelado = true;
     };
-  }, [usuarioActivo]);
+  }, [auth?.estaAutenticado, usuarioSimuladoManual]);
 
   const setUsuarioActivo = useCallback(
     (nuevoUsuario: UsuarioSimulado) => {
-      setUsuarioActivoState(nuevoUsuario);
+      setUsuarioSimuladoManual(nuevoUsuario);
       try {
         localStorage.setItem(STORAGE_KEY, nuevoUsuario.id);
       } catch {
@@ -160,19 +195,27 @@ export function SimulatedSessionProvider({
   const refrescarPermisos = useCallback(async () => {
     setCargandoPermisos(true);
     try {
-      const detalle = await obtenerUsuarioActivo(usuarioActivo.id);
+      if (auth?.estaAutenticado) {
+        await auth.refrescarPerfil();
+        return;
+      }
+      const detalle = await obtenerUsuarioActivo(usuarioSimuladoManual.id);
       setUsuarioDetalleServidor(detalle);
       if (detalle && Array.isArray(detalle.permisos)) {
-        setPermisos(new Set(detalle.permisos));
+        setPermisosSimulados(new Set(detalle.permisos));
       } else {
-        setPermisos(obtenerPermisosFallback(usuarioActivo.rol, usuarioActivo.esAdmin));
+        setPermisosSimulados(
+          obtenerPermisosFallback(usuarioSimuladoManual.rol, usuarioSimuladoManual.esAdmin)
+        );
       }
     } catch {
-      setPermisos(obtenerPermisosFallback(usuarioActivo.rol, usuarioActivo.esAdmin));
+      setPermisosSimulados(
+        obtenerPermisosFallback(usuarioSimuladoManual.rol, usuarioSimuladoManual.esAdmin)
+      );
     } finally {
       setCargandoPermisos(false);
     }
-  }, [usuarioActivo]);
+  }, [auth, usuarioSimuladoManual]);
 
   const hasPermission = useCallback(
     (codigo: string): boolean => {

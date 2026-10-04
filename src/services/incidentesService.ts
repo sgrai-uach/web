@@ -5,6 +5,11 @@
 
 import apiClient from '@/lib/api/client';
 import type { components, paths } from '@/types/api-generated';
+import type {
+  IncidentesKpisData,
+  DelegacionOpcion,
+} from '@/types/incidentesKpis';
+import { DELEGACIONES_VALDIVIA_DEFAULT } from '@/types/incidentesKpis';
 
 export const DEFAULT_ENCARGADO_ID = '00000000-0000-4000-8000-000000000003';
 
@@ -20,7 +25,23 @@ export type RecursoAsociado = IncidenteDetalle['recursosAsociados'][number];
 
 export type ListarIncidentesQuery = NonNullable<
   paths['/api/incidentes']['get']['parameters']['query']
->;
+> & {
+  soloHoy?: boolean;
+  fecha?: string;
+  delegacionId?: string;
+};
+
+export interface ObtenerKpisQuery {
+  fecha?: string;
+  delegacionId?: string;
+}
+
+export interface ResultadoKpisIncidentes {
+  exito: boolean;
+  datos?: IncidentesKpisData;
+  mensaje: string;
+  codigoError?: number;
+}
 
 export interface ResultadoListadoIncidentes {
   exito: boolean;
@@ -48,7 +69,9 @@ export const incidentesService = {
     try {
       const { data, error, response } = await apiClient.GET('/api/incidentes', {
         params: {
-          query,
+          query: query as unknown as NonNullable<
+            paths['/api/incidentes']['get']['parameters']['query']
+          >,
           header: { 'x-user-id': userId },
         },
         headers: { 'x-user-id': userId },
@@ -175,8 +198,102 @@ export const incidentesService = {
       };
     }
   },
+
+  /**
+   * Consulta los contadores y KPIs de incidentes del día (HU-18).
+   * Endpoint optimizado en sgrai-api con agregación condicional SQL y horario chileno.
+   */
+  async obtenerKpis(
+    query: ObtenerKpisQuery = {},
+    userId: string = DEFAULT_ENCARGADO_ID
+  ): Promise<ResultadoKpisIncidentes> {
+    try {
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+      const url = new URL('/api/incidentes/kpis', baseUrl);
+      if (query.fecha && query.fecha.trim()) {
+        url.searchParams.set('fecha', query.fecha.trim());
+      }
+      if (query.delegacionId && query.delegacionId.trim()) {
+        url.searchParams.set('delegacionId', query.delegacionId.trim());
+      }
+
+      const res = await fetch(url.toString(), {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-user-id': userId,
+        },
+      });
+
+      if (res.status === 403) {
+        return {
+          exito: false,
+          codigoError: 403,
+          mensaje: 'No posees permisos de Encargado para visualizar los KPIs de incidentes.',
+        };
+      }
+
+      if (res.status === 401) {
+        return {
+          exito: false,
+          codigoError: 401,
+          mensaje: 'Sesión no válida o no autenticada.',
+        };
+      }
+
+      if (!res.ok) {
+        return {
+          exito: false,
+          codigoError: res.status,
+          mensaje: 'No fue posible cargar los contadores de incidentes del día.',
+        };
+      }
+
+      const json = await res.json();
+      if (json?.data) {
+        return {
+          exito: true,
+          datos: json.data,
+          mensaje: json.message || 'Contadores obtenidos exitosamente.',
+        };
+      }
+
+      return {
+        exito: false,
+        codigoError: 500,
+        mensaje: 'Respuesta inesperada del servidor municipal al obtener KPIs.',
+      };
+    } catch {
+      return {
+        exito: false,
+        codigoError: 500,
+        mensaje: 'Error de conexión con el servidor al consultar los KPIs.',
+      };
+    }
+  },
+
+  /**
+   * Obtiene la lista de delegaciones desde el catálogo municipal con fallback.
+   */
+  async obtenerDelegaciones(): Promise<DelegacionOpcion[]> {
+    try {
+      const { data, response } = await apiClient.GET('/api/catalogos');
+      if (response?.ok && data?.data?.delegaciones && Array.isArray(data.data.delegaciones)) {
+        return data.data.delegaciones.map((d: { id: string; codigo: string; nombre: string }) => ({
+          id: d.id,
+          codigo: d.codigo,
+          nombre: d.nombre,
+        }));
+      }
+    } catch {
+      // Ignorar error y usar fallback
+    }
+    return DELEGACIONES_VALDIVIA_DEFAULT;
+  },
 };
 
 // Aliases para compatibilidad directa
 export const listarIncidentes = incidentesService.listar;
 export const obtenerDetalleIncidente = incidentesService.obtenerDetalle;
+export const obtenerKpisIncidentes = incidentesService.obtenerKpis;
+export const obtenerDelegaciones = incidentesService.obtenerDelegaciones;

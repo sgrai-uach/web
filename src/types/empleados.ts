@@ -88,3 +88,26 @@ export interface ActualizarEmpleadoPayload {
   especialidad?: string | null;
   cargo?: string | null;
 }
+
+export interface RegistrarEmpleadoPayload {
+  rut: string;
+  nombres: string;
+  apellidos: string;
+  email: string;
+  telefono: string;
+  password: string;
+  rol_id: string;
+  delegacion_id: string;
+  cargo?: string | null;
+  especialidad?: string | null;
+  estado_operativo?:
+    | 'disponible'
+    | 'en_mision'
+    | 'en_patrulla'
+    | 'descanso'
+    | 'licencia'
+    | 'inactivo';
+  disponible_terreno?: boolean;
+  observaciones?: string | null;
+}
+
