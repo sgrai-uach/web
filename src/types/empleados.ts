@@ -50,10 +50,19 @@ export interface CatalogosResponse {
 
 export interface EmpleadosQueryParams {
   q?: string;
+  busqueda?: string;
   delegacion_id?: string;
+  delegacionNombre?: string;
   rol_id?: string;
+  rolNombre?: string;
+  estado_operativo?: string;
+  estadoOperativo?: string;
+  cargo?: string;
+  especialidad?: string;
   ordenar_por?: string;
   orden?: 'asc' | 'desc';
+  page?: number;
+  limit?: number;
 }
 
 export interface ActualizarEmpleadoPayload {

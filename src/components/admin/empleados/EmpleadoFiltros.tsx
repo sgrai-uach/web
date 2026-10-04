@@ -12,14 +12,20 @@ interface EmpleadoFiltrosProps {
   setDelegacionFiltro: (val: string) => void;
   rolFiltro: string;
   setRolFiltro: (val: string) => void;
+  estadoOperativoFiltro?: string;
+  setEstadoOperativoFiltro?: (val: string) => void;
+  especialidadFiltro?: string;
+  setEspecialidadFiltro?: (val: string) => void;
   ordenarPor: string;
   setOrdenarPor: (val: string) => void;
   orden: 'asc' | 'desc';
   setOrden: (val: 'asc' | 'desc') => void;
   delegaciones: CatalogoItem[];
   roles: CatalogoItem[];
+  especialidades?: string[];
   cargando: boolean;
   onFocusInput: () => void;
+  onLimpiarFiltros?: () => void;
 }
 
 export default function EmpleadoFiltros({
@@ -29,14 +35,20 @@ export default function EmpleadoFiltros({
   setDelegacionFiltro,
   rolFiltro,
   setRolFiltro,
+  estadoOperativoFiltro,
+  setEstadoOperativoFiltro,
+  especialidadFiltro,
+  setEspecialidadFiltro,
   ordenarPor,
   setOrdenarPor,
   orden,
   setOrden,
   delegaciones,
   roles,
+  especialidades,
   cargando,
   onFocusInput,
+  onLimpiarFiltros,
 }: EmpleadoFiltrosProps) {
   return (
     <>
@@ -51,12 +63,18 @@ export default function EmpleadoFiltros({
         setDelegacionFiltro={setDelegacionFiltro}
         rolFiltro={rolFiltro}
         setRolFiltro={setRolFiltro}
+        estadoOperativoFiltro={estadoOperativoFiltro}
+        setEstadoOperativoFiltro={setEstadoOperativoFiltro}
+        especialidadFiltro={especialidadFiltro}
+        setEspecialidadFiltro={setEspecialidadFiltro}
         ordenarPor={ordenarPor}
         setOrdenarPor={setOrdenarPor}
         orden={orden}
         setOrden={setOrden}
         delegaciones={delegaciones}
         roles={roles}
+        especialidades={especialidades}
+        onLimpiarFiltros={onLimpiarFiltros}
       />
     </>
   );

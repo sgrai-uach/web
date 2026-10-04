@@ -24,6 +24,10 @@ export default function EmpleadoBuscador({
     setDelegacionFiltro,
     rolFiltro,
     setRolFiltro,
+    estadoOperativoFiltro,
+    setEstadoOperativoFiltro,
+    especialidadFiltro,
+    setEspecialidadFiltro,
     ordenarPor,
     setOrdenarPor,
     orden,
@@ -31,6 +35,7 @@ export default function EmpleadoBuscador({
     catalogos,
     resultados,
     cargando,
+    limpiarFiltros,
   } = useEmpleados({ versionActualizacion });
 
   const [abierto, setAbierto] = useState(false);
@@ -78,14 +83,20 @@ export default function EmpleadoBuscador({
         setDelegacionFiltro={setDelegacionFiltro}
         rolFiltro={rolFiltro}
         setRolFiltro={setRolFiltro}
+        estadoOperativoFiltro={estadoOperativoFiltro}
+        setEstadoOperativoFiltro={setEstadoOperativoFiltro}
+        especialidadFiltro={especialidadFiltro}
+        setEspecialidadFiltro={setEspecialidadFiltro}
         ordenarPor={ordenarPor}
         setOrdenarPor={setOrdenarPor}
         orden={orden}
         setOrden={setOrden}
         delegaciones={catalogos.delegaciones}
         roles={catalogos.roles}
+        especialidades={catalogos.especialidades}
         cargando={cargando}
         onFocusInput={() => setAbierto(true)}
+        onLimpiarFiltros={limpiarFiltros}
       />
 
       {abierto && (

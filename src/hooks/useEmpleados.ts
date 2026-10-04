@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import type { EmpleadoUsuario, CatalogosResponse } from '@/types/empleados';
 import { empleadosService } from '@/services/empleadosService';
+import { catalogosService } from '@/services/catalogosService';
 
 interface UseEmpleadosProps {
   versionActualizacion?: number;
@@ -10,6 +11,9 @@ export function useEmpleados({ versionActualizacion = 0 }: UseEmpleadosProps = {
   const [termino, setTermino] = useState('');
   const [delegacionFiltro, setDelegacionFiltro] = useState('');
   const [rolFiltro, setRolFiltro] = useState('');
+  const [estadoOperativoFiltro, setEstadoOperativoFiltro] = useState('');
+  const [especialidadFiltro, setEspecialidadFiltro] = useState('');
+  const [cargoFiltro, setCargoFiltro] = useState('');
   const [ordenarPor, setOrdenarPor] = useState('apellidos');
   const [orden, setOrden] = useState<'asc' | 'desc'>('asc');
 
@@ -29,7 +33,7 @@ export function useEmpleados({ versionActualizacion = 0 }: UseEmpleadosProps = {
     let cancelado = false;
     async function cargar() {
       try {
-        const data = await empleadosService.getCatalogos();
+        const data = await catalogosService.getCatalogos();
         if (!cancelado) {
           setCatalogos(data);
         }
@@ -55,7 +59,11 @@ export function useEmpleados({ versionActualizacion = 0 }: UseEmpleadosProps = {
         const data = await empleadosService.getEmpleados({
           q: termino,
           delegacion_id: delegacionFiltro || undefined,
+          delegacionNombre: delegacionFiltro || undefined,
           rol_id: rolFiltro || undefined,
+          estadoOperativo: estadoOperativoFiltro || undefined,
+          especialidad: especialidadFiltro || undefined,
+          cargo: cargoFiltro || undefined,
           ordenar_por: ordenarPor,
           orden,
         });
@@ -77,7 +85,28 @@ export function useEmpleados({ versionActualizacion = 0 }: UseEmpleadosProps = {
       cancelado = true;
       clearTimeout(timer);
     };
-  }, [termino, delegacionFiltro, rolFiltro, ordenarPor, orden, versionActualizacion]);
+  }, [
+    termino,
+    delegacionFiltro,
+    rolFiltro,
+    estadoOperativoFiltro,
+    especialidadFiltro,
+    cargoFiltro,
+    ordenarPor,
+    orden,
+    versionActualizacion,
+  ]);
+
+  const limpiarFiltros = useCallback(() => {
+    setTermino('');
+    setDelegacionFiltro('');
+    setRolFiltro('');
+    setEstadoOperativoFiltro('');
+    setEspecialidadFiltro('');
+    setCargoFiltro('');
+    setOrdenarPor('apellidos');
+    setOrden('asc');
+  }, []);
 
   return {
     termino,
@@ -86,6 +115,12 @@ export function useEmpleados({ versionActualizacion = 0 }: UseEmpleadosProps = {
     setDelegacionFiltro,
     rolFiltro,
     setRolFiltro,
+    estadoOperativoFiltro,
+    setEstadoOperativoFiltro,
+    especialidadFiltro,
+    setEspecialidadFiltro,
+    cargoFiltro,
+    setCargoFiltro,
     ordenarPor,
     setOrdenarPor,
     orden,
@@ -94,5 +129,6 @@ export function useEmpleados({ versionActualizacion = 0 }: UseEmpleadosProps = {
     resultados,
     cargando,
     error,
+    limpiarFiltros,
   };
 }

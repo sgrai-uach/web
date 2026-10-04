@@ -10,6 +10,7 @@ import type {
   ActualizarEmpleadoPayload,
 } from '@/types/empleados';
 import { getErrorMessage } from '@/lib/utils/errorUtils';
+import { catalogosService } from '@/services/catalogosService';
 
 export class EmpleadosServiceError extends Error {
   public status?: number;
@@ -75,9 +76,23 @@ export const empleadosService = {
   async getEmpleados(params: EmpleadosQueryParams = {}): Promise<EmpleadoUsuario[]> {
     try {
       const search = new URLSearchParams();
-      if (params.q?.trim()) search.set('q', params.q.trim());
-      if (params.delegacion_id) search.set('delegacion_id', params.delegacion_id);
+      const q = params.busqueda || params.q;
+      if (q?.trim()) search.set('q', q.trim());
+      if (params.page) search.set('page', String(params.page));
+      if (params.limit) search.set('limit', String(params.limit));
+
+      let delId = params.delegacion_id;
+      if (!delId && params.delegacionNombre && params.delegacionNombre !== 'TODAS') {
+        delId = catalogosService.resolverDelegacionId(params.delegacionNombre);
+      }
+      if (delId) search.set('delegacion_id', delId);
+
       if (params.rol_id) search.set('rol_id', params.rol_id);
+      const estOp = params.estadoOperativo || params.estado_operativo;
+      if (estOp && estOp !== 'TODOS') search.set('estadoOperativo', estOp);
+      if (params.cargo) search.set('cargo', params.cargo);
+      if (params.especialidad) search.set('especialidad', params.especialidad);
+
       if (params.ordenar_por) search.set('ordenar_por', params.ordenar_por);
       if (params.orden) search.set('orden', params.orden);
 
