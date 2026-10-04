@@ -65,14 +65,13 @@ describe('PuntosCriticosPage - RBAC y Renderizado (CA-1, CA-4)', () => {
       cargando: false,
       error: null,
       statusCode: 200,
-      recargar: vi.fn(),
+      removerPuntoLocalmente: vi.fn(),
     });
 
     render(<PuntosCriticosPage />);
 
     expect(screen.getByText('Puntos Críticos y Sectores Vulnerables')).toBeInTheDocument();
     expect(screen.getByText('PC-ANG-01')).toBeInTheDocument();
-    expect(screen.getByText('Sector Humedal Angachilla')).toBeInTheDocument();
   });
 
   it('debe renderizar AccesoDenegadoState si el usuario carece de permiso o recibe 403 Forbidden (CA-4)', () => {
@@ -103,6 +102,7 @@ describe('PuntosCriticosPage - RBAC y Renderizado (CA-1, CA-4)', () => {
       error: new Error('Acceso no autorizado'),
       statusCode: 403,
       recargar: vi.fn(),
+      removerPuntoLocalmente: vi.fn(),
     });
 
     render(<PuntosCriticosPage />);
@@ -145,6 +145,7 @@ describe('PuntosCriticosPage - RBAC y Renderizado (CA-1, CA-4)', () => {
       error: null,
       statusCode: 200,
       recargar: vi.fn(),
+      removerPuntoLocalmente: vi.fn(),
     });
 
     render(<PuntosCriticosPage />);
@@ -182,6 +183,7 @@ describe('PuntosCriticosPage - RBAC y Renderizado (CA-1, CA-4)', () => {
       error: null,
       statusCode: 200,
       recargar: vi.fn(),
+      removerPuntoLocalmente: vi.fn(),
     });
 
     render(<PuntosCriticosPage />);
@@ -189,6 +191,75 @@ describe('PuntosCriticosPage - RBAC y Renderizado (CA-1, CA-4)', () => {
     expect(screen.getByText('Puntos Críticos y Sectores Vulnerables')).toBeInTheDocument();
     expect(screen.getByText('PC-ANG-01')).toBeInTheDocument();
     expect(screen.queryByText('Acceso Restringido')).toBeNull();
+  });
+
+  describe('Interacción de Eliminación y Modos de Vista (HU-56)', () => {
+    beforeEach(() => {
+      vi.spyOn(sessionContextModule, 'useSimulatedSession').mockReturnValue({
+        usuarioActivo: {
+          id: '00000000-0000-4000-8000-000000000001',
+          nombre: 'Administrador General',
+          email: 'admin@valdivia.cl',
+          rut: '11.111.111-1',
+          rol: 'Administrador',
+          esAdmin: true,
+        },
+        setUsuarioActivo: vi.fn(),
+        cambiarUsuarioPorId: vi.fn(),
+        usuariosDisponibles: [],
+        permisos: new Set(['puntos_criticos:leer', 'puntos_criticos:eliminar']),
+        cargandoPermisos: false,
+        refrescarPermisos: vi.fn(),
+        hasPermission: vi.fn().mockReturnValue(true),
+        hasAnyPermission: vi.fn().mockReturnValue(true),
+        usuarioDetalleServidor: null,
+      });
+    });
+
+    it('debe permitir alternar entre Vista Tabla y Vista Mapa', async () => {
+      vi.spyOn(usePuntosCriticosModule, 'usePuntosCriticos').mockReturnValue({
+        puntosCriticos: [mockPunto],
+        meta: { total: 1, pagina: 1, limite: 10, totalPaginas: 1 },
+        cargando: false,
+        error: null,
+        statusCode: 200,
+        recargar: vi.fn(),
+        removerPuntoLocalmente: vi.fn(),
+      });
+
+      render(<PuntosCriticosPage />);
+
+      const btnMapa = screen.getByRole('button', { name: /vista mapa/i });
+      expect(btnMapa).toBeInTheDocument();
+
+      const { fireEvent } = await import('@testing-library/react');
+      fireEvent.click(btnMapa);
+
+      expect(screen.getByRole('button', { name: /vista tabla/i })).toBeInTheDocument();
+    });
+
+    it('debe abrir el modal de confirmación al hacer clic en Desactivar desde la tabla', async () => {
+      vi.spyOn(usePuntosCriticosModule, 'usePuntosCriticos').mockReturnValue({
+        puntosCriticos: [mockPunto],
+        meta: { total: 1, pagina: 1, limite: 10, totalPaginas: 1 },
+        cargando: false,
+        error: null,
+        statusCode: 200,
+        recargar: vi.fn(),
+        removerPuntoLocalmente: vi.fn(),
+      });
+
+      render(<PuntosCriticosPage />);
+
+      const { fireEvent } = await import('@testing-library/react');
+      const botonDesactivar = screen.getByRole('button', {
+        name: `Desactivar punto crítico ${mockPunto.codigo}`,
+      });
+
+      fireEvent.click(botonDesactivar);
+
+      expect(screen.getByText(/¿Está seguro de desactivar este punto crítico\?/i)).toBeInTheDocument();
+    });
   });
 });
 

@@ -99,4 +99,78 @@ describe('PuntosCriticosTabla', () => {
 
     expect(handleSeleccionar).toHaveBeenCalledWith(mockPunto);
   });
+
+  describe('Acción de Desactivación (HU-56)', () => {
+    it('debe renderizar el botón Desactivar para un punto crítico activo y ejecutar onEliminarPunto sin abrir el detalle', () => {
+      const handleEliminar = vi.fn();
+      const handleSeleccionar = vi.fn();
+
+      render(
+        <PuntosCriticosTabla
+          puntosCriticos={[mockPunto]}
+          cargando={false}
+          esFiltroActivo={false}
+          onLimpiarFiltros={vi.fn()}
+          onSeleccionarPunto={handleSeleccionar}
+          onEliminarPunto={handleEliminar}
+          puedeEliminar={true}
+        />
+      );
+
+      const botonDesactivar = screen.getByRole('button', {
+        name: `Desactivar punto crítico ${mockPunto.codigo}`,
+      });
+      expect(botonDesactivar).toBeInTheDocument();
+      expect(botonDesactivar).not.toBeDisabled();
+
+      fireEvent.click(botonDesactivar);
+
+      expect(handleEliminar).toHaveBeenCalledWith(mockPunto);
+      expect(handleSeleccionar).not.toHaveBeenCalled();
+    });
+
+    it('debe deshabilitar el botón Desactivar si el usuario no tiene permisos (puedeEliminar = false)', () => {
+      render(
+        <PuntosCriticosTabla
+          puntosCriticos={[mockPunto]}
+          cargando={false}
+          esFiltroActivo={false}
+          onLimpiarFiltros={vi.fn()}
+          onEliminarPunto={vi.fn()}
+          puedeEliminar={false}
+        />
+      );
+
+      const botonDesactivar = screen.getByRole('button', {
+        name: `Desactivar punto crítico ${mockPunto.codigo}`,
+      });
+      expect(botonDesactivar).toBeDisabled();
+    });
+
+    it('debe mostrar etiqueta Inactivo y no renderizar botón de acción si el punto ya fue desactivado', () => {
+      const puntoInactivo: PuntoCriticoItem = {
+        ...mockPunto,
+        id: '40000000-0000-4000-8000-000000000005',
+        activo: false,
+        estadoTexto: 'Inactivo',
+      };
+
+      render(
+        <PuntosCriticosTabla
+          puntosCriticos={[puntoInactivo]}
+          cargando={false}
+          esFiltroActivo={false}
+          onLimpiarFiltros={vi.fn()}
+          onEliminarPunto={vi.fn()}
+          puedeEliminar={true}
+        />
+      );
+
+      expect(
+        screen.queryByRole('button', {
+          name: `Desactivar punto crítico ${puntoInactivo.codigo}`,
+        })
+      ).not.toBeInTheDocument();
+    });
+  });
 });
