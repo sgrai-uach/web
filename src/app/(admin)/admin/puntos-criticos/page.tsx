@@ -46,7 +46,7 @@ export default function PuntosCriticosPage() {
     busqueda: '',
     delegacionId: undefined,
     prioridad: undefined,
-    activo: undefined,
+    activo: true,
   });
 
   const {
@@ -103,7 +103,7 @@ export default function PuntosCriticosPage() {
       busqueda: '',
       delegacionId: undefined,
       prioridad: undefined,
-      activo: undefined,
+      activo: true,
     });
   }, []);
 
@@ -157,8 +157,7 @@ export default function PuntosCriticosPage() {
   const esFiltroActivo =
     Boolean(filtros.busqueda && filtros.busqueda.trim() !== '') ||
     Boolean(filtros.delegacionId) ||
-    Boolean(filtros.prioridad) ||
-    filtros.activo !== undefined;
+    Boolean(filtros.prioridad);
 
   const accesoDenegado =
     statusCode === 403 || (!cargando && !tienePermisoLectura && statusCode !== 200);
@@ -179,10 +178,13 @@ export default function PuntosCriticosPage() {
     );
   }
 
+  // En el catálogo operativo y mapa solo deben verse puntos críticos activos (HU-56)
+  const puntosActivos = puntosCriticos.filter((p) => p.activo !== false);
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6, 24px)' }}>
       <PuntosCriticosHeader
-        totalPuntos={meta.total}
+        totalPuntos={puntosActivos.length}
         tieneAcceso={true}
       />
 
@@ -241,7 +243,7 @@ export default function PuntosCriticosPage() {
       {vista === 'tabla' ? (
         <div style={{ display: 'flex', flexDirection: 'column' }}>
           <PuntosCriticosTabla
-            puntosCriticos={puntosCriticos}
+            puntosCriticos={puntosActivos}
             cargando={cargando}
             esFiltroActivo={esFiltroActivo}
             onLimpiarFiltros={handleLimpiarFiltros}
@@ -253,8 +255,8 @@ export default function PuntosCriticosPage() {
           <Pagination
             pagina={meta.pagina}
             limite={meta.limite}
-            total={meta.total}
-            totalPaginas={meta.totalPaginas}
+            total={puntosActivos.length}
+            totalPaginas={Math.max(1, Math.ceil(puntosActivos.length / (meta.limite || 10)))}
             onCambiarPagina={handleCambiarPagina}
             onCambiarLimite={handleCambiarLimite}
             nombreEntidad="puntos críticos"
@@ -263,7 +265,7 @@ export default function PuntosCriticosPage() {
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           <PuntosCriticosMapa
-            puntos={puntosCriticos}
+            puntos={puntosActivos}
             onEliminarPunto={handleSolicitarEliminar}
             onSeleccionarPunto={setPuntoSeleccionado}
             puedeEliminar={puedeEliminar}

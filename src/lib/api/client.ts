@@ -12,7 +12,7 @@ export const DEFAULT_ADMIN_USER_ID =
   process.env.NEXT_PUBLIC_DEFAULT_ADMIN_USER_ID || '00000000-0000-4000-8000-000000000001';
 
 const apiClient = createClient<paths>({
-  baseUrl: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000',
+  baseUrl: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001',
   headers: {
     'X-User-Id': DEFAULT_ADMIN_USER_ID,
   },

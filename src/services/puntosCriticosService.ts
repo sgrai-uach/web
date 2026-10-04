@@ -128,6 +128,9 @@ export function filtrarPuntosCriticosMock(
 
   if (filtros.activo !== undefined) {
     resultado = resultado.filter((p) => p.activo === filtros.activo);
+  } else {
+    // Por defecto únicamente mostrar puntos críticos activos (HU-56)
+    resultado = resultado.filter((p) => p.activo !== false);
   }
 
   if (filtros.prioridad) {
@@ -313,6 +316,15 @@ export async function eliminarPuntoCritico(
       (err.message.includes('fetch') || err.message.includes('Failed to fetch') || err.message.includes('NetworkError'));
 
     if (isNetworkError) {
+      // Si el punto crítico tiene misiones preventivas activas (ej. Collico), simular bloqueo 409 Conflict
+      if (id === '40000000-0000-4000-8000-000000000002') {
+        throw new PuntoCriticoServiceError({
+          message:
+            "No es posible eliminar el punto crítico 'Sector Collico - Borde Río Calle Calle' porque cuenta con 1 misión(es) preventivas activas o patrullas asignadas en terreno (Misiones asociadas: MIS-PREV-2026-001).",
+          statusCode: 409,
+        });
+      }
+
       const punto = PUNTOS_CRITICOS_MOCK.find((p) => p.id === id);
       if (!punto) {
         throw new PuntoCriticoServiceError({

@@ -184,12 +184,12 @@ describe('puntosCriticosService', () => {
       );
 
       const resultado = await eliminarPuntoCritico(
-        '40000000-0000-4000-8000-000000000002',
+        '40000000-0000-4000-8000-000000000001',
         '00000000-0000-4000-8000-000000000001'
       );
 
       expect(resultado.activo).toBe(false);
-      expect(resultado.id).toBe('40000000-0000-4000-8000-000000000002');
+      expect(resultado.id).toBe('40000000-0000-4000-8000-000000000001');
     });
   });
 });

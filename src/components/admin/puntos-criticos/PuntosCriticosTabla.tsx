@@ -84,7 +84,7 @@ export default function PuntosCriticosTabla({
         <tbody>
           {cargando && <PuntosCriticosSkeleton filas={5} />}
 
-          {!cargando && puntosCriticos.length === 0 && (
+          {!cargando && puntosCriticos.filter((p) => p.activo !== false).length === 0 && (
             <tr>
               <td colSpan={7} style={{ padding: 0 }}>
                 <PuntosCriticosEmptyState
@@ -96,16 +96,18 @@ export default function PuntosCriticosTabla({
           )}
 
           {!cargando &&
-            puntosCriticos.map((punto, idx) => (
-              <PuntoCriticoRow
-                key={punto.id}
-                punto={punto}
-                indice={idx}
-                onSeleccionar={onSeleccionarPunto}
-                onEliminar={onEliminarPunto}
-                puedeEliminar={puedeEliminar}
-              />
-            ))}
+            puntosCriticos
+              .filter((p) => p.activo !== false)
+              .map((punto, idx) => (
+                <PuntoCriticoRow
+                  key={punto.id}
+                  punto={punto}
+                  indice={idx}
+                  onSeleccionar={onSeleccionarPunto}
+                  onEliminar={onEliminarPunto}
+                  puedeEliminar={puedeEliminar}
+                />
+              ))}
         </tbody>
       </table>
     </div>
