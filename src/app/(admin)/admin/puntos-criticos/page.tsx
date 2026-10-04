@@ -1,27 +1,44 @@
 'use client';
 
 import React, { useState, useCallback, useEffect } from 'react';
+import { Table, Map } from 'lucide-react';
 import type {
   FiltrosPuntosCriticosState,
   PrioridadPuntoCritico,
+  PuntoCriticoItem,
 } from '@/types/puntoCritico';
 import { usePuntosCriticos } from '@/hooks/usePuntosCriticos';
 import { DEFAULT_ADMIN_USER_ID } from '@/lib/api/client';
 import { useToast } from '@/components/ui/Toast';
 import { useSimulatedSession } from '@/context/SimulatedSessionContext';
+import {
+  eliminarPuntoCritico,
+  PuntoCriticoServiceError,
+} from '@/services/puntosCriticosService';
 import PuntosCriticosHeader from '@/components/admin/puntos-criticos/PuntosCriticosHeader';
 import PuntosCriticosFiltros from '@/components/admin/puntos-criticos/PuntosCriticosFiltros';
 import PuntosCriticosTabla from '@/components/admin/puntos-criticos/PuntosCriticosTabla';
+import PuntosCriticosMapa from '@/components/admin/puntos-criticos/PuntosCriticosMapa';
 import PuntoCriticoDetalleModal from '@/components/admin/puntos-criticos/PuntoCriticoDetalleModal';
+import PuntoCriticoEliminarModal from '@/components/admin/puntos-criticos/PuntoCriticoEliminarModal';
 import AccesoDenegadoState from '@/components/admin/puntos-criticos/AccesoDenegadoState';
 import Pagination from '@/components/common/Pagination';
+import Button from '@/components/ui/Button';
 import { toUserFriendlyErrorMessage } from '@/lib/utils/errorUtils';
-import type { PuntoCriticoItem } from '@/types/puntoCritico';
 
 export default function PuntosCriticosPage() {
-  const { showError } = useToast();
+  const { showError, showSuccess } = useToast();
   const { usuarioActivo, cambiarUsuarioPorId, hasPermission } = useSimulatedSession();
+
+  // Estados de interfaz y vista
+  const [vista, setVista] = useState<'tabla' | 'mapa'>('tabla');
   const [puntoSeleccionado, setPuntoSeleccionado] = useState<PuntoCriticoItem | null>(null);
+
+  // Estados de eliminación y modal
+  const [puntoAEliminar, setPuntoAEliminar] = useState<PuntoCriticoItem | null>(null);
+  const [modalEliminarAbierto, setModalEliminarAbierto] = useState<boolean>(false);
+  const [eliminando, setEliminando] = useState<boolean>(false);
+  const [errorBloqueo, setErrorBloqueo] = useState<string | null>(null);
 
   const [filtros, setFiltros] = useState<FiltrosPuntosCriticosState>({
     pagina: 1,
@@ -32,16 +49,26 @@ export default function PuntosCriticosPage() {
     activo: undefined,
   });
 
-  const { puntosCriticos, meta, cargando, error, statusCode } = usePuntosCriticos(
-    filtros,
-    usuarioActivo.id
-  );
+  const {
+    puntosCriticos,
+    meta,
+    cargando,
+    error,
+    statusCode,
+    removerPuntoLocalmente,
+  } = usePuntosCriticos(filtros, usuarioActivo.id);
 
-  const tienePermiso =
+  const tienePermisoLectura =
     usuarioActivo.rol === 'Administrador' ||
     Boolean(usuarioActivo.esAdmin) ||
     usuarioActivo.id === DEFAULT_ADMIN_USER_ID ||
     hasPermission('puntos_criticos:leer');
+
+  const puedeEliminar =
+    usuarioActivo.rol === 'Administrador' ||
+    Boolean(usuarioActivo.esAdmin) ||
+    usuarioActivo.id === DEFAULT_ADMIN_USER_ID ||
+    hasPermission('puntos_criticos:eliminar');
 
   useEffect(() => {
     if (error && statusCode !== 403) {
@@ -87,6 +114,45 @@ export default function PuntosCriticosPage() {
     setFiltros((prev) => ({ ...prev, limite: nuevoLimite, pagina: 1 }));
   }, []);
 
+  // Flujo de solicitud y confirmación de eliminación
+  const handleSolicitarEliminar = useCallback((punto: PuntoCriticoItem) => {
+    setPuntoAEliminar(punto);
+    setErrorBloqueo(null);
+    setModalEliminarAbierto(true);
+  }, []);
+
+  const handleConfirmarEliminar = async () => {
+    if (!puntoAEliminar) return;
+    setEliminando(true);
+    setErrorBloqueo(null);
+
+    try {
+      const res = await eliminarPuntoCritico(puntoAEliminar.id, usuarioActivo.id);
+      removerPuntoLocalmente(puntoAEliminar.id);
+
+      showSuccess(
+        res.message || `El punto crítico '${puntoAEliminar.nombre}' fue desactivado correctamente.`,
+        'Punto crítico desactivado'
+      );
+
+      setModalEliminarAbierto(false);
+      setPuntoAEliminar(null);
+    } catch (err: unknown) {
+      if (err instanceof PuntoCriticoServiceError) {
+        if (err.apiError.statusCode === 409) {
+          // Mantener modal abierto con el mensaje explicativo de bloqueo
+          setErrorBloqueo(err.apiError.message);
+        } else {
+          showError(err.apiError.message, 'No fue posible desactivar el punto crítico');
+        }
+      } else {
+        showError((err as Error)?.message || 'Error inesperado al desactivar el punto crítico');
+      }
+    } finally {
+      setEliminando(false);
+    }
+  };
+
   const esFiltroActivo =
     Boolean(filtros.busqueda && filtros.busqueda.trim() !== '') ||
     Boolean(filtros.delegacionId) ||
@@ -94,7 +160,7 @@ export default function PuntosCriticosPage() {
     filtros.activo !== undefined;
 
   const accesoDenegado =
-    statusCode === 403 || (!cargando && !tienePermiso && statusCode !== 200);
+    statusCode === 403 || (!cargando && !tienePermisoLectura && statusCode !== 200);
 
   // Control RBAC: Si el usuario recibe 403 o no tiene permiso y no fue autorizado por la API
   if (accesoDenegado) {
@@ -131,30 +197,104 @@ export default function PuntosCriticosPage() {
         onLimpiarFiltros={handleLimpiarFiltros}
       />
 
-      <div style={{ display: 'flex', flexDirection: 'column' }}>
-        <PuntosCriticosTabla
-          puntosCriticos={puntosCriticos}
-          cargando={cargando}
-          esFiltroActivo={esFiltroActivo}
-          onLimpiarFiltros={handleLimpiarFiltros}
-          onSeleccionarPunto={setPuntoSeleccionado}
-        />
+      {/* Barra de Modos de Visualización (Tabla / Mapa) */}
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          backgroundColor: '#FFFFFF',
+          padding: '10px 16px',
+          border: '1px solid var(--border-color-neutral, #DFE3E8)',
+          boxShadow: 'var(--shadow-sm)',
+        }}
+      >
+        <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-charcoal, #3B3F45)' }}>
+          Modo de Visualización:
+        </span>
 
-        <Pagination
-          pagina={meta.pagina}
-          limite={meta.limite}
-          total={meta.total}
-          totalPaginas={meta.totalPaginas}
-          onCambiarPagina={handleCambiarPagina}
-          onCambiarLimite={handleCambiarLimite}
-          nombreEntidad="puntos críticos"
-        />
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <Button
+            type="button"
+            variant={vista === 'tabla' ? 'primary' : 'outline'}
+            size="sm"
+            onClick={() => setVista('tabla')}
+            icon={<Table size={14} aria-hidden="true" />}
+          >
+            Vista Tabla
+          </Button>
+
+          <Button
+            type="button"
+            variant={vista === 'mapa' ? 'primary' : 'outline'}
+            size="sm"
+            onClick={() => setVista('mapa')}
+            icon={<Map size={14} aria-hidden="true" />}
+          >
+            Vista Mapa (Cartográfico)
+          </Button>
+        </div>
       </div>
+
+      {/* Contenido según vista seleccionada */}
+      {vista === 'tabla' ? (
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          <PuntosCriticosTabla
+            puntosCriticos={puntosCriticos}
+            cargando={cargando}
+            esFiltroActivo={esFiltroActivo}
+            onLimpiarFiltros={handleLimpiarFiltros}
+            onSeleccionarPunto={setPuntoSeleccionado}
+            onEliminarPunto={handleSolicitarEliminar}
+            puedeEliminar={puedeEliminar}
+          />
+
+          <Pagination
+            pagina={meta.pagina}
+            limite={meta.limite}
+            total={meta.total}
+            totalPaginas={meta.totalPaginas}
+            onCambiarPagina={handleCambiarPagina}
+            onCambiarLimite={handleCambiarLimite}
+            nombreEntidad="puntos críticos"
+          />
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <PuntosCriticosMapa
+            puntos={puntosCriticos}
+            onEliminarPunto={handleSolicitarEliminar}
+            onSeleccionarPunto={setPuntoSeleccionado}
+            puedeEliminar={puedeEliminar}
+          />
+          <div style={{ fontSize: '12px', color: 'var(--color-text-muted, #5F676E)', paddingLeft: '4px' }}>
+            Haga clic en un marcador para desplegar los detalles del punto crítico y acceder a la acción de desactivación.
+          </div>
+        </div>
+      )}
 
       {/* Modal de Detalle de Atributos del Punto Crítico */}
       <PuntoCriticoDetalleModal
         punto={puntoSeleccionado}
         onCerrar={() => setPuntoSeleccionado(null)}
+        onEliminar={handleSolicitarEliminar}
+        puedeEliminar={puedeEliminar}
+      />
+
+      {/* Modal de Confirmación de Desactivación / Eliminación (HU-56) */}
+      <PuntoCriticoEliminarModal
+        punto={puntoAEliminar}
+        isOpen={modalEliminarAbierto}
+        isSubmitting={eliminando}
+        errorBloqueo={errorBloqueo}
+        onClose={() => {
+          if (!eliminando) {
+            setModalEliminarAbierto(false);
+            setPuntoAEliminar(null);
+            setErrorBloqueo(null);
+          }
+        }}
+        onConfirm={handleConfirmarEliminar}
       />
     </div>
   );
