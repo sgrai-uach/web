@@ -46,16 +46,16 @@ export default function PuntosCriticosTabla({
               borderBottom: '2px solid var(--color-primary-teal, #1B6F7D)',
             }}
           >
-            <th style={{ padding: '12px 16px', fontWeight: 700, width: '32%' }}>
+            <th style={{ padding: '12px 16px', fontWeight: 700, width: '28%' }}>
               Identificador / Sector
             </th>
-            <th style={{ padding: '12px 16px', fontWeight: 700, width: '20%' }}>
+            <th style={{ padding: '12px 16px', fontWeight: 700, width: '18%' }}>
               Tipo de Riesgo
             </th>
-            <th style={{ padding: '12px 16px', fontWeight: 700, width: '12%' }}>
+            <th style={{ padding: '12px 16px', fontWeight: 700, width: '11%' }}>
               Prioridad
             </th>
-            <th style={{ padding: '12px 16px', fontWeight: 700, width: '16%' }}>
+            <th style={{ padding: '12px 16px', fontWeight: 700, width: '15%' }}>
               Coordenadas / Ubicación
             </th>
             <th style={{ padding: '12px 16px', fontWeight: 700, width: '12%' }}>
@@ -63,6 +63,16 @@ export default function PuntosCriticosTabla({
             </th>
             <th style={{ padding: '12px 16px', fontWeight: 700, width: '8%' }}>
               Estado
+            </th>
+            <th
+              style={{
+                padding: '12px 16px',
+                fontWeight: 700,
+                width: '8%',
+                textAlign: 'center',
+              }}
+            >
+              Acción
             </th>
           </tr>
         </thead>
@@ -72,7 +82,7 @@ export default function PuntosCriticosTabla({
 
           {!cargando && puntosCriticos.length === 0 && (
             <tr>
-              <td colSpan={6} style={{ padding: 0 }}>
+              <td colSpan={7} style={{ padding: 0 }}>
                 <PuntosCriticosEmptyState
                   esFiltroActivo={esFiltroActivo}
                   onLimpiarFiltros={onLimpiarFiltros}

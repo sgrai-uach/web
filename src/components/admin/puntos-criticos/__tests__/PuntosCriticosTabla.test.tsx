@@ -42,6 +42,7 @@ describe('PuntosCriticosTabla', () => {
     expect(screen.getByText('-39.8456, -73.2389')).toBeInTheDocument();
     expect(screen.getByText('Delegación Municipal Sur')).toBeInTheDocument();
     expect(screen.getByText('Activo')).toBeInTheDocument();
+    expect(screen.getByText('Acción')).toBeInTheDocument();
   });
 
   it('debe permitir copiar las coordenadas al portapapeles', async () => {

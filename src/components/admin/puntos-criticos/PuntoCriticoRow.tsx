@@ -272,6 +272,18 @@ export default function PuntoCriticoRow({
           <span>{punto.estadoTexto}</span>
         </span>
       </td>
+
+      {/* Acción (Reservada para futuras historias) */}
+      <td
+        style={{
+          padding: '14px 16px',
+          verticalAlign: 'middle',
+          textAlign: 'center',
+          color: 'var(--color-text-muted, #5F676E)',
+        }}
+      >
+        <span>-</span>
+      </td>
     </tr>
   );
 }

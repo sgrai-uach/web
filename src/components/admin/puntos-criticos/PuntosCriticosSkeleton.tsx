@@ -106,6 +106,19 @@ export default function PuntosCriticosSkeleton({ filas = 5 }: PuntosCriticosSkel
               }}
             />
           </td>
+
+          {/* Acción */}
+          <td style={{ padding: '16px', textAlign: 'center' }}>
+            <div
+              style={{
+                width: '32px',
+                height: '20px',
+                backgroundColor: '#ECEFF3',
+                margin: '0 auto',
+                animation: 'pulse 1.5s infinite',
+              }}
+            />
+          </td>
         </tr>
       ))}
     </>
