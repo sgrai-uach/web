@@ -31,7 +31,7 @@ interface SimulatedSessionContextValue {
   usuarioDetalleServidor: UsuarioActivoDetalle | null;
 }
 
-const SimulatedSessionContext = createContext<SimulatedSessionContextValue | null>(null);
+export const SimulatedSessionContext = createContext<SimulatedSessionContextValue | null>(null);
 
 /**
  * Fallback de permisos cuando la API no está disponible o durante la carga inicial.
@@ -50,6 +50,9 @@ function obtenerPermisosFallback(rol: string, esAdmin: boolean): Set<string> {
       'crear_incidente_manual',
       'misiones:asignar',
       'eventos_atp:crear',
+      'personal:leer',
+      'personal:crear',
+      'personal:gestionar',
     ]);
   }
 

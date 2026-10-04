@@ -90,8 +90,18 @@ const MODULOS_SISTEMA: ModuloConfig[] = [
       'Administración del personal municipal, asignación de cargos, cuadrillas operativas, delegaciones y especialidades técnicas.',
     href: '/gestion/admin/empleados',
     icon: Users,
-    requiredPermissions: ['personal:gestionar', 'seguridad:roles:gestionar'],
+    requiredPermissions: [
+      'personal:gestionar',
+      'personal:crear',
+      'personal:leer',
+      'seguridad:roles:gestionar',
+    ],
     accionPrimaria: 'Gestionar Personal',
+    accionSecundaria: {
+      label: '+ Nuevo Funcionario',
+      href: '/gestion/admin/empleados?nuevo=1',
+      permiso: 'personal:crear',
+    },
   },
   {
     id: 'roles-permisos',

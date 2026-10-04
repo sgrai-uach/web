@@ -9,6 +9,18 @@ export type RolDetalleResponse = components['schemas']['RolDetalleResponse'];
 
 export type PermisosPorModulo = Record<string, PermisoAsignado[]>;
 
+export const PERMISOS_SISTEMA = {
+  PERSONAL_CREAR: 'personal:crear',
+  PERSONAL_LEER: 'personal:leer',
+  PERSONAL_GESTIONAR: 'personal:gestionar',
+  SEGURIDAD_ROLES_LEER: 'seguridad:roles:leer',
+  SEGURIDAD_ROLES_GESTIONAR: 'seguridad:roles:gestionar',
+  RECURSOS_LEER: 'recursos:leer',
+  RECURSOS_CREAR: 'recursos:crear',
+} as const;
+
+export type PermisoCodigoSistema = (typeof PERMISOS_SISTEMA)[keyof typeof PERMISOS_SISTEMA];
+
 export type FiltroTipoRol = 'TODOS' | 'SISTEMA' | 'PERSONALIZADO';
 export type FiltroEstadoPermisos = 'TODOS' | 'CON_PERMISOS' | 'SIN_PERMISOS';
 

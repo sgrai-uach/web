@@ -96,7 +96,12 @@ export const NAV_GROUPS: NavGroup[] = [
         label: 'Gestión de Personal',
         href: '/gestion/admin/empleados',
         icon: Users,
-        requiredPermissions: ['personal:gestionar', 'seguridad:roles:gestionar'],
+        requiredPermissions: [
+          'personal:gestionar',
+          'personal:crear',
+          'personal:leer',
+          'seguridad:roles:gestionar',
+        ],
       },
       {
         id: 'recursos',
