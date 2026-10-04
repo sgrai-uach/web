@@ -1,0 +1,41 @@
+/* Estructura responsiva de la vista de empleados (Master-Detail) */
+
+.pageContainer {
+  max-width: 1600px;
+  width: 100%;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5, 20px);
+}
+
+.filtersCard {
+  background-color: var(--color-white, #FFFFFF);
+  border: 1px solid var(--border-color-neutral, #DFE3E8);
+  padding: 0.75rem 1rem;
+}
+
+.masterDetailGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(380px, 480px);
+  gap: 1.5rem;
+  align-items: start;
+}
+
+.tableColumn {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.detailColumn {
+  min-width: 0;
+}
+
+/* En pantallas móviles/tablets (< 1024px) la grilla colapsa a 1 columna */
+@media (max-width: 1023px) {
+  .masterDetailGrid {
+    grid-template-columns: 1fr;
+  }
+}
