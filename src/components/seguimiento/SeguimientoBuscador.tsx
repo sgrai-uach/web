@@ -43,7 +43,7 @@ export const SeguimientoBuscador: React.FC<SeguimientoBuscadorProps> = ({
     if (onBuscar) {
       onBuscar(codigo.trim());
     } else {
-      router.push(`/seguimiento/${codigo.trim()}`);
+      router.push(`/ciudadania/seguimiento/${codigo.trim()}`);
     }
   };
 

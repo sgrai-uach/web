@@ -3,6 +3,7 @@
 import React from 'react';
 import { Truck, Package, Pencil } from 'lucide-react';
 import type { RecursoItem } from '@/types/recurso';
+import { obtenerNombreDelegacion } from '@/lib/utils/delegacionUtils';
 import BadgeEstado from './BadgeEstado';
 import Button from '@/components/ui/Button';
 
@@ -85,7 +86,7 @@ export default function RecursoRow({ recurso, indice, onSeleccionar, onEditar }:
       {/* Procedencia Territorial */}
       <td style={{ padding: '14px 16px', verticalAlign: 'middle' }}>
         <span style={{ fontSize: '13px', fontWeight: 600, color: recurso.delegacion ? 'var(--color-charcoal-dark)' : 'var(--color-charcoal)' }}>
-          {recurso.delegacion ? recurso.delegacion.nombre : 'Reserva Central'}
+          {recurso.delegacion ? obtenerNombreDelegacion(recurso.delegacion.nombre || recurso.delegacion.id, 'Reserva Central') : 'Reserva Central'}
         </span>
       </td>
 

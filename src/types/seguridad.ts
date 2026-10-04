@@ -9,6 +9,18 @@ export type RolDetalleResponse = components['schemas']['RolDetalleResponse'];
 
 export type PermisosPorModulo = Record<string, PermisoAsignado[]>;
 
+export const PERMISOS_SISTEMA = {
+  PERSONAL_CREAR: 'personal:crear',
+  PERSONAL_LEER: 'personal:leer',
+  PERSONAL_GESTIONAR: 'personal:gestionar',
+  SEGURIDAD_ROLES_LEER: 'seguridad:roles:leer',
+  SEGURIDAD_ROLES_GESTIONAR: 'seguridad:roles:gestionar',
+  RECURSOS_LEER: 'recursos:leer',
+  RECURSOS_CREAR: 'recursos:crear',
+} as const;
+
+export type PermisoCodigoSistema = (typeof PERMISOS_SISTEMA)[keyof typeof PERMISOS_SISTEMA];
+
 export type FiltroTipoRol = 'TODOS' | 'SISTEMA' | 'PERSONALIZADO';
 export type FiltroEstadoPermisos = 'TODOS' | 'CON_PERMISOS' | 'SIN_PERMISOS';
 
@@ -107,11 +119,32 @@ export type SeguridadExtendedPaths = paths & {
       };
     };
   };
+  '/api/seguridad/login': {
+    post: {
+      requestBody: {
+        content: {
+          'application/json': LoginRequest;
+        };
+      };
+      responses: {
+        200: {
+          content: {
+            'application/json': LoginResponse;
+          };
+        };
+        400: { content: { 'application/json': { error: string; detalles?: unknown[] } } };
+        401: { content: { 'application/json': { error: string } } };
+        403: { content: { 'application/json': { error: string } } };
+        500: { content: { 'application/json': { error: string } } };
+      };
+    };
+  };
   '/api/seguridad/usuario-activo': {
     get: {
-      parameters: {
-        header: {
-          'x-user-id': string;
+      parameters?: {
+        header?: {
+          'x-user-id'?: string;
+          authorization?: string;
         };
       };
       responses: {
@@ -129,19 +162,53 @@ export type SeguridadExtendedPaths = paths & {
   };
 };
 
+export interface LoginRequest {
+  identificador: string;
+  password: string;
+}
+
+export interface UsuarioPerfilSesion {
+  id: string;
+  rut: string;
+  nombre: string;
+  email: string;
+  rolId: string;
+  rolNombre: string;
+  rolCodigo: string;
+  delegacionId: string | null;
+  delegacionNombre?: string | null;
+  permisos: string[];
+}
+
+export interface LoginResponseData {
+  token: string;
+  expiraEn: string;
+  usuario: UsuarioPerfilSesion;
+}
+
+export interface LoginResponse {
+  data: LoginResponseData;
+}
+
 export interface UsuarioActivoDetalle {
   id: string;
   rut: string;
   nombre: string;
   email: string;
   activo: boolean;
+  ultimoAcceso?: string | null;
   delegacionId?: string | null;
   rol: {
     id: string;
     nombre: string;
     codigo: string;
-    esAdmin: boolean;
+    esAdmin?: boolean;
+    permisos?: string[];
   };
+  delegacion?: {
+    id: string;
+    nombre: string;
+  } | null;
   permisos: string[];
 }
 
