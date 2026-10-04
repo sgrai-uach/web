@@ -9,6 +9,7 @@ import {
   Copy,
   Check,
   ExternalLink,
+  Pencil,
 } from 'lucide-react';
 import type { PuntoCriticoItem, PrioridadPuntoCritico } from '@/types/puntoCritico';
 import Modal from '@/components/common/Modal';
@@ -17,6 +18,7 @@ import Button from '@/components/ui/Button';
 interface PuntoCriticoDetalleModalProps {
   punto: PuntoCriticoItem | null;
   onCerrar: () => void;
+  onEditar?: (punto: PuntoCriticoItem) => void;
 }
 
 const PRIORIDAD_CONFIG: Record<
@@ -52,6 +54,7 @@ const PRIORIDAD_CONFIG: Record<
 export default function PuntoCriticoDetalleModal({
   punto,
   onCerrar,
+  onEditar,
 }: PuntoCriticoDetalleModalProps) {
   const [copiado, setCopiado] = useState(false);
 
@@ -84,14 +87,31 @@ export default function PuntoCriticoDetalleModal({
   const urlMapa = `https://www.openstreetmap.org/?mlat=${punto.latitud}&mlon=${punto.longitud}#map=16/${punto.latitud}/${punto.longitud}`;
 
   const actions = (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '10px', width: '100%', flexWrap: 'wrap' }}>
+      {onEditar && (
+        <Button
+          type="button"
+          variant="primary"
+          onClick={() => {
+            onCerrar();
+            onEditar(punto);
+          }}
+          icon={<Pencil size={14} aria-hidden="true" />}
+          style={{
+            backgroundColor: 'var(--color-accent-mint, #4FAE9B)',
+            color: 'var(--color-white, #FFFFFF)',
+          }}
+        >
+          Editar Punto Crítico
+        </Button>
+      )}
       <Button
         type="button"
-        variant="primary"
+        variant="outline"
         href={urlMapa}
         target="_blank"
         rel="noopener noreferrer"
-        icon={<ExternalLink size={15} />}
+        icon={<ExternalLink size={14} aria-hidden="true" />}
       >
         Ver en Mapa
       </Button>
