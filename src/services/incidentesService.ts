@@ -20,7 +20,10 @@ export type RecursoAsociado = IncidenteDetalle['recursosAsociados'][number];
 
 export type ListarIncidentesQuery = NonNullable<
   paths['/api/incidentes']['get']['parameters']['query']
->;
+> & {
+  delegacionId?: string;
+  fuenteOrigen?: 'CHATBOT' | 'LLAMADA_TELEFONICA' | 'FUNCIONARIO_TERRENO' | 'WEB';
+};
 
 export interface ResultadoListadoIncidentes {
   exito: boolean;
@@ -82,10 +85,22 @@ export const incidentesService = {
       }
 
       if (data?.data) {
+        const metaRaw = (data as unknown as { meta?: { total: number; page: number; limit: number; totalPages: number; hasNext: boolean; hasPrev: boolean } }).meta;
+        const paginacionEstandar = metaRaw
+          ? {
+              total: metaRaw.total,
+              pagina: metaRaw.page,
+              limite: metaRaw.limit,
+              totalPaginas: metaRaw.totalPages,
+              tieneSiguiente: metaRaw.hasNext,
+              tieneAnterior: metaRaw.hasPrev,
+            }
+          : data.paginacion;
+
         return {
           exito: true,
           incidentes: data.data,
-          paginacion: data.paginacion,
+          paginacion: paginacionEstandar,
           mensaje: data.message || 'Listado obtenido exitosamente.',
         };
       }

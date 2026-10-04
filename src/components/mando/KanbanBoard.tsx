@@ -1,10 +1,7 @@
 'use client';
 
 import React from 'react';
-import {
-  useIncidentesKanban,
-  ESTADOS_KANBAN,
-} from '@/hooks/useIncidentesKanban';
+import { useIncidentesKanban } from '@/hooks/useIncidentesKanban';
 import { DEFAULT_ENCARGADO_ID } from '@/services/incidentesService';
 import { KanbanHeader } from './KanbanHeader';
 import { KanbanFiltros } from './KanbanFiltros';
@@ -23,6 +20,9 @@ const TITULOS_COLUMNAS = {
   NO_ABORDABLE: 'No Abordable',
 } as const;
 
+import { useState } from 'react';
+import { MisionesModal } from './misiones/MisionesModal';
+
 export const KanbanBoard: React.FC = () => {
   const {
     userId,
@@ -35,6 +35,8 @@ export const KanbanBoard: React.FC = () => {
     esForbidden,
     filtros,
     setFiltros,
+    estadosVisibles,
+    limpiarFiltros,
     cargarMas,
     recargar,
     conectado,
@@ -43,6 +45,8 @@ export const KanbanBoard: React.FC = () => {
     incidenteSeleccionadoId,
     setIncidenteSeleccionadoId,
   } = useIncidentesKanban();
+
+  const [misionesModalAbierto, setMisionesModalAbierto] = useState<boolean>(false);
 
   return (
     <div className={styles.pageContainer}>
@@ -60,8 +64,10 @@ export const KanbanBoard: React.FC = () => {
           <KanbanFiltros
             filtros={filtros}
             onFiltrosChange={setFiltros}
+            onLimpiarFiltros={limpiarFiltros}
             onRecargar={recargar}
             cargando={cargando}
+            onAbrirMisiones={() => setMisionesModalAbierto(true)}
           />
 
           {ultimoEvento && (
@@ -93,7 +99,7 @@ export const KanbanBoard: React.FC = () => {
 
           <main className={styles.kanbanArea}>
             <div className={styles.kanbanBoard}>
-              {ESTADOS_KANBAN.map((estado) => (
+              {estadosVisibles.map((estado) => (
                 <KanbanColumn
                   key={estado}
                   estado={estado}
@@ -113,8 +119,15 @@ export const KanbanBoard: React.FC = () => {
             userId={userId}
             onCerrar={() => setIncidenteSeleccionadoId(null)}
           />
+
+          <MisionesModal
+            isOpen={misionesModalAbierto}
+            onClose={() => setMisionesModalAbierto(false)}
+            userId={userId}
+          />
         </>
       )}
     </div>
   );
 };
+
