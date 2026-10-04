@@ -9,7 +9,8 @@ import type {
   FiltroOrigen,
   FiltroSemaforo,
 } from '@/types/avisos';
-import { DELEGACIONES_OPCIONES, ESTADOS_OPCIONES } from '@/types/avisos';
+import { ESTADOS_OPCIONES } from '@/types/avisos';
+import { useCatalogos } from '@/hooks/useCatalogos';
 
 interface AvisosFiltrosProps {
   busqueda: string;
@@ -44,6 +45,16 @@ export default function AvisosFiltros({
   onRefrescar,
   cargando,
 }: AvisosFiltrosProps) {
+  const { nombresDelegaciones } = useCatalogos();
+
+  const delegacionesOpciones: { valor: FiltroDelegacion; etiqueta: string }[] = [
+    { valor: 'TODAS', etiqueta: 'Todas las delegaciones' },
+    ...nombresDelegaciones.map((n) => ({
+      valor: n as FiltroDelegacion,
+      etiqueta: n,
+    })),
+  ];
+
   const selectStyle: React.CSSProperties = {
     padding: '8px 10px',
     fontSize: '13px',
@@ -136,7 +147,7 @@ export default function AvisosFiltros({
             style={selectStyle}
             aria-label="Delegación Territorial"
           >
-            {DELEGACIONES_OPCIONES.map((opcion) => (
+            {delegacionesOpciones.map((opcion) => (
               <option key={opcion.valor} value={opcion.valor}>
                 {opcion.etiqueta}
               </option>
