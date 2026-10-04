@@ -260,7 +260,9 @@ export interface FiltrosRecursosState {
   pagina: number;
   limite: number;
   delegacionId?: string;
+  delegacionNombre?: string;
   estado?: EstadoRecurso;
   esIndividual?: boolean;
   busqueda?: string;
 }
+

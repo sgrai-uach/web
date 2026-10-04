@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import type { FiltrosRecursosState, EstadoRecurso, RecursoItem } from '@/types/recurso';
-import { useRecursos, USUARIOS_PRUEBA } from '@/hooks/useRecursos';
+import { useRecursos } from '@/hooks/useRecursos';
 import { DEFAULT_ADMIN_USER_ID } from '@/lib/api/client';
 import { useToast } from '@/components/ui/Toast';
 import { useSimulatedSession } from '@/context/SimulatedSessionContext';
@@ -17,7 +17,6 @@ import { toUserFriendlyErrorMessage } from '@/lib/utils/errorUtils';
 
 export default function RecursosPage() {
   const { showError, showSuccess } = useToast();
-  const [usuarioActivoId, setUsuarioActivoId] = useState<string>(DEFAULT_ADMIN_USER_ID);
   const [recursoAEditar, setRecursoAEditar] = useState<RecursoItem | null>(null);
   const { usuarioActivo, cambiarUsuarioPorId } = useSimulatedSession();
 
@@ -60,8 +59,13 @@ export default function RecursosPage() {
     setFiltros((prev) => ({ ...prev, estado, pagina: 1 }));
   }, []);
 
-  const handleCambiarDelegacion = useCallback((delegacionId?: string) => {
-    setFiltros((prev) => ({ ...prev, delegacionId, pagina: 1 }));
+  const handleCambiarDelegacion = useCallback((delegacion?: string) => {
+    setFiltros((prev) => ({
+      ...prev,
+      delegacionNombre: delegacion,
+      delegacionId: undefined,
+      pagina: 1,
+    }));
   }, []);
 
   const handleCambiarEsIndividual = useCallback((esIndividual?: boolean) => {
@@ -75,6 +79,7 @@ export default function RecursosPage() {
       busqueda: '',
       estado: undefined,
       delegacionId: undefined,
+      delegacionNombre: undefined,
       esIndividual: undefined,
     });
   }, []);
@@ -123,6 +128,7 @@ export default function RecursosPage() {
         busqueda={filtros.busqueda || ''}
         estado={filtros.estado}
         delegacionId={filtros.delegacionId}
+        delegacionNombre={filtros.delegacionNombre}
         esIndividual={filtros.esIndividual}
         onCambiarBusqueda={handleCambiarBusqueda}
         onCambiarEstado={handleCambiarEstado}
@@ -155,7 +161,7 @@ export default function RecursosPage() {
       <RecursoEditarModal
         isOpen={Boolean(recursoAEditar)}
         recurso={recursoAEditar}
-        usuarioActivoId={usuarioActivoId}
+        usuarioActivoId={usuarioActivo.id}
         onCerrar={() => setRecursoAEditar(null)}
         onGuardadoExitoso={handleGuardadoExitoso}
       />
