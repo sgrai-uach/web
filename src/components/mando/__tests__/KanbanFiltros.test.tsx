@@ -67,6 +67,8 @@ describe('KanbanFiltros', () => {
       busqueda: '',
       prioridad: '',
       tipoAfectacion: '',
+      delegacionId: undefined,
+      soloHoy: false,
     });
   });
 });

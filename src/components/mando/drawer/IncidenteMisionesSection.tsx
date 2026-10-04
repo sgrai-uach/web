@@ -1,15 +1,21 @@
 'use client';
 
 import React from 'react';
+import { Eye } from 'lucide-react';
 import Heading from '@/components/ui/Heading';
+import Button from '@/components/ui/Button';
 import type { IncidenteDetalle } from '@/services/incidentesService';
 import styles from '@/styles/mando.module.css';
 
 interface IncidenteMisionesSectionProps {
   misiones: IncidenteDetalle['misiones'];
+  onVerDetalleMision?: (misionId: string) => void;
 }
 
-export const IncidenteMisionesSection: React.FC<IncidenteMisionesSectionProps> = ({ misiones }) => {
+export const IncidenteMisionesSection: React.FC<IncidenteMisionesSectionProps> = ({
+  misiones,
+  onVerDetalleMision,
+}) => {
   return (
     <div className={styles.drawerSection}>
       <Heading as="h3" variant="h4" color="teal" style={{ marginBottom: '0.75rem' }}>
@@ -46,6 +52,20 @@ export const IncidenteMisionesSection: React.FC<IncidenteMisionesSectionProps> =
                 <strong>Motivo de Rechazo por la Cuadrilla:</strong> {mision.justificacionRechazo}
               </div>
             )}
+
+            <div style={{ marginTop: '0.6rem', display: 'flex', justifyContent: 'flex-end' }}>
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={() => onVerDetalleMision?.(mision.id)}
+                title={`Ver detalles completos de la misión ${mision.codigo}`}
+                aria-label={`Ver detalles de la misión ${mision.codigo}`}
+              >
+                <Eye size={13} aria-hidden="true" style={{ marginRight: '4px' }} />
+                <span>Ver Detalles</span>
+              </Button>
+            </div>
           </div>
         ))
       )}
