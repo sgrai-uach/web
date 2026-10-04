@@ -9,6 +9,7 @@ import {
   Copy,
   Check,
   ExternalLink,
+  Trash2,
 } from 'lucide-react';
 import type { PuntoCriticoItem, PrioridadPuntoCritico } from '@/types/puntoCritico';
 import Modal from '@/components/common/Modal';
@@ -17,6 +18,8 @@ import Button from '@/components/ui/Button';
 interface PuntoCriticoDetalleModalProps {
   punto: PuntoCriticoItem | null;
   onCerrar: () => void;
+  onEliminar?: (punto: PuntoCriticoItem) => void;
+  puedeEliminar?: boolean;
 }
 
 const PRIORIDAD_CONFIG: Record<
@@ -52,6 +55,8 @@ const PRIORIDAD_CONFIG: Record<
 export default function PuntoCriticoDetalleModal({
   punto,
   onCerrar,
+  onEliminar,
+  puedeEliminar = true,
 }: PuntoCriticoDetalleModalProps) {
   const [copiado, setCopiado] = useState(false);
 
@@ -85,6 +90,20 @@ export default function PuntoCriticoDetalleModal({
 
   const actions = (
     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+      {punto.activo && onEliminar && (
+        <Button
+          type="button"
+          variant="destructive"
+          onClick={() => {
+            onCerrar();
+            onEliminar(punto);
+          }}
+          disabled={!puedeEliminar}
+          icon={<Trash2 size={15} aria-hidden="true" />}
+        >
+          Desactivar
+        </Button>
+      )}
       <Button
         type="button"
         variant="primary"

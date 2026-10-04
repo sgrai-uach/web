@@ -1,13 +1,16 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Copy, Check, ExternalLink, MapPin, AlertCircle } from 'lucide-react';
+import { Copy, Check, ExternalLink, MapPin, AlertCircle, Trash2 } from 'lucide-react';
 import type { PuntoCriticoItem, PrioridadPuntoCritico } from '@/types/puntoCritico';
+import Button from '@/components/ui/Button';
 
 interface PuntoCriticoRowProps {
   punto: PuntoCriticoItem;
   indice: number;
   onSeleccionar?: (punto: PuntoCriticoItem) => void;
+  onEliminar?: (punto: PuntoCriticoItem) => void;
+  puedeEliminar?: boolean;
 }
 
 const PRIORIDAD_CONFIG: Record<
@@ -44,6 +47,8 @@ export default function PuntoCriticoRow({
   punto,
   indice,
   onSeleccionar,
+  onEliminar,
+  puedeEliminar = true,
 }: PuntoCriticoRowProps) {
   const esFilaPar = indice % 2 === 0;
   const [copiado, setCopiado] = useState(false);
@@ -273,16 +278,41 @@ export default function PuntoCriticoRow({
         </span>
       </td>
 
-      {/* Acción (Reservada para futuras historias) */}
+      {/* Acción de Desactivación */}
       <td
         style={{
-          padding: '14px 16px',
+          padding: '10px 16px',
           verticalAlign: 'middle',
           textAlign: 'center',
-          color: 'var(--color-text-muted, #5F676E)',
         }}
       >
-        <span>-</span>
+        {punto.activo ? (
+          <Button
+            type="button"
+            variant="destructive"
+            size="sm"
+            onClick={(e) => {
+              e.stopPropagation();
+              onEliminar?.(punto);
+            }}
+            disabled={!puedeEliminar}
+            title={puedeEliminar ? 'Desactivar punto crítico' : 'Sin permisos para desactivar'}
+            icon={<Trash2 size={13} aria-hidden="true" />}
+            aria-label={`Desactivar punto crítico ${punto.codigo}`}
+          >
+            Desactivar
+          </Button>
+        ) : (
+          <span
+            style={{
+              fontSize: '12px',
+              color: 'var(--color-text-muted, #5F676E)',
+              fontStyle: 'italic',
+            }}
+          >
+            Inactivo
+          </span>
+        )}
       </td>
     </tr>
   );
