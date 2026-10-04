@@ -156,4 +156,66 @@ describe('AuthContext', () => {
     expect(removeCookieSpy).toHaveBeenCalled();
     expect(mockPush).toHaveBeenCalledWith('/login');
   });
+
+  it('debe sincronizar permisos reales del rol y revocar recursos:crear si fue desactivado en BD', async () => {
+    vi.spyOn(cookieUtils, 'getAuthCookie').mockReturnValue(null);
+
+    const mockUserData = {
+      token: 'jwt-123',
+      expiraEn: '2026-10-01T04:00:00Z',
+      usuario: {
+        id: 'usr-1',
+        rut: '11111111-1',
+        nombre: 'Administrador General',
+        email: 'admin@valdivia.cl',
+        rolId: 'rol-1',
+        rolNombre: 'Administrador',
+        rolCodigo: 'ADMIN',
+        delegacionId: 'del-1',
+        permisos: ['seguridad:roles:gestionar', 'recursos:crear'],
+      },
+    };
+
+    vi.spyOn(seguridadService, 'loginUsuario').mockResolvedValue(mockUserData);
+    vi.spyOn(seguridadService, 'obtenerDetalleRol').mockResolvedValue({
+      data: {
+        id: 'rol-1',
+        nombre: 'Administrador',
+        descripcion: 'Rol de prueba',
+        activo: true,
+        esSistema: true,
+        cantidadPermisos: 1,
+        permisos: [
+          {
+            id: 'p-1',
+            codigo: 'seguridad:roles:gestionar',
+            nombre: 'Gestionar Roles',
+            descripcion: '',
+            modulo: 'Seguridad',
+            asignadoEn: '',
+            asignadoPorId: '',
+          },
+        ],
+        creadoEn: '',
+        actualizadoEn: '',
+      },
+    });
+
+    render(
+      <AuthProvider>
+        <ConsumerComponent />
+      </AuthProvider>
+    );
+
+    fireEvent.click(screen.getByTestId('btn-login'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('auth-status').textContent).toBe('AUTENTICADO');
+    });
+
+    // seguridad:roles:gestionar sigue activo
+    expect(screen.getByTestId('permiso-admin').textContent).toBe('SI');
+    // recursos:crear fue revocado según el rol en BD
+    expect(screen.getByTestId('algun-permiso').textContent).toBe('NO');
+  });
 });

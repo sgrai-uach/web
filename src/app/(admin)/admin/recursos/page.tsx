@@ -17,9 +17,9 @@ import { toUserFriendlyErrorMessage } from '@/lib/utils/errorUtils';
 
 export default function RecursosPage() {
   const { showError, showSuccess } = useToast();
-  const [usuarioActivoId, setUsuarioActivoId] = useState<string>(DEFAULT_ADMIN_USER_ID);
   const [recursoAEditar, setRecursoAEditar] = useState<RecursoItem | null>(null);
-  const { usuarioActivo, cambiarUsuarioPorId } = useSimulatedSession();
+  const { usuarioActivo, cambiarUsuarioPorId, hasPermission, isMounted } = useSimulatedSession();
+  const puedeCrear = Boolean(isMounted && hasPermission('recursos:crear'));
 
   const [filtros, setFiltros] = useState<FiltrosRecursosState>({
     pagina: 1,
@@ -101,6 +101,7 @@ export default function RecursosPage() {
           usuarioActivoId={usuarioActivo.id}
           onCambiarUsuario={cambiarUsuarioPorId}
           tieneAcceso={false}
+          puedeCrear={false}
         />
         <AccesoDenegadoState
           rolUsuario={usuarioActivo.rol}
@@ -117,6 +118,7 @@ export default function RecursosPage() {
         usuarioActivoId={usuarioActivo.id}
         onCambiarUsuario={cambiarUsuarioPorId}
         tieneAcceso={true}
+        puedeCrear={puedeCrear}
       />
 
       <RecursosFiltros
@@ -138,6 +140,7 @@ export default function RecursosPage() {
           esFiltroActivo={esFiltroActivo}
           onLimpiarFiltros={handleLimpiarFiltros}
           onEditarRecurso={setRecursoAEditar}
+          puedeCrear={puedeCrear}
         />
 
         <Pagination
@@ -155,7 +158,7 @@ export default function RecursosPage() {
       <RecursoEditarModal
         isOpen={Boolean(recursoAEditar)}
         recurso={recursoAEditar}
-        usuarioActivoId={usuarioActivoId}
+        usuarioActivoId={usuarioActivo.id}
         onCerrar={() => setRecursoAEditar(null)}
         onGuardadoExitoso={handleGuardadoExitoso}
       />

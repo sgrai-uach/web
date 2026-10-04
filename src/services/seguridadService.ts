@@ -1,4 +1,4 @@
-import apiClient from '@/lib/api/client';
+import apiClient, { DEFAULT_ADMIN_USER_ID } from '@/lib/api/client';
 import { formatApiError } from '@/lib/utils/errorUtils';
 import type {
   ActualizarPermisosRolResponse,
@@ -122,13 +122,13 @@ export async function listarRolesYPermisos(userId: string): Promise<ListarRolesR
  */
 export async function obtenerDetalleRol(
   id: string,
-  userId: string
+  userId?: string
 ): Promise<RolDetalleResponse> {
   const { data, error, response } = await apiClient.GET('/api/seguridad/roles/{id}', {
     params: {
       path: { id },
       header: {
-        'x-user-id': userId,
+        'x-user-id': userId || DEFAULT_ADMIN_USER_ID,
       },
     },
   });

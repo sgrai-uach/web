@@ -13,6 +13,7 @@ interface RecursosTablaProps {
   esFiltroActivo: boolean;
   onLimpiarFiltros: () => void;
   onEditarRecurso?: (recurso: RecursoItem) => void;
+  puedeCrear?: boolean;
 }
 
 export default function RecursosTabla({
@@ -21,6 +22,7 @@ export default function RecursosTabla({
   esFiltroActivo,
   onLimpiarFiltros,
   onEditarRecurso,
+  puedeCrear = false,
 }: RecursosTablaProps) {
   const [recursoSeleccionado, setRecursoSeleccionado] = useState<RecursoItem | null>(null);
 
@@ -87,6 +89,7 @@ export default function RecursosTabla({
                   <RecursosEmptyState
                     esFiltroActivo={esFiltroActivo}
                     onLimpiarFiltros={onLimpiarFiltros}
+                    puedeCrear={puedeCrear}
                   />
                 </td>
               </tr>
