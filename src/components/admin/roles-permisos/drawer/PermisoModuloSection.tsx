@@ -28,6 +28,9 @@ function obtenerColorModulo(modulo: string): string {
     case 'incidentes':
       return '#0288D1';
     case 'recursos y personal':
+    case 'gestión de personal':
+    case 'personal y empleados':
+    case 'personal':
       return '#689F38';
     case 'misiones':
       return '#E65100';
