@@ -4,6 +4,95 @@
  */
 
 export interface paths {
+    "/api/puntos-criticos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Listar puntos críticos y sectores de prevención
+         * @description Retorna una lista paginada de los puntos críticos registrados, incluyendo coordenadas espaciales, tipo de riesgo, prioridad y delegación territorial asociada.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    pagina?: number;
+                    limite?: number;
+                    delegacionId?: string;
+                    activo?: boolean;
+                    prioridad?: "BAJA" | "MEDIA" | "ALTA" | "CRITICA";
+                    busqueda?: string;
+                };
+                header: {
+                    "x-user-id": string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data: {
+                                id: string;
+                                codigo: string;
+                                nombre: string;
+                                descripcion: string | null;
+                                tipoRiesgo: string | null;
+                                prioridad: "BAJA" | "MEDIA" | "ALTA" | "CRITICA";
+                                activo: boolean;
+                                estadoTexto: string;
+                                latitud: number;
+                                longitud: number;
+                                delegacion: {
+                                    id: string;
+                                    codigo: string;
+                                    nombre: string;
+                                } | null;
+                                creadoEn: string;
+                            }[];
+                            meta: {
+                                total: number;
+                                pagina: number;
+                                limite: number;
+                                totalPaginas: number;
+                            };
+                        };
+                    };
+                };
+                400: {
+                    content: {
+                        "application/json": {
+                            message: string;
+                            statusCode?: number;
+                        };
+                    };
+                };
+                403: {
+                    content: {
+                        "application/json": {
+                            message: string;
+                            statusCode?: number;
+                        };
+                    };
+                };
+                500: {
+                    content: {
+                        "application/json": {
+                            message: string;
+                            statusCode?: number;
+                        };
+                    };
+                };
+            };
+        };
+    };
     "/api/recursos": {
         parameters: {
             query?: never;
