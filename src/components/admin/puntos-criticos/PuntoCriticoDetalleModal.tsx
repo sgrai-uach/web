@@ -101,7 +101,7 @@ export default function PuntoCriticoDetalleModal({
           disabled={!puedeEliminar}
           icon={<Trash2 size={15} aria-hidden="true" />}
         >
-          Desactivar
+          Eliminar
         </Button>
       )}
       <Button

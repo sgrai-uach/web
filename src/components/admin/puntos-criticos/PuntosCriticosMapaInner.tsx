@@ -131,7 +131,7 @@ export default function PuntosCriticosMapaInner({
           <button id="btn-del-${punto.id}" type="button" style="flex: 1; background: #D32F2F; border: none; padding: 5px 8px; font-size: 11px; font-weight: 600; cursor: ${
             puedeEliminar ? 'pointer' : 'not-allowed'
           }; color: #FFFFFF; opacity: ${puedeEliminar ? '1' : '0.5'};">
-            Desactivar
+            Eliminar
           </button>
         </div>
       `;

@@ -44,7 +44,7 @@ export default function PuntoCriticoEliminarModal({
         disabled={isSubmitting}
         icon={<Trash2 size={15} aria-hidden="true" />}
       >
-        {isSubmitting ? 'Desactivando...' : 'Desactivar Punto Crítico'}
+        {isSubmitting ? 'Eliminando...' : 'Eliminar Punto Crítico'}
       </Button>
     </div>
   );
@@ -52,7 +52,7 @@ export default function PuntoCriticoEliminarModal({
   return (
     <Modal
       isOpen={isOpen}
-      title="Desactivar Punto Crítico"
+      title="Eliminar Punto Crítico"
       onClose={onClose}
       actions={actions}
       maxWidth="580px"
@@ -75,7 +75,7 @@ export default function PuntoCriticoEliminarModal({
             aria-hidden="true"
           />
           <div style={{ fontSize: '13px', color: 'var(--color-text-dark, #2B2B2B)', lineHeight: 1.5 }}>
-            <strong>¿Está seguro de desactivar este punto crítico?</strong>
+            <strong>¿Está seguro de eliminar este punto crítico?</strong>
             <p style={{ margin: '4px 0 0 0' }}>
               El punto dejará de estar visible en el mapa operativo y en el catálogo activo, pero se conservará su historial de intervenciones preventivas para auditoría institucional (SENAPRED).
             </p>

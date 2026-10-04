@@ -62,7 +62,8 @@ export default function PuntosCriticosPage() {
     usuarioActivo.rol === 'Administrador' ||
     Boolean(usuarioActivo.esAdmin) ||
     usuarioActivo.id === DEFAULT_ADMIN_USER_ID ||
-    hasPermission('puntos_criticos:leer');
+    hasPermission('puntos_criticos:leer') ||
+    hasPermission('puntos_criticos:eliminar');
 
   const puedeEliminar =
     usuarioActivo.rol === 'Administrador' ||
@@ -131,8 +132,8 @@ export default function PuntosCriticosPage() {
       removerPuntoLocalmente(puntoAEliminar.id);
 
       showSuccess(
-        res.message || `El punto crítico '${puntoAEliminar.nombre}' fue desactivado correctamente.`,
-        'Punto crítico desactivado'
+        res.message || `El punto crítico '${puntoAEliminar.nombre}' fue eliminado correctamente.`,
+        'Punto crítico eliminado'
       );
 
       setModalEliminarAbierto(false);
@@ -143,10 +144,10 @@ export default function PuntosCriticosPage() {
           // Mantener modal abierto con el mensaje explicativo de bloqueo
           setErrorBloqueo(err.apiError.message);
         } else {
-          showError(err.apiError.message, 'No fue posible desactivar el punto crítico');
+          showError(err.apiError.message, 'No fue posible eliminar el punto crítico');
         }
       } else {
-        showError((err as Error)?.message || 'Error inesperado al desactivar el punto crítico');
+        showError((err as Error)?.message || 'Error inesperado al eliminar el punto crítico');
       }
     } finally {
       setEliminando(false);

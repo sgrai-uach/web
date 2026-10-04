@@ -59,15 +59,15 @@ describe('PuntoCriticoEliminarModal (HU-56)', () => {
       />
     );
 
-    expect(screen.getByRole('heading', { name: 'Desactivar Punto Crítico' })).toBeDefined();
-    expect(screen.getByText(/¿Está seguro de desactivar este punto crítico\?/i)).toBeDefined();
+    expect(screen.getByRole('heading', { name: 'Eliminar Punto Crítico' })).toBeDefined();
+    expect(screen.getByText(/¿Está seguro de eliminar este punto crítico\?/i)).toBeDefined();
     expect(screen.getByText('PC-ANG-01')).toBeDefined();
     expect(screen.getByText('Sector Humedal Angachilla - Pasaje Los Robles')).toBeDefined();
     expect(screen.getByText('Inundación y anegamiento')).toBeDefined();
     expect(screen.getByText('Delegación Municipal Sur')).toBeDefined();
 
     expect(screen.getByRole('button', { name: /cancelar/i })).toBeDefined();
-    expect(screen.getByRole('button', { name: /desactivar punto crítico/i })).toBeDefined();
+    expect(screen.getByRole('button', { name: /eliminar punto crítico/i })).toBeDefined();
   });
 
   it('debe llamar a onClose al hacer clic en Cancelar', () => {
@@ -86,7 +86,7 @@ describe('PuntoCriticoEliminarModal (HU-56)', () => {
     expect(handleClose).toHaveBeenCalledTimes(1);
   });
 
-  it('debe llamar a onConfirm al hacer clic en Desactivar Punto Crítico', () => {
+  it('debe llamar a onConfirm al hacer clic en Eliminar Punto Crítico', () => {
     const handleConfirm = vi.fn();
     render(
       <PuntoCriticoEliminarModal
@@ -98,7 +98,7 @@ describe('PuntoCriticoEliminarModal (HU-56)', () => {
       />
     );
 
-    fireEvent.click(screen.getByRole('button', { name: /desactivar punto crítico/i }));
+    fireEvent.click(screen.getByRole('button', { name: /eliminar punto crítico/i }));
     expect(handleConfirm).toHaveBeenCalledTimes(1);
   });
 
@@ -113,7 +113,7 @@ describe('PuntoCriticoEliminarModal (HU-56)', () => {
       />
     );
 
-    expect(screen.getByText('Desactivando...')).toBeDefined();
+    expect(screen.getByText('Eliminando...')).toBeDefined();
     const btnCancel = screen.getByRole('button', { name: /cancelar/i });
     expect(btnCancel.hasAttribute('disabled')).toBe(true);
   });

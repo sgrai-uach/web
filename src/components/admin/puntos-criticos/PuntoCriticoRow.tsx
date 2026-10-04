@@ -296,11 +296,11 @@ export default function PuntoCriticoRow({
               onEliminar?.(punto);
             }}
             disabled={!puedeEliminar}
-            title={puedeEliminar ? 'Desactivar punto crítico' : 'Sin permisos para desactivar'}
+            title={puedeEliminar ? 'Eliminar punto crítico' : 'Sin permisos para eliminar'}
             icon={<Trash2 size={13} aria-hidden="true" />}
-            aria-label={`Desactivar punto crítico ${punto.codigo}`}
+            aria-label={`Eliminar punto crítico ${punto.codigo}`}
           >
-            Desactivar
+            Eliminar
           </Button>
         ) : (
           <span

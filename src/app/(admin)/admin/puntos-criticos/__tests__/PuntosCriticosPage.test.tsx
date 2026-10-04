@@ -238,7 +238,7 @@ describe('PuntosCriticosPage - RBAC y Renderizado (CA-1, CA-4)', () => {
       expect(screen.getByRole('button', { name: /vista tabla/i })).toBeInTheDocument();
     });
 
-    it('debe abrir el modal de confirmación al hacer clic en Desactivar desde la tabla', async () => {
+    it('debe abrir el modal de confirmación al hacer clic en Eliminar desde la tabla', async () => {
       vi.spyOn(usePuntosCriticosModule, 'usePuntosCriticos').mockReturnValue({
         puntosCriticos: [mockPunto],
         meta: { total: 1, pagina: 1, limite: 10, totalPaginas: 1 },
@@ -252,13 +252,55 @@ describe('PuntosCriticosPage - RBAC y Renderizado (CA-1, CA-4)', () => {
       render(<PuntosCriticosPage />);
 
       const { fireEvent } = await import('@testing-library/react');
-      const botonDesactivar = screen.getByRole('button', {
-        name: `Desactivar punto crítico ${mockPunto.codigo}`,
+      const botonEliminar = screen.getByRole('button', {
+        name: `Eliminar punto crítico ${mockPunto.codigo}`,
       });
 
-      fireEvent.click(botonDesactivar);
+      fireEvent.click(botonEliminar);
 
-      expect(screen.getByText(/¿Está seguro de desactivar este punto crítico\?/i)).toBeInTheDocument();
+      expect(screen.getByText(/¿Está seguro de eliminar este punto crítico\?/i)).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: 'Eliminar Punto Crítico' })).toBeInTheDocument();
+    });
+
+    it('debe permitir el acceso y habilitar el botón de eliminación a un usuario NO Administrador si tiene permiso puntos_criticos:eliminar', () => {
+      vi.spyOn(sessionContextModule, 'useSimulatedSession').mockReturnValue({
+        usuarioActivo: {
+          id: '00000000-0000-4000-8000-000000000003',
+          nombre: 'Encargado de Emergencias',
+          email: 'encargado@valdivia.cl',
+          rut: '33.333.333-3',
+          rol: 'Encargado',
+          esAdmin: false,
+        },
+        setUsuarioActivo: vi.fn(),
+        cambiarUsuarioPorId: vi.fn(),
+        usuariosDisponibles: [],
+        permisos: new Set(['puntos_criticos:eliminar']),
+        cargandoPermisos: false,
+        refrescarPermisos: vi.fn(),
+        hasPermission: vi.fn((codigo: string) => codigo === 'puntos_criticos:eliminar'),
+        hasAnyPermission: vi.fn().mockReturnValue(true),
+        usuarioDetalleServidor: null,
+      });
+
+      vi.spyOn(usePuntosCriticosModule, 'usePuntosCriticos').mockReturnValue({
+        puntosCriticos: [mockPunto],
+        meta: { total: 1, pagina: 1, limite: 10, totalPaginas: 1 },
+        cargando: false,
+        error: null,
+        statusCode: 200,
+        recargar: vi.fn(),
+        removerPuntoLocalmente: vi.fn(),
+      });
+
+      render(<PuntosCriticosPage />);
+
+      expect(screen.queryByText('Acceso Restringido')).toBeNull();
+      const botonEliminar = screen.getByRole('button', {
+        name: `Eliminar punto crítico ${mockPunto.codigo}`,
+      });
+      expect(botonEliminar).toBeInTheDocument();
+      expect(botonEliminar).not.toBeDisabled();
     });
   });
 });

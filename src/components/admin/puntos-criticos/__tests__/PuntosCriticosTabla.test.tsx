@@ -100,8 +100,8 @@ describe('PuntosCriticosTabla', () => {
     expect(handleSeleccionar).toHaveBeenCalledWith(mockPunto);
   });
 
-  describe('Acción de Desactivación (HU-56)', () => {
-    it('debe renderizar el botón Desactivar para un punto crítico activo y ejecutar onEliminarPunto sin abrir el detalle', () => {
+  describe('Acción de Desactivación / Eliminación (HU-56)', () => {
+    it('debe renderizar el botón Eliminar para un punto crítico activo y ejecutar onEliminarPunto sin abrir el detalle', () => {
       const handleEliminar = vi.fn();
       const handleSeleccionar = vi.fn();
 
@@ -117,19 +117,19 @@ describe('PuntosCriticosTabla', () => {
         />
       );
 
-      const botonDesactivar = screen.getByRole('button', {
-        name: `Desactivar punto crítico ${mockPunto.codigo}`,
+      const botonEliminar = screen.getByRole('button', {
+        name: `Eliminar punto crítico ${mockPunto.codigo}`,
       });
-      expect(botonDesactivar).toBeInTheDocument();
-      expect(botonDesactivar).not.toBeDisabled();
+      expect(botonEliminar).toBeInTheDocument();
+      expect(botonEliminar).not.toBeDisabled();
 
-      fireEvent.click(botonDesactivar);
+      fireEvent.click(botonEliminar);
 
       expect(handleEliminar).toHaveBeenCalledWith(mockPunto);
       expect(handleSeleccionar).not.toHaveBeenCalled();
     });
 
-    it('debe deshabilitar el botón Desactivar si el usuario no tiene permisos (puedeEliminar = false)', () => {
+    it('debe deshabilitar el botón Eliminar si el usuario no tiene permisos (puedeEliminar = false)', () => {
       render(
         <PuntosCriticosTabla
           puntosCriticos={[mockPunto]}
@@ -141,10 +141,10 @@ describe('PuntosCriticosTabla', () => {
         />
       );
 
-      const botonDesactivar = screen.getByRole('button', {
-        name: `Desactivar punto crítico ${mockPunto.codigo}`,
+      const botonEliminar = screen.getByRole('button', {
+        name: `Eliminar punto crítico ${mockPunto.codigo}`,
       });
-      expect(botonDesactivar).toBeDisabled();
+      expect(botonEliminar).toBeDisabled();
     });
 
     it('debe mostrar etiqueta Inactivo y no renderizar botón de acción si el punto ya fue desactivado', () => {
@@ -168,7 +168,7 @@ describe('PuntosCriticosTabla', () => {
 
       expect(
         screen.queryByRole('button', {
-          name: `Desactivar punto crítico ${puntoInactivo.codigo}`,
+          name: `Eliminar punto crítico ${puntoInactivo.codigo}`,
         })
       ).not.toBeInTheDocument();
     });

@@ -284,7 +284,7 @@ export async function eliminarPuntoCritico(
       } else if (statusCode === 403) {
         mensaje =
           apiErr.message ||
-          'Acceso denegado: Se requiere perfil de Administrador y permiso para eliminar puntos críticos.';
+          'Acceso denegado: No cuenta con permisos para eliminar puntos críticos.';
       } else if (statusCode === 404) {
         mensaje = apiErr.message || 'El punto crítico seleccionado no existe o ya no está disponible.';
       }
