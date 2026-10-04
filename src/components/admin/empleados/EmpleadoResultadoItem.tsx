@@ -2,6 +2,7 @@
 
 import React from 'react';
 import type { EmpleadoUsuario } from '@/types/empleados';
+import { obtenerNombreDelegacion } from '@/lib/utils/delegacionUtils';
 
 interface EmpleadoResultadoItemProps {
   usuario: EmpleadoUsuario;
@@ -101,7 +102,11 @@ export default function EmpleadoResultadoItem({
       >
         <span>RUT: <strong>{usr.rut}</strong></span>
         <span>Email: {usr.email}</span>
-        {usr.delegacion_nombre && <span>Delegación: {usr.delegacion_nombre}</span>}
+        {(usr.delegacion_nombre || usr.delegacion_id) && (
+          <span>
+            Delegación: {usr.delegacion_nombre || obtenerNombreDelegacion(usr.delegacion_id)}
+          </span>
+        )}
       </div>
     </div>
   );
