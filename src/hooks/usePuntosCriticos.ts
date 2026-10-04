@@ -12,6 +12,7 @@ import {
   PuntoCriticoServiceError,
 } from '@/services/puntosCriticosService';
 import { getErrorMessage } from '@/lib/utils/errorUtils';
+import { getSocket } from '@/lib/socket/client';
 
 export const DELEGACIONES_MUNICIPALES = [
   {
@@ -52,6 +53,7 @@ export interface UsePuntosCriticosReturn {
   error: Error | null;
   statusCode: number | null;
   recargar: () => Promise<void>;
+  actualizarPuntoCriticoEnLista: (puntoActualizado: PuntoCriticoItem) => void;
 }
 
 export function usePuntosCriticos(
@@ -115,6 +117,40 @@ export function usePuntosCriticos(
     };
   }, [fetchData]);
 
+  // Actualizar un punto crítico en memoria sin recargar la lista
+  const actualizarPuntoCriticoEnLista = useCallback((puntoActualizado: PuntoCriticoItem) => {
+    if (!puntoActualizado || !puntoActualizado.id) return;
+    setData((prev) => {
+      if (!prev) return prev;
+      const index = prev.data.findIndex((p) => p.id === puntoActualizado.id);
+      if (index === -1) return prev;
+      const updatedList = [...prev.data];
+      updatedList[index] = {
+        ...updatedList[index],
+        ...puntoActualizado,
+      };
+      return {
+        ...prev,
+        data: updatedList,
+      };
+    });
+  }, []);
+
+  // Suscripción reactiva en tiempo real vía WebSockets (Socket.io)
+  useEffect(() => {
+    const socket = getSocket();
+
+    function handlePuntoActualizado(puntoActualizado: PuntoCriticoItem) {
+      actualizarPuntoCriticoEnLista(puntoActualizado);
+    }
+
+    socket.on('punto_critico:actualizado', handlePuntoActualizado);
+
+    return () => {
+      socket.off('punto_critico:actualizado', handlePuntoActualizado);
+    };
+  }, [actualizarPuntoCriticoEnLista]);
+
   return {
     puntosCriticos: data?.data ?? [],
     meta: data?.meta ?? {
@@ -127,5 +163,6 @@ export function usePuntosCriticos(
     error,
     statusCode,
     recargar: fetchData,
+    actualizarPuntoCriticoEnLista,
   };
 }
