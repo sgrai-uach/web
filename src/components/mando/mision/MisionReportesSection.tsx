@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { ClipboardList, User, AlertTriangle, CheckCircle2, Clock } from 'lucide-react';
+import { ClipboardList, User, Clock } from 'lucide-react';
 import Heading from '@/components/ui/Heading';
 import type { ReporteTerrenoDetalle } from '@/types/misiones';
 import { MisionEvidenciasGallery } from './MisionEvidenciasGallery';

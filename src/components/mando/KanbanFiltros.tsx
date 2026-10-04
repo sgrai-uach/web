@@ -26,7 +26,7 @@ interface KanbanFiltrosProps {
 
 const OPCIONES_ESTADO = [
   { valor: 'TODOS', etiqueta: 'Todas las columnas' },
-  { valor: 'REPORTADO', etiqueta: 'Pendiente' },
+  { valor: 'REPORTADO', etiqueta: 'Reportado' },
   { valor: 'VERIFICANDO', etiqueta: 'Verificando' },
   { valor: 'EN_ATENCION', etiqueta: 'En Atención' },
   { valor: 'RESUELTO', etiqueta: 'Resuelto' },
@@ -207,18 +207,12 @@ export const KanbanFiltros: React.FC<KanbanFiltrosProps> = ({
   }
 
   return (
-    <FilterBar collapsibleOnMobile totalFiltrosActivos={chipsActivos.length}>
-      {/* Botonera de Estados para enfocar u ocultar columnas */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
-        <SegmentedButtonGroup
-          label="Visualización de Columnas por Estado:"
-          options={OPCIONES_ESTADO}
-          value={filtros.estado || 'TODOS'}
-          onChange={handleEstadoChange}
-          ariaLabel="Filtrar u ocultar columnas del Kanban por estado"
-        />
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+    <FilterBar
+      titulo="Filtros del Tablero"
+      storageKey="sgrai:filtros:mando:colapsado"
+      totalFiltrosActivos={chipsActivos.length}
+      headerActions={
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
           <label
             style={{
               display: 'inline-flex',
@@ -227,12 +221,12 @@ export const KanbanFiltros: React.FC<KanbanFiltrosProps> = ({
               fontSize: 'var(--font-size-sm, 13px)',
               fontWeight: 600,
               cursor: 'pointer',
-              padding: '6px 10px',
+              padding: '4px 8px',
               backgroundColor: filtros.soloHoy ? 'var(--color-info-bg, #E0F2F1)' : 'var(--color-white, #FFFFFF)',
               color: filtros.soloHoy ? 'var(--color-primary-teal, #1B6F7D)' : 'var(--color-text-dark, #2B2B2B)',
               border: '1px solid var(--border-color-neutral-dark, #CCD2D9)',
               borderRadius: 'var(--radius-none, 0px)',
-              height: '38px',
+              height: '32px',
             }}
             title="Ver únicamente incidentes registrados en la jornada de hoy"
           >
@@ -254,28 +248,39 @@ export const KanbanFiltros: React.FC<KanbanFiltrosProps> = ({
             <Button
               type="button"
               variant="outline"
-              size="md"
+              size="sm"
               onClick={onAbrirMisiones}
               title="Abrir panel de misiones operativas"
             >
-              <ClipboardList size={16} aria-hidden="true" />
-              <span>Misiones Operativas</span>
+              <ClipboardList size={14} aria-hidden="true" />
+              <span>Misiones</span>
             </Button>
           )}
 
           <Button
             type="button"
             variant="secondary"
-            size="md"
+            size="sm"
             onClick={onRecargar}
             disabled={cargando}
             aria-label="Actualizar tablero"
             title="Refrescar estado de incidentes"
           >
-            <RotateCw size={15} className={cargando ? 'animate-spin' : undefined} aria-hidden="true" />
-            <span>{cargando ? 'Actualizando...' : 'Actualizar Tablero'}</span>
+            <RotateCw size={14} className={cargando ? 'animate-spin' : undefined} aria-hidden="true" />
+            <span>{cargando ? 'Actualizando...' : 'Actualizar'}</span>
           </Button>
         </div>
+      }
+    >
+      {/* Botonera de Estados para enfocar u ocultar columnas */}
+      <div>
+        <SegmentedButtonGroup
+          label="Visualización de Columnas por Estado:"
+          options={OPCIONES_ESTADO}
+          value={filtros.estado || 'TODOS'}
+          onChange={handleEstadoChange}
+          ariaLabel="Filtrar u ocultar columnas del Kanban por estado"
+        />
       </div>
 
       {/* Cuadrícula de Controles Estilo Imagen 2 con Nombres */}

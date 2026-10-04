@@ -1,12 +1,9 @@
 'use client';
 
 import React, { useState } from 'react';
-import {
-  useIncidentesKanban,
-  ESTADOS_KANBAN,
-} from '@/hooks/useIncidentesKanban';
+import { useIncidentesKanban } from '@/hooks/useIncidentesKanban';
 import { useIncidentesKpis } from '@/hooks/useIncidentesKpis';
-import { DEFAULT_ENCARGADO_ID, type EstadoIncidente } from '@/services/incidentesService';
+import type { EstadoIncidente } from '@/services/incidentesService';
 import { KanbanHeader } from './KanbanHeader';
 import { KanbanFiltros } from './KanbanFiltros';
 import { KanbanColumn } from './KanbanColumn';
@@ -19,7 +16,7 @@ import styles from '@/styles/mando.module.css';
 import { MisionesModal } from './misiones/MisionesModal';
 
 const TITULOS_COLUMNAS = {
-  REPORTADO: 'Pendiente / Reportado',
+  REPORTADO: 'Reportado',
   VERIFICANDO: 'En Verificación',
   EN_ATENCION: 'En Atención',
   RESUELTO: 'Resuelto',
@@ -71,19 +68,32 @@ export const KanbanBoard: React.FC = () => {
     });
   };
 
-  // Manejo de clic en tarjeta de estado (Opción B: enfocar columna y activar soloHoy)
+  // Manejo de clic en tarjeta de estado (enfocar columna sincronizando filtro si está aislado)
   const handleSelectEstado = (estado: EstadoIncidente) => {
     if (estadoEnfocado === estado) {
       setEstadoEnfocado(null);
+      if (filtros.estado === estado) {
+        setFiltros({
+          ...filtros,
+          estado: 'TODOS',
+        });
+      }
     } else {
       setEstadoEnfocado(estado);
-      // Activar filtro "soloHoy"
-      if (!filtros.soloHoy) {
+      // Si el tablero ya está filtrado por una columna distinta a TODOS, sincronizar el filtro a la nueva categoría
+      if (filtros.estado && filtros.estado !== 'TODOS' && filtros.estado !== estado) {
+        setFiltros({
+          ...filtros,
+          estado,
+          soloHoy: true,
+        });
+      } else if (!filtros.soloHoy) {
         setFiltros({
           ...filtros,
           soloHoy: true,
         });
       }
+
       // Desplazamiento suave hacia la columna seleccionada
       setTimeout(() => {
         const colEl = document.getElementById(`kanban-col-${estado}`);

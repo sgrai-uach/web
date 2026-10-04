@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Image as ImageIcon, FileText, ExternalLink } from 'lucide-react';
+import { Image as ImageIcon, FileText } from 'lucide-react';
 import type { AdjuntoEvidencia } from '@/types/misiones';
 import { MisionEvidenciaLightbox } from './MisionEvidenciaLightbox';
 import styles from '@/styles/mision-detalle.module.css';

@@ -44,7 +44,7 @@ const TARJETAS_CONFIG: TarjetaConfig[] = [
     estado: 'REPORTADO',
     campoContador: 'reportado',
     titulo: 'Reportados',
-    descripcion: 'Avisos pendientes de verificación',
+    descripcion: 'Avisos reportados para verificación',
     icon: AlertCircle,
     cardClass: styles.kpiCardReportado,
     colorHex: 'var(--color-danger, #D32F2F)',
