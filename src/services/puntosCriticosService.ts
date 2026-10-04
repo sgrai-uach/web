@@ -4,6 +4,8 @@ import type {
   ListarPuntosCriticosResponse,
   FiltrosPuntosCriticosState,
   PuntoCriticoItem,
+  PuntoCriticoDetalleResponse,
+  ActualizarPuntoCriticoDTO,
 } from '@/types/puntoCritico';
 import type { ApiErrorResponse } from '@/types/common';
 
@@ -236,3 +238,216 @@ export async function getPuntosCriticos(
     throw new PuntoCriticoServiceError(formatted);
   }
 }
+
+/**
+ * Obtiene el detalle consolidado de un punto crítico por su ID para precargar el formulario.
+ */
+export async function getPuntoCriticoById(
+  id: string,
+  userId: string = DEFAULT_ADMIN_USER_ID,
+  signal?: AbortSignal
+): Promise<PuntoCriticoDetalleResponse> {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data, error, response } = await (apiClient as any).GET('/api/puntos-criticos/{id}', {
+      params: {
+        path: { id },
+        header: {
+          'x-user-id': userId,
+        },
+      },
+      signal,
+    });
+
+    if (response?.status === 200 && data) {
+      // Si la API envuelve en { data: ... } o devuelve el objeto directamente
+      return (data.data || data) as PuntoCriticoDetalleResponse;
+    }
+
+    if (error || (response && response.status >= 400)) {
+      const statusCode = response?.status ?? 500;
+      const apiErr = formatApiError({
+        ...(typeof error === 'object' && error !== null ? error : {}),
+        status: statusCode,
+      });
+
+      if (statusCode === 403) {
+        throw new PuntoCriticoServiceError({
+          message: 'Acceso denegado: solo usuarios con rol Administrador tienen permiso para ver este detalle.',
+          statusCode: 403,
+        });
+      }
+
+      if (statusCode === 404) {
+        throw new PuntoCriticoServiceError({
+          message: 'El punto crítico solicitado no fue encontrado en el sistema.',
+          statusCode: 404,
+        });
+      }
+
+      throw new PuntoCriticoServiceError({
+        message: apiErr.message || `Error HTTP ${statusCode}: No fue posible obtener el detalle del punto crítico`,
+        statusCode,
+      });
+    }
+
+    throw new PuntoCriticoServiceError({
+      message: `Error HTTP ${response?.status ?? 500}: Error al consultar punto crítico`,
+      statusCode: response?.status ?? 500,
+    });
+  } catch (err: unknown) {
+    if ((err as Error)?.name === 'AbortError') {
+      throw err;
+    }
+
+    if (err instanceof PuntoCriticoServiceError) {
+      throw err;
+    }
+
+    // Fallback con datos mock locales ante servidor no disponible
+    const isNetworkError =
+      err instanceof TypeError &&
+      (err.message.includes('fetch') || err.message.includes('Failed to fetch') || err.message.includes('NetworkError'));
+
+    if (isNetworkError) {
+      const encontrado = PUNTOS_CRITICOS_MOCK.find((p) => p.id === id);
+      if (encontrado) {
+        return {
+          ...encontrado,
+          actualizadoEn: null,
+          actualizadoPorId: null,
+        };
+      }
+      throw new PuntoCriticoServiceError({
+        message: 'Punto crítico no encontrado en catálogo local.',
+        statusCode: 404,
+      });
+    }
+
+    const formatted = formatApiError(err);
+    throw new PuntoCriticoServiceError(formatted);
+  }
+}
+
+/**
+ * Actualiza las características y coordenadas geoespaciales de un punto crítico.
+ */
+export async function actualizarPuntoCritico(
+  id: string,
+  body: ActualizarPuntoCriticoDTO,
+  userId: string = DEFAULT_ADMIN_USER_ID
+): Promise<PuntoCriticoDetalleResponse> {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data, error, response } = await (apiClient as any).PUT('/api/puntos-criticos/{id}', {
+      params: {
+        path: { id },
+        header: {
+          'x-user-id': userId,
+        },
+      },
+      body,
+    });
+
+    if (response?.status === 200 && data) {
+      return (data.data || data) as PuntoCriticoDetalleResponse;
+    }
+
+    if (error || (response && response.status >= 400)) {
+      const statusCode = response?.status ?? 500;
+      const apiErr = formatApiError({
+        ...(typeof error === 'object' && error !== null ? error : {}),
+        status: statusCode,
+      });
+
+      if (statusCode === 409) {
+        throw new PuntoCriticoServiceError({
+          message:
+            apiErr.message ||
+            'No es posible modificar este punto crítico porque se encuentra inactivo.',
+          statusCode: 409,
+        });
+      }
+
+      if (statusCode === 403) {
+        throw new PuntoCriticoServiceError({
+          message: 'Acceso denegado: solo usuarios con rol Administrador tienen permiso para editar puntos críticos.',
+          statusCode: 403,
+        });
+      }
+
+      if (statusCode === 404) {
+        throw new PuntoCriticoServiceError({
+          message: 'El punto crítico que intenta actualizar no existe en el sistema.',
+          statusCode: 404,
+        });
+      }
+
+      throw new PuntoCriticoServiceError({
+        message: apiErr.message || `Error HTTP ${statusCode}: No fue posible actualizar el punto crítico`,
+        statusCode,
+      });
+    }
+
+    throw new PuntoCriticoServiceError({
+      message: `Error HTTP ${response?.status ?? 500}: Fallo al actualizar punto crítico`,
+      statusCode: response?.status ?? 500,
+    });
+  } catch (err: unknown) {
+    if (err instanceof PuntoCriticoServiceError) {
+      throw err;
+    }
+
+    // Fallback con actualización de mock local si el backend no está disponible
+    const isNetworkError =
+      err instanceof TypeError &&
+      (err.message.includes('fetch') || err.message.includes('Failed to fetch') || err.message.includes('NetworkError'));
+
+    if (isNetworkError) {
+      const idx = PUNTOS_CRITICOS_MOCK.findIndex((p) => p.id === id);
+      if (idx === -1) {
+        throw new PuntoCriticoServiceError({
+          message: 'Punto crítico no encontrado.',
+          statusCode: 404,
+        });
+      }
+
+      if (!PUNTOS_CRITICOS_MOCK[idx].activo) {
+        throw new PuntoCriticoServiceError({
+          message: 'No es posible modificar este punto crítico porque se encuentra inactivo.',
+          statusCode: 409,
+        });
+      }
+
+      const anterior = PUNTOS_CRITICOS_MOCK[idx];
+      const actualizado: PuntoCriticoItem = {
+        ...anterior,
+        nombre: body.nombre,
+        descripcion: body.descripcion !== undefined ? body.descripcion : anterior.descripcion,
+        tipoRiesgo: body.tipoRiesgo !== undefined ? body.tipoRiesgo : anterior.tipoRiesgo,
+        prioridad: body.prioridad,
+        latitud: body.latitud,
+        longitud: body.longitud,
+        delegacion: body.delegacionId
+          ? {
+              id: body.delegacionId,
+              codigo: anterior.delegacion?.codigo || 'DEL_ASIG',
+              nombre: anterior.delegacion?.nombre || 'Delegación Asignada',
+            }
+          : anterior.delegacion,
+      };
+
+      PUNTOS_CRITICOS_MOCK[idx] = actualizado;
+
+      return {
+        ...actualizado,
+        actualizadoEn: new Date().toISOString(),
+        actualizadoPorId: userId,
+      };
+    }
+
+    const formatted = formatApiError(err);
+    throw new PuntoCriticoServiceError(formatted);
+  }
+}
+
