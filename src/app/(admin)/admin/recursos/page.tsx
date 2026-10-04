@@ -20,6 +20,7 @@ export default function RecursosPage() {
   const [recursoAEditar, setRecursoAEditar] = useState<RecursoItem | null>(null);
   const { usuarioActivo, cambiarUsuarioPorId, hasPermission, isMounted } = useSimulatedSession();
   const puedeCrear = Boolean(isMounted && hasPermission('recursos:crear'));
+  const puedeEditar = Boolean(isMounted && hasPermission('recursos:editar'));
 
   const [filtros, setFiltros] = useState<FiltrosRecursosState>({
     pagina: 1,
@@ -139,8 +140,9 @@ export default function RecursosPage() {
           cargando={cargando}
           esFiltroActivo={esFiltroActivo}
           onLimpiarFiltros={handleLimpiarFiltros}
-          onEditarRecurso={setRecursoAEditar}
+          onEditarRecurso={puedeEditar ? setRecursoAEditar : undefined}
           puedeCrear={puedeCrear}
+          puedeEditar={puedeEditar}
         />
 
         <Pagination
@@ -156,7 +158,7 @@ export default function RecursosPage() {
 
       {/* Modal Interactivo de Edición de Recurso */}
       <RecursoEditarModal
-        isOpen={Boolean(recursoAEditar)}
+        isOpen={Boolean(recursoAEditar && puedeEditar)}
         recurso={recursoAEditar}
         usuarioActivoId={usuarioActivo.id}
         onCerrar={() => setRecursoAEditar(null)}

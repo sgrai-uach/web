@@ -6,6 +6,7 @@ import RecursosEmptyState from '../RecursosEmptyState';
 import RecursoRow from '../RecursoRow';
 import BadgeEstado from '../BadgeEstado';
 import NuevoRecursoClient from '../NuevoRecursoClient';
+import RecursosTabla from '../RecursosTabla';
 import { SimulatedSessionContext } from '@/context/SimulatedSessionContext';
 import { USUARIOS_SIMULADOS_SISTEMA, type UsuarioSimulado } from '@/config/usuariosSimulados';
 import type { RecursoItem } from '@/types/recurso';
@@ -305,6 +306,68 @@ describe('H50: Control de Acceso por Permisos Granulares en Recursos', () => {
       // No existen botones de mutación como Editar o Eliminar
       expect(screen.queryByRole('button', { name: /Editar/i })).toBeNull();
       expect(screen.queryByRole('button', { name: /Eliminar/i })).toBeNull();
+    });
+
+    it('RecursosTabla oculta el botón Editar si puedeEditar es false', () => {
+      render(
+        <RecursosTabla
+          recursos={[mockRecurso]}
+          cargando={false}
+          esFiltroActivo={false}
+          onLimpiarFiltros={vi.fn()}
+          onEditarRecurso={vi.fn()}
+          puedeEditar={false}
+        />
+      );
+
+      expect(screen.getByRole('button', { name: /Ver Ficha/i })).toBeDefined();
+      expect(screen.queryByRole('button', { name: /Editar/i })).toBeNull();
+    });
+
+    it('RecursosTabla muestra el botón Editar si puedeEditar es true y onEditarRecurso está provisto', () => {
+      render(
+        <RecursosTabla
+          recursos={[mockRecurso]}
+          cargando={false}
+          esFiltroActivo={false}
+          onLimpiarFiltros={vi.fn()}
+          onEditarRecurso={vi.fn()}
+          puedeEditar={true}
+        />
+      );
+
+      expect(screen.getByRole('button', { name: /Ver Ficha/i })).toBeDefined();
+      expect(screen.getByRole('button', { name: /Editar/i })).toBeDefined();
+    });
+
+    it('permite independizar permisos: un usuario con recursos:crear pero sin recursos:editar no ve el botón Editar', () => {
+      const mockSessionSoloCrear = createMockSession(
+        ['recursos:leer', 'recursos:crear'],
+        {
+          rol: 'Operador de Bodega',
+          esAdmin: false,
+        }
+      );
+
+      const puedeCrear = mockSessionSoloCrear.hasPermission('recursos:crear');
+      const puedeEditar = mockSessionSoloCrear.hasPermission('recursos:editar');
+
+      expect(puedeCrear).toBe(true);
+      expect(puedeEditar).toBe(false);
+
+      render(
+        <RecursosTabla
+          recursos={[mockRecurso]}
+          cargando={false}
+          esFiltroActivo={false}
+          onLimpiarFiltros={vi.fn()}
+          onEditarRecurso={vi.fn()}
+          puedeCrear={puedeCrear}
+          puedeEditar={puedeEditar}
+        />
+      );
+
+      expect(screen.queryByRole('button', { name: /Editar/i })).toBeNull();
     });
   });
 

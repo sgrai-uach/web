@@ -10,6 +10,7 @@ const DICCIONARIO_PERMISOS_LEGIBLES: Record<string, string> = {
   'seguridad:roles:gestionar': 'Gestión y Modificación de Roles y Permisos',
   'recursos:leer': 'Visualización del Inventario Logístico',
   'recursos:crear': 'Registro de Nuevos Recursos Logísticos',
+  'recursos:editar': 'Modificación de Recursos Logísticos',
   'incidentes:kanban': 'Gestión Táctica del Tablero de Incidentes',
   'incidentes:leer': 'Consulta y Seguimiento de Incidentes',
   'incidentes:crear': 'Registro de Incidentes',
