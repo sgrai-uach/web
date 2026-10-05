@@ -12,21 +12,25 @@ import { IncidenteCard } from './IncidenteCard';
 import styles from '@/styles/mando.module.css';
 
 interface KanbanColumnProps {
+  id?: string;
   estado: EstadoIncidente;
   titulo: string;
   incidentes: IncidenteResumen[];
   paginacion: PaginacionMeta | null;
   cargandoMas: boolean;
+  resaltada?: boolean;
   onCargarMas: (estado: EstadoIncidente) => void;
   onSeleccionarIncidente: (incidente: IncidenteResumen) => void;
 }
 
 export const KanbanColumn: React.FC<KanbanColumnProps> = ({
+  id,
   estado,
   titulo,
   incidentes,
   paginacion,
   cargandoMas,
+  resaltada = false,
   onCargarMas,
   onSeleccionarIncidente,
 }) => {
@@ -50,7 +54,8 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({
 
   return (
     <div
-      className={styles.kanbanColumn}
+      id={id}
+      className={`${styles.kanbanColumn} ${resaltada ? styles.columnaResaltada : ''}`}
       aria-label={`Columna ${titulo} con ${incidentes.length} incidentes visibles`}
     >
       <div className={`${styles.columnHeader} ${getHeaderStyle(estado)}`}>

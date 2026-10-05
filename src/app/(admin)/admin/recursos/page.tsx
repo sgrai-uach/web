@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import type { FiltrosRecursosState, EstadoRecurso, RecursoItem } from '@/types/recurso';
-import { useRecursos, USUARIOS_PRUEBA } from '@/hooks/useRecursos';
+import { useRecursos } from '@/hooks/useRecursos';
 import { DEFAULT_ADMIN_USER_ID } from '@/lib/api/client';
 import { useToast } from '@/components/ui/Toast';
 import { useSimulatedSession } from '@/context/SimulatedSessionContext';
@@ -10,15 +10,16 @@ import RecursosHeader from '@/components/admin/recursos/RecursosHeader';
 import RecursosFiltros from '@/components/admin/recursos/RecursosFiltros';
 import RecursosTabla from '@/components/admin/recursos/RecursosTabla';
 import RecursoEditarModal from '@/components/admin/recursos/RecursoEditarModal';
+import RecursoEliminarModal from '@/components/admin/recursos/RecursoEliminarModal';
 import Pagination from '@/components/common/Pagination';
 import AccesoDenegadoState from '@/components/admin/recursos/AccesoDenegadoState';
-
 import { toUserFriendlyErrorMessage } from '@/lib/utils/errorUtils';
 
 export default function RecursosPage() {
   const { showError, showSuccess } = useToast();
-  const [recursoAEditar, setRecursoAEditar] = useState<RecursoItem | null>(null);
   const { usuarioActivo, cambiarUsuarioPorId, hasPermission, isMounted } = useSimulatedSession();
+  const [recursoAEditar, setRecursoAEditar] = useState<RecursoItem | null>(null);
+  const [recursoAEliminar, setRecursoAEliminar] = useState<RecursoItem | null>(null);
   const puedeCrear = Boolean(isMounted && hasPermission('recursos:crear'));
   const puedeEditar = Boolean(isMounted && hasPermission('recursos:editar'));
 
@@ -31,9 +32,32 @@ export default function RecursosPage() {
     esIndividual: undefined,
   });
 
-  const { recursos, meta, cargando, error, statusCode, actualizarRecursoEnLista } = useRecursos(
-    filtros,
-    usuarioActivo.id
+  const {
+    recursos,
+    meta,
+    cargando,
+    error,
+    statusCode,
+    actualizarRecursoEnLista,
+    removerRecursoDeLista,
+  } = useRecursos(filtros, usuarioActivo.id);
+
+  const puedeEliminar = Boolean(
+    isMounted &&
+      (usuarioActivo.rol === 'Administrador' ||
+        usuarioActivo.id === DEFAULT_ADMIN_USER_ID ||
+        (hasPermission ? hasPermission('recursos:eliminar') : false))
+  );
+
+  const handleEliminacionExitosa = useCallback(
+    (recursoEliminado: RecursoItem) => {
+      removerRecursoDeLista(recursoEliminado.id);
+      showSuccess(
+        `El recurso "${recursoEliminado.nombre}" ha sido dado de baja exitosamente del inventario activo.`,
+        'Baja de Recurso Confirmada'
+      );
+    },
+    [removerRecursoDeLista, showSuccess]
   );
 
   const handleGuardadoExitoso = useCallback(
@@ -141,8 +165,10 @@ export default function RecursosPage() {
           esFiltroActivo={esFiltroActivo}
           onLimpiarFiltros={handleLimpiarFiltros}
           onEditarRecurso={puedeEditar ? setRecursoAEditar : undefined}
+          onEliminarRecurso={setRecursoAEliminar}
           puedeCrear={puedeCrear}
           puedeEditar={puedeEditar}
+          puedeEliminar={puedeEliminar}
         />
 
         <Pagination
@@ -163,6 +189,15 @@ export default function RecursosPage() {
         usuarioActivoId={usuarioActivo.id}
         onCerrar={() => setRecursoAEditar(null)}
         onGuardadoExitoso={handleGuardadoExitoso}
+      />
+
+      {/* Modal Interactivo de Confirmación de Baja Lógica */}
+      <RecursoEliminarModal
+        isOpen={Boolean(recursoAEliminar && puedeEliminar)}
+        recurso={recursoAEliminar}
+        usuarioActivoId={usuarioActivo.id}
+        onCerrar={() => setRecursoAEliminar(null)}
+        onEliminacionExitosa={handleEliminacionExitosa}
       />
     </div>
   );

@@ -11,6 +11,8 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
   variant?: ButtonVariant;
   size?: ButtonSize;
   href?: string;
+  target?: string;
+  rel?: string;
   fullWidth?: boolean;
   loading?: boolean;
   icon?: React.ReactNode;
@@ -22,6 +24,8 @@ export default function Button({
   variant = 'primary',
   size = 'md',
   href,
+  target,
+  rel,
   fullWidth = false,
   loading = false,
   disabled = false,
@@ -57,7 +61,14 @@ export default function Button({
 
   if (href && !isActuallyDisabled) {
     return (
-      <Link href={href} className={classList} aria-busy={loading} {...(restProps as React.AnchorHTMLAttributes<HTMLAnchorElement>)}>
+      <Link
+        href={href}
+        target={target}
+        rel={rel}
+        className={classList}
+        aria-busy={loading}
+        {...(restProps as React.AnchorHTMLAttributes<HTMLAnchorElement>)}
+      >
         {content}
       </Link>
     );

@@ -60,6 +60,7 @@ function obtenerPermisosFallback(rol: string, esAdmin: boolean): Set<string> {
       'recursos:leer',
       'recursos:crear',
       'recursos:editar',
+      'recursos:eliminar',
       'incidentes:kanban',
       'incidentes:avisos:leer',
       'incidentes:avisos:verificar',
@@ -67,6 +68,7 @@ function obtenerPermisosFallback(rol: string, esAdmin: boolean): Set<string> {
       'crear_incidente_manual',
       'misiones:asignar',
       'eventos_atp:crear',
+      'puntos_criticos:leer',
       'personal:leer',
       'personal:crear',
       'personal:gestionar',
@@ -116,23 +118,25 @@ export function SimulatedSessionProvider({
 
   // Sincronizar usuario guardado en localStorage tras montar en cliente para evitar hydration mismatch
   useEffect(() => {
-    setIsMounted(true);
-    try {
-      const guardadoId = localStorage.getItem(STORAGE_KEY);
-      if (guardadoId) {
-        const encontrado = USUARIOS_SIMULADOS_SISTEMA.find(
-          (u) => u.id === guardadoId
-        );
-        if (encontrado) {
-          setUsuarioSimuladoManual(encontrado);
-          setPermisosSimulados(
-            obtenerPermisosFallback(encontrado.rol, encontrado.esAdmin)
+    queueMicrotask(() => {
+      setIsMounted(true);
+      try {
+        const guardadoId = localStorage.getItem(STORAGE_KEY);
+        if (guardadoId) {
+          const encontrado = USUARIOS_SIMULADOS_SISTEMA.find(
+            (u) => u.id === guardadoId
           );
+          if (encontrado) {
+            setUsuarioSimuladoManual(encontrado);
+            setPermisosSimulados(
+              obtenerPermisosFallback(encontrado.rol, encontrado.esAdmin)
+            );
+          }
         }
+      } catch {
+        // Ignorar fallos de lectura de localStorage
       }
-    } catch {
-      // Ignorar fallos de lectura de localStorage
-    }
+    });
   }, []);
 
   const auth = useContext(AuthContext);

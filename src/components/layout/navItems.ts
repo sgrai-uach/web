@@ -10,6 +10,7 @@ import {
   Boxes,
   ShieldCheck,
   Users,
+  AlertTriangle,
 } from 'lucide-react';
 
 export interface NavItem {
@@ -109,6 +110,13 @@ export const NAV_GROUPS: NavGroup[] = [
         href: '/gestion/admin/recursos',
         icon: Boxes,
         requiredPermissions: ['recursos:leer', 'recursos:crear'],
+      },
+      {
+        id: 'puntos-criticos',
+        label: 'Puntos Críticos',
+        href: '/gestion/admin/puntos-criticos',
+        icon: AlertTriangle,
+        requiredPermissions: ['puntos_criticos:leer', 'seguridad:roles:gestionar'],
       },
       {
         id: 'roles-permisos',

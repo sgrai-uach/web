@@ -46,13 +46,17 @@ export const KanbanFiltros: React.FC<KanbanFiltrosProps> = ({
       busqueda: '',
       prioridad: '',
       tipoAfectacion: '',
+      delegacionId: undefined,
+      soloHoy: false,
     });
   };
 
   const tieneFiltrosActivos =
     Boolean(filtros.busqueda.trim()) ||
     Boolean(filtros.prioridad) ||
-    Boolean(filtros.tipoAfectacion);
+    Boolean(filtros.tipoAfectacion) ||
+    Boolean(filtros.soloHoy) ||
+    Boolean(filtros.delegacionId);
 
   return (
     <section className={styles.filtrosContainer} aria-label="Filtros tácticos del tablero">
@@ -94,6 +98,37 @@ export const KanbanFiltros: React.FC<KanbanFiltrosProps> = ({
           <option value="Incendio">Incendio</option>
           <option value="Peligro estructural">Peligro estructural</option>
         </select>
+
+        <label
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '6px',
+            fontSize: 'var(--font-size-sm, 13px)',
+            fontWeight: 600,
+            cursor: 'pointer',
+            padding: '6px 10px',
+            backgroundColor: filtros.soloHoy ? 'var(--color-info-bg, #E0F2F1)' : 'var(--color-white, #FFFFFF)',
+            color: filtros.soloHoy ? 'var(--color-primary-teal, #1B6F7D)' : 'var(--color-text-dark, #2B2B2B)',
+            border: '1px solid var(--border-color-neutral-dark, #CCD2D9)',
+            borderRadius: 'var(--radius-none, 0px)',
+            height: '38px',
+          }}
+          title="Ver únicamente incidentes registrados en la jornada de hoy"
+        >
+          <input
+            type="checkbox"
+            checked={Boolean(filtros.soloHoy)}
+            onChange={(e) =>
+              onFiltrosChange({
+                ...filtros,
+                soloHoy: e.target.checked,
+              })
+            }
+            aria-label="Filtrar incidentes solo de hoy"
+          />
+          <span>Solo hoy</span>
+        </label>
 
         {tieneFiltrosActivos && (
           <Button

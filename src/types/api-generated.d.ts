@@ -4,6 +4,95 @@
  */
 
 export interface paths {
+    "/api/puntos-criticos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Listar puntos críticos y sectores de prevención
+         * @description Retorna una lista paginada de los puntos críticos registrados, incluyendo coordenadas espaciales, tipo de riesgo, prioridad y delegación territorial asociada.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    pagina?: number;
+                    limite?: number;
+                    delegacionId?: string;
+                    activo?: boolean;
+                    prioridad?: "BAJA" | "MEDIA" | "ALTA" | "CRITICA";
+                    busqueda?: string;
+                };
+                header: {
+                    "x-user-id": string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data: {
+                                id: string;
+                                codigo: string;
+                                nombre: string;
+                                descripcion: string | null;
+                                tipoRiesgo: string | null;
+                                prioridad: "BAJA" | "MEDIA" | "ALTA" | "CRITICA";
+                                activo: boolean;
+                                estadoTexto: string;
+                                latitud: number;
+                                longitud: number;
+                                delegacion: {
+                                    id: string;
+                                    codigo: string;
+                                    nombre: string;
+                                } | null;
+                                creadoEn: string;
+                            }[];
+                            meta: {
+                                total: number;
+                                pagina: number;
+                                limite: number;
+                                totalPaginas: number;
+                            };
+                        };
+                    };
+                };
+                400: {
+                    content: {
+                        "application/json": {
+                            message: string;
+                            statusCode?: number;
+                        };
+                    };
+                };
+                403: {
+                    content: {
+                        "application/json": {
+                            message: string;
+                            statusCode?: number;
+                        };
+                    };
+                };
+                500: {
+                    content: {
+                        "application/json": {
+                            message: string;
+                            statusCode?: number;
+                        };
+                    };
+                };
+            };
+        };
+    };
     "/api/recursos": {
         parameters: {
             query?: never;
@@ -528,7 +617,110 @@ export interface paths {
             };
         };
         post?: never;
-        delete?: never;
+        /**
+         * Eliminar recurso del inventario (borrado lógico)
+         * @description Aplica un borrado lógico (soft delete) a un recurso existente registrando fecha, hora y usuario responsable. Impide la eliminación con código 409 Conflict si el recurso está actualmente en uso en terreno o asignado a una misión activa / cuadrilla. Emite evento WebSocket 'recurso:eliminado' a los clientes conectados.
+         */
+        delete: {
+            parameters: {
+                query?: never;
+                header: {
+                    /** @description UUID del usuario administrador autenticado */
+                    "x-user-id": string;
+                };
+                path: {
+                    /** @description Identificador único del recurso (UUID) */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Recurso eliminado exitosamente (baja lógica aplicada) */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            message: string;
+                            /** Format: uuid */
+                            id: string;
+                            nombre: string;
+                            eliminadoEn: string;
+                            /** Format: uuid */
+                            eliminadoPorId: string;
+                        };
+                    };
+                };
+                /** @description Identificador UUID inválido */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            message: string;
+                        };
+                    };
+                };
+                /** @description No autenticado / cabecera X-User-Id ausente */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            message: string;
+                        };
+                    };
+                };
+                /** @description Acceso denegado. Se requiere rol de Administrador o permiso recursos:eliminar */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            message: string;
+                        };
+                    };
+                };
+                /** @description Recurso no encontrado o ya eliminado previamente */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            message: string;
+                        };
+                    };
+                };
+                /** @description Conflicto operativo: recurso con unidades en uso o asignado a misión activa */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            message: string;
+                        };
+                    };
+                };
+                /** @description Error interno del servidor */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            message: string;
+                        };
+                    };
+                };
+            };
+        };
         options?: never;
         head?: never;
         patch?: never;
