@@ -103,18 +103,18 @@ export default function AvisosFiltros({
     });
   }
 
-  if (filtroEstado !== 'PENDIENTE') {
+  if (filtroEstado !== 'TODOS') {
     const labelEstado =
-      filtroEstado === 'VERIFICADO'
+      filtroEstado === 'PENDIENTE'
+        ? 'Reportado'
+        : filtroEstado === 'VERIFICADO'
         ? 'Verificado'
-        : filtroEstado === 'RECHAZADO'
-        ? 'Rechazado'
-        : 'Todos';
+        : 'Rechazado';
     chipsActivos.push({
       id: 'estado',
       etiqueta: 'Estado',
       valorVisible: labelEstado,
-      onRemove: () => onFiltroEstadoChange('PENDIENTE'),
+      onRemove: () => onFiltroEstadoChange('TODOS'),
     });
   }
 
@@ -150,20 +150,21 @@ export default function AvisosFiltros({
 
   return (
     <FilterBar
-      titulo="Bandeja de Avisos"
+      titulo="Filtros de Avisos"
       storageKey="sgrai:filtros:avisos:colapsado"
       totalFiltrosActivos={chipsActivos.length}
       headerActions={
         <Button
           type="button"
-          variant="secondary"
+          variant="outline"
           size="sm"
           onClick={onRefrescar}
           disabled={cargando}
-          title="Refrescar lista de avisos"
+          title="Actualizar datos"
+          aria-label="Actualizar datos"
         >
           <RotateCw size={14} className={cargando ? 'animate-spin' : ''} aria-hidden="true" />
-          <span>{cargando ? 'Actualizando...' : 'Refrescar'}</span>
+          <span>{cargando ? 'Actualizando...' : 'Actualizar'}</span>
         </Button>
       }
     >
