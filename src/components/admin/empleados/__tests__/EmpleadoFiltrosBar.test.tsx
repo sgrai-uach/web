@@ -118,4 +118,50 @@ describe('EmpleadoFiltrosBar', () => {
     fireEvent.change(inputBusqueda, { target: { value: 'González' } });
     expect(handleSetTermino).toHaveBeenCalledWith('González');
   });
+
+  it('debe renderizar chips individuales y permitir removerlos con el botón [x]', () => {
+    const handleSetTermino = vi.fn();
+    const handleSetDelegacion = vi.fn();
+    const handleSetEstado = vi.fn();
+
+    render(
+      <EmpleadoFiltrosBar
+        termino="Pérez"
+        setTermino={handleSetTermino}
+        delegacionFiltro="Norte"
+        setDelegacionFiltro={handleSetDelegacion}
+        rolFiltro=""
+        setRolFiltro={vi.fn()}
+        estadoFiltro="inactivo"
+        setEstadoFiltro={handleSetEstado}
+        ordenarPor="apellidos"
+        setOrdenarPor={vi.fn()}
+        orden="asc"
+        setOrden={vi.fn()}
+        delegaciones={delegaciones}
+        roles={roles}
+      />
+    );
+
+    // Debe mostrar los chips activos
+    expect(screen.getByText(/Búsqueda: "Pérez"/i)).toBeDefined();
+    expect(screen.getByText(/Delegación: Norte/i)).toBeDefined();
+    expect(screen.getByText(/Estado: Inactivos \(Baja\)/i)).toBeDefined();
+
+    // Al pulsar quitar en el chip de búsqueda
+    const btnQuitarBusqueda = screen.getByRole('button', { name: /Quitar filtro de búsqueda/i });
+    fireEvent.click(btnQuitarBusqueda);
+    expect(handleSetTermino).toHaveBeenCalledWith('');
+
+    // Al pulsar quitar en el chip de delegación
+    const btnQuitarDelegacion = screen.getByRole('button', { name: /Quitar filtro de delegación/i });
+    fireEvent.click(btnQuitarDelegacion);
+    expect(handleSetDelegacion).toHaveBeenCalledWith('');
+
+    // Al pulsar quitar en el chip de estado
+    const btnQuitarEstado = screen.getByRole('button', { name: /Quitar filtro de estado/i });
+    fireEvent.click(btnQuitarEstado);
+    expect(handleSetEstado).toHaveBeenCalledWith('todos');
+  });
 });
+

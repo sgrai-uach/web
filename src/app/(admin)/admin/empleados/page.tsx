@@ -83,6 +83,7 @@ export default function AdminEmpleadosPage() {
     catalogos,
     empleadosPaginados,
     cargando,
+    limpiarFiltros,
   } = useEmpleados({ versionActualizacion: versionActualizacion + registroVersion });
 
   const handleRegistrado = (nuevo: EmpleadoUsuario) => {
@@ -146,26 +147,24 @@ export default function AdminEmpleadosPage() {
       <div className={styles.masterDetailGrid}>
         {/* Columna Izquierda: Barra de Búsqueda/Filtros + Lista permanente con paginación */}
         <div className={styles.tableColumn}>
-          {/* Barra de Búsqueda y Filtros compactada */}
-          <div className={styles.filtersCard}>
-            <EmpleadoFiltros
-              termino={termino}
-              setTermino={setTermino}
-              delegacionFiltro={delegacionFiltro}
-              setDelegacionFiltro={setDelegacionFiltro}
-              rolFiltro={rolFiltro}
-              setRolFiltro={setRolFiltro}
-              estadoFiltro={estadoFiltro}
-              setEstadoFiltro={setEstadoFiltro}
-              ordenarPor={ordenarPor}
-              setOrdenarPor={setOrdenarPor}
-              orden={orden}
-              setOrden={setOrden}
-              delegaciones={catalogos.delegaciones}
-              roles={catalogos.roles}
-              cargando={cargando}
-            />
-          </div>
+          <EmpleadoFiltros
+            termino={termino}
+            setTermino={setTermino}
+            delegacionFiltro={delegacionFiltro}
+            setDelegacionFiltro={setDelegacionFiltro}
+            rolFiltro={rolFiltro}
+            setRolFiltro={setRolFiltro}
+            estadoFiltro={estadoFiltro}
+            setEstadoFiltro={setEstadoFiltro}
+            ordenarPor={ordenarPor}
+            setOrdenarPor={setOrdenarPor}
+            orden={orden}
+            setOrden={setOrden}
+            delegaciones={catalogos.delegaciones}
+            roles={catalogos.roles}
+            cargando={cargando}
+            onLimpiarFiltros={limpiarFiltros}
+          />
 
           <EmpleadoTabla
             empleados={empleadosPaginados}

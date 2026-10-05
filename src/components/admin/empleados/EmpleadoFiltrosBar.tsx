@@ -1,13 +1,14 @@
 'use client';
 
 import React from 'react';
-import { ArrowDownAZ, ArrowUpZA, FilterX } from 'lucide-react';
+import { ArrowDownAZ, ArrowUpZA } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import type { CatalogoItem } from '@/types/empleados';
 import type { EstadoFiltro } from '@/hooks/useEmpleados';
 import { selectStyle, labelStyle } from './empleadoStyles';
 import { SegmentedButtonGroup } from '@/components/common/filters/SegmentedButtonGroup';
 import { FilterBar } from '@/components/common/filters/FilterBar';
+import { ActiveFilterChips, type ActiveChipItem } from '@/components/common/filters/ActiveFilterChips';
 import EmpleadoSearchInput from './EmpleadoSearchInput';
 
 export interface EmpleadoFiltrosBarProps {
@@ -85,31 +86,79 @@ export default function EmpleadoFiltrosBar({
     ...(rolCuadrilla ? [{ valor: rolCuadrilla, etiqueta: 'Cuadrillas Operativas' }] : []),
   ];
 
-  const hayFiltrosActivos = Boolean(
-    termino ||
-    delegacionFiltro ||
-    rolFiltro ||
-    (estadoFiltro && estadoFiltro !== 'todos') ||
-    estadoOperativoFiltro ||
-    especialidadFiltro ||
-    cargoFiltro
-  );
+  const chipsActivos: ActiveChipItem[] = [];
 
-  const totalActivos = [
-    termino,
-    delegacionFiltro,
-    rolFiltro,
-    estadoFiltro && estadoFiltro !== 'todos' ? estadoFiltro : '',
-    estadoOperativoFiltro,
-    especialidadFiltro,
-    cargoFiltro,
-  ].filter(Boolean).length;
+  if (termino && termino.trim() !== '' && setTermino) {
+    chipsActivos.push({
+      id: 'busqueda',
+      etiqueta: 'Búsqueda',
+      valorVisible: `"${termino.trim()}"`,
+      onRemove: () => setTermino(''),
+    });
+  }
+
+  if (delegacionFiltro && delegacionFiltro.trim() !== '') {
+    chipsActivos.push({
+      id: 'delegacion',
+      etiqueta: 'Delegación',
+      valorVisible: delegacionFiltro,
+      onRemove: () => setDelegacionFiltro(''),
+      esDelegacion: true,
+    });
+  }
+
+  if (rolFiltro && rolFiltro.trim() !== '') {
+    const rolEncontrado = roles.find((r) => r.id === rolFiltro);
+    chipsActivos.push({
+      id: 'rol',
+      etiqueta: 'Rol',
+      valorVisible: rolEncontrado ? rolEncontrado.nombre : rolFiltro,
+      onRemove: () => setRolFiltro(''),
+    });
+  }
+
+  if (estadoFiltro && estadoFiltro !== 'todos' && setEstadoFiltro) {
+    chipsActivos.push({
+      id: 'estado',
+      etiqueta: 'Estado',
+      valorVisible: estadoFiltro === 'activo' ? 'Solo Activos' : 'Inactivos (Baja)',
+      onRemove: () => setEstadoFiltro('todos'),
+    });
+  }
+
+  if (estadoOperativoFiltro && estadoOperativoFiltro.trim() !== '' && setEstadoOperativoFiltro) {
+    const estadoOp = OPCIONES_ESTADO_OPERATIVO.find((o) => o.valor === estadoOperativoFiltro);
+    chipsActivos.push({
+      id: 'estadoOperativo',
+      etiqueta: 'Estado Operativo',
+      valorVisible: estadoOp ? estadoOp.etiqueta : estadoOperativoFiltro,
+      onRemove: () => setEstadoOperativoFiltro(''),
+    });
+  }
+
+  if (especialidadFiltro && especialidadFiltro.trim() !== '' && setEspecialidadFiltro) {
+    chipsActivos.push({
+      id: 'especialidad',
+      etiqueta: 'Especialidad',
+      valorVisible: especialidadFiltro,
+      onRemove: () => setEspecialidadFiltro(''),
+    });
+  }
+
+  if (cargoFiltro && cargoFiltro.trim() !== '' && setCargoFiltro) {
+    chipsActivos.push({
+      id: 'cargo',
+      etiqueta: 'Cargo',
+      valorVisible: cargoFiltro,
+      onRemove: () => setCargoFiltro(''),
+    });
+  }
 
   return (
     <FilterBar
       titulo="Filtros de Personal y Cuadrillas"
       storageKey="sgrai:filtros:personal:colapsado"
-      totalFiltrosActivos={totalActivos}
+      totalFiltrosActivos={chipsActivos.length}
     >
       {/* Búsqueda integrada dentro del componente de filtros */}
       {setTermino && (
@@ -281,30 +330,11 @@ export default function EmpleadoFiltrosBar({
           </div>
         </div>
       </div>
-
-      {hayFiltrosActivos && onLimpiarFiltros && (
-        <div style={{ display: 'flex', justifyContent: 'flex-end', paddingTop: '4px' }}>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={onLimpiarFiltros}
-            style={{
-              color: 'var(--color-primary-teal, #1B6F7D)',
-              padding: '2px 6px',
-              minHeight: 'auto',
-              textDecoration: 'underline',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '4px',
-              fontSize: '12px',
-            }}
-          >
-            <FilterX size={12} aria-hidden="true" />
-            <span>Limpiar filtros de personal</span>
-          </Button>
-        </div>
-      )}
+      <ActiveFilterChips
+        chips={chipsActivos}
+        onClearAll={onLimpiarFiltros || (() => {})}
+        clearAllText="Limpiar filtros de personal"
+      />
     </FilterBar>
   );
 }

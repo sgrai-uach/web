@@ -105,7 +105,7 @@ export function useEmpleados({ versionActualizacion = 0 }: UseEmpleadosProps = {
           ordenar_por: ordenarPor,
           orden,
           incluir_inactivos: true,
-          limite: 200,
+          limite: 100,
         });
         if (!cancelado) {
           setResultados(data);
