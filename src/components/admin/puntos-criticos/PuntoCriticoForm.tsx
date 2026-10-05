@@ -23,7 +23,6 @@ export default function PuntoCriticoForm() {
     clientErrors,
     serverFieldErrors,
     serverFieldErrorMap,
-    isValid,
     isSubmitting,
     serverError,
     createdPunto,

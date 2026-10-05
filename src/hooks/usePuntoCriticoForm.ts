@@ -161,7 +161,7 @@ export function usePuntoCriticoForm() {
     []
   );
 
-  const handleBlur = useCallback((field: keyof PuntoCriticoFormData) => {
+  const handleBlur = useCallback((field: keyof PuntoCriticoFormData | string) => {
     setTouched((prev) => ({ ...prev, [field]: true }));
   }, []);
 

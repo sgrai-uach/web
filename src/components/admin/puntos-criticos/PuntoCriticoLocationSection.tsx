@@ -42,7 +42,7 @@ interface PuntoCriticoLocationSectionProps {
   onChangeLng: (val: string) => void;
   onChangeRadio: (val: string) => void;
   onCenterValdivia: () => void;
-  onBlur: (field: 'lat' | 'lng' | 'radioMetros') => void;
+  onBlur: (field: string) => void;
 }
 
 export default function PuntoCriticoLocationSection({

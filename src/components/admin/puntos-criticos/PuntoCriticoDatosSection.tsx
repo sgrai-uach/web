@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { AlertTriangle, Tag, Layers, FileText } from 'lucide-react';
+import { Tag, FileText } from 'lucide-react';
 import Heading from '@/components/ui/Heading';
 import { TIPOS_RIESGO_CANONICOS } from '@/types/puntoCritico';
 import type { PrioridadPuntoCritico } from '@/types/puntoCritico';
@@ -35,7 +35,7 @@ interface PuntoCriticoDatosSectionProps {
   onChangeNivelPrioridad: (val: PrioridadPuntoCritico) => void;
   onChangeDelegacionId: (val: string) => void;
   onChangeActivo: (val: boolean) => void;
-  onBlur: (field: 'nombre' | 'tipoRiesgo') => void;
+  onBlur: (field: string) => void;
 }
 
 export default function PuntoCriticoDatosSection({
