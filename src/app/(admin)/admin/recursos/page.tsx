@@ -9,15 +9,16 @@ import { useSimulatedSession } from '@/context/SimulatedSessionContext';
 import RecursosHeader from '@/components/admin/recursos/RecursosHeader';
 import RecursosFiltros from '@/components/admin/recursos/RecursosFiltros';
 import RecursosTabla from '@/components/admin/recursos/RecursosTabla';
+import RecursoEditarModal from '@/components/admin/recursos/RecursoEditarModal';
 import RecursoEliminarModal from '@/components/admin/recursos/RecursoEliminarModal';
 import Pagination from '@/components/common/Pagination';
 import AccesoDenegadoState from '@/components/admin/recursos/AccesoDenegadoState';
-
 import { toUserFriendlyErrorMessage } from '@/lib/utils/errorUtils';
 
 export default function RecursosPage() {
   const { showError, showSuccess } = useToast();
   const { usuarioActivo, cambiarUsuarioPorId, hasPermission } = useSimulatedSession();
+  const [recursoAEditar, setRecursoAEditar] = useState<RecursoItem | null>(null);
   const [recursoAEliminar, setRecursoAEliminar] = useState<RecursoItem | null>(null);
 
   const [filtros, setFiltros] = useState<FiltrosRecursosState>({
@@ -29,15 +30,20 @@ export default function RecursosPage() {
     esIndividual: undefined,
   });
 
-  const { recursos, meta, cargando, error, statusCode, removerRecursoDeLista } = useRecursos(
-    filtros,
-    usuarioActivo.id
-  );
+  const {
+    recursos,
+    meta,
+    cargando,
+    error,
+    statusCode,
+    actualizarRecursoEnLista,
+    removerRecursoDeLista,
+  } = useRecursos(filtros, usuarioActivo.id);
 
   const puedeEliminar =
     usuarioActivo.rol === 'Administrador' ||
     usuarioActivo.id === DEFAULT_ADMIN_USER_ID ||
-    hasPermission('recursos:eliminar');
+    (hasPermission ? hasPermission('recursos:eliminar') : false);
 
   const handleEliminacionExitosa = useCallback(
     (recursoEliminado: RecursoItem) => {
@@ -48,6 +54,17 @@ export default function RecursosPage() {
       );
     },
     [removerRecursoDeLista, showSuccess]
+  );
+
+  const handleGuardadoExitoso = useCallback(
+    (recursoActualizado: RecursoItem) => {
+      actualizarRecursoEnLista(recursoActualizado);
+      showSuccess(
+        `El recurso "${recursoActualizado.nombre}" ha sido actualizado exitosamente.`,
+        'Recurso Actualizado'
+      );
+    },
+    [actualizarRecursoEnLista, showSuccess]
   );
 
   useEffect(() => {
@@ -141,6 +158,7 @@ export default function RecursosPage() {
           cargando={cargando}
           esFiltroActivo={esFiltroActivo}
           onLimpiarFiltros={handleLimpiarFiltros}
+          onEditarRecurso={setRecursoAEditar}
           onEliminarRecurso={setRecursoAEliminar}
           puedeEliminar={puedeEliminar}
         />
@@ -156,6 +174,15 @@ export default function RecursosPage() {
         />
       </div>
 
+      {/* Modal Interactivo de Edición de Recurso */}
+      <RecursoEditarModal
+        isOpen={Boolean(recursoAEditar)}
+        recurso={recursoAEditar}
+        usuarioActivoId={usuarioActivo.id}
+        onCerrar={() => setRecursoAEditar(null)}
+        onGuardadoExitoso={handleGuardadoExitoso}
+      />
+
       {/* Modal Interactivo de Confirmación de Baja Lógica */}
       <RecursoEliminarModal
         isOpen={Boolean(recursoAEliminar)}
@@ -167,4 +194,3 @@ export default function RecursosPage() {
     </div>
   );
 }
-

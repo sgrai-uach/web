@@ -21,6 +21,7 @@ vi.mock('@/services/seguridadService', () => ({
   actualizarPermisosRol: vi.fn(),
   agruparCatalogoPorModulo: vi.fn(),
   agruparPermisosPorModulo: vi.fn(),
+  PERMISOS_DEFAULT_SISTEMA: [],
 }));
 
 describe('RolDetalleDrawer con Edición Integrada (HU-5)', () => {
@@ -54,6 +55,13 @@ describe('RolDetalleDrawer con Edición Integrada (HU-5)', () => {
       nombre: 'Asignar Misiones',
       descripcion: 'Permite despachar patrullas y cuadrillas',
       modulo: 'Misiones',
+    },
+    {
+      id: 'p-5',
+      codigo: 'personal:crear',
+      nombre: 'Registro de Nuevos Funcionarios',
+      descripcion: 'Permite dar de alta y aprovisionar nuevos funcionarios en el sistema',
+      modulo: 'Gestión de Personal',
     },
   ];
 
@@ -274,5 +282,44 @@ describe('RolDetalleDrawer con Edición Integrada (HU-5)', () => {
     // Vuelve al estado de lectura de 0 permisos
     expect(screen.getByText('Sin permisos asignados')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Modificar Permisos/i })).toBeInTheDocument();
+  });
+
+  it('permite asignar y personalizar el permiso personal:crear a un perfil en la matriz RBAC', async () => {
+    vi.mocked(seguridadService.actualizarPermisosRol).mockResolvedValue({
+      message: 'Permisos actualizados correctamente en la base de datos',
+    });
+
+    render(
+      <RolDetalleDrawer
+        rol={mockRolDelegado}
+        usuarioId={usuarioId}
+        onClose={vi.fn()}
+      />
+    );
+
+    // Entrar a edición
+    fireEvent.click(screen.getByRole('button', { name: /Modificar Permisos/i }));
+
+    await waitFor(() => {
+      expect(
+        screen.getByText('Registro de Nuevos Funcionarios')
+      ).toBeInTheDocument();
+    });
+
+    // Seleccionar permiso de creación de funcionarios
+    const checkboxPersonal = screen.getByLabelText(/Permiso Registro de Nuevos Funcionarios/i);
+    expect(checkboxPersonal).toBeInTheDocument();
+    fireEvent.click(checkboxPersonal);
+
+    // Guardar cambios
+    fireEvent.click(screen.getByRole('button', { name: /Guardar Cambios/i }));
+
+    await waitFor(() => {
+      expect(seguridadService.actualizarPermisosRol).toHaveBeenCalledWith(
+        'rol-delegado',
+        ['p-5'],
+        usuarioId
+      );
+    });
   });
 });

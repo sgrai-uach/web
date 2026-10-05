@@ -1,8 +1,9 @@
 'use client';
 
 import React from 'react';
-import { Truck, Package, Trash2 } from 'lucide-react';
+import { Truck, Package, Pencil, Trash2 } from 'lucide-react';
 import type { RecursoItem } from '@/types/recurso';
+import { obtenerNombreDelegacion } from '@/lib/utils/delegacionUtils';
 import BadgeEstado from './BadgeEstado';
 import Button from '@/components/ui/Button';
 
@@ -10,6 +11,7 @@ interface RecursoRowProps {
   recurso: RecursoItem;
   indice: number;
   onSeleccionar: (recurso: RecursoItem) => void;
+  onEditar?: (recurso: RecursoItem) => void;
   onEliminar?: (recurso: RecursoItem) => void;
   puedeEliminar?: boolean;
 }
@@ -18,6 +20,7 @@ export default function RecursoRow({
   recurso,
   indice,
   onSeleccionar,
+  onEditar,
   onEliminar,
   puedeEliminar = false,
 }: RecursoRowProps) {
@@ -92,7 +95,7 @@ export default function RecursoRow({
       {/* Procedencia Territorial */}
       <td style={{ padding: '14px 16px', verticalAlign: 'middle' }}>
         <span style={{ fontSize: '13px', fontWeight: 600, color: recurso.delegacion ? 'var(--color-charcoal-dark)' : 'var(--color-charcoal)' }}>
-          {recurso.delegacion ? recurso.delegacion.nombre : 'Reserva Central'}
+          {recurso.delegacion ? obtenerNombreDelegacion(recurso.delegacion.nombre || recurso.delegacion.id, 'Reserva Central') : 'Reserva Central'}
         </span>
       </td>
 
@@ -115,6 +118,28 @@ export default function RecursoRow({
           >
             Ver Ficha
           </Button>
+          {onEditar && (
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={(e) => {
+                e.stopPropagation();
+                onEditar(recurso);
+              }}
+              title={`Editar ${recurso.nombre}`}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+                backgroundColor: 'var(--color-primary-teal)',
+                color: 'var(--color-white)',
+              }}
+            >
+              <Pencil size={13} aria-hidden="true" />
+              <span>Editar</span>
+            </Button>
+          )}
 
           {puedeEliminar && onEliminar && (
             <Button

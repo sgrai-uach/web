@@ -25,8 +25,8 @@ describe('AvisosFiltros Component', () => {
   it('debe renderizar el selector de Delegación con las opciones requeridas (Norte, Sur, Costa, Calle Calle)', () => {
     render(<AvisosFiltros {...defaultProps} />);
 
-    const selectDelegacion = screen.getByLabelText(/Delegación/i);
-    expect(selectDelegacion).toBeTruthy();
+    const selectDelegacion = screen.getByLabelText(/Delegación Territorial:/i);
+    expect(selectDelegacion).toBeInTheDocument();
 
     const options = Array.from((selectDelegacion as HTMLSelectElement).options).map(
       (opt) => opt.value
@@ -41,8 +41,8 @@ describe('AvisosFiltros Component', () => {
   it('debe renderizar el selector de Estado con las opciones requeridas (Pendiente, Verificado, Rechazado)', () => {
     render(<AvisosFiltros {...defaultProps} />);
 
-    const selectEstado = screen.getByLabelText(/Estado/i);
-    expect(selectEstado).toBeTruthy();
+    const selectEstado = screen.getByLabelText(/Estado del Aviso:/i);
+    expect(selectEstado).toBeInTheDocument();
 
     const options = Array.from((selectEstado as HTMLSelectElement).options).map(
       (opt) => opt.value
@@ -62,7 +62,7 @@ describe('AvisosFiltros Component', () => {
       />
     );
 
-    const select = screen.getByLabelText(/Delegación/i);
+    const select = screen.getByLabelText(/Delegación Territorial:/i);
     fireEvent.change(select, { target: { value: 'Norte' } });
 
     expect(onFiltroDelegacionChange).toHaveBeenCalledWith('Norte');
@@ -77,7 +77,7 @@ describe('AvisosFiltros Component', () => {
       />
     );
 
-    const select = screen.getByLabelText(/Estado/i);
+    const select = screen.getByLabelText(/Estado del Aviso:/i);
     fireEvent.change(select, { target: { value: 'VERIFICADO' } });
 
     expect(onFiltroEstadoChange).toHaveBeenCalledWith('VERIFICADO');

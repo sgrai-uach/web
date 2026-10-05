@@ -49,6 +49,7 @@ export interface UseRecursosReturn {
   error: Error | null;
   statusCode: number | null;
   recargar: () => Promise<void>;
+  actualizarRecursoEnLista: (recursoActualizado: RecursoItem) => void;
   removerRecursoDeLista: (id: string) => void;
 }
 
@@ -116,6 +117,24 @@ export function useRecursos(
     };
   }, [fetchData]);
 
+  const actualizarRecursoEnLista = useCallback((recursoActualizado: RecursoItem) => {
+    if (!recursoActualizado || !recursoActualizado.id) return;
+    setData((prev) => {
+      if (!prev) return prev;
+      const index = prev.data.findIndex((r) => r.id === recursoActualizado.id);
+      if (index === -1) return prev;
+      const updatedList = [...prev.data];
+      updatedList[index] = {
+        ...updatedList[index],
+        ...recursoActualizado,
+      };
+      return {
+        ...prev,
+        data: updatedList,
+      };
+    });
+  }, []);
+
   const removerRecursoDeLista = useCallback((id: string) => {
     if (!id) return;
     setData((prev) => {
@@ -138,18 +157,24 @@ export function useRecursos(
   useEffect(() => {
     const socket = getSocket();
 
+    function handleRecursoActualizado(recursoActualizado: RecursoItem) {
+      actualizarRecursoEnLista(recursoActualizado);
+    }
+
     function handleRecursoEliminado(payload: { id: string; nombre?: string }) {
       if (payload?.id) {
         removerRecursoDeLista(payload.id);
       }
     }
 
+    socket.on('recurso:actualizado', handleRecursoActualizado);
     socket.on('recurso:eliminado', handleRecursoEliminado);
 
     return () => {
+      socket.off('recurso:actualizado', handleRecursoActualizado);
       socket.off('recurso:eliminado', handleRecursoEliminado);
     };
-  }, [removerRecursoDeLista]);
+  }, [actualizarRecursoEnLista, removerRecursoDeLista]);
 
   return {
     recursos: data?.data ?? [],
@@ -163,6 +188,7 @@ export function useRecursos(
     error,
     statusCode,
     recargar: fetchData,
+    actualizarRecursoEnLista,
     removerRecursoDeLista,
   };
 }

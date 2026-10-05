@@ -6,6 +6,8 @@ import {
   actualizarPermisosRol,
   agruparPermisosPorModulo,
   agruparCatalogoPorModulo,
+  loginUsuario,
+  obtenerUsuarioActivo,
   SeguridadServiceError,
 } from '../seguridadService';
 import apiClient from '@/lib/api/client';
@@ -15,6 +17,7 @@ vi.mock('@/lib/api/client', () => ({
   default: {
     GET: vi.fn(),
     PUT: vi.fn(),
+    POST: vi.fn(),
   },
 }));
 
@@ -240,6 +243,129 @@ describe('Servicio de Seguridad (Roles y Permisos)', () => {
       const agrupados = agruparCatalogoPorModulo(catalogo);
       expect(agrupados['Seguridad']).toHaveLength(1);
       expect(agrupados['Incidentes']).toHaveLength(1);
+    });
+  });
+
+  describe('loginUsuario (H59)', () => {
+    it('debe autenticar exitosamente y retornar token y datos de usuario', async () => {
+      const mockLoginResponse = {
+        data: {
+          token: 'jwt-token-123',
+          expiraEn: '2026-10-01T04:00:00.000Z',
+          usuario: {
+            id: 'usr-1',
+            rut: '11111111-1',
+            nombre: 'Administrador General',
+            email: 'admin@valdivia.cl',
+            rolId: 'rol-admin',
+            rolNombre: 'Administrador',
+            rolCodigo: 'ADMIN',
+            delegacionId: 'del-1',
+            permisos: ['seguridad:roles:leer', 'recursos:crear'],
+          },
+        },
+      };
+
+      vi.mocked(apiClient.POST as unknown as () => Promise<unknown>).mockResolvedValueOnce({
+        data: mockLoginResponse,
+        error: undefined,
+        response: { ok: true, status: 200 } as Response,
+      });
+
+      const res = await loginUsuario({
+        identificador: 'admin@valdivia.cl',
+        password: 'Valdivia2026!',
+      });
+
+      expect(res.token).toBe('jwt-token-123');
+      expect(res.usuario.nombre).toBe('Administrador General');
+      expect(res.usuario.rolCodigo).toBe('ADMIN');
+      expect(res.usuario.permisos).toContain('recursos:crear');
+    });
+
+    it('debe lanzar SeguridadServiceError con 401 y mensaje genérico ante credenciales inválidas', async () => {
+      vi.mocked(apiClient.POST as unknown as () => Promise<unknown>).mockResolvedValueOnce({
+        data: undefined,
+        error: { error: 'Credenciales inválidas. Verifique su identificador o contraseña.' },
+        response: { ok: false, status: 401 } as Response,
+      });
+
+      await expect(
+        loginUsuario({ identificador: 'admin@valdivia.cl', password: 'err' })
+      ).rejects.toThrow('Credenciales inválidas. Verifique su identificador o contraseña.');
+    });
+
+    it('debe lanzar SeguridadServiceError con 403 y mensaje de cuenta inactiva', async () => {
+      vi.mocked(apiClient.POST as unknown as () => Promise<unknown>).mockResolvedValueOnce({
+        data: undefined,
+        error: { error: 'El usuario se encuentra inactivo en el sistema.' },
+        response: { ok: false, status: 403 } as Response,
+      });
+
+      await expect(
+        loginUsuario({ identificador: 'inactivo@valdivia.cl', password: 'pass' })
+      ).rejects.toThrow('El usuario se encuentra inactivo en el sistema. Contacte al Administrador.');
+    });
+
+    it('debe ofuscar la cantidad de minutos ante bloqueo por fuerza bruta (403)', async () => {
+      vi.mocked(apiClient.POST as unknown as () => Promise<unknown>).mockResolvedValueOnce({
+        data: undefined,
+        error: {
+          error:
+            'Cuenta temporalmente bloqueada por múltiples intentos fallidos. Intente nuevamente en 14 minuto(s) o contacte al Administrador.',
+        },
+        response: { ok: false, status: 403 } as Response,
+      });
+
+      await expect(
+        loginUsuario({ identificador: 'bloqueado@valdivia.cl', password: 'pass' })
+      ).rejects.toThrow(
+        'Cuenta bloqueada temporalmente por seguridad debido a múltiples intentos fallidos. Intente más tarde o contacte al Administrador.'
+      );
+    });
+
+    it('debe lanzar SeguridadServiceError con 500 ante error interno', async () => {
+      vi.mocked(apiClient.POST as unknown as () => Promise<unknown>).mockResolvedValueOnce({
+        data: undefined,
+        error: { error: 'Internal Server Error' },
+        response: { ok: false, status: 500 } as Response,
+      });
+
+      await expect(
+        loginUsuario({ identificador: 'admin@valdivia.cl', password: 'pass' })
+      ).rejects.toThrow('Error interno del servidor al procesar el inicio de sesión.');
+    });
+  });
+
+  describe('obtenerUsuarioActivo (H59)', () => {
+    it('debe consultar y retornar el perfil activo del usuario', async () => {
+      const mockDetalle = {
+        data: {
+          id: 'usr-1',
+          rut: '11111111-1',
+          nombre: 'Administrador General',
+          email: 'admin@valdivia.cl',
+          activo: true,
+          rol: {
+            id: 'rol-1',
+            nombre: 'Administrador',
+            codigo: 'ADMIN',
+            permisos: ['seguridad:roles:leer'],
+          },
+          permisos: ['seguridad:roles:leer'],
+        },
+      };
+
+      vi.mocked(apiClient.GET as unknown as () => Promise<unknown>).mockResolvedValueOnce({
+        data: mockDetalle,
+        error: undefined,
+        response: { ok: true, status: 200 } as Response,
+      });
+
+      const res = await obtenerUsuarioActivo();
+      expect(res.id).toBe('usr-1');
+      expect(res.nombre).toBe('Administrador General');
+      expect(res.permisos).toContain('seguridad:roles:leer');
     });
   });
 });

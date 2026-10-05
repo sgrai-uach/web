@@ -12,6 +12,7 @@ interface RecursosTablaProps {
   cargando: boolean;
   esFiltroActivo: boolean;
   onLimpiarFiltros: () => void;
+  onEditarRecurso?: (recurso: RecursoItem) => void;
   onEliminarRecurso?: (recurso: RecursoItem) => void;
   puedeEliminar?: boolean;
 }
@@ -21,6 +22,7 @@ export default function RecursosTabla({
   cargando,
   esFiltroActivo,
   onLimpiarFiltros,
+  onEditarRecurso,
   onEliminarRecurso,
   puedeEliminar = false,
 }: RecursosTablaProps) {
@@ -101,6 +103,7 @@ export default function RecursosTabla({
                   recurso={recurso}
                   indice={idx}
                   onSeleccionar={(rec) => setRecursoSeleccionado(rec)}
+                  onEditar={onEditarRecurso}
                   onEliminar={onEliminarRecurso}
                   puedeEliminar={puedeEliminar}
                 />
@@ -113,6 +116,7 @@ export default function RecursosTabla({
       <RecursoDetalleModal
         recurso={recursoSeleccionado}
         onCerrar={() => setRecursoSeleccionado(null)}
+        onEditar={onEditarRecurso}
         onEliminar={onEliminarRecurso}
         puedeEliminar={puedeEliminar}
       />

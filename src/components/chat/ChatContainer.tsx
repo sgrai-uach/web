@@ -6,6 +6,8 @@ import { useChatbot } from '@/hooks/useChatbot';
 import { ChatMessage } from './ChatMessage';
 import { ChatInput } from './ChatInput';
 import { MunicipalHeader } from '@/components/layout/MunicipalHeader';
+import Button from '@/components/ui/Button';
+import { ArrowLeft } from 'lucide-react';
 
 export const ChatContainer: React.FC = () => {
   const {
@@ -36,6 +38,20 @@ export const ChatContainer: React.FC = () => {
 
       {/* Cuerpo Principal del Chatbot */}
       <main className={styles.chatMain}>
+        <div style={{ marginBottom: '10px', display: 'flex', alignItems: 'center' }}>
+          <Button
+            variant="outline"
+            size="sm"
+            href="/ciudadania"
+            icon={<ArrowLeft size={16} />}
+            style={{
+              backgroundColor: 'var(--color-white, #FFFFFF)',
+            }}
+          >
+            Volver al Portal Ciudadano
+          </Button>
+        </div>
+
         <section className={styles.chatWrapper} aria-label="Asistente virtual DGRD">
           <div className={styles.messagesList} role="log" aria-live="polite">
             {mensajes.map((msg, index) => {

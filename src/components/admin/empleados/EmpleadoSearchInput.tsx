@@ -8,7 +8,7 @@ interface EmpleadoSearchInputProps {
   termino: string;
   setTermino: (val: string) => void;
   cargando: boolean;
-  onFocusInput: () => void;
+  onFocusInput?: () => void;
 }
 
 export default function EmpleadoSearchInput({
@@ -18,27 +18,27 @@ export default function EmpleadoSearchInput({
   onFocusInput,
 }: EmpleadoSearchInputProps) {
   return (
-    <div style={{ marginBottom: '0.5rem' }}>
+    <div style={{ marginBottom: '0.25rem' }}>
       <label
         htmlFor="buscar-empleado-input"
         style={{
           display: 'block',
-          fontSize: '0.8125rem',
+          fontSize: '0.75rem',
           fontWeight: 700,
           textTransform: 'uppercase',
           letterSpacing: '0.5px',
-          color: 'var(--color-charcoal, #3B3F45)',
-          marginBottom: '0.35rem',
+          color: 'var(--color-primary-teal-dark, #14505A)',
+          marginBottom: '0.25rem',
         }}
       >
-        Seleccionar Usuario / Empleado
+        Buscar en Personal Municipal
       </label>
       <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
         <Search
-          size={16}
+          size={15}
           style={{
             position: 'absolute',
-            left: '0.75rem',
+            left: '0.65rem',
             color: 'var(--color-text-muted, #5F676E)',
           }}
         />
@@ -51,13 +51,15 @@ export default function EmpleadoSearchInput({
           placeholder="Buscar por RUT, Nombre, Apellidos o Correo..."
           style={{
             width: '100%',
-            padding: '0.625rem 0.875rem 0.625rem 2.25rem',
+            padding: '0.45rem 0.75rem 0.45rem 2rem',
             border: '1px solid var(--border-color-neutral, #DFE3E8)',
-            fontSize: '0.875rem',
+            fontSize: '0.8125rem',
             color: 'var(--color-text-dark, #2B2B2B)',
             outline: 'none',
             borderRadius: 0,
             backgroundColor: 'var(--color-white, #FFFFFF)',
+            height: '36px',
+            boxSizing: 'border-box',
           }}
           autoComplete="off"
         />

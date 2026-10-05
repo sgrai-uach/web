@@ -3,6 +3,7 @@
 import React from 'react';
 import { MapPin } from 'lucide-react';
 import type { IncidenteResumen } from '@/services/incidentesService';
+import { obtenerNombreDelegacion } from '@/lib/utils/delegacionUtils';
 import styles from '@/styles/mando.module.css';
 import Heading from '@/components/ui/Heading';
 
@@ -79,7 +80,7 @@ export const IncidenteCard: React.FC<IncidenteCardProps> = ({ incidente, onClick
           )}
         </div>
 
-        <span>{incidente.delegacionNombre || 'Sin delegación'}</span>
+        <span>{obtenerNombreDelegacion(incidente.delegacionNombre, 'Sin delegación')}</span>
       </div>
     </div>
   );

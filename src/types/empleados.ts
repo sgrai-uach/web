@@ -3,6 +3,10 @@
  * Conforme a docs/architecture/architecture.md.
  */
 
+import type { CatalogoItem, CatalogosResponse } from './catalogos';
+
+export type { CatalogoItem, CatalogosResponse };
+
 export interface EmpleadoUsuario {
   usuario_id: string;
   rut: string;
@@ -35,17 +39,27 @@ export interface EmpleadoUsuario {
   observaciones: string | null;
 }
 
-export interface CatalogoItem {
-  id: string;
-  codigo: string;
-  nombre: string;
+export interface FiltrosPersonalParams {
+  q?: string;
+  delegacion_id?: string;
+  rol_id?: string;
+  ordenar_por?: 'apellidos' | 'nombres' | 'rut' | string;
+  orden?: 'asc' | 'desc';
 }
 
-export interface CatalogosResponse {
-  roles: CatalogoItem[];
-  delegaciones: CatalogoItem[];
-  especialidades: string[];
-  cargos: string[];
+export interface UpdatePersonalDTO {
+  rut: string;
+  nombres: string;
+  apellidos: string;
+  email: string;
+  telefono: string;
+  rol_id: string;
+  delegacion_id: string | null;
+  activo: boolean;
+  fecha_ingreso: string | null;
+  fecha_salida: string | null;
+  especialidad?: string | null;
+  cargo?: string | null;
 }
 
 export interface EmpleadosQueryParams {
@@ -54,6 +68,10 @@ export interface EmpleadosQueryParams {
   rol_id?: string;
   ordenar_por?: string;
   orden?: 'asc' | 'desc';
+  incluir_inactivos?: boolean;
+  estado?: 'todos' | 'activo' | 'inactivo' | string;
+  limite?: number;
+  pagina?: number;
 }
 
 export interface ActualizarEmpleadoPayload {
@@ -70,3 +88,26 @@ export interface ActualizarEmpleadoPayload {
   especialidad?: string | null;
   cargo?: string | null;
 }
+
+export interface RegistrarEmpleadoPayload {
+  rut: string;
+  nombres: string;
+  apellidos: string;
+  email: string;
+  telefono: string;
+  password: string;
+  rol_id: string;
+  delegacion_id: string;
+  cargo?: string | null;
+  especialidad?: string | null;
+  estado_operativo?:
+    | 'disponible'
+    | 'en_mision'
+    | 'en_patrulla'
+    | 'descanso'
+    | 'licencia'
+    | 'inactivo';
+  disponible_terreno?: boolean;
+  observaciones?: string | null;
+}
+
