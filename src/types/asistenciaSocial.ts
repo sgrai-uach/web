@@ -130,11 +130,11 @@ export const crearEventoAsistenciaSocialSchema = z.object({
     .trim()
     .min(3, 'La dirección debe tener al menos 3 caracteres.'),
   latitud: z
-    .number()
+    .number({ message: 'Debe fijar la ubicación en el mapa o ingresar una dirección.' })
     .min(-90, 'Latitud inválida.')
     .max(90, 'Latitud inválida.'),
   longitud: z
-    .number()
+    .number({ message: 'Debe fijar la ubicación en el mapa o ingresar una dirección.' })
     .min(-180, 'Longitud inválida.')
     .max(180, 'Longitud inválida.'),
   personasAfectadas: z
@@ -147,7 +147,9 @@ export const crearEventoAsistenciaSocialSchema = z.object({
     .int('Debe ser un número entero.')
     .min(0, 'Las familias afectadas no pueden ser negativas.')
     .default(0),
-  prioridad: z.enum(['BAJA', 'MEDIA', 'ALTA', 'CRITICA']).default('MEDIA'),
+  prioridad: z.enum(['BAJA', 'MEDIA', 'ALTA', 'CRITICA'], {
+    message: 'Debe seleccionar una prioridad de atención.',
+  }),
   contactoNombre: z.string().trim().nullable().optional(),
   contactoTelefono: z.string().trim().nullable().optional(),
   contactoRut: z.string().trim().nullable().optional(),

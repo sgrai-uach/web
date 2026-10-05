@@ -172,6 +172,9 @@ export async function crearEventoAsistenciaSocial(
             ...(userId ? { 'x-user-id': userId } : {}),
           },
         },
+        headers: {
+          ...(userId ? { 'x-user-id': userId } : {}),
+        },
         body: body as unknown as Parameters<typeof apiClient.POST>[1]['body'],
       } as unknown as Parameters<typeof apiClient.POST>[1]
     );

@@ -160,6 +160,28 @@ describe('EventoAsistenciaSocialForm', () => {
     expect(lngInput.value).toBe('-73.2321');
   });
 
+  it('debe inicializar todos los campos sin nada preseleccionado por defecto', async () => {
+    render(<EventoAsistenciaSocialForm basePath="/gestion/asistente-social" />);
+
+    const tipoSelect = screen.getByLabelText(/Tipo de Afectación Social/i) as HTMLSelectElement;
+    const prioridadSelect = screen.getByLabelText(/Prioridad de Atención/i) as HTMLSelectElement;
+    const personasInput = screen.getByLabelText(/Personas Afectadas Estimadas/i) as HTMLInputElement;
+    const familiasInput = screen.getByLabelText(/Familias \/ Hogares Afectados/i) as HTMLInputElement;
+    const latInput = screen.getByLabelText(/Latitud \*/i) as HTMLInputElement;
+    const lngInput = screen.getByLabelText(/Longitud \*/i) as HTMLInputElement;
+    const dirInput = screen.getByPlaceholderText(/Ej\. Calle Los Alerces 1420/i) as HTMLInputElement;
+    const descInput = screen.getByLabelText(/Descripción de la Excepcionalidad Social/i) as HTMLTextAreaElement;
+
+    expect(tipoSelect.value).toBe('');
+    expect(prioridadSelect.value).toBe('');
+    expect(personasInput.value).toBe('');
+    expect(familiasInput.value).toBe('');
+    expect(latInput.value).toBe('');
+    expect(lngInput.value).toBe('');
+    expect(dirInput.value).toBe('');
+    expect(descInput.value).toBe('');
+  });
+
   it('debe enviar el payload con incidenteId nulo cuando no se selecciona incidente', async () => {
     const mockCreado = {
       id: '70000000-0000-4000-8000-000000000005',
@@ -190,7 +212,15 @@ describe('EventoAsistenciaSocialForm', () => {
 
     render(<EventoAsistenciaSocialForm basePath="/gestion/asistente-social" />);
 
-    // Llenar campos obligatorios
+    // Llenar campos requeridos sin valores predeterminados
+    fireEvent.change(screen.getByLabelText(/Tipo de Afectación Social/i), {
+      target: { value: 'VIVIENDA_ANEGADA' },
+    });
+    fireEvent.change(screen.getByLabelText(/Prioridad de Atención/i), {
+      target: { value: 'ALTA' },
+    });
+    fireEvent.click(screen.getByTestId('mock-map-click-btn'));
+
     fireEvent.change(screen.getByLabelText(/Descripción de la Excepcionalidad Social/i), {
       target: { value: 'Familia con anegamiento severo en patio trasero' },
     });
@@ -207,6 +237,9 @@ describe('EventoAsistenciaSocialForm', () => {
           descripcion: 'Familia con anegamiento severo en patio trasero',
           direccionTexto: 'Calle Los Notros 890',
           tipoAfectacion: 'VIVIENDA_ANEGADA',
+          prioridad: 'ALTA',
+          latitud: -39.825,
+          longitud: -73.221,
           incidenteId: null,
         }),
         '00000000-0000-4000-8000-000000000003'
@@ -229,8 +262,8 @@ describe('EventoAsistenciaSocialForm', () => {
       personasAfectadas: 2,
       familiasAfectadas: 1,
       direccionTexto: 'Costanera Arturo Prat 200',
-      latitud: -39.814,
-      longitud: -73.245,
+      latitud: -39.825,
+      longitud: -73.221,
       prioridad: 'ALTA' as const,
       estado: 'PENDIENTE' as const,
       contactoNombre: null,
@@ -255,9 +288,18 @@ describe('EventoAsistenciaSocialForm', () => {
       expect(screen.getByText(/INC-2026-0001/i)).toBeDefined();
     });
 
+    // Seleccionar campos requeridos
+    fireEvent.change(screen.getByLabelText(/Tipo de Afectación Social/i), {
+      target: { value: 'VIVIENDA_ANEGADA' },
+    });
+    fireEvent.change(screen.getByLabelText(/Prioridad de Atención/i), {
+      target: { value: 'ALTA' },
+    });
+    fireEvent.click(screen.getByTestId('mock-map-click-btn'));
+
     // Seleccionar el incidente
     const selects = screen.getAllByRole('combobox');
-    const selectIncidente = selects.find((s) => s.innerHTML.includes('INC-2026-0001')) || selects[1];
+    const selectIncidente = selects.find((s) => s.innerHTML.includes('INC-2026-0001')) || selects[2];
     fireEvent.change(selectIncidente, {
       target: { value: '11111111-1111-4000-8000-111111111111' },
     });
@@ -278,6 +320,10 @@ describe('EventoAsistenciaSocialForm', () => {
         expect.objectContaining({
           descripcion: 'Vivienda anegada derivada de desborde de río',
           direccionTexto: 'Costanera Arturo Prat 200',
+          tipoAfectacion: 'VIVIENDA_ANEGADA',
+          prioridad: 'ALTA',
+          latitud: -39.825,
+          longitud: -73.221,
           incidenteId: '11111111-1111-4000-8000-111111111111',
         }),
         '00000000-0000-4000-8000-000000000003'

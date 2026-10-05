@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useContext } from 'react';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import {
@@ -20,6 +20,7 @@ import Textarea from '@/components/ui/Textarea';
 import Heading from '@/components/ui/Heading';
 import { useToast } from '@/components/ui/Toast';
 import { useSimulatedSession } from '@/context/SimulatedSessionContext';
+import { AuthContext } from '@/context/AuthContext';
 import { DELEGACIONES_MUNICIPALES } from '@/hooks/usePuntosCriticos';
 import {
   TIPOS_AFECTACION_SOCIAL,
@@ -73,13 +74,15 @@ export default function EventoAsistenciaSocialForm({
   const router = useRouter();
   const { showSuccess, showError } = useToast();
   const { usuarioActivo } = useSimulatedSession();
+  const auth = useContext(AuthContext);
+  const effectiveUserId = auth?.usuario?.id || usuarioActivo.id;
 
-  // Estados del formulario
+  // Estados del formulario — todos inician sin selección previa por defecto
   const [descripcion, setDescripcion] = useState('');
-  const [tipoAfectacion, setTipoAfectacion] = useState<TipoAfectacionSocial | ''>('VIVIENDA_ANEGADA');
-  const [prioridad, setPrioridad] = useState<PrioridadEventoSocial>('MEDIA');
-  const [personasAfectadas, setPersonasAfectadas] = useState<number | string>(1);
-  const [familiasAfectadas, setFamiliasAfectadas] = useState<number | string>(1);
+  const [tipoAfectacion, setTipoAfectacion] = useState<TipoAfectacionSocial | ''>('');
+  const [prioridad, setPrioridad] = useState<PrioridadEventoSocial | ''>('');
+  const [personasAfectadas, setPersonasAfectadas] = useState<number | string>('');
+  const [familiasAfectadas, setFamiliasAfectadas] = useState<number | string>('');
 
   // Vinculación opcional a incidente
   const [incidenteId, setIncidenteId] = useState('');
@@ -91,8 +94,8 @@ export default function EventoAsistenciaSocialForm({
   // Ubicación y sincronización bidireccional mapa-dirección
   const [direccionTexto, setDireccionTexto] = useState('');
   const [delegacionId, setDelegacionId] = useState('');
-  const [latitud, setLatitud] = useState<number | string>(-39.8142);
-  const [longitud, setLongitud] = useState<number | string>(-73.2459);
+  const [latitud, setLatitud] = useState<number | string>('');
+  const [longitud, setLongitud] = useState<number | string>('');
   const [geocodificandoMapa, setGeocodificandoMapa] = useState(false);
   const [resolviendoDireccion, setResolviendoDireccion] = useState(false);
 
@@ -212,8 +215,8 @@ export default function EventoAsistenciaSocialForm({
 
     const parsedPersonas = personasAfectadas === '' ? 0 : Number(personasAfectadas);
     const parsedFamilias = familiasAfectadas === '' ? 0 : Number(familiasAfectadas);
-    const parsedLat = Number(latitud);
-    const parsedLng = Number(longitud);
+    const parsedLat = latitud === '' ? NaN : Number(latitud);
+    const parsedLng = longitud === '' ? NaN : Number(longitud);
 
     // Validación cliente Zod
     const validacion = crearEventoAsistenciaSocialSchema.safeParse({
@@ -252,13 +255,13 @@ export default function EventoAsistenciaSocialForm({
     try {
       const payload: CrearEventoAsistenciaSocialDTO = {
         descripcion: descripcion.trim(),
-        tipoAfectacion,
+        tipoAfectacion: tipoAfectacion as TipoAfectacionSocial,
         direccionTexto: direccionTexto.trim(),
         latitud: parsedLat,
         longitud: parsedLng,
         personasAfectadas: parsedPersonas,
         familiasAfectadas: parsedFamilias,
-        prioridad,
+        prioridad: prioridad as PrioridadEventoSocial,
         contactoNombre: contactoNombre.trim() || null,
         contactoTelefono: contactoTelefono.trim() || null,
         contactoRut: contactoRut.trim() || null,
@@ -266,7 +269,7 @@ export default function EventoAsistenciaSocialForm({
         incidenteId: incidenteId.trim() || null,
       };
 
-      const creado = await crearEventoAsistenciaSocial(payload, usuarioActivo.id);
+      const creado = await crearEventoAsistenciaSocial(payload, effectiveUserId);
 
       showSuccess(
         `Evento social ${creado.codigo} registrado exitosamente. Se ha incorporado a la bandeja de pendientes.`,
@@ -350,10 +353,13 @@ export default function EventoAsistenciaSocialForm({
                   return nuevo;
                 });
               }}
-              options={TIPOS_AFECTACION_SOCIAL.map((op) => ({
-                value: op.value,
-                label: op.label,
-              }))}
+              options={[
+                { value: '', label: 'Seleccionar tipo de afectación *' },
+                ...TIPOS_AFECTACION_SOCIAL.map((op) => ({
+                  value: op.value,
+                  label: op.label,
+                })),
+              ]}
               error={errores.tipoAfectacion}
             />
             {tipoAfectacion && (
@@ -367,13 +373,22 @@ export default function EventoAsistenciaSocialForm({
             <Select
               label="Prioridad de Atención *"
               value={prioridad}
-              onChange={(e) => setPrioridad(e.target.value as PrioridadEventoSocial)}
+              onChange={(e) => {
+                setPrioridad(e.target.value as PrioridadEventoSocial);
+                setErrores((prev) => {
+                  const nuevo = { ...prev };
+                  delete nuevo.prioridad;
+                  return nuevo;
+                });
+              }}
               options={[
+                { value: '', label: 'Seleccionar prioridad de atención *' },
                 { value: 'CRITICA', label: 'Crítica — Peligro inminente para habitantes' },
                 { value: 'ALTA', label: 'Alta — Daño severo o inhabitabilidad parcial' },
                 { value: 'MEDIA', label: 'Media — Afectación moderada de enseres/patio' },
                 { value: 'BAJA', label: 'Baja — Requerimiento preventivo o de menor escala' },
               ]}
+              error={errores.prioridad}
             />
           </div>
 
@@ -381,6 +396,7 @@ export default function EventoAsistenciaSocialForm({
             <Input
               type="number"
               label="Personas Afectadas Estimadas"
+              placeholder="0"
               value={personasAfectadas}
               min={0}
               onChange={(e) => setPersonasAfectadas(e.target.value)}
@@ -392,6 +408,7 @@ export default function EventoAsistenciaSocialForm({
             <Input
               type="number"
               label="Familias / Hogares Afectados"
+              placeholder="0"
               value={familiasAfectadas}
               min={0}
               onChange={(e) => setFamiliasAfectadas(e.target.value)}
@@ -606,8 +623,8 @@ export default function EventoAsistenciaSocialForm({
           </div>
 
           <LocationPickerMap
-            latitud={Number(latitud)}
-            longitud={Number(longitud)}
+            latitud={latitud !== '' ? Number(latitud) : null}
+            longitud={longitud !== '' ? Number(longitud) : null}
             onChange={handleCoordsChange}
             onUserSelectLocation={handleUserSelectLocation}
             height="320px"
@@ -615,29 +632,31 @@ export default function EventoAsistenciaSocialForm({
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4, 16px)', marginTop: '8px' }}>
             <Input
-              label="Latitud"
+              label="Latitud *"
               type="number"
               step="any"
+              placeholder="Ej. -39.8142"
               value={latitud}
               onChange={(e) => {
                 setLatitud(e.target.value);
                 const num = Number(e.target.value);
-                if (!isNaN(num)) {
-                  handleUserSelectLocation({ latitud: num, longitud: Number(longitud) });
+                if (!isNaN(num) && e.target.value !== '') {
+                  handleUserSelectLocation({ latitud: num, longitud: longitud !== '' ? Number(longitud) : -73.2459 });
                 }
               }}
               error={errores.latitud}
             />
             <Input
-              label="Longitud"
+              label="Longitud *"
               type="number"
               step="any"
+              placeholder="Ej. -73.2459"
               value={longitud}
               onChange={(e) => {
                 setLongitud(e.target.value);
                 const num = Number(e.target.value);
-                if (!isNaN(num)) {
-                  handleUserSelectLocation({ latitud: Number(latitud), longitud: num });
+                if (!isNaN(num) && e.target.value !== '') {
+                  handleUserSelectLocation({ latitud: latitud !== '' ? Number(latitud) : -39.8142, longitud: num });
                 }
               }}
               error={errores.longitud}
