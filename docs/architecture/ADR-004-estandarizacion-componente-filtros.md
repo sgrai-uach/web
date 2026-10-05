@@ -31,7 +31,7 @@ Previo a esta decisión, se identificaron las siguientes discrepancias en la imp
 Se adopta un **componente universal de filtrado (`FilterBar`)** y su familia de subcomponentes atómicos (`FilterSearchInput`, `FilterSelect`, `SegmentedButtonGroup`, `ActiveFilterChips`), consolidando la arquitectura de filtros en `@/components/common/filters`:
 
 ### 2.1. Arquitectura del Contenedor `FilterBar`
-- **Encabezado Estandarizado:** Muestra el título de la sección de filtros, un contador badge de filtros activos (`totalFiltrosActivos`), área de acciones complementarias (`headerActions`, ej: botones "Refrescar" o accesos rápidos) y el botón de alternancia colapsar/expandir (`toggleCollapseBtn`).
+- **Encabezado Estandarizado:** Muestra el título de la sección de filtros (estandarizado con prefijo "Filtros ..."), un indicador tipo chevron compacto contiguo al título para alternar colapsar/expandir sin botones de texto redundantes, contador badge de filtros activos (`totalFiltrosActivos`) y área de acciones complementarias (`headerActions`, ej: botones "Actualizar" o accesos rápidos).
 - **Persistencia en `localStorage`:** La propiedad `storageKey` permite guardar y restaurar automáticamente la preferencia de colapso del usuario mediante claves namespace (`sgrai:filtros:<modulo>:colapsado`). La lectura y escritura son resilientes a entornos SSR (Server-Side Rendering) y fallos de cuota o navegación privada.
 - **Visibilidad del Estado:** Cuando la barra está minimizada, el badge superior de filtros activos permanece visible, advirtiendo al operador que los datos en pantalla están filtrados.
 

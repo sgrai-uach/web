@@ -77,8 +77,8 @@ El Centro de Mando cuenta con una barra de filtrado estandarizada con diseño h�
      - Si el tablero está filtrado por una columna distinta (ej: está filtrado en "Resuelto" y pulsa "Reportados"), el sistema **sincroniza automáticamente el filtro de estado a "Reportado"**, evitando dejar al usuario frente a una vista vacía e iluminando de inmediato la columna deseada.
      - Si el tablero muestra todas las columnas (`TODOS`), el sistema preserva la visualización global y simplemente realiza un desplazamiento suave (*smooth scroll*) para enfocar visualmente la categoría seleccionada.
 
-7. **Minimización Persistente de Filtros:**
-   - En la esquina superior derecha del panel de filtros se dispone del botón **"Minimizar filtros"** / **"Expandir filtros"**.
+7. **Minimización Persistente de Filtros con Chevron Integrado:**
+   - Al costado del nombre de cada componente de filtro (ej: *Filtros del Tablero*, *Filtros de Personal y Cuadrillas*) se dispone de un ícono de **chevron (flecha hacia arriba/abajo)**. Al hacer clic sobre el título o el chevron, el panel se contrae o expande discretamente sin sobrecargar la interfaz con botones de texto grandes.
    - Su preferencia se **guarda automáticamente en el navegador (`localStorage`)**, por lo que permanecerá minimizada o expandida incluso al recargar la página o volver desde otra vista.
    - Cuando la barra está minimizada, el encabezado conserva el badge verde de **"X ACTIVOS"** para advertirle si existen filtros operando en ese momento.
 
@@ -162,7 +162,7 @@ En la vista de personal operativo, el Encargado puede focalizar cuadrillas y fun
 | **Panel de filtros minimizado** | La barra de filtros se encuentra compactada para ganar espacio visual vertical. | Si requiere ajustar algún criterio, presione **"Expandir filtros"**; el badge numérico le recuerda cuántos filtros siguen activos. |
 | **Enfoque de KPI con tablero filtrado** | El usuario hace clic en un KPI de una columna que actualmente se encuentra oculta por un filtro de estado previo. | El sistema conmuta el filtro de estado automáticamente a la columna del KPI para revelarla y enfocarla de inmediato sin requerir desfiltrar primero. |
 | **Paginación al cambiar filtros** | El sistema restablece automáticamente la vista a la Página 1 para asegurar que los nuevos resultados sean visibles de inmediato. | Utilice los controles de paginación al pie de la tabla si el resultado supera el límite configurado por página. |
-| **Persistencia de sesión simulada** | Al alternar entre perfiles de Encargado o Administrador, los filtros se preservan en memoria de la vista activa. | Puede refrescar los datos en cualquier instante mediante el botón **"Refrescar"**. |
+| **Persistencia de sesión simulada** | Al alternar entre perfiles de Encargado o Administrador, los filtros se preservan en memoria de la vista activa. | Puede actualizar los datos en cualquier instante mediante el botón **"Actualizar"**. |
 
 ---
 
