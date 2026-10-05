@@ -1,7 +1,6 @@
 'use client';
 
-import React from 'react';
-import { Search, FilterX } from 'lucide-react';
+import { FilterX } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import Select from '@/components/ui/Select';
@@ -53,7 +52,6 @@ export default function AsistenciaSocialFiltros({
           placeholder="Código AS, dirección, contacto..."
           value={filtros.busqueda || ''}
           onChange={(e) => onCambiarBusqueda(e.target.value)}
-          icon={<Search size={16} color="var(--color-text-muted, #5F676E)" />}
         />
       </div>
 

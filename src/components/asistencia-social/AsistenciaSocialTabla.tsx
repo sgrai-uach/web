@@ -19,6 +19,7 @@ interface AsistenciaSocialTablaProps {
     totalPaginas: number;
   };
   onCambiarPagina: (nuevaPagina: number) => void;
+  onCambiarLimite?: (nuevoLimite: number) => void;
   cargando?: boolean;
 }
 
@@ -97,6 +98,7 @@ export default function AsistenciaSocialTabla({
   eventos,
   meta,
   onCambiarPagina,
+  onCambiarLimite,
   cargando = false,
 }: AsistenciaSocialTablaProps) {
   return (
@@ -314,7 +316,8 @@ export default function AsistenciaSocialTabla({
           totalPaginas={meta.totalPaginas}
           onCambiarPagina={onCambiarPagina}
           totalItems={meta.total}
-          itemsPorPagina={meta.limite}
+          limite={meta.limite}
+          onCambiarLimite={onCambiarLimite || (() => {})}
         />
       )}
     </div>

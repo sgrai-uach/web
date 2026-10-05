@@ -5,6 +5,7 @@ import type {
   EventoAsistenciaSocialItem,
   ListarEventosAsistenciaSocialResponse,
   FiltrosEventosAsistenciaSocialState,
+  PrioridadEventoSocial,
 } from '@/types/asistenciaSocial';
 
 export class AsistenciaSocialServiceError extends Error {

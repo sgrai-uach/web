@@ -119,31 +119,31 @@ export interface FiltrosEventosAsistenciaSocialState {
 
 export const crearEventoAsistenciaSocialSchema = z.object({
   descripcion: z
-    .string({ required_error: 'La descripción del caso excepcional es obligatoria.' })
+    .string()
     .trim()
     .min(5, 'La descripción debe tener al menos 5 caracteres.'),
   tipoAfectacion: z
-    .string({ required_error: 'Debe seleccionar un tipo de afectación.' })
+    .string()
     .min(1, 'Debe seleccionar un tipo de afectación.'),
   direccionTexto: z
-    .string({ required_error: 'La dirección de referencia es obligatoria.' })
+    .string()
     .trim()
     .min(3, 'La dirección debe tener al menos 3 caracteres.'),
   latitud: z
-    .number({ required_error: 'Debe fijar la ubicación en el mapa.' })
+    .number()
     .min(-90, 'Latitud inválida.')
     .max(90, 'Latitud inválida.'),
   longitud: z
-    .number({ required_error: 'Debe fijar la ubicación en el mapa.' })
+    .number()
     .min(-180, 'Longitud inválida.')
     .max(180, 'Longitud inválida.'),
   personasAfectadas: z
-    .number({ invalid_type_error: 'Debe ser un número válido.' })
+    .number()
     .int('Debe ser un número entero.')
     .min(0, 'Las personas afectadas no pueden ser negativas.')
     .default(0),
   familiasAfectadas: z
-    .number({ invalid_type_error: 'Debe ser un número válido.' })
+    .number()
     .int('Debe ser un número entero.')
     .min(0, 'Las familias afectadas no pueden ser negativas.')
     .default(0),
