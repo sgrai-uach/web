@@ -147,7 +147,7 @@ describe('IncidentesKpiCards', () => {
       />
     );
 
-    const btnRefrescar = screen.getByRole('button', { name: /Refrescar contadores de incidentes/i });
+    const btnRefrescar = screen.getByRole('button', { name: /Actualizar contadores de incidentes/i });
     fireEvent.click(btnRefrescar);
 
     expect(onRefrescar).toHaveBeenCalled();

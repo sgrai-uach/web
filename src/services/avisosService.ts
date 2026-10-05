@@ -1,5 +1,6 @@
 import apiClient from '@/lib/api/client';
 import { formatApiError } from '@/lib/utils/errorUtils';
+import { catalogosService } from '@/services/catalogosService';
 import type {
   AvisoDetalleResponse,
   AvisosPaginadosResponse,
@@ -147,6 +148,10 @@ export async function listarAvisos(
 
   if (params.delegacion && params.delegacion !== 'TODAS') {
     queryObj.delegacion = params.delegacion;
+    const delId = catalogosService.resolverDelegacionId(params.delegacion);
+    if (delId) {
+      queryObj.delegacionId = delId;
+    }
   }
 
   const { data, error, response } = await apiClient.GET('/api/incidentes/avisos', {

@@ -62,6 +62,16 @@ export default function RolesPermisosPage() {
             onFiltroEstadoChange={setFiltroEstado}
             onRefrescar={handleRefrescarManual}
             cargando={refrescando}
+            contadoresTipo={{
+              TODOS: metricas.totalPerfiles,
+              SISTEMA: metricas.perfilesSistema,
+              PERSONALIZADO: Math.max(0, metricas.totalPerfiles - metricas.perfilesSistema),
+            }}
+            contadoresEstado={{
+              TODOS: metricas.totalPerfiles,
+              CON_PERMISOS: metricas.perfilesConPermisos,
+              SIN_PERMISOS: metricas.perfilesSinPermisos,
+            }}
           />
 
           {cargando && roles.length === 0 ? (

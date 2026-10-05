@@ -1,145 +1,201 @@
 'use client';
 
-import { useState, useEffect, useTransition } from 'react';
+import React from 'react';
 import type { EstadoRecurso } from '@/types/recurso';
-import { DELEGACIONES_MUNICIPALES } from '@/hooks/useRecursos';
-import Button from '@/components/ui/Button';
+import { useCatalogos } from '@/hooks/useCatalogos';
+import {
+  FilterBar,
+  FilterSearchInput,
+  SegmentedButtonGroup,
+  FilterSelect,
+  ActiveFilterChips,
+  type ActiveChipItem,
+} from '@/components/common/filters';
 
 interface RecursosFiltrosProps {
   busqueda: string;
   estado?: EstadoRecurso;
   delegacionId?: string;
+  delegacionNombre?: string;
   esIndividual?: boolean;
   onCambiarBusqueda: (busqueda: string) => void;
   onCambiarEstado: (estado?: EstadoRecurso) => void;
-  onCambiarDelegacion: (delegacionId?: string) => void;
+  onCambiarDelegacion: (delegacion?: string) => void;
   onCambiarEsIndividual: (esIndividual?: boolean) => void;
   onLimpiarFiltros: () => void;
+  contadoresTipo?: { total?: number; individual?: number; granel?: number };
 }
+
+const OPCIONES_ESTADO = [
+  { valor: '', etiqueta: 'Todos los estados' },
+  { valor: 'DISPONIBLE', etiqueta: 'Disponible' },
+  { valor: 'ASIGNADO', etiqueta: 'Asignado a Cuadrilla' },
+  { valor: 'EN_MANTENCION', etiqueta: 'En Mantención' },
+  { valor: 'BAJO_STOCK', etiqueta: 'Bajo Stock (Alerta)' },
+  { valor: 'NO_DISPONIBLE', etiqueta: 'No Disponible' },
+] as const;
+
+const OPCIONES_TIPO_INVENTARIO = [
+  { valor: 'TODOS', etiqueta: 'Todos los tipos' },
+  { valor: 'INDIVIDUAL', etiqueta: 'Vehículo / Maquinaria (Individual)' },
+  { valor: 'GRANEL', etiqueta: 'Material / Insumo (A Granel)' },
+] as const;
 
 export default function RecursosFiltros({
   busqueda,
   estado,
   delegacionId,
+  delegacionNombre,
   esIndividual,
   onCambiarBusqueda,
   onCambiarEstado,
   onCambiarDelegacion,
   onCambiarEsIndividual,
   onLimpiarFiltros,
+  contadoresTipo,
 }: RecursosFiltrosProps) {
-  const [localBusqueda, setLocalBusqueda] = useState(busqueda);
-  const [busquedaPrevia, setBusquedaPrevia] = useState(busqueda);
-  const [, startTransition] = useTransition();
+  const { nombresDelegaciones, resolverNombre } = useCatalogos();
 
-  if (busqueda !== busquedaPrevia) {
-    setBusquedaPrevia(busqueda);
-    setLocalBusqueda(busqueda);
+  const opcionesTipoConContador = React.useMemo(() => {
+    return OPCIONES_TIPO_INVENTARIO.map((opt) => {
+      let contador: number | undefined;
+      if (contadoresTipo) {
+        if (opt.valor === 'TODOS') contador = contadoresTipo.total;
+        else if (opt.valor === 'INDIVIDUAL') contador = contadoresTipo.individual;
+        else if (opt.valor === 'GRANEL') contador = contadoresTipo.granel;
+      }
+      return {
+        ...opt,
+        contador,
+      };
+    });
+  }, [contadoresTipo]);
+
+  // Nombre efectivo de la delegación (resuelve si vino por Id o por Nombre)
+  const delegacionActual =
+    delegacionNombre ||
+    (delegacionId ? resolverNombre(delegacionId) || '' : '');
+
+  const opcionesDelegacion = [
+    { valor: '', etiqueta: 'Todas las delegaciones' },
+    ...nombresDelegaciones.map((nombre) => ({
+      valor: nombre,
+      etiqueta: nombre,
+    })),
+  ];
+
+  const handleTipoInventarioChange = (val: string) => {
+    if (val === 'INDIVIDUAL') {
+      onCambiarEsIndividual(true);
+    } else if (val === 'GRANEL') {
+      onCambiarEsIndividual(false);
+    } else {
+      onCambiarEsIndividual(undefined);
+    }
+  };
+
+  const tipoInventarioValor =
+    esIndividual === undefined ? 'TODOS' : esIndividual ? 'INDIVIDUAL' : 'GRANEL';
+
+  // Chips activos con nombres legibles
+  const chipsActivos: ActiveChipItem[] = [];
+
+  if (busqueda?.trim()) {
+    chipsActivos.push({
+      id: 'busqueda',
+      etiqueta: 'Búsqueda',
+      valorVisible: `"${busqueda.trim()}"`,
+      onRemove: () => onCambiarBusqueda(''),
+    });
   }
 
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      if (localBusqueda !== busqueda) {
-        startTransition(() => {
-          onCambiarBusqueda(localBusqueda);
-        });
-      }
-    }, 300);
+  if (delegacionActual) {
+    chipsActivos.push({
+      id: 'delegacion',
+      etiqueta: 'Delegación',
+      valorVisible: delegacionActual,
+      onRemove: () => onCambiarDelegacion(undefined),
+      esDelegacion: true,
+    });
+  }
 
-    return () => clearTimeout(handler);
-  }, [localBusqueda, busqueda, onCambiarBusqueda]);
+  if (estado) {
+    const labelEstado = OPCIONES_ESTADO.find((e) => e.valor === estado)?.etiqueta || estado;
+    chipsActivos.push({
+      id: 'estado',
+      etiqueta: 'Estado',
+      valorVisible: labelEstado,
+      onRemove: () => onCambiarEstado(undefined),
+    });
+  }
 
-  const hayFiltrosActivos = Boolean(busqueda?.trim() || estado || delegacionId || esIndividual !== undefined);
-
-  const selectStyle: React.CSSProperties = { padding: '8px 10px', fontSize: '13px', border: '1px solid var(--color-charcoal)', borderRadius: 0, outline: 'none', backgroundColor: 'var(--color-white)', color: 'var(--color-text-dark)' };
+  if (esIndividual !== undefined) {
+    chipsActivos.push({
+      id: 'tipo',
+      etiqueta: 'Tipo',
+      valorVisible: esIndividual ? 'Vehículo o Maquinaria' : 'Material o Insumo',
+      onRemove: () => onCambiarEsIndividual(undefined),
+    });
+  }
 
   return (
-    <div style={{ backgroundColor: 'var(--color-white)', padding: '16px 20px', border: '1px solid var(--color-bg-light)', display: 'flex', flexDirection: 'column', gap: '14px' }}>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px', alignItems: 'flex-end' }}>
-        {/* Buscador */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-          <label htmlFor="filtro-busqueda" style={{ fontSize: '13px', fontWeight: 700, color: 'var(--color-primary-teal-dark)' }}>
-            Buscar por nombre o descripción:
-          </label>
-          <input
-            id="filtro-busqueda"
-            type="text"
-            value={localBusqueda}
-            onChange={(e) => setLocalBusqueda(e.target.value)}
-            placeholder="Ej: Camioneta, Sacos..."
-            style={{ ...selectStyle, padding: '8px 10px' }}
-          />
-        </div>
-
-        {/* Delegación */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-          <label htmlFor="filtro-delegacion" style={{ fontSize: '13px', fontWeight: 700, color: 'var(--color-primary-teal-dark)' }}>
-            Delegación Territorial:
-          </label>
-          <select
-            id="filtro-delegacion"
-            value={delegacionId || ''}
-            onChange={(e) => onCambiarDelegacion(e.target.value || undefined)}
-            style={selectStyle}
-          >
-            <option value="">Todas las delegaciones</option>
-            {DELEGACIONES_MUNICIPALES.map((del) => (
-              <option key={del.id} value={del.id}>{del.nombre}</option>
-            ))}
-          </select>
-        </div>
-
-        {/* Estado Operativo */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-          <label htmlFor="filtro-estado" style={{ fontSize: '13px', fontWeight: 700, color: 'var(--color-primary-teal-dark)' }}>
-            Estado Operativo:
-          </label>
-          <select
-            id="filtro-estado"
-            value={estado || ''}
-            onChange={(e) => onCambiarEstado((e.target.value as EstadoRecurso) || undefined)}
-            style={selectStyle}
-          >
-            <option value="">Todos los estados</option>
-            <option value="DISPONIBLE">Disponible</option>
-            <option value="ASIGNADO">Asignado a Cuadrilla</option>
-            <option value="EN_MANTENCION">En Mantención</option>
-            <option value="BAJO_STOCK">Bajo Stock (Alerta)</option>
-            <option value="NO_DISPONIBLE">No Disponible</option>
-          </select>
-        </div>
-
-        {/* Tipo de Recurso */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-          <label htmlFor="filtro-tipo" style={{ fontSize: '13px', fontWeight: 700, color: 'var(--color-primary-teal-dark)' }}>
-            Tipo de Inventario:
-          </label>
-          <select
-            id="filtro-tipo"
-            value={esIndividual === undefined ? '' : esIndividual ? 'true' : 'false'}
-            onChange={(e) => onCambiarEsIndividual(e.target.value === '' ? undefined : e.target.value === 'true')}
-            style={selectStyle}
-          >
-            <option value="">Todos los tipos</option>
-            <option value="true">Vehículo o Maquinaria (Individual)</option>
-            <option value="false">Material o Insumo (A Granel)</option>
-          </select>
-        </div>
+    <FilterBar
+      titulo="Filtros de Recursos"
+      storageKey="sgrai:filtros:recursos:colapsado"
+      totalFiltrosActivos={chipsActivos.length}
+    >
+      {/* Botonera segmentada de tipo de inventario (Imagen 1) */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
+        <SegmentedButtonGroup
+          label="Tipo de Inventario:"
+          options={opcionesTipoConContador}
+          value={tipoInventarioValor}
+          onChange={handleTipoInventarioChange}
+          ariaLabel="Filtrar por tipo de inventario individual o a granel"
+        />
       </div>
 
-      {hayFiltrosActivos && (
-        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={onLimpiarFiltros}
-            style={{ color: 'var(--color-primary-teal)', padding: '4px 8px', minHeight: 'auto', textDecoration: 'underline' }}
-          >
-            Limpiar todos los filtros
-          </Button>
-        </div>
-      )}
-    </div>
+      {/* Controles en cuadrícula con etiquetas superiores (Imagen 2) */}
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+          gap: '12px',
+          alignItems: 'flex-end',
+        }}
+      >
+        <FilterSearchInput
+          id="filtro-busqueda"
+          label="Buscar por nombre o descripción:"
+          value={busqueda}
+          onChange={onCambiarBusqueda}
+          placeholder="Ej: Camioneta, Sacos..."
+          debounceMs={300}
+        />
+
+        <FilterSelect
+          id="filtro-delegacion"
+          label="Delegación Territorial:"
+          value={delegacionActual}
+          options={opcionesDelegacion}
+          onChange={(val) => onCambiarDelegacion(val || undefined)}
+        />
+
+        <FilterSelect
+          id="filtro-estado"
+          label="Estado Operativo:"
+          value={estado || ''}
+          options={OPCIONES_ESTADO}
+          onChange={(val) => onCambiarEstado((val as EstadoRecurso) || undefined)}
+        />
+      </div>
+
+      {/* Chips activos con nombres y botón Limpiar */}
+      <ActiveFilterChips
+        chips={chipsActivos}
+        onClearAll={onLimpiarFiltros}
+        clearAllText="Limpiar todos los filtros"
+      />
+    </FilterBar>
   );
 }

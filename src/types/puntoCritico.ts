@@ -26,6 +26,7 @@ export interface FiltrosPuntosCriticosState {
   pagina: number;
   limite: number;
   delegacionId?: string;
+  delegacionNombre?: string;
   activo?: boolean;
   prioridad?: PrioridadPuntoCritico;
   busqueda?: string;

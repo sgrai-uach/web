@@ -85,8 +85,13 @@ export default function RecursosPage() {
     setFiltros((prev) => ({ ...prev, estado, pagina: 1 }));
   }, []);
 
-  const handleCambiarDelegacion = useCallback((delegacionId?: string) => {
-    setFiltros((prev) => ({ ...prev, delegacionId, pagina: 1 }));
+  const handleCambiarDelegacion = useCallback((delegacion?: string) => {
+    setFiltros((prev) => ({
+      ...prev,
+      delegacionNombre: delegacion,
+      delegacionId: undefined,
+      pagina: 1,
+    }));
   }, []);
 
   const handleCambiarEsIndividual = useCallback((esIndividual?: boolean) => {
@@ -100,6 +105,7 @@ export default function RecursosPage() {
       busqueda: '',
       estado: undefined,
       delegacionId: undefined,
+      delegacionNombre: undefined,
       esIndividual: undefined,
     });
   }, []);
@@ -150,12 +156,18 @@ export default function RecursosPage() {
         busqueda={filtros.busqueda || ''}
         estado={filtros.estado}
         delegacionId={filtros.delegacionId}
+        delegacionNombre={filtros.delegacionNombre}
         esIndividual={filtros.esIndividual}
         onCambiarBusqueda={handleCambiarBusqueda}
         onCambiarEstado={handleCambiarEstado}
         onCambiarDelegacion={handleCambiarDelegacion}
         onCambiarEsIndividual={handleCambiarEsIndividual}
         onLimpiarFiltros={handleLimpiarFiltros}
+        contadoresTipo={{
+          total: meta.total,
+          individual: recursos.filter((r) => r.esIndividual).length,
+          granel: recursos.filter((r) => !r.esIndividual).length,
+        }}
       />
 
       <div style={{ display: 'flex', flexDirection: 'column' }}>

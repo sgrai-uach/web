@@ -140,4 +140,3 @@ export const KanbanHeader: React.FC<KanbanHeaderProps> = ({
     </div>
   );
 };
-

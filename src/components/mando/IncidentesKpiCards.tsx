@@ -44,7 +44,7 @@ const TARJETAS_CONFIG: TarjetaConfig[] = [
     estado: 'REPORTADO',
     campoContador: 'reportado',
     titulo: 'Reportados',
-    descripcion: 'Avisos pendientes de verificación',
+    descripcion: 'Avisos reportados para verificación',
     icon: AlertCircle,
     cardClass: styles.kpiCardReportado,
     colorHex: 'var(--color-danger, #D32F2F)',
@@ -180,14 +180,15 @@ export const IncidentesKpiCards: React.FC<IncidentesKpiCardsProps> = ({
 
           <Button
             type="button"
-            variant="secondary"
+            variant="outline"
             size="sm"
             onClick={onRefrescar}
             disabled={cargando}
-            aria-label="Refrescar contadores de incidentes"
+            aria-label="Actualizar contadores de incidentes"
+            title="Actualizar datos"
           >
             <RotateCw size={13} className={cargando ? styles.spinner : undefined} />
-            <span>{cargando ? 'Cargando...' : 'Actualizar'}</span>
+            <span>{cargando ? 'Actualizando...' : 'Actualizar'}</span>
           </Button>
         </div>
       </div>
