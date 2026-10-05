@@ -6,12 +6,13 @@ import PuntoCriticoForm from '../PuntoCriticoForm';
 import * as puntosCriticosService from '@/services/puntosCriticosService';
 import * as useCatalogosModule from '@/hooks/useCatalogos';
 
-// Mock de useRouter
+// Mock de useRouter y usePathname
 const mockPush = vi.fn();
 vi.mock('next/navigation', () => ({
   useRouter: () => ({
     push: mockPush,
   }),
+  usePathname: () => '/gestion/admin/puntos-criticos',
 }));
 
 // Mock de useToast

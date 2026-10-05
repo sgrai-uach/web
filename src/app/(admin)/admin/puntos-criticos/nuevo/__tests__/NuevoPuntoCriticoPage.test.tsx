@@ -5,11 +5,12 @@ import { render, screen } from '@testing-library/react';
 import NuevoPuntoCriticoPage from '../page';
 import * as sessionContextModule from '@/context/SimulatedSessionContext';
 
-// Mock de useRouter
+// Mock de useRouter y usePathname
 vi.mock('next/navigation', () => ({
   useRouter: () => ({
     push: vi.fn(),
   }),
+  usePathname: () => '/gestion/admin/puntos-criticos/nuevo',
 }));
 
 // Mock del formulario para testear aisladamente la página y su control RBAC

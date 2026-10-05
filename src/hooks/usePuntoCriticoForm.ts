@@ -210,7 +210,11 @@ export function usePuntoCriticoForm() {
 
         // Redirigir al listado tras un breve lapso para retroalimentación
         setTimeout(() => {
-          router.push('/admin/puntos-criticos');
+          const targetPath =
+            typeof window !== 'undefined' && window.location.pathname.startsWith('/gestion')
+              ? '/gestion/admin/puntos-criticos'
+              : '/admin/puntos-criticos';
+          router.push(targetPath);
         }, 1200);
       } catch (err: unknown) {
         const msg =

@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { Save, ArrowLeft, CheckCircle2 } from 'lucide-react';
 import { usePuntoCriticoForm } from '@/hooks/usePuntoCriticoForm';
 import PuntoCriticoDatosSection from './PuntoCriticoDatosSection';
@@ -12,6 +12,10 @@ import Heading from '@/components/ui/Heading';
 
 export default function PuntoCriticoForm() {
   const router = useRouter();
+  const pathname = usePathname() || '';
+  const listPath = pathname.startsWith('/gestion')
+    ? '/gestion/admin/puntos-criticos'
+    : '/admin/puntos-criticos';
   const {
     formData,
     touched,
@@ -71,7 +75,7 @@ export default function PuntoCriticoForm() {
             type="button"
             variant="primary"
             size="md"
-            onClick={() => router.push('/admin/puntos-criticos')}
+            onClick={() => router.push(listPath)}
           >
             <ArrowLeft size={16} aria-hidden="true" />
             <span>Volver al Catálogo de Puntos Críticos</span>
@@ -155,7 +159,7 @@ export default function PuntoCriticoForm() {
           type="button"
           variant="outline"
           size="md"
-          onClick={() => router.push('/admin/puntos-criticos')}
+          onClick={() => router.push(listPath)}
           disabled={isSubmitting}
         >
           Cancelar

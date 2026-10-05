@@ -5,6 +5,7 @@ import { Plus } from 'lucide-react';
 import { Breadcrumbs } from '@/components/common/Breadcrumbs';
 import PageTitleCard from '@/components/common/PageTitleCard';
 import Button from '@/components/ui/Button';
+import { usePathname } from 'next/navigation';
 
 interface PuntosCriticosHeaderProps {
   totalPuntos: number;
@@ -17,6 +18,11 @@ export default function PuntosCriticosHeader({
   tieneAcceso = true,
   puedeCrear = false,
 }: PuntosCriticosHeaderProps) {
+  const pathname = usePathname() || '';
+  const nuevoHref = pathname.startsWith('/gestion')
+    ? '/gestion/admin/puntos-criticos/nuevo'
+    : '/admin/puntos-criticos/nuevo';
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
       {/* Breadcrumbs Institucionales */}
@@ -40,7 +46,7 @@ export default function PuntosCriticosHeader({
         actionSlot={
           tieneAcceso && puedeCrear ? (
             <Button
-              href="/admin/puntos-criticos/nuevo"
+              href={nuevoHref}
               variant="primary"
               size="md"
             >

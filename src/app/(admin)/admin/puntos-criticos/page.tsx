@@ -41,14 +41,17 @@ export default function PuntosCriticosPage() {
     usuarioActivo.rol === 'Administrador' ||
     Boolean(usuarioActivo.esAdmin) ||
     usuarioActivo.id === DEFAULT_ADMIN_USER_ID ||
-    hasPermission('puntos_criticos:leer');
+    hasPermission('puntos_criticos:leer') ||
+    hasPermission('puntos_criticos:crear') ||
+    hasPermission('eventos_atp:crear');
 
   const puedeCrear =
     usuarioActivo.rol === 'Administrador' ||
     Boolean(usuarioActivo.esAdmin) ||
     usuarioActivo.id === DEFAULT_ADMIN_USER_ID ||
     hasPermission('puntos_criticos:crear') ||
-    hasPermission('eventos_atp:crear');
+    hasPermission('eventos_atp:crear') ||
+    hasPermission('puntos_criticos:gestionar');
 
   useEffect(() => {
     if (error && statusCode !== 403) {

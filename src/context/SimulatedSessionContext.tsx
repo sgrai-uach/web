@@ -52,6 +52,8 @@ function obtenerPermisosFallback(rol: string, esAdmin: boolean): Set<string> {
       'misiones:asignar',
       'eventos_atp:crear',
       'puntos_criticos:leer',
+      'puntos_criticos:crear',
+      'puntos_criticos:gestionar',
       'personal:leer',
       'personal:crear',
       'personal:gestionar',
@@ -220,18 +222,18 @@ export function SimulatedSessionProvider({
 
   const hasPermission = useCallback(
     (codigo: string): boolean => {
-      if (usuarioActivo.esAdmin) return true;
+      if (usuarioActivo.esAdmin || usuarioActivo.rol === 'Administrador') return true;
       return permisos.has(codigo);
     },
-    [usuarioActivo.esAdmin, permisos]
+    [usuarioActivo.esAdmin, usuarioActivo.rol, permisos]
   );
 
   const hasAnyPermission = useCallback(
     (codigos: string[]): boolean => {
-      if (usuarioActivo.esAdmin) return true;
+      if (usuarioActivo.esAdmin || usuarioActivo.rol === 'Administrador') return true;
       return codigos.some((c) => permisos.has(c));
     },
-    [usuarioActivo.esAdmin, permisos]
+    [usuarioActivo.esAdmin, usuarioActivo.rol, permisos]
   );
 
   const contextValue = useMemo<SimulatedSessionContextValue>(
