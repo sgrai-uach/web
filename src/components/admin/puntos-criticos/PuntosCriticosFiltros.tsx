@@ -13,7 +13,7 @@ interface PuntosCriticosFiltrosProps {
   onCambiarBusqueda: (busqueda: string) => void;
   onCambiarDelegacion: (delegacionId?: string) => void;
   onCambiarPrioridad: (prioridad?: PrioridadPuntoCritico) => void;
-  onCambiarActivo: (activo?: boolean) => void;
+  onCambiarActivo?: (activo?: boolean) => void;
   onLimpiarFiltros: () => void;
 }
 
@@ -21,11 +21,9 @@ export default function PuntosCriticosFiltros({
   busqueda,
   delegacionId,
   prioridad,
-  activo,
   onCambiarBusqueda,
   onCambiarDelegacion,
   onCambiarPrioridad,
-  onCambiarActivo,
   onLimpiarFiltros,
 }: PuntosCriticosFiltrosProps) {
   const [localBusqueda, setLocalBusqueda] = useState(busqueda);

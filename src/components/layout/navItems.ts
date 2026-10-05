@@ -116,6 +116,7 @@ export const NAV_GROUPS: NavGroup[] = [
         label: 'Puntos Críticos',
         href: '/admin/puntos-criticos',
         icon: AlertTriangle,
+        requiredPermissions: ['puntos_criticos:leer', 'seguridad:roles:gestionar'],
       },
       {
         id: 'roles-permisos',

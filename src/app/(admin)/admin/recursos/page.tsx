@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import type { FiltrosRecursosState, EstadoRecurso, RecursoItem } from '@/types/recurso';
-import { useRecursos, USUARIOS_PRUEBA } from '@/hooks/useRecursos';
+import { useRecursos } from '@/hooks/useRecursos';
 import { DEFAULT_ADMIN_USER_ID } from '@/lib/api/client';
 import { useToast } from '@/components/ui/Toast';
 import { useSimulatedSession } from '@/context/SimulatedSessionContext';
@@ -17,7 +17,7 @@ import { toUserFriendlyErrorMessage } from '@/lib/utils/errorUtils';
 
 export default function RecursosPage() {
   const { showError, showSuccess } = useToast();
-  const [usuarioActivoId, setUsuarioActivoId] = useState<string>(DEFAULT_ADMIN_USER_ID);
+  const [usuarioActivoId] = useState<string>(DEFAULT_ADMIN_USER_ID);
   const [recursoAEditar, setRecursoAEditar] = useState<RecursoItem | null>(null);
   const { usuarioActivo, cambiarUsuarioPorId } = useSimulatedSession();
 
