@@ -2,6 +2,7 @@
 
 import React from 'react';
 import type { CatalogoItem } from '@/types/empleados';
+import type { EstadoFiltro } from '@/hooks/useEmpleados';
 import EmpleadoSearchInput from './EmpleadoSearchInput';
 import EmpleadoFiltrosBar from './EmpleadoFiltrosBar';
 
@@ -12,6 +13,8 @@ interface EmpleadoFiltrosProps {
   setDelegacionFiltro: (val: string) => void;
   rolFiltro: string;
   setRolFiltro: (val: string) => void;
+  estadoFiltro?: EstadoFiltro;
+  setEstadoFiltro?: (val: EstadoFiltro) => void;
   ordenarPor: string;
   setOrdenarPor: (val: string) => void;
   orden: 'asc' | 'desc';
@@ -19,7 +22,7 @@ interface EmpleadoFiltrosProps {
   delegaciones: CatalogoItem[];
   roles: CatalogoItem[];
   cargando: boolean;
-  onFocusInput: () => void;
+  onFocusInput?: () => void;
 }
 
 export default function EmpleadoFiltros({
@@ -29,6 +32,8 @@ export default function EmpleadoFiltros({
   setDelegacionFiltro,
   rolFiltro,
   setRolFiltro,
+  estadoFiltro = 'todos',
+  setEstadoFiltro,
   ordenarPor,
   setOrdenarPor,
   orden,
@@ -51,6 +56,8 @@ export default function EmpleadoFiltros({
         setDelegacionFiltro={setDelegacionFiltro}
         rolFiltro={rolFiltro}
         setRolFiltro={setRolFiltro}
+        estadoFiltro={estadoFiltro}
+        setEstadoFiltro={setEstadoFiltro}
         ordenarPor={ordenarPor}
         setOrdenarPor={setOrdenarPor}
         orden={orden}

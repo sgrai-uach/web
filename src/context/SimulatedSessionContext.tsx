@@ -43,6 +43,7 @@ function obtenerPermisosFallback(rol: string, esAdmin: boolean): Set<string> {
       'seguridad:roles:gestionar',
       'recursos:leer',
       'recursos:crear',
+      'recursos:eliminar',
       'incidentes:kanban',
       'incidentes:avisos:leer',
       'incidentes:avisos:verificar',

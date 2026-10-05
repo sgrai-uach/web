@@ -10,16 +10,16 @@ import RecursosHeader from '@/components/admin/recursos/RecursosHeader';
 import RecursosFiltros from '@/components/admin/recursos/RecursosFiltros';
 import RecursosTabla from '@/components/admin/recursos/RecursosTabla';
 import RecursoEditarModal from '@/components/admin/recursos/RecursoEditarModal';
+import RecursoEliminarModal from '@/components/admin/recursos/RecursoEliminarModal';
 import Pagination from '@/components/common/Pagination';
 import AccesoDenegadoState from '@/components/admin/recursos/AccesoDenegadoState';
-
 import { toUserFriendlyErrorMessage } from '@/lib/utils/errorUtils';
 
 export default function RecursosPage() {
   const { showError, showSuccess } = useToast();
-  const [usuarioActivoId] = useState<string>(DEFAULT_ADMIN_USER_ID);
+  const { usuarioActivo, cambiarUsuarioPorId, hasPermission } = useSimulatedSession();
   const [recursoAEditar, setRecursoAEditar] = useState<RecursoItem | null>(null);
-  const { usuarioActivo, cambiarUsuarioPorId } = useSimulatedSession();
+  const [recursoAEliminar, setRecursoAEliminar] = useState<RecursoItem | null>(null);
 
   const [filtros, setFiltros] = useState<FiltrosRecursosState>({
     pagina: 1,
@@ -30,9 +30,30 @@ export default function RecursosPage() {
     esIndividual: undefined,
   });
 
-  const { recursos, meta, cargando, error, statusCode, actualizarRecursoEnLista } = useRecursos(
-    filtros,
-    usuarioActivo.id
+  const {
+    recursos,
+    meta,
+    cargando,
+    error,
+    statusCode,
+    actualizarRecursoEnLista,
+    removerRecursoDeLista,
+  } = useRecursos(filtros, usuarioActivo.id);
+
+  const puedeEliminar =
+    usuarioActivo.rol === 'Administrador' ||
+    usuarioActivo.id === DEFAULT_ADMIN_USER_ID ||
+    (hasPermission ? hasPermission('recursos:eliminar') : false);
+
+  const handleEliminacionExitosa = useCallback(
+    (recursoEliminado: RecursoItem) => {
+      removerRecursoDeLista(recursoEliminado.id);
+      showSuccess(
+        `El recurso "${recursoEliminado.nombre}" ha sido dado de baja exitosamente del inventario activo.`,
+        'Baja de Recurso Confirmada'
+      );
+    },
+    [removerRecursoDeLista, showSuccess]
   );
 
   const handleGuardadoExitoso = useCallback(
@@ -138,6 +159,8 @@ export default function RecursosPage() {
           esFiltroActivo={esFiltroActivo}
           onLimpiarFiltros={handleLimpiarFiltros}
           onEditarRecurso={setRecursoAEditar}
+          onEliminarRecurso={setRecursoAEliminar}
+          puedeEliminar={puedeEliminar}
         />
 
         <Pagination
@@ -155,9 +178,18 @@ export default function RecursosPage() {
       <RecursoEditarModal
         isOpen={Boolean(recursoAEditar)}
         recurso={recursoAEditar}
-        usuarioActivoId={usuarioActivoId}
+        usuarioActivoId={usuarioActivo.id}
         onCerrar={() => setRecursoAEditar(null)}
         onGuardadoExitoso={handleGuardadoExitoso}
+      />
+
+      {/* Modal Interactivo de Confirmación de Baja Lógica */}
+      <RecursoEliminarModal
+        isOpen={Boolean(recursoAEliminar)}
+        recurso={recursoAEliminar}
+        usuarioActivoId={usuarioActivo.id}
+        onCerrar={() => setRecursoAEliminar(null)}
+        onEliminacionExitosa={handleEliminacionExitosa}
       />
     </div>
   );

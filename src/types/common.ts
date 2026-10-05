@@ -5,7 +5,9 @@
 
 export interface ApiResponse<T> {
   message?: string;
+  error?: string;
   data: T;
+  detalles?: ApiErrorDetalle[];
 }
 
 export interface ApiFieldError {
@@ -13,18 +15,24 @@ export interface ApiFieldError {
   mensaje: string;
 }
 
+export type ApiErrorDetalle = ApiFieldError;
+
 export interface ApiErrorResponse {
   message: string;
+  error?: string;
   errors?: ApiFieldError[];
+  detalles?: ApiErrorDetalle[];
   statusCode?: number;
 }
 
-export type NotificationType = 'success' | 'error' | 'warning' | 'info';
+export type NotificationType = 'success' | 'error' | 'warning' | 'info' | 'exito';
 
 export interface NotificationState {
-  type: NotificationType;
+  type?: NotificationType;
+  tipo?: 'exito' | 'error';
   title?: string;
-  message: string;
+  message?: string;
+  mensaje?: string;
   details?: string[];
 }
 
