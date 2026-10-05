@@ -13,15 +13,17 @@ import PuntosCriticosHeader from '@/components/admin/puntos-criticos/PuntosCriti
 import PuntosCriticosFiltros from '@/components/admin/puntos-criticos/PuntosCriticosFiltros';
 import PuntosCriticosTabla from '@/components/admin/puntos-criticos/PuntosCriticosTabla';
 import PuntoCriticoDetalleModal from '@/components/admin/puntos-criticos/PuntoCriticoDetalleModal';
+import PuntoCriticoEditarModal from '@/components/admin/puntos-criticos/PuntoCriticoEditarModal';
 import AccesoDenegadoState from '@/components/admin/puntos-criticos/AccesoDenegadoState';
 import Pagination from '@/components/common/Pagination';
 import { toUserFriendlyErrorMessage } from '@/lib/utils/errorUtils';
 import type { PuntoCriticoItem } from '@/types/puntoCritico';
 
 export default function PuntosCriticosPage() {
-  const { showError } = useToast();
+  const { showSuccess, showError } = useToast();
   const { usuarioActivo, cambiarUsuarioPorId, hasPermission } = useSimulatedSession();
   const [puntoSeleccionado, setPuntoSeleccionado] = useState<PuntoCriticoItem | null>(null);
+  const [puntoParaEditar, setPuntoParaEditar] = useState<PuntoCriticoItem | null>(null);
 
   const [filtros, setFiltros] = useState<FiltrosPuntosCriticosState>({
     pagina: 1,
@@ -29,13 +31,17 @@ export default function PuntosCriticosPage() {
     busqueda: '',
     delegacionId: undefined,
     prioridad: undefined,
-    activo: undefined,
+    activo: true,
   });
 
-  const { puntosCriticos, meta, cargando, error, statusCode } = usePuntosCriticos(
-    filtros,
-    usuarioActivo.id
-  );
+  const {
+    puntosCriticos,
+    meta,
+    cargando,
+    error,
+    statusCode,
+    actualizarPuntoCriticoEnLista,
+  } = usePuntosCriticos(filtros, usuarioActivo.id);
 
   const tienePermiso =
     usuarioActivo.rol === 'Administrador' ||
@@ -64,10 +70,6 @@ export default function PuntosCriticosPage() {
     []
   );
 
-  const handleCambiarActivo = useCallback((activo?: boolean) => {
-    setFiltros((prev) => ({ ...prev, activo, pagina: 1 }));
-  }, []);
-
   const handleLimpiarFiltros = useCallback(() => {
     setFiltros({
       pagina: 1,
@@ -75,7 +77,7 @@ export default function PuntosCriticosPage() {
       busqueda: '',
       delegacionId: undefined,
       prioridad: undefined,
-      activo: undefined,
+      activo: true,
     });
   }, []);
 
@@ -87,11 +89,23 @@ export default function PuntosCriticosPage() {
     setFiltros((prev) => ({ ...prev, limite: nuevoLimite, pagina: 1 }));
   }, []);
 
+  const handleGuardadoExitoso = useCallback(
+    (puntoActualizado: PuntoCriticoItem) => {
+      actualizarPuntoCriticoEnLista(puntoActualizado);
+      setPuntoSeleccionado((prev) => (prev?.id === puntoActualizado.id ? puntoActualizado : prev));
+      setPuntoParaEditar(null);
+      showSuccess(
+        `El punto crítico ${puntoActualizado.codigo} ha sido actualizado correctamente.`,
+        'Actualización Exitosa'
+      );
+    },
+    [actualizarPuntoCriticoEnLista, showSuccess]
+  );
+
   const esFiltroActivo =
     Boolean(filtros.busqueda && filtros.busqueda.trim() !== '') ||
     Boolean(filtros.delegacionId) ||
-    Boolean(filtros.prioridad) ||
-    filtros.activo !== undefined;
+    Boolean(filtros.prioridad);
 
   const accesoDenegado =
     statusCode === 403 || (!cargando && !tienePermiso && statusCode !== 200);
@@ -112,10 +126,13 @@ export default function PuntosCriticosPage() {
     );
   }
 
+  // En el catálogo operativo solo deben verse puntos críticos activos
+  const puntosActivos = puntosCriticos.filter((p) => p.activo !== false);
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6, 24px)' }}>
       <PuntosCriticosHeader
-        totalPuntos={meta.total}
+        totalPuntos={puntosActivos.length}
         tieneAcceso={true}
       />
 
@@ -123,28 +140,27 @@ export default function PuntosCriticosPage() {
         busqueda={filtros.busqueda || ''}
         delegacionId={filtros.delegacionId}
         prioridad={filtros.prioridad}
-        activo={filtros.activo}
         onCambiarBusqueda={handleCambiarBusqueda}
         onCambiarDelegacion={handleCambiarDelegacion}
         onCambiarPrioridad={handleCambiarPrioridad}
-        onCambiarActivo={handleCambiarActivo}
         onLimpiarFiltros={handleLimpiarFiltros}
       />
 
       <div style={{ display: 'flex', flexDirection: 'column' }}>
         <PuntosCriticosTabla
-          puntosCriticos={puntosCriticos}
+          puntosCriticos={puntosActivos}
           cargando={cargando}
           esFiltroActivo={esFiltroActivo}
           onLimpiarFiltros={handleLimpiarFiltros}
           onSeleccionarPunto={setPuntoSeleccionado}
+          onEditar={setPuntoParaEditar}
         />
 
         <Pagination
           pagina={meta.pagina}
           limite={meta.limite}
-          total={meta.total}
-          totalPaginas={meta.totalPaginas}
+          total={puntosActivos.length}
+          totalPaginas={Math.max(1, Math.ceil(puntosActivos.length / (meta.limite || 10)))}
           onCambiarPagina={handleCambiarPagina}
           onCambiarLimite={handleCambiarLimite}
           nombreEntidad="puntos críticos"
@@ -155,6 +171,16 @@ export default function PuntosCriticosPage() {
       <PuntoCriticoDetalleModal
         punto={puntoSeleccionado}
         onCerrar={() => setPuntoSeleccionado(null)}
+        onEditar={setPuntoParaEditar}
+      />
+
+      {/* Modal de Edición de Características y Ubicación (HU-55) */}
+      <PuntoCriticoEditarModal
+        isOpen={Boolean(puntoParaEditar)}
+        punto={puntoParaEditar}
+        usuarioActivoId={usuarioActivo.id}
+        onCerrar={() => setPuntoParaEditar(null)}
+        onGuardadoExitoso={handleGuardadoExitoso}
       />
     </div>
   );

@@ -54,6 +54,7 @@ export const MisionDetalleModal: React.FC<MisionDetalleModalProps> = ({
   }, [misionId, userId]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     cargarMision();
   }, [cargarMision]);
 

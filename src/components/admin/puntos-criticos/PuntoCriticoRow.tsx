@@ -1,13 +1,15 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Copy, Check, ExternalLink, MapPin, AlertCircle } from 'lucide-react';
+import { Copy, Check, ExternalLink, MapPin, AlertCircle, Pencil } from 'lucide-react';
 import type { PuntoCriticoItem, PrioridadPuntoCritico } from '@/types/puntoCritico';
+import Button from '@/components/ui/Button';
 
 interface PuntoCriticoRowProps {
   punto: PuntoCriticoItem;
   indice: number;
   onSeleccionar?: (punto: PuntoCriticoItem) => void;
+  onEditar?: (punto: PuntoCriticoItem) => void;
 }
 
 const PRIORIDAD_CONFIG: Record<
@@ -44,6 +46,7 @@ export default function PuntoCriticoRow({
   punto,
   indice,
   onSeleccionar,
+  onEditar,
 }: PuntoCriticoRowProps) {
   const esFilaPar = indice % 2 === 0;
   const [copiado, setCopiado] = useState(false);
@@ -273,16 +276,28 @@ export default function PuntoCriticoRow({
         </span>
       </td>
 
-      {/* Acción (Reservada para futuras historias) */}
+      {/* Acción de Edición (HU-55) */}
       <td
         style={{
           padding: '14px 16px',
           verticalAlign: 'middle',
           textAlign: 'center',
-          color: 'var(--color-text-muted, #5F676E)',
         }}
       >
-        <span>-</span>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={(e) => {
+            e.stopPropagation();
+            onEditar?.(punto);
+          }}
+          icon={<Pencil size={13} aria-hidden="true" />}
+          title={`Editar características de ${punto.codigo}`}
+          aria-label={`Editar ${punto.codigo}`}
+        >
+          Editar
+        </Button>
       </td>
     </tr>
   );

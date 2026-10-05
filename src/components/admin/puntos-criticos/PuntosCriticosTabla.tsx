@@ -12,6 +12,7 @@ interface PuntosCriticosTablaProps {
   esFiltroActivo: boolean;
   onLimpiarFiltros: () => void;
   onSeleccionarPunto?: (punto: PuntoCriticoItem) => void;
+  onEditar?: (punto: PuntoCriticoItem) => void;
 }
 
 export default function PuntosCriticosTabla({
@@ -20,6 +21,7 @@ export default function PuntosCriticosTabla({
   esFiltroActivo,
   onLimpiarFiltros,
   onSeleccionarPunto,
+  onEditar,
 }: PuntosCriticosTablaProps) {
   return (
     <div
@@ -98,6 +100,7 @@ export default function PuntosCriticosTabla({
                 punto={punto}
                 indice={idx}
                 onSeleccionar={onSeleccionarPunto}
+                onEditar={onEditar}
               />
             ))}
         </tbody>

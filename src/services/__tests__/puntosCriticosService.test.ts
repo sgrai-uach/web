@@ -1,6 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import {
   getPuntosCriticos,
+  getPuntoCriticoById,
+  actualizarPuntoCritico,
   PuntoCriticoServiceError,
   filtrarPuntosCriticosMock,
   PUNTOS_CRITICOS_MOCK,
@@ -102,4 +104,122 @@ describe('puntosCriticosService', () => {
       )
     ).rejects.toThrow(PuntoCriticoServiceError);
   });
+
+  describe('getPuntoCriticoById', () => {
+    it('debe obtener el detalle consolidado del punto crítico exitosamente', async () => {
+      const mockDetalle = {
+        ...PUNTOS_CRITICOS_MOCK[0],
+        actualizadoEn: '2026-10-04T12:00:00Z',
+      };
+
+      vi.spyOn(apiClient, 'GET').mockResolvedValueOnce({
+        data: { data: mockDetalle },
+        response: { status: 200 } as Response,
+      } as never);
+
+      const res = await getPuntoCriticoById('40000000-0000-4000-8000-000000000001');
+
+      expect(res.codigo).toBe('PC-ANG-01');
+      expect(res.nombre).toBe(mockDetalle.nombre);
+    });
+
+    it('debe lanzar PuntoCriticoServiceError 404 si el punto no existe', async () => {
+      vi.spyOn(apiClient, 'GET').mockResolvedValueOnce({
+        error: { message: 'Not Found' },
+        response: { status: 404 } as Response,
+      } as never);
+
+      await expect(getPuntoCriticoById('inexistente-id')).rejects.toThrow(
+        'El punto crítico solicitado no fue encontrado en el sistema.'
+      );
+    });
+
+    it('debe usar fallback mock si hay error de red', async () => {
+      vi.spyOn(apiClient, 'GET').mockRejectedValueOnce(new TypeError('Failed to fetch'));
+
+      const res = await getPuntoCriticoById('40000000-0000-4000-8000-000000000001');
+      expect(res.codigo).toBe('PC-ANG-01');
+    });
+  });
+
+  describe('actualizarPuntoCritico', () => {
+    it('debe enviar payload PUT y retornar el punto actualizado', async () => {
+      const payload = {
+        nombre: 'Sector Humedal Angachilla - Editado',
+        prioridad: 'CRITICA' as const,
+        latitud: -39.8457,
+        longitud: -73.239,
+      };
+
+      const mockActualizado = {
+        ...PUNTOS_CRITICOS_MOCK[0],
+        ...payload,
+      };
+
+      vi.spyOn(apiClient, 'PUT').mockResolvedValueOnce({
+        data: { data: mockActualizado },
+        response: { status: 200 } as Response,
+      } as never);
+
+      const res = await actualizarPuntoCritico('40000000-0000-4000-8000-000000000001', payload);
+
+      expect(res.nombre).toBe('Sector Humedal Angachilla - Editado');
+      expect(res.prioridad).toBe('CRITICA');
+      expect(apiClient.PUT).toHaveBeenCalledWith(
+        '/api/puntos-criticos/{id}',
+        expect.objectContaining({
+          params: expect.objectContaining({
+            path: { id: '40000000-0000-4000-8000-000000000001' },
+          }),
+          body: payload,
+        })
+      );
+    });
+
+    it('debe lanzar PuntoCriticoServiceError 409 si el punto está inactivo', async () => {
+      vi.spyOn(apiClient, 'PUT').mockResolvedValueOnce({
+        error: { message: 'El punto crítico se encuentra inactivo' },
+        response: { status: 409 } as Response,
+      } as never);
+
+      await expect(
+        actualizarPuntoCritico('40000000-0000-4000-8000-000000000005', {
+          nombre: 'Población Corvi Actualizada',
+          prioridad: 'BAJA',
+          latitud: -39.8277,
+          longitud: -73.2245,
+        })
+      ).rejects.toThrow('El punto crítico se encuentra inactivo');
+    });
+
+    it('debe lanzar PuntoCriticoServiceError 403 si el usuario carece de permisos de admin', async () => {
+      vi.spyOn(apiClient, 'PUT').mockResolvedValueOnce({
+        error: { message: 'Forbidden' },
+        response: { status: 403 } as Response,
+      } as never);
+
+      await expect(
+        actualizarPuntoCritico('40000000-0000-4000-8000-000000000001', {
+          nombre: 'Sin permiso',
+          prioridad: 'MEDIA',
+          latitud: -39.8,
+          longitud: -73.2,
+        })
+      ).rejects.toThrow('Acceso denegado: solo usuarios con rol Administrador tienen permiso');
+    });
+
+    it('debe actualizar el mock local ante desconexión de red si el punto está activo', async () => {
+      vi.spyOn(apiClient, 'PUT').mockRejectedValueOnce(new TypeError('Failed to fetch'));
+
+      const res = await actualizarPuntoCritico('40000000-0000-4000-8000-000000000001', {
+        nombre: 'Nombre vía Mock Fallback',
+        prioridad: 'ALTA',
+        latitud: -39.8459,
+        longitud: -73.2385,
+      });
+
+      expect(res.nombre).toBe('Nombre vía Mock Fallback');
+    });
+  });
 });
+
