@@ -32,6 +32,23 @@ export interface FiltrosPuntosCriticosState {
 }
 
 /* ==========================================================================
+   Catálogo Canónico de Tipos de Riesgo Comunal (Valdivia)
+   ========================================================================== */
+
+export const CATALOGO_TIPOS_RIESGO: string[] = [
+  'Inundación y anegamiento',
+  'Remoción en masa',
+  'Inundación vial',
+  'Desborde de cauce o humedal',
+  'Anegamiento costero y marejadas',
+  'Caída de árboles o ramas de gran tamaño',
+  'Colapso o daño estructural',
+  'Anegamiento leve',
+  'Incendio de interfase forestal',
+  'Otro riesgo socio-natural',
+];
+
+/* ==========================================================================
    Tipos para Edición de Puntos Críticos (HU-55)
    ========================================================================== */
 

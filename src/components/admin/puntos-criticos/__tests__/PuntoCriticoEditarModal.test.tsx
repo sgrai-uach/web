@@ -93,6 +93,14 @@ describe('PuntoCriticoEditarModal', () => {
     expect(screen.getByDisplayValue('Sector Humedal Angachilla')).toBeInTheDocument();
     expect(screen.getByDisplayValue('Inundación')).toBeInTheDocument();
     expect(screen.getByDisplayValue('Zona baja inundable')).toBeInTheDocument();
+
+    // Comprobar que no se muestran códigos de delegación entre paréntesis (DEL_SUR, etc.)
+    expect(screen.queryByText(/DEL_SUR/i)).not.toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'Delegación Municipal Sur' })).toBeInTheDocument();
+
+    // Comprobar que el selector de tipo de riesgo incluye opciones del catálogo
+    expect(screen.getByRole('option', { name: 'Inundación y anegamiento' })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'Remoción en masa' })).toBeInTheDocument();
   });
 
   it('debe permitir modificar campos descriptivos y guardar exitosamente', async () => {
