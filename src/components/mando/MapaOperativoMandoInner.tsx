@@ -9,7 +9,7 @@ import type { EventoRecuperacionResponse } from '@/types/recuperacion';
 interface MapaOperativoMandoInnerProps {
   incidentes?: IncidenteResumen[];
   eventosRecuperacion?: EventoRecuperacionResponse[];
-  eventosPrevencion?: Record<string, unknown>[];
+  eventosPrevencion?: unknown[];
   onSelectIncidente?: (id: string) => void;
   mostrarIncidentes?: boolean;
   mostrarRecuperaciones?: boolean;
