@@ -11,8 +11,11 @@ import type {
   RegistrarEmpleadoPayload,
   FiltrosPersonalParams,
   UpdatePersonalDTO,
+  ListarEmpleadosResponse,
+  PaginationMeta,
 } from '@/types/empleados';
 import { getErrorMessage } from '@/lib/utils/errorUtils';
+import { catalogosService } from '@/services/catalogosService';
 import { DEFAULT_ADMIN_USER_ID } from '@/lib/api/client';
 import { getAuthCookie } from '@/lib/utils/cookieUtils';
 
@@ -109,20 +112,42 @@ export const empleadosService = {
   },
 
   /**
-   * Consulta el personal filtrado y paginado/ordenado.
+   * Consulta el personal retornando data y meta estandarizado (ADR-004 / H34).
+   * Procesa la estructura estandarizada { data, meta } y mantiene fallback resiliente a { data, paginacion }.
    */
-  async getEmpleados(params: EmpleadosQueryParams = {}, token?: string): Promise<EmpleadoUsuario[]> {
+  async getEmpleadosPaginado(
+    params: EmpleadosQueryParams = {},
+    token?: string
+  ): Promise<ListarEmpleadosResponse> {
     try {
       const search = new URLSearchParams();
-      if (params.q?.trim()) search.set('q', params.q.trim());
-      if (params.delegacion_id) search.set('delegacion_id', params.delegacion_id);
+      const q = params.busqueda || params.q;
+      if (q?.trim()) search.set('q', q.trim());
+
+      const page = params.page ?? params.pagina;
+      if (page) search.set('page', String(page));
+
+      const limit = params.limit ?? params.limite;
+      if (limit) search.set('limit', String(limit));
+
+      let delId = params.delegacion_id;
+      if (!delId && params.delegacionNombre && params.delegacionNombre !== 'TODAS') {
+        delId = catalogosService.resolverDelegacionId(params.delegacionNombre);
+      }
+      if (delId) search.set('delegacion_id', delId);
+
       if (params.rol_id) search.set('rol_id', params.rol_id);
+      const estOp = params.estadoOperativo || params.estado_operativo;
+      if (estOp && estOp !== 'TODOS') search.set('estadoOperativo', estOp);
+      if (params.cargo) search.set('cargo', params.cargo);
+      if (params.especialidad) search.set('especialidad', params.especialidad);
+
       if (params.ordenar_por) search.set('ordenar_por', params.ordenar_por);
       if (params.orden) search.set('orden', params.orden);
       if (params.incluir_inactivos) search.set('incluir_inactivos', 'true');
       if (params.estado) search.set('estado', params.estado);
-      if (params.limite) search.set('limite', params.limite.toString());
-      if (params.pagina) search.set('pagina', params.pagina.toString());
+      if (params.limite && !params.limit) search.set('limite', params.limite.toString());
+      if (params.pagina && !params.page) search.set('pagina', params.pagina.toString());
 
       const query = search.toString();
       const url = query ? `/api/personal?${query}` : '/api/personal';
@@ -142,7 +167,68 @@ export const empleadosService = {
         );
       }
       const json = await res.json();
-      return json.data || [];
+      const data: EmpleadoUsuario[] = json.data || [];
+
+      // Estandarización de meta (H34) con fallback defensivo a paginacion (HU-13)
+      const metaRaw = json.meta;
+      const paginacionRaw = json.paginacion;
+
+      const meta: PaginationMeta = metaRaw
+        ? {
+            total: Number(metaRaw.total ?? data.length),
+            page: Number(metaRaw.page ?? 1),
+            limit: Number(metaRaw.limit ?? 20),
+            totalPages: Number(metaRaw.totalPages ?? 1),
+            hasNext: Boolean(metaRaw.hasNext),
+            hasPrev: Boolean(metaRaw.hasPrev),
+          }
+        : paginacionRaw
+        ? {
+            total: Number(paginacionRaw.total ?? paginacionRaw.total_retornados ?? data.length),
+            page: Number(paginacionRaw.pagina ?? paginacionRaw.page ?? 1),
+            limit: Number(paginacionRaw.limite ?? paginacionRaw.limit ?? 20),
+            totalPages:
+              Math.ceil(
+                Number(paginacionRaw.total ?? paginacionRaw.total_retornados ?? data.length) /
+                  Number(paginacionRaw.limite ?? paginacionRaw.limit ?? 20)
+              ) || 1,
+            hasNext: Boolean(paginacionRaw.hasNext ?? false),
+            hasPrev: Boolean(paginacionRaw.hasPrev ?? false),
+          }
+        : {
+            total: data.length,
+            page: Number(page || 1),
+            limit: Number(limit || 20),
+            totalPages: Math.ceil(data.length / Number(limit || 20)) || 1,
+            hasNext: false,
+            hasPrev: false,
+          };
+
+      return {
+        data,
+        meta,
+      };
+    } catch (err) {
+      if (err instanceof EmpleadosServiceError) throw err;
+      throw new EmpleadosServiceError(
+        getErrorMessage(err) || 'Error de conexión al buscar empleados.'
+      );
+    }
+  },
+
+  /**
+   * Consulta el personal filtrado y ordenado.
+   * Retorna EmpleadoUsuario[] con meta adjunto para máxima compatibilidad con callers y tests.
+   */
+  async getEmpleados(
+    params: EmpleadosQueryParams = {},
+    token?: string
+  ): Promise<EmpleadoUsuario[] & { meta?: PaginationMeta }> {
+    try {
+      const response = await this.getEmpleadosPaginado(params, token);
+      const data = [...response.data] as EmpleadoUsuario[] & { meta?: PaginationMeta };
+      data.meta = response.meta;
+      return data;
     } catch (err) {
       if (err instanceof EmpleadosServiceError) throw err;
       throw new EmpleadosServiceError(
@@ -334,6 +420,16 @@ export const createEmpleado = (payload: RegistrarEmpleadoPayload, token?: string
 export async function getPersonal(filtros: FiltrosPersonalParams = {}): Promise<EmpleadoUsuario[]> {
   return empleadosService.getEmpleados(filtros);
 }
+
+export async function getPersonalPaginado(
+  params: EmpleadosQueryParams = {},
+  token?: string
+): Promise<ListarEmpleadosResponse> {
+  return empleadosService.getEmpleadosPaginado(params, token);
+}
+
+export const getEmpleadosPaginado = (params: EmpleadosQueryParams = {}, token?: string) =>
+  empleadosService.getEmpleadosPaginado(params, token);
 
 export async function updatePersonal(
   personalOrUsuarioId: string,

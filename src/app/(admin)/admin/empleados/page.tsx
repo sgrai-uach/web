@@ -12,7 +12,7 @@ import { SimulatedSessionContext } from '@/context/SimulatedSessionContext';
 import AccesoDenegadoState from '@/components/common/AccesoDenegadoState';
 import EmpleadoFiltros from '@/components/admin/empleados/EmpleadoFiltros';
 import EmpleadoTabla from '@/components/admin/empleados/EmpleadoTabla';
-import EmpleadoPanelEdicion from '@/components/admin/empleados/EmpleadoPanelEdicion';
+import EmpleadoModificarModal from '@/components/admin/empleados/EmpleadoModificarModal';
 import EmpleadoBajaModal from '@/components/admin/empleados/EmpleadoBajaModal';
 import { useAdminEmpleados } from '@/hooks/useAdminEmpleados';
 import { useEmpleados } from '@/hooks/useEmpleados';
@@ -83,6 +83,7 @@ export default function AdminEmpleadosPage() {
     catalogos,
     empleadosPaginados,
     cargando,
+    limpiarFiltros,
   } = useEmpleados({ versionActualizacion: versionActualizacion + registroVersion });
 
   const handleRegistrado = (nuevo: EmpleadoUsuario) => {
@@ -95,7 +96,7 @@ export default function AdminEmpleadosPage() {
   if (!puedeVerDirectorio) {
     const rolActual = auth?.usuario?.rolNombre || session?.usuarioActivo?.rol || 'Usuario';
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6, 24px)' }}>
+      <div className={styles.pageContainer}>
         <Breadcrumbs
           items={[
             { label: 'Inicio', href: '/' },
@@ -142,63 +143,57 @@ export default function AdminEmpleadosPage() {
         }
       />
 
-      {/* Disposición Master-Detail: Lista permanente (izquierda) y Formulario (derecha) */}
-      <div className={styles.masterDetailGrid}>
-        {/* Columna Izquierda: Barra de Búsqueda/Filtros + Lista permanente con paginación */}
-        <div className={styles.tableColumn}>
-          {/* Barra de Búsqueda y Filtros compactada */}
-          <div className={styles.filtersCard}>
-            <EmpleadoFiltros
-              termino={termino}
-              setTermino={setTermino}
-              delegacionFiltro={delegacionFiltro}
-              setDelegacionFiltro={setDelegacionFiltro}
-              rolFiltro={rolFiltro}
-              setRolFiltro={setRolFiltro}
-              estadoFiltro={estadoFiltro}
-              setEstadoFiltro={setEstadoFiltro}
-              ordenarPor={ordenarPor}
-              setOrdenarPor={setOrdenarPor}
-              orden={orden}
-              setOrden={setOrden}
-              delegaciones={catalogos.delegaciones}
-              roles={catalogos.roles}
-              cargando={cargando}
-            />
-          </div>
+      {/* Contenedor Principal a ancho completo: Filtros + Tabla con paginación */}
+      <div className={styles.tableContainer}>
+        <EmpleadoFiltros
+          termino={termino}
+          setTermino={setTermino}
+          delegacionFiltro={delegacionFiltro}
+          setDelegacionFiltro={setDelegacionFiltro}
+          rolFiltro={rolFiltro}
+          setRolFiltro={setRolFiltro}
+          estadoFiltro={estadoFiltro}
+          setEstadoFiltro={setEstadoFiltro}
+          ordenarPor={ordenarPor}
+          setOrdenarPor={setOrdenarPor}
+          orden={orden}
+          setOrden={setOrden}
+          delegaciones={catalogos.delegaciones}
+          roles={catalogos.roles}
+          cargando={cargando}
+          onLimpiarFiltros={limpiarFiltros}
+        />
 
-          <EmpleadoTabla
-            empleados={empleadosPaginados}
-            cargando={cargando}
-            paginaActual={paginaActual}
-            totalPaginas={totalPaginas}
-            totalItems={totalItems}
-            limite={limite}
-            onCambiarPagina={setPaginaActual}
-            onCambiarLimite={(nuevoLimite) => {
-              setLimite(nuevoLimite);
-              setPaginaActual(1);
-            }}
-            usuarioSeleccionadoId={usuarioSeleccionado?.usuario_id}
-            onSelectUsuario={seleccionarUsuario}
-            onDarDeBaja={solicitarBaja}
-          />
-        </div>
-
-        {/* Columna Derecha: Panel de Modificación (en desktop) / Widget sobrepuesto (en móvil) */}
-        <div className={styles.detailColumn}>
-          <EmpleadoPanelEdicion
-            usuario={usuarioSeleccionado}
-            onEmpleadoActualizado={confirmarActualizacion}
-            onCerrar={cancelarSeleccion}
-            onDarDeBaja={() => {
-              if (usuarioSeleccionado && usuarioSeleccionado.usuario_activo) {
-                solicitarBaja(usuarioSeleccionado);
-              }
-            }}
-          />
-        </div>
+        <EmpleadoTabla
+          empleados={empleadosPaginados}
+          cargando={cargando}
+          paginaActual={paginaActual}
+          totalPaginas={totalPaginas}
+          totalItems={totalItems}
+          limite={limite}
+          onCambiarPagina={setPaginaActual}
+          onCambiarLimite={(nuevoLimite) => {
+            setLimite(nuevoLimite);
+            setPaginaActual(1);
+          }}
+          usuarioSeleccionadoId={usuarioSeleccionado?.usuario_id}
+          onSelectUsuario={seleccionarUsuario}
+          onDarDeBaja={solicitarBaja}
+        />
       </div>
+
+      {/* Modal Institucional de Modificación de Funcionario (HU-12) */}
+      <EmpleadoModificarModal
+        usuario={usuarioSeleccionado}
+        isOpen={Boolean(usuarioSeleccionado)}
+        onClose={cancelarSeleccion}
+        onEmpleadoActualizado={confirmarActualizacion}
+        onDarDeBaja={() => {
+          if (usuarioSeleccionado && usuarioSeleccionado.usuario_activo) {
+            solicitarBaja(usuarioSeleccionado);
+          }
+        }}
+      />
 
       {/* Modal de confirmación de baja lógica (HU-13) */}
       <EmpleadoBajaModal

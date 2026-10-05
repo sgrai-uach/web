@@ -17,9 +17,11 @@ import { toUserFriendlyErrorMessage } from '@/lib/utils/errorUtils';
 
 export default function RecursosPage() {
   const { showError, showSuccess } = useToast();
-  const { usuarioActivo, cambiarUsuarioPorId, hasPermission } = useSimulatedSession();
+  const { usuarioActivo, cambiarUsuarioPorId, hasPermission, isMounted } = useSimulatedSession();
   const [recursoAEditar, setRecursoAEditar] = useState<RecursoItem | null>(null);
   const [recursoAEliminar, setRecursoAEliminar] = useState<RecursoItem | null>(null);
+  const puedeCrear = Boolean(isMounted && hasPermission('recursos:crear'));
+  const puedeEditar = Boolean(isMounted && hasPermission('recursos:editar'));
 
   const [filtros, setFiltros] = useState<FiltrosRecursosState>({
     pagina: 1,
@@ -40,10 +42,12 @@ export default function RecursosPage() {
     removerRecursoDeLista,
   } = useRecursos(filtros, usuarioActivo.id);
 
-  const puedeEliminar =
-    usuarioActivo.rol === 'Administrador' ||
-    usuarioActivo.id === DEFAULT_ADMIN_USER_ID ||
-    (hasPermission ? hasPermission('recursos:eliminar') : false);
+  const puedeEliminar = Boolean(
+    isMounted &&
+      (usuarioActivo.rol === 'Administrador' ||
+        usuarioActivo.id === DEFAULT_ADMIN_USER_ID ||
+        (hasPermission ? hasPermission('recursos:eliminar') : false))
+  );
 
   const handleEliminacionExitosa = useCallback(
     (recursoEliminado: RecursoItem) => {
@@ -81,8 +85,13 @@ export default function RecursosPage() {
     setFiltros((prev) => ({ ...prev, estado, pagina: 1 }));
   }, []);
 
-  const handleCambiarDelegacion = useCallback((delegacionId?: string) => {
-    setFiltros((prev) => ({ ...prev, delegacionId, pagina: 1 }));
+  const handleCambiarDelegacion = useCallback((delegacion?: string) => {
+    setFiltros((prev) => ({
+      ...prev,
+      delegacionNombre: delegacion,
+      delegacionId: undefined,
+      pagina: 1,
+    }));
   }, []);
 
   const handleCambiarEsIndividual = useCallback((esIndividual?: boolean) => {
@@ -96,6 +105,7 @@ export default function RecursosPage() {
       busqueda: '',
       estado: undefined,
       delegacionId: undefined,
+      delegacionNombre: undefined,
       esIndividual: undefined,
     });
   }, []);
@@ -122,6 +132,7 @@ export default function RecursosPage() {
           usuarioActivoId={usuarioActivo.id}
           onCambiarUsuario={cambiarUsuarioPorId}
           tieneAcceso={false}
+          puedeCrear={false}
         />
         <AccesoDenegadoState
           rolUsuario={usuarioActivo.rol}
@@ -138,18 +149,25 @@ export default function RecursosPage() {
         usuarioActivoId={usuarioActivo.id}
         onCambiarUsuario={cambiarUsuarioPorId}
         tieneAcceso={true}
+        puedeCrear={puedeCrear}
       />
 
       <RecursosFiltros
         busqueda={filtros.busqueda || ''}
         estado={filtros.estado}
         delegacionId={filtros.delegacionId}
+        delegacionNombre={filtros.delegacionNombre}
         esIndividual={filtros.esIndividual}
         onCambiarBusqueda={handleCambiarBusqueda}
         onCambiarEstado={handleCambiarEstado}
         onCambiarDelegacion={handleCambiarDelegacion}
         onCambiarEsIndividual={handleCambiarEsIndividual}
         onLimpiarFiltros={handleLimpiarFiltros}
+        contadoresTipo={{
+          total: meta.total,
+          individual: recursos.filter((r) => r.esIndividual).length,
+          granel: recursos.filter((r) => !r.esIndividual).length,
+        }}
       />
 
       <div style={{ display: 'flex', flexDirection: 'column' }}>
@@ -158,8 +176,10 @@ export default function RecursosPage() {
           cargando={cargando}
           esFiltroActivo={esFiltroActivo}
           onLimpiarFiltros={handleLimpiarFiltros}
-          onEditarRecurso={setRecursoAEditar}
+          onEditarRecurso={puedeEditar ? setRecursoAEditar : undefined}
           onEliminarRecurso={setRecursoAEliminar}
+          puedeCrear={puedeCrear}
+          puedeEditar={puedeEditar}
           puedeEliminar={puedeEliminar}
         />
 
@@ -176,7 +196,7 @@ export default function RecursosPage() {
 
       {/* Modal Interactivo de Edición de Recurso */}
       <RecursoEditarModal
-        isOpen={Boolean(recursoAEditar)}
+        isOpen={Boolean(recursoAEditar && puedeEditar)}
         recurso={recursoAEditar}
         usuarioActivoId={usuarioActivo.id}
         onCerrar={() => setRecursoAEditar(null)}
@@ -185,7 +205,7 @@ export default function RecursosPage() {
 
       {/* Modal Interactivo de Confirmación de Baja Lógica */}
       <RecursoEliminarModal
-        isOpen={Boolean(recursoAEliminar)}
+        isOpen={Boolean(recursoAEliminar && puedeEliminar)}
         recurso={recursoAEliminar}
         usuarioActivoId={usuarioActivo.id}
         onCerrar={() => setRecursoAEliminar(null)}

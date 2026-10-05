@@ -88,7 +88,7 @@ Si el aviso es una broma, un reporte duplicado o carece de veracidad:
 | **409 Conflict** | *"Este aviso acaba de ser atendido o resuelto por otro operador."* | Ocurre cuando dos operadores abren el mismo aviso simultáneamente y el otro operador confirma primero. El sistema previene duplicados, cierra el modal automáticamente y refresca la bandeja. No requiere acción adicional. |
 | **401 Unauthorized** | *"No autorizado: Se requiere una sesión válida de operador."* | Falta la cabecera `X-User-Id`. Verifique que el selector de operador en la barra superior esté asignado correctamente. |
 | **400 Bad Request** | *"El motivo de descarte debe contener al menos 5 caracteres justificativos."* | La justificación escrita para descartar el aviso es demasiado corta o está vacía. Ingrese una explicación detallada. |
-| **Desconexión Socket** | *"Conectando..." (Punto amarillo)* | Interrupción temporal de red o del servidor WebSocket. Los avisos aún pueden cargarse mediante el botón manual **"Refrescar"**. La reconexión es automática. |
+| **Desconexión Socket** | *"Conectando..." (Punto amarillo)* | Interrupción temporal de red o del servidor WebSocket. Los avisos aún pueden cargarse mediante el botón manual **"Actualizar"**. La reconexión es automática. |
 
 ---
 

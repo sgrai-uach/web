@@ -3,68 +3,35 @@
 import React from 'react';
 import type { CatalogoItem } from '@/types/empleados';
 import type { EstadoFiltro } from '@/hooks/useEmpleados';
-import EmpleadoSearchInput from './EmpleadoSearchInput';
 import EmpleadoFiltrosBar from './EmpleadoFiltrosBar';
 
-interface EmpleadoFiltrosProps {
-  termino: string;
-  setTermino: (val: string) => void;
+export interface EmpleadoFiltrosProps {
+  termino?: string;
+  setTermino?: (val: string) => void;
   delegacionFiltro: string;
   setDelegacionFiltro: (val: string) => void;
   rolFiltro: string;
   setRolFiltro: (val: string) => void;
   estadoFiltro?: EstadoFiltro;
   setEstadoFiltro?: (val: EstadoFiltro) => void;
+  estadoOperativoFiltro?: string;
+  setEstadoOperativoFiltro?: (val: string) => void;
+  especialidadFiltro?: string;
+  setEspecialidadFiltro?: (val: string) => void;
+  cargoFiltro?: string;
+  setCargoFiltro?: (val: string) => void;
   ordenarPor: string;
   setOrdenarPor: (val: string) => void;
   orden: 'asc' | 'desc';
   setOrden: (val: 'asc' | 'desc') => void;
   delegaciones: CatalogoItem[];
   roles: CatalogoItem[];
-  cargando: boolean;
+  especialidades?: string[];
+  cargando?: boolean;
   onFocusInput?: () => void;
+  onLimpiarFiltros?: () => void;
 }
 
-export default function EmpleadoFiltros({
-  termino,
-  setTermino,
-  delegacionFiltro,
-  setDelegacionFiltro,
-  rolFiltro,
-  setRolFiltro,
-  estadoFiltro = 'todos',
-  setEstadoFiltro,
-  ordenarPor,
-  setOrdenarPor,
-  orden,
-  setOrden,
-  delegaciones,
-  roles,
-  cargando,
-  onFocusInput,
-}: EmpleadoFiltrosProps) {
-  return (
-    <>
-      <EmpleadoSearchInput
-        termino={termino}
-        setTermino={setTermino}
-        cargando={cargando}
-        onFocusInput={onFocusInput}
-      />
-      <EmpleadoFiltrosBar
-        delegacionFiltro={delegacionFiltro}
-        setDelegacionFiltro={setDelegacionFiltro}
-        rolFiltro={rolFiltro}
-        setRolFiltro={setRolFiltro}
-        estadoFiltro={estadoFiltro}
-        setEstadoFiltro={setEstadoFiltro}
-        ordenarPor={ordenarPor}
-        setOrdenarPor={setOrdenarPor}
-        orden={orden}
-        setOrden={setOrden}
-        delegaciones={delegaciones}
-        roles={roles}
-      />
-    </>
-  );
+export default function EmpleadoFiltros(props: EmpleadoFiltrosProps) {
+  return <EmpleadoFiltrosBar {...props} />;
 }

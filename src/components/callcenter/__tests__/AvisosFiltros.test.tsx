@@ -1,6 +1,7 @@
 import React from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
+import '@testing-library/jest-dom';
 import AvisosFiltros from '../AvisosFiltros';
 import AvisosTableEmpty from '../table/AvisosTableEmpty';
 
@@ -14,7 +15,7 @@ describe('AvisosFiltros Component', () => {
     onFiltroSemaforoChange: vi.fn(),
     filtroDelegacion: 'TODAS' as const,
     onFiltroDelegacionChange: vi.fn(),
-    filtroEstado: 'PENDIENTE' as const,
+    filtroEstado: 'TODOS' as const,
     onFiltroEstadoChange: vi.fn(),
     hayFiltrosActivos: false,
     onLimpiarFiltros: vi.fn(),
@@ -22,10 +23,34 @@ describe('AvisosFiltros Component', () => {
     cargando: false,
   };
 
+  it('debe iniciar sin filtros de estado activos cuando está en TODOS', () => {
+    render(<AvisosFiltros {...defaultProps} filtroEstado="TODOS" hayFiltrosActivos={false} />);
+    expect(screen.queryByTestId('indicador-filtros-activos')).not.toBeInTheDocument();
+  });
+
+  it('debe mostrar chip "Estado: Reportado" cuando el usuario selecciona PENDIENTE', () => {
+    const onFiltroEstadoChange = vi.fn();
+    render(
+      <AvisosFiltros
+        {...defaultProps}
+        filtroEstado="PENDIENTE"
+        hayFiltrosActivos={true}
+        onFiltroEstadoChange={onFiltroEstadoChange}
+      />
+    );
+
+    expect(screen.getByTestId('indicador-filtros-activos')).toBeInTheDocument();
+    expect(screen.getByText(/Estado: Reportado/i)).toBeInTheDocument();
+
+    const btnQuitar = screen.getByTitle(/Quitar filtro de estado/i);
+    fireEvent.click(btnQuitar);
+    expect(onFiltroEstadoChange).toHaveBeenCalledWith('TODOS');
+  });
+
   it('debe renderizar el selector de Delegación con las opciones requeridas (Norte, Sur, Costa, Calle Calle)', () => {
     render(<AvisosFiltros {...defaultProps} />);
 
-    const selectDelegacion = screen.getByLabelText(/Delegación Territorial:/i);
+    const selectDelegacion = screen.getByLabelText(/Delegación/i);
     expect(selectDelegacion).toBeInTheDocument();
 
     const options = Array.from((selectDelegacion as HTMLSelectElement).options).map(
@@ -41,7 +66,7 @@ describe('AvisosFiltros Component', () => {
   it('debe renderizar el selector de Estado con las opciones requeridas (Pendiente, Verificado, Rechazado)', () => {
     render(<AvisosFiltros {...defaultProps} />);
 
-    const selectEstado = screen.getByLabelText(/Estado del Aviso:/i);
+    const selectEstado = screen.getByLabelText(/Estado/i);
     expect(selectEstado).toBeInTheDocument();
 
     const options = Array.from((selectEstado as HTMLSelectElement).options).map(
@@ -62,7 +87,7 @@ describe('AvisosFiltros Component', () => {
       />
     );
 
-    const select = screen.getByLabelText(/Delegación Territorial:/i);
+    const select = screen.getByLabelText(/Delegación/i);
     fireEvent.change(select, { target: { value: 'Norte' } });
 
     expect(onFiltroDelegacionChange).toHaveBeenCalledWith('Norte');
@@ -77,7 +102,7 @@ describe('AvisosFiltros Component', () => {
       />
     );
 
-    const select = screen.getByLabelText(/Estado del Aviso:/i);
+    const select = screen.getByLabelText(/Estado/i);
     fireEvent.change(select, { target: { value: 'VERIFICADO' } });
 
     expect(onFiltroEstadoChange).toHaveBeenCalledWith('VERIFICADO');

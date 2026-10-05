@@ -4,8 +4,14 @@
  */
 
 import type { CatalogoItem, CatalogosResponse } from './catalogos';
+import type { PaginationMeta } from './common';
 
-export type { CatalogoItem, CatalogosResponse };
+export type { CatalogoItem, CatalogosResponse, PaginationMeta };
+
+export interface ListarEmpleadosResponse {
+  data: EmpleadoUsuario[];
+  meta: PaginationMeta;
+}
 
 export interface EmpleadoUsuario {
   usuario_id: string;
@@ -64,10 +70,19 @@ export interface UpdatePersonalDTO {
 
 export interface EmpleadosQueryParams {
   q?: string;
+  busqueda?: string;
   delegacion_id?: string;
+  delegacionNombre?: string;
   rol_id?: string;
+  rolNombre?: string;
+  estado_operativo?: string;
+  estadoOperativo?: string;
+  cargo?: string;
+  especialidad?: string;
   ordenar_por?: string;
   orden?: 'asc' | 'desc';
+  page?: number;
+  limit?: number;
   incluir_inactivos?: boolean;
   estado?: 'todos' | 'activo' | 'inactivo' | string;
   limite?: number;

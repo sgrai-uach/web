@@ -77,6 +77,10 @@ export function toUserFriendlyErrorMessage(err: unknown): string {
     return 'No se pudo conectar con el servidor del sistema. Compruebe la conexión de red.';
   }
 
+  if (/perfil de Administrador.*roles|gestión de roles/i.test(rawMsg)) {
+    return 'Acceso denegado. Se requieren permisos de gestión de roles para acceder.';
+  }
+
   return rawMsg;
 }
 
@@ -129,12 +133,20 @@ export function formatApiError(
   if (typeof err === 'object' && err !== null) {
     const candidate = err as Record<string, unknown>;
 
-    const message =
+    let message =
       typeof candidate.message === 'string'
         ? candidate.message
         : typeof candidate.error === 'string'
         ? candidate.error
         : getErrorMessage(err);
+
+    if (
+      message.includes('Se requiere el perfil de Administrador o permisos de gestión de roles para acceder') ||
+      message.includes('Se requiere el perfil de Administrador o permisos de gestión de roles') ||
+      /perfil de Administrador.*roles/i.test(message)
+    ) {
+      message = 'Acceso denegado. Se requieren permisos de gestión de roles para acceder.';
+    }
 
     let errors: ApiFieldError[] | undefined;
     const rawErrors = candidate.errors || candidate.detalles || candidate.issues;

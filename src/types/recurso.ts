@@ -260,6 +260,7 @@ export interface FiltrosRecursosState {
   pagina: number;
   limite: number;
   delegacionId?: string;
+  delegacionNombre?: string;
   estado?: EstadoRecurso;
   esIndividual?: boolean;
   busqueda?: string;
@@ -272,4 +273,3 @@ export interface EliminarRecursoResponse {
   eliminadoEn: string;
   eliminadoPorId: string;
 }
-

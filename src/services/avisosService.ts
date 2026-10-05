@@ -1,5 +1,6 @@
 import apiClient from '@/lib/api/client';
 import { formatApiError } from '@/lib/utils/errorUtils';
+import { catalogosService } from '@/services/catalogosService';
 import type {
   AvisoDetalleResponse,
   AvisosPaginadosResponse,
@@ -147,10 +148,17 @@ export async function listarAvisos(
 
   if (params.delegacion && params.delegacion !== 'TODAS') {
     queryObj.delegacion = params.delegacion;
+    const delId = catalogosService.resolverDelegacionId(params.delegacion);
+    if (delId) {
+      queryObj.delegacionId = delId;
+    }
   }
 
   const { data, error, response } = await apiClient.GET('/api/incidentes/avisos', {
     params: {
+      header: {
+        authorization: typeof window !== 'undefined' ? localStorage.getItem('token') || '' : '',
+      },
       query: queryObj as unknown as {
         page?: number;
         limit?: number;
@@ -213,7 +221,7 @@ export async function verificarAviso(
       params: {
         path: { id },
         header: {
-          'x-user-id': operadorId,
+          authorization: typeof window !== 'undefined' ? localStorage.getItem('token') || '' : '',
         },
       },
       body,
@@ -267,7 +275,7 @@ export async function descartarAviso(
       params: {
         path: { id },
         header: {
-          'x-user-id': operadorId,
+          authorization: typeof window !== 'undefined' ? localStorage.getItem('token') || '' : '',
         },
       },
       body,

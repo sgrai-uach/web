@@ -1,160 +1,329 @@
 'use client';
 
 import React from 'react';
-import Button from '@/components/ui/Button';
-import { RotateCw } from 'lucide-react';
 import type { FiltrosKanban } from '@/hooks/useIncidentesKanban';
 import type { PrioridadIncidente } from '@/services/incidentesService';
-import styles from '@/styles/mando.module.css';
+import { useCatalogos } from '@/hooks/useCatalogos';
+import {
+  FilterBar,
+  FilterSearchInput,
+  SegmentedButtonGroup,
+  FilterSelect,
+  ActiveFilterChips,
+  type ActiveChipItem,
+} from '@/components/common/filters';
+import filterStyles from '@/components/common/filters/FilterComponents.module.css';
 
 interface KanbanFiltrosProps {
   filtros: FiltrosKanban;
   onFiltrosChange: (nuevosFiltros: FiltrosKanban) => void;
-  onRecargar: () => void;
-  cargando: boolean;
+  onLimpiarFiltros?: () => void;
+  onRecargar?: () => void;
+  cargando?: boolean;
+  onAbrirMisiones?: () => void;
+  contadoresPorEstado?: Record<string, number>;
 }
+
+const OPCIONES_ESTADO = [
+  { valor: 'TODOS', etiqueta: 'Todas las columnas' },
+  { valor: 'REPORTADO', etiqueta: 'Reportado' },
+  { valor: 'VERIFICANDO', etiqueta: 'Verificando' },
+  { valor: 'EN_ATENCION', etiqueta: 'En Atención' },
+  { valor: 'RESUELTO', etiqueta: 'Resuelto' },
+  { valor: 'NO_ABORDABLE', etiqueta: 'No Abordable' },
+] as const;
+
+const OPCIONES_PRIORIDAD = [
+  { valor: '', etiqueta: 'Todas las Prioridades' },
+  { valor: 'CRITICA', etiqueta: 'Prioridad Crítica' },
+  { valor: 'ALTA', etiqueta: 'Prioridad Alta' },
+  { valor: 'MEDIA', etiqueta: 'Prioridad Media' },
+  { valor: 'BAJA', etiqueta: 'Prioridad Baja' },
+] as const;
+
+const OPCIONES_AFECTACION = [
+  { valor: '', etiqueta: 'Todos los Tipos de Afectación' },
+  { valor: 'Inundación', etiqueta: 'Inundación' },
+  { valor: 'Anegamiento', etiqueta: 'Anegamiento' },
+  { valor: 'Caída de árbol', etiqueta: 'Caída de árbol' },
+  { valor: 'Derrumbe', etiqueta: 'Derrumbe' },
+  { valor: 'Corte de camino', etiqueta: 'Corte de camino' },
+  { valor: 'Incendio', etiqueta: 'Incendio' },
+  { valor: 'Peligro estructural', etiqueta: 'Peligro estructural' },
+] as const;
+
+const OPCIONES_ORIGEN = [
+  { valor: '', etiqueta: 'Todos los Canales' },
+  { valor: 'WEB', etiqueta: 'Portal Web' },
+  { valor: 'CHATBOT', etiqueta: 'Chatbot Municipal' },
+  { valor: 'LLAMADA_TELEFONICA', etiqueta: 'Central Telefónica' },
+  { valor: 'FUNCIONARIO_TERRENO', etiqueta: 'Funcionario en Terreno' },
+] as const;
 
 export const KanbanFiltros: React.FC<KanbanFiltrosProps> = ({
   filtros,
   onFiltrosChange,
-  onRecargar,
-  cargando,
+  onLimpiarFiltros,
+  contadoresPorEstado,
 }) => {
-  const handleBusquedaChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const { nombresDelegaciones } = useCatalogos();
+
+  const opcionesEstadoConContador = React.useMemo(() => {
+    return OPCIONES_ESTADO.map((opt) => ({
+      ...opt,
+      contador: contadoresPorEstado ? contadoresPorEstado[opt.valor] ?? 0 : undefined,
+    }));
+  }, [contadoresPorEstado]);
+
+  const handleBusquedaChange = (valor: string) => {
     onFiltrosChange({
       ...filtros,
-      busqueda: e.target.value,
+      busqueda: valor,
     });
   };
 
-  const handlePrioridadChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+  const handleDelegacionChange = (delegacion: string) => {
     onFiltrosChange({
       ...filtros,
-      prioridad: e.target.value as PrioridadIncidente | '',
+      delegacion,
     });
   };
 
-  const handleTipoChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+  const handleEstadoChange = (estado: string) => {
     onFiltrosChange({
       ...filtros,
-      tipoAfectacion: e.target.value,
+      estado,
+    });
+  };
+
+  const handlePrioridadChange = (prioridad: string) => {
+    onFiltrosChange({
+      ...filtros,
+      prioridad: prioridad as PrioridadIncidente | '',
+    });
+  };
+
+  const handleTipoChange = (tipoAfectacion: string) => {
+    onFiltrosChange({
+      ...filtros,
+      tipoAfectacion,
+    });
+  };
+
+  const handleOrigenChange = (fuenteOrigen: string) => {
+    onFiltrosChange({
+      ...filtros,
+      fuenteOrigen,
     });
   };
 
   const handleLimpiar = () => {
-    onFiltrosChange({
-      busqueda: '',
-      prioridad: '',
-      tipoAfectacion: '',
-      delegacionId: undefined,
-      soloHoy: false,
-    });
+    if (onLimpiarFiltros) {
+      onLimpiarFiltros();
+    } else {
+      onFiltrosChange({
+        busqueda: '',
+        delegacion: 'TODAS',
+        estado: 'TODOS',
+        prioridad: '',
+        tipoAfectacion: '',
+        fuenteOrigen: '',
+        delegacionId: undefined,
+        soloHoy: false,
+      });
+    }
   };
 
-  const tieneFiltrosActivos =
-    Boolean(filtros.busqueda.trim()) ||
-    Boolean(filtros.prioridad) ||
-    Boolean(filtros.tipoAfectacion) ||
-    Boolean(filtros.soloHoy) ||
-    Boolean(filtros.delegacionId);
+  const opcionesDelegacion = [
+    { valor: 'TODAS', etiqueta: 'Todas las delegaciones' },
+    ...nombresDelegaciones.map((nombre) => ({
+      valor: nombre,
+      etiqueta: nombre,
+    })),
+  ];
+
+  // Construir chips activos con nombres legibles
+  const chipsActivos: ActiveChipItem[] = [];
+
+  if (filtros.busqueda.trim()) {
+    chipsActivos.push({
+      id: 'busqueda',
+      etiqueta: 'Búsqueda',
+      valorVisible: `"${filtros.busqueda.trim()}"`,
+      onRemove: () => handleBusquedaChange(''),
+    });
+  }
+
+  if (filtros.delegacion && filtros.delegacion !== 'TODAS') {
+    chipsActivos.push({
+      id: 'delegacion',
+      etiqueta: 'Delegación',
+      valorVisible: filtros.delegacion,
+      onRemove: () => handleDelegacionChange('TODAS'),
+      esDelegacion: true,
+    });
+  }
+
+  if (filtros.estado && filtros.estado !== 'TODOS') {
+    const labelEstado = OPCIONES_ESTADO.find((e) => e.valor === filtros.estado)?.etiqueta || filtros.estado;
+    chipsActivos.push({
+      id: 'estado',
+      etiqueta: 'Columna',
+      valorVisible: labelEstado,
+      onRemove: () => handleEstadoChange('TODOS'),
+    });
+  }
+
+  if (filtros.prioridad) {
+    chipsActivos.push({
+      id: 'prioridad',
+      etiqueta: 'Prioridad',
+      valorVisible: filtros.prioridad,
+      onRemove: () => handlePrioridadChange(''),
+    });
+  }
+
+  if (filtros.tipoAfectacion) {
+    chipsActivos.push({
+      id: 'tipoAfectacion',
+      etiqueta: 'Afectación',
+      valorVisible: filtros.tipoAfectacion,
+      onRemove: () => handleTipoChange(''),
+    });
+  }
+
+  if (filtros.fuenteOrigen) {
+    const labelOrigen = OPCIONES_ORIGEN.find((o) => o.valor === filtros.fuenteOrigen)?.etiqueta || filtros.fuenteOrigen;
+    chipsActivos.push({
+      id: 'fuenteOrigen',
+      etiqueta: 'Origen',
+      valorVisible: labelOrigen,
+      onRemove: () => handleOrigenChange(''),
+    });
+  }
+
+  if (filtros.soloHoy) {
+    chipsActivos.push({
+      id: 'soloHoy',
+      etiqueta: 'Jornada',
+      valorVisible: 'Solo hoy',
+      onRemove: () => onFiltrosChange({ ...filtros, soloHoy: false }),
+    });
+  }
 
   return (
-    <section className={styles.filtrosContainer} aria-label="Filtros tácticos del tablero">
-      <div className={styles.filtrosForm}>
-        <input
-          type="search"
-          placeholder="Buscar por código (ej. INC-5829), calle o descripción..."
+    <FilterBar
+      titulo="Filtros del Tablero"
+      storageKey="sgrai:filtros:mando:colapsado"
+      totalFiltrosActivos={chipsActivos.length}
+    >
+      {/* Botonera de Estados para enfocar u ocultar columnas con contadores */}
+      <div>
+        <SegmentedButtonGroup
+          label="Visualización de Columnas por Estado:"
+          options={opcionesEstadoConContador}
+          value={filtros.estado || 'TODOS'}
+          onChange={handleEstadoChange}
+          ariaLabel="Filtrar u ocultar columnas del Kanban por estado"
+        />
+      </div>
+
+      {/* Cuadrícula de Controles Estilo Imagen 2 con Nombres */}
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))',
+          gap: '12px',
+          alignItems: 'flex-end',
+        }}
+      >
+        <FilterSearchInput
+          id="filtro-incidente-busqueda"
+          label="Buscar incidente:"
           value={filtros.busqueda}
           onChange={handleBusquedaChange}
-          className={styles.filtroInput}
-          aria-label="Buscar incidentes"
+          placeholder="Código, calle o descripción..."
+          debounceMs={300}
         />
 
-        <select
-          value={filtros.prioridad}
+        <FilterSelect
+          id="filtro-incidente-delegacion"
+          label="Delegación Territorial:"
+          value={filtros.delegacion || 'TODAS'}
+          options={opcionesDelegacion}
+          onChange={handleDelegacionChange}
+        />
+
+        <FilterSelect
+          id="filtro-incidente-prioridad"
+          label="Nivel de Prioridad:"
+          value={filtros.prioridad || ''}
+          options={OPCIONES_PRIORIDAD}
           onChange={handlePrioridadChange}
-          className={styles.filtroSelect}
-          aria-label="Filtrar por nivel de prioridad"
-        >
-          <option value="">Todas las Prioridades</option>
-          <option value="CRITICA">Prioridad Crítica</option>
-          <option value="ALTA">Prioridad Alta</option>
-          <option value="MEDIA">Prioridad Media</option>
-          <option value="BAJA">Prioridad Baja</option>
-        </select>
+        />
 
-        <select
-          value={filtros.tipoAfectacion}
+        <FilterSelect
+          id="filtro-incidente-tipo"
+          label="Tipo de Afectación:"
+          value={filtros.tipoAfectacion || ''}
+          options={OPCIONES_AFECTACION}
           onChange={handleTipoChange}
-          className={styles.filtroSelect}
-          aria-label="Filtrar por tipo de afectación"
-        >
-          <option value="">Todos los Tipos de Afectación</option>
-          <option value="Inundación">Inundación</option>
-          <option value="Anegamiento">Anegamiento</option>
-          <option value="Caída de árbol">Caída de árbol</option>
-          <option value="Derrumbe">Derrumbe</option>
-          <option value="Corte de camino">Corte de camino</option>
-          <option value="Incendio">Incendio</option>
-          <option value="Peligro estructural">Peligro estructural</option>
-        </select>
+        />
 
-        <label
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '6px',
-            fontSize: 'var(--font-size-sm, 13px)',
-            fontWeight: 600,
-            cursor: 'pointer',
-            padding: '6px 10px',
-            backgroundColor: filtros.soloHoy ? 'var(--color-info-bg, #E0F2F1)' : 'var(--color-white, #FFFFFF)',
-            color: filtros.soloHoy ? 'var(--color-primary-teal, #1B6F7D)' : 'var(--color-text-dark, #2B2B2B)',
-            border: '1px solid var(--border-color-neutral-dark, #CCD2D9)',
-            borderRadius: 'var(--radius-none, 0px)',
-            height: '38px',
-          }}
-          title="Ver únicamente incidentes registrados en la jornada de hoy"
-        >
-          <input
-            type="checkbox"
-            checked={Boolean(filtros.soloHoy)}
-            onChange={(e) =>
-              onFiltrosChange({
-                ...filtros,
-                soloHoy: e.target.checked,
-              })
-            }
-            aria-label="Filtrar incidentes solo de hoy"
-          />
-          <span>Solo hoy</span>
-        </label>
+        <FilterSelect
+          id="filtro-incidente-origen"
+          label="Canal de Origen:"
+          value={filtros.fuenteOrigen || ''}
+          options={OPCIONES_ORIGEN}
+          onChange={handleOrigenChange}
+        />
 
-        {tieneFiltrosActivos && (
-          <Button
-            type="button"
-            variant="secondary"
-            size="sm"
-            onClick={handleLimpiar}
+        <div className={filterStyles.filterField} style={{ justifyContent: 'flex-end' }}>
+          <label
+            htmlFor="filtro-incidente-solo-hoy"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px',
+              fontSize: '13px',
+              fontWeight: 600,
+              cursor: 'pointer',
+              padding: '0 12px',
+              backgroundColor: filtros.soloHoy ? 'var(--color-bg-light, #ECEFF3)' : 'var(--color-white, #FFFFFF)',
+              color: 'var(--color-text-dark, #2B2B2B)',
+              border: '1px solid var(--border-color-neutral-dark, #CCD2D9)',
+              height: '38px',
+              boxSizing: 'border-box',
+              userSelect: 'none',
+              width: '100%',
+            }}
+            title="Ver únicamente incidentes registrados en la jornada de hoy"
           >
-            Limpiar filtros
-          </Button>
-        )}
+            <input
+              id="filtro-incidente-solo-hoy"
+              type="checkbox"
+              checked={Boolean(filtros.soloHoy)}
+              onChange={(e) =>
+                onFiltrosChange({
+                  ...filtros,
+                  soloHoy: e.target.checked,
+                })
+              }
+              aria-label="Filtrar incidentes solo de hoy"
+            />
+            <span>Solo hoy</span>
+          </label>
+        </div>
       </div>
 
-      <div>
-        <Button
-          type="button"
-          variant="secondary"
-          size="md"
-          onClick={onRecargar}
-          disabled={cargando}
-          aria-label="Actualizar tablero"
-        >
-          <RotateCw size={15} className={cargando ? styles.spinner : undefined} />
-          {cargando ? 'Actualizando...' : 'Actualizar Tablero'}
-        </Button>
-      </div>
-    </section>
+      {/* Barra de Chips Activos con nombres y botón de reseteo */}
+      <ActiveFilterChips
+        chips={chipsActivos}
+        onClearAll={handleLimpiar}
+        clearAllText="Limpiar todos los filtros"
+      />
+    </FilterBar>
   );
 };
+
+export default KanbanFiltros;
