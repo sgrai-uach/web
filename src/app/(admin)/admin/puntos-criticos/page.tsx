@@ -31,7 +31,7 @@ export default function PuntosCriticosPage() {
     busqueda: '',
     delegacionId: undefined,
     prioridad: undefined,
-    activo: undefined,
+    activo: true,
   });
 
   const {
@@ -70,10 +70,6 @@ export default function PuntosCriticosPage() {
     []
   );
 
-  const handleCambiarActivo = useCallback((activo?: boolean) => {
-    setFiltros((prev) => ({ ...prev, activo, pagina: 1 }));
-  }, []);
-
   const handleLimpiarFiltros = useCallback(() => {
     setFiltros({
       pagina: 1,
@@ -81,7 +77,7 @@ export default function PuntosCriticosPage() {
       busqueda: '',
       delegacionId: undefined,
       prioridad: undefined,
-      activo: undefined,
+      activo: true,
     });
   }, []);
 
@@ -109,8 +105,7 @@ export default function PuntosCriticosPage() {
   const esFiltroActivo =
     Boolean(filtros.busqueda && filtros.busqueda.trim() !== '') ||
     Boolean(filtros.delegacionId) ||
-    Boolean(filtros.prioridad) ||
-    filtros.activo !== undefined;
+    Boolean(filtros.prioridad);
 
   const accesoDenegado =
     statusCode === 403 || (!cargando && !tienePermiso && statusCode !== 200);
@@ -131,10 +126,13 @@ export default function PuntosCriticosPage() {
     );
   }
 
+  // En el catálogo operativo solo deben verse puntos críticos activos
+  const puntosActivos = puntosCriticos.filter((p) => p.activo !== false);
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6, 24px)' }}>
       <PuntosCriticosHeader
-        totalPuntos={meta.total}
+        totalPuntos={puntosActivos.length}
         tieneAcceso={true}
       />
 
@@ -142,17 +140,15 @@ export default function PuntosCriticosPage() {
         busqueda={filtros.busqueda || ''}
         delegacionId={filtros.delegacionId}
         prioridad={filtros.prioridad}
-        activo={filtros.activo}
         onCambiarBusqueda={handleCambiarBusqueda}
         onCambiarDelegacion={handleCambiarDelegacion}
         onCambiarPrioridad={handleCambiarPrioridad}
-        onCambiarActivo={handleCambiarActivo}
         onLimpiarFiltros={handleLimpiarFiltros}
       />
 
       <div style={{ display: 'flex', flexDirection: 'column' }}>
         <PuntosCriticosTabla
-          puntosCriticos={puntosCriticos}
+          puntosCriticos={puntosActivos}
           cargando={cargando}
           esFiltroActivo={esFiltroActivo}
           onLimpiarFiltros={handleLimpiarFiltros}
@@ -163,8 +159,8 @@ export default function PuntosCriticosPage() {
         <Pagination
           pagina={meta.pagina}
           limite={meta.limite}
-          total={meta.total}
-          totalPaginas={meta.totalPaginas}
+          total={puntosActivos.length}
+          totalPaginas={Math.max(1, Math.ceil(puntosActivos.length / (meta.limite || 10)))}
           onCambiarPagina={handleCambiarPagina}
           onCambiarLimite={handleCambiarLimite}
           nombreEntidad="puntos críticos"
