@@ -200,4 +200,55 @@ describe('PuntoCriticoForm (HU-58: Creación de Puntos Críticos)', () => {
       'Error al guardar'
     );
   });
+
+  it('no debe exponer códigos técnicos como DEL_NORTE en el selector de delegación', () => {
+    render(<PuntoCriticoForm />);
+
+    const selectDelegacion = screen.getByLabelText(/Delegación Territorial Asociada/i);
+    expect(selectDelegacion).toBeInTheDocument();
+    // Las opciones deben tener los nombres institucionales limpios
+    expect(screen.getByRole('option', { name: 'Delegación Municipal Norte' })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'Delegación Municipal Sur' })).toBeInTheDocument();
+    // No deben contener los códigos técnicos entre paréntesis
+    expect(screen.queryByText(/DEL_NORTE/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/DEL_SUR/i)).not.toBeInTheDocument();
+  });
+
+  it('debe destacar los campos inválidos y listar detalles cuando el servidor responde con errores de campos', async () => {
+    vi.spyOn(puntosCriticosService, 'crearPuntoCritico').mockRejectedValueOnce(
+      new puntosCriticosService.PuntoCriticoServiceError({
+        message: 'Datos de creación de punto crítico inválidos.',
+        statusCode: 400,
+        errors: [
+          { campo: 'nombre', mensaje: 'El nombre ya está registrado en el catastro comunal.' },
+          { campo: 'delegacion_id', mensaje: 'La delegación territorial indicada no es válida.' },
+        ],
+      })
+    );
+
+    render(<PuntoCriticoForm />);
+
+    fireEvent.change(screen.getByLabelText(/Nombre del Sector \/ Punto Crítico/i), {
+      target: { value: 'Sector Humedal Existente' },
+    });
+
+    const btnSubmit = screen.getByRole('button', { name: /Guardar Punto Crítico/i });
+    fireEvent.click(btnSubmit);
+
+    // Debe mostrar el aviso inline con el resumen y la lista de campos inválidos
+    expect(await screen.findByText(/Datos de creación de punto crítico inválidos/i)).toBeInTheDocument();
+    expect(screen.getByText(/Se detectaron los siguientes campos con errores o información inválida/i)).toBeInTheDocument();
+
+    // Debe listar los campos con sus etiquetas legibles
+    expect(screen.getByText(/Nombre del Sector \/ Punto Crítico:/i)).toBeInTheDocument();
+    expect(screen.getByText(/Delegación Territorial:/i)).toBeInTheDocument();
+
+    // Debe mostrar los mensajes específicos en el campo
+    expect(screen.getAllByText(/El nombre ya está registrado en el catastro comunal/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/La delegación territorial indicada no es válida/i).length).toBeGreaterThan(0);
+
+    // El input correspondiente debe tener el estilo de borde de error
+    const inputNombre = screen.getByLabelText(/Nombre del Sector \/ Punto Crítico/i);
+    expect(inputNombre).toHaveStyle({ borderWidth: '2px', borderStyle: 'solid' });
+  });
 });

@@ -13,6 +13,7 @@ import type {
   PuntoCriticoDetalle,
   CrearPuntoCriticoInput,
 } from '@/types/puntoCritico';
+import type { ApiFieldError } from '@/types/common';
 
 export interface PuntoCriticoFormData {
   nombre: string;
@@ -70,6 +71,7 @@ export function usePuntoCriticoForm() {
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
+  const [serverFieldErrors, setServerFieldErrors] = useState<ApiFieldError[]>([]);
   const [createdPunto, setCreatedPunto] = useState<PuntoCriticoDetalle | null>(null);
 
   // Delegaciones: dinámicas si están disponibles, con fallback local garantizado
@@ -123,12 +125,38 @@ export function usePuntoCriticoForm() {
     return errs;
   }, [formData]);
 
+  // Mapeo normalizado de errores de campos devueltos por el servidor
+  const serverFieldErrorMap = useMemo<Record<string, string>>(() => {
+    const map: Record<string, string> = {};
+    serverFieldErrors.forEach((err) => {
+      if (err.campo && err.mensaje) {
+        map[err.campo] = err.mensaje;
+      }
+    });
+
+    if (map.latitud && !map.lat) map.lat = map.latitud;
+    if (map.lat && !map.latitud) map.latitud = map.lat;
+    if (map.longitud && !map.lng) map.lng = map.longitud;
+    if (map.lng && !map.longitud) map.longitud = map.lng;
+    if (map.tipo_riesgo && !map.tipoRiesgo) map.tipoRiesgo = map.tipo_riesgo;
+    if (map.tipoRiesgo && !map.tipo_riesgo) map.tipo_riesgo = map.tipoRiesgo;
+    if (map.nivel_prioridad && !map.prioridad) map.prioridad = map.nivel_prioridad;
+    if (map.prioridad && !map.nivel_prioridad) map.nivel_prioridad = map.prioridad;
+    if (map.delegacion_id && !map.delegacionId) map.delegacionId = map.delegacion_id;
+    if (map.delegacionId && !map.delegacion_id) map.delegacion_id = map.delegacionId;
+    if (map.radio_afectacion_metros && !map.radioMetros) map.radioMetros = map.radio_afectacion_metros;
+    if (map.radioMetros && !map.radio_afectacion_metros) map.radio_afectacion_metros = map.radioMetros;
+
+    return map;
+  }, [serverFieldErrors]);
+
   const isValid = Object.keys(clientErrors).length === 0;
 
   const handleFieldChange = useCallback(
     <K extends keyof PuntoCriticoFormData>(field: K, value: PuntoCriticoFormData[K]) => {
       setFormData((prev) => ({ ...prev, [field]: value }));
       setServerError(null);
+      setServerFieldErrors([]);
     },
     []
   );
@@ -144,6 +172,8 @@ export function usePuntoCriticoForm() {
       lng: coords.longitud,
     }));
     setTouched((prev) => ({ ...prev, lat: true, lng: true }));
+    setServerError(null);
+    setServerFieldErrors([]);
   }, []);
 
   const handleCenterValdivia = useCallback(() => {
@@ -152,12 +182,15 @@ export function usePuntoCriticoForm() {
       lat: -39.81422,
       lng: -73.24589,
     }));
+    setServerError(null);
+    setServerFieldErrors([]);
   }, []);
 
   const handleReset = useCallback(() => {
     setFormData(INITIAL_FORM_DATA);
     setTouched({});
     setServerError(null);
+    setServerFieldErrors([]);
     setCreatedPunto(null);
   }, []);
 
@@ -182,6 +215,7 @@ export function usePuntoCriticoForm() {
 
       setIsSubmitting(true);
       setServerError(null);
+      setServerFieldErrors([]);
 
       try {
         const payload: CrearPuntoCriticoInput = {
@@ -217,12 +251,19 @@ export function usePuntoCriticoForm() {
           router.push(targetPath);
         }, 1200);
       } catch (err: unknown) {
-        const msg =
-          err instanceof PuntoCriticoServiceError
-            ? err.message
-            : (err as Error)?.message || 'Ocurrió un error inesperado al registrar el punto crítico.';
-        setServerError(msg);
-        showError(msg, 'Error al guardar');
+        if (err instanceof PuntoCriticoServiceError) {
+          const msg = err.message || 'Datos de creación de punto crítico inválidos.';
+          setServerError(msg);
+          const rawErrors = err.apiError.errors || err.apiError.detalles || [];
+          setServerFieldErrors(rawErrors);
+          showError(msg, 'Error al guardar');
+        } else {
+          const msg =
+            (err as Error)?.message || 'Ocurrió un error inesperado al registrar el punto crítico.';
+          setServerError(msg);
+          setServerFieldErrors([]);
+          showError(msg, 'Error al guardar');
+        }
       } finally {
         setIsSubmitting(false);
       }
@@ -234,6 +275,8 @@ export function usePuntoCriticoForm() {
     formData,
     touched,
     clientErrors,
+    serverFieldErrors,
+    serverFieldErrorMap,
     isValid,
     isSubmitting,
     serverError,

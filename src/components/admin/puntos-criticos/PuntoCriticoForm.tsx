@@ -9,6 +9,7 @@ import PuntoCriticoLocationSection from './PuntoCriticoLocationSection';
 import Button from '@/components/ui/Button';
 import InlineNotice from '@/components/ui/InlineNotice';
 import Heading from '@/components/ui/Heading';
+import { traducirNombreCampo } from '@/lib/utils/errorUtils';
 
 export default function PuntoCriticoForm() {
   const router = useRouter();
@@ -20,6 +21,8 @@ export default function PuntoCriticoForm() {
     formData,
     touched,
     clientErrors,
+    serverFieldErrors,
+    serverFieldErrorMap,
     isValid,
     isSubmitting,
     serverError,
@@ -32,6 +35,22 @@ export default function PuntoCriticoForm() {
     handleCenterValdivia,
     handleSubmit,
   } = usePuntoCriticoForm();
+
+  // Errores combinados (validación cliente y rechazo del servidor)
+  const errorNombre = (touched.nombre ? clientErrors.nombre : undefined) || serverFieldErrorMap.nombre;
+  const errorTipoRiesgo =
+    (touched.tipoRiesgoSelect || touched.otroTipoRiesgo ? clientErrors.tipoRiesgo : undefined) ||
+    serverFieldErrorMap.tipoRiesgo ||
+    serverFieldErrorMap.tipo_riesgo;
+  const errorPrioridad = serverFieldErrorMap.prioridad || serverFieldErrorMap.nivel_prioridad;
+  const errorDelegacion = serverFieldErrorMap.delegacionId || serverFieldErrorMap.delegacion_id;
+  const errorDescripcion = serverFieldErrorMap.descripcion;
+  const errorLat = (touched.lat ? clientErrors.lat : undefined) || serverFieldErrorMap.lat || serverFieldErrorMap.latitud;
+  const errorLng = (touched.lng ? clientErrors.lng : undefined) || serverFieldErrorMap.lng || serverFieldErrorMap.longitud;
+  const errorRadio =
+    (touched.radioMetros ? clientErrors.radioMetros : undefined) ||
+    serverFieldErrorMap.radioMetros ||
+    serverFieldErrorMap.radio_afectacion_metros;
 
   if (createdPunto) {
     return (
@@ -99,7 +118,22 @@ export default function PuntoCriticoForm() {
       {/* Alerta de Error de Servidor o Validación */}
       {serverError && (
         <InlineNotice variant="error" title="No fue posible guardar el punto crítico">
-          <div>{serverError}</div>
+          <div style={{ fontWeight: 600 }}>{serverError}</div>
+          {serverFieldErrors && serverFieldErrors.length > 0 && (
+            <div style={{ marginTop: '8px' }}>
+              <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-danger, #D32F2F)' }}>
+                Se detectaron los siguientes campos con errores o información inválida:
+              </div>
+              <ul style={{ margin: '6px 0 0 0', paddingLeft: '20px', fontSize: '13px' }}>
+                {serverFieldErrors.map((err, idx) => (
+                  <li key={idx} style={{ marginTop: '4px' }}>
+                    {err.campo ? <strong>{traducirNombreCampo(err.campo)}: </strong> : null}
+                    {err.mensaje}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </InlineNotice>
       )}
 
@@ -114,8 +148,11 @@ export default function PuntoCriticoForm() {
         activo={formData.activo}
         delegaciones={delegaciones}
         cargandoCatalogos={cargandoCatalogos}
-        errorNombre={touched.nombre ? clientErrors.nombre : undefined}
-        errorTipoRiesgo={touched.tipoRiesgoSelect || touched.otroTipoRiesgo ? clientErrors.tipoRiesgo : undefined}
+        errorNombre={errorNombre}
+        errorTipoRiesgo={errorTipoRiesgo}
+        errorPrioridad={errorPrioridad}
+        errorDelegacion={errorDelegacion}
+        errorDescripcion={errorDescripcion}
         onChangeNombre={(val) => handleFieldChange('nombre', val)}
         onChangeDescripcion={(val) => handleFieldChange('descripcion', val)}
         onChangeTipoRiesgoSelect={(val) => handleFieldChange('tipoRiesgoSelect', val)}
@@ -131,9 +168,9 @@ export default function PuntoCriticoForm() {
         lat={formData.lat}
         lng={formData.lng}
         radioMetros={formData.radioMetros}
-        errorLat={touched.lat ? clientErrors.lat : undefined}
-        errorLng={touched.lng ? clientErrors.lng : undefined}
-        errorRadio={touched.radioMetros ? clientErrors.radioMetros : undefined}
+        errorLat={errorLat}
+        errorLng={errorLng}
+        errorRadio={errorRadio}
         onChangeCoords={handleCoordsChange}
         onChangeLat={(val) => handleFieldChange('lat', val)}
         onChangeLng={(val) => handleFieldChange('lng', val)}

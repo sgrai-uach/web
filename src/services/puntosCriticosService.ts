@@ -247,13 +247,44 @@ export async function crearPuntoCritico(
   userId: string = DEFAULT_ADMIN_USER_ID
 ): Promise<PuntoCriticoDetalle> {
   try {
+    const numLat = typeof (payload as { latitud?: number; lat?: number }).latitud === 'number'
+      ? (payload as { latitud?: number }).latitud!
+      : (payload as { lat?: number }).lat;
+    const numLng = typeof (payload as { longitud?: number; lng?: number }).longitud === 'number'
+      ? (payload as { longitud?: number }).longitud!
+      : (payload as { lng?: number }).lng;
+    const tipoRiesgo = (payload as { tipoRiesgo?: string; tipo_riesgo?: string }).tipoRiesgo || payload.tipo_riesgo;
+    const prioridad = (payload as { prioridad?: "BAJA" | "MEDIA" | "ALTA" | "CRITICA"; nivel_prioridad?: "BAJA" | "MEDIA" | "ALTA" | "CRITICA" }).prioridad || payload.nivel_prioridad;
+    const delegacionId = (payload as { delegacionId?: string | null; delegacion_id?: string | null }).delegacionId !== undefined
+      ? (payload as { delegacionId?: string | null }).delegacionId
+      : payload.delegacion_id ?? null;
+    const radioMetros = payload.radio_afectacion_metros ?? (payload as { radioMetros?: number }).radioMetros ?? 50;
+
+    const requestBody = {
+      ...payload,
+      nombre: payload.nombre,
+      descripcion: payload.descripcion ?? null,
+      tipo_riesgo: tipoRiesgo,
+      tipoRiesgo: tipoRiesgo,
+      nivel_prioridad: prioridad,
+      prioridad: prioridad,
+      lat: numLat,
+      latitud: numLat,
+      lng: numLng,
+      longitud: numLng,
+      delegacion_id: delegacionId,
+      delegacionId: delegacionId,
+      radio_afectacion_metros: radioMetros,
+      activo: payload.activo ?? true,
+    };
+
     const { data, error, response } = await apiClient.POST('/api/puntos-criticos', {
       params: {
         header: {
           'x-user-id': userId,
         },
       },
-      body: payload,
+      body: requestBody as unknown as CrearPuntoCriticoInput,
     });
 
     if (response?.status === 201 && data) {
@@ -270,6 +301,8 @@ export async function crearPuntoCritico(
       throw new PuntoCriticoServiceError({
         message: apiErr.message || `Error HTTP ${statusCode}: No fue posible crear el punto crítico`,
         statusCode,
+        errors: apiErr.errors,
+        detalles: apiErr.detalles,
       });
     }
 

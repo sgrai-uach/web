@@ -156,7 +156,7 @@ describe('puntosCriticosService', () => {
             'x-user-id': '00000000-0000-4000-8000-000000000001',
           },
         },
-        body: payload,
+        body: expect.objectContaining(payload),
       })
     );
     expect(res.codigo).toBe('PC-SUR-001');

@@ -5,6 +5,7 @@ import { AlertTriangle, Tag, Layers, FileText } from 'lucide-react';
 import Heading from '@/components/ui/Heading';
 import { TIPOS_RIESGO_CANONICOS } from '@/types/puntoCritico';
 import type { PrioridadPuntoCritico } from '@/types/puntoCritico';
+import { obtenerNombreDelegacion } from '@/lib/utils/delegacionUtils';
 
 interface DelegacionOption {
   id: string;
@@ -24,6 +25,9 @@ interface PuntoCriticoDatosSectionProps {
   cargandoCatalogos?: boolean;
   errorNombre?: string;
   errorTipoRiesgo?: string;
+  errorPrioridad?: string;
+  errorDelegacion?: string;
+  errorDescripcion?: string;
   onChangeNombre: (val: string) => void;
   onChangeDescripcion: (val: string) => void;
   onChangeTipoRiesgoSelect: (val: string) => void;
@@ -46,6 +50,9 @@ export default function PuntoCriticoDatosSection({
   cargandoCatalogos = false,
   errorNombre,
   errorTipoRiesgo,
+  errorPrioridad,
+  errorDelegacion,
+  errorDescripcion,
   onChangeNombre,
   onChangeDescripcion,
   onChangeTipoRiesgoSelect,
@@ -58,7 +65,9 @@ export default function PuntoCriticoDatosSection({
   const inputStyle = (hasError?: boolean): React.CSSProperties => ({
     padding: '8px 12px',
     fontSize: '14px',
-    border: hasError ? '2px solid var(--color-danger, #D32F2F)' : '1px solid var(--border-color-neutral-dark, #CCD2D9)',
+    borderWidth: hasError ? '2px' : '1px',
+    borderStyle: 'solid',
+    borderColor: hasError ? 'var(--color-danger, #D32F2F)' : 'var(--border-color-neutral-dark, #CCD2D9)',
     borderRadius: 'var(--radius-none, 0px)',
     outline: 'none',
     backgroundColor: 'var(--color-white, #FFFFFF)',
@@ -195,13 +204,18 @@ export default function PuntoCriticoDatosSection({
             id="select-prioridad"
             value={nivelPrioridad}
             onChange={(e) => onChangeNivelPrioridad(e.target.value as PrioridadPuntoCritico)}
-            style={inputStyle()}
+            style={inputStyle(Boolean(errorPrioridad))}
           >
             <option value="BAJA">Baja - Monitoreo preventivo ordinario</option>
             <option value="MEDIA">Media - Vigilancia regular por eventos climáticos</option>
             <option value="ALTA">Alta - Riesgo significativo de anegamiento/corte</option>
             <option value="CRITICA">Crítica - Impacto directo e inminente en vidas o bienes</option>
           </select>
+          {errorPrioridad && (
+            <span style={{ fontSize: '12px', color: 'var(--color-danger, #D32F2F)', fontWeight: 600 }}>
+              {errorPrioridad}
+            </span>
+          )}
         </div>
 
         {/* Delegación Territorial */}
@@ -214,15 +228,20 @@ export default function PuntoCriticoDatosSection({
             value={delegacionId}
             onChange={(e) => onChangeDelegacionId(e.target.value)}
             disabled={cargandoCatalogos}
-            style={inputStyle()}
+            style={inputStyle(Boolean(errorDelegacion))}
           >
             <option value="">-- General Comunal / Sin Delegación --</option>
             {delegaciones.map((d) => (
               <option key={d.id} value={d.id}>
-                {d.nombre} {d.codigo ? `(${d.codigo})` : ''}
+                {obtenerNombreDelegacion(d.nombre || d.codigo, d.nombre)}
               </option>
             ))}
           </select>
+          {errorDelegacion && (
+            <span style={{ fontSize: '12px', color: 'var(--color-danger, #D32F2F)', fontWeight: 600 }}>
+              {errorDelegacion}
+            </span>
+          )}
         </div>
       </div>
 
@@ -240,12 +259,17 @@ export default function PuntoCriticoDatosSection({
           placeholder="Antecedentes históricos, vulnerabilidad del entorno, accesos o recomendaciones para patrullas en terreno..."
           maxLength={1000}
           style={{
-            ...inputStyle(),
+            ...inputStyle(Boolean(errorDescripcion)),
             resize: 'vertical',
             lineHeight: '1.4',
           }}
         />
-        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          {errorDescripcion ? (
+            <span style={{ fontSize: '12px', color: 'var(--color-danger, #D32F2F)', fontWeight: 600 }}>
+              {errorDescripcion}
+            </span>
+          ) : <span />}
           <span style={{ fontSize: '11px', color: 'var(--color-text-muted, #5F676E)' }}>
             {descripcion.length}/1000 caracteres
           </span>

@@ -2,7 +2,7 @@
 
 import React from 'react';
 import dynamic from 'next/dynamic';
-import { MapPin, Crosshair } from 'lucide-react';
+import { MapPin, Crosshair, AlertTriangle } from 'lucide-react';
 import Heading from '@/components/ui/Heading';
 import Button from '@/components/ui/Button';
 
@@ -62,7 +62,9 @@ export default function PuntoCriticoLocationSection({
   const inputStyle = (hasError?: boolean): React.CSSProperties => ({
     padding: '8px 12px',
     fontSize: '14px',
-    border: hasError ? '2px solid var(--color-danger, #D32F2F)' : '1px solid var(--border-color-neutral-dark, #CCD2D9)',
+    borderWidth: hasError ? '2px' : '1px',
+    borderStyle: 'solid',
+    borderColor: hasError ? 'var(--color-danger, #D32F2F)' : 'var(--border-color-neutral-dark, #CCD2D9)',
     borderRadius: 'var(--radius-none, 0px)',
     outline: 'none',
     backgroundColor: 'var(--color-white, #FFFFFF)',
@@ -201,8 +203,35 @@ export default function PuntoCriticoLocationSection({
         </div>
       </div>
 
+      {/* Alerta de coordenadas inválidas */}
+      {(errorLat || errorLng) && (
+        <div
+          role="alert"
+          style={{
+            padding: '10px 14px',
+            backgroundColor: 'var(--color-danger-bg, #FFEBEE)',
+            borderLeft: '4px solid var(--color-danger, #D32F2F)',
+            color: 'var(--color-danger, #D32F2F)',
+            fontSize: '13px',
+            fontWeight: 600,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+          }}
+        >
+          <AlertTriangle size={16} aria-hidden="true" />
+          <span>{errorLat || errorLng || 'Coordenadas geográficas inválidas o fuera de rango comunal.'}</span>
+        </div>
+      )}
+
       {/* Contenedor del Mapa Interactivo */}
-      <div style={{ marginTop: '4px' }}>
+      <div
+        style={{
+          marginTop: '4px',
+          border: errorLat || errorLng ? '2px solid var(--color-danger, #D32F2F)' : '1px solid var(--border-color-neutral, #DFE3E8)',
+          boxSizing: 'border-box',
+        }}
+      >
         <LocationPickerMap
           latitud={lat}
           longitud={lng}
