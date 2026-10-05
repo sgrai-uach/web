@@ -180,14 +180,15 @@ export const IncidentesKpiCards: React.FC<IncidentesKpiCardsProps> = ({
 
           <Button
             type="button"
-            variant="secondary"
+            variant="outline"
             size="sm"
             onClick={onRefrescar}
             disabled={cargando}
-            aria-label="Refrescar contadores de incidentes"
+            aria-label="Actualizar contadores de incidentes"
+            title="Actualizar datos"
           >
             <RotateCw size={13} className={cargando ? styles.spinner : undefined} />
-            <span>{cargando ? 'Cargando...' : 'Actualizar'}</span>
+            <span>{cargando ? 'Actualizando...' : 'Actualizar'}</span>
           </Button>
         </div>
       </div>

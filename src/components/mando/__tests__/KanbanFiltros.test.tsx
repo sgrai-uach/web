@@ -38,11 +38,10 @@ describe('KanbanFiltros', () => {
       />
     );
 
-    expect(screen.getByLabelText(/Buscar por código, calle o descripción/i)).toBeDefined();
+    expect(screen.getByLabelText(/Buscar incidente/i)).toBeDefined();
     expect(screen.getByLabelText(/Delegación Territorial/i)).toBeDefined();
     expect(screen.getByLabelText(/Nivel de Prioridad/i)).toBeDefined();
     expect(screen.getByLabelText(/Tipo de Afectación/i)).toBeDefined();
-    expect(screen.getByRole('button', { name: /Actualizar tablero/i })).toBeDefined();
     expect(screen.getByRole('button', { name: /En Atención/i })).toBeDefined();
     expect(screen.getByLabelText(/Filtrar incidentes solo de hoy/i)).toBeDefined();
   });
@@ -67,7 +66,7 @@ describe('KanbanFiltros', () => {
       />
     );
 
-    const input = screen.getByLabelText(/Buscar por código, calle o descripción/i);
+    const input = screen.getByLabelText(/Buscar incidente/i);
     fireEvent.change(input, { target: { value: 'Picarte' } });
 
     expect(onFiltrosChange).not.toHaveBeenCalled();
@@ -237,5 +236,63 @@ describe('KanbanFiltros', () => {
       delegacionId: undefined,
       soloHoy: false,
     });
+  });
+
+  it('debe mostrar los números de elementos en las opciones segmentadas cuando se provee contadoresPorEstado (F-06)', () => {
+    render(
+      <KanbanFiltros
+        filtros={{
+          busqueda: '',
+          delegacion: 'TODAS',
+          estado: 'TODOS',
+          prioridad: '',
+          tipoAfectacion: '',
+          fuenteOrigen: '',
+        }}
+        onFiltrosChange={vi.fn()}
+        contadoresPorEstado={{
+          TODOS: 15,
+          REPORTADO: 4,
+          VERIFICANDO: 3,
+          EN_ATENCION: 5,
+          RESUELTO: 2,
+          NO_ABORDABLE: 1,
+        }}
+      />
+    );
+
+    expect(screen.getByText('15')).toBeInTheDocument();
+    expect(screen.getByText('4')).toBeInTheDocument();
+    expect(screen.getByText('3')).toBeInTheDocument();
+    expect(screen.getByText('5')).toBeInTheDocument();
+    expect(screen.getByText('2')).toBeInTheDocument();
+    expect(screen.getByText('1')).toBeInTheDocument();
+  });
+
+  it('debe mostrar chip de "Solo hoy" y permitir desmarcarlo desde el chip (F-04)', () => {
+    const onFiltrosChange = vi.fn();
+
+    render(
+      <KanbanFiltros
+        filtros={{
+          busqueda: '',
+          delegacion: 'TODAS',
+          estado: 'TODOS',
+          prioridad: '',
+          tipoAfectacion: '',
+          fuenteOrigen: '',
+          soloHoy: true,
+        }}
+        onFiltrosChange={onFiltrosChange}
+      />
+    );
+
+    expect(screen.getByText(/Jornada: Solo hoy/i)).toBeInTheDocument();
+    const btnQuitar = screen.getByTitle(/Quitar filtro de jornada/i);
+    fireEvent.click(btnQuitar);
+
+    expect(onFiltrosChange).toHaveBeenCalledWith(
+      expect.objectContaining({ soloHoy: false })
+    );
   });
 });

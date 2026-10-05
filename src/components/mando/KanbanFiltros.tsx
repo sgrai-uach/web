@@ -1,8 +1,6 @@
 'use client';
 
 import React from 'react';
-import Button from '@/components/ui/Button';
-import { RotateCw, ClipboardList } from 'lucide-react';
 import type { FiltrosKanban } from '@/hooks/useIncidentesKanban';
 import type { PrioridadIncidente } from '@/services/incidentesService';
 import { useCatalogos } from '@/hooks/useCatalogos';
@@ -14,14 +12,16 @@ import {
   ActiveFilterChips,
   type ActiveChipItem,
 } from '@/components/common/filters';
+import filterStyles from '@/components/common/filters/FilterComponents.module.css';
 
 interface KanbanFiltrosProps {
   filtros: FiltrosKanban;
   onFiltrosChange: (nuevosFiltros: FiltrosKanban) => void;
   onLimpiarFiltros?: () => void;
-  onRecargar: () => void;
-  cargando: boolean;
+  onRecargar?: () => void;
+  cargando?: boolean;
   onAbrirMisiones?: () => void;
+  contadoresPorEstado?: Record<string, number>;
 }
 
 const OPCIONES_ESTADO = [
@@ -64,11 +64,16 @@ export const KanbanFiltros: React.FC<KanbanFiltrosProps> = ({
   filtros,
   onFiltrosChange,
   onLimpiarFiltros,
-  onRecargar,
-  cargando,
-  onAbrirMisiones,
+  contadoresPorEstado,
 }) => {
   const { nombresDelegaciones } = useCatalogos();
+
+  const opcionesEstadoConContador = React.useMemo(() => {
+    return OPCIONES_ESTADO.map((opt) => ({
+      ...opt,
+      contador: contadoresPorEstado ? contadoresPorEstado[opt.valor] ?? 0 : undefined,
+    }));
+  }, [contadoresPorEstado]);
 
   const handleBusquedaChange = (valor: string) => {
     onFiltrosChange({
@@ -211,72 +216,12 @@ export const KanbanFiltros: React.FC<KanbanFiltrosProps> = ({
       titulo="Filtros del Tablero"
       storageKey="sgrai:filtros:mando:colapsado"
       totalFiltrosActivos={chipsActivos.length}
-      headerActions={
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-          <label
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              fontSize: 'var(--font-size-sm, 13px)',
-              fontWeight: 600,
-              cursor: 'pointer',
-              padding: '4px 8px',
-              backgroundColor: filtros.soloHoy ? 'var(--color-info-bg, #E0F2F1)' : 'var(--color-white, #FFFFFF)',
-              color: filtros.soloHoy ? 'var(--color-primary-teal, #1B6F7D)' : 'var(--color-text-dark, #2B2B2B)',
-              border: '1px solid var(--border-color-neutral-dark, #CCD2D9)',
-              borderRadius: 'var(--radius-none, 0px)',
-              height: '32px',
-            }}
-            title="Ver únicamente incidentes registrados en la jornada de hoy"
-          >
-            <input
-              type="checkbox"
-              checked={Boolean(filtros.soloHoy)}
-              onChange={(e) =>
-                onFiltrosChange({
-                  ...filtros,
-                  soloHoy: e.target.checked,
-                })
-              }
-              aria-label="Filtrar incidentes solo de hoy"
-            />
-            <span>Solo hoy</span>
-          </label>
-
-          {onAbrirMisiones && (
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={onAbrirMisiones}
-              title="Abrir panel de misiones operativas"
-            >
-              <ClipboardList size={14} aria-hidden="true" />
-              <span>Misiones</span>
-            </Button>
-          )}
-
-          <Button
-            type="button"
-            variant="secondary"
-            size="sm"
-            onClick={onRecargar}
-            disabled={cargando}
-            aria-label="Actualizar tablero"
-            title="Refrescar estado de incidentes"
-          >
-            <RotateCw size={14} className={cargando ? 'animate-spin' : undefined} aria-hidden="true" />
-            <span>{cargando ? 'Actualizando...' : 'Actualizar'}</span>
-          </Button>
-        </div>
-      }
     >
-      {/* Botonera de Estados para enfocar u ocultar columnas */}
+      {/* Botonera de Estados para enfocar u ocultar columnas con contadores */}
       <div>
         <SegmentedButtonGroup
           label="Visualización de Columnas por Estado:"
-          options={OPCIONES_ESTADO}
+          options={opcionesEstadoConContador}
           value={filtros.estado || 'TODOS'}
           onChange={handleEstadoChange}
           ariaLabel="Filtrar u ocultar columnas del Kanban por estado"
@@ -287,17 +232,17 @@ export const KanbanFiltros: React.FC<KanbanFiltrosProps> = ({
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))',
           gap: '12px',
           alignItems: 'flex-end',
         }}
       >
         <FilterSearchInput
           id="filtro-incidente-busqueda"
-          label="Buscar por código, calle o descripción:"
+          label="Buscar incidente:"
           value={filtros.busqueda}
           onChange={handleBusquedaChange}
-          placeholder="Ej: INC-5829, Picarte, Inundación..."
+          placeholder="Código, calle o descripción..."
           debounceMs={300}
         />
 
@@ -332,6 +277,43 @@ export const KanbanFiltros: React.FC<KanbanFiltrosProps> = ({
           options={OPCIONES_ORIGEN}
           onChange={handleOrigenChange}
         />
+
+        <div className={filterStyles.filterField} style={{ justifyContent: 'flex-end' }}>
+          <label
+            htmlFor="filtro-incidente-solo-hoy"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px',
+              fontSize: '13px',
+              fontWeight: 600,
+              cursor: 'pointer',
+              padding: '0 12px',
+              backgroundColor: filtros.soloHoy ? 'var(--color-bg-light, #ECEFF3)' : 'var(--color-white, #FFFFFF)',
+              color: 'var(--color-text-dark, #2B2B2B)',
+              border: '1px solid var(--border-color-neutral-dark, #CCD2D9)',
+              height: '38px',
+              boxSizing: 'border-box',
+              userSelect: 'none',
+              width: '100%',
+            }}
+            title="Ver únicamente incidentes registrados en la jornada de hoy"
+          >
+            <input
+              id="filtro-incidente-solo-hoy"
+              type="checkbox"
+              checked={Boolean(filtros.soloHoy)}
+              onChange={(e) =>
+                onFiltrosChange({
+                  ...filtros,
+                  soloHoy: e.target.checked,
+                })
+              }
+              aria-label="Filtrar incidentes solo de hoy"
+            />
+            <span>Solo hoy</span>
+          </label>
+        </div>
       </div>
 
       {/* Barra de Chips Activos con nombres y botón de reseteo */}

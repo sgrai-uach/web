@@ -117,7 +117,11 @@ export const MisionesFiltros: React.FC<MisionesFiltrosProps> = ({
   }
 
   return (
-    <FilterBar collapsibleOnMobile totalFiltrosActivos={chipsActivos.length}>
+    <FilterBar
+      titulo="Filtros de Misiones"
+      storageKey="sgrai:filtros:misiones:colapsado"
+      totalFiltrosActivos={chipsActivos.length}
+    >
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
         <SegmentedButtonGroup
           label="Estado Operativo de Misión:"
@@ -129,14 +133,15 @@ export const MisionesFiltros: React.FC<MisionesFiltrosProps> = ({
 
         <Button
           type="button"
-          variant="secondary"
-          size="md"
+          variant="outline"
+          size="sm"
           onClick={onRefrescar}
           disabled={cargando}
-          title="Refrescar listado de misiones"
+          title="Actualizar datos"
+          aria-label="Actualizar datos"
         >
           <RotateCw size={14} className={cargando ? 'animate-spin' : undefined} aria-hidden="true" />
-          <span>{cargando ? 'Actualizando...' : 'Refrescar'}</span>
+          <span>{cargando ? 'Actualizando...' : 'Actualizar'}</span>
         </Button>
       </div>
 

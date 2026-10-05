@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useIncidentesKanban } from '@/hooks/useIncidentesKanban';
 import { useIncidentesKpis } from '@/hooks/useIncidentesKpis';
 import type { EstadoIncidente } from '@/services/incidentesService';
@@ -29,7 +29,6 @@ export const KanbanBoard: React.FC = () => {
     setUserId,
     columnas,
     paginacionColumna,
-    cargando,
     cargandoColumna,
     error,
     esForbidden,
@@ -109,6 +108,16 @@ export const KanbanBoard: React.FC = () => {
     recargar();
   };
 
+  const contadoresPorEstado = useMemo(() => {
+    const mapa: Record<string, number> = {
+      TODOS: totalIncidentesVisibles,
+    };
+    Object.entries(columnas).forEach(([estado, items]) => {
+      mapa[estado] = items.length;
+    });
+    return mapa;
+  }, [columnas, totalIncidentesVisibles]);
+
   return (
     <div className={styles.pageContainer}>
       <KanbanHeader
@@ -116,6 +125,7 @@ export const KanbanBoard: React.FC = () => {
         conectado={conectado}
         userId={userId}
         setUserId={setUserId}
+        onAbrirMisiones={() => setMisionesModalAbierto(true)}
       />
 
       {esForbidden ? (
@@ -138,9 +148,7 @@ export const KanbanBoard: React.FC = () => {
             filtros={filtros}
             onFiltrosChange={setFiltros}
             onLimpiarFiltros={limpiarFiltros}
-            onRecargar={handleRefrescoCompleto}
-            cargando={cargando}
-            onAbrirMisiones={() => setMisionesModalAbierto(true)}
+            contadoresPorEstado={contadoresPorEstado}
           />
 
           {ultimoEvento && (

@@ -4,6 +4,8 @@ import React from 'react';
 import { Breadcrumbs } from '@/components/common/Breadcrumbs';
 import ConnectionStatusBadge from '@/components/common/ConnectionStatusBadge';
 import PageTitleCard from '@/components/common/PageTitleCard';
+import Button from '@/components/ui/Button';
+import { ClipboardList } from 'lucide-react';
 import styles from '@/styles/mando.module.css';
 
 interface KanbanHeaderProps {
@@ -11,11 +13,13 @@ interface KanbanHeaderProps {
   conectado: boolean;
   userId?: string;
   setUserId?: (id: string) => void;
+  onAbrirMisiones?: () => void;
 }
 
 export const KanbanHeader: React.FC<KanbanHeaderProps> = ({
   totalIncidentesVisibles,
   conectado,
+  onAbrirMisiones,
 }) => {
   return (
     <div className={styles.mandoHeaderWrapper}>
@@ -38,6 +42,20 @@ export const KanbanHeader: React.FC<KanbanHeaderProps> = ({
           </div>
         }
         description={`Dirección de Gestión de Riesgos de Desastres — Tablero Táctico ICS (${totalIncidentesVisibles} ${totalIncidentesVisibles === 1 ? 'incidente cargado' : 'incidentes cargados'})`}
+        actionSlot={
+          onAbrirMisiones ? (
+            <Button
+              type="button"
+              variant="primary"
+              size="md"
+              icon={<ClipboardList size={16} />}
+              onClick={onAbrirMisiones}
+              title="Abrir panel de misiones operativas"
+            >
+              Misiones Operativas
+            </Button>
+          ) : undefined
+        }
       />
     </div>
   );
