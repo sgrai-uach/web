@@ -3,7 +3,10 @@
 import React, { useState, useMemo } from 'react';
 import { useIncidentesKanban } from '@/hooks/useIncidentesKanban';
 import { useIncidentesKpis } from '@/hooks/useIncidentesKpis';
+import { usePrevencionSocket } from '@/hooks/usePrevencionSocket';
+import { useToast } from '@/components/ui/Toast';
 import type { EstadoIncidente } from '@/services/incidentesService';
+import type { EventoPrevencionDTO } from '@/types/evento-prevencion';
 import { KanbanHeader } from './KanbanHeader';
 import { KanbanFiltros } from './KanbanFiltros';
 import { KanbanColumn } from './KanbanColumn';
@@ -14,6 +17,8 @@ import { Zap } from 'lucide-react';
 import InlineNotice from '@/components/ui/InlineNotice';
 import styles from '@/styles/mando.module.css';
 import { MisionesModal } from './misiones/MisionesModal';
+import { ModalCrearEventoPrevencion } from './ModalCrearEventoPrevencion';
+import { MapaOperativoMando } from './MapaOperativoMando';
 
 const TITULOS_COLUMNAS = {
   REPORTADO: 'Reportado',
@@ -45,7 +50,11 @@ export const KanbanBoard: React.FC = () => {
     setIncidenteSeleccionadoId,
   } = useIncidentesKanban();
 
+  const { showInfo } = useToast();
   const [misionesModalAbierto, setMisionesModalAbierto] = useState<boolean>(false);
+  const [modalPrevencionAbierto, setModalPrevencionAbierto] = useState<boolean>(false);
+  const [vistaActiva, setVistaActiva] = useState<'kanban' | 'mapa'>('kanban');
+  const [eventosPrevencion, setEventosPrevencion] = useState<EventoPrevencionDTO[]>([]);
   const [estadoEnfocado, setEstadoEnfocado] = useState<EstadoIncidente | null>(null);
 
   const {
@@ -57,6 +66,26 @@ export const KanbanBoard: React.FC = () => {
     refrescarKpis,
     conectado: conectadoKpis,
   } = useIncidentesKpis({ userId });
+
+  // Hook de tiempo real para escuchar eventos de prevención despachados
+  usePrevencionSocket({
+    onEventoCreado: (nuevoEvento) => {
+      setEventosPrevencion((prev) => {
+        const existe = prev.some((e) => e.id === nuevoEvento.id);
+        if (existe) return prev;
+        return [nuevoEvento, ...prev];
+      });
+      showInfo(
+        `Nuevo evento de prevención en ${nuevoEvento.sector || 'Valdivia'}: ${nuevoEvento.codigo}`,
+        'Operación Preventiva en Vivo'
+      );
+    },
+  });
+
+  // Lista plana de incidentes para visualizar en el mapa táctico
+  const todosLosIncidentes = useMemo(() => {
+    return Object.values(columnas).flat();
+  }, [columnas]);
 
   // Manejo de cambio de delegación sincronizado entre KPIs y Kanban
   const handleDelegacionChange = (nuevaDelegacionId: string) => {
@@ -126,6 +155,9 @@ export const KanbanBoard: React.FC = () => {
         userId={userId}
         setUserId={setUserId}
         onAbrirMisiones={() => setMisionesModalAbierto(true)}
+        onOpenCrearPrevencion={() => setModalPrevencionAbierto(true)}
+        vistaActiva={vistaActiva}
+        onCambiarVista={setVistaActiva}
       />
 
       {esForbidden ? (
@@ -178,24 +210,35 @@ export const KanbanBoard: React.FC = () => {
             </div>
           )}
 
-          <main className={styles.kanbanArea}>
-            <div className={styles.kanbanBoard}>
-              {estadosVisibles.map((estado) => (
-                <KanbanColumn
-                  key={estado}
-                  id={`kanban-col-${estado}`}
-                  estado={estado}
-                  titulo={TITULOS_COLUMNAS[estado]}
-                  incidentes={columnas[estado]}
-                  paginacion={paginacionColumna[estado]}
-                  cargandoMas={cargandoColumna[estado]}
-                  resaltada={estadoEnfocado === estado}
-                  onCargarMas={cargarMas}
-                  onSeleccionarIncidente={(inc) => setIncidenteSeleccionadoId(inc.id)}
-                />
-              ))}
-            </div>
-          </main>
+          {vistaActiva === 'kanban' ? (
+            <main className={styles.kanbanArea}>
+              <div className={styles.kanbanBoard}>
+                {estadosVisibles.map((estado) => (
+                  <KanbanColumn
+                    key={estado}
+                    id={`kanban-col-${estado}`}
+                    estado={estado}
+                    titulo={TITULOS_COLUMNAS[estado]}
+                    incidentes={columnas[estado]}
+                    paginacion={paginacionColumna[estado]}
+                    cargandoMas={cargandoColumna[estado]}
+                    resaltada={estadoEnfocado === estado}
+                    onCargarMas={cargarMas}
+                    onSeleccionarIncidente={(inc) => setIncidenteSeleccionadoId(inc.id)}
+                  />
+                ))}
+              </div>
+            </main>
+          ) : (
+            <main style={{ marginTop: 'var(--space-4, 16px)' }}>
+              <MapaOperativoMando
+                incidentes={todosLosIncidentes}
+                eventosPrevencion={eventosPrevencion}
+                onSelectIncidente={(incId) => setIncidenteSeleccionadoId(incId)}
+                onCrearPrevencion={() => setModalPrevencionAbierto(true)}
+              />
+            </main>
+          )}
 
           <IncidenteDetalleDrawer
             incidenteId={incidenteSeleccionadoId}
@@ -208,8 +251,19 @@ export const KanbanBoard: React.FC = () => {
             onClose={() => setMisionesModalAbierto(false)}
             userId={userId}
           />
+
+          <ModalCrearEventoPrevencion
+            isOpen={modalPrevencionAbierto}
+            onClose={() => setModalPrevencionAbierto(false)}
+            userId={userId}
+            onSuccess={(eventoCreado) => {
+              setEventosPrevencion((prev) => [eventoCreado, ...prev]);
+              handleRefrescoCompleto();
+            }}
+          />
         </>
       )}
     </div>
   );
 };
+
