@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Copy, Check, ExternalLink, MapPin, AlertCircle, Pencil } from 'lucide-react';
+import { Copy, Check, ExternalLink, MapPin, AlertCircle, Pencil, Trash2 } from 'lucide-react';
 import type { PuntoCriticoItem, PrioridadPuntoCritico } from '@/types/puntoCritico';
 import Button from '@/components/ui/Button';
 
@@ -10,6 +10,8 @@ interface PuntoCriticoRowProps {
   indice: number;
   onSeleccionar?: (punto: PuntoCriticoItem) => void;
   onEditar?: (punto: PuntoCriticoItem) => void;
+  onEliminar?: (punto: PuntoCriticoItem) => void;
+  puedeEliminar?: boolean;
 }
 
 const PRIORIDAD_CONFIG: Record<
@@ -47,6 +49,8 @@ export default function PuntoCriticoRow({
   indice,
   onSeleccionar,
   onEditar,
+  onEliminar,
+  puedeEliminar = true,
 }: PuntoCriticoRowProps) {
   const esFilaPar = indice % 2 === 0;
   const [copiado, setCopiado] = useState(false);
@@ -276,28 +280,58 @@ export default function PuntoCriticoRow({
         </span>
       </td>
 
-      {/* Acción de Edición (HU-55) */}
+      {/* Acciones de Edición y Desactivación (HU-55 / HU-56) */}
       <td
         style={{
-          padding: '14px 16px',
+          padding: '10px 16px',
           verticalAlign: 'middle',
           textAlign: 'center',
         }}
       >
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={(e) => {
-            e.stopPropagation();
-            onEditar?.(punto);
-          }}
-          icon={<Pencil size={13} aria-hidden="true" />}
-          title={`Editar características de ${punto.codigo}`}
-          aria-label={`Editar ${punto.codigo}`}
-        >
-          Editar
-        </Button>
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={(e) => {
+              e.stopPropagation();
+              onEditar?.(punto);
+            }}
+            icon={<Pencil size={13} aria-hidden="true" />}
+            title={`Editar características de ${punto.codigo}`}
+            aria-label={`Editar ${punto.codigo}`}
+          >
+            Editar
+          </Button>
+
+          {punto.activo ? (
+            <Button
+              type="button"
+              variant="destructive"
+              size="sm"
+              onClick={(e) => {
+                e.stopPropagation();
+                onEliminar?.(punto);
+              }}
+              disabled={!puedeEliminar}
+              title={puedeEliminar ? 'Eliminar punto crítico' : 'Sin permisos para eliminar'}
+              icon={<Trash2 size={13} aria-hidden="true" />}
+              aria-label={`Eliminar punto crítico ${punto.codigo}`}
+            >
+              Eliminar
+            </Button>
+          ) : (
+            <span
+              style={{
+                fontSize: '12px',
+                color: 'var(--color-text-muted, #5F676E)',
+                fontStyle: 'italic',
+              }}
+            >
+              Inactivo
+            </span>
+          )}
+        </div>
       </td>
     </tr>
   );

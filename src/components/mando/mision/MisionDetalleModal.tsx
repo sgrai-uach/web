@@ -4,7 +4,6 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { AlertTriangle, ShieldAlert, FileQuestion } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import Heading from '@/components/ui/Heading';
-import InlineNotice from '@/components/ui/InlineNotice';
 import {
   obtenerDetalleMision,
   DEFAULT_ENCARGADO_ID,

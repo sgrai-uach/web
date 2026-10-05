@@ -4,6 +4,7 @@ import type {
   ListarPuntosCriticosResponse,
   FiltrosPuntosCriticosState,
   PuntoCriticoItem,
+  EliminarPuntoCriticoResponse,
   PuntoCriticoDetalleResponse,
   ActualizarPuntoCriticoDTO,
 } from '@/types/puntoCritico';
@@ -129,6 +130,9 @@ export function filtrarPuntosCriticosMock(
 
   if (filtros.activo !== undefined) {
     resultado = resultado.filter((p) => p.activo === filtros.activo);
+  } else {
+    // Por defecto únicamente mostrar puntos críticos activos (HU-56)
+    resultado = resultado.filter((p) => p.activo !== false);
   }
 
   if (filtros.prioridad) {
@@ -260,7 +264,6 @@ export async function getPuntoCriticoById(
     });
 
     if (response?.status === 200 && data) {
-      // Si la API envuelve en { data: ... } o devuelve el objeto directamente
       return (data.data || data) as PuntoCriticoDetalleResponse;
     }
 
@@ -451,3 +454,113 @@ export async function actualizarPuntoCritico(
   }
 }
 
+/**
+ * Desactiva lógicamente un punto crítico del catálogo operativo (HU-56).
+ * Valida que el usuario tenga rol Administrador / permiso puntos_criticos:eliminar
+ * y que no existan misiones preventivas activas vinculadas (Error 409 Conflict).
+ */
+export async function eliminarPuntoCritico(
+  id: string,
+  userId: string = DEFAULT_ADMIN_USER_ID,
+  signal?: AbortSignal
+): Promise<EliminarPuntoCriticoResponse> {
+  try {
+    const { data, error, response } = await apiClient.DELETE('/api/puntos-criticos/{id}', {
+      params: {
+        path: { id },
+        header: {
+          'x-user-id': userId,
+        },
+      },
+      signal,
+    });
+
+    if (response?.status === 200 && data) {
+      // Sincronizar catálogo mock local
+      const mockIdx = PUNTOS_CRITICOS_MOCK.findIndex((p) => p.id === id);
+      if (mockIdx !== -1) {
+        PUNTOS_CRITICOS_MOCK[mockIdx].activo = false;
+        PUNTOS_CRITICOS_MOCK[mockIdx].estadoTexto = 'Inactivo';
+      }
+      return data;
+    }
+
+    if (error || (response && response.status >= 400)) {
+      const statusCode = response?.status ?? 500;
+      const apiErr = formatApiError({
+        ...(typeof error === 'object' && error !== null ? error : {}),
+        status: statusCode,
+      });
+
+      let mensaje = apiErr.message;
+      if (statusCode === 409) {
+        mensaje =
+          apiErr.message ||
+          'No es posible eliminar el punto crítico porque cuenta con misiones preventivas activas o patrullas asignadas en terreno.';
+      } else if (statusCode === 403) {
+        mensaje =
+          apiErr.message ||
+          'Acceso denegado: No cuenta con permisos para eliminar puntos críticos.';
+      } else if (statusCode === 404) {
+        mensaje = apiErr.message || 'El punto crítico seleccionado no existe o ya no está disponible.';
+      }
+
+      throw new PuntoCriticoServiceError({
+        message: mensaje,
+        statusCode,
+      });
+    }
+
+    throw new PuntoCriticoServiceError({
+      message: `Error HTTP ${response?.status ?? 500}: Fallo al desactivar punto crítico`,
+      statusCode: response?.status ?? 500,
+    });
+  } catch (err: unknown) {
+    if ((err as Error)?.name === 'AbortError') {
+      throw err;
+    }
+
+    if (err instanceof PuntoCriticoServiceError) {
+      throw err;
+    }
+
+    const isNetworkError =
+      err instanceof TypeError &&
+      (err.message.includes('fetch') || err.message.includes('Failed to fetch') || err.message.includes('NetworkError'));
+
+    if (isNetworkError) {
+      // Si el punto crítico tiene misiones preventivas activas (ej. Collico), simular bloqueo 409 Conflict
+      if (id === '40000000-0000-4000-8000-000000000002') {
+        throw new PuntoCriticoServiceError({
+          message:
+            "No es posible eliminar el punto crítico 'Sector Collico - Borde Río Calle Calle' porque cuenta con 1 misión(es) preventivas activas o patrullas asignadas en terreno (Misiones asociadas: MIS-PREV-2026-001).",
+          statusCode: 409,
+        });
+      }
+
+      const punto = PUNTOS_CRITICOS_MOCK.find((p) => p.id === id);
+      if (!punto) {
+        throw new PuntoCriticoServiceError({
+          message: 'El punto crítico seleccionado no existe o ya no está disponible.',
+          statusCode: 404,
+        });
+      }
+
+      punto.activo = false;
+      punto.estadoTexto = 'Inactivo';
+
+      return {
+        message: 'Punto crítico desactivado exitosamente del sistema.',
+        id: punto.id,
+        codigo: punto.codigo,
+        nombre: punto.nombre,
+        activo: false,
+        eliminadoEn: new Date().toISOString(),
+        eliminadoPorId: userId,
+      };
+    }
+
+    const formatted = formatApiError(err);
+    throw new PuntoCriticoServiceError(formatted);
+  }
+}

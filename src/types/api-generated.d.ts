@@ -93,6 +93,98 @@ export interface paths {
             };
         };
     };
+    "/api/puntos-criticos/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Desactivar (borrado lógico) de un punto crítico
+         * @description Desactiva un punto crítico del catálogo operativo mediante borrado lógico, registrando fecha y usuario auditor, siempre que no tenga misiones preventivas o patrullas activas asignadas.
+         */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: {
+                    "x-user-id"?: string;
+                    authorization?: string;
+                };
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            message: string;
+                            id: string;
+                            codigo: string;
+                            nombre: string;
+                            activo: boolean;
+                            eliminadoEn?: string;
+                            eliminadoPorId?: string;
+                        };
+                    };
+                };
+                400: {
+                    content: {
+                        "application/json": {
+                            message: string;
+                            statusCode?: number;
+                        };
+                    };
+                };
+                401: {
+                    content: {
+                        "application/json": {
+                            message: string;
+                            statusCode?: number;
+                        };
+                    };
+                };
+                403: {
+                    content: {
+                        "application/json": {
+                            message: string;
+                            statusCode?: number;
+                        };
+                    };
+                };
+                404: {
+                    content: {
+                        "application/json": {
+                            message: string;
+                            statusCode?: number;
+                        };
+                    };
+                };
+                409: {
+                    content: {
+                        "application/json": {
+                            message: string;
+                            statusCode?: number;
+                        };
+                    };
+                };
+                500: {
+                    content: {
+                        "application/json": {
+                            message: string;
+                            statusCode?: number;
+                        };
+                    };
+                };
+            };
+        };
+    };
     "/api/recursos": {
         parameters: {
             query?: never;

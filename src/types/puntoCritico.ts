@@ -31,6 +31,21 @@ export interface FiltrosPuntosCriticosState {
   busqueda?: string;
 }
 
+/* ==========================================================================
+   Tipos para Eliminación / Desactivación Lógica (HU-56)
+   ========================================================================== */
+
+export type EliminarPuntoCriticoResponse = NonNullable<
+  paths['/api/puntos-criticos/{id}']['delete']['responses'][200]['content']['application/json']
+>;
+
+export interface PuntoCriticoEliminadoSocketPayload {
+  id: string;
+  codigo: string;
+  nombre: string;
+  eliminadoPorId?: string;
+  eliminadoEn?: string;
+}
 
 /* ==========================================================================
    Tipos para Edición de Puntos Críticos (HU-55)
@@ -83,4 +98,3 @@ export interface PuntoCriticoFormErrors {
   longitud?: string;
   general?: string;
 }
-
