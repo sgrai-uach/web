@@ -17,19 +17,21 @@ export function useAutoRedirectTimer({
   const router = useRouter();
   const [timeLeft, setTimeLeft] = useState<number>(durationMs);
   const [isCancelled, setIsCancelled] = useState<boolean>(false);
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const hasRedirectedRef = useRef<boolean>(false);
 
   useEffect(() => {
     if (isCancelled) {
-      if (timerRef.current) clearInterval(timerRef.current);
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
       return;
     }
 
     timerRef.current = setInterval(() => {
       setTimeLeft((prev) => {
         if (prev <= tickMs) {
-          if (timerRef.current) clearInterval(timerRef.current);
-          router.push(redirectPath);
           return 0;
         }
         return prev - tickMs;
@@ -37,17 +39,39 @@ export function useAutoRedirectTimer({
     }, tickMs);
 
     return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
     };
-  }, [isCancelled, redirectPath, router, tickMs]);
+  }, [isCancelled, tickMs]);
+
+  useEffect(() => {
+    if (timeLeft <= 0 && !isCancelled && !hasRedirectedRef.current) {
+      hasRedirectedRef.current = true;
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+      router.push(redirectPath);
+    }
+  }, [timeLeft, isCancelled, redirectPath, router]);
 
   const cancel = useCallback(() => {
     setIsCancelled(true);
-    if (timerRef.current) clearInterval(timerRef.current);
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
   }, []);
 
   const triggerRedirectNow = useCallback(() => {
-    if (timerRef.current) clearInterval(timerRef.current);
+    if (hasRedirectedRef.current) return;
+    hasRedirectedRef.current = true;
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
     router.push(redirectPath);
   }, [redirectPath, router]);
 

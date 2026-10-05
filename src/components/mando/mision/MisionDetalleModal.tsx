@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState } from 'react';
 import { AlertTriangle, ShieldAlert, FileQuestion } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import Heading from '@/components/ui/Heading';
@@ -33,36 +33,34 @@ export const MisionDetalleModal: React.FC<MisionDetalleModalProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [codigoError, setCodigoError] = useState<number | undefined>(undefined);
 
-  const cargarMision = useCallback(async () => {
+  useEffect(() => {
+    let activo = true;
     if (!misionId) return;
 
-    setCargando(true);
-    setError(null);
-    setCodigoError(undefined);
-
-    const res = await obtenerDetalleMision(misionId, userId);
-
-    if (res.exito && res.datos) {
-      setMision(res.datos);
-    } else {
-      setError(res.mensaje);
-      setCodigoError(res.codigoError);
-    }
-
-    setCargando(false);
-  }, [misionId, userId]);
-
-  useEffect(() => {
-    let isMounted = true;
     queueMicrotask(() => {
-      if (isMounted) {
-        cargarMision();
-      }
+      if (!activo) return;
+      setCargando(true);
+      setError(null);
+      setCodigoError(undefined);
     });
+
+    void (async () => {
+      const res = await obtenerDetalleMision(misionId, userId);
+      if (!activo) return;
+
+      if (res.exito && res.datos) {
+        setMision(res.datos);
+      } else {
+        setError(res.mensaje);
+        setCodigoError(res.codigoError);
+      }
+      setCargando(false);
+    })();
+
     return () => {
-      isMounted = false;
+      activo = false;
     };
-  }, [cargarMision]);
+  }, [misionId, userId]);
 
   // Manejo de tecla Escape
   useEffect(() => {

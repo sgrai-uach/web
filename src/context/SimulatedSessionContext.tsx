@@ -54,20 +54,37 @@ interface SimulatedSessionContextValue {
   hasPermission: (codigo: string) => boolean;
   hasAnyPermission: (codigos: string[]) => boolean;
   usuarioDetalleServidor: UsuarioActivoDetalle | null;
+  isMounted: boolean;
 }
 
 export const SimulatedSessionContext = createContext<SimulatedSessionContextValue | null>(null);
 
 /**
  * Fallback de permisos cuando la API no está disponible o durante la carga inicial.
+ * Soporta permisos personalizados guardados en localStorage.
  */
 function obtenerPermisosFallback(rol: string, esAdmin: boolean): Set<string> {
+  if (typeof window !== 'undefined') {
+    try {
+      const customPermsStr = localStorage.getItem(`sgrai_simulated_perms_${rol}`);
+      if (customPermsStr) {
+        const parsed = JSON.parse(customPermsStr);
+        if (Array.isArray(parsed)) {
+          return new Set(parsed);
+        }
+      }
+    } catch {
+      // Ignorar fallos de lectura de localStorage
+    }
+  }
+
   if (esAdmin || rol === 'Administrador') {
     return new Set([
       'seguridad:roles:leer',
       'seguridad:roles:gestionar',
       'recursos:leer',
       'recursos:crear',
+      'recursos:editar',
       'recursos:eliminar',
       'incidentes:kanban',
       'incidentes:avisos:leer',
@@ -77,6 +94,7 @@ function obtenerPermisosFallback(rol: string, esAdmin: boolean): Set<string> {
       'misiones:asignar',
       'eventos_atp:crear',
       'puntos_criticos:leer',
+      'puntos_criticos:eliminar',
       'personal:leer',
       'personal:crear',
       'personal:gestionar',
@@ -100,6 +118,10 @@ function obtenerPermisosFallback(rol: string, esAdmin: boolean): Set<string> {
     ]);
   }
 
+  if (rol === 'Supervisor Estratégico' || rol === 'Supervisor') {
+    return new Set(['recursos:leer']);
+  }
+
   return new Set();
 }
 
@@ -108,6 +130,7 @@ export function SimulatedSessionProvider({
 }: {
   children: React.ReactNode;
 }) {
+  const [isMounted, setIsMounted] = useState(false);
   const activeUserId = useSyncExternalStore(
     subscribeStorage,
     getStorageSnapshot,
@@ -128,6 +151,12 @@ export function SimulatedSessionProvider({
   const [cargandoPermisos, setCargandoPermisos] = useState(false);
   const [usuarioDetalleServidor, setUsuarioDetalleServidor] =
     useState<UsuarioActivoDetalle | null>(null);
+
+  useEffect(() => {
+    queueMicrotask(() => {
+      setIsMounted(true);
+    });
+  }, []);
 
   const auth = useContext(AuthContext);
 
@@ -238,18 +267,16 @@ export function SimulatedSessionProvider({
 
   const hasPermission = useCallback(
     (codigo: string): boolean => {
-      if (usuarioActivo.esAdmin) return true;
       return permisos.has(codigo);
     },
-    [usuarioActivo.esAdmin, permisos]
+    [permisos]
   );
 
   const hasAnyPermission = useCallback(
     (codigos: string[]): boolean => {
-      if (usuarioActivo.esAdmin) return true;
       return codigos.some((c) => permisos.has(c));
     },
-    [usuarioActivo.esAdmin, permisos]
+    [permisos]
   );
 
   const contextValue = useMemo<SimulatedSessionContextValue>(
@@ -264,6 +291,7 @@ export function SimulatedSessionProvider({
       hasPermission,
       hasAnyPermission,
       usuarioDetalleServidor,
+      isMounted,
     }),
     [
       usuarioActivo,
@@ -275,6 +303,7 @@ export function SimulatedSessionProvider({
       hasPermission,
       hasAnyPermission,
       usuarioDetalleServidor,
+      isMounted,
     ]
   );
 
