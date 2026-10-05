@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import {
@@ -11,6 +11,7 @@ import {
   User,
   Save,
   ArrowLeft,
+  Link as LinkIcon,
 } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
@@ -31,6 +32,11 @@ import {
   crearEventoAsistenciaSocial,
   AsistenciaSocialServiceError,
 } from '@/services/asistenciaSocialService';
+import {
+  geocodificarDireccionEnValdivia,
+  geocodificacionInversaEnValdivia,
+} from '@/lib/maps/geocoding';
+import { incidentesService } from '@/services/incidentesService';
 
 // Carga dinámica de Leaflet para evitar problemas de SSR en Next.js
 const LocationPickerMap = dynamic(
@@ -75,11 +81,22 @@ export default function EventoAsistenciaSocialForm({
   const [personasAfectadas, setPersonasAfectadas] = useState<number | string>(1);
   const [familiasAfectadas, setFamiliasAfectadas] = useState<number | string>(1);
 
+  // Vinculación opcional a incidente
+  const [incidenteId, setIncidenteId] = useState('');
+  const [incidentesDisponibles, setIncidentesDisponibles] = useState<
+    Array<{ id: string; codigo: string; tipoAfectacion: string; direccion?: string }>
+  >([]);
+  const [cargandoIncidentes, setCargandoIncidentes] = useState(false);
+
+  // Ubicación y sincronización bidireccional mapa-dirección
   const [direccionTexto, setDireccionTexto] = useState('');
   const [delegacionId, setDelegacionId] = useState('');
   const [latitud, setLatitud] = useState<number | string>(-39.8142);
   const [longitud, setLongitud] = useState<number | string>(-73.2459);
+  const [geocodificandoMapa, setGeocodificandoMapa] = useState(false);
+  const [resolviendoDireccion, setResolviendoDireccion] = useState(false);
 
+  // Contacto preliminar
   const [contactoNombre, setContactoNombre] = useState('');
   const [contactoTelefono, setContactoTelefono] = useState('');
   const [contactoRut, setContactoRut] = useState('');
@@ -89,21 +106,105 @@ export default function EventoAsistenciaSocialForm({
   const [errores, setErrores] = useState<Record<string, string>>({});
   const [errorServidor, setErrorServidor] = useState<string | null>(null);
 
-  const handleCoordsChange = useCallback((coords: { latitud: number; longitud: number }) => {
-    setLatitud(coords.latitud);
-    setLongitud(coords.longitud);
-    setErrores((prev) => {
-      const nuevo = { ...prev };
-      delete nuevo.latitud;
-      delete nuevo.longitud;
-      return nuevo;
-    });
+  // Carga de incidentes disponibles para vinculación opcional
+  useEffect(() => {
+    let activo = true;
+    setCargandoIncidentes(true);
+    incidentesService
+      .listar({ limit: 50 })
+      .then((res) => {
+        if (activo && res.exito && res.incidentes) {
+          setIncidentesDisponibles(
+            res.incidentes.map((inc) => ({
+              id: inc.id,
+              codigo: inc.codigo || inc.id.slice(0, 8),
+              tipoAfectacion: inc.tipoAfectacion || 'Incidente General',
+              direccion: inc.direccion,
+            }))
+          );
+        }
+      })
+      .catch(() => {
+        // Silencioso ante contingencia offline o mock
+      })
+      .finally(() => {
+        if (activo) setCargandoIncidentes(false);
+      });
+
+    return () => {
+      activo = false;
+    };
   }, []);
 
+  // 1. Sincronización del mapa hacia el texto de dirección (geocodificación inversa)
+  const handleUserSelectLocation = useCallback(
+    async (coords: { latitud: number; longitud: number }) => {
+      setLatitud(coords.latitud);
+      setLongitud(coords.longitud);
+      setErrores((prev) => {
+        const nuevo = { ...prev };
+        delete nuevo.latitud;
+        delete nuevo.longitud;
+        return nuevo;
+      });
+
+      setResolviendoDireccion(true);
+      try {
+        const direccionResuelta = await geocodificacionInversaEnValdivia(
+          coords.latitud,
+          coords.longitud
+        );
+        if (direccionResuelta) {
+          setDireccionTexto(direccionResuelta);
+          setErrores((prev) => {
+            const nuevo = { ...prev };
+            delete nuevo.direccionTexto;
+            return nuevo;
+          });
+        }
+      } catch {
+        // En caso de fallo de red se mantienen las coordenadas fijadas sin bloquear
+      } finally {
+        setResolviendoDireccion(false);
+      }
+    },
+    []
+  );
+
+  const handleCoordsChange = useCallback(
+    (coords: { latitud: number; longitud: number }) => {
+      handleUserSelectLocation(coords);
+    },
+    [handleUserSelectLocation]
+  );
+
+  // 2. Sincronización de la dirección hacia el mapa (geocodificación directa)
+  const handleSincronizarMapaConDireccion = useCallback(async () => {
+    if (direccionTexto.trim().length < 3) return;
+    setGeocodificandoMapa(true);
+    try {
+      const coords = await geocodificarDireccionEnValdivia(direccionTexto.trim());
+      if (coords) {
+        setLatitud(coords.latitud);
+        setLongitud(coords.longitud);
+        setErrores((prev) => {
+          const nuevo = { ...prev };
+          delete nuevo.latitud;
+          delete nuevo.longitud;
+          return nuevo;
+        });
+      }
+    } catch {
+      // Mantener coordenadas si la resolución falla
+    } finally {
+      setGeocodificandoMapa(false);
+    }
+  }, [direccionTexto]);
+
   const handleCentrarValdivia = useCallback(() => {
-    setLatitud(-39.8142);
-    setLongitud(-73.2459);
-  }, []);
+    const valdiviaCoords = { latitud: -39.8142, longitud: -73.2459 };
+    handleUserSelectLocation(valdiviaCoords);
+  }, [handleUserSelectLocation]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -128,6 +229,7 @@ export default function EventoAsistenciaSocialForm({
       contactoTelefono: contactoTelefono.trim() || null,
       contactoRut: contactoRut.trim() || null,
       delegacionId: delegacionId || null,
+      incidenteId: incidenteId.trim() || null,
     });
 
     if (!validacion.success) {
@@ -161,7 +263,7 @@ export default function EventoAsistenciaSocialForm({
         contactoTelefono: contactoTelefono.trim() || null,
         contactoRut: contactoRut.trim() || null,
         delegacionId: delegacionId || null,
-        incidenteId: null,
+        incidenteId: incidenteId.trim() || null,
       };
 
       const creado = await crearEventoAsistenciaSocial(payload, usuarioActivo.id);
@@ -298,6 +400,46 @@ export default function EventoAsistenciaSocialForm({
           </div>
         </div>
 
+        {/* Campo no obligatorio: Vinculación a Incidente */}
+        <div style={{ marginTop: 'var(--space-4, 16px)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
+            <LinkIcon size={16} color="var(--color-primary-teal, #1B6F7D)" />
+            <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-text-dark, #2B2B2B)' }}>
+              Vincular a Incidente en Curso (Opcional)
+            </span>
+          </div>
+          <Select
+            label=""
+            value={incidenteId}
+            onChange={(e) => setIncidenteId(e.target.value)}
+            disabled={cargandoIncidentes}
+            options={[
+              {
+                value: '',
+                label: cargandoIncidentes
+                  ? 'Cargando incidentes disponibles...'
+                  : 'Sin vincular a incidente (Caso social independiente / excepcional)',
+              },
+              ...incidentesDisponibles.map((inc) => ({
+                value: inc.id,
+                label: `${inc.codigo} — ${inc.tipoAfectacion}${
+                  inc.direccion ? ` (${inc.direccion})` : ''
+                }`,
+              })),
+            ]}
+          />
+          <p
+            style={{
+              fontSize: '12px',
+              color: 'var(--color-text-muted, #5F676E)',
+              marginTop: '4px',
+              marginBottom: 0,
+            }}
+          >
+            Este campo es opcional. Permite asociar este levantamiento de FIBE a un incidente operacional registrado previamente, o conservarlo independiente sin vínculo a la entidad Incidente.
+          </p>
+        </div>
+
         <div style={{ marginTop: 'var(--space-4, 16px)' }}>
           <Textarea
             label="Descripción de la Excepcionalidad Social *"
@@ -334,20 +476,98 @@ export default function EventoAsistenciaSocialForm({
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 'var(--space-4, 16px)', marginBottom: 'var(--space-4, 16px)' }}>
           <div>
-            <Input
-              label="Dirección de Referencia o Calle *"
-              placeholder="Ej. Calle Los Alerces 1420, Sector Collico"
-              value={direccionTexto}
-              onChange={(e) => {
-                setDireccionTexto(e.target.value);
-                setErrores((prev) => {
-                  const nuevo = { ...prev };
-                  delete nuevo.direccionTexto;
-                  return nuevo;
-                });
+            <label
+              htmlFor="direccion-texto-input"
+              style={{
+                display: 'block',
+                fontWeight: 600,
+                fontSize: '13px',
+                color: 'var(--color-text-dark, #2B2B2B)',
+                marginBottom: '6px',
               }}
-              error={errores.direccionTexto}
-            />
+            >
+              Dirección de Referencia o Calle *
+            </label>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <input
+                id="direccion-texto-input"
+                type="text"
+                placeholder="Ej. Calle Los Alerces 1420, Sector Collico"
+                value={direccionTexto}
+                onChange={(e) => {
+                  setDireccionTexto(e.target.value);
+                  setErrores((prev) => {
+                    const nuevo = { ...prev };
+                    delete nuevo.direccionTexto;
+                    return nuevo;
+                  });
+                }}
+                onBlur={handleSincronizarMapaConDireccion}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleSincronizarMapaConDireccion();
+                  }
+                }}
+                style={{
+                  flex: 1,
+                  padding: '9px 12px',
+                  border: errores.direccionTexto
+                    ? '2px solid var(--color-danger, #D32F2F)'
+                    : '1px solid var(--border-color-neutral, #DFE3E8)',
+                  borderRadius: 0,
+                  fontSize: '14px',
+                  outline: 'none',
+                  backgroundColor: '#FFFFFF',
+                }}
+              />
+              <Button
+                type="button"
+                variant="primary"
+                size="sm"
+                onClick={handleSincronizarMapaConDireccion}
+                disabled={geocodificandoMapa || direccionTexto.trim().length < 3}
+                title="Ubicar la dirección escrita en el mapa interactivo"
+                style={{ whiteSpace: 'nowrap' }}
+              >
+                <MapPin size={16} style={{ marginRight: '4px' }} />
+                <span>{geocodificandoMapa ? 'Buscando...' : 'Ubicar en mapa'}</span>
+              </Button>
+            </div>
+            {errores.direccionTexto && (
+              <span
+                style={{
+                  color: 'var(--color-danger, #D32F2F)',
+                  fontSize: '12px',
+                  marginTop: '4px',
+                  display: 'block',
+                }}
+              >
+                {errores.direccionTexto}
+              </span>
+            )}
+            {resolviendoDireccion && (
+              <span
+                style={{
+                  color: 'var(--color-primary-teal, #1B6F7D)',
+                  fontSize: '12px',
+                  marginTop: '4px',
+                  display: 'block',
+                }}
+              >
+                Obteniendo dirección a partir del punto seleccionado en el mapa...
+              </span>
+            )}
+            <p
+              style={{
+                fontSize: '12px',
+                color: 'var(--color-text-muted, #5F676E)',
+                marginTop: '4px',
+                marginBottom: 0,
+              }}
+            >
+              Escriba una dirección y presione &quot;Ubicar en mapa&quot; (o Enter/Tab) para centrar el mapa, o marque directamente en la cartografía para escribir la dirección automáticamente.
+            </p>
           </div>
 
           <div>
@@ -370,7 +590,7 @@ export default function EventoAsistenciaSocialForm({
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
             <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-charcoal, #3B3F45)' }}>
-              Haga clic sobre el mapa para fijar el punto exacto de la vivienda afectada:
+              Haga clic o arrastre el marcador sobre el mapa para fijar el punto exacto de la vivienda afectada:
             </span>
             <Button
               type="button"
@@ -389,6 +609,7 @@ export default function EventoAsistenciaSocialForm({
             latitud={Number(latitud)}
             longitud={Number(longitud)}
             onChange={handleCoordsChange}
+            onUserSelectLocation={handleUserSelectLocation}
             height="320px"
           />
 
@@ -398,7 +619,13 @@ export default function EventoAsistenciaSocialForm({
               type="number"
               step="any"
               value={latitud}
-              onChange={(e) => setLatitud(e.target.value)}
+              onChange={(e) => {
+                setLatitud(e.target.value);
+                const num = Number(e.target.value);
+                if (!isNaN(num)) {
+                  handleUserSelectLocation({ latitud: num, longitud: Number(longitud) });
+                }
+              }}
               error={errores.latitud}
             />
             <Input
@@ -406,7 +633,13 @@ export default function EventoAsistenciaSocialForm({
               type="number"
               step="any"
               value={longitud}
-              onChange={(e) => setLongitud(e.target.value)}
+              onChange={(e) => {
+                setLongitud(e.target.value);
+                const num = Number(e.target.value);
+                if (!isNaN(num)) {
+                  handleUserSelectLocation({ latitud: Number(latitud), longitud: num });
+                }
+              }}
               error={errores.longitud}
             />
           </div>

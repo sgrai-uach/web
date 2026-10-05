@@ -160,7 +160,7 @@ export async function crearEventoAsistenciaSocial(
     contactoTelefono: payload.contactoTelefono?.trim() || null,
     contactoRut: payload.contactoRut?.trim() || null,
     delegacionId: payload.delegacionId || null,
-    incidenteId: null,
+    incidenteId: payload.incidenteId ? payload.incidenteId.trim() : null,
   };
 
   try {
@@ -248,7 +248,7 @@ export async function crearEventoAsistenciaSocial(
         contactoRut: body.contactoRut,
         delegacionId: body.delegacionId,
         delegacionNombre: body.delegacionId ? 'Delegación Municipal' : null,
-        incidenteId: null,
+        incidenteId: body.incidenteId ?? null,
         asistenteSocialId: null,
         asistenteSocialNombre: null,
         creadoPor: {

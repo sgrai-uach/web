@@ -138,6 +138,11 @@ const MODULOS_SISTEMA: ModuloConfig[] = [
       'fibe:gestionar',
     ],
     accionPrimaria: 'Ver Eventos Sociales',
+    accionSecundaria: {
+      label: '+ Nuevo Evento',
+      href: '/gestion/asistente-social/nuevo',
+      permiso: 'asistencia_social:crear',
+    },
   },
   {
     id: 'dashboard',

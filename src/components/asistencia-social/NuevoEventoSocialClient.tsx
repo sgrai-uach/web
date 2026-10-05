@@ -1,10 +1,11 @@
 'use client';
 
-import React from 'react';
+import React, { useContext } from 'react';
 import { Breadcrumbs } from '@/components/common/Breadcrumbs';
 import PageTitleCard from '@/components/common/PageTitleCard';
 import AccesoDenegadoState from '@/components/common/AccesoDenegadoState';
 import { useSimulatedSession } from '@/context/SimulatedSessionContext';
+import { AuthContext } from '@/context/AuthContext';
 import EventoAsistenciaSocialForm from './EventoAsistenciaSocialForm';
 
 interface NuevoEventoSocialClientProps {
@@ -15,12 +16,23 @@ export default function NuevoEventoSocialClient({
   basePath = '/gestion/asistente-social',
 }: NuevoEventoSocialClientProps) {
   const { usuarioActivo, hasPermission } = useSimulatedSession();
+  const auth = useContext(AuthContext);
 
-  const puedeCrear =
-    usuarioActivo.rol === 'Administrador' ||
+  const esEncargado =
     usuarioActivo.rol === 'Encargado' ||
+    auth?.usuario?.rolNombre === 'Encargado' ||
+    auth?.usuario?.rolCodigo === 'ENCARGADO';
+
+  const esAdmin =
+    usuarioActivo.rol === 'Administrador' ||
     Boolean(usuarioActivo.esAdmin) ||
-    hasPermission('asistencia_social:crear');
+    auth?.usuario?.rolCodigo === 'ADMIN';
+
+  const tienePermisoCrear =
+    hasPermission('asistencia_social:crear') ||
+    Boolean(auth?.tienePermiso && auth.tienePermiso('asistencia_social:crear'));
+
+  const puedeCrear = esEncargado || esAdmin || tienePermisoCrear;
 
   if (!puedeCrear) {
     return (
@@ -34,10 +46,10 @@ export default function NuevoEventoSocialClient({
           ]}
         />
         <AccesoDenegadoState
-          rolUsuario={usuarioActivo.rol}
+          rolUsuario={auth?.usuario?.rolNombre || usuarioActivo.rol}
           modulo="la Creación de Eventos de Asistencia Social"
           permisoRequerido="asistencia_social:crear"
-          mensajePersonalizado="Se requieren privilegios de Encargado o Administrador para registrar casos excepcionales de asistencia social."
+          mensajePersonalizado="Se requiere el rol de Encargado o contar con el permiso 'asistencia_social:crear' para registrar nuevos eventos de asistencia social."
           botonVolverHref={basePath}
           botonVolverTexto="Volver a Asistencia Social"
         />

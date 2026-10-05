@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useContext } from 'react';
 import { useSimulatedSession } from '@/context/SimulatedSessionContext';
+import { AuthContext } from '@/context/AuthContext';
 import { useEventosAsistenciaSocial } from '@/hooks/useEventosAsistenciaSocial';
 import AsistenciaSocialHeader from './AsistenciaSocialHeader';
 import AsistenciaSocialFiltros from './AsistenciaSocialFiltros';
@@ -22,17 +23,30 @@ export default function AsistenciaSocialClient({
   basePath = '/gestion/asistente-social',
 }: AsistenciaSocialClientProps) {
   const { usuarioActivo, hasPermission } = useSimulatedSession();
+  const auth = useContext(AuthContext);
 
-  const puedeCrear =
-    usuarioActivo.rol === 'Administrador' ||
+  const esEncargado =
     usuarioActivo.rol === 'Encargado' ||
+    auth?.usuario?.rolNombre === 'Encargado' ||
+    auth?.usuario?.rolCodigo === 'ENCARGADO';
+
+  const esAdmin =
+    usuarioActivo.rol === 'Administrador' ||
     Boolean(usuarioActivo.esAdmin) ||
-    hasPermission('asistencia_social:crear');
+    auth?.usuario?.rolCodigo === 'ADMIN';
+
+  const tienePermisoCrear =
+    hasPermission('asistencia_social:crear') ||
+    Boolean(auth?.tienePermiso && auth.tienePermiso('asistencia_social:crear'));
+
+  const puedeCrear = esEncargado || esAdmin || tienePermisoCrear;
 
   const tienePermisoLectura =
     puedeCrear ||
     usuarioActivo.rol === 'Asistente Social' ||
-    hasPermission('asistencia_social:leer');
+    auth?.usuario?.rolNombre === 'Asistente Social' ||
+    hasPermission('asistencia_social:leer') ||
+    Boolean(auth?.tienePermiso && auth.tienePermiso('asistencia_social:leer'));
 
   const [filtros, setFiltros] = useState<FiltrosEventosAsistenciaSocialState>({
     pagina: 1,
