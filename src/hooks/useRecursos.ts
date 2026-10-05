@@ -26,6 +26,7 @@ export interface UseRecursosReturn {
   statusCode: number | null;
   recargar: () => Promise<void>;
   actualizarRecursoEnLista: (recursoActualizado: RecursoItem) => void;
+  removerRecursoDeLista: (id: string) => void;
 }
 
 export function useRecursos(
@@ -123,6 +124,24 @@ export function useRecursos(
     });
   }, []);
 
+  const removerRecursoDeLista = useCallback((id: string) => {
+    if (!id) return;
+    setData((prev) => {
+      if (!prev) return prev;
+      const index = prev.data.findIndex((r) => r.id === id);
+      if (index === -1) return prev;
+      const updatedList = prev.data.filter((r) => r.id !== id);
+      return {
+        ...prev,
+        data: updatedList,
+        meta: {
+          ...prev.meta,
+          total: Math.max(0, prev.meta.total - 1),
+        },
+      };
+    });
+  }, []);
+
   // Suscripción en tiempo real vía WebSockets (Socket.io)
   useEffect(() => {
     const socket = getSocket();
@@ -131,12 +150,20 @@ export function useRecursos(
       actualizarRecursoEnLista(recursoActualizado);
     }
 
+    function handleRecursoEliminado(payload: { id: string; nombre?: string }) {
+      if (payload?.id) {
+        removerRecursoDeLista(payload.id);
+      }
+    }
+
     socket.on('recurso:actualizado', handleRecursoActualizado);
+    socket.on('recurso:eliminado', handleRecursoEliminado);
 
     return () => {
       socket.off('recurso:actualizado', handleRecursoActualizado);
+      socket.off('recurso:eliminado', handleRecursoEliminado);
     };
-  }, [actualizarRecursoEnLista]);
+  }, [actualizarRecursoEnLista, removerRecursoDeLista]);
 
   const metaRaw = data?.meta as Record<string, unknown> | undefined;
   const metaNormalizado = {
@@ -154,5 +181,6 @@ export function useRecursos(
     statusCode,
     recargar: fetchData,
     actualizarRecursoEnLista,
+    removerRecursoDeLista,
   };
 }

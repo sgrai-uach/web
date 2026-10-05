@@ -4,12 +4,13 @@ import React from 'react';
 import { ArrowDownAZ, ArrowUpZA, FilterX } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import type { CatalogoItem } from '@/types/empleados';
+import type { EstadoFiltro } from '@/hooks/useEmpleados';
 import { selectStyle, labelStyle } from './empleadoStyles';
 import { SegmentedButtonGroup } from '@/components/common/filters/SegmentedButtonGroup';
 import { FilterBar } from '@/components/common/filters/FilterBar';
 import EmpleadoSearchInput from './EmpleadoSearchInput';
 
-interface EmpleadoFiltrosBarProps {
+export interface EmpleadoFiltrosBarProps {
   termino?: string;
   setTermino?: (val: string) => void;
   cargando?: boolean;
@@ -18,10 +19,14 @@ interface EmpleadoFiltrosBarProps {
   setDelegacionFiltro: (val: string) => void;
   rolFiltro: string;
   setRolFiltro: (val: string) => void;
+  estadoFiltro?: EstadoFiltro;
+  setEstadoFiltro?: (val: EstadoFiltro) => void;
   estadoOperativoFiltro?: string;
   setEstadoOperativoFiltro?: (val: string) => void;
   especialidadFiltro?: string;
   setEspecialidadFiltro?: (val: string) => void;
+  cargoFiltro?: string;
+  setCargoFiltro?: (val: string) => void;
   ordenarPor: string;
   setOrdenarPor: (val: string) => void;
   orden: 'asc' | 'desc';
@@ -51,10 +56,14 @@ export default function EmpleadoFiltrosBar({
   setDelegacionFiltro,
   rolFiltro,
   setRolFiltro,
+  estadoFiltro = 'todos',
+  setEstadoFiltro,
   estadoOperativoFiltro = '',
   setEstadoOperativoFiltro,
   especialidadFiltro = '',
   setEspecialidadFiltro,
+  cargoFiltro = '',
+  setCargoFiltro,
   ordenarPor,
   setOrdenarPor,
   orden,
@@ -80,16 +89,20 @@ export default function EmpleadoFiltrosBar({
     termino ||
     delegacionFiltro ||
     rolFiltro ||
+    (estadoFiltro && estadoFiltro !== 'todos') ||
     estadoOperativoFiltro ||
-    especialidadFiltro
+    especialidadFiltro ||
+    cargoFiltro
   );
 
   const totalActivos = [
     termino,
     delegacionFiltro,
     rolFiltro,
+    estadoFiltro && estadoFiltro !== 'todos' ? estadoFiltro : '',
     estadoOperativoFiltro,
     especialidadFiltro,
+    cargoFiltro,
   ].filter(Boolean).length;
 
   return (
@@ -107,6 +120,7 @@ export default function EmpleadoFiltrosBar({
           onFocusInput={onFocusInput || (() => {})}
         />
       )}
+
       {/* Botonera segmentada para selección rápida de perfiles operativos de terreno */}
       {quickRoleOptions.length > 1 && (
         <SegmentedButtonGroup
@@ -126,6 +140,24 @@ export default function EmpleadoFiltrosBar({
           gap: '0.75rem',
         }}
       >
+        {setEstadoFiltro && (
+          <div>
+            <label htmlFor="filtro-estado" style={labelStyle}>
+              Estado
+            </label>
+            <select
+              id="filtro-estado"
+              value={estadoFiltro}
+              onChange={(e) => setEstadoFiltro(e.target.value as EstadoFiltro)}
+              style={selectStyle}
+            >
+              <option value="todos">Todos los estados</option>
+              <option value="activo">Solo Activos</option>
+              <option value="inactivo">Inactivos (Baja)</option>
+            </select>
+          </div>
+        )}
+
         <div>
           <label htmlFor="filtro-delegacion" style={labelStyle}>
             Filtrar por Delegación
@@ -202,6 +234,22 @@ export default function EmpleadoFiltrosBar({
                 </option>
               ))}
             </select>
+          </div>
+        )}
+
+        {setCargoFiltro && (
+          <div>
+            <label htmlFor="filtro-cargo" style={labelStyle}>
+              Cargo
+            </label>
+            <input
+              id="filtro-cargo"
+              type="text"
+              value={cargoFiltro}
+              onChange={(e) => setCargoFiltro(e.target.value)}
+              placeholder="Filtrar por cargo..."
+              style={selectStyle}
+            />
           </div>
         )}
 

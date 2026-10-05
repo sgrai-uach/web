@@ -9,11 +9,26 @@ import type {
   EmpleadosQueryParams,
   ActualizarEmpleadoPayload,
   RegistrarEmpleadoPayload,
+  FiltrosPersonalParams,
+  UpdatePersonalDTO,
 } from '@/types/empleados';
 import { getErrorMessage } from '@/lib/utils/errorUtils';
 import { catalogosService } from '@/services/catalogosService';
 import { DEFAULT_ADMIN_USER_ID } from '@/lib/api/client';
 import { getAuthCookie } from '@/lib/utils/cookieUtils';
+
+function getActiveUserId(userId?: string): string {
+  if (userId) return userId;
+  if (typeof window !== 'undefined') {
+    try {
+      const stored = localStorage.getItem('sgrai_simulated_user_id');
+      if (stored) return stored;
+    } catch {
+      // Ignorar fallo de lectura de localStorage
+    }
+  }
+  return DEFAULT_ADMIN_USER_ID;
+}
 
 function getAuthorizationHeader(explicitToken?: string): string | undefined {
   const token =
@@ -119,6 +134,10 @@ export const empleadosService = {
 
       if (params.ordenar_por) search.set('ordenar_por', params.ordenar_por);
       if (params.orden) search.set('orden', params.orden);
+      if (params.incluir_inactivos) search.set('incluir_inactivos', 'true');
+      if (params.estado) search.set('estado', params.estado);
+      if (params.limite) search.set('limite', params.limite.toString());
+      if (params.pagina) search.set('pagina', params.pagina.toString());
 
       const query = search.toString();
       const url = query ? `/api/personal?${query}` : '/api/personal';
@@ -153,17 +172,17 @@ export const empleadosService = {
   async updateEmpleado(
     targetId: string,
     payload: ActualizarEmpleadoPayload,
-    token?: string
+    tokenOrUserId?: string
   ): Promise<EmpleadoUsuario> {
     try {
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
       };
-      const authHeader = getAuthorizationHeader(token);
+      const authHeader = getAuthorizationHeader(tokenOrUserId);
       if (authHeader) {
         headers['Authorization'] = authHeader;
       }
-      headers['X-User-Id'] = DEFAULT_ADMIN_USER_ID;
+      headers['X-User-Id'] = getActiveUserId(tokenOrUserId);
 
       const res = await fetch(`/api/personal/${targetId}`, {
         method: 'PATCH',
@@ -201,6 +220,41 @@ export const empleadosService = {
       );
     }
   },
+
+  /**
+   * Realiza la baja lógica de un empleado/usuario del sistema.
+   */
+  async deleteEmpleado(targetId: string, userId?: string, token?: string): Promise<void> {
+    try {
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      const authHeader = getAuthorizationHeader(token);
+      if (authHeader) {
+        headers['Authorization'] = authHeader;
+      }
+      headers['X-User-Id'] = getActiveUserId(userId);
+
+      const res = await fetch(`/api/personal/${targetId}`, {
+        method: 'DELETE',
+        headers,
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new EmpleadosServiceError(
+          data.error || data.message || 'No fue posible dar de baja al empleado',
+          res.status
+        );
+      }
+    } catch (err) {
+      if (err instanceof EmpleadosServiceError) throw err;
+      throw new EmpleadosServiceError(
+        getErrorMessage(err) || 'Error al conectar con la API para dar de baja.'
+      );
+    }
+  },
+
   /**
    * Registra a un nuevo funcionario o empleado en el sistema.
    * Conecta con POST /api/personal y maneja errores semánticos (409 colisión, 422 validación).
@@ -291,3 +345,19 @@ export const empleadosService = {
 
 export const createEmpleado = (payload: RegistrarEmpleadoPayload, token?: string) =>
   empleadosService.createEmpleado(payload, token);
+
+export async function getPersonal(filtros: FiltrosPersonalParams = {}): Promise<EmpleadoUsuario[]> {
+  return empleadosService.getEmpleados(filtros);
+}
+
+export async function updatePersonal(
+  personalOrUsuarioId: string,
+  payload: UpdatePersonalDTO,
+  userId?: string
+): Promise<Partial<EmpleadoUsuario>> {
+  return empleadosService.updateEmpleado(personalOrUsuarioId, payload as ActualizarEmpleadoPayload, userId);
+}
+
+export async function deletePersonal(personalOrUsuarioId: string, userId?: string): Promise<void> {
+  return empleadosService.deleteEmpleado(personalOrUsuarioId, userId);
+}

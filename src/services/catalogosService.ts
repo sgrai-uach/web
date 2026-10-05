@@ -1,10 +1,10 @@
 /**
  * Servicio para consulta de catálogos generales (roles, delegaciones, cargos y especialidades).
- * Conforme a docs/architecture/architecture.md.
+ * Conforme a docs/architecture/architecture.md y ADR-004.
  */
 
 import apiClient from '@/lib/api/client';
-import type { CatalogoItem, CatalogosResponse } from '@/types/empleados';
+import type { CatalogoItem, CatalogosResponse } from '@/types/catalogos';
 
 export const DELEGACIONES_FALLBACK: CatalogoItem[] = [
   {
@@ -134,3 +134,10 @@ export const catalogosService = {
     promiseEnCurso = null;
   },
 };
+
+/**
+ * Función exportada para consumo directo del catálogo del sistema.
+ */
+export async function getCatalogos(forzarRecarga: boolean = false): Promise<CatalogosResponse> {
+  return catalogosService.getCatalogos(forzarRecarga);
+}

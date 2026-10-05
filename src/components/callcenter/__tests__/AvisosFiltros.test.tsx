@@ -117,9 +117,9 @@ describe('AvisosFiltros Component', () => {
       />
     );
 
-    expect(screen.getByTestId('indicador-filtros-activos')).toBeInTheDocument();
-    expect(screen.getByText(/Delegación: Costa/i)).toBeInTheDocument();
-    expect(screen.getByText(/Estado: Verificado/i)).toBeInTheDocument();
+    expect(screen.getByTestId('indicador-filtros-activos')).toBeTruthy();
+    expect(screen.getByText(/Delegación: Costa/i)).toBeTruthy();
+    expect(screen.getByText(/Estado: Verificado/i)).toBeTruthy();
   });
 
   it('debe permitir limpiar todos los filtros mediante el botón "Limpiar filtros"', () => {
@@ -134,7 +134,7 @@ describe('AvisosFiltros Component', () => {
     );
 
     const btnLimpiar = screen.getByRole('button', { name: /Limpiar filtros/i });
-    expect(btnLimpiar).toBeInTheDocument();
+    expect(btnLimpiar).toBeTruthy();
 
     fireEvent.click(btnLimpiar);
     expect(onLimpiarFiltros).toHaveBeenCalledTimes(1);
@@ -175,10 +175,10 @@ describe('AvisosTableEmpty con filtros activos', () => {
 
     expect(
       screen.getByText('No se encontraron avisos coincidentes')
-    ).toBeInTheDocument();
+    ).toBeTruthy();
 
     const btnLimpiar = screen.getByRole('button', { name: /Limpiar filtros/i });
-    expect(btnLimpiar).toBeInTheDocument();
+    expect(btnLimpiar).toBeTruthy();
     fireEvent.click(btnLimpiar);
     expect(onLimpiarFiltros).toHaveBeenCalledTimes(1);
   });
@@ -194,6 +194,6 @@ describe('AvisosTableEmpty con filtros activos', () => {
 
     expect(
       screen.getByText('No hay avisos pendientes en la bandeja')
-    ).toBeInTheDocument();
+    ).toBeTruthy();
   });
 });

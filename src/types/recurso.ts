@@ -266,3 +266,10 @@ export interface FiltrosRecursosState {
   busqueda?: string;
 }
 
+export interface EliminarRecursoResponse {
+  message: string;
+  id: string;
+  nombre: string;
+  eliminadoEn: string;
+  eliminadoPorId: string;
+}

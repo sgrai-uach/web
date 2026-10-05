@@ -1,37 +1,48 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import type { CatalogosResponse } from '@/types/empleados';
+import type { CatalogosResponse } from '@/types/catalogos';
 import {
   catalogosService,
   DELEGACIONES_FALLBACK,
   NOMBRES_DELEGACIONES_ESTANDAR,
   normalizarNombreDelegacion,
 } from '@/services/catalogosService';
+import { getErrorMessage } from '@/lib/utils/errorUtils';
 
+const CATALOGOS_INICIALES: CatalogosResponse = {
+  roles: [],
+  delegaciones: DELEGACIONES_FALLBACK,
+  especialidades: [],
+  cargos: [],
+};
+
+/**
+ * Custom Hook para cargar y gestionar los catálogos del sistema con helpers de resolución.
+ * Conforme a docs/architecture/architecture.md y ADR-004.
+ */
 export function useCatalogos() {
-  const [catalogos, setCatalogos] = useState<CatalogosResponse>({
-    roles: [],
-    delegaciones: DELEGACIONES_FALLBACK,
-    especialidades: [],
-    cargos: [],
-  });
+  const [catalogos, setCatalogos] = useState<CatalogosResponse>(CATALOGOS_INICIALES);
   const [cargando, setCargando] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    let activo = true;
+    let montado = true;
 
     async function cargar() {
+      setCargando(true);
+      setError(null);
       try {
         const datos = await catalogosService.getCatalogos();
-        if (activo) {
+        if (montado) {
           setCatalogos(datos);
-          setCargando(false);
         }
-      } catch {
-        if (activo) {
-          setError('No fue posible cargar catálogos.');
+      } catch (err: unknown) {
+        if (montado) {
+          setError(getErrorMessage(err, 'Error al cargar los catálogos'));
+        }
+      } finally {
+        if (montado) {
           setCargando(false);
         }
       }
@@ -40,7 +51,7 @@ export function useCatalogos() {
     cargar();
 
     return () => {
-      activo = false;
+      montado = false;
     };
   }, []);
 

@@ -23,6 +23,9 @@ function ConsumerComponent() {
       <span data-testid="has-roles-manage">
         {hasPermission('seguridad:roles:gestionar') ? 'SI' : 'NO'}
       </span>
+      <span data-testid="has-recursos-eliminar">
+        {hasPermission('recursos:eliminar') ? 'SI' : 'NO'}
+      </span>
       <span data-testid="has-any-role">
         {hasAnyPermission(['seguridad:roles:leer', 'recursos:leer']) ? 'SI' : 'NO'}
       </span>
@@ -63,6 +66,7 @@ describe('SimulatedSessionContext', () => {
     expect(screen.getByTestId('user-name').textContent).toBe('Administrador General');
     expect(screen.getByTestId('user-role').textContent).toBe('Administrador');
     expect(screen.getByTestId('has-roles-manage').textContent).toBe('SI');
+    expect(screen.getByTestId('has-recursos-eliminar').textContent).toBe('SI');
     expect(screen.getByTestId('has-any-role').textContent).toBe('SI');
   });
 

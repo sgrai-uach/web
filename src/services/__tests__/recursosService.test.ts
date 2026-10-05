@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import {
   getRecursoById,
   actualizarRecurso,
+  eliminarRecurso,
   RecursoServiceError,
 } from '../recursosService';
 import apiClient, { DEFAULT_ADMIN_USER_ID } from '@/lib/api/client';
@@ -12,11 +13,12 @@ vi.mock('@/lib/api/client', () => ({
     GET: vi.fn(),
     POST: vi.fn(),
     PUT: vi.fn(),
+    DELETE: vi.fn(),
   },
   DEFAULT_ADMIN_USER_ID: '00000000-0000-4000-8000-000000000001',
 }));
 
-describe('recursosService (Edición y Consulta HU-8)', () => {
+describe('recursosService (HU-8 y HU-9)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -46,7 +48,7 @@ describe('recursosService (Edición y Consulta HU-8)', () => {
     actualizadoEn: '2026-09-29T10:00:00.000Z',
   };
 
-  describe('getRecursoById', () => {
+  describe('getRecursoById (HU-8)', () => {
     it('debe enviar la cabecera x-user-id y retornar el recurso en 200 OK', async () => {
       vi.mocked(apiClient.GET).mockResolvedValueOnce({
         data: mockRecurso as unknown as never,
@@ -91,7 +93,7 @@ describe('recursosService (Edición y Consulta HU-8)', () => {
     });
   });
 
-  describe('actualizarRecurso', () => {
+  describe('actualizarRecurso (HU-8)', () => {
     const payloadEdicion: EditarRecursoDTO = {
       nombre: 'Camioneta Rescate 4x4 - Actualizada',
       descripcion: 'En mantención preventiva',
@@ -155,6 +157,86 @@ describe('recursosService (Edición y Consulta HU-8)', () => {
           longitud: -73.24,
         })
       ).rejects.toThrow(RecursoServiceError);
+    });
+  });
+
+  describe('eliminarRecurso (HU-9)', () => {
+    const mockRecursoId = '550e8400-e29b-41d4-a716-446655440000';
+    const mockAdminId = '00000000-0000-4000-8000-000000000001';
+
+    it('debe dar de baja lógicamente un recurso y retornar 200 OK cuando no tiene dependencias activas', async () => {
+      vi.mocked(apiClient.DELETE).mockResolvedValueOnce({
+        data: {
+          message: 'Recurso dado de baja exitosamente.',
+          id: mockRecursoId,
+          nombre: 'Camioneta Rescate 4x4',
+          eliminadoEn: '2026-09-30T20:00:00.000Z',
+          eliminadoPorId: mockAdminId,
+        } as unknown as never,
+        error: undefined,
+        response: { ok: true, status: 200 } as Response,
+      });
+
+      const resultado = await eliminarRecurso(mockRecursoId, mockAdminId);
+
+      expect(apiClient.DELETE).toHaveBeenCalledWith('/api/recursos/{id}', {
+        params: {
+          path: { id: mockRecursoId },
+          header: { 'x-user-id': mockAdminId },
+        },
+      });
+      expect(resultado).toBeDefined();
+      expect(resultado.id).toBe(mockRecursoId);
+      expect(resultado.nombre).toBe('Camioneta Rescate 4x4');
+      expect(resultado.eliminadoPorId).toBe(mockAdminId);
+    });
+
+    it('debe arrojar RecursoServiceError con código 409 cuando el recurso está en uso en terreno', async () => {
+      vi.mocked(apiClient.DELETE).mockResolvedValueOnce({
+        data: undefined,
+        error: {
+          message: 'El recurso "Camioneta Rescate 4x4" tiene 2 unidades actualmente en uso en terreno y no puede ser eliminado.',
+          statusCode: 409,
+        } as unknown as never,
+        response: { ok: false, status: 409 } as Response,
+      });
+
+      try {
+        await eliminarRecurso(mockRecursoId, mockAdminId);
+        expect.fail('Debería haber lanzado RecursoServiceError');
+      } catch (err: unknown) {
+        expect(err).toBeInstanceOf(RecursoServiceError);
+        if (err instanceof RecursoServiceError) {
+          expect(err.apiError.statusCode).toBe(409);
+          expect(err.apiError.message).toContain('unidades actualmente en uso en terreno');
+        }
+      }
+    });
+
+    it('debe arrojar RecursoServiceError con código 403 cuando el usuario no tiene permisos de Administrador', async () => {
+      vi.mocked(apiClient.DELETE).mockResolvedValueOnce({
+        data: undefined,
+        error: {
+          message: 'Acceso denegado: Se requiere perfil de Administrador.',
+          statusCode: 403,
+        } as unknown as never,
+        response: { ok: false, status: 403 } as Response,
+      });
+
+      await expect(eliminarRecurso(mockRecursoId, 'callcenter-user-uuid')).rejects.toThrow(RecursoServiceError);
+    });
+
+    it('debe arrojar RecursoServiceError con código 404 cuando el recurso no existe o ya fue eliminado', async () => {
+      vi.mocked(apiClient.DELETE).mockResolvedValueOnce({
+        data: undefined,
+        error: {
+          message: 'El recurso especificado no fue encontrado.',
+          statusCode: 404,
+        } as unknown as never,
+        response: { ok: false, status: 404 } as Response,
+      });
+
+      await expect(eliminarRecurso('inexistente-id', mockAdminId)).rejects.toThrow(RecursoServiceError);
     });
   });
 });
