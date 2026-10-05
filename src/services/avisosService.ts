@@ -156,6 +156,9 @@ export async function listarAvisos(
 
   const { data, error, response } = await apiClient.GET('/api/incidentes/avisos', {
     params: {
+      header: {
+        authorization: typeof window !== 'undefined' ? localStorage.getItem('token') || '' : '',
+      },
       query: queryObj as unknown as {
         page?: number;
         limit?: number;
@@ -210,15 +213,16 @@ export async function obtenerDetalleAviso(
 export async function verificarAviso(
   id: string,
   body: VerificarAvisoInput,
-  operadorId: string
+  _operadorId?: string
 ): Promise<VerificarAvisoSuccessResponse> {
+  void _operadorId;
   const { data, error, response } = await apiClient.POST(
     '/api/incidentes/avisos/{id}/verificar',
     {
       params: {
         path: { id },
         header: {
-          'x-user-id': operadorId,
+          authorization: typeof window !== 'undefined' ? localStorage.getItem('token') || '' : '',
         },
       },
       body,
@@ -257,8 +261,9 @@ export async function verificarAviso(
 export async function descartarAviso(
   id: string,
   body: DescartarAvisoInput,
-  operadorId: string
+  _operadorId?: string
 ): Promise<DescartarAvisoSuccessResponse> {
+  void _operadorId;
   if (!body.motivoDescarte || body.motivoDescarte.trim().length < 5) {
     throw new AvisosServiceError(
       400,
@@ -272,7 +277,7 @@ export async function descartarAviso(
       params: {
         path: { id },
         header: {
-          'x-user-id': operadorId,
+          authorization: typeof window !== 'undefined' ? localStorage.getItem('token') || '' : '',
         },
       },
       body,
