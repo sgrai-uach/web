@@ -36,9 +36,10 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
 
     let isMounted = true;
     queueMicrotask(() => {
-      if (!isMounted) return;
-      setCargando(true);
-      setError(null);
+      if (isMounted) {
+        setCargando(true);
+        setError(null);
+      }
     });
 
     obtenerDetalleIncidente(incidenteId, userId).then((res) => {
