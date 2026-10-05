@@ -151,6 +151,9 @@ export async function listarAvisos(
 
   const { data, error, response } = await apiClient.GET('/api/incidentes/avisos', {
     params: {
+      header: {
+        authorization: typeof window !== 'undefined' ? localStorage.getItem('token') || '' : '',
+      },
       query: queryObj as unknown as {
         page?: number;
         limit?: number;
@@ -213,7 +216,7 @@ export async function verificarAviso(
       params: {
         path: { id },
         header: {
-          'x-user-id': operadorId,
+          authorization: typeof window !== 'undefined' ? localStorage.getItem('token') || '' : '',
         },
       },
       body,
@@ -267,7 +270,7 @@ export async function descartarAviso(
       params: {
         path: { id },
         header: {
-          'x-user-id': operadorId,
+          authorization: typeof window !== 'undefined' ? localStorage.getItem('token') || '' : '',
         },
       },
       body,

@@ -5,7 +5,7 @@ import { Breadcrumbs } from '@/components/common/Breadcrumbs';
 import ConnectionStatusBadge from '@/components/common/ConnectionStatusBadge';
 import PageTitleCard from '@/components/common/PageTitleCard';
 import Button from '@/components/ui/Button';
-import { PackagePlus, LayoutKanban, MapPin } from 'lucide-react';
+import { PackagePlus, Kanban, MapPin } from 'lucide-react';
 import styles from '@/styles/mando.module.css';
 
 interface KanbanHeaderProps {
@@ -67,7 +67,7 @@ export const KanbanHeader: React.FC<KanbanHeaderProps> = ({
                     color: vistaActiva === 'kanban' ? '#FFFFFF' : 'var(--color-charcoal, #3B3F45)',
                   }}
                 >
-                  <LayoutKanban size={14} style={{ marginRight: '4px' }} />
+                  <Kanban size={14} style={{ marginRight: '4px' }} />
                   <span>Tablero Kanban</span>
                 </Button>
                 <Button

@@ -21,6 +21,7 @@ import {
   type PrioridadRecuperacion,
   type EventoRecuperacionResponse,
   type ItemRecursoSolicitado,
+  type CrearEventoRecuperacionInput,
 } from '@/types/recuperacion';
 import type { CatalogoItem } from '@/types/catalogos';
 import type { RecursoItem } from '@/types/recurso';
