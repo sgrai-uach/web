@@ -5,7 +5,7 @@ import { Breadcrumbs } from '@/components/common/Breadcrumbs';
 import ConnectionStatusBadge from '@/components/common/ConnectionStatusBadge';
 import PageTitleCard from '@/components/common/PageTitleCard';
 import Button from '@/components/ui/Button';
-import { ClipboardList, ShieldAlert, Kanban, MapPin } from 'lucide-react';
+import { ClipboardList, ShieldAlert, PackagePlus, Kanban, MapPin } from 'lucide-react';
 import styles from '@/styles/mando.module.css';
 
 interface KanbanHeaderProps {
@@ -15,6 +15,7 @@ interface KanbanHeaderProps {
   setUserId?: (id: string) => void;
   onAbrirMisiones?: () => void;
   onOpenCrearPrevencion?: () => void;
+  onOpenCrearRecuperacion?: () => void;
   vistaActiva?: 'kanban' | 'mapa';
   onCambiarVista?: (vista: 'kanban' | 'mapa') => void;
 }
@@ -24,6 +25,7 @@ export const KanbanHeader: React.FC<KanbanHeaderProps> = ({
   conectado,
   onAbrirMisiones,
   onOpenCrearPrevencion,
+  onOpenCrearRecuperacion,
   vistaActiva = 'kanban',
   onCambiarVista,
 }) => {
@@ -94,24 +96,42 @@ export const KanbanHeader: React.FC<KanbanHeaderProps> = ({
                 type="button"
                 variant="secondary"
                 size="md"
-                icon={<ClipboardList size={16} />}
                 onClick={onAbrirMisiones}
                 title="Abrir panel de misiones operativas"
               >
-                Misiones Operativas
+                <ClipboardList size={16} style={{ marginRight: '6px' }} />
+                <span>Misiones Operativas</span>
               </Button>
             )}
 
             {onOpenCrearPrevencion && (
               <Button
                 type="button"
-                variant="primary"
+                variant="secondary"
                 size="md"
                 onClick={onOpenCrearPrevencion}
                 title="Generar un nuevo evento de prevención territorial en puntos críticos y despachar patrulla"
+                style={{
+                  backgroundColor: '#B45309',
+                  color: '#FFFFFF',
+                  border: 'none',
+                }}
               >
                 <ShieldAlert size={16} style={{ marginRight: '6px' }} />
                 <span>Nuevo Evento de Prevención</span>
+              </Button>
+            )}
+
+            {onOpenCrearRecuperacion && (
+              <Button
+                type="button"
+                variant="primary"
+                size="md"
+                onClick={onOpenCrearRecuperacion}
+                title="Generar un nuevo evento de recuperación territorial y despachar patrulla con insumos"
+              >
+                <PackagePlus size={16} style={{ marginRight: '6px' }} />
+                <span>Nuevo Evento de Recuperación</span>
               </Button>
             )}
           </div>

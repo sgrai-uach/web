@@ -70,4 +70,22 @@ describe('KanbanHeader (HU-30)', () => {
     fireEvent.click(btnMisiones);
     expect(onAbrirMisiones).toHaveBeenCalledTimes(1);
   });
+
+  it('debe renderizar el botón "Nuevo Evento de Recuperación" si se pasa onOpenCrearRecuperacion', () => {
+    const onOpenCrearRecuperacion = vi.fn();
+
+    render(
+      <KanbanHeader
+        totalIncidentesVisibles={5}
+        conectado={true}
+        onOpenCrearRecuperacion={onOpenCrearRecuperacion}
+      />
+    );
+
+    const btnRecuperacion = screen.getByRole('button', { name: /Nuevo Evento de Recuperación/i });
+    expect(btnRecuperacion).toBeInTheDocument();
+
+    fireEvent.click(btnRecuperacion);
+    expect(onOpenCrearRecuperacion).toHaveBeenCalledTimes(1);
+  });
 });
