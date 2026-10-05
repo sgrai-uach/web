@@ -4,7 +4,7 @@
 > **Historia de Usuario:** HU-56 — Eliminar Punto Crítico  
 > **Rol Destinatario:** Administrador Municipal y Usuarios con Permiso de Eliminación  
 > **Sistema:** SGRAI — Dirección de Gestión de Riesgos de Desastres, Municipalidad de Valdivia  
-> **Ruta del Módulo:** `/admin/puntos-criticos`
+> **Ruta del Módulo:** `/gestion/admin/puntos-criticos`
 
 ---
 
@@ -29,7 +29,7 @@ Permitir a los Administradores y a cualquier usuario que cuente con el permiso c
 El sistema permite iniciar la eliminación a través de tres vías complementarias:
 
 ### 3.1. Desde la Tabla de Puntos Críticos
-1. Ingrese a la vista de administración en `/admin/puntos-criticos`.
+1. Ingrese a la vista de administración en la ruta canónica `/gestion/admin/puntos-criticos`.
 2. Localice el punto crítico a eliminar utilizando los filtros territoriales o el buscador textual.
 3. En la columna **"Acción"**, haga clic sobre el botón destructivo rojo con ícono de papelera: **"Eliminar"**.
 

@@ -9,7 +9,7 @@ Este manual documenta el funcionamiento y uso de la funcionalidad de **Detalle d
 - **Rol al que está dirigido:** Encargado de Operaciones, Supervisor Estratégico y Administrador General.
 - **Objetivo de la funcionalidad:** Permitir al Encargado consultar en cualquier momento la información exhaustiva de cualquier misión táctica (incidente o punto preventivo vinculado, unidad y recursos asignados, bitácora de tiempos, diagnósticos técnicos y evidencias fotográficas) mediante un botón claramente visible (**"Ver Detalles"**), desplegando una vista modal superpuesta que **no provoca pérdida de contexto** ni reinicio de filtros en el listado o tablero principal.
 - **Vistas desde donde se invoca:** 
-  - Panel lateral de incidente (**Drawer**) en `/centro-incidentes` (Centro de Mando).
+  - Panel lateral de incidente (**Drawer**) en `/gestion/centro-incidentes` (Centro de Mando).
   - Listados o tarjetas de misiones operativas vinculadas.
 
 ---
@@ -33,7 +33,7 @@ Si un usuario no autorizado intenta consultar la misión, el sistema despliega u
 ## 3. Flujo Paso a Paso para Visualizar una Misión
 
 ### Paso 1: Localizar el Incidente en el Tablero Kanban o Centro de Mando
-1. Ingresa a la sección **Centro de Mando / Incidentes** (`/centro-incidentes`).
+1. Ingresa a la sección **Centro de Mando / Incidentes** (ruta canónica `/gestion/centro-incidentes`).
 2. Localiza la tarjeta del incidente deseado (las tarjetas con misiones activas muestran una etiqueta informativa, ej. `1 misión` o `2 misiones`).
 3. Haz clic sobre la tarjeta para abrir el panel lateral de detalle del incidente (**Drawer**).
 

@@ -3,7 +3,7 @@
 - **Código de Historia:** HU-52
 - **Rol Destinatario:** Operador de Call Center (Mesa de Ayuda y Recepción Ciudadana)
 - **Repositorio:** `sgrai-web`
-- **Módulo:** Centro Call Center (`/callcenter`)
+- **Módulo:** Centro Call Center (`/gestion/callcenter`)
 
 ---
 
@@ -43,7 +43,7 @@ Proporcionar al Operador de Call Center una bandeja de entrada consolidada y en 
 ```
 
 ### Paso 1: Ingreso a la Bandeja de Entrada
-1. Inicie sesión en la plataforma `sgrai-web` e ingrese a la ruta `/callcenter`.
+1. Inicie sesión en la plataforma `sgrai-web` e ingrese a la ruta canónica `/gestion/callcenter` (o a través de la barra lateral en *Call Center › Bandeja de Avisos*).
 2. En la barra superior, verifique que el indicador de conexión en tiempo real se encuentre en **"En vivo (WebSockets)"**.
 3. Confirme el **Operador Activo** asignado a su puesto de trabajo (o seleccione su usuario en el desplegable superior para fines de trazabilidad y auditoría).
 

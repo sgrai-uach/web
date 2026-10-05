@@ -1,6 +1,6 @@
 # Manual de Usuario: H15 - Tablero Kanban de Incidentes para Encargado (Centro de Incidentes)
 
-Este manual documenta el funcionamiento y uso de la pantalla **Centro de Incidentes** (`/centro-incidentes`) en la plataforma web del Sistema de Gestión de Recursos para Atención de Incidentes (SGRAI) de la Municipalidad de Valdivia.
+Este manual documenta el funcionamiento y uso de la pantalla **Centro de Incidentes** (`/gestion/centro-incidentes`) en la plataforma web del Sistema de Gestión de Recursos para Atención de Incidentes (SGRAI) de la Municipalidad de Valdivia.
 
 ---
 
@@ -8,7 +8,7 @@ Este manual documenta el funcionamiento y uso de la pantalla **Centro de Inciden
 
 - **Rol al que está dirigido:** Encargado de Operaciones / Jefe de Centro de Mando (Dirección de Gestión de Riesgos de Desastres).
 - **Objetivo de la funcionalidad:** Permitir al Encargado monitorear de forma consolidada todos los incidentes comunales agrupados según su estado operativo en el ciclo de vida ICS, recibir alertas reactivas en tiempo real ante nuevos reportes o cambios de estado, y consultar en profundidad la información táctica de cada caso (denunciante, ubicación, misiones operativas, cuadrillas y recursos desplegados).
-- **Ruta de acceso en la plataforma web:** `/centro-incidentes`.
+- **Ruta de acceso en la plataforma web:** `/gestion/centro-incidentes` (también accesible vía `/centro-incidentes` o `/mando`).
 
 ---
 
@@ -17,7 +17,7 @@ Este manual documenta el funcionamiento y uso de la pantalla **Centro de Inciden
 Para ingresar a esta pantalla se valida la autorización del usuario:
 
 1. **Usuario con rol Encargado:** El sistema autentica la identidad y otorga acceso pleno a las 5 columnas del tablero y las herramientas de filtrado.
-2. **Usuario no autorizado (otro rol o sin permisos):** Si un usuario sin rol de Encargado intenta ingresar a `/centro-incidentes`, el sistema desplegará la pantalla de advertencia:
+2. **Usuario no autorizado (otro rol o sin permisos):** Si un usuario sin rol de Encargado intenta ingresar a `/gestion/centro-incidentes`, el sistema desplegará la pantalla de advertencia:
    - **"Acceso Restringido — 403 Forbidden"** indicando que la vista requiere el permiso táctico `incidentes:kanban`.
 
 > En entorno de desarrollo y pruebas, el encabezado superior incluye un selector de sesión que permite alternar entre el usuario **Encargado (Con Permisos)** y un **Usuario No Autorizado (403)** para verificar este comportamiento.

@@ -3,7 +3,7 @@
 - **Código de Historia:** HU-54
 - **Rol Destinatario:** Operador de Call Center (Mesa de Ayuda y Recepción Ciudadana)
 - **Repositorio:** `sgrai-web`
-- **Módulo:** Centro Call Center (`/callcenter`)
+- **Módulo:** Centro Call Center (`/gestion/callcenter`)
 
 ---
 
@@ -16,7 +16,7 @@ Permitir al Operador de Call Center filtrar y segmentar ágilmente el listado de
 ## 2. Flujo de Trabajo con Filtros Dinámicos
 
 ```
-                      [Bandeja Call Center (/callcenter)]
+                      [Bandeja Call Center (/gestion/callcenter)]
                                        │
         ┌──────────────────────────────┼──────────────────────────────┐
         ▼                              ▼                              ▼
@@ -45,7 +45,7 @@ Permitir al Operador de Call Center filtrar y segmentar ágilmente el listado de
 ## 3. Pasos para Operar los Filtros en la Bandeja
 
 ### Paso 1: Ingreso a la Bandeja de Call Center
-1. Inicie sesión en la plataforma e ingrese al Centro Call Center (`/callcenter`).
+1. Inicie sesión en la plataforma e ingrese al Centro Call Center (ruta canónica `/gestion/callcenter`).
 2. Sobre la tabla de avisos encontrará la **Barra de Filtrado y Búsqueda**.
 
 ### Paso 2: Filtrado por Delegación Territorial
@@ -88,7 +88,7 @@ El sistema combina todos los criterios mediante lógica conjuntiva (`AND`):
 ### Paso 7: Persistencia y Compartición de Vistas vía URL
 * Cada vez que aplique un filtro, los parámetros se reflejan en la barra de direcciones del navegador:
   ```
-  https://plataforma.valdivia.cl/callcenter?delegacion=Costa&estado=PENDIENTE&prioridad=URGENTE
+  https://plataforma.valdivia.cl/gestion/callcenter?delegacion=Costa&estado=PENDIENTE&prioridad=URGENTE
   ```
 * Puede recargar la página (`F5`), retroceder/avanzar en el historial o compartir el enlace con otro operador; la interfaz recuperará exactamente los mismos filtros aplicados.
 

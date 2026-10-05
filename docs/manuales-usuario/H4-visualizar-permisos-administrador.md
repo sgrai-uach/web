@@ -3,7 +3,7 @@
 - **Código de Historia:** HU-4
 - **Rol Destinatario:** Administrador de Seguridad y Plataforma (Dirección de Gestión de Riesgos de Desastres)
 - **Repositorio:** `sgrai-web`
-- **Módulo:** Panel Administrador &mdash; Roles y Permisos (`/admin/roles-permisos` o `/roles-permisos`)
+- **Módulo:** Panel Administrador &mdash; Roles y Permisos (`/gestion/admin/roles-permisos`)
 
 ---
 
@@ -55,9 +55,8 @@ Proporcionar al Administrador una interfaz centralizada y de alta velocidad para
 
 ### Paso 1: Ingreso al Panel de Roles y Permisos
 1. Inicie sesión en la plataforma `sgrai-web` con su cuenta de Administrador.
-2. Desde la página de inicio, haga clic en el botón **"Ir a Panel Administrador (Roles y Permisos) &rarr;"**, o navegue directamente a la URL `/admin/roles-permisos` (también accesible vía `/roles-permisos`).
-3. En la barra superior institucional, verifique el badge verde: **"Acceso Administrador (RBAC OK)"**.
-4. *(Herramienta de Auditoría y Testing)*: Puede utilizar el selector **"Usuario Activo"** en la barra superior para alternar entre el *Administrador General* y otros roles (ej. *Operador Call Center*) para comprobar la respuesta del sistema ante accesos no autorizados.
+2. Desde la página de inicio del **Portal de Gestión** (`/gestion`), seleccione en el catálogo de módulos **"Roles y Permisos"** o navegue en la barra lateral (`AppSidebar`) a **Administración › Roles y Permisos** (ruta canónica `/gestion/admin/roles-permisos`).
+3. *(Herramienta de Auditoría y Testing)*: En entornos de desarrollo y pruebas, puede utilizar el selector de sesión simulada para alternar entre el *Administrador General* y otros roles (ej. *Operador Call Center*) para comprobar la respuesta del sistema ante accesos no autorizados.
 
 ### Paso 2: Análisis de Métricas y KPIs de Seguridad
 En la franja superior de indicadores, revise las métricas consolidadas del sistema:
@@ -117,6 +116,6 @@ La vista ha sido construida de acuerdo al **Criterio 6 de Aceptación**, estable
 ## 5. Relación con Otros Módulos y Repositorios
 
 - **`sgrai-api`:** Origen de datos y validación de políticas RBAC. Provee los endpoints `/api/seguridad/roles` y `/api/seguridad/roles/{id}`, aplicando el middleware de autorización por rol antes de responder.
-- **Centro Call Center (`/callcenter`):** Los permisos visualizados en el módulo *Incidentes* (`incidentes:avisos:leer`, etc.) determinan qué operadores pueden consultar o verificar la bandeja de entrada ciudadana.
+- **Centro Call Center (`/gestion/callcenter`):** Los permisos visualizados en el módulo *Incidentes* (`incidentes:avisos:leer`, etc.) determinan qué operadores pueden consultar o verificar la bandeja de entrada ciudadana.
 - **Centro de Mando (Encargado):** Los permisos de asignación de misiones y recursos condicionan las opciones disponibles en el tablero táctico.
 - **PWA de Terreno (`sgrai-pwa`):** Los perfiles operativos de *Patrulla Verificadora* y *Delegado de Cuadrilla* reflejan aquí su matriz de autorizaciones para sincronización offline.

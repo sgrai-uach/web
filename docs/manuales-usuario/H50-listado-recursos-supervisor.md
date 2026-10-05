@@ -4,7 +4,7 @@
 > **Historia de Usuario:** HU-50 — Listado de Recursos para Supervisor (Monitoreo de Disponibilidad y Estado Operativo)  
 > **Rol Destinatario:** Supervisor Estratégico (usuarios autenticados con permiso `recursos:leer`)  
 > **Sistema:** SGRAI — Dirección de Gestión de Riesgos de Desastres, Municipalidad de Valdivia  
-> **Rutas del Módulo:** `/gestion/admin/recursos` y `/admin/recursos`  
+> **Ruta del Módulo:** `/gestion/admin/recursos` (con `/admin/recursos` como alias de compatibilidad)  
 
 ---
 
@@ -85,7 +85,7 @@ Si la base de datos municipal no cuenta con recursos dados de alta, o si se apli
 - Se desplegará un contenedor amigable con el ícono `PackageOpen` y el mensaje *"Actualmente no existen recursos ingresados en el inventario logístico municipal para atención de incidentes"*.
 - Para el perfil Supervisor, **no aparecerá el botón de registro de nuevo recurso**.
 
-### 6.2. Intento de Acceso a Rutas de Creación (`/admin/recursos/nuevo`)
+### 6.2. Intento de Acceso a Rutas de Creación (`/gestion/admin/recursos/nuevo`)
 Si el usuario intenta ingresar manualmente a la dirección de alta de recursos:
 - El sistema denegará la visualización del formulario y mostrará la pantalla de **Acceso Restringido**.
 - Se indicará con claridad el motivo: *"Permisos insuficientes para el Registro de Recursos (recursos:crear)"*.

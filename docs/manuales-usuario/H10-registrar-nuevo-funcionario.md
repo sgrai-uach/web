@@ -12,7 +12,7 @@
 ## 2. Acceso a la Funcionalidad
 
 1. Inicie sesión en la plataforma web institucional del SGRAI con una cuenta que posea el permiso de **Registro de Nuevos Funcionarios (`personal:crear`)** o permiso de administración (`personal:gestionar`).
-2. Diríjase a la sección **Administración** en la barra lateral o mediante la navegación superior y seleccione **Gestión de Personal** (ruta `/admin/empleados`).
+2. Desde el Portal de Gestión (`/gestion`), diríjase a la sección **Administración** en la barra lateral (`AppSidebar`) y seleccione **Gestión de Personal** (ruta canónica `/gestion/admin/empleados`).
 3. En la cabecera principal, junto al título de la página, los usuarios autorizados visualizarán el botón institucional de acción destacada: **"+ Nuevo Funcionario"** (aquellos perfiles con permisos exclusivamente de lectura no verán este botón).
 4. Al hacer clic en este botón, se desplegará el modal interactivo **"Registrar Nuevo Funcionario Municipal"**.
 
@@ -60,7 +60,7 @@ Esta sección se despliega **únicamente si el rol seleccionado corresponde a pe
 3. Si la operación es exitosa:
    - El modal se cerrará automáticamente.
    - El sistema emitirá una notificación Toast institucional en color verde: *"Funcionario [Nombres Apellidos] registrado exitosamente"*.
-   - El buscador y listado de empleados en `/admin/empleados` se actualizará de forma transparente y reactiva, permitiendo auditar o consultar al nuevo funcionario de inmediato sin requerir recargar la página web.
+   - El buscador y listado de empleados en `/gestion/admin/empleados` se actualizará de forma transparente y reactiva, permitiendo auditar o consultar al nuevo funcionario de inmediato sin requerir recargar la página web.
 
 ---
 

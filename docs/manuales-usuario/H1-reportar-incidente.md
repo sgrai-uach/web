@@ -8,7 +8,10 @@ Este manual documenta el uso del **Portal Informante** para el reporte ágil de 
 
 - **Rol al que está dirigido:** Informante (Ciudadano / Vecino de la comuna de Valdivia).
 - **Objetivo de la funcionalidad:** Permitir al ciudadano reportar incidentes o emergencias comunales de forma guiada, secuencial y rápida, reduciendo errores en el ingreso de datos y facilitando la pronta respuesta de los equipos de la Dirección de Gestión de Riesgos de Desastres (DGRD).
-- **Acceso:** Directamente desde la dirección principal del sitio web (`/`).
+- **Acceso:**
+  - **Ruta Canónica:** `/ciudadania/reportar`
+  - **Navegación:** Desde el selector principal (`/`), presione **"Ingresar al Portal Ciudadano"** (`/ciudadania`) y luego haga clic en **"Iniciar Reporte con Asistente"**.
+  - *(Compatibilidad)*: La ruta heredada `/reportar` se redirige automáticamente a `/ciudadania/reportar`.
 
 ---
 

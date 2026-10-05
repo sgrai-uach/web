@@ -9,8 +9,9 @@ Este manual documenta el uso del **Panel de Seguimiento** del Sistema de Gestió
 - **Rol al que está dirigido:** Informante (Ciudadano / Vecino de la comuna de Valdivia).
 - **Objetivo de la funcionalidad:** Permitir al informante conocer el estado actual y la evolución de la atención de su incidente reportado en tiempo real, mediante un código numérico único de 8 dígitos, visualizando las etapas operativas del ciclo de vida ICS sin exponer datos personales confidenciales.
 - **Acceso:**
-  - **Acceso directo vía enlace:** Mediante el link único compartido tras registrar el reporte (por SMS, WhatsApp o chatbot conversacional): `/seguimiento/[codigo]` (ejemplo: `/seguimiento/58291045`).
-  - **Acceso por buscador general:** Desde la página de consulta manual `/seguimiento`.
+  - **Acceso directo vía enlace:** Mediante el link único compartido tras registrar el reporte (por SMS, WhatsApp o chatbot conversacional): `/ciudadania/seguimiento/[codigo]` (ejemplo: `/ciudadania/seguimiento/58291045`).
+  - **Acceso por buscador general:** Desde el Portal de Atención Ciudadana en `/ciudadania` (o `/ciudadania/seguimiento`).
+  - *(Compatibilidad)*: Las rutas heredadas `/seguimiento` y `/seguimiento/[codigo]` se redirigen automáticamente.
 
 ---
 
@@ -20,19 +21,19 @@ Este manual documenta el uso del **Panel de Seguimiento** del Sistema de Gestió
 
 Si recibiste un enlace directo vía SMS, correo o al finalizar tu reporte en el portal:
 1. Haz clic en el enlace entregado.
-2. El sistema abrirá inmediatamente la pantalla de detalle correspondiente a tu número de caso.
+2. El sistema abrirá inmediatamente la pantalla de detalle correspondiente a tu número de caso en `/ciudadania/seguimiento/[codigo]`.
 3. Se desplegará la línea de tiempo con la etapa actual del incidente y la tarjeta de resumen con la información operativa.
 
 ---
 
 ### Opción B: Búsqueda Manual con Código de Seguimiento
 
-Si dispones de tu código numérico de 8 dígitos (ejemplo: `58291045`) y accedes directamente a `/seguimiento`:
+Si dispones de tu código numérico de 8 dígitos (ejemplo: `58291045`):
 
-1. Ingresa a la sección `/seguimiento`.
-2. En el recuadro **"Ingresa el Código de Seguimiento de tu Reporte"**, escribe tu código numérico de 8 dígitos. El campo solo acepta números y valida el largo automáticamente.
-3. Presiona el botón **Consultar Estado**.
-4. Serás redirigido automáticamente a la vista de seguimiento de tu caso.
+1. Ingrese al Portal de Atención Ciudadana en `/ciudadania`.
+2. En la tarjeta **"Consultar Estado de tu Reporte"**, ingrese en el recuadro su código numérico de 8 dígitos. El campo solo acepta números y valida el largo automáticamente.
+3. Presione el botón **Consultar Estado**.
+4. El sistema abrirá la vista de seguimiento dedicada `/ciudadania/seguimiento/[codigo]`.
 
 ---
 

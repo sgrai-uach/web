@@ -11,8 +11,8 @@
 ## 2. Acceso a la Funcionalidad
 
 1. Inicie sesión en la plataforma institucional SGRAI con una cuenta que posea el perfil de **Administrador**.
-2. En la barra de navegación lateral o en el panel de inicio, seleccione el módulo **"Administración"** y luego haga clic en **"Gestión de Personal"**.
-3. La plataforma abrirá la interfaz de administración en la ruta `/admin/empleados`.
+2. Desde el Portal de Gestión (`/gestion`), seleccione en la barra lateral (`AppSidebar`) o en el catálogo modular **"Administración" › "Gestión de Personal"**.
+3. La plataforma abrirá la interfaz de administración en la ruta canónica `/gestion/admin/empleados`.
 
 ---
 

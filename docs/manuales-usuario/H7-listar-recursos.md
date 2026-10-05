@@ -4,7 +4,7 @@
 > **Historia de Usuario:** HU-7 — Listar Recursos e Inventario de Disponibilidad  
 > **Rol Destinatario:** Administrador Municipal  
 > **Sistema:** SGRAI — Dirección de Gestión de Riesgos de Desastres, Municipalidad de Valdivia  
-> **Ruta del Módulo:** `/recursos`
+> **Ruta del Módulo:** `/gestion/admin/recursos`
 
 ---
 
@@ -16,11 +16,11 @@ Proporcionar al Administrador una vista tabular centralizada y en tiempo real de
 
 ## 2. Acceso y Control de Seguridad (RBAC)
 
-1. El acceso a esta pantalla está restringido exclusivamente a usuarios con el rol de **Administrador**.
+1. El acceso a esta pantalla está restringido exclusivamente a usuarios con el rol de **Administrador** o con el permiso `recursos:leer`.
 2. **Identificadores de Sesión de Prueba:**
    - **Administrador General:** UUID `00000000-0000-4000-8000-000000000001` (`admin@valdivia.cl`) &rarr; **Permitido (200 OK)**.
    - **Operador Call Center:** UUID `00000000-0000-4000-8000-000000000002` (`callcenter@valdivia.cl`) &rarr; **Bloqueado (403 Forbidden)**.
-3. Si un usuario sin privilegios administrativos intenta acceder a `/recursos`, el sistema desplegará automáticamente la pantalla institucional de **Acceso Denegado (HTTP 403)**, impidiendo la visualización de los datos logísticos y ofreciendo enlaces directos para cambiar de sesión o retornar a otros portales como Call Center.
+3. Si un usuario sin privilegios administrativos intenta acceder a `/gestion/admin/recursos`, el sistema desplegará automáticamente la pantalla institucional de **Acceso Denegado (HTTP 403)**, impidiendo la visualización de los datos logísticos y ofreciendo enlaces directos para cambiar de sesión o retornar al portal correspondiente.
 
 ---
 
@@ -28,14 +28,14 @@ Proporcionar al Administrador una vista tabular centralizada y en tiempo real de
 
 ### 3.1. Barra Superior Institucional y Navegación
 - **Franja Sage:** Encabezado oficial *"Municipalidad de Valdivia — Dirección de Gestión de Riesgos de Desastres"*.
-- **Barra de Navegación:** Enlace directo al inicio, acceso rápido al módulo de *Inventario Logístico* e indicador del perfil en sesión activa.
+- **Barra de Navegación Lateral (`AppSidebar`):** Acceso rápido al módulo de *Inventario Logístico* bajo el grupo *Administración*.
 - **Ruta de Navegación (Breadcrumbs):** `Inicio › Administración › Inventario Logístico`.
-- **Simulador de Perfil (RBAC):** Selector de pruebas para alternar entre *Administrador General* y *Operador Call Center*, permitiendo validar el control de acceso en auditorías de QA.
+- **Simulador de Perfil (RBAC):** Selector de pruebas para alternar entre *Administrador General* y otros roles, permitiendo validar el control de acceso en auditorías de QA.
 
 ### 3.2. Encabezado del Módulo
 - **Título:** *Inventario Logístico de Recursos*.
 - **Contador:** Badge con la cantidad total de recursos encontrados.
-- **Botón Principal:** `+ Registrar Nuevo Recurso`, que redirige a `/recursos/nuevo` para dar de alta nuevos activos en el sistema.
+- **Botón Principal:** `+ Registrar Nuevo Recurso`, que redirige a `/gestion/admin/recursos/nuevo` para dar de alta nuevos activos en el sistema.
 
 ### 3.3. Barra de Búsqueda y Filtros en Servidor
 La tabla se actualiza de forma reactiva al aplicar cualquiera de los siguientes filtros:

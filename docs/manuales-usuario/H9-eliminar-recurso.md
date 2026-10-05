@@ -4,7 +4,7 @@
 > **Historia de Usuario:** HU-9 — Eliminar un Recurso del Sistema  
 > **Rol Destinatario:** Administrador Municipal  
 > **Sistema:** SGRAI — Dirección de Gestión de Riesgos de Desastres, Municipalidad de Valdivia  
-> **Ruta del Módulo:** `/admin/recursos`
+> **Ruta del Módulo:** `/gestion/admin/recursos`
 
 ---
 
@@ -27,7 +27,7 @@
 
 ## 3. Acceso a la Acción de Eliminación
 
-El Administrador dispone de dos puntos de acceso dentro del módulo de inventario (`/admin/recursos`):
+El Administrador dispone de dos puntos de acceso dentro del módulo de inventario (`/gestion/admin/recursos`):
 
 1. **Desde la Tabla Principal de Recursos:**
    - Ubique el recurso que desea dar de baja en el listado.

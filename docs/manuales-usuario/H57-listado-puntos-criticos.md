@@ -4,7 +4,7 @@
 > **Historia de Usuario:** HU-57 — Listado de Puntos Críticos  
 > **Rol Destinatario:** Administrador Municipal  
 > **Sistema:** SGRAI — Dirección de Gestión de Riesgos de Desastres, Municipalidad de Valdivia  
-> **Ruta del Módulo:** `/admin/puntos-criticos`
+> **Ruta del Módulo:** `/gestion/admin/puntos-criticos`
 
 ---
 
@@ -20,7 +20,7 @@ Permitir al Administrador visualizar, filtrar y monitorear de forma centralizada
 2. **Identificadores de Sesión de Prueba (Simulador):**
    * **Administrador General:** UUID `00000000-0000-4000-8000-000000000001` (`admin@valdivia.cl`) &rarr; **Permitido (200 OK)**.
    * **Operador Call Center:** UUID `00000000-0000-4000-8000-000000000002` (`callcenter@valdivia.cl`) &rarr; **Restringido (403 Forbidden)**.
-3. Si un usuario sin el permiso requerido intenta acceder directamente mediante la URL `/admin/puntos-criticos`, el sistema desplegará automáticamente la pantalla institucional de **Acceso Denegado (HTTP 403)**, protegiendo la información territorial y proveyendo un enlace de retorno seguro a la Bandeja de Avisos.
+3. Si un usuario sin el permiso requerido intenta acceder directamente mediante la URL canónica `/gestion/admin/puntos-criticos` (o su alias `/admin/puntos-criticos`), el sistema desplegará automáticamente la pantalla institucional de **Acceso Denegado (HTTP 403)**, protegiendo la información territorial y proveyendo un enlace de retorno seguro a la Bandeja de Avisos.
 
 ---
 

@@ -3,7 +3,7 @@
 - **Código de Historia:** HU-5
 - **Rol Destinatario:** Administrador de Seguridad y Plataforma (Dirección de Gestión de Riesgos de Desastres)
 - **Repositorio:** `sgrai-web`
-- **Módulo:** Panel Administrador &mdash; Roles y Permisos (`/admin/roles-permisos` o `/roles-permisos`)
+- **Módulo:** Panel Administrador &mdash; Roles y Permisos (`/gestion/admin/roles-permisos`)
 
 ---
 
@@ -16,41 +16,41 @@ Permitir al Administrador asignar o revocar de manera masiva e interactiva los p
 ## 2. Flujo de Trabajo Operativo
 
 ```
-               [Panel de Roles y Permisos (/admin/roles-permisos)]
-                                       │
-                                       ▼
-                  [Seleccionar Perfil: Clic "Ver Permisos →"]
-                                       │
-                                       ▼
-                       [Panel Lateral Drawer Abierto]
-                     (Modo Lectura / Matriz de Permisos)
-                                       │
-                                       ▼
-                  [Clic en Botón Primario "Modificar Permisos" 
-                    o "Asignar Permisos Ahora" si está vacío]
-                                       │
-                                       ▼
-             [Drawer Transiciona a Modo Edición Interactivo In-Place]
-               ┌───────────────────────────────────────────────┐
-               │ - Encabezado y resumen del rol activo         │
-               │ - Catálogo completo de permisos por módulo    │
-               │ - Checkboxes interactivos planos (Activo/Inac)│
-               │ - Acciones rápidas "Marcar todos" / "Desmarcar"│
-               │ - Doble protección de auto-bloqueo para Admin │
-               │   (seguridad:roles:gestionar y :leer)         │
-               └───────────────────────┬───────────────────────┘
-                                       │
-                        ┌──────────────┴──────────────┐
-                        ▼                             ▼
-              [Cancelar / Descartar]       [Guardar Cambios]
-              - Revierte a Modo Lectura    - PUT a la API
-                                           - Toast éxito flotante
-                                           - Refresco y balance
+          [Panel de Roles y Permisos (/gestion/admin/roles-permisos)]
+                                   │
+                                   ▼
+              [Seleccionar Perfil: Clic "Ver Permisos →"]
+                                   │
+                                   ▼
+                   [Panel Lateral Drawer Abierto]
+                 (Modo Lectura / Matriz de Permisos)
+                                   │
+                                   ▼
+              [Clic en Botón Primario "Modificar Permisos" 
+                o "Asignar Permisos Ahora" si está vacío]
+                                   │
+                                   ▼
+         [Drawer Transiciona a Modo Edición Interactivo In-Place]
+           ┌───────────────────────────────────────────────┐
+           │ - Encabezado y resumen del rol activo         │
+           │ - Catálogo completo de permisos por módulo    │
+           │ - Checkboxes interactivos planos (Activo/Inac)│
+           │ - Acciones rápidas "Marcar todos" / "Desmarcar"│
+           │ - Doble protección de auto-bloqueo para Admin │
+           │   (seguridad:roles:gestionar y :leer)         │
+           └───────────────────────┬───────────────────────┘
+                                   │
+                    ┌──────────────┴──────────────┐
+                    ▼                             ▼
+          [Cancelar / Descartar]       [Guardar Cambios]
+          - Revierte a Modo Lectura    - PUT a la API
+                                       - Toast éxito flotante
+                                       - Refresco y balance
 ```
 
 ### Paso 1: Localización y Selección del Perfil a Modificar
 1. Inicie sesión en la plataforma `sgrai-web` con su cuenta de Administrador.
-2. Navegue a la sección **Administración &rarr; Roles y Permisos** (`/admin/roles-permisos`).
+2. Navegue a la sección **Administración &rarr; Roles y Permisos** (ruta canónica `/gestion/admin/roles-permisos`).
 3. Localice el perfil que desea parametrizar utilizando el buscador predictivo o los filtros de tipo (*Sistema / Personalizado*) o de permisos (*Con Permisos / Sin Permisos*).
 4. En la tarjeta del perfil deseado, haga clic en el botón **"Ver Permisos &rarr;"** para abrir el panel lateral (Drawer).
 

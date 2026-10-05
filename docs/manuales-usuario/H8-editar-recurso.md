@@ -4,7 +4,7 @@
 > **Historia de Usuario:** HU-8 — Editar Características de un Recurso  
 > **Rol Destinatario:** Administrador Municipal  
 > **Sistema:** SGRAI — Dirección de Gestión de Riesgos de Desastres, Municipalidad de Valdivia  
-> **Ruta del Módulo:** `/admin/recursos`
+> **Ruta del Módulo:** `/gestion/admin/recursos`
 
 ---
 
@@ -26,14 +26,12 @@
 
 ## 3. Acceso al Formulario de Edición
 
-El Administrador puede acceder a la ventana de edición desde dos puntos de la interfaz de inventario (`/admin/recursos`):
+El Administrador puede acceder a la ventana de edición desde dos puntos de la interfaz de inventario (`/gestion/admin/recursos`):
 
 1. **Desde la Tabla de Inventario:**
    - En la columna **Acción** de cada fila, presione el botón **"Editar"** (ícono de lápiz en color institucional Teal).
 2. **Desde la Ficha Técnica de Detalle:**
    - Al presionar **"Ver Ficha"**, en el pie del modal de detalles técnicos se encuentra el botón destacado **"Editar Recurso"** (en color Mint institucional).
-
-![Acceso a edición de recurso desde tabla y ficha técnica](assets/H8-editar-recurso/01-acceso-edicion.png)
 
 ---
 
@@ -62,8 +60,6 @@ Al abrirse el modal interactivo, el sistema realiza automáticamente una consult
   - Casilla de verificación interactiva: *"Marcar recurso en Mantenimiento Técnico (Fuera de Servicio)"*.
   - Al marcarla, se despliega una advertencia visual destacada indicando que el activo pasará al estado **`EN_MANTENCION`**, impidiendo que el Centro de Mando lo asigne a cuadrillas hasta que el Administrador retire dicha marca.
 
-![Formulario de edición con control de stock y mantenimiento](assets/H8-editar-recurso/02-modal-edicion.png)
-
 ### 4.3. Sección 3: Especificaciones Técnicas (Solo Activos Individuales)
 - Permite actualizar las especificaciones del bien según su subtipo:
   - **Vehículos:** Kilometraje, Horómetro, Tipo de Combustible, Patente, Número de Chasis, Capacidad de Pasajeros.
@@ -83,7 +79,7 @@ Al abrirse el modal interactivo, el sistema realiza automáticamente una consult
    - Se registra automáticamente en base de datos la fecha y hora (`actualizado_en`) y el identificador del usuario que realizó la modificación (`actualizado_por_id`).
 2. **Retroalimentación Inmediata:**
    - El modal se cierra automáticamente.
-   - El usuario permanece en `/admin/recursos` y recibe una notificación flotante (Toast) de éxito en la esquina superior derecha: *"El recurso '[Nombre]' ha sido actualizado exitosamente"*.
+   - El usuario permanece en `/gestion/admin/recursos` y recibe una notificación flotante (Toast) de éxito en la esquina superior derecha: *"El recurso '[Nombre]' ha sido actualizado exitosamente"*.
    - La fila correspondiente en la tabla actualiza sus valores de forma instantánea.
 3. **Sincronización en Tiempo Real (Socket.io):**
    - El servidor de `sgrai-api` emite el evento `"recurso:actualizado"`.

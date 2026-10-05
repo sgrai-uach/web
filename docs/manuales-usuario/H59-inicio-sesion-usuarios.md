@@ -47,12 +47,9 @@ Proporcionar a los funcionarios municipales y operadores del SGRAI una vía de a
                                                          ▼
                                              [Redirección Inteligente]
                                               ├─ Con returnUrl: a la ruta previa
-                                              └─ Sin returnUrl: por rol
-                                                 • ADMIN -> /admin/recursos
-                                                 • OPERACIONES -> /centro-incidentes
-                                                 • CALL_CENTER -> /callcenter
-                                                 • ASISTENTE_SOCIAL -> /asistente-social
-                                                 • SUPERVISOR -> /dashboard
+                                              └─ Sin returnUrl: Hub de Gestión (/gestion)
+                                                 • Catálogo según permisos RBAC
+                                                 • Resumen y métricas operativas
 ```
 
 ---
@@ -61,7 +58,7 @@ Proporcionar a los funcionarios municipales y operadores del SGRAI una vía de a
 
 ### Paso 1: Ingreso a la Interfaz de Autenticación
 1. Abra el navegador web e ingrese a la dirección de la plataforma: `https://<dominio-sgrai>/login`.
-2. Si intenta ingresar directamente a una ruta interna (ej. `/admin/recursos` o `/callcenter`), el sistema interceptará la navegación y lo redirigirá automáticamente a la pantalla de inicio de sesión, preservando la página solicitada para después del ingreso.
+2. Si intenta ingresar directamente a una ruta interna (ej. `/gestion/admin/recursos` o `/gestion/callcenter`), el sistema interceptará la navegación y lo redirigirá automáticamente a la pantalla de inicio de sesión, preservando la página solicitada para después del ingreso.
 
 ### Paso 2: Ingreso de Credenciales Institucionales
 1. En el campo **Identificador Institucional**, ingrese una de las siguientes opciones:
@@ -76,15 +73,10 @@ Proporcionar a los funcionarios municipales y operadores del SGRAI una vía de a
    * Si es un RUT, verificará matemáticamente el dígito verificador bajo el algoritmo Módulo 11.
 3. Durante el envío, el botón mostrará el estado **"Ingresando..."** y los campos permanecerán deshabilitados para prevenir envíos duplicados.
 
-### Paso 4: Redirección al Módulo Correspondiente
-Una vez validada la identidad, el sistema configurará la credencial segura e iniciará la sesión, redirigiéndolo de acuerdo a su perfil:
-* **Administrador:** Dirigido a `/admin/recursos` (Inventario Logístico).
-* **Encargado de Operaciones:** Dirigido a `/centro-incidentes` (Centro de Mando).
-* **Operador Call Center:** Dirigido a `/callcenter` (Bandeja de Avisos).
-* **Asistente Social:** Dirigido a `/asistente-social` (Gestión de Fichas FIBE).
-* **Supervisor:** Dirigido a `/dashboard` (Dashboard Estratégico).
-
-Si había intentado entrar a un enlace específico, el sistema le redirigirá directamente a ese recurso.
+### Paso 4: Redirección al Hub de Gestión
+Una vez validada la identidad, el sistema configurará la credencial segura e iniciará la sesión:
+* **Acceso Estándar:** El sistema redirige automáticamente al usuario al **Portal de Gestión (`/gestion`)**, donde se despliega la cuadrícula modular de accesos rápidos (`GestionModulosGrid`) y los widgets de resumen en tiempo real adaptados dinámicamente a los permisos RBAC específicos del rol autenticado.
+* **Redirección por Enlace Previo (`returnUrl`):** Si el usuario había intentado ingresar a una ruta específica protegida (ej. `/gestion/centro-incidentes` o `/gestion/callcenter`), el sistema lo redirigirá directamente a ese recurso tras autenticarse con éxito.
 
 ### Paso 5: Verificación de Sesión y Cierre Seguro
 1. En la esquina superior derecha del encabezado institucional observará el componente **`HeaderUserWidget`**, el cual muestra su nombre, rol y delegación.
@@ -95,7 +87,7 @@ Si había intentado entrar a un enlace específico, el sistema le redirigirá di
    * Los operadores de Call Center únicamente visualizarán la Bandeja de Avisos y módulos operativos asignados.
    * Los grupos completos sin módulos autorizados (como *Estratégico* o *Administración*) se ocultan automáticamente para reducir saturación visual y evitar accesos no permitidos.
    * El perfil Administrador (`ADMIN`) tiene visibilidad completa de todos los módulos.
-2. **Atención Ciudadana y Módulos Públicos:** Las herramientas ciudadanas (**Chatbot de Reportes** `/reportar` y **Seguimiento de Avisos** `/seguimiento`) son completamente públicas e irrestrictas. Se mantienen siempre visibles y accesibles para cualquier funcionario o ciudadano sin necesidad de permisos especiales ni inicio de sesión previo.
+2. **Atención Ciudadana y Módulos Públicos:** Las herramientas ciudadanas (**Chatbot de Reportes** `/ciudadania/reportar` y **Seguimiento de Avisos** `/ciudadania/seguimiento/[codigo]`) son completamente públicas e irrestrictas. Se mantienen siempre accesibles desde el Portal de Atención Ciudadana (`/ciudadania`) sin necesidad de permisos especiales ni inicio de sesión previo.
 
 ---
 
@@ -104,13 +96,13 @@ Si había intentado entrar a un enlace específico, el sistema le redirigirá di
 Para fines de evaluación, pruebas operativas y QA en ambientes de desarrollo y homologación, todos los usuarios predeterminados comparten la contraseña estándar:  
 👉 **`Valdivia2026!`**
 
-| Rol del Funcionario | Correo Corporativo | RUT | Módulo de Destino |
+| Rol del Funcionario | Correo Corporativo | RUT | Módulo / Destino Canónico |
 |---|---|---|---|
-| **Administrador General** | `admin@valdivia.cl` | `11111111-1` | `/admin/recursos` |
-| **Encargado de Operaciones** | `operaciones@valdivia.cl` | `22222222-2` | `/centro-incidentes` |
-| **Operador Call Center** | `callcenter@valdivia.cl` | `33333333-3` | `/callcenter` |
-| **Asistente Social** | `social@valdivia.cl` | `44444444-4` | `/asistente-social` |
-| **Supervisor Estratégico** | `supervisor@valdivia.cl` | `55555555-5` | `/dashboard` |
+| **Administrador General** | `admin@valdivia.cl` | `11111111-1` | `/gestion` (con acceso a `/gestion/admin/*`) |
+| **Encargado de Operaciones** | `operaciones@valdivia.cl` | `22222222-2` | `/gestion` (con acceso a `/gestion/centro-incidentes`) |
+| **Operador Call Center** | `callcenter@valdivia.cl` | `33333333-3` | `/gestion` (con acceso a `/gestion/callcenter`) |
+| **Asistente Social** | `social@valdivia.cl` | `44444444-4` | `/gestion` (con acceso a Fichas FIBE) |
+| **Supervisor Estratégico** | `supervisor@valdivia.cl` | `55555555-5` | `/gestion` (con acceso a Métricas y Reportes) |
 
 ---
 

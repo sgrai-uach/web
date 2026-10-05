@@ -4,7 +4,7 @@
 > **Historia de Usuario:** HU-18 — Vista Rápida y KPIs de Incidentes  
 > **Rol Destinatario:** Encargado de Centro de Mando / Operaciones  
 > **Sistema:** SGRAI — Dirección de Gestión de Riesgos de Desastres, Municipalidad de Valdivia  
-> **Ruta del Módulo:** `/centro-incidentes`
+> **Ruta del Módulo:** `/gestion/centro-incidentes`
 
 ---
 
@@ -20,7 +20,7 @@ Proporcionar al Encargado un panorama rápido e interactivo de la jornada actual
 2. **Identificadores de Sesión de Prueba (Simulador):**
    * **Encargado de Centro de Mando:** UUID `00000000-0000-4000-8000-000000000003` (`encargado@valdivia.cl`) &rarr; **Permitido (200 OK)**.
    * **Operador Call Center:** UUID `00000000-0000-4000-8000-000000000002` (`callcenter@valdivia.cl`) &rarr; **Restringido (403 Forbidden)**.
-3. Si un usuario sin el permiso requerido intenta acceder directamente mediante la URL `/centro-incidentes` o `/mando`, el sistema desplegará automáticamente la pantalla institucional de **Acceso Restringido (HTTP 403)**:
+3. Si un usuario sin el permiso requerido intenta acceder directamente mediante la URL `/gestion/centro-incidentes` (o sus alias `/centro-incidentes`, `/mando`), el sistema desplegará automáticamente la pantalla institucional de **Acceso Restringido (HTTP 403)**:
    * **Encabezado:** *Acceso Restringido*.
    * **Título:** *Permisos insuficientes para el Centro de Mando*.
    * **Mensaje:** *"No cuenta con los permisos necesarios para acceder a esta sección. Si requiere acceso, puede solicitarlos a un administrador."*

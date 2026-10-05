@@ -11,8 +11,12 @@
 ## 2. Acceso a la Funcionalidad
 
 1. Ingrese a la plataforma web institucional del SGRAI desde un navegador compatible.
-2. Desde la página de inicio o el panel lateral de navegación, seleccione el módulo **"Inventario Logístico"** o haga clic en **"+ Registrar Nuevo Recurso"**.
-3. La aplicación abrirá la vista de creación en la ruta `/recursos/nuevo`.
+2. Desde el Portal de Gestión (`/gestion`) o la barra lateral de navegación (`AppSidebar`), seleccione el módulo **"Inventario Logístico"** y haga clic en el botón destacado **"+ Registrar Nuevo Recurso"**.
+3. La aplicación abrirá la vista de creación en la ruta canónica:
+   ```
+   /gestion/admin/recursos/nuevo
+   ```
+   *(Compatibilidad)*: La ruta `/admin/recursos/nuevo` se mantiene como alias redirigido.
 
 ---
 

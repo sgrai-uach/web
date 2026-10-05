@@ -4,7 +4,7 @@
 > **Historia de Usuario:** HU-55 — Editar características de un punto crítico  
 > **Rol Destinatario:** Administrador Municipal  
 > **Sistema:** SGRAI — Dirección de Gestión de Riesgos de Desastres, Municipalidad de Valdivia  
-> **Ruta del Módulo:** `/admin/puntos-criticos`
+> **Ruta del Módulo:** `/gestion/admin/puntos-criticos`
 
 ---
 
@@ -26,7 +26,7 @@ Permitir al usuario con rol de **Administrador** modificar y actualizar las cara
 El Administrador puede acceder a la ventana modal de edición a través de dos puntos de entrada:
 
 ### 3.1. Desde la Tabla del Listado de Puntos Críticos
-1. Ingrese a la ruta `/admin/puntos-criticos` desde el menú lateral de navegación (*Administración › Puntos Críticos*).
+1. Ingrese a la ruta canónica `/gestion/admin/puntos-criticos` desde el menú lateral de navegación (*Administración › Puntos Críticos*).
 2. Ubique el punto crítico que desea editar (puede utilizar el buscador de texto o los filtros por delegación y prioridad).
 3. En la columna **Acción** (extremo derecho de la tabla), haga clic en el botón plano **"Editar"** (acompañado del ícono de lápiz).
 

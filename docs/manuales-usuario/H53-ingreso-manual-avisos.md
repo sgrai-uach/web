@@ -8,9 +8,9 @@ Este manual documenta el uso del módulo de **Ingreso Manual de Reportes** en el
 
 - **Rol al que está dirigido:** Call Center (Operadores de la Mesa Central 1451) y Administrador.
 - **Objetivo de la funcionalidad:** Permitir al operador registrar inmediatamente un incidente recibido vía llamada telefónica o aviso directo de funcionarios en terreno, enviando la alerta al Encargado municipal para su rápida atención y despacho.
-- **Acceso:** Desde la barra de navegación del Centro Call Center presionando el botón **"➕ Nuevo Reporte Manual"** o ingresando directamente a la ruta:
+- **Acceso:** Desde la barra de navegación del Centro Call Center presionando el botón **"+ Nuevo Reporte Manual"** o ingresando directamente a la ruta canónica:
   ```
-  /callcenter/manual
+  /gestion/callcenter/manual
   ```
 
 ---
@@ -19,8 +19,8 @@ Este manual documenta el uso del módulo de **Ingreso Manual de Reportes** en el
 
 ### Paso 1: Selección del Origen del Reporte
 Al ingresar al formulario, el operador debe identificar la procedencia de la información mediante los dos bloques superiores:
-1. **Llamada Telefónica (📞):** Selecciona esta opción si el aviso proviene de un vecino o ciudadano comunicándose vía línea telefónica (Mesa 1451 de Valdivia).
-2. **Funcionario en Terreno (👷):** Selecciona esta opción si la novedad fue transmitida por una patrulla, cuadrilla u otro funcionario municipal desplegado en la comuna.
+1. **Llamada Telefónica:** (ícono `Phone`) Selecciona esta opción si el aviso proviene de un vecino o ciudadano comunicándose vía línea telefónica (Mesa 1451 de Valdivia).
+2. **Funcionario en Terreno:** (ícono `HardHat`) Selecciona esta opción si la novedad fue transmitida por una patrulla, cuadrilla u otro funcionario municipal desplegado en la comuna.
 
 ---
 
@@ -48,7 +48,7 @@ Mientras el operador escribe la dirección y selecciona el tipo de afectación, 
 - Si no existen reportes cercanos, el formulario no muestra advertencias.
 - Si se detectan reportes coincidentes dentro de las últimas 24 horas y a menos de 300 metros, aparecerá un **banner de advertencia preventivo amarillo**:
   ```
-  ⚠️ Atención: Posible incidente duplicado detectado
+  [Aviso Preventivo] Atención: Posible incidente duplicado detectado
   Se identificaron X reporte(s) del mismo tipo a aproximadamente Y metros en las últimas 24 horas.
   ```
   Este aviso es informativo y **no bloquea** el avance del formulario.
@@ -71,7 +71,7 @@ Para mantener la trazabilidad y formalidad del registro:
 ### Paso 7: Envío y Notificación Inmediata al Encargado
 Presiona el botón principal:
 ```
-[ ✓ Guardar y Notificar al Encargado ]
+[ Guardar y Notificar al Encargado ]
 ```
 El sistema validará todos los datos en cliente e interactuará con el servidor para autoverificar el aviso y promoverlo a incidente.
 
@@ -88,7 +88,7 @@ Cuando el reporte es nuevo y no presenta duplicidad:
    - **Código de Seguimiento del Aviso:** Folio numérico de 8 dígitos (ej. `84920194`).
    - Resumen del tipo de afectación, prioridad y dirección.
 3. El registro queda automáticamente indexado en la tabla de incidentes en estado **`SIN_ATENDER`**, emitiendo un evento en tiempo real que alerta al Encargado.
-4. Botón **"➕ Ingresar otro reporte"**: Restablece el formulario para atender una nueva llamada.
+4. Botón **"+ Ingresar otro reporte"**: Restablece el formulario para atender una nueva llamada.
 
 ---
 
