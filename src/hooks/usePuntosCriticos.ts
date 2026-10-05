@@ -12,6 +12,7 @@ import {
   PuntoCriticoServiceError,
 } from '@/services/puntosCriticosService';
 import { getErrorMessage } from '@/lib/utils/errorUtils';
+import { getSocket } from '@/lib/socket/client';
 
 export const DELEGACIONES_MUNICIPALES = [
   {
@@ -113,6 +114,24 @@ export function usePuntosCriticos(
         abortControllerRef.current.abort();
       }
     };
+  }, [fetchData]);
+
+  // Escucha Socket.io en tiempo real para reflejar nuevos puntos críticos sin recargar
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      const socket = getSocket();
+      const handlePuntoCreado = () => {
+        fetchData();
+      };
+
+      socket.on('punto_critico:creado', handlePuntoCreado);
+      return () => {
+        socket.off('punto_critico:creado', handlePuntoCreado);
+      };
+    } catch {
+      // Ignorar excepciones en entornos sin socket o pruebas jsdom
+    }
   }, [fetchData]);
 
   return {

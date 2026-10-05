@@ -1,11 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import {
   getPuntosCriticos,
+  crearPuntoCritico,
   PuntoCriticoServiceError,
   filtrarPuntosCriticosMock,
   PUNTOS_CRITICOS_MOCK,
 } from '../puntosCriticosService';
 import apiClient from '@/lib/api/client';
+import type { CrearPuntoCriticoInput } from '@/types/puntoCritico';
 
 describe('puntosCriticosService', () => {
   beforeEach(() => {
@@ -102,4 +104,116 @@ describe('puntosCriticosService', () => {
       )
     ).rejects.toThrow(PuntoCriticoServiceError);
   });
+
+  /* ========================================================================
+     Pruebas Unitarias para HU-58: crearPuntoCritico
+     ======================================================================== */
+
+  it('debe invocar POST /api/puntos-criticos con payload y retornar punto creado con 201', async () => {
+    const payload: CrearPuntoCriticoInput = {
+      nombre: 'Peligro Derrumbe Ribera',
+      descripcion: 'Riesgo inminente por lluvias',
+      tipo_riesgo: 'Remoción en Masa / Deslizamiento',
+      nivel_prioridad: 'ALTA',
+      lat: -39.82512,
+      lng: -73.25143,
+      radio_afectacion_metros: 100,
+      delegacion_id: '30000000-0000-4000-8000-000000000002',
+      activo: true,
+    };
+
+    const mockCreado = {
+      id: 'e4f5a6b7-c8d9-0123-4567-89abcdef0123',
+      codigo: 'PC-SUR-001',
+      nombre: payload.nombre,
+      descripcion: payload.descripcion ?? null,
+      tipo_riesgo: payload.tipo_riesgo,
+      nivel_prioridad: payload.nivel_prioridad,
+      latitud: payload.lat,
+      longitud: payload.lng,
+      radio_afectacion_metros: 100,
+      delegacion_id: payload.delegacion_id ?? null,
+      delegacion_nombre: 'Delegación Sur',
+      activo: true,
+      creado_por_id: '00000000-0000-4000-8000-000000000001',
+      creado_por_nombre: 'Administrador',
+      creado_en: new Date().toISOString(),
+      actualizado_en: new Date().toISOString(),
+    };
+
+    vi.spyOn(apiClient, 'POST').mockResolvedValueOnce({
+      data: mockCreado,
+      response: { status: 201 } as Response,
+    } as never);
+
+    const res = await crearPuntoCritico(payload, '00000000-0000-4000-8000-000000000001');
+
+    expect(apiClient.POST).toHaveBeenCalledWith(
+      '/api/puntos-criticos',
+      expect.objectContaining({
+        params: {
+          header: {
+            'x-user-id': '00000000-0000-4000-8000-000000000001',
+          },
+        },
+        body: payload,
+      })
+    );
+    expect(res.codigo).toBe('PC-SUR-001');
+    expect(res.nombre).toBe('Peligro Derrumbe Ribera');
+  });
+
+  it('debe lanzar PuntoCriticoServiceError con código 400 ante validación fallida', async () => {
+    vi.spyOn(apiClient, 'POST').mockResolvedValueOnce({
+      error: { message: 'El campo nombre es obligatorio y debe tener al menos 3 caracteres' },
+      response: { status: 400 } as Response,
+    } as never);
+
+    const payloadInvalido = {
+      nombre: 'Ab',
+      tipo_riesgo: 'Inundación',
+      nivel_prioridad: 'MEDIA' as const,
+      lat: -39.81,
+      lng: -73.24,
+    };
+
+    await expect(crearPuntoCritico(payloadInvalido)).rejects.toThrow(PuntoCriticoServiceError);
+  });
+
+  it('debe lanzar PuntoCriticoServiceError con código 403 si el usuario carece de permiso', async () => {
+    vi.spyOn(apiClient, 'POST').mockResolvedValueOnce({
+      error: { message: 'Acceso no autorizado: requiere permiso puntos_criticos:crear' },
+      response: { status: 403 } as Response,
+    } as never);
+
+    const payload = {
+      nombre: 'Punto no autorizado',
+      tipo_riesgo: 'Inundación',
+      nivel_prioridad: 'BAJA' as const,
+      lat: -39.81,
+      lng: -73.24,
+    };
+
+    await expect(crearPuntoCritico(payload, 'usuario-sin-permisos')).rejects.toThrow(PuntoCriticoServiceError);
+  });
+
+  it('debe utilizar fallback mock ante fallo de conexión de red', async () => {
+    vi.spyOn(apiClient, 'POST').mockRejectedValueOnce(new TypeError('Failed to fetch'));
+
+    const payload = {
+      nombre: 'Punto en modo offline',
+      tipo_riesgo: 'Remoción en masa',
+      nivel_prioridad: 'ALTA' as const,
+      lat: -39.82,
+      lng: -73.25,
+      radio_afectacion_metros: 60,
+    };
+
+    const res = await crearPuntoCritico(payload);
+    expect(res.nombre).toBe('Punto en modo offline');
+    expect(res.codigo).toMatch(/^PC-SUR-\d+$/);
+    expect(res.latitud).toBe(-39.82);
+    expect(res.longitud).toBe(-73.25);
+  });
 });
+

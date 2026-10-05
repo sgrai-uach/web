@@ -73,6 +73,10 @@ describe('PuntosCriticosPage - RBAC y Renderizado (CA-1, CA-4)', () => {
     expect(screen.getByText('Puntos Críticos y Sectores Vulnerables')).toBeInTheDocument();
     expect(screen.getByText('PC-ANG-01')).toBeInTheDocument();
     expect(screen.getByText('Sector Humedal Angachilla')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /nuevo punto crítico/i })).toHaveAttribute(
+      'href',
+      '/admin/puntos-criticos/nuevo'
+    );
   });
 
   it('debe renderizar AccesoDenegadoState si el usuario carece de permiso o recibe 403 Forbidden (CA-4)', () => {

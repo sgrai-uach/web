@@ -43,6 +43,13 @@ export default function PuntosCriticosPage() {
     usuarioActivo.id === DEFAULT_ADMIN_USER_ID ||
     hasPermission('puntos_criticos:leer');
 
+  const puedeCrear =
+    usuarioActivo.rol === 'Administrador' ||
+    Boolean(usuarioActivo.esAdmin) ||
+    usuarioActivo.id === DEFAULT_ADMIN_USER_ID ||
+    hasPermission('puntos_criticos:crear') ||
+    hasPermission('eventos_atp:crear');
+
   useEffect(() => {
     if (error && statusCode !== 403) {
       showError(toUserFriendlyErrorMessage(error), 'Error al cargar puntos críticos');
@@ -117,6 +124,7 @@ export default function PuntosCriticosPage() {
       <PuntosCriticosHeader
         totalPuntos={meta.total}
         tieneAcceso={true}
+        puedeCrear={puedeCrear}
       />
 
       <PuntosCriticosFiltros
