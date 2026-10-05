@@ -9,11 +9,9 @@ interface PuntosCriticosFiltrosProps {
   busqueda: string;
   delegacionId?: string;
   prioridad?: PrioridadPuntoCritico;
-  activo?: boolean;
   onCambiarBusqueda: (busqueda: string) => void;
   onCambiarDelegacion: (delegacionId?: string) => void;
   onCambiarPrioridad: (prioridad?: PrioridadPuntoCritico) => void;
-  onCambiarActivo: (activo?: boolean) => void;
   onLimpiarFiltros: () => void;
 }
 
@@ -21,11 +19,9 @@ export default function PuntosCriticosFiltros({
   busqueda,
   delegacionId,
   prioridad,
-  activo,
   onCambiarBusqueda,
   onCambiarDelegacion,
   onCambiarPrioridad,
-  onCambiarActivo,
   onLimpiarFiltros,
 }: PuntosCriticosFiltrosProps) {
   const [localBusqueda, setLocalBusqueda] = useState(busqueda);
@@ -52,8 +48,7 @@ export default function PuntosCriticosFiltros({
   const hayFiltrosActivos = Boolean(
     busqueda?.trim() ||
       delegacionId ||
-      prioridad ||
-      activo !== undefined
+      prioridad
   );
 
   const selectStyle: React.CSSProperties = {
@@ -163,34 +158,6 @@ export default function PuntosCriticosFiltros({
             <option value="ALTA">Alta</option>
             <option value="MEDIA">Media</option>
             <option value="BAJA">Baja</option>
-          </select>
-        </div>
-
-        {/* Estado (Activo / Inactivo) */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-          <label
-            htmlFor="filtro-activo-pc"
-            style={{
-              fontSize: '13px',
-              fontWeight: 700,
-              color: 'var(--color-primary-teal-dark, #14505A)',
-            }}
-          >
-            Estado:
-          </label>
-          <select
-            id="filtro-activo-pc"
-            value={activo === undefined ? '' : activo ? 'true' : 'false'}
-            onChange={(e) => {
-              const val = e.target.value;
-              if (val === '') onCambiarActivo(undefined);
-              else onCambiarActivo(val === 'true');
-            }}
-            style={selectStyle}
-          >
-            <option value="">Todos los estados</option>
-            <option value="true">Activos</option>
-            <option value="false">Inactivos</option>
           </select>
         </div>
       </div>
