@@ -61,13 +61,6 @@ export const MisionDetalleModal: React.FC<MisionDetalleModalProps> = ({
       activo = false;
     };
   }, [misionId, userId]);
-
-  useEffect(() => {
-    queueMicrotask(() => {
-      cargarMision();
-    });
-  }, [cargarMision]);
-
   // Manejo de tecla Escape
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
