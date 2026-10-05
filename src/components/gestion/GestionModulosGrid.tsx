@@ -16,6 +16,7 @@ import {
   Layers,
   ArrowRight,
   ShieldAlert,
+  AlertTriangle,
 } from 'lucide-react';
 import type { ComponentType } from 'react';
 import type { LucideProps } from 'lucide-react';
@@ -112,6 +113,16 @@ const MODULOS_SISTEMA: ModuloConfig[] = [
     icon: ShieldCheck,
     requiredPermissions: ['seguridad:roles:leer', 'seguridad:roles:gestionar'],
     accionPrimaria: 'Configurar Permisos',
+  },
+  {
+    id: 'puntos-criticos',
+    titulo: 'Puntos Críticos',
+    descripcion:
+      'Catastro comunal y edición geoespacial interactiva de sectores vulnerables ante inundaciones, anegamientos y remoción en masa.',
+    href: '/gestion/admin/puntos-criticos',
+    icon: AlertTriangle,
+    requiredPermissions: ['puntos_criticos:leer'],
+    accionPrimaria: 'Ver Puntos Críticos',
   },
   {
     id: 'asistente-social',

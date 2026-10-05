@@ -9,11 +9,9 @@ interface PuntosCriticosFiltrosProps {
   busqueda: string;
   delegacionId?: string;
   prioridad?: PrioridadPuntoCritico;
-  activo?: boolean;
   onCambiarBusqueda: (busqueda: string) => void;
   onCambiarDelegacion: (delegacionId?: string) => void;
   onCambiarPrioridad: (prioridad?: PrioridadPuntoCritico) => void;
-  onCambiarActivo?: (activo?: boolean) => void;
   onLimpiarFiltros: () => void;
 }
 
@@ -162,7 +160,6 @@ export default function PuntosCriticosFiltros({
             <option value="BAJA">Baja</option>
           </select>
         </div>
-
       </div>
 
       {hayFiltrosActivos && (

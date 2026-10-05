@@ -21,18 +21,20 @@ import PuntosCriticosTabla from '@/components/admin/puntos-criticos/PuntosCritic
 import PuntosCriticosMapa from '@/components/admin/puntos-criticos/PuntosCriticosMapa';
 import PuntoCriticoDetalleModal from '@/components/admin/puntos-criticos/PuntoCriticoDetalleModal';
 import PuntoCriticoEliminarModal from '@/components/admin/puntos-criticos/PuntoCriticoEliminarModal';
+import PuntoCriticoEditarModal from '@/components/admin/puntos-criticos/PuntoCriticoEditarModal';
 import AccesoDenegadoState from '@/components/admin/puntos-criticos/AccesoDenegadoState';
 import Pagination from '@/components/common/Pagination';
 import Button from '@/components/ui/Button';
 import { toUserFriendlyErrorMessage } from '@/lib/utils/errorUtils';
 
 export default function PuntosCriticosPage() {
-  const { showError, showSuccess } = useToast();
+  const { showSuccess, showError } = useToast();
   const { usuarioActivo, cambiarUsuarioPorId, hasPermission } = useSimulatedSession();
 
   // Estados de interfaz y vista
   const [vista, setVista] = useState<'tabla' | 'mapa'>('tabla');
   const [puntoSeleccionado, setPuntoSeleccionado] = useState<PuntoCriticoItem | null>(null);
+  const [puntoParaEditar, setPuntoParaEditar] = useState<PuntoCriticoItem | null>(null);
 
   // Estados de eliminación y modal
   const [puntoAEliminar, setPuntoAEliminar] = useState<PuntoCriticoItem | null>(null);
@@ -56,6 +58,7 @@ export default function PuntosCriticosPage() {
     error,
     statusCode,
     removerPuntoLocalmente,
+    actualizarPuntoCriticoEnLista,
   } = usePuntosCriticos(filtros, usuarioActivo.id);
 
   const tienePermisoLectura =
@@ -92,10 +95,6 @@ export default function PuntosCriticosPage() {
     []
   );
 
-  const handleCambiarActivo = useCallback((activo?: boolean) => {
-    setFiltros((prev) => ({ ...prev, activo, pagina: 1 }));
-  }, []);
-
   const handleLimpiarFiltros = useCallback(() => {
     setFiltros({
       pagina: 1,
@@ -115,7 +114,7 @@ export default function PuntosCriticosPage() {
     setFiltros((prev) => ({ ...prev, limite: nuevoLimite, pagina: 1 }));
   }, []);
 
-  // Flujo de solicitud y confirmación de eliminación
+  // Flujo de solicitud y confirmación de eliminación (HU-56)
   const handleSolicitarEliminar = useCallback((punto: PuntoCriticoItem) => {
     setPuntoAEliminar(punto);
     setErrorBloqueo(null);
@@ -153,6 +152,20 @@ export default function PuntosCriticosPage() {
       setEliminando(false);
     }
   };
+
+  // Flujo de guardado exitoso de edición (HU-55)
+  const handleGuardadoExitoso = useCallback(
+    (puntoActualizado: PuntoCriticoItem) => {
+      actualizarPuntoCriticoEnLista(puntoActualizado);
+      setPuntoSeleccionado((prev) => (prev?.id === puntoActualizado.id ? puntoActualizado : prev));
+      setPuntoParaEditar(null);
+      showSuccess(
+        `El punto crítico ${puntoActualizado.codigo} ha sido actualizado correctamente.`,
+        'Actualización Exitosa'
+      );
+    },
+    [actualizarPuntoCriticoEnLista, showSuccess]
+  );
 
   const esFiltroActivo =
     Boolean(filtros.busqueda && filtros.busqueda.trim() !== '') ||
@@ -192,11 +205,9 @@ export default function PuntosCriticosPage() {
         busqueda={filtros.busqueda || ''}
         delegacionId={filtros.delegacionId}
         prioridad={filtros.prioridad}
-        activo={filtros.activo}
         onCambiarBusqueda={handleCambiarBusqueda}
         onCambiarDelegacion={handleCambiarDelegacion}
         onCambiarPrioridad={handleCambiarPrioridad}
-        onCambiarActivo={handleCambiarActivo}
         onLimpiarFiltros={handleLimpiarFiltros}
       />
 
@@ -248,6 +259,7 @@ export default function PuntosCriticosPage() {
             esFiltroActivo={esFiltroActivo}
             onLimpiarFiltros={handleLimpiarFiltros}
             onSeleccionarPunto={setPuntoSeleccionado}
+            onEditar={setPuntoParaEditar}
             onEliminarPunto={handleSolicitarEliminar}
             puedeEliminar={puedeEliminar}
           />
@@ -280,6 +292,7 @@ export default function PuntosCriticosPage() {
       <PuntoCriticoDetalleModal
         punto={puntoSeleccionado}
         onCerrar={() => setPuntoSeleccionado(null)}
+        onEditar={setPuntoParaEditar}
         onEliminar={handleSolicitarEliminar}
         puedeEliminar={puedeEliminar}
       />
@@ -298,6 +311,15 @@ export default function PuntosCriticosPage() {
           }
         }}
         onConfirm={handleConfirmarEliminar}
+      />
+
+      {/* Modal de Edición de Características y Ubicación (HU-55) */}
+      <PuntoCriticoEditarModal
+        isOpen={Boolean(puntoParaEditar)}
+        punto={puntoParaEditar}
+        usuarioActivoId={usuarioActivo.id}
+        onCerrar={() => setPuntoParaEditar(null)}
+        onGuardadoExitoso={handleGuardadoExitoso}
       />
     </div>
   );
