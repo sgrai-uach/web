@@ -1,18 +1,28 @@
 'use client';
 
 import React from 'react';
+import { Plus } from 'lucide-react';
 import { Breadcrumbs } from '@/components/common/Breadcrumbs';
 import PageTitleCard from '@/components/common/PageTitleCard';
+import Button from '@/components/ui/Button';
+import { usePathname } from 'next/navigation';
 
 interface PuntosCriticosHeaderProps {
   totalPuntos: number;
   tieneAcceso?: boolean;
+  puedeCrear?: boolean;
 }
 
 export default function PuntosCriticosHeader({
   totalPuntos,
   tieneAcceso = true,
+  puedeCrear = false,
 }: PuntosCriticosHeaderProps) {
+  const pathname = usePathname() || '';
+  const nuevoHref = pathname.startsWith('/gestion')
+    ? '/gestion/admin/puntos-criticos/nuevo'
+    : '/admin/puntos-criticos/nuevo';
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
       {/* Breadcrumbs Institucionales */}
@@ -33,7 +43,20 @@ export default function PuntosCriticosHeader({
             : undefined
         }
         description="Catastro territorial de sectores vulnerables y áreas con recurrencia de amenazas e inundaciones en la comuna de Valdivia."
+        actionSlot={
+          tieneAcceso && puedeCrear ? (
+            <Button
+              href={nuevoHref}
+              variant="primary"
+              size="md"
+            >
+              <Plus size={16} aria-hidden="true" />
+              <span>Nuevo Punto Crítico</span>
+            </Button>
+          ) : undefined
+        }
       />
     </div>
   );
 }
+

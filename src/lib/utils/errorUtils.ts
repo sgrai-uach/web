@@ -1,18 +1,40 @@
 import type { ApiErrorResponse, ApiFieldError } from '@/types/common';
 
-const NOMBRES_CAMPOS: Record<string, string> = {
+export const NOMBRES_CAMPOS: Record<string, string> = {
   rut: 'RUT',
   email: 'Correo Electrónico',
   telefono: 'Teléfono',
   nombres: 'Nombres',
   apellidos: 'Apellidos',
   rol_id: 'Rol',
-  delegacion_id: 'Delegación',
+  delegacion_id: 'Delegación Territorial',
+  delegacionId: 'Delegación Territorial',
   fecha_ingreso: 'Fecha de Ingreso',
   fecha_salida: 'Fecha de Salida',
   especialidad: 'Especialidad',
   cargo: 'Cargo',
+  nombre: 'Nombre del Sector / Punto Crítico',
+  descripcion: 'Descripción Operativa',
+  tipo_riesgo: 'Tipo de Amenaza / Riesgo',
+  tipoRiesgo: 'Tipo de Amenaza / Riesgo',
+  prioridad: 'Prioridad Operativa',
+  nivel_prioridad: 'Prioridad Operativa',
+  latitud: 'Coordenada Latitud',
+  lat: 'Coordenada Latitud',
+  longitud: 'Coordenada Longitud',
+  lng: 'Coordenada Longitud',
+  radio_afectacion_metros: 'Radio de Afectación',
+  radioMetros: 'Radio de Afectación',
+  activo: 'Estado Operativo',
 };
+
+/**
+ * Traduce el identificador técnico de un campo a su nombre legible oficial en la interfaz.
+ */
+export function traducirNombreCampo(campo?: string): string {
+  if (!campo) return '';
+  return NOMBRES_CAMPOS[campo] || NOMBRES_CAMPOS[campo.toLowerCase()] || campo;
+}
 
 /**
  * Obtiene de forma segura un mensaje legible a partir de un error desconocido.
@@ -77,13 +99,21 @@ export function formatApiError(
   if (typeof fallbackMessage === 'string') {
     if (typeof err === 'object' && err !== null) {
       const candidate = err as Record<string, unknown>;
-      const detalles = candidate.detalles || candidate.errors;
+      const detalles = candidate.detalles || candidate.errors || candidate.issues;
       if (Array.isArray(detalles) && detalles.length > 0) {
         const lista = detalles
           .map((item) => {
-            const campo = (item as { campo?: string }).campo || '';
-            const label = NOMBRES_CAMPOS[campo] || campo;
-            const mensaje = (item as { mensaje?: string }).mensaje || '';
+            const campo =
+              (item as { campo?: string }).campo ||
+              (item as { field?: string }).field ||
+              (Array.isArray((item as { path?: unknown }).path)
+                ? (item as { path: unknown[] }).path.join('.')
+                : '');
+            const label = traducirNombreCampo(campo);
+            const mensaje =
+              (item as { mensaje?: string }).mensaje ||
+              (item as { message?: string }).message ||
+              '';
             return label ? `${label}: ${mensaje}` : mensaje;
           })
           .filter(Boolean)
@@ -119,21 +149,33 @@ export function formatApiError(
     }
 
     let errors: ApiFieldError[] | undefined;
-    const rawErrors = candidate.errors || candidate.detalles;
+    const rawErrors = candidate.errors || candidate.detalles || candidate.issues;
     if (Array.isArray(rawErrors)) {
       errors = rawErrors
-        .filter((item): item is { campo?: string; mensaje: string } => {
-          return (
-            typeof item === 'object' &&
-            item !== null &&
-            'mensaje' in item &&
-            typeof (item as { mensaje: unknown }).mensaje === 'string'
-          );
+        .filter((item): item is Record<string, unknown> => typeof item === 'object' && item !== null)
+        .map((item) => {
+          const campo =
+            typeof item.campo === 'string'
+              ? item.campo
+              : typeof item.field === 'string'
+              ? item.field
+              : Array.isArray(item.path)
+              ? item.path.join('.')
+              : undefined;
+
+          const mensaje =
+            typeof item.mensaje === 'string'
+              ? item.mensaje
+              : typeof item.message === 'string'
+              ? item.message
+              : '';
+
+          return {
+            campo,
+            mensaje,
+          };
         })
-        .map((item) => ({
-          campo: typeof item.campo === 'string' ? item.campo : undefined,
-          mensaje: item.mensaje,
-        }));
+        .filter((item) => item.mensaje.length > 0 || !!item.campo);
     }
 
     const statusCode =
