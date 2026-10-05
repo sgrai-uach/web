@@ -5,7 +5,7 @@ import { Breadcrumbs } from '@/components/common/Breadcrumbs';
 import ConnectionStatusBadge from '@/components/common/ConnectionStatusBadge';
 import PageTitleCard from '@/components/common/PageTitleCard';
 import Button from '@/components/ui/Button';
-import { PackagePlus, Kanban, MapPin } from 'lucide-react';
+import { ClipboardList, ShieldAlert, PackagePlus, Kanban, MapPin } from 'lucide-react';
 import styles from '@/styles/mando.module.css';
 
 interface KanbanHeaderProps {
@@ -13,6 +13,8 @@ interface KanbanHeaderProps {
   conectado: boolean;
   userId?: string;
   setUserId?: (id: string) => void;
+  onAbrirMisiones?: () => void;
+  onOpenCrearPrevencion?: () => void;
   onOpenCrearRecuperacion?: () => void;
   vistaActiva?: 'kanban' | 'mapa';
   onCambiarVista?: (vista: 'kanban' | 'mapa') => void;
@@ -21,6 +23,8 @@ interface KanbanHeaderProps {
 export const KanbanHeader: React.FC<KanbanHeaderProps> = ({
   totalIncidentesVisibles,
   conectado,
+  onAbrirMisiones,
+  onOpenCrearPrevencion,
   onOpenCrearRecuperacion,
   vistaActiva = 'kanban',
   onCambiarVista,
@@ -85,6 +89,37 @@ export const KanbanHeader: React.FC<KanbanHeaderProps> = ({
                   <span>Mapa Operativo</span>
                 </Button>
               </div>
+            )}
+
+            {onAbrirMisiones && (
+              <Button
+                type="button"
+                variant="secondary"
+                size="md"
+                onClick={onAbrirMisiones}
+                title="Abrir panel de misiones operativas"
+              >
+                <ClipboardList size={16} style={{ marginRight: '6px' }} />
+                <span>Misiones Operativas</span>
+              </Button>
+            )}
+
+            {onOpenCrearPrevencion && (
+              <Button
+                type="button"
+                variant="secondary"
+                size="md"
+                onClick={onOpenCrearPrevencion}
+                title="Generar un nuevo evento de prevención territorial en puntos críticos y despachar patrulla"
+                style={{
+                  backgroundColor: '#B45309',
+                  color: '#FFFFFF',
+                  border: 'none',
+                }}
+              >
+                <ShieldAlert size={16} style={{ marginRight: '6px' }} />
+                <span>Nuevo Evento de Prevención</span>
+              </Button>
             )}
 
             {onOpenCrearRecuperacion && (

@@ -7,11 +7,13 @@ import type { EventoRecuperacionResponse } from '@/types/recuperacion';
 import Button from '@/components/ui/Button';
 import { Truck, Layers } from 'lucide-react';
 
-interface MapaOperativoMandoProps {
+export interface MapaOperativoMandoProps {
   incidentes?: IncidenteResumen[];
   eventosRecuperacion?: EventoRecuperacionResponse[];
+  eventosPrevencion?: any[];
   onSelectIncidente?: (id: string) => void;
   onCrearRecuperacion?: () => void;
+  onCrearPrevencion?: () => void;
   height?: string;
 }
 
