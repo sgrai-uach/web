@@ -23,6 +23,8 @@ interface RolesFiltrosProps {
   onFiltroEstadoChange: (filtro: FiltroEstadoPermisos) => void;
   onRefrescar: () => void;
   cargando: boolean;
+  contadoresTipo?: Record<FiltroTipoRol, number>;
+  contadoresEstado?: Record<FiltroEstadoPermisos, number>;
 }
 
 const OPCIONES_TIPO_ROL: { valor: FiltroTipoRol; etiqueta: string }[] = [
@@ -46,8 +48,24 @@ export default function RolesFiltros({
   onFiltroEstadoChange,
   onRefrescar,
   cargando,
+  contadoresTipo,
+  contadoresEstado,
 }: RolesFiltrosProps) {
   const chipsActivos: ActiveChipItem[] = [];
+
+  const opcionesTipoConContador = React.useMemo(() => {
+    return OPCIONES_TIPO_ROL.map((opt) => ({
+      ...opt,
+      contador: contadoresTipo ? contadoresTipo[opt.valor] : undefined,
+    }));
+  }, [contadoresTipo]);
+
+  const opcionesEstadoConContador = React.useMemo(() => {
+    return OPCIONES_ESTADO_PERMISO.map((opt) => ({
+      ...opt,
+      contador: contadoresEstado ? contadoresEstado[opt.valor] : undefined,
+    }));
+  }, [contadoresEstado]);
 
   if (busqueda?.trim()) {
     chipsActivos.push({
@@ -87,15 +105,15 @@ export default function RolesFiltros({
   const headerActions = (
     <Button
       type="button"
-      variant="secondary"
+      variant="outline"
       size="sm"
       onClick={onRefrescar}
       disabled={cargando}
-      title="Refrescar listado de roles"
-      aria-label="Refrescar listado de roles"
+      title="Actualizar datos"
+      aria-label="Actualizar datos"
     >
       <RotateCw size={14} className={cargando ? 'animate-spin' : ''} aria-hidden="true" />
-      <span>{cargando ? 'Cargando...' : 'Refrescar'}</span>
+      <span>{cargando ? 'Actualizando...' : 'Actualizar'}</span>
     </Button>
   );
 
@@ -109,24 +127,26 @@ export default function RolesFiltros({
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
-          gap: '12px',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+          gap: '16px',
           alignItems: 'flex-end',
         }}
       >
-        <FilterSearchInput
-          id="busqueda-roles"
-          label="Buscar perfil:"
-          value={busqueda}
-          onChange={onBusquedaChange}
-          placeholder="Buscar perfil por nombre, descripción o módulo..."
-          debounceMs={300}
-        />
+        <div>
+          <FilterSearchInput
+            id="busqueda-roles"
+            label="Buscar perfil:"
+            value={busqueda}
+            onChange={onBusquedaChange}
+            placeholder="Buscar por nombre, descripción o módulo..."
+            debounceMs={300}
+          />
+        </div>
 
         <SegmentedButtonGroup<FiltroTipoRol>
           id="filtro-tipo-rol"
           label="Tipo de Rol:"
-          options={OPCIONES_TIPO_ROL}
+          options={opcionesTipoConContador}
           value={filtroTipo}
           onChange={onFiltroTipoChange}
         />
@@ -134,7 +154,7 @@ export default function RolesFiltros({
         <SegmentedButtonGroup<FiltroEstadoPermisos>
           id="filtro-estado-permisos"
           label="Estado de Permisos:"
-          options={OPCIONES_ESTADO_PERMISO}
+          options={opcionesEstadoConContador}
           value={filtroEstado}
           onChange={onFiltroEstadoChange}
         />

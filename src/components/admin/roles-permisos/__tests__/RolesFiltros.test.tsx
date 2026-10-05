@@ -24,10 +24,10 @@ describe('RolesFiltros Component', () => {
     render(<RolesFiltros {...defaultProps} />);
 
     expect(screen.getByText('Filtros de Perfiles y Permisos')).toBeInTheDocument();
-    expect(screen.getByPlaceholderText(/Buscar perfil por nombre, descripción o módulo.../i)).toBeInTheDocument();
+    expect(screen.getByPlaceholderText(/Buscar por nombre, descripción o módulo.../i)).toBeInTheDocument();
     expect(screen.getByText('Tipo de Rol:')).toBeInTheDocument();
     expect(screen.getByText('Estado de Permisos:')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Refrescar listado de roles/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Actualizar datos/i })).toBeInTheDocument();
   });
 
   it('debe invocar onFiltroTipoChange cuando se hace clic en una opción de tipo', () => {
@@ -101,10 +101,33 @@ describe('RolesFiltros Component', () => {
     const onRefrescar = vi.fn();
     render(<RolesFiltros {...defaultProps} onRefrescar={onRefrescar} />);
 
-    const btnRefrescar = screen.getByRole('button', { name: /Refrescar listado de roles/i });
+    const btnRefrescar = screen.getByRole('button', { name: /Actualizar datos/i });
     fireEvent.click(btnRefrescar);
 
     expect(onRefrescar).toHaveBeenCalledTimes(1);
+  });
+
+  it('debe mostrar los contadores en las opciones de Tipo de Rol y Permisos (F-06)', () => {
+    render(
+      <RolesFiltros
+        {...defaultProps}
+        contadoresTipo={{
+          TODOS: 7,
+          SISTEMA: 4,
+          PERSONALIZADO: 3,
+        }}
+        contadoresEstado={{
+          TODOS: 7,
+          CON_PERMISOS: 5,
+          SIN_PERMISOS: 2,
+        }}
+      />
+    );
+
+    expect(screen.getByText('4')).toBeInTheDocument();
+    expect(screen.getByText('3')).toBeInTheDocument();
+    expect(screen.getByText('5')).toBeInTheDocument();
+    expect(screen.getByText('2')).toBeInTheDocument();
   });
 
   it('debe persistir el estado colapsado en localStorage con la clave sgrai:filtros:roles:colapsado', () => {

@@ -135,6 +135,11 @@ export default function RecursosPage() {
         onCambiarDelegacion={handleCambiarDelegacion}
         onCambiarEsIndividual={handleCambiarEsIndividual}
         onLimpiarFiltros={handleLimpiarFiltros}
+        contadoresTipo={{
+          total: meta.total,
+          individual: recursos.filter((r) => r.esIndividual).length,
+          granel: recursos.filter((r) => !r.esIndividual).length,
+        }}
       />
 
       <div style={{ display: 'flex', flexDirection: 'column' }}>

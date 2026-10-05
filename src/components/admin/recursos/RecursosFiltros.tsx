@@ -23,6 +23,7 @@ interface RecursosFiltrosProps {
   onCambiarDelegacion: (delegacion?: string) => void;
   onCambiarEsIndividual: (esIndividual?: boolean) => void;
   onLimpiarFiltros: () => void;
+  contadoresTipo?: { total?: number; individual?: number; granel?: number };
 }
 
 const OPCIONES_ESTADO = [
@@ -51,8 +52,24 @@ export default function RecursosFiltros({
   onCambiarDelegacion,
   onCambiarEsIndividual,
   onLimpiarFiltros,
+  contadoresTipo,
 }: RecursosFiltrosProps) {
   const { nombresDelegaciones, resolverNombre } = useCatalogos();
+
+  const opcionesTipoConContador = React.useMemo(() => {
+    return OPCIONES_TIPO_INVENTARIO.map((opt) => {
+      let contador: number | undefined;
+      if (contadoresTipo) {
+        if (opt.valor === 'TODOS') contador = contadoresTipo.total;
+        else if (opt.valor === 'INDIVIDUAL') contador = contadoresTipo.individual;
+        else if (opt.valor === 'GRANEL') contador = contadoresTipo.granel;
+      }
+      return {
+        ...opt,
+        contador,
+      };
+    });
+  }, [contadoresTipo]);
 
   // Nombre efectivo de la delegación (resuelve si vino por Id o por Nombre)
   const delegacionActual =
@@ -122,12 +139,16 @@ export default function RecursosFiltros({
   }
 
   return (
-    <FilterBar collapsibleOnMobile totalFiltrosActivos={chipsActivos.length}>
+    <FilterBar
+      titulo="Filtros de Recursos"
+      storageKey="sgrai:filtros:recursos:colapsado"
+      totalFiltrosActivos={chipsActivos.length}
+    >
       {/* Botonera segmentada de tipo de inventario (Imagen 1) */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
         <SegmentedButtonGroup
           label="Tipo de Inventario:"
-          options={OPCIONES_TIPO_INVENTARIO}
+          options={opcionesTipoConContador}
           value={tipoInventarioValor}
           onChange={handleTipoInventarioChange}
           ariaLabel="Filtrar por tipo de inventario individual o a granel"
