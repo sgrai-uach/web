@@ -9,7 +9,6 @@ import {
   Lock,
 } from 'lucide-react';
 import type { PuntoCriticoItem, PrioridadPuntoCritico } from '@/types/puntoCritico';
-import { CATALOGO_TIPOS_RIESGO } from '@/types/puntoCritico';
 import Modal from '@/components/common/Modal';
 import Button from '@/components/ui/Button';
 import Heading from '@/components/ui/Heading';
@@ -58,13 +57,6 @@ export default function PuntoCriticoEditarModal({
     onCerrar,
   });
 
-  const opcionesTipoRiesgo = React.useMemo(() => {
-    const list = [...CATALOGO_TIPOS_RIESGO];
-    if (formData.tipoRiesgo && !list.includes(formData.tipoRiesgo)) {
-      list.unshift(formData.tipoRiesgo);
-    }
-    return list;
-  }, [formData.tipoRiesgo]);
 
   if (!isOpen || !punto) return null;
 
@@ -248,10 +240,13 @@ export default function PuntoCriticoEditarModal({
               >
                 Tipo de Riesgo
               </label>
-              <select
+              <input
                 id="edit-punto-tipoRiesgo"
+                type="text"
                 value={formData.tipoRiesgo}
                 onChange={(e) => handleFieldChange('tipoRiesgo', e.target.value)}
+                placeholder="Ej: Inundación, Remoción en masa, Marejadas"
+                maxLength={100}
                 disabled={isSubmitting}
                 style={{
                   width: '100%',
@@ -262,14 +257,7 @@ export default function PuntoCriticoEditarModal({
                   borderRadius: 'var(--radius-none, 0px)',
                   backgroundColor: 'var(--color-white, #FFFFFF)',
                 }}
-              >
-                <option value="">Seleccione tipo de riesgo...</option>
-                {opcionesTipoRiesgo.map((tipo) => (
-                  <option key={tipo} value={tipo}>
-                    {tipo}
-                  </option>
-                ))}
-              </select>
+              />
               {clientErrors.tipoRiesgo && (
                 <span style={{ fontSize: '12px', color: 'var(--color-danger, #D32F2F)' }}>
                   {clientErrors.tipoRiesgo}

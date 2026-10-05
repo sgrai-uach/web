@@ -98,9 +98,8 @@ describe('PuntoCriticoEditarModal', () => {
     expect(screen.queryByText(/DEL_SUR/i)).not.toBeInTheDocument();
     expect(screen.getByRole('option', { name: 'Delegación Municipal Sur' })).toBeInTheDocument();
 
-    // Comprobar que el selector de tipo de riesgo incluye opciones del catálogo
-    expect(screen.getByRole('option', { name: 'Inundación y anegamiento' })).toBeInTheDocument();
-    expect(screen.getByRole('option', { name: 'Remoción en masa' })).toBeInTheDocument();
+    // Comprobar que tipo de riesgo es un campo de texto libre
+    expect(screen.getByLabelText(/Tipo de Riesgo/i)).toHaveValue('Inundación');
   });
 
   it('debe permitir modificar campos descriptivos y guardar exitosamente', async () => {
