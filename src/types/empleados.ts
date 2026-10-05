@@ -4,8 +4,14 @@
  */
 
 import type { CatalogoItem, CatalogosResponse } from './catalogos';
+import type { PaginationMeta } from './common';
 
-export type { CatalogoItem, CatalogosResponse };
+export type { CatalogoItem, CatalogosResponse, PaginationMeta };
+
+export interface ListarEmpleadosResponse {
+  data: EmpleadoUsuario[];
+  meta: PaginationMeta;
+}
 
 export interface EmpleadoUsuario {
   usuario_id: string;

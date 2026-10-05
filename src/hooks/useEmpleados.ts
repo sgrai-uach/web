@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import type { EmpleadoUsuario } from '@/types/empleados';
+import type { EmpleadoUsuario, PaginationMeta } from '@/types/empleados';
 import { useCatalogos } from '@/hooks/useCatalogos';
 import { empleadosService } from '@/services/empleadosService';
 import { getErrorMessage } from '@/lib/utils/errorUtils';
@@ -32,6 +32,7 @@ export function useEmpleados({ versionActualizacion = 0 }: UseEmpleadosProps = {
   const { catalogos } = useCatalogos();
 
   const [resultados, setResultados] = useState<EmpleadoUsuario[]>([]);
+  const [meta, setMeta] = useState<PaginationMeta | null>(null);
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -108,6 +109,9 @@ export function useEmpleados({ versionActualizacion = 0 }: UseEmpleadosProps = {
         });
         if (!cancelado) {
           setResultados(data);
+          if (data && 'meta' in data && (data as { meta?: PaginationMeta }).meta) {
+            setMeta((data as { meta?: PaginationMeta }).meta || null);
+          }
         }
       } catch (err: unknown) {
         if (!cancelado) {
@@ -161,13 +165,26 @@ export function useEmpleados({ versionActualizacion = 0 }: UseEmpleadosProps = {
   }, [resultados, estadoFiltro]);
 
   const totalItems = resultadosFiltrados.length;
-  const totalPaginas = Math.ceil(totalItems / limite);
+  const totalPaginas = Math.ceil(totalItems / limite) || 1;
 
   // Elementos paginados para la tabla actual
   const empleadosPaginados = useMemo(() => {
     const inicio = (paginaActual - 1) * limite;
     return resultadosFiltrados.slice(inicio, inicio + limite);
   }, [resultadosFiltrados, paginaActual, limite]);
+
+  const currentMeta: PaginationMeta = useMemo(() => {
+    const total =
+      estadoFiltro === 'todos' && meta?.total != null ? Math.max(meta.total, totalItems) : totalItems;
+    return {
+      total,
+      page: paginaActual,
+      limit: limite,
+      totalPages: totalPaginas,
+      hasNext: paginaActual < totalPaginas,
+      hasPrev: paginaActual > 1,
+    };
+  }, [meta, estadoFiltro, totalItems, paginaActual, limite, totalPaginas]);
 
   return {
     termino,
@@ -194,6 +211,7 @@ export function useEmpleados({ versionActualizacion = 0 }: UseEmpleadosProps = {
     setLimite: handleSetLimite,
     totalItems,
     totalPaginas,
+    meta: currentMeta,
     catalogos,
     resultados: resultadosFiltrados,
     empleadosPaginados,
