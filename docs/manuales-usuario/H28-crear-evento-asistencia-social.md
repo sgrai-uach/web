@@ -66,8 +66,16 @@ Si se dispone de información preliminar de los habitantes:
 
 ---
 
-### Paso 5: Confirmación y Guardado
-1. Presionar el botón **"Guardar Evento de Asistencia Social"**.
+### Paso 5: Vista Previa y Despliegue de Ficha Técnica (Opcional)
+* En cualquier momento durante el llenado del formulario, el usuario puede presionar el botón **"Desplegar Ficha del Caso"**.
+* Se abrirá un modal con la ficha técnica completa que consolida todos los datos ingresados en tiempo real (caracterización del caso, daños, métricas de personas/familias, coordenadas con botón para copiar, enlace a OpenStreetMap y datos de contacto).
+* Desde la misma ficha es posible revisar la información y presionar **"Confirmar y Guardar Evento"**.
+* Asimismo, en la bandeja general de Asistencia Social, cada registro cuenta con la acción **"Ver Ficha"** para consultar el expediente técnico de cualquier caso registrado.
+
+---
+
+### Paso 6: Confirmación y Guardado
+1. Presionar el botón **"Guardar Evento de Asistencia Social"** (o confirmar desde la Ficha Técnica).
 2. El sistema validará los campos requeridos (descripción ≥ 5 caracteres, dirección ≥ 3 caracteres, coordenadas válidas en Valdivia).
 3. Al registrarse exitosamente en la base de datos:
    * La API asignará el correlativo oficial anual (ej: **`AS-2026-0001`**).
