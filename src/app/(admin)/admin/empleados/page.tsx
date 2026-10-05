@@ -96,7 +96,7 @@ export default function AdminEmpleadosPage() {
   if (!puedeVerDirectorio) {
     const rolActual = auth?.usuario?.rolNombre || session?.usuarioActivo?.rol || 'Usuario';
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6, 24px)' }}>
+      <div className={styles.pageContainer}>
         <Breadcrumbs
           items={[
             { label: 'Inicio', href: '/' },

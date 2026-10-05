@@ -1,7 +1,8 @@
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import EmpleadoModificarModal from '../EmpleadoModificarModal';
+import { empleadosService } from '@/services/empleadosService';
 import type { EmpleadoUsuario } from '@/types/empleados';
 
 // Mock de useCatalogos
@@ -133,5 +134,36 @@ describe('EmpleadoModificarModal', () => {
     fireEvent.click(btnBaja);
 
     expect(onDarDeBaja).toHaveBeenCalledTimes(1);
+  });
+
+  it('debe enviar la actualización y llamar inmediatamente a onEmpleadoActualizado sin notificación de éxito inline en modal', async () => {
+    vi.spyOn(empleadosService, 'updateEmpleado').mockResolvedValueOnce({
+      usuario_id: 'usr-123',
+      rut: '12.345.678-5',
+      nombres: 'Carlos',
+      apellidos: 'Miranda Editado',
+      email: 'carlos.miranda@valdivia.cl',
+      usuario_activo: true,
+      rol_id: 'rol-1',
+    });
+
+    render(
+      <EmpleadoModificarModal
+        usuario={mockEmpleado}
+        isOpen={true}
+        onClose={onClose}
+        onEmpleadoActualizado={onEmpleadoActualizado}
+      />
+    );
+
+    const btnGuardar = screen.getByRole('button', { name: /guardar cambios/i });
+    fireEvent.click(btnGuardar);
+
+    await waitFor(() => {
+      expect(onEmpleadoActualizado).toHaveBeenCalledTimes(1);
+    });
+
+    // No debe mostrarse InlineNotice de éxito dentro del modal
+    expect(screen.queryByText(/actualizados exitosamente/i)).toBeNull();
   });
 });

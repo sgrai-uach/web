@@ -77,7 +77,7 @@ export default function EmpleadoFormulario({
         mostrarTitulo={!isModal}
       />
 
-      {mensajeExito && (
+      {!isModal && mensajeExito && (
         <div style={{ marginBottom: '1rem' }}>
           <InlineNotice variant="success">{mensajeExito}</InlineNotice>
         </div>
