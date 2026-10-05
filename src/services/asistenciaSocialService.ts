@@ -195,7 +195,7 @@ export async function crearEventoAsistenciaSocial(
 
     if (statusCode === 403) {
       throw new AsistenciaSocialServiceError(
-        errorBody.message || 'No cuenta con el permiso requerido: asistencia_social:crear',
+        'No cuenta con los permisos requeridos para registrar eventos de asistencia social.',
         { statusCode: 403 }
       );
     }

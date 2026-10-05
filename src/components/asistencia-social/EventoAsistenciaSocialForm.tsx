@@ -280,11 +280,19 @@ export default function EventoAsistenciaSocialForm({
       router.push(basePath);
     } catch (err: unknown) {
       if (err instanceof AsistenciaSocialServiceError) {
-        setErrorServidor(err.message);
+        let msg = err.message;
+        if (
+          err.statusCode === 403 ||
+          msg.includes('asistencia_social:') ||
+          msg.toLowerCase().includes('permiso requerido')
+        ) {
+          msg = 'No cuenta con los permisos requeridos para registrar eventos de asistencia social.';
+        }
+        setErrorServidor(msg);
         if (err.fieldErrors) {
           setErrores(err.fieldErrors);
         }
-        showError(err.message, 'Error al registrar evento');
+        showError(msg, 'Error al registrar evento');
       } else {
         const msg = 'No fue posible registrar el evento social debido a un error inesperado.';
         setErrorServidor(msg);
