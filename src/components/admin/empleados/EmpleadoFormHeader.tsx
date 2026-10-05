@@ -7,9 +7,14 @@ import type { EmpleadoUsuario } from '@/types/empleados';
 interface EmpleadoFormHeaderProps {
   usuario: EmpleadoUsuario;
   esRolTerreno: boolean;
+  mostrarTitulo?: boolean;
 }
 
-export default function EmpleadoFormHeader({ usuario, esRolTerreno }: EmpleadoFormHeaderProps) {
+export default function EmpleadoFormHeader({
+  usuario,
+  esRolTerreno,
+  mostrarTitulo = true,
+}: EmpleadoFormHeaderProps) {
   return (
     <div
       style={{
@@ -24,10 +29,18 @@ export default function EmpleadoFormHeader({ usuario, esRolTerreno }: EmpleadoFo
       }}
     >
       <div>
-        <Heading as="h2" variant="h3" color="teal-dark" noMargin>
-          Ficha de Modificación: {usuario.nombres} {usuario.apellidos}
-        </Heading>
-        <div style={{ fontSize: '0.8125rem', color: 'var(--color-text-muted, #5F676E)', marginTop: '0.25rem' }}>
+        {mostrarTitulo && (
+          <Heading as="h2" variant="h3" color="teal-dark" noMargin>
+            Ficha de Modificación: {usuario.nombres} {usuario.apellidos}
+          </Heading>
+        )}
+        <div
+          style={{
+            fontSize: '0.8125rem',
+            color: 'var(--color-text-muted, #5F676E)',
+            marginTop: mostrarTitulo ? '0.25rem' : 0,
+          }}
+        >
           ID de Usuario: <code>{usuario.usuario_id}</code> &bull; RUT: {usuario.rut}
         </div>
       </div>

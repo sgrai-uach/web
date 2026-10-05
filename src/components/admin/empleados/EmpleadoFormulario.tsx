@@ -15,6 +15,7 @@ interface EmpleadoFormularioProps {
   onEmpleadoActualizado: (empleado: EmpleadoUsuario) => void;
   onCancelar: () => void;
   onDarDeBaja?: () => void;
+  isModal?: boolean;
 }
 
 export default function EmpleadoFormulario({
@@ -22,6 +23,7 @@ export default function EmpleadoFormulario({
   onEmpleadoActualizado,
   onCancelar,
   onDarDeBaja,
+  isModal = false,
 }: EmpleadoFormularioProps) {
   const {
     catalogos,
@@ -60,13 +62,20 @@ export default function EmpleadoFormulario({
     <form
       onSubmit={handleSubmit}
       style={{
-        backgroundColor: 'var(--color-white, #FFFFFF)',
-        border: '1px solid var(--border-color-neutral, #DFE3E8)',
-        padding: '1.5rem',
-        marginBottom: '2rem',
+        backgroundColor: isModal ? 'transparent' : 'var(--color-white, #FFFFFF)',
+        border: isModal ? 'none' : '1px solid var(--border-color-neutral, #DFE3E8)',
+        padding: isModal ? 0 : '1.5rem',
+        marginBottom: isModal ? 0 : '2rem',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 'var(--space-4, 16px)',
       }}
     >
-      <EmpleadoFormHeader usuario={usuario} esRolTerreno={esRolTerreno} />
+      <EmpleadoFormHeader
+        usuario={usuario}
+        esRolTerreno={esRolTerreno}
+        mostrarTitulo={!isModal}
+      />
 
       {mensajeExito && (
         <div style={{ marginBottom: '1rem' }}>
