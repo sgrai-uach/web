@@ -12,6 +12,9 @@ interface PuntosCriticosTablaProps {
   esFiltroActivo: boolean;
   onLimpiarFiltros: () => void;
   onSeleccionarPunto?: (punto: PuntoCriticoItem) => void;
+  onEditar?: (punto: PuntoCriticoItem) => void;
+  onEliminarPunto?: (punto: PuntoCriticoItem) => void;
+  puedeEliminar?: boolean;
 }
 
 export default function PuntosCriticosTabla({
@@ -20,6 +23,9 @@ export default function PuntosCriticosTabla({
   esFiltroActivo,
   onLimpiarFiltros,
   onSeleccionarPunto,
+  onEditar,
+  onEliminarPunto,
+  puedeEliminar = true,
 }: PuntosCriticosTablaProps) {
   return (
     <div
@@ -80,7 +86,7 @@ export default function PuntosCriticosTabla({
         <tbody>
           {cargando && <PuntosCriticosSkeleton filas={5} />}
 
-          {!cargando && puntosCriticos.length === 0 && (
+          {!cargando && puntosCriticos.filter((p) => p.activo !== false).length === 0 && (
             <tr>
               <td colSpan={7} style={{ padding: 0 }}>
                 <PuntosCriticosEmptyState
@@ -92,14 +98,19 @@ export default function PuntosCriticosTabla({
           )}
 
           {!cargando &&
-            puntosCriticos.map((punto, idx) => (
-              <PuntoCriticoRow
-                key={punto.id}
-                punto={punto}
-                indice={idx}
-                onSeleccionar={onSeleccionarPunto}
-              />
-            ))}
+            puntosCriticos
+              .filter((p) => p.activo !== false)
+              .map((punto, idx) => (
+                <PuntoCriticoRow
+                  key={punto.id}
+                  punto={punto}
+                  indice={idx}
+                  onSeleccionar={onSeleccionarPunto}
+                  onEditar={onEditar}
+                  onEliminar={onEliminarPunto}
+                  puedeEliminar={puedeEliminar}
+                />
+              ))}
         </tbody>
       </table>
     </div>
