@@ -13,7 +13,6 @@ import {
   ArrowLeft,
   Link as LinkIcon,
   FileText,
-  Eye,
 } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
@@ -92,7 +91,7 @@ export default function EventoAsistenciaSocialForm({
   const [incidentesDisponibles, setIncidentesDisponibles] = useState<
     Array<{ id: string; codigo: string; tipoAfectacion: string; direccion?: string }>
   >([]);
-  const [cargandoIncidentes, setCargandoIncidentes] = useState(false);
+  const [cargandoIncidentes, setCargandoIncidentes] = useState(true);
 
   // Ubicación y sincronización bidireccional mapa-dirección
   const [direccionTexto, setDireccionTexto] = useState('');
@@ -116,7 +115,6 @@ export default function EventoAsistenciaSocialForm({
   // Carga de incidentes disponibles para vinculación opcional
   useEffect(() => {
     let activo = true;
-    setCargandoIncidentes(true);
     incidentesService
       .listar({ limit: 50 })
       .then((res) => {

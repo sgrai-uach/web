@@ -20,7 +20,7 @@ El evento puede registrarse de forma **independiente** sin necesidad de provenir
 
 ### Paso 1: Acceso al Formulario de Registro
 Existen tres puntos directos de acceso a la pantalla de creación:
-1. **Desde el Centro de Mando:** En la barra superior de acciones tácticas ([`KanbanHeader`](file:///c:/Users/mayra/OneDrive/Documentos/U/8°Semestre/Taller%20de%20Ingenier%C3%ADa%20de%20Software/web/src/components/mando/KanbanHeader.tsx)), hacer clic en el botón **"Nuevo Evento Social"** (con ícono `HeartHandshake`).
+1. **Desde el Centro de Mando:** En la barra superior de acciones tácticas ([`KanbanHeader`](../../src/components/mando/KanbanHeader.tsx)), hacer clic en el botón **"Nuevo Evento Social"** (con ícono `HeartHandshake`).
 2. **Desde el Módulo de Asistencia Social:** En la barra de navegación lateral, ingresar a **"Asistencia Social"** (`/gestion/asistente-social`) y presionar el botón primario **"+ Nuevo Evento Social"** en el encabezado.
 3. **Desde el Grid de Módulos:** En la página principal de gestión (`/gestion`), en la tarjeta "Asistencia Social", hacer clic en la acción secundaria **"+ Nuevo Evento"**.
 
