@@ -10,7 +10,7 @@ import { Truck, Layers } from 'lucide-react';
 export interface MapaOperativoMandoProps {
   incidentes?: IncidenteResumen[];
   eventosRecuperacion?: EventoRecuperacionResponse[];
-  eventosPrevencion?: any[];
+  eventosPrevencion?: unknown[];
   onSelectIncidente?: (id: string) => void;
   onCrearRecuperacion?: () => void;
   onCrearPrevencion?: () => void;
