@@ -5,14 +5,16 @@ import type {
   ListarPuntosCriticosResponse,
   FiltrosPuntosCriticosState,
   PuntoCriticoItem,
+  PuntoCriticoEliminadoSocketPayload,
 } from '@/types/puntoCritico';
 import { DEFAULT_ADMIN_USER_ID } from '@/lib/api/client';
+import { getSocket } from '@/lib/socket/client';
+import type { Socket } from 'socket.io-client';
 import {
   getPuntosCriticos,
   PuntoCriticoServiceError,
 } from '@/services/puntosCriticosService';
 import { getErrorMessage } from '@/lib/utils/errorUtils';
-import { getSocket } from '@/lib/socket/client';
 
 export const DELEGACIONES_MUNICIPALES = [
   {
@@ -53,6 +55,8 @@ export interface UsePuntosCriticosReturn {
   error: Error | null;
   statusCode: number | null;
   recargar: () => Promise<void>;
+  removerPuntoLocalmente: (id: string) => void;
+  actualizarPuntoCriticoEnLista: (puntoActualizado: PuntoCriticoItem) => void;
 }
 
 export function usePuntosCriticos(
@@ -116,23 +120,87 @@ export function usePuntosCriticos(
     };
   }, [fetchData]);
 
-  // Escucha Socket.io en tiempo real para reflejar nuevos puntos críticos sin recargar
+  // Actualizar un punto crítico en memoria sin recargar la lista (HU-55)
+  const actualizarPuntoCriticoEnLista = useCallback((puntoActualizado: PuntoCriticoItem) => {
+    if (!puntoActualizado || !puntoActualizado.id) return;
+    setData((prev) => {
+      if (!prev) return prev;
+      const index = prev.data.findIndex((p) => p.id === puntoActualizado.id);
+      if (index === -1) return prev;
+      const updatedList = [...prev.data];
+      updatedList[index] = {
+        ...updatedList[index],
+        ...puntoActualizado,
+      };
+      return {
+        ...prev,
+        data: updatedList,
+      };
+    });
+  }, []);
+
+  const removerPuntoLocalmente = useCallback((id: string) => {
+    setData((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        data: prev.data.filter((item) => item.id !== id),
+        meta: {
+          ...prev.meta,
+          total: Math.max(0, prev.meta.total - 1),
+        },
+      };
+    });
+  }, []);
+
+  // Suscripción reactiva en tiempo real vía WebSockets (Socket.io)
   useEffect(() => {
     if (typeof window === 'undefined') return;
+    let socketInstance: Socket | null = null;
     try {
-      const socket = getSocket();
-      const handlePuntoCreado = () => {
-        fetchData();
-      };
-
-      socket.on('punto_critico:creado', handlePuntoCreado);
-      return () => {
-        socket.off('punto_critico:creado', handlePuntoCreado);
-      };
+      socketInstance = getSocket();
     } catch {
-      // Ignorar excepciones en entornos sin socket o pruebas jsdom
+      return;
     }
-  }, [fetchData]);
+
+    if (!socketInstance) return;
+
+    const handlePuntoCreado = () => {
+      fetchData();
+    };
+
+    const handlePuntoCriticoEliminado = (payload: PuntoCriticoEliminadoSocketPayload) => {
+      setData((prev) => {
+        if (!prev) return prev;
+        const index = prev.data.findIndex((item) => item.id === payload.id);
+        if (index === -1) return prev;
+
+        const nuevosDatos = prev.data.filter((item) => item.id !== payload.id);
+        return {
+          ...prev,
+          data: nuevosDatos,
+          meta: {
+            ...prev.meta,
+            total: Math.max(0, prev.meta.total - 1),
+          },
+        };
+      });
+    };
+
+    const handlePuntoActualizado = (puntoActualizado: PuntoCriticoItem) => {
+      actualizarPuntoCriticoEnLista(puntoActualizado);
+    };
+
+    socketInstance.on('punto_critico:creado', handlePuntoCreado);
+    socketInstance.on('punto_critico:eliminado', handlePuntoCriticoEliminado);
+    socketInstance.on('punto_critico:actualizado', handlePuntoActualizado);
+
+    return () => {
+      socketInstance?.off('punto_critico:creado', handlePuntoCreado);
+      socketInstance?.off('punto_critico:eliminado', handlePuntoCriticoEliminado);
+      socketInstance?.off('punto_critico:actualizado', handlePuntoActualizado);
+    };
+  }, [fetchData, actualizarPuntoCriticoEnLista]);
 
   return {
     puntosCriticos: data?.data ?? [],
@@ -146,5 +214,7 @@ export function usePuntosCriticos(
     error,
     statusCode,
     recargar: fetchData,
+    removerPuntoLocalmente,
+    actualizarPuntoCriticoEnLista,
   };
 }

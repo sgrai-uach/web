@@ -54,6 +54,7 @@ function obtenerPermisosFallback(rol: string, esAdmin: boolean): Set<string> {
       'puntos_criticos:leer',
       'puntos_criticos:crear',
       'puntos_criticos:gestionar',
+      'puntos_criticos:eliminar',
       'personal:leer',
       'personal:crear',
       'personal:gestionar',

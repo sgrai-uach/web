@@ -6,7 +6,7 @@ import {
   ESTADOS_KANBAN,
 } from '@/hooks/useIncidentesKanban';
 import { useIncidentesKpis } from '@/hooks/useIncidentesKpis';
-import { DEFAULT_ENCARGADO_ID, type EstadoIncidente } from '@/services/incidentesService';
+import type { EstadoIncidente } from '@/services/incidentesService';
 import { KanbanHeader } from './KanbanHeader';
 import { KanbanFiltros } from './KanbanFiltros';
 import { KanbanColumn } from './KanbanColumn';
