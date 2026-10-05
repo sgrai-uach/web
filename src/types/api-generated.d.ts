@@ -395,6 +395,8 @@ export interface paths {
                                 delegacionId?: string | null;
                                 /** Format: uuid */
                                 creadoPorId: string;
+                                /** Format: uuid */
+                                actualizadoPorId?: string | null;
                                 creadoEn: string;
                                 actualizadoEn: string;
                             };
@@ -437,269 +439,63 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/recursos/{id}": {
+    "/api/seguridad/login": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
+        get?: never;
+        put?: never;
         /**
-         * Obtener detalle completo de un recurso logístico
-         * @description Retorna la información completa pre-cargada de un recurso (cantidades, disponibilidad operativa, delegación territorial y auditoría) para alimentar el formulario de edición. Accesible por perfil de Administrador.
+         * Iniciar sesión institucional
+         * @description Autentica a un funcionario u operador mediante correo o RUT y contraseña. Valida hash bcrypt, vigencia de cuenta y política de bloqueo por reintentos antes de emitir el token JWT de sesión.
          */
-        get: {
+        post: {
             parameters: {
                 query?: never;
-                header: {
-                    /** @description UUID del usuario administrador autenticado */
-                    "x-user-id": string;
-                };
-                path: {
-                    /** @description UUID del recurso logístico */
-                    id: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description Detalle completo del recurso */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            /** Format: uuid */
-                            id: string;
-                            nombre: string;
-                            /**
-                             * @description Tipo legible (ej. 'Vehículo o Maquinaria' o 'Material o Insumo')
-                             * @example Vehículo o Maquinaria
-                             */
-                            tipo: string;
-                            esIndividual: boolean;
-                            /** @enum {string} */
-                            estado: "DISPONIBLE" | "ASIGNADO" | "EN_MANTENCION" | "BAJO_STOCK" | "NO_DISPONIBLE";
-                            cantidadInventario: number;
-                            cantidadEnUso: number;
-                            cantidadDisponible: number;
-                            cantidadMinima: number;
-                            latitud: number;
-                            longitud: number;
-                            descripcion: string | null;
-                            detalles: {
-                                [key: string]: unknown;
-                            };
-                            /** @description Datos de la delegación territorial de procedencia */
-                            delegacion: {
-                                /** Format: uuid */
-                                id: string;
-                                codigo: string;
-                                nombre: string;
-                            } | null;
-                            /** Format: uuid */
-                            delegacionId?: string | null;
-                            /** Format: uuid */
-                            creadoPorId: string;
-                            /** Format: uuid */
-                            actualizadoPorId?: string | null;
-                            creadoEn: string;
-                            actualizadoEn: string;
-                        };
-                    };
-                };
-                /** @description Identificador de recurso inválido */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-                /** @description No autenticado / cabecera X-User-Id ausente */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-                /** @description Acceso denegado. Se requiere perfil de Administrador */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-                /** @description Recurso no encontrado */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-                /** @description Error interno del servidor */
-                500: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-            };
-        };
-        /**
-         * Editar características de un recurso logístico
-         * @description Modifica inventario físico, ubicación geográfica, detalles técnicos y estado operativo del recurso. Notifica en tiempo real vía WebSockets (Socket.io) a las salas de Encargado y Supervisor. Mantiene inmutable el tipo de recurso (esIndividual).
-         */
-        put: {
-            parameters: {
-                query?: never;
-                header: {
-                    /** @description UUID del usuario administrador autenticado */
-                    "x-user-id": string;
-                };
-                path: {
-                    /** @description UUID del recurso logístico */
-                    id: string;
-                };
+                header?: never;
+                path?: never;
                 cookie?: never;
             };
             requestBody?: {
                 content: {
-                    "application/json": {
-                        /** @example Camioneta Rescate 4x4 - Actualizada */
-                        nombre: string;
-                        /** @example 1 */
-                        cantidadInventario: number;
-                        /**
-                         * @default 0
-                         * @example 0
-                         */
-                        cantidadMinima?: number;
-                        /**
-                         * @description Indica manualmente si el activo se encuentra fuera de servicio en mantenimiento
-                         * @default false
-                         * @example false
-                         */
-                        enMantencion?: boolean;
-                        /** @example -39.8142 */
-                        latitud: number;
-                        /** @example -73.2459 */
-                        longitud: number;
-                        /** @example Unidad operativa de rescate en mantención preventiva */
-                        descripcion?: string | null;
-                        /**
-                         * @description Especificaciones técnicas detalladas según el tipo de maquinaria
-                         * @default {}
-                         */
-                        detalles?: {
-                            patente?: string;
-                            numeroSerie?: string;
-                            marca?: string;
-                            modelo?: string;
-                            anio?: number;
-                            kilometraje?: number;
-                            /** @enum {string} */
-                            tipoCombustible?: "GASOLINA" | "DIESEL" | "ELECTRICO" | "HIBRIDO" | "OTRO";
-                            capacidadPasajeros?: number;
-                            numeroChasis?: string;
-                            capacidadCargaKg?: number;
-                            alcanceMaximoMetros?: number;
-                            tipoGrua?: string;
-                            horometro?: number;
-                            caudalMaximoLpm?: number;
-                            diametroPulgadas?: number;
-                            potenciaHp?: number;
-                            potenciaKva?: number;
-                        } & {
-                            [key: string]: unknown;
-                        };
-                        /**
-                         * Format: uuid
-                         * @example 30000000-0000-4000-8000-000000000001
-                         */
-                        delegacionId?: string | null;
-                    };
+                    "application/json": components["schemas"]["LoginRequest"];
                 };
             };
             responses: {
-                /** @description Recurso actualizado exitosamente */
+                /** @description Inicio de sesión exitoso con token JWT y perfil de usuario retornado */
                 200: {
                     headers: {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": {
-                            message: string;
-                            data: {
-                                /** Format: uuid */
-                                id: string;
-                                nombre: string;
-                                /**
-                                 * @description Tipo legible (ej. 'Vehículo o Maquinaria' o 'Material o Insumo')
-                                 * @example Vehículo o Maquinaria
-                                 */
-                                tipo: string;
-                                esIndividual: boolean;
-                                /** @enum {string} */
-                                estado: "DISPONIBLE" | "ASIGNADO" | "EN_MANTENCION" | "BAJO_STOCK" | "NO_DISPONIBLE";
-                                cantidadInventario: number;
-                                cantidadEnUso: number;
-                                cantidadDisponible: number;
-                                cantidadMinima: number;
-                                latitud: number;
-                                longitud: number;
-                                descripcion: string | null;
-                                detalles: {
-                                    [key: string]: unknown;
-                                };
-                                /** @description Datos de la delegación territorial de procedencia */
-                                delegacion: {
-                                    /** Format: uuid */
-                                    id: string;
-                                    codigo: string;
-                                    nombre: string;
-                                } | null;
-                                /** Format: uuid */
-                                delegacionId?: string | null;
-                                /** Format: uuid */
-                                creadoPorId: string;
-                                /** Format: uuid */
-                                actualizadoPorId?: string | null;
-                                creadoEn: string;
-                                actualizadoEn: string;
-                            };
-                        };
+                        "application/json": components["schemas"]["LoginResponse"];
                     };
                 };
-                /** @description Datos de entrada inválidos o inventario menor a unidades en uso en terreno */
+                /** @description Datos de solicitud inválidos o campos obligatorios faltantes */
                 400: {
                     headers: {
                         [name: string]: unknown;
                     };
                     content?: never;
                 };
-                /** @description No autenticado / cabecera X-User-Id ausente */
+                /** @description Credenciales inválidas. Identificador o contraseña errónea */
                 401: {
                     headers: {
                         [name: string]: unknown;
                     };
                     content?: never;
                 };
-                /** @description Acceso denegado. Se requiere perfil de Administrador */
+                /** @description Cuenta deshabilitada o temporalmente bloqueada por múltiples intentos fallidos */
                 403: {
                     headers: {
                         [name: string]: unknown;
                     };
                     content?: never;
                 };
-                /** @description Recurso no encontrado */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-                /** @description Error interno del servidor */
+                /** @description Error interno del servidor al procesar el inicio de sesión */
                 500: {
                     headers: {
                         [name: string]: unknown;
@@ -708,111 +504,7 @@ export interface paths {
                 };
             };
         };
-        post?: never;
-        /**
-         * Eliminar recurso del inventario (borrado lógico)
-         * @description Aplica un borrado lógico (soft delete) a un recurso existente registrando fecha, hora y usuario responsable. Impide la eliminación con código 409 Conflict si el recurso está actualmente en uso en terreno o asignado a una misión activa / cuadrilla. Emite evento WebSocket 'recurso:eliminado' a los clientes conectados.
-         */
-        delete: {
-            parameters: {
-                query?: never;
-                header: {
-                    /** @description UUID del usuario administrador autenticado */
-                    "x-user-id": string;
-                };
-                path: {
-                    /** @description Identificador único del recurso (UUID) */
-                    id: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description Recurso eliminado exitosamente (baja lógica aplicada) */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            message: string;
-                            /** Format: uuid */
-                            id: string;
-                            nombre: string;
-                            eliminadoEn: string;
-                            /** Format: uuid */
-                            eliminadoPorId: string;
-                        };
-                    };
-                };
-                /** @description Identificador UUID inválido */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            message: string;
-                        };
-                    };
-                };
-                /** @description No autenticado / cabecera X-User-Id ausente */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            message: string;
-                        };
-                    };
-                };
-                /** @description Acceso denegado. Se requiere rol de Administrador o permiso recursos:eliminar */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            message: string;
-                        };
-                    };
-                };
-                /** @description Recurso no encontrado o ya eliminado previamente */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            message: string;
-                        };
-                    };
-                };
-                /** @description Conflicto operativo: recurso con unidades en uso o asignado a misión activa */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            message: string;
-                        };
-                    };
-                };
-                /** @description Error interno del servidor */
-                500: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            message: string;
-                        };
-                    };
-                };
-            };
-        };
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -909,6 +601,13 @@ export interface paths {
                         "application/json": components["schemas"]["RolDetalleResponse"];
                     };
                 };
+                /** @description Identificador de rol no válido (debe ser UUID) */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
                 /** @description Cabecera de autenticación X-User-Id ausente o usuario no válido */
                 401: {
                     headers: {
@@ -940,6 +639,203 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/seguridad/permisos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Listar catálogo completo de permisos
+         * @description Retorna el catálogo completo de permisos registrados en la base de datos clasificados por módulo funcional.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header: {
+                    /** @description UUID del usuario administrador autenticado */
+                    "x-user-id": string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Catálogo completo de permisos clasificados por módulo */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ListarPermisosResponse"];
+                    };
+                };
+                /** @description Cabecera de autenticación X-User-Id ausente o usuario no válido */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Acceso denegado. Se requiere perfil de Administrador */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/seguridad/roles/{id}/permisos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Actualizar permisos de un perfil
+         * @description Actualiza masiva y atómicamente los permisos asignados a un rol institucional específico mediante una lista de UUIDs.
+         */
+        put: {
+            parameters: {
+                query?: never;
+                header: {
+                    /** @description UUID del usuario administrador autenticado */
+                    "x-user-id": string;
+                };
+                path: {
+                    /** @description UUID del rol/perfil a actualizar */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            /** @description Lista de identificadores de permisos a asociar al perfil */
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["ActualizarPermisosRolInput"];
+                };
+            };
+            responses: {
+                /** @description Permisos actualizados correctamente en la base de datos */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ActualizarPermisosRolResponse"];
+                    };
+                };
+                /** @description Identificador de rol no válido (debe ser UUID), payload inválido, permisos inexistentes o intento de revocar permiso crítico al Administrador */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Cabecera de autenticación X-User-Id ausente o usuario no válido */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Acceso denegado. Se requiere perfil de Administrador */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Perfil no encontrado */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/seguridad/usuario-activo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Obtener usuario autenticado y permisos dinámicos
+         * @description Retorna los datos del usuario en sesión, su rol y la lista de todos los códigos de permisos asignados dinámicamente en tiempo real.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header: {
+                    /** @description UUID del usuario autenticado */
+                    "x-user-id": string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Datos del usuario activo y sus permisos dinámicos obtenidos exitosamente */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["UsuarioActivoResponse"];
+                    };
+                };
+                /** @description Cabecera de autenticación ausente o usuario no registrado */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Acceso denegado o usuario inactivo en el sistema */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Error interno del servidor */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/incidentes/avisos": {
         parameters: {
             query?: never;
@@ -948,8 +844,8 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Listar avisos pendientes para Call Center
-         * @description Retorna una lista paginada de avisos ordenados por mayor tiempo de espera calculando minutosEnEspera.
+         * Listar avisos para Call Center con filtros multicriterio
+         * @description Retorna una lista paginada de avisos ordenados por mayor tiempo de espera calculando minutosEnEspera. Admite filtros combinados por delegación territorial, estado operativo, canal de origen y búsqueda textual libre. Requiere permiso incidentes:avisos:leer.
          */
         get: {
             parameters: {
@@ -958,10 +854,21 @@ export interface paths {
                     page?: number;
                     /** @description Cantidad de elementos por página (máx. 100) */
                     limit?: number;
-                    /** @description Estado del aviso a consultar (por defecto PENDIENTE_VERIFICACION) */
-                    estado?: "PENDIENTE_VERIFICACION" | "NO_VERIFICADO" | "VERIFICADO" | "DESCARTADO";
+                    /** @description Estado del aviso a consultar (por defecto NO_VERIFICADO; si es TODOS omite el filtro) */
+                    estado?: "PENDIENTE_VERIFICACION" | "NO_VERIFICADO" | "VERIFICADO" | "DESCARTADO" | "TODOS";
+                    /** @description Delegación territorial ('Norte', 'Sur', 'Costa', 'Calle Calle', 'TODAS') */
+                    delegacion?: string;
+                    /** @description Texto libre para filtrar por descripción, dirección o informante */
+                    busqueda?: string;
+                    /** @description Alias de búsqueda rápida para texto libre */
+                    q?: string;
+                    /** @description Canal por el cual ingresó el reporte */
+                    origen?: "WEB" | "CHATBOT" | "TELEFONO";
                 };
-                header?: never;
+                header: {
+                    /** @description Token Bearer JWT de sesión */
+                    authorization: string;
+                };
                 path?: never;
                 cookie?: never;
             };
@@ -978,6 +885,27 @@ export interface paths {
                 };
                 /** @description Parámetros de consulta inválidos */
                 400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description No autenticado o token Bearer inválido/expirado */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Acceso denegado. Permiso 'incidentes:avisos:leer' requerido */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Error interno del servidor */
+                500: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -1002,7 +930,7 @@ export interface paths {
                 content: {
                     "application/json": {
                         /** @enum {string} */
-                        tipoAfectacion: "Anegamiento" | "Caída de árbol" | "Corte de energía" | "Deslizamiento" | "Daño estructural" | "Corte de agua potable" | "Otro";
+                        tipoAfectacion: "Anegamiento" | "Inundación" | "Caída de árbol" | "Corte de energía" | "Deslizamiento" | "Deslizamiento de tierra" | "Daño estructural" | "Corte de agua potable" | "Anegamiento de calzada" | "Incendio estructural / forestal" | "Incendio" | "Otro";
                         direccion: string;
                         descripcion?: string;
                         informanteNombre: string;
@@ -1010,6 +938,7 @@ export interface paths {
                         informanteTelefono?: string;
                         latitud?: number;
                         longitud?: number;
+                        origenReporte?: string;
                     };
                 };
             };
@@ -1148,14 +1077,14 @@ export interface paths {
         put?: never;
         /**
          * Verificar y promover aviso a incidente
-         * @description Transforma atómicamente un aviso preliminar en un incidente formal ICS con bloqueo pesimista.
+         * @description Transforma atómicamente un aviso preliminar en un incidente formal ICS con bloqueo pesimista. Requiere permiso incidentes:avisos:verificar. Admite POST y PATCH.
          */
         post: {
             parameters: {
                 query?: never;
                 header: {
-                    /** @description UUID del operador que verifica */
-                    "x-user-id": string;
+                    /** @description Token Bearer JWT */
+                    authorization: string;
                 };
                 path: {
                     /** @description UUID del aviso a verificar */
@@ -1183,8 +1112,15 @@ export interface paths {
                     };
                     content?: never;
                 };
-                /** @description Cabecera X-User-Id faltante */
+                /** @description No autenticado o token Bearer inválido/expirado */
                 401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description No cuenta con el permiso requerido: incidentes:avisos:verificar */
+                403: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -1199,6 +1135,13 @@ export interface paths {
                 };
                 /** @description El aviso ya fue verificado o descartado previamente */
                 409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Error interno del servidor */
+                500: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -1223,14 +1166,14 @@ export interface paths {
         put?: never;
         /**
          * Descartar aviso motivado
-         * @description Descarta un aviso no procedente registrando la justificación obligatoria del operador.
+         * @description Descarta un aviso no procedente registrando la justificación obligatoria del operador. Requiere permiso incidentes:avisos:descartar. Admite POST y PATCH.
          */
         post: {
             parameters: {
                 query?: never;
                 header: {
-                    /** @description UUID del operador que descarta */
-                    "x-user-id": string;
+                    /** @description Token Bearer JWT */
+                    authorization: string;
                 };
                 path: {
                     /** @description UUID del aviso */
@@ -1258,8 +1201,15 @@ export interface paths {
                     };
                     content?: never;
                 };
-                /** @description Cabecera X-User-Id faltante */
+                /** @description No autenticado o token Bearer inválido/expirado */
                 401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description No cuenta con el permiso requerido: incidentes:avisos:descartar */
+                403: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -1274,6 +1224,13 @@ export interface paths {
                 };
                 /** @description El aviso ya fue procesado previamente */
                 409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Error interno del servidor */
+                500: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -1323,7 +1280,7 @@ export interface paths {
                          * @description Tipo de afectación catalogada
                          * @enum {string}
                          */
-                        tipoAfectacion: "Anegamiento" | "Caída de árbol" | "Corte de energía" | "Deslizamiento" | "Daño estructural" | "Corte de agua potable" | "Otro";
+                        tipoAfectacion: "Anegamiento" | "Inundación" | "Caída de árbol" | "Corte de energía" | "Deslizamiento" | "Deslizamiento de tierra" | "Daño estructural" | "Corte de agua potable" | "Anegamiento de calzada" | "Incendio estructural / forestal" | "Incendio" | "Otro";
                         descripcion: string;
                         direccion: string;
                         latitud?: number;
@@ -1476,7 +1433,7 @@ export interface paths {
                          * @description Tipo de afectación a comparar
                          * @enum {string}
                          */
-                        tipoAfectacion: "Anegamiento" | "Caída de árbol" | "Corte de energía" | "Deslizamiento" | "Daño estructural" | "Corte de agua potable" | "Otro";
+                        tipoAfectacion: "Anegamiento" | "Inundación" | "Caída de árbol" | "Corte de energía" | "Deslizamiento" | "Deslizamiento de tierra" | "Daño estructural" | "Corte de agua potable" | "Anegamiento de calzada" | "Incendio estructural / forestal" | "Incendio" | "Otro";
                         direccion: string;
                         latitud?: number;
                         longitud?: number;
@@ -1615,6 +1572,13 @@ export interface paths {
                         };
                     };
                 };
+                /** @description Código de seguimiento inválido o no proporcionado */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
                 /** @description No se encontró ningún reporte con el código de seguimiento indicado */
                 404: {
                     headers: {
@@ -1707,6 +1671,12 @@ export interface paths {
                     tipoAfectacion?: string;
                     /** @description Búsqueda textual sobre código, dirección o descripción del incidente */
                     busqueda?: string;
+                    /** @description Filtrar incidentes por fecha específica (YYYY-MM-DD) */
+                    fecha?: string;
+                    /** @description Filtrar únicamente incidentes registrados en el día actual (zona horaria Chile) */
+                    soloHoy?: boolean | null;
+                    /** @description Filtrar incidentes por delegación territorial */
+                    delegacionId?: string;
                 };
                 header: {
                     /** @description ID del usuario Encargado o Administrador autenticado */
@@ -2103,7 +2073,200 @@ export interface paths {
             };
         };
         put?: never;
-        post?: never;
+        /**
+         * Registrar nuevo funcionario
+         * @description Registra a un nuevo funcionario o empleado municipal en el sistema SGRAI, aprovisionando su cuenta institucional y opcionalmente su ficha de terreno si su rol o funciones lo requieren.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    /** @description Token Bearer JWT de sesión con rol Administrador */
+                    authorization: string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Datos personales, asignación institucional y credenciales del nuevo funcionario */
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        /**
+                         * @description RUT chileno del funcionario con dígito verificador
+                         * @example 12.345.678-5
+                         */
+                        rut: string;
+                        /**
+                         * @description Nombres del funcionario
+                         * @example Juan Carlos
+                         */
+                        nombres: string;
+                        /**
+                         * @description Apellidos del funcionario
+                         * @example Pérez González
+                         */
+                        apellidos: string;
+                        /**
+                         * Format: email
+                         * @description Correo electrónico del funcionario
+                         * @example juan.perez@valdivia.cl
+                         */
+                        email: string;
+                        /**
+                         * @description Número telefónico de contacto municipal
+                         * @example +56912345678
+                         */
+                        telefono: string;
+                        /**
+                         * @description Contraseña inicial asignada al funcionario (mínimo 8 caracteres alfanuméricos)
+                         * @example Valdivia2026!
+                         */
+                        password: string;
+                        /**
+                         * Format: uuid
+                         * @description UUID del rol asignado al funcionario
+                         * @example 20000000-0000-4000-8000-000000000004
+                         */
+                        rol_id: string;
+                        /**
+                         * Format: uuid
+                         * @description UUID de la delegación territorial a la que pertenece el funcionario
+                         * @example 30000000-0000-4000-8000-000000000001
+                         */
+                        delegacion_id: string;
+                        /**
+                         * @description Estado de activación de la cuenta (por defecto true)
+                         * @default true
+                         * @example true
+                         */
+                        activo?: boolean;
+                        /**
+                         * @description Fecha de ingreso institucional (por defecto la fecha actual)
+                         * @example 2026-10-01
+                         */
+                        fecha_ingreso?: string;
+                        /**
+                         * @description Cargo operativo de terreno
+                         * @example Brigadista Terreno
+                         */
+                        cargo?: string | null;
+                        /**
+                         * @description Especialidad técnica para labores de terreno
+                         * @example Motosierrista y Conductor
+                         */
+                        especialidad?: string | null;
+                        /**
+                         * @description Estado operativo inicial para personal de terreno (por defecto disponible)
+                         * @default disponible
+                         * @example disponible
+                         * @enum {string}
+                         */
+                        estado_operativo?: "disponible" | "en_mision" | "en_patrulla" | "descanso" | "licencia" | "inactivo";
+                        /**
+                         * @description Disponibilidad activa para despliegue en emergencias
+                         * @default true
+                         * @example true
+                         */
+                        disponible_terreno?: boolean;
+                        /**
+                         * @description Observaciones técnicas o médicas para terreno
+                         * @example Apto para faenas pesadas y turnos nocturnos
+                         */
+                        observaciones?: string | null;
+                    };
+                };
+            };
+            responses: {
+                /** @description Funcionario registrado exitosamente */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /**
+                             * @description Mensaje de confirmación de registro
+                             * @example Funcionario registrado exitosamente
+                             */
+                            mensaje: string;
+                            data: {
+                                /** Format: uuid */
+                                usuario_id: string;
+                                rut: string;
+                                nombres: string;
+                                apellidos: string;
+                                /** Format: email */
+                                email: string;
+                                telefono?: string | null;
+                                usuario_activo: boolean;
+                                fecha_ingreso?: string | null;
+                                fecha_salida?: string | null;
+                                /** Format: uuid */
+                                rol_id: string;
+                                rol_codigo: string;
+                                rol_nombre: string;
+                                /** Format: uuid */
+                                delegacion_id?: string | null;
+                                delegacion_codigo?: string | null;
+                                delegacion_nombre?: string | null;
+                                /** Format: uuid */
+                                personal_id?: string | null;
+                                especialidad?: string | null;
+                                cargo?: string | null;
+                                estado_operativo?: string | null;
+                                disponible_terreno?: boolean | null;
+                                observaciones?: string | null;
+                                es_personal?: boolean;
+                                usuario_updated_at?: string;
+                                personal_updated_at?: string | unknown;
+                            };
+                        };
+                    };
+                };
+                /** @description Rol o delegación inexistente o datos de solicitud inválidos */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description No autorizado: Token de sesión ausente o expirado */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Acceso denegado: Se requiere perfil de Administrador */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Conflicto: RUT o correo electrónico ya registrado en el sistema */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Error de validación de campos o RUT con dígito verificador inválido */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Error interno del servidor al procesar el registro */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
@@ -2117,10 +2280,190 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /**
+         * Obtener detalle de empleado
+         * @description Consulta los datos detallados de un empleado por ID (usuario_id o personal_id).
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description UUID del usuario o de la ficha de personal */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Detalle del empleado obtenido exitosamente */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data: {
+                                /** Format: uuid */
+                                usuario_id: string;
+                                rut: string;
+                                nombres: string;
+                                apellidos: string;
+                                /** Format: email */
+                                email: string;
+                                telefono?: string | null;
+                                usuario_activo: boolean;
+                                fecha_ingreso?: string | null;
+                                fecha_salida?: string | null;
+                                /** Format: uuid */
+                                rol_id: string;
+                                rol_codigo: string;
+                                rol_nombre: string;
+                                /** Format: uuid */
+                                delegacion_id?: string | null;
+                                delegacion_codigo?: string | null;
+                                delegacion_nombre?: string | null;
+                                /** Format: uuid */
+                                personal_id?: string | null;
+                                especialidad?: string | null;
+                                cargo?: string | null;
+                                estado_operativo?: string | null;
+                                disponible_terreno?: boolean | null;
+                                observaciones?: string | null;
+                                es_personal?: boolean;
+                                usuario_updated_at?: string;
+                                personal_updated_at?: string | unknown;
+                            };
+                        };
+                    };
+                };
+                /** @description Identificador inválido (debe ser un UUID válido) */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description No autenticado */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Acceso denegado */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Empleado no encontrado */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Conflicto con el recurso */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Error interno del servidor */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
         put?: never;
         post?: never;
-        delete?: never;
+        /**
+         * Baja lógica de empleado
+         * @description Ejecuta la baja lógica (soft-delete) de un empleado o funcionario en SGRAI, desactivando al usuario y marcando personal inactivo.
+         */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: {
+                    /** @description UUID del administrador autenticado que ejecuta la baja lógica */
+                    "x-user-id"?: string;
+                };
+                path: {
+                    /** @description UUID del usuario o de la ficha de personal */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Empleado dado de baja exitosamente */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            message: string;
+                            mensaje?: string;
+                            data: {
+                                /** Format: uuid */
+                                usuario_id: string;
+                                activo: boolean;
+                                fecha_salida: string;
+                            };
+                        };
+                    };
+                };
+                /** @description Identificador inválido o solicitud incorrecta */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description No autenticado o cabecera de autenticación ausente/inválida */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Acceso denegado: se requiere rol de Administrador */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Empleado no encontrado */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Conflicto: empleado en misión o patrulla activa */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Error interno del servidor */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
         options?: never;
         head?: never;
         /**
@@ -2311,6 +2654,1289 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/recursos/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Obtener detalle completo de un recurso logístico
+         * @description Retorna la información completa pre-cargada de un recurso (cantidades, disponibilidad operativa, delegación territorial y auditoría) para alimentar el formulario de edición. Accesible por perfil de Administrador.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header: {
+                    /** @description UUID del usuario administrador autenticado */
+                    "x-user-id": string;
+                };
+                path: {
+                    /** @description UUID del recurso logístico */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Detalle completo del recurso */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** Format: uuid */
+                            id: string;
+                            nombre: string;
+                            /**
+                             * @description Tipo legible (ej. 'Vehículo o Maquinaria' o 'Material o Insumo')
+                             * @example Vehículo o Maquinaria
+                             */
+                            tipo: string;
+                            esIndividual: boolean;
+                            /** @enum {string} */
+                            estado: "DISPONIBLE" | "ASIGNADO" | "EN_MANTENCION" | "BAJO_STOCK" | "NO_DISPONIBLE";
+                            cantidadInventario: number;
+                            cantidadEnUso: number;
+                            cantidadDisponible: number;
+                            cantidadMinima: number;
+                            latitud: number;
+                            longitud: number;
+                            descripcion: string | null;
+                            detalles: {
+                                [key: string]: unknown;
+                            };
+                            /** @description Datos de la delegación territorial de procedencia */
+                            delegacion: {
+                                /** Format: uuid */
+                                id: string;
+                                codigo: string;
+                                nombre: string;
+                            } | null;
+                            /** Format: uuid */
+                            delegacionId?: string | null;
+                            /** Format: uuid */
+                            creadoPorId: string;
+                            /** Format: uuid */
+                            actualizadoPorId?: string | null;
+                            creadoEn: string;
+                            actualizadoEn: string;
+                        };
+                    };
+                };
+                /** @description Identificador de recurso inválido */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description No autenticado / cabecera X-User-Id ausente */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Acceso denegado. Se requiere perfil de Administrador */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Recurso no encontrado */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Error interno del servidor */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        /**
+         * Editar características de un recurso logístico
+         * @description Modifica inventario físico, ubicación geográfica, detalles técnicos y estado operativo del recurso. Notifica en tiempo real vía WebSockets (Socket.io) a las salas de Encargado y Supervisor. Mantiene inmutable el tipo de recurso (esIndividual).
+         */
+        put: {
+            parameters: {
+                query?: never;
+                header: {
+                    /** @description UUID del usuario administrador autenticado */
+                    "x-user-id": string;
+                };
+                path: {
+                    /** @description UUID del recurso logístico */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        /** @example Camioneta Rescate 4x4 - Actualizada */
+                        nombre: string;
+                        /** @example 1 */
+                        cantidadInventario: number;
+                        /**
+                         * @default 0
+                         * @example 0
+                         */
+                        cantidadMinima?: number;
+                        /**
+                         * @description Indica si el activo individual se encuentra fuera de servicio por mantenimiento técnico (solo aplica a recursos con esIndividual: true)
+                         * @default false
+                         * @example false
+                         */
+                        enMantencion?: boolean;
+                        /** @example -39.8142 */
+                        latitud: number;
+                        /** @example -73.2459 */
+                        longitud: number;
+                        /** @example Unidad operativa de rescate en mantención preventiva */
+                        descripcion?: string | null;
+                        /**
+                         * @description Especificaciones técnicas detalladas según el tipo de maquinaria
+                         * @default {}
+                         */
+                        detalles?: {
+                            patente?: string;
+                            numeroSerie?: string;
+                            marca?: string;
+                            modelo?: string;
+                            anio?: number;
+                            kilometraje?: number;
+                            /** @enum {string} */
+                            tipoCombustible?: "GASOLINA" | "DIESEL" | "ELECTRICO" | "HIBRIDO" | "OTRO";
+                            capacidadPasajeros?: number;
+                            numeroChasis?: string;
+                            capacidadCargaKg?: number;
+                            alcanceMaximoMetros?: number;
+                            tipoGrua?: string;
+                            horometro?: number;
+                            caudalMaximoLpm?: number;
+                            diametroPulgadas?: number;
+                            potenciaHp?: number;
+                            potenciaKva?: number;
+                        } & {
+                            [key: string]: unknown;
+                        };
+                        /**
+                         * Format: uuid
+                         * @example 30000000-0000-4000-8000-000000000001
+                         */
+                        delegacionId?: string | null;
+                    };
+                };
+            };
+            responses: {
+                /** @description Recurso actualizado exitosamente */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            message: string;
+                            data: {
+                                /** Format: uuid */
+                                id: string;
+                                nombre: string;
+                                /**
+                                 * @description Tipo legible (ej. 'Vehículo o Maquinaria' o 'Material o Insumo')
+                                 * @example Vehículo o Maquinaria
+                                 */
+                                tipo: string;
+                                esIndividual: boolean;
+                                /** @enum {string} */
+                                estado: "DISPONIBLE" | "ASIGNADO" | "EN_MANTENCION" | "BAJO_STOCK" | "NO_DISPONIBLE";
+                                cantidadInventario: number;
+                                cantidadEnUso: number;
+                                cantidadDisponible: number;
+                                cantidadMinima: number;
+                                latitud: number;
+                                longitud: number;
+                                descripcion: string | null;
+                                detalles: {
+                                    [key: string]: unknown;
+                                };
+                                /** @description Datos de la delegación territorial de procedencia */
+                                delegacion: {
+                                    /** Format: uuid */
+                                    id: string;
+                                    codigo: string;
+                                    nombre: string;
+                                } | null;
+                                /** Format: uuid */
+                                delegacionId?: string | null;
+                                /** Format: uuid */
+                                creadoPorId: string;
+                                /** Format: uuid */
+                                actualizadoPorId?: string | null;
+                                creadoEn: string;
+                                actualizadoEn: string;
+                            };
+                        };
+                    };
+                };
+                /** @description Datos de entrada inválidos o inventario menor a unidades en uso en terreno */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description No autenticado / cabecera X-User-Id ausente */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Acceso denegado. Se requiere perfil de Administrador */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Recurso no encontrado */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Error interno del servidor */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        /**
+         * Eliminar recurso del inventario (borrado lógico)
+         * @description Aplica un borrado lógico (soft delete) a un recurso existente registrando fecha, hora y usuario responsable. Impide la eliminación con código 409 Conflict si el recurso está actualmente en uso en terreno o asignado a una misión activa / cuadrilla. Emite evento WebSocket 'recurso:eliminado' a los clientes conectados.
+         */
+        delete: {
+            parameters: {
+                query?: never;
+                header: {
+                    /** @description Token Bearer JWT de sesión */
+                    authorization?: string;
+                    /** @description UUID del usuario administrador autenticado */
+                    "x-user-id": string;
+                };
+                path: {
+                    /** @description UUID del recurso logístico */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Recurso eliminado exitosamente (baja lógica aplicada) */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example Recurso eliminado exitosamente del inventario activo. */
+                            message: string;
+                            /**
+                             * Format: uuid
+                             * @example 40000000-0000-4000-8000-000000000001
+                             */
+                            id: string;
+                            /** @example Camioneta Rescate 4x4 */
+                            nombre: string;
+                            /** @example 2026-09-30T19:30:00.000Z */
+                            eliminadoEn: string;
+                            /**
+                             * Format: uuid
+                             * @example 00000000-0000-4000-8000-000000000001
+                             */
+                            eliminadoPorId: string;
+                        };
+                    };
+                };
+                /** @description Identificador de recurso inválido */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description No autenticado / cabecera X-User-Id ausente */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Acceso denegado. Se requiere perfil de Administrador */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Recurso no encontrado o ya dado de baja */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Conflicto operativo: el recurso está asignado a una misión activa o cuadrilla en terreno */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Error interno del servidor */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/misiones/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Consultar detalle completo de una misión operativa
+         * @description Obtiene la información exhaustiva de una misión operativa específica, incluyendo el incidente asociado o punto de prevención, la cuadrilla o patrulla asignada con sus recursos, la bitácora de tiempos y los reportes de terreno levantados con su evidencia multimedia.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: {
+                    /** @description Token Bearer JWT de sesión */
+                    authorization?: string;
+                    /** @description ID del usuario Encargado, Administrador o Supervisor autenticado */
+                    "x-user-id"?: string;
+                };
+                path: {
+                    /** @description Identificador único UUID de la misión */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Detalle completo de la misión obtenido exitosamente */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example Detalle de misión obtenido exitosamente. */
+                            message: string;
+                            data: {
+                                /**
+                                 * Format: uuid
+                                 * @description Identificador único UUID de la misión
+                                 */
+                                id: string;
+                                /** @description Código oficial de la misión (ej. MIS-2026-001) */
+                                codigo: string;
+                                /** @description Título descriptivo de la misión operativa */
+                                titulo: string;
+                                /** @description Instrucciones tácticas u objetivos de la misión */
+                                descripcion: string | null;
+                                /**
+                                 * @description Clasificación de la misión
+                                 * @enum {string}
+                                 */
+                                tipoMision: "VERIFICACION" | "ATENCION_CUADRILLA" | "PREVENCION" | "RECUPERACION" | "ASISTENCIA_SOCIAL";
+                                /**
+                                 * @description Estado de ejecución actual de la misión
+                                 * @enum {string}
+                                 */
+                                estado: "PLANIFICADA" | "DESPACHADA" | "EN_CURSO" | "COMPLETADA" | "CANCELADA" | "RECHAZADA";
+                                /**
+                                 * @description Nivel de prioridad o urgencia
+                                 * @enum {string}
+                                 */
+                                prioridad: "BAJA" | "MEDIA" | "ALTA" | "CRITICA";
+                                /** @description Motivo documentado en caso de rechazo por la cuadrilla */
+                                justificacionRechazo: string | null;
+                                /** @description Fecha y hora de despliegue o inicio en terreno (ISO 8601) */
+                                fechaInicio: string | null;
+                                /** @description Fecha y hora de cierre formal de la misión (ISO 8601) */
+                                fechaCierre: string | null;
+                                /** @description Fecha y hora de creación de la misión en formato ISO 8601 */
+                                creadoEn: string;
+                                /** @description Última fecha y hora de actualización en formato ISO 8601 */
+                                actualizadoEn: string;
+                                /** @description Usuario creador / operador que despachó la misión */
+                                creadoPor: {
+                                    /** Format: uuid */
+                                    id: string;
+                                    nombre: string;
+                                    /** Format: email */
+                                    email: string;
+                                } | null;
+                                /** @description Encargado de operaciones asignado al monitoreo */
+                                encargado: {
+                                    /** Format: uuid */
+                                    id: string;
+                                    nombre: string;
+                                    /** Format: email */
+                                    email: string;
+                                } | null;
+                                /** @description Incidente formal atendido (null si es misión de prevención u otro origen directo) */
+                                incidente: {
+                                    /**
+                                     * Format: uuid
+                                     * @description Identificador único UUID del incidente
+                                     */
+                                    id: string;
+                                    /** @description Código interno del incidente (ej. INC-2026-001) */
+                                    codigo: string;
+                                    /** @description Código de seguimiento entregado al informante */
+                                    codigoSeguimiento: string;
+                                    /** @description Tipo de emergencia o afectación */
+                                    tipoAfectacion: string;
+                                    /** @description Relato del incidente */
+                                    descripcion: string | null;
+                                    /** @description Dirección o punto geográfico en Valdivia */
+                                    direccion: string;
+                                    /** @description Latitud WGS84 */
+                                    latitud: number;
+                                    /** @description Longitud WGS84 */
+                                    longitud: number;
+                                    /** @description Estado actual del incidente (REPORTADO, VERIFICANDO, EN_ATENCION, RESUELTO) */
+                                    estado: string;
+                                    /** @description Prioridad del incidente (BAJA, MEDIA, ALTA, CRITICA) */
+                                    prioridad: string;
+                                    /** @description Requiere derivación social / ficha FIBE */
+                                    requiereAsistenciaSocial: boolean;
+                                    /** @description Delegación territorial asignada */
+                                    delegacionNombre: string | null;
+                                } | null;
+                                /** @description Punto crítico preventivo atendido (null si proviene de un incidente formal) */
+                                prevencion: {
+                                    /**
+                                     * Format: uuid
+                                     * @description Identificador del punto crítico de prevención
+                                     */
+                                    id: string;
+                                    /** @description Código del punto crítico (ej. PREV-001) */
+                                    codigo: string;
+                                    /** @description Nombre del sector monitoreado */
+                                    nombre: string;
+                                    /** @description Detalle de vulnerabilidad del sector */
+                                    descripcion: string | null;
+                                    /** @description Latitud WGS84 */
+                                    latitud: number;
+                                    /** @description Longitud WGS84 */
+                                    longitud: number;
+                                    /** @description Delegación territorial */
+                                    delegacionNombre: string | null;
+                                } | null;
+                                /** @description Cuadrilla operativa asignada (null si fue asignada una patrulla verificadora) */
+                                cuadrilla: {
+                                    /**
+                                     * Format: uuid
+                                     * @description Identificador único UUID de la cuadrilla
+                                     */
+                                    id: string;
+                                    /** @description Nombre identificador de la cuadrilla */
+                                    nombre: string;
+                                    /** @description Estado operativo de la cuadrilla (DISPONIBLE, EN_MISION, NO_DISPONIBLE) */
+                                    estado: string;
+                                    /** @description Delegación territorial base */
+                                    delegacionNombre: string | null;
+                                    /** @description Delegado responsable de la brigada */
+                                    delegado: {
+                                        /** Format: uuid */
+                                        id: string;
+                                        nombre: string;
+                                        /** Format: email */
+                                        email: string;
+                                    } | null;
+                                    /** @description Inventario de recursos asignados a la cuadrilla */
+                                    recursos: {
+                                        /**
+                                         * Format: uuid
+                                         * @description Identificador del recurso
+                                         */
+                                        id: string;
+                                        /** @description Nombre o descripción del recurso o vehículo */
+                                        nombre: string;
+                                        /** @description Categoría del recurso (HERRAMIENTA, VEHICULO, EQUIPO, etc.) */
+                                        tipo: string;
+                                        /** @description Cantidad física asignada a la cuadrilla */
+                                        cantidadAsignada: number;
+                                    }[];
+                                } | null;
+                                /** @description Patrulla verificadora asignada (null si fue asignada una cuadrilla operativa) */
+                                patrulla: {
+                                    /**
+                                     * Format: uuid
+                                     * @description Identificador único UUID de la patrulla
+                                     */
+                                    id: string;
+                                    /** @description Nombre identificador de la patrulla verificadora */
+                                    nombre: string;
+                                    /** @description Estado operativo (DISPONIBLE, EN_VERIFICACION, NO_DISPONIBLE) */
+                                    estado: string;
+                                    /** @description Delegación territorial base */
+                                    delegacionNombre: string | null;
+                                    /** @description Líder de patrulla a cargo de la evaluación primaria */
+                                    lider: {
+                                        /** Format: uuid */
+                                        id: string;
+                                        nombre: string;
+                                        /** Format: email */
+                                        email: string;
+                                    } | null;
+                                } | null;
+                                /** @description Hitos cronológicos de tiempo de la misión para análisis táctico (HU-17) */
+                                bitacoraTiempos: {
+                                    /**
+                                     * @description Hito temporal de la misión
+                                     * @example PLANIFICACION
+                                     */
+                                    hito: string;
+                                    /**
+                                     * @description Fecha del hito en formato YYYY-MM-DD
+                                     * @example 2026-10-02
+                                     */
+                                    fecha: string;
+                                    /**
+                                     * @description Hora del hito en formato HH:MM:SS
+                                     * @example 14:30:00
+                                     */
+                                    hora: string;
+                                    /** @description Timestamp completo ISO 8601 */
+                                    timestamp: string;
+                                    /** @description Glosa descriptiva del hito operativo */
+                                    descripcion: string;
+                                }[];
+                                /** @description Informes técnicos levantados en terreno con su respectiva evidencia multimedia (vacío si no hay reportes) */
+                                reportesTerreno: {
+                                    /**
+                                     * Format: uuid
+                                     * @description Identificador único UUID del reporte de terreno
+                                     */
+                                    id: string;
+                                    /**
+                                     * Format: uuid
+                                     * @description Identificador de la misión asociada
+                                     */
+                                    misionId: string;
+                                    /** @description Datos del funcionario o patrullero que emitió el reporte */
+                                    evaluador: {
+                                        /**
+                                         * Format: uuid
+                                         * @description Identificador único UUID del usuario
+                                         */
+                                        id: string;
+                                        /** @description Nombre completo del evaluador */
+                                        nombre: string;
+                                        /**
+                                         * Format: email
+                                         * @description Correo institucional
+                                         */
+                                        email: string;
+                                        /** @description RUT del funcionario */
+                                        rut?: string | null;
+                                    };
+                                    /** @description Diagnóstico técnico consolidado de la intervención */
+                                    resumenTecnico: string;
+                                    /** @description Labores y maniobras ejecutadas en terreno */
+                                    accionesRealizadas: string | null;
+                                    /** @description Indica si se requiere escalamiento logístico o relevo */
+                                    requiereApoyoAdicional: boolean;
+                                    /** @description Descripción o estimación preliminar de daños observados */
+                                    danosEstimados: string | null;
+                                    /** @description Observaciones de seguridad o condiciones de terreno */
+                                    observaciones: string | null;
+                                    /** @description Cantidad estimada de personas o familias afectadas */
+                                    personasAfectadas: number;
+                                    /** @description Estado operativo al momento del reporte (ej. FINALIZADO, EN_CURSO) */
+                                    estadoTerreno: string;
+                                    /** @description Fotografías, videos o documentos levantados como evidencia en terreno */
+                                    adjuntos: {
+                                        /**
+                                         * Format: uuid
+                                         * @description Identificador único UUID del archivo adjunto
+                                         */
+                                        id: string;
+                                        /**
+                                         * @description Nombre original del archivo
+                                         * @example foto_evaluacion_1.jpg
+                                         */
+                                        nombreArchivo: string;
+                                        /**
+                                         * @description Ruta de acceso pública o relativa del recurso estático bajo Caddy
+                                         * @example /uploads/evidencia/foto_evaluacion_1.jpg
+                                         */
+                                        url: string;
+                                        /**
+                                         * @description MIME type del archivo
+                                         * @example image/jpeg
+                                         */
+                                        tipoMime: string;
+                                        /**
+                                         * @description Tamaño en bytes del archivo
+                                         * @example 1048576
+                                         */
+                                        tamanoBytes: number;
+                                        /** @description Fecha y hora de carga del archivo en formato ISO 8601 */
+                                        creadoEn: string;
+                                    }[];
+                                    /** @description Fecha y hora del levantamiento del reporte en formato ISO 8601 */
+                                    creadoEn: string;
+                                    /** @description Fecha y hora de última modificación en formato ISO 8601 */
+                                    actualizadoEn: string;
+                                }[];
+                            };
+                        };
+                    };
+                };
+                /** @description El identificador de la misión proporcionado no es un UUID válido */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description No autenticado / cabecera X-User-Id ausente o inválida */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description No cuenta con el permiso requerido: misiones:leer */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Misión no encontrada */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Error interno del servidor */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/puntos-criticos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Listar puntos críticos y sectores vulnerables monitoreados
+         * @description Retorna una lista paginada de puntos críticos y sectores vulnerables monitoreados en Valdivia, incluyendo su ubicación espacial, factores de riesgo, nivel de gravedad y delegación territorial asociada. Acceso restringido al rol Administrador.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description Número de página actual (inicia en 1) */
+                    pagina?: number;
+                    /** @description Cantidad de elementos por página (máximo 100) */
+                    limite?: number;
+                    /** @description Filtrar por identificador de la delegación territorial */
+                    delegacionId?: string;
+                    /** @description Filtrar por estado activo/inactivo del punto crítico */
+                    activo?: boolean | null;
+                    /** @description Filtrar por gravedad/prioridad de riesgo */
+                    prioridad?: "BAJA" | "MEDIA" | "ALTA" | "CRITICA";
+                    /** @description Búsqueda textual insensible a mayúsculas por código, nombre, tipo de riesgo o descripción */
+                    busqueda?: string;
+                };
+                header: {
+                    /** @description UUID del usuario Administrador autenticado */
+                    "x-user-id": string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Listado paginado de puntos críticos */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @description Colección de puntos críticos almacenados */
+                            data: {
+                                /**
+                                 * Format: uuid
+                                 * @description Identificador único (UUID) del punto crítico
+                                 * @example 40000000-0000-4000-8000-000000000001
+                                 */
+                                id: string;
+                                /**
+                                 * @description Código institucional único (ej. PC-ANG-01)
+                                 * @example PC-ANG-01
+                                 */
+                                codigo: string;
+                                /**
+                                 * @description Nombre descriptivo del punto crítico o sector vulnerable
+                                 * @example Sector Humedal Angachilla - Pasaje Los Robles
+                                 */
+                                nombre: string;
+                                /**
+                                 * @description Detalle situacional y factores de riesgo del sector
+                                 * @example Zona baja propensa a anegamiento por desborde en temporada invernal
+                                 */
+                                descripcion: string | null;
+                                /**
+                                 * @description Clasificación de la amenaza recurrente
+                                 * @example Inundación y desborde de cauce
+                                 */
+                                tipoRiesgo: string | null;
+                                /**
+                                 * @description Nivel de gravedad o prioridad operativa homologado con incidentes
+                                 * @example ALTA
+                                 * @enum {string}
+                                 */
+                                prioridad: "BAJA" | "MEDIA" | "ALTA" | "CRITICA";
+                                /**
+                                 * @description Estado actual de vigencia operativa del punto crítico
+                                 * @example true
+                                 */
+                                activo: boolean;
+                                /**
+                                 * @description Etiqueta textual legible de estado para la vista de usuario
+                                 * @example Activo
+                                 */
+                                estadoTexto: string;
+                                /**
+                                 * @description Coordenada latitud EPSG:4326
+                                 * @example -39.8456
+                                 */
+                                latitud: number;
+                                /**
+                                 * @description Coordenada longitud EPSG:4326
+                                 * @example -73.2389
+                                 */
+                                longitud: number;
+                                /** @description Delegación municipal territorial de pertenencia */
+                                delegacion: {
+                                    /**
+                                     * Format: uuid
+                                     * @example 30000000-0000-4000-8000-000000000001
+                                     */
+                                    id: string;
+                                    /** @example DEL-SUR */
+                                    codigo: string;
+                                    /** @example Delegación Municipal Sur */
+                                    nombre: string;
+                                } | null;
+                                /**
+                                 * @description Fecha y hora de registro en formato ISO-8601
+                                 * @example 2026-06-15T12:00:00.000Z
+                                 */
+                                creadoEn: string;
+                            }[];
+                            meta: {
+                                /** @example 1 */
+                                total: number;
+                                /** @example 1 */
+                                pagina: number;
+                                /** @example 10 */
+                                limite: number;
+                                /** @example 1 */
+                                totalPaginas: number;
+                            };
+                        };
+                    };
+                };
+                /** @description Parámetros de consulta inválidos */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Cabecera de autenticación X-User-Id ausente o usuario no válido */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Acceso denegado. Se requiere perfil de Administrador */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Error interno del servidor */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/incidentes/kpis": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Obtener contadores y KPIs de incidentes del día
+         * @description Retorna los contadores numéricos consolidados de incidentes agrupados por los 5 estados canónicos (REPORTADO, VERIFICANDO, EN_ATENCION, NO_ABORDABLE, RESUELTO) para el día indicado o la fecha actual en Valdivia/Chile (America/Santiago). Admite filtrado opcional por delegación territorial.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description Fecha de consulta en formato YYYY-MM-DD (por defecto, fecha actual en Valdivia/Chile) */
+                    fecha?: string;
+                    /** @description UUID opcional de la delegación territorial para filtrar contadores específicos */
+                    delegacionId?: string;
+                };
+                header: {
+                    /** @description UUID del usuario autenticado (Encargado o Admin) */
+                    "x-user-id": string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Contadores de incidentes del día obtenidos exitosamente */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example Contadores de incidentes del día obtenidos exitosamente. */
+                            message: string;
+                            data: {
+                                /**
+                                 * @description Fecha a la que corresponden los contadores calculados (YYYY-MM-DD)
+                                 * @example 2026-10-03
+                                 */
+                                fecha: string;
+                                /**
+                                 * @description Zona horaria oficial empleada para el corte diario
+                                 * @example America/Santiago
+                                 * @enum {string}
+                                 */
+                                zonaHoraria: "America/Santiago";
+                                /**
+                                 * Format: uuid
+                                 * @description UUID de delegación aplicada como filtro, o null si corresponde al total comunal
+                                 * @example null
+                                 */
+                                delegacionId: string | null;
+                                /**
+                                 * @description Total general de incidentes registrados en el periodo del día
+                                 * @example 40
+                                 */
+                                total: number;
+                                contadores: {
+                                    /**
+                                     * @description Cantidad de incidentes en estado REPORTADO (ingresados pendientes de verificación)
+                                     * @example 8
+                                     */
+                                    reportado: number;
+                                    /**
+                                     * @description Cantidad de incidentes en estado VERIFICANDO (con patrulla verificadora en evaluación)
+                                     * @example 3
+                                     */
+                                    verificando: number;
+                                    /**
+                                     * @description Cantidad de incidentes en estado EN_ATENCION (cuadrillas o recursos despachados en terreno)
+                                     * @example 12
+                                     */
+                                    enAtencion: number;
+                                    /**
+                                     * @description Cantidad de incidentes en estado NO_ABORDABLE (descartados por falsa alarma o fuera de alcance)
+                                     * @example 2
+                                     */
+                                    noAbordables: number;
+                                    /**
+                                     * @description Cantidad de incidentes en estado RESUELTO (emergencia mitigada y cerrada)
+                                     * @example 15
+                                     */
+                                    resueltos: number;
+                                };
+                                /**
+                                 * @description Marca temporal ISO 8601 del momento exacto del cálculo
+                                 * @example 2026-10-03T17:30:00.000Z
+                                 */
+                                actualizadoEn: string;
+                            };
+                        };
+                    };
+                };
+                /** @description Parámetros de consulta inválidos */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description No autenticado / cabecera X-User-Id ausente */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Acceso denegado. Permiso insuficiente */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Error interno del servidor */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/eventos-atp/recuperacion": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Crear evento de recuperación y despachar patrulla con recursos logísticos (HU-29)
+         * @description Permite al Encargado de operaciones generar un nuevo evento territorial de recuperación, asignando una patrulla verificadora disponible y recursos de inventario para su entrega directa en terreno, sin requerir la existencia formal de un incidente previo.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    /** @description UUID del usuario autenticado (Encargado o Administrador) */
+                    "x-user-id": string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Datos del evento de recuperación, sector geográfico, patrulla y recursos solicitados */
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        /**
+                         * @description Título o nombre descriptivo del evento de recuperación
+                         * @example Entrega de frazadas y techumbre en Sector Collico
+                         */
+                        nombre: string;
+                        /**
+                         * @description Detalle técnico, justificación o indicaciones para la patrulla
+                         * @example Familias afectadas por voladura de techumbre tras temporal de viento
+                         */
+                        descripcion?: string | null;
+                        /**
+                         * @description Nombre del sector, barrio o población afectada en Valdivia
+                         * @example Collico
+                         */
+                        sector: string;
+                        /**
+                         * @description Dirección exacta o punto de referencia en terreno
+                         * @example Calle Balmaceda 1245 con Las Palmeras
+                         */
+                        direccionTexto?: string | null;
+                        /**
+                         * @description Nivel de urgencia o prioridad operativa
+                         * @default MEDIA
+                         * @example ALTA
+                         * @enum {string}
+                         */
+                        prioridad?: "BAJA" | "MEDIA" | "ALTA" | "CRITICA";
+                        /**
+                         * @description Nombre del referente vecinal o contacto en terreno
+                         * @example Juan Pérez (Presidente JJVV)
+                         */
+                        contactoNombre?: string | null;
+                        /**
+                         * @description Teléfono de contacto en terreno
+                         * @example +56912345678
+                         */
+                        contactoTelefono?: string | null;
+                        /**
+                         * @description Latitud geográfica en formato WGS84
+                         * @example -39.8142
+                         */
+                        latitud: number;
+                        /**
+                         * @description Longitud geográfica en formato WGS84
+                         * @example -73.2459
+                         */
+                        longitud: number;
+                        /**
+                         * Format: uuid
+                         * @description Identificador de la delegación territorial correspondiente
+                         * @example 30000000-0000-4000-8000-000000000001
+                         */
+                        delegacionId?: string | null;
+                        /**
+                         * Format: uuid
+                         * @description Identificador de la patrulla verificadora disponible asignada a la entrega
+                         * @example 50000000-0000-4000-8000-000000000001
+                         */
+                        patrullaId: string;
+                        /**
+                         * @description Número estimado de familias o viviendas beneficiadas
+                         * @default 0
+                         * @example 4
+                         */
+                        familiasAfectadas?: number;
+                        /** @description Listado de insumos y recursos logísticos a entregar */
+                        recursos: {
+                            /**
+                             * Format: uuid
+                             * @description UUID del recurso logístico en inventario
+                             * @example 00000000-0000-4000-8000-000000000001
+                             */
+                            recursoId: string;
+                            /**
+                             * @description Cantidad de unidades requeridas para entrega en el evento
+                             * @example 10
+                             */
+                            cantidad: number;
+                        }[];
+                    };
+                };
+            };
+            responses: {
+                /** @description Evento de recuperación registrado exitosamente y patrulla despachada */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example Evento de recuperación registrado y patrulla despachada exitosamente. */
+                            message: string;
+                            data: {
+                                /**
+                                 * Format: uuid
+                                 * @description Identificador único UUID del evento de recuperación
+                                 */
+                                id: string;
+                                /**
+                                 * @description Código oficial único del evento (ej. REC-2026-0001)
+                                 * @example REC-2026-0001
+                                 */
+                                codigo: string;
+                                /** @example Entrega de frazadas y techumbre en Sector Collico */
+                                nombre: string;
+                                /** @example Familias afectadas por temporal de viento */
+                                descripcion: string | null;
+                                /** @example Collico */
+                                sector: string;
+                                /** @example Calle Balmaceda 1245 con Las Palmeras */
+                                direccionTexto: string | null;
+                                /**
+                                 * @example ALTA
+                                 * @enum {string}
+                                 */
+                                prioridad: "BAJA" | "MEDIA" | "ALTA" | "CRITICA";
+                                /** @example Juan Pérez (Presidente JJVV) */
+                                contactoNombre: string | null;
+                                /** @example +56912345678 */
+                                contactoTelefono: string | null;
+                                /** @example -39.8142 */
+                                latitud: number;
+                                /** @example -73.2459 */
+                                longitud: number;
+                                /**
+                                 * @example PLANIFICADA
+                                 * @enum {string}
+                                 */
+                                estado: "PLANIFICADA" | "EN_EJECUCION" | "COMPLETADA" | "CANCELADA";
+                                /** @example 4 */
+                                familiasAfectadas: number;
+                                /** @description Delegación territorial asignada */
+                                delegacion: {
+                                    /** Format: uuid */
+                                    id: string;
+                                    codigo: string;
+                                    nombre: string;
+                                } | null;
+                                /** @description Misión táctica despachada a terreno */
+                                mision: {
+                                    /**
+                                     * Format: uuid
+                                     * @example 60000000-0000-4000-8000-000000000001
+                                     */
+                                    id: string;
+                                    /** @example MIS-2026-0042 */
+                                    codigo: string;
+                                    /** @example Entrega de frazadas y techumbre en Sector Collico */
+                                    titulo: string;
+                                    /** @example DESPACHADA */
+                                    estado: string;
+                                    /** @example RECUPERACION */
+                                    tipoMision: string;
+                                };
+                                /** @description Patrulla asignada a la operación */
+                                patrulla: {
+                                    /**
+                                     * Format: uuid
+                                     * @example 50000000-0000-4000-8000-000000000001
+                                     */
+                                    id: string;
+                                    /** @example Patrulla Verificadora Alfa */
+                                    nombre: string;
+                                    /** @example EN_RECUPERACION */
+                                    estado: string;
+                                };
+                                /** @description Recursos reservados o descontados para la entrega */
+                                recursos: {
+                                    /**
+                                     * Format: uuid
+                                     * @example 00000000-0000-4000-8000-000000000001
+                                     */
+                                    recursoId: string;
+                                    /** @example Sacos de Arena 25kg */
+                                    nombre: string;
+                                    /** @example 10 */
+                                    cantidadAsignada: number;
+                                }[];
+                                /**
+                                 * Format: uuid
+                                 * @description Identificador del Encargado que creó el evento
+                                 */
+                                creadoPorId: string;
+                                /** @description Fecha de registro ISO 8601 */
+                                creadoEn: string;
+                                /** @description Fecha de actualización ISO 8601 */
+                                actualizadoEn: string;
+                            };
+                        };
+                    };
+                };
+                /** @description Datos de entrada inválidos o faltantes en el payload */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description No autenticado / cabecera X-User-Id ausente o inválida */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Acceso denegado. Se requiere permiso 'recuperacion:crear' */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Patrulla o recurso no encontrado en el sistema */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Conflicto operativo: Patrulla no disponible o stock insuficiente en bodega */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Error interno del servidor */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -2351,6 +3977,60 @@ export interface components {
             /** Format: uuid */
             delegacionId?: string | null;
         };
+        ActualizarRecursoInput: {
+            /** @example Camioneta Rescate 4x4 - Actualizada */
+            nombre: string;
+            /** @example 1 */
+            cantidadInventario: number;
+            /**
+             * @default 0
+             * @example 0
+             */
+            cantidadMinima: number;
+            /**
+             * @description Indica si el activo individual se encuentra fuera de servicio por mantenimiento técnico (solo aplica a recursos con esIndividual: true)
+             * @default false
+             * @example false
+             */
+            enMantencion: boolean;
+            /** @example -39.8142 */
+            latitud: number;
+            /** @example -73.2459 */
+            longitud: number;
+            /** @example Unidad operativa de rescate en mantención preventiva */
+            descripcion?: string | null;
+            /**
+             * @description Especificaciones técnicas detalladas según el tipo de maquinaria
+             * @default {}
+             */
+            detalles: {
+                patente?: string;
+                numeroSerie?: string;
+                marca?: string;
+                modelo?: string;
+                anio?: number;
+                kilometraje?: number;
+                /** @enum {string} */
+                tipoCombustible?: "GASOLINA" | "DIESEL" | "ELECTRICO" | "HIBRIDO" | "OTRO";
+                capacidadPasajeros?: number;
+                numeroChasis?: string;
+                capacidadCargaKg?: number;
+                alcanceMaximoMetros?: number;
+                tipoGrua?: string;
+                horometro?: number;
+                caudalMaximoLpm?: number;
+                diametroPulgadas?: number;
+                potenciaHp?: number;
+                potenciaKva?: number;
+            } & {
+                [key: string]: unknown;
+            };
+            /**
+             * Format: uuid
+             * @example 30000000-0000-4000-8000-000000000001
+             */
+            delegacionId?: string | null;
+        };
         RecursoResponse: {
             /** Format: uuid */
             id: string;
@@ -2371,8 +4051,66 @@ export interface components {
             delegacionId?: string | null;
             /** Format: uuid */
             creadoPorId: string;
+            /** Format: uuid */
+            actualizadoPorId?: string | null;
             creadoEn: string;
             actualizadoEn: string;
+        };
+        RecursoDetalleResponse: {
+            /** Format: uuid */
+            id: string;
+            nombre: string;
+            /**
+             * @description Tipo legible (ej. 'Vehículo o Maquinaria' o 'Material o Insumo')
+             * @example Vehículo o Maquinaria
+             */
+            tipo: string;
+            esIndividual: boolean;
+            /** @enum {string} */
+            estado: "DISPONIBLE" | "ASIGNADO" | "EN_MANTENCION" | "BAJO_STOCK" | "NO_DISPONIBLE";
+            cantidadInventario: number;
+            cantidadEnUso: number;
+            cantidadDisponible: number;
+            cantidadMinima: number;
+            latitud: number;
+            longitud: number;
+            descripcion: string | null;
+            detalles: {
+                [key: string]: unknown;
+            };
+            /** @description Datos de la delegación territorial de procedencia */
+            delegacion: {
+                /** Format: uuid */
+                id: string;
+                codigo: string;
+                nombre: string;
+            } | null;
+            /** Format: uuid */
+            delegacionId?: string | null;
+            /** Format: uuid */
+            creadoPorId: string;
+            /** Format: uuid */
+            actualizadoPorId?: string | null;
+            creadoEn: string;
+            actualizadoEn: string;
+        };
+        EliminarRecursoResponse: {
+            /** @example Recurso eliminado exitosamente del inventario activo. */
+            message: string;
+            /**
+             * Format: uuid
+             * @example 40000000-0000-4000-8000-000000000001
+             */
+            id: string;
+            /** @example Camioneta Rescate 4x4 */
+            nombre: string;
+            /** @example 2026-09-30T19:30:00.000Z */
+            eliminadoEn: string;
+            /**
+             * Format: uuid
+             * @example 00000000-0000-4000-8000-000000000001
+             */
+            eliminadoPorId: string;
         };
         ListarRecursosPaginadosResponse: {
             /** @description Listado de recursos en la página solicitada (vacío si no hay recursos) */
@@ -2445,6 +4183,128 @@ export interface components {
             estado_operativo?: "disponible" | "en_mision" | "en_patrulla" | "descanso" | "licencia" | "inactivo";
             disponible_terreno?: boolean;
             observaciones?: string | null;
+        };
+        RegistrarEmpleadoInput: {
+            /**
+             * @description RUT chileno del funcionario con dígito verificador
+             * @example 12.345.678-5
+             */
+            rut: string;
+            /**
+             * @description Nombres del funcionario
+             * @example Juan Carlos
+             */
+            nombres: string;
+            /**
+             * @description Apellidos del funcionario
+             * @example Pérez González
+             */
+            apellidos: string;
+            /**
+             * Format: email
+             * @description Correo electrónico del funcionario
+             * @example juan.perez@valdivia.cl
+             */
+            email: string;
+            /**
+             * @description Número telefónico de contacto municipal
+             * @example +56912345678
+             */
+            telefono: string;
+            /**
+             * @description Contraseña inicial asignada al funcionario (mínimo 8 caracteres alfanuméricos)
+             * @example Valdivia2026!
+             */
+            password: string;
+            /**
+             * Format: uuid
+             * @description UUID del rol asignado al funcionario
+             * @example 20000000-0000-4000-8000-000000000004
+             */
+            rol_id: string;
+            /**
+             * Format: uuid
+             * @description UUID de la delegación territorial a la que pertenece el funcionario
+             * @example 30000000-0000-4000-8000-000000000001
+             */
+            delegacion_id: string;
+            /**
+             * @description Estado de activación de la cuenta (por defecto true)
+             * @default true
+             * @example true
+             */
+            activo: boolean;
+            /**
+             * @description Fecha de ingreso institucional (por defecto la fecha actual)
+             * @example 2026-10-01
+             */
+            fecha_ingreso?: string;
+            /**
+             * @description Cargo operativo de terreno
+             * @example Brigadista Terreno
+             */
+            cargo?: string | null;
+            /**
+             * @description Especialidad técnica para labores de terreno
+             * @example Motosierrista y Conductor
+             */
+            especialidad?: string | null;
+            /**
+             * @description Estado operativo inicial para personal de terreno (por defecto disponible)
+             * @default disponible
+             * @example disponible
+             * @enum {string}
+             */
+            estado_operativo: "disponible" | "en_mision" | "en_patrulla" | "descanso" | "licencia" | "inactivo";
+            /**
+             * @description Disponibilidad activa para despliegue en emergencias
+             * @default true
+             * @example true
+             */
+            disponible_terreno: boolean;
+            /**
+             * @description Observaciones técnicas o médicas para terreno
+             * @example Apto para faenas pesadas y turnos nocturnos
+             */
+            observaciones?: string | null;
+        };
+        RegistrarEmpleadoResponse: {
+            /**
+             * @description Mensaje de confirmación de registro
+             * @example Funcionario registrado exitosamente
+             */
+            mensaje: string;
+            data: {
+                /** Format: uuid */
+                usuario_id: string;
+                rut: string;
+                nombres: string;
+                apellidos: string;
+                /** Format: email */
+                email: string;
+                telefono?: string | null;
+                usuario_activo: boolean;
+                fecha_ingreso?: string | null;
+                fecha_salida?: string | null;
+                /** Format: uuid */
+                rol_id: string;
+                rol_codigo: string;
+                rol_nombre: string;
+                /** Format: uuid */
+                delegacion_id?: string | null;
+                delegacion_codigo?: string | null;
+                delegacion_nombre?: string | null;
+                /** Format: uuid */
+                personal_id?: string | null;
+                especialidad?: string | null;
+                cargo?: string | null;
+                estado_operativo?: string | null;
+                disponible_terreno?: boolean | null;
+                observaciones?: string | null;
+                es_personal?: boolean;
+                usuario_updated_at?: string;
+                personal_updated_at?: string | unknown;
+            };
         };
         EmpleadoConsolidado: {
             /** Format: uuid */
@@ -2562,6 +4422,49 @@ export interface components {
                 cargos: string[];
             };
         };
+        DetalleEmpleadoResponse: {
+            data: {
+                /** Format: uuid */
+                usuario_id: string;
+                rut: string;
+                nombres: string;
+                apellidos: string;
+                /** Format: email */
+                email: string;
+                telefono?: string | null;
+                usuario_activo: boolean;
+                fecha_ingreso?: string | null;
+                fecha_salida?: string | null;
+                /** Format: uuid */
+                rol_id: string;
+                rol_codigo: string;
+                rol_nombre: string;
+                /** Format: uuid */
+                delegacion_id?: string | null;
+                delegacion_codigo?: string | null;
+                delegacion_nombre?: string | null;
+                /** Format: uuid */
+                personal_id?: string | null;
+                especialidad?: string | null;
+                cargo?: string | null;
+                estado_operativo?: string | null;
+                disponible_terreno?: boolean | null;
+                observaciones?: string | null;
+                es_personal?: boolean;
+                usuario_updated_at?: string;
+                personal_updated_at?: string | unknown;
+            };
+        };
+        EliminarEmpleadoResponse: {
+            message: string;
+            mensaje?: string;
+            data: {
+                /** Format: uuid */
+                usuario_id: string;
+                activo: boolean;
+                fecha_salida: string;
+            };
+        };
         ListarRolesResponse: {
             /** @description Colección de perfiles con sus permisos asignados */
             data: components["schemas"]["RolItem"][];
@@ -2658,13 +4561,234 @@ export interface components {
         RolDetalleResponse: {
             data: components["schemas"]["RolItem"] & unknown;
         };
+        PermisoCatalogoItem: {
+            /**
+             * Format: uuid
+             * @description UUID del permiso
+             * @example 10000000-0000-4000-8000-000000000001
+             */
+            id: string;
+            /**
+             * @description Código único de autorización del permiso
+             * @example recursos:crear
+             */
+            codigo: string;
+            /**
+             * @description Nombre legible del permiso
+             * @example Crear Recursos
+             */
+            nombre: string;
+            /**
+             * @description Descripción detallada de la acción permitida
+             * @example Permite crear nuevos recursos en el inventario logístico
+             */
+            descripcion: string | null;
+            /**
+             * @description Módulo funcional al que pertenece el permiso
+             * @example Recursos y Personal
+             */
+            modulo: string;
+        };
+        ListarPermisosResponse: {
+            /** @description Colección completa de permisos clasificados por módulo funcional */
+            data: components["schemas"]["PermisoCatalogoItem"][];
+            /**
+             * @description Cantidad total de permisos registrados en el catálogo
+             * @example 9
+             */
+            total: number;
+        };
+        ActualizarPermisosRolInput: {
+            /**
+             * @description Lista de UUIDs de permisos a asignar al perfil (reemplazo masivo atómico)
+             * @example [
+             *       "10000000-0000-4000-8000-000000000001",
+             *       "10000000-0000-4000-8000-000000000003"
+             *     ]
+             */
+            permisoIds: string[];
+        };
+        ActualizarPermisosRolResponse: {
+            /**
+             * @description Mensaje confirmando la actualización atómica en la base de datos
+             * @example Permisos actualizados correctamente en la base de datos
+             */
+            message: string;
+            data: components["schemas"]["RolItem"] & unknown;
+        };
+        UsuarioActivoResponse: {
+            data: components["schemas"]["UsuarioActivoItem"];
+        };
+        /** @description Datos del usuario activo y sus permisos dinámicos */
+        UsuarioActivoItem: {
+            /**
+             * Format: uuid
+             * @description UUID del usuario autenticado
+             * @example 00000000-0000-4000-8000-000000000001
+             */
+            id: string;
+            /**
+             * @description RUT del funcionario o informante autenticado
+             * @example 11111111-1
+             */
+            rut: string;
+            /**
+             * @description Nombre y apellidos del usuario
+             * @example Administrador Municipal
+             */
+            nombre: string;
+            /**
+             * Format: email
+             * @description Correo del usuario
+             * @example admin@valdivia.cl
+             */
+            email: string;
+            /**
+             * @description Indica si la cuenta del usuario está habilitada
+             * @example true
+             */
+            activo: boolean;
+            /**
+             * Format: uuid
+             * @description UUID de la delegación territorial a la que pertenece (si aplica)
+             * @example 30000000-0000-4000-8000-000000000001
+             */
+            delegacionId?: string | null;
+            rol: components["schemas"]["UsuarioActivoRol"];
+            /**
+             * @description Lista de códigos de permisos asignados en tiempo real al usuario
+             * @example [
+             *       "seguridad:roles:leer",
+             *       "seguridad:roles:gestionar"
+             *     ]
+             */
+            permisos: string[];
+        };
+        /** @description Información del rol institucional asignado */
+        UsuarioActivoRol: {
+            /**
+             * Format: uuid
+             * @description UUID del rol asignado
+             * @example 20000000-0000-4000-8000-000000000001
+             */
+            id: string;
+            /**
+             * @description Nombre del rol institucional
+             * @example Administrador
+             */
+            nombre: string;
+            /**
+             * @description Código identificador del rol
+             * @example ADMIN
+             */
+            codigo: string;
+            /**
+             * @description Indica si el usuario tiene privilegios de Administrador global
+             * @example true
+             */
+            esAdmin: boolean;
+        };
+        LoginRequest: {
+            /**
+             * @description Correo electrónico corporativo (@valdivia.cl) o RUT chileno del funcionario
+             * @example admin@valdivia.cl
+             */
+            identificador: string;
+            /**
+             * @description Contraseña en texto plano para autenticación
+             * @example Valdivia2026!
+             */
+            password: string;
+        };
+        LoginResponse: {
+            data: components["schemas"]["LoginData"];
+        };
+        LoginData: {
+            /**
+             * @description Token JWT de sesión para cabecera Authorization: Bearer <token>
+             * @example eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+             */
+            token: string;
+            /**
+             * @description Tipo de token para uso en cabecera HTTP
+             * @example Bearer
+             * @enum {string}
+             */
+            tipoToken: "Bearer";
+            /**
+             * @description Fecha y hora ISO de expiración del token
+             * @example 2026-10-01T04:00:00.000Z
+             */
+            expiraEn: string;
+            usuario: components["schemas"]["UsuarioPerfilSesion"];
+        };
+        UsuarioPerfilSesion: {
+            /**
+             * Format: uuid
+             * @description UUID del usuario autenticado
+             * @example 00000000-0000-4000-8000-000000000001
+             */
+            id: string;
+            /**
+             * @description RUT chileno del usuario
+             * @example 11111111-1
+             */
+            rut: string;
+            /**
+             * @description Nombre completo consolidado
+             * @example Administrador General
+             */
+            nombre: string;
+            /**
+             * Format: email
+             * @description Correo corporativo
+             * @example admin@valdivia.cl
+             */
+            email: string;
+            /**
+             * Format: uuid
+             * @description UUID del rol asignado
+             * @example 20000000-0000-4000-8000-000000000001
+             */
+            rolId: string;
+            /**
+             * @description Nombre del rol
+             * @example Administrador
+             */
+            rolNombre: string;
+            /**
+             * @description Código canónico del rol
+             * @example ADMIN
+             */
+            rolCodigo: string;
+            /**
+             * Format: uuid
+             * @description UUID de la delegación territorial asignada (si aplica)
+             * @example 30000000-0000-4000-8000-000000000001
+             */
+            delegacionId: string | null;
+            /**
+             * @description Lista de códigos de permisos activos del usuario
+             * @example [
+             *       "seguridad:roles:leer",
+             *       "seguridad:roles:gestionar"
+             *     ]
+             */
+            permisos: string[];
+        };
         AvisosPaginadosResponse: {
+            /** @example Avisos obtenidos exitosamente */
+            message: string;
             data: components["schemas"]["AvisoItem"][];
             pagination: {
                 page: number;
                 limit: number;
                 total: number;
                 totalPages: number;
+                /** @example false */
+                hasNext: boolean;
+                /** @example false */
+                hasPrev: boolean;
             };
         };
         AvisoItem: {
@@ -2692,6 +4816,11 @@ export interface components {
             operadorId: string | null;
             /** Format: uuid */
             incidenteId: string | null;
+            /**
+             * @description Nombre de la delegación territorial asignada (ej. Norte, Sur, Costa, Calle Calle)
+             * @example Norte
+             */
+            delegacionNombre: string | null;
             minutosEnEspera: number;
             creadoEn: string;
             actualizadoEn: string;
@@ -2771,6 +4900,13 @@ export interface components {
              * @description ID opcional del catálogo de tipo de incidente
              */
             tipoPreliminarId?: string;
+            /**
+             * Format: uuid
+             * @description ID opcional de la delegación territorial
+             */
+            delegacionId?: string;
+            /** @description Nombre opcional de delegación territorial */
+            delegacion?: string;
             /** @description Datos informante en formato JSON legacy (opcional) */
             datosInformante?: {
                 nombre?: string;
@@ -2807,7 +4943,7 @@ export interface components {
         };
         CrearAvisoIncidenteInput: {
             /** @enum {string} */
-            tipoAfectacion: "Anegamiento" | "Caída de árbol" | "Corte de energía" | "Deslizamiento" | "Daño estructural" | "Corte de agua potable" | "Otro";
+            tipoAfectacion: "Anegamiento" | "Inundación" | "Caída de árbol" | "Corte de energía" | "Deslizamiento" | "Deslizamiento de tierra" | "Daño estructural" | "Corte de agua potable" | "Anegamiento de calzada" | "Incendio estructural / forestal" | "Incendio" | "Otro";
             direccion: string;
             descripcion?: string;
             informanteNombre: string;
@@ -2815,6 +4951,7 @@ export interface components {
             informanteTelefono?: string;
             latitud?: number;
             longitud?: number;
+            origenReporte?: string;
         };
         AvisoIncidenteResponse: {
             /** Format: uuid */
@@ -3046,7 +5183,7 @@ export interface components {
              * @description Tipo de afectación catalogada
              * @enum {string}
              */
-            tipoAfectacion: "Anegamiento" | "Caída de árbol" | "Corte de energía" | "Deslizamiento" | "Daño estructural" | "Corte de agua potable" | "Otro";
+            tipoAfectacion: "Anegamiento" | "Inundación" | "Caída de árbol" | "Corte de energía" | "Deslizamiento" | "Deslizamiento de tierra" | "Daño estructural" | "Corte de agua potable" | "Anegamiento de calzada" | "Incendio estructural / forestal" | "Incendio" | "Otro";
             descripcion: string;
             direccion: string;
             latitud?: number;
@@ -3119,7 +5256,7 @@ export interface components {
              * @description Tipo de afectación a comparar
              * @enum {string}
              */
-            tipoAfectacion: "Anegamiento" | "Caída de árbol" | "Corte de energía" | "Deslizamiento" | "Daño estructural" | "Corte de agua potable" | "Otro";
+            tipoAfectacion: "Anegamiento" | "Inundación" | "Caída de árbol" | "Corte de energía" | "Deslizamiento" | "Deslizamiento de tierra" | "Daño estructural" | "Corte de agua potable" | "Anegamiento de calzada" | "Incendio estructural / forestal" | "Incendio" | "Otro";
             direccion: string;
             latitud?: number;
             longitud?: number;
@@ -3169,6 +5306,498 @@ export interface components {
             /** Format: uuid */
             creadoPorId?: string | null;
             creadoEn: string;
+        };
+        IncidentesKpisResponse: {
+            /** @example Contadores de incidentes del día obtenidos exitosamente. */
+            message: string;
+            data: {
+                /**
+                 * @description Fecha a la que corresponden los contadores calculados (YYYY-MM-DD)
+                 * @example 2026-10-03
+                 */
+                fecha: string;
+                /**
+                 * @description Zona horaria oficial empleada para el corte diario
+                 * @example America/Santiago
+                 * @enum {string}
+                 */
+                zonaHoraria: "America/Santiago";
+                /**
+                 * Format: uuid
+                 * @description UUID de delegación aplicada como filtro, o null si corresponde al total comunal
+                 * @example null
+                 */
+                delegacionId: string | null;
+                /**
+                 * @description Total general de incidentes registrados en el periodo del día
+                 * @example 40
+                 */
+                total: number;
+                contadores: {
+                    /**
+                     * @description Cantidad de incidentes en estado REPORTADO (ingresados pendientes de verificación)
+                     * @example 8
+                     */
+                    reportado: number;
+                    /**
+                     * @description Cantidad de incidentes en estado VERIFICANDO (con patrulla verificadora en evaluación)
+                     * @example 3
+                     */
+                    verificando: number;
+                    /**
+                     * @description Cantidad de incidentes en estado EN_ATENCION (cuadrillas o recursos despachados en terreno)
+                     * @example 12
+                     */
+                    enAtencion: number;
+                    /**
+                     * @description Cantidad de incidentes en estado NO_ABORDABLE (descartados por falsa alarma o fuera de alcance)
+                     * @example 2
+                     */
+                    noAbordables: number;
+                    /**
+                     * @description Cantidad de incidentes en estado RESUELTO (emergencia mitigada y cerrada)
+                     * @example 15
+                     */
+                    resueltos: number;
+                };
+                /**
+                 * @description Marca temporal ISO 8601 del momento exacto del cálculo
+                 * @example 2026-10-03T17:30:00.000Z
+                 */
+                actualizadoEn: string;
+            };
+        };
+        PuntoCriticoItem: {
+            /**
+             * Format: uuid
+             * @description Identificador único (UUID) del punto crítico
+             * @example 40000000-0000-4000-8000-000000000001
+             */
+            id: string;
+            /**
+             * @description Código institucional único (ej. PC-ANG-01)
+             * @example PC-ANG-01
+             */
+            codigo: string;
+            /**
+             * @description Nombre descriptivo del punto crítico o sector vulnerable
+             * @example Sector Humedal Angachilla - Pasaje Los Robles
+             */
+            nombre: string;
+            /**
+             * @description Detalle situacional y factores de riesgo del sector
+             * @example Zona baja propensa a anegamiento por desborde en temporada invernal
+             */
+            descripcion: string | null;
+            /**
+             * @description Clasificación de la amenaza recurrente
+             * @example Inundación y desborde de cauce
+             */
+            tipoRiesgo: string | null;
+            /**
+             * @description Nivel de gravedad o prioridad operativa homologado con incidentes
+             * @example ALTA
+             * @enum {string}
+             */
+            prioridad: "BAJA" | "MEDIA" | "ALTA" | "CRITICA";
+            /**
+             * @description Estado actual de vigencia operativa del punto crítico
+             * @example true
+             */
+            activo: boolean;
+            /**
+             * @description Etiqueta textual legible de estado para la vista de usuario
+             * @example Activo
+             */
+            estadoTexto: string;
+            /**
+             * @description Coordenada latitud EPSG:4326
+             * @example -39.8456
+             */
+            latitud: number;
+            /**
+             * @description Coordenada longitud EPSG:4326
+             * @example -73.2389
+             */
+            longitud: number;
+            /** @description Delegación municipal territorial de pertenencia */
+            delegacion: {
+                /**
+                 * Format: uuid
+                 * @example 30000000-0000-4000-8000-000000000001
+                 */
+                id: string;
+                /** @example DEL-SUR */
+                codigo: string;
+                /** @example Delegación Municipal Sur */
+                nombre: string;
+            } | null;
+            /**
+             * @description Fecha y hora de registro en formato ISO-8601
+             * @example 2026-06-15T12:00:00.000Z
+             */
+            creadoEn: string;
+        };
+        ListarPuntosCriticosResponse: {
+            /** @description Colección de puntos críticos almacenados */
+            data: {
+                /**
+                 * Format: uuid
+                 * @description Identificador único (UUID) del punto crítico
+                 * @example 40000000-0000-4000-8000-000000000001
+                 */
+                id: string;
+                /**
+                 * @description Código institucional único (ej. PC-ANG-01)
+                 * @example PC-ANG-01
+                 */
+                codigo: string;
+                /**
+                 * @description Nombre descriptivo del punto crítico o sector vulnerable
+                 * @example Sector Humedal Angachilla - Pasaje Los Robles
+                 */
+                nombre: string;
+                /**
+                 * @description Detalle situacional y factores de riesgo del sector
+                 * @example Zona baja propensa a anegamiento por desborde en temporada invernal
+                 */
+                descripcion: string | null;
+                /**
+                 * @description Clasificación de la amenaza recurrente
+                 * @example Inundación y desborde de cauce
+                 */
+                tipoRiesgo: string | null;
+                /**
+                 * @description Nivel de gravedad o prioridad operativa homologado con incidentes
+                 * @example ALTA
+                 * @enum {string}
+                 */
+                prioridad: "BAJA" | "MEDIA" | "ALTA" | "CRITICA";
+                /**
+                 * @description Estado actual de vigencia operativa del punto crítico
+                 * @example true
+                 */
+                activo: boolean;
+                /**
+                 * @description Etiqueta textual legible de estado para la vista de usuario
+                 * @example Activo
+                 */
+                estadoTexto: string;
+                /**
+                 * @description Coordenada latitud EPSG:4326
+                 * @example -39.8456
+                 */
+                latitud: number;
+                /**
+                 * @description Coordenada longitud EPSG:4326
+                 * @example -73.2389
+                 */
+                longitud: number;
+                /** @description Delegación municipal territorial de pertenencia */
+                delegacion: {
+                    /**
+                     * Format: uuid
+                     * @example 30000000-0000-4000-8000-000000000001
+                     */
+                    id: string;
+                    /** @example DEL-SUR */
+                    codigo: string;
+                    /** @example Delegación Municipal Sur */
+                    nombre: string;
+                } | null;
+                /**
+                 * @description Fecha y hora de registro en formato ISO-8601
+                 * @example 2026-06-15T12:00:00.000Z
+                 */
+                creadoEn: string;
+            }[];
+            meta: {
+                /** @example 1 */
+                total: number;
+                /** @example 1 */
+                pagina: number;
+                /** @example 10 */
+                limite: number;
+                /** @example 1 */
+                totalPaginas: number;
+            };
+        };
+        CrearEventoRecuperacionInput: {
+            /**
+             * @description Título o nombre descriptivo del evento de recuperación
+             * @example Entrega de frazadas y techumbre en Sector Collico
+             */
+            nombre: string;
+            /**
+             * @description Detalle técnico, justificación o indicaciones para la patrulla
+             * @example Familias afectadas por voladura de techumbre tras temporal de viento
+             */
+            descripcion?: string | null;
+            /**
+             * @description Nombre del sector, barrio o población afectada en Valdivia
+             * @example Collico
+             */
+            sector: string;
+            /**
+             * @description Dirección exacta o punto de referencia en terreno
+             * @example Calle Balmaceda 1245 con Las Palmeras
+             */
+            direccionTexto?: string | null;
+            /**
+             * @description Nivel de urgencia o prioridad operativa
+             * @default MEDIA
+             * @example ALTA
+             * @enum {string}
+             */
+            prioridad: "BAJA" | "MEDIA" | "ALTA" | "CRITICA";
+            /**
+             * @description Nombre del referente vecinal o contacto en terreno
+             * @example Juan Pérez (Presidente JJVV)
+             */
+            contactoNombre?: string | null;
+            /**
+             * @description Teléfono de contacto en terreno
+             * @example +56912345678
+             */
+            contactoTelefono?: string | null;
+            /**
+             * @description Latitud geográfica en formato WGS84
+             * @example -39.8142
+             */
+            latitud: number;
+            /**
+             * @description Longitud geográfica en formato WGS84
+             * @example -73.2459
+             */
+            longitud: number;
+            /**
+             * Format: uuid
+             * @description Identificador de la delegación territorial correspondiente
+             * @example 30000000-0000-4000-8000-000000000001
+             */
+            delegacionId?: string | null;
+            /**
+             * Format: uuid
+             * @description Identificador de la patrulla verificadora disponible asignada a la entrega
+             * @example 50000000-0000-4000-8000-000000000001
+             */
+            patrullaId: string;
+            /**
+             * @description Número estimado de familias o viviendas beneficiadas
+             * @default 0
+             * @example 4
+             */
+            familiasAfectadas: number;
+            /** @description Listado de insumos y recursos logísticos a entregar */
+            recursos: {
+                /**
+                 * Format: uuid
+                 * @description UUID del recurso logístico en inventario
+                 * @example 00000000-0000-4000-8000-000000000001
+                 */
+                recursoId: string;
+                /**
+                 * @description Cantidad de unidades requeridas para entrega en el evento
+                 * @example 10
+                 */
+                cantidad: number;
+            }[];
+        };
+        EventoRecuperacion: {
+            /**
+             * Format: uuid
+             * @description Identificador único UUID del evento de recuperación
+             */
+            id: string;
+            /**
+             * @description Código oficial único del evento (ej. REC-2026-0001)
+             * @example REC-2026-0001
+             */
+            codigo: string;
+            /** @example Entrega de frazadas y techumbre en Sector Collico */
+            nombre: string;
+            /** @example Familias afectadas por temporal de viento */
+            descripcion: string | null;
+            /** @example Collico */
+            sector: string;
+            /** @example Calle Balmaceda 1245 con Las Palmeras */
+            direccionTexto: string | null;
+            /**
+             * @example ALTA
+             * @enum {string}
+             */
+            prioridad: "BAJA" | "MEDIA" | "ALTA" | "CRITICA";
+            /** @example Juan Pérez (Presidente JJVV) */
+            contactoNombre: string | null;
+            /** @example +56912345678 */
+            contactoTelefono: string | null;
+            /** @example -39.8142 */
+            latitud: number;
+            /** @example -73.2459 */
+            longitud: number;
+            /**
+             * @example PLANIFICADA
+             * @enum {string}
+             */
+            estado: "PLANIFICADA" | "EN_EJECUCION" | "COMPLETADA" | "CANCELADA";
+            /** @example 4 */
+            familiasAfectadas: number;
+            /** @description Delegación territorial asignada */
+            delegacion: {
+                /** Format: uuid */
+                id: string;
+                codigo: string;
+                nombre: string;
+            } | null;
+            /** @description Misión táctica despachada a terreno */
+            mision: {
+                /**
+                 * Format: uuid
+                 * @example 60000000-0000-4000-8000-000000000001
+                 */
+                id: string;
+                /** @example MIS-2026-0042 */
+                codigo: string;
+                /** @example Entrega de frazadas y techumbre en Sector Collico */
+                titulo: string;
+                /** @example DESPACHADA */
+                estado: string;
+                /** @example RECUPERACION */
+                tipoMision: string;
+            };
+            /** @description Patrulla asignada a la operación */
+            patrulla: {
+                /**
+                 * Format: uuid
+                 * @example 50000000-0000-4000-8000-000000000001
+                 */
+                id: string;
+                /** @example Patrulla Verificadora Alfa */
+                nombre: string;
+                /** @example EN_RECUPERACION */
+                estado: string;
+            };
+            /** @description Recursos reservados o descontados para la entrega */
+            recursos: {
+                /**
+                 * Format: uuid
+                 * @example 00000000-0000-4000-8000-000000000001
+                 */
+                recursoId: string;
+                /** @example Sacos de Arena 25kg */
+                nombre: string;
+                /** @example 10 */
+                cantidadAsignada: number;
+            }[];
+            /**
+             * Format: uuid
+             * @description Identificador del Encargado que creó el evento
+             */
+            creadoPorId: string;
+            /** @description Fecha de registro ISO 8601 */
+            creadoEn: string;
+            /** @description Fecha de actualización ISO 8601 */
+            actualizadoEn: string;
+        };
+        CrearEventoRecuperacionResponse: {
+            /** @example Evento de recuperación registrado y patrulla despachada exitosamente. */
+            message: string;
+            data: {
+                /**
+                 * Format: uuid
+                 * @description Identificador único UUID del evento de recuperación
+                 */
+                id: string;
+                /**
+                 * @description Código oficial único del evento (ej. REC-2026-0001)
+                 * @example REC-2026-0001
+                 */
+                codigo: string;
+                /** @example Entrega de frazadas y techumbre en Sector Collico */
+                nombre: string;
+                /** @example Familias afectadas por temporal de viento */
+                descripcion: string | null;
+                /** @example Collico */
+                sector: string;
+                /** @example Calle Balmaceda 1245 con Las Palmeras */
+                direccionTexto: string | null;
+                /**
+                 * @example ALTA
+                 * @enum {string}
+                 */
+                prioridad: "BAJA" | "MEDIA" | "ALTA" | "CRITICA";
+                /** @example Juan Pérez (Presidente JJVV) */
+                contactoNombre: string | null;
+                /** @example +56912345678 */
+                contactoTelefono: string | null;
+                /** @example -39.8142 */
+                latitud: number;
+                /** @example -73.2459 */
+                longitud: number;
+                /**
+                 * @example PLANIFICADA
+                 * @enum {string}
+                 */
+                estado: "PLANIFICADA" | "EN_EJECUCION" | "COMPLETADA" | "CANCELADA";
+                /** @example 4 */
+                familiasAfectadas: number;
+                /** @description Delegación territorial asignada */
+                delegacion: {
+                    /** Format: uuid */
+                    id: string;
+                    codigo: string;
+                    nombre: string;
+                } | null;
+                /** @description Misión táctica despachada a terreno */
+                mision: {
+                    /**
+                     * Format: uuid
+                     * @example 60000000-0000-4000-8000-000000000001
+                     */
+                    id: string;
+                    /** @example MIS-2026-0042 */
+                    codigo: string;
+                    /** @example Entrega de frazadas y techumbre en Sector Collico */
+                    titulo: string;
+                    /** @example DESPACHADA */
+                    estado: string;
+                    /** @example RECUPERACION */
+                    tipoMision: string;
+                };
+                /** @description Patrulla asignada a la operación */
+                patrulla: {
+                    /**
+                     * Format: uuid
+                     * @example 50000000-0000-4000-8000-000000000001
+                     */
+                    id: string;
+                    /** @example Patrulla Verificadora Alfa */
+                    nombre: string;
+                    /** @example EN_RECUPERACION */
+                    estado: string;
+                };
+                /** @description Recursos reservados o descontados para la entrega */
+                recursos: {
+                    /**
+                     * Format: uuid
+                     * @example 00000000-0000-4000-8000-000000000001
+                     */
+                    recursoId: string;
+                    /** @example Sacos de Arena 25kg */
+                    nombre: string;
+                    /** @example 10 */
+                    cantidadAsignada: number;
+                }[];
+                /**
+                 * Format: uuid
+                 * @description Identificador del Encargado que creó el evento
+                 */
+                creadoPorId: string;
+                /** @description Fecha de registro ISO 8601 */
+                creadoEn: string;
+                /** @description Fecha de actualización ISO 8601 */
+                actualizadoEn: string;
+            };
         };
     };
     responses: never;
