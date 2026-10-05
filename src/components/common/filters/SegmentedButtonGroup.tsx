@@ -6,6 +6,7 @@ import styles from './FilterComponents.module.css';
 export interface SegmentedOption<T extends string = string> {
   valor: T;
   etiqueta: string;
+  contador?: number;
 }
 
 interface SegmentedButtonGroupProps<T extends string = string> {
@@ -49,7 +50,12 @@ export function SegmentedButtonGroup<T extends string = string>({
               aria-pressed={activo}
               onClick={() => onChange(opt.valor)}
             >
-              {opt.etiqueta}
+              <span>{opt.etiqueta}</span>
+              {typeof opt.contador === 'number' && (
+                <span className={`${styles.segmentedCounter} ${activo ? styles.segmentedCounterActive : ''}`}>
+                  {opt.contador}
+                </span>
+              )}
             </button>
           );
         })}

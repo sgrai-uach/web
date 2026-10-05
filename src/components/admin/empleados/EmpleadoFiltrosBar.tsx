@@ -7,8 +7,13 @@ import type { CatalogoItem } from '@/types/empleados';
 import { selectStyle, labelStyle } from './empleadoStyles';
 import { SegmentedButtonGroup } from '@/components/common/filters/SegmentedButtonGroup';
 import { FilterBar } from '@/components/common/filters/FilterBar';
+import EmpleadoSearchInput from './EmpleadoSearchInput';
 
 interface EmpleadoFiltrosBarProps {
+  termino?: string;
+  setTermino?: (val: string) => void;
+  cargando?: boolean;
+  onFocusInput?: () => void;
   delegacionFiltro: string;
   setDelegacionFiltro: (val: string) => void;
   rolFiltro: string;
@@ -38,6 +43,10 @@ const OPCIONES_ESTADO_OPERATIVO = [
 ] as const;
 
 export default function EmpleadoFiltrosBar({
+  termino = '',
+  setTermino,
+  cargando = false,
+  onFocusInput,
   delegacionFiltro,
   setDelegacionFiltro,
   rolFiltro,
@@ -68,6 +77,7 @@ export default function EmpleadoFiltrosBar({
   ];
 
   const hayFiltrosActivos = Boolean(
+    termino ||
     delegacionFiltro ||
     rolFiltro ||
     estadoOperativoFiltro ||
@@ -75,6 +85,7 @@ export default function EmpleadoFiltrosBar({
   );
 
   const totalActivos = [
+    termino,
     delegacionFiltro,
     rolFiltro,
     estadoOperativoFiltro,
@@ -86,8 +97,16 @@ export default function EmpleadoFiltrosBar({
       titulo="Filtros de Personal y Cuadrillas"
       storageKey="sgrai:filtros:personal:colapsado"
       totalFiltrosActivos={totalActivos}
-      style={{ marginTop: '0.875rem' }}
     >
+      {/* Búsqueda integrada dentro del componente de filtros */}
+      {setTermino && (
+        <EmpleadoSearchInput
+          termino={termino}
+          setTermino={setTermino}
+          cargando={cargando}
+          onFocusInput={onFocusInput || (() => {})}
+        />
+      )}
       {/* Botonera segmentada para selección rápida de perfiles operativos de terreno */}
       {quickRoleOptions.length > 1 && (
         <SegmentedButtonGroup

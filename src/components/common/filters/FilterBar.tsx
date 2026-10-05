@@ -62,13 +62,35 @@ export function FilterBar({
       style={style}
       aria-label="Controles de filtrado de listado"
     >
-      {/* Barra de cabecera estándar con título, badge y toggle de minimizar */}
+      {/* Barra de cabecera estándar con título, chevron en línea, badge y acciones */}
       <div className={styles.filterHeaderBar}>
         <div className={styles.filterHeaderLeft}>
-          <span className={styles.filterHeaderTitle}>
-            <SlidersHorizontal size={14} aria-hidden="true" />
-            <span>{titulo}</span>
-          </span>
+          {puedeColapsar ? (
+            <button
+              type="button"
+              onClick={alternarColapso}
+              className={styles.titleToggleBtn}
+              data-testid="btn-toggle-filtros"
+              aria-expanded={!colapsado}
+              title={colapsado ? 'Expandir filtros' : 'Minimizar filtros'}
+              aria-label={colapsado ? `Expandir ${titulo.toLowerCase()}` : `Minimizar ${titulo.toLowerCase()}`}
+            >
+              <SlidersHorizontal size={14} aria-hidden="true" />
+              <span>{titulo}</span>
+              <span className={styles.chevronInline} aria-hidden="true">
+                {colapsado ? <ChevronDown size={15} /> : <ChevronUp size={15} />}
+              </span>
+              <span className={styles.srOnly}>
+                {colapsado ? 'Expandir filtros' : 'Minimizar filtros'}
+              </span>
+            </button>
+          ) : (
+            <span className={styles.filterHeaderTitle}>
+              <SlidersHorizontal size={14} aria-hidden="true" />
+              <span>{titulo}</span>
+            </span>
+          )}
+
           {totalFiltrosActivos > 0 && (
             <span
               className={styles.activeBadge}
@@ -80,27 +102,11 @@ export function FilterBar({
           )}
         </div>
 
-        <div className={styles.filterHeaderRight}>
-          {headerActions}
-
-          {puedeColapsar && (
-            <button
-              type="button"
-              onClick={alternarColapso}
-              className={styles.toggleCollapseBtn}
-              data-testid="btn-toggle-filtros"
-              aria-expanded={!colapsado}
-              title={colapsado ? 'Expandir panel de filtros' : 'Minimizar panel de filtros'}
-            >
-              <span>{colapsado ? 'Expandir filtros' : 'Minimizar filtros'}</span>
-              {colapsado ? (
-                <ChevronDown size={14} aria-hidden="true" />
-              ) : (
-                <ChevronUp size={14} aria-hidden="true" />
-              )}
-            </button>
-          )}
-        </div>
+        {headerActions && (
+          <div className={styles.filterHeaderRight}>
+            {headerActions}
+          </div>
+        )}
       </div>
 
       {/* Cuerpo de controles desplegable */}

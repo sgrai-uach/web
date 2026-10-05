@@ -67,9 +67,6 @@ export default function EmpleadoBuscador({
     <div
       ref={contenedorRef}
       style={{
-        backgroundColor: 'var(--color-white, #FFFFFF)',
-        border: '1px solid var(--border-color-neutral, #DFE3E8)',
-        padding: '1.25rem 1.5rem',
         position: 'relative',
       }}
     >

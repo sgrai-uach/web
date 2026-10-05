@@ -22,8 +22,8 @@ export default function EmpleadoResultadosList({
       style={{
         position: 'absolute',
         top: '100%',
-        left: '1.5rem',
-        right: '1.5rem',
+        left: 0,
+        right: 0,
         zIndex: 40,
         backgroundColor: 'var(--color-white, #FFFFFF)',
         border: '1px solid var(--border-color-neutral, #DFE3E8)',

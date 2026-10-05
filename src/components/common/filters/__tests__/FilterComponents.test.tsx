@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, act } from '@testing-library/react';
+import { render, screen, fireEvent, act, within } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import {
   FilterBar,
@@ -94,7 +94,7 @@ describe('Componentes de Filtrado Híbridos Reutilizables', () => {
     });
   });
 
-  describe('FilterSelect', () => {
+  describe('FilterSelect (Combobox F-07)', () => {
     it('debe emitir el valor seleccionado y trabajar con nombres legibles', () => {
       const handleChange = vi.fn();
       const options = [
@@ -113,11 +113,70 @@ describe('Componentes de Filtrado Híbridos Reutilizables', () => {
         />
       );
 
-      const select = screen.getByLabelText('Delegación Territorial');
-      expect((select as HTMLSelectElement).value).toBe('Norte');
+      const trigger = screen.getByRole('combobox');
+      expect(trigger).toHaveTextContent('Norte');
 
-      fireEvent.change(select, { target: { value: 'Sur' } });
+      fireEvent.click(trigger);
+      const listbox = screen.getByRole('listbox');
+      const optionSur = within(listbox).getByText('Sur');
+      fireEvent.click(optionSur);
+
       expect(handleChange).toHaveBeenCalledWith('Sur');
+    });
+
+    it('debe mostrar buscador interno cuando hay más de 8 opciones', () => {
+      const options = Array.from({ length: 12 }, (_, i) => ({
+        valor: `val-${i}`,
+        etiqueta: `Opción ${i + 1}`,
+      }));
+
+      render(
+        <FilterSelect
+          id="select-muchas"
+          label="Tipos de Afectación"
+          value="val-0"
+          options={options}
+          onChange={vi.fn()}
+        />
+      );
+
+      const trigger = screen.getByRole('combobox');
+      fireEvent.click(trigger);
+
+      const searchInput = screen.getByLabelText(/Buscar en Tipos de Afectación/i);
+      expect(searchInput).toBeInTheDocument();
+
+      fireEvent.change(searchInput, { target: { value: 'Opción 10' } });
+      const listbox = screen.getByRole('listbox');
+      expect(within(listbox).getByText('Opción 10')).toBeInTheDocument();
+      expect(within(listbox).queryByText('Opción 2')).not.toBeInTheDocument();
+    });
+
+    it('debe permitir seleccionar opciones usando el teclado (ArrowDown y Enter)', () => {
+      const handleChange = vi.fn();
+      const options = [
+        { valor: 'A', etiqueta: 'Opción A' },
+        { valor: 'B', etiqueta: 'Opción B' },
+      ];
+
+      render(
+        <FilterSelect
+          id="select-teclado"
+          label="Selector Teclado"
+          value="A"
+          options={options}
+          onChange={handleChange}
+        />
+      );
+
+      const trigger = screen.getByRole('combobox');
+      fireEvent.keyDown(trigger, { key: 'ArrowDown' });
+
+      const listbox = screen.getByRole('listbox');
+      fireEvent.keyDown(listbox, { key: 'ArrowDown' });
+      fireEvent.keyDown(listbox, { key: 'Enter' });
+
+      expect(handleChange).toHaveBeenCalledWith('B');
     });
   });
 

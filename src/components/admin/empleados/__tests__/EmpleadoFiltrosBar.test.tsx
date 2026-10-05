@@ -90,4 +90,32 @@ describe('EmpleadoFiltrosBar', () => {
 
     expect(handleLimpiar).toHaveBeenCalled();
   });
+
+  it('debe renderizar la búsqueda de personal integrada dentro del FilterBar', () => {
+    const handleSetTermino = vi.fn();
+
+    render(
+      <EmpleadoFiltrosBar
+        termino=""
+        setTermino={handleSetTermino}
+        delegacionFiltro=""
+        setDelegacionFiltro={vi.fn()}
+        rolFiltro=""
+        setRolFiltro={vi.fn()}
+        ordenarPor="apellidos"
+        setOrdenarPor={vi.fn()}
+        orden="asc"
+        setOrden={vi.fn()}
+        delegaciones={delegaciones}
+        roles={roles}
+      />
+    );
+
+    expect(screen.getByText('Filtros de Personal y Cuadrillas')).toBeDefined();
+    const inputBusqueda = screen.getByPlaceholderText(/Buscar por RUT, Nombre, Apellidos o Correo.../i);
+    expect(inputBusqueda).toBeDefined();
+
+    fireEvent.change(inputBusqueda, { target: { value: 'González' } });
+    expect(handleSetTermino).toHaveBeenCalledWith('González');
+  });
 });

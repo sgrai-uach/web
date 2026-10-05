@@ -29,7 +29,7 @@ export const MisionDetalleModal: React.FC<MisionDetalleModalProps> = ({
   onCerrar,
 }) => {
   const [mision, setMision] = useState<MisionDetalleCompleto | null>(null);
-  const [cargando, setCargando] = useState<boolean>(false);
+  const [cargando, setCargando] = useState<boolean>(Boolean(misionId));
   const [error, setError] = useState<string | null>(null);
   const [codigoError, setCodigoError] = useState<number | undefined>(undefined);
 

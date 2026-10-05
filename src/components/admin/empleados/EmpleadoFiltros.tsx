@@ -2,7 +2,6 @@
 
 import React from 'react';
 import type { CatalogoItem } from '@/types/empleados';
-import EmpleadoSearchInput from './EmpleadoSearchInput';
 import EmpleadoFiltrosBar from './EmpleadoFiltrosBar';
 
 interface EmpleadoFiltrosProps {
@@ -28,54 +27,6 @@ interface EmpleadoFiltrosProps {
   onLimpiarFiltros?: () => void;
 }
 
-export default function EmpleadoFiltros({
-  termino,
-  setTermino,
-  delegacionFiltro,
-  setDelegacionFiltro,
-  rolFiltro,
-  setRolFiltro,
-  estadoOperativoFiltro,
-  setEstadoOperativoFiltro,
-  especialidadFiltro,
-  setEspecialidadFiltro,
-  ordenarPor,
-  setOrdenarPor,
-  orden,
-  setOrden,
-  delegaciones,
-  roles,
-  especialidades,
-  cargando,
-  onFocusInput,
-  onLimpiarFiltros,
-}: EmpleadoFiltrosProps) {
-  return (
-    <>
-      <EmpleadoSearchInput
-        termino={termino}
-        setTermino={setTermino}
-        cargando={cargando}
-        onFocusInput={onFocusInput}
-      />
-      <EmpleadoFiltrosBar
-        delegacionFiltro={delegacionFiltro}
-        setDelegacionFiltro={setDelegacionFiltro}
-        rolFiltro={rolFiltro}
-        setRolFiltro={setRolFiltro}
-        estadoOperativoFiltro={estadoOperativoFiltro}
-        setEstadoOperativoFiltro={setEstadoOperativoFiltro}
-        especialidadFiltro={especialidadFiltro}
-        setEspecialidadFiltro={setEspecialidadFiltro}
-        ordenarPor={ordenarPor}
-        setOrdenarPor={setOrdenarPor}
-        orden={orden}
-        setOrden={setOrden}
-        delegaciones={delegaciones}
-        roles={roles}
-        especialidades={especialidades}
-        onLimpiarFiltros={onLimpiarFiltros}
-      />
-    </>
-  );
+export default function EmpleadoFiltros(props: EmpleadoFiltrosProps) {
+  return <EmpleadoFiltrosBar {...props} />;
 }

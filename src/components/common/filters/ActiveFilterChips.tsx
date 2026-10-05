@@ -52,17 +52,17 @@ export function ActiveFilterChips({
             </button>
           </span>
         ))}
-      </div>
 
-      <button
-        type="button"
-        onClick={onClearAll}
-        className={styles.clearAllBtn}
-        title="Restablecer todos los filtros a sus valores predeterminados"
-      >
-        <FilterX size={13} aria-hidden="true" />
-        <span>{clearAllText}</span>
-      </button>
+        <button
+          type="button"
+          onClick={onClearAll}
+          className={styles.clearAllBtn}
+          title="Restablecer todos los filtros a sus valores predeterminados"
+        >
+          <FilterX size={13} aria-hidden="true" />
+          <span>{clearAllText}</span>
+        </button>
+      </div>
     </div>
   );
 }
