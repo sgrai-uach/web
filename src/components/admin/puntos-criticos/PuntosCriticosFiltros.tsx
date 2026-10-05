@@ -20,7 +20,7 @@ interface PuntosCriticosFiltrosProps {
   onCambiarBusqueda: (busqueda: string) => void;
   onCambiarDelegacion: (delegacionId?: string, delegacionNombre?: string) => void;
   onCambiarPrioridad: (prioridad?: PrioridadPuntoCritico) => void;
-  onCambiarActivo: (activo?: boolean) => void;
+  onCambiarActivo?: (activo?: boolean) => void;
   onLimpiarFiltros: () => void;
 }
 
@@ -105,7 +105,7 @@ export default function PuntosCriticosFiltros({
     });
   }
 
-  if (activo !== undefined) {
+  if (activo !== undefined && onCambiarActivo) {
     chipsActivos.push({
       id: 'activo',
       etiqueta: 'Estado',
@@ -153,16 +153,18 @@ export default function PuntosCriticosFiltros({
           onChange={(val) => onCambiarPrioridad((val as PrioridadPuntoCritico) || undefined)}
         />
 
-        <FilterSelect
-          id="filtro-activo-pc"
-          label="Estado del Punto:"
-          value={activo === undefined ? '' : String(activo)}
-          options={OPCIONES_ACTIVO}
-          onChange={(val) => {
-            if (val === '') onCambiarActivo(undefined);
-            else onCambiarActivo(val === 'true');
-          }}
-        />
+        {onCambiarActivo && (
+          <FilterSelect
+            id="filtro-activo-pc"
+            label="Estado del Punto:"
+            value={activo === undefined ? '' : String(activo)}
+            options={OPCIONES_ACTIVO}
+            onChange={(val) => {
+              if (val === '') onCambiarActivo(undefined);
+              else onCambiarActivo(val === 'true');
+            }}
+          />
+        )}
       </div>
 
       <ActiveFilterChips

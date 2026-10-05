@@ -5,12 +5,12 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import type { IncidenteResumen } from '@/services/incidentesService';
 import type { EventoPrevencionDTO } from '@/types/evento-prevencion';
-import type { EventoRecuperacionItemProps } from './MapaOperativoMando';
+import type { EventoRecuperacionResponse } from '@/types/recuperacion';
 
 interface MapaOperativoMandoInnerProps {
   incidentes?: IncidenteResumen[];
   eventosPrevencion?: EventoPrevencionDTO[];
-  eventosRecuperacion?: EventoRecuperacionItemProps[];
+  eventosRecuperacion?: EventoRecuperacionResponse[];
   onSelectIncidente?: (id: string) => void;
   mostrarIncidentes?: boolean;
   mostrarPrevenciones?: boolean;
@@ -110,14 +110,14 @@ export default function MapaOperativoMandoInner({
     };
   }, []);
 
-  // Actualización de marcadores cuando cambian los datos o capas
+  // Actualización de marcadores cuando cambian los datos o filtros
   useEffect(() => {
     const layer = markersLayerRef.current;
     if (!layer) return;
 
     layer.clearLayers();
 
-    // 1. Dibujar incidentes activos
+    // 1. Dibujar incidentes tácticos
     if (mostrarIncidentes) {
       incidentes.forEach((inc) => {
         if (!inc.latitud || !inc.longitud) return;

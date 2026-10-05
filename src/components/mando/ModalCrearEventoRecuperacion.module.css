@@ -1,0 +1,177 @@
+.formContainer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4, 16px);
+}
+
+.sectionTitle {
+  font-size: var(--font-size-md, 1rem);
+  font-weight: 700;
+  color: var(--color-primary-teal, #1B6F7D);
+  margin-top: var(--space-2, 8px);
+  margin-bottom: var(--space-1, 4px);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2, 8px);
+  border-bottom: 2px solid var(--color-primary-teal, #1B6F7D);
+  padding-bottom: 4px;
+}
+
+.gridTwoCols {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3, 12px);
+}
+
+@media (max-width: 640px) {
+  .gridTwoCols {
+    grid-template-columns: 1fr;
+  }
+}
+
+.gridThreeCols {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: var(--space-3, 12px);
+}
+
+@media (max-width: 640px) {
+  .gridThreeCols {
+    grid-template-columns: 1fr;
+  }
+}
+
+.recursosTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-size-sm, 13px);
+  margin-top: var(--space-2, 8px);
+  border: 1px solid var(--border-color-neutral, #DFE3E8);
+}
+
+.recursosTable th {
+  background-color: var(--color-bg-light, #ECEFF3);
+  color: var(--color-charcoal, #3B3F45);
+  font-weight: 700;
+  padding: 8px 10px;
+  text-align: left;
+  border-bottom: 1px solid var(--border-color-neutral, #DFE3E8);
+}
+
+.recursosTable td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border-color-neutral, #DFE3E8);
+  vertical-align: middle;
+}
+
+.stockBadge {
+  display: inline-block;
+  padding: 2px 6px;
+  font-size: 11px;
+  font-weight: 600;
+  background-color: var(--color-bg-light, #ECEFF3);
+  color: var(--color-charcoal, #3B3F45);
+  border: 1px solid var(--border-color-neutral-dark, #CCD2D9);
+}
+
+.stockBadgeAvailable {
+  background-color: var(--color-success-bg, #E8F5E9);
+  color: var(--color-success, #2E7D32);
+  border-color: #A5D6A7;
+}
+
+.stockBadgeLow {
+  background-color: var(--color-warning-bg, #FFF3E0);
+  color: var(--color-warning, #E65100);
+  border-color: #FFCC80;
+}
+
+.recursoRowActions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btnEliminarRecurso {
+  background: none;
+  border: none;
+  color: var(--color-danger, #D32F2F);
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.2s;
+}
+
+.btnEliminarRecurso:hover {
+  opacity: 0.8;
+}
+
+.btnEliminarRecurso:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.patrullaCard {
+  border: 1px solid var(--border-color-neutral, #DFE3E8);
+  background-color: var(--color-white, #FFFFFF);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.patrullaCardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.statusDot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 9999px;
+  margin-right: 6px;
+}
+
+.statusDotDisponible {
+  background-color: var(--color-success, #2E7D32);
+}
+
+.statusDotOcupada {
+  background-color: var(--color-danger, #D32F2F);
+}
+
+.bannerConflicto {
+  border-left: 4px solid var(--color-warning, #E65100);
+  background-color: var(--color-warning-bg, #FFF3E0);
+  color: #8C2C00;
+  padding: 10px 14px;
+  font-size: var(--font-size-sm, 13px);
+  margin-bottom: var(--space-2, 8px);
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.bannerError {
+  border-left: 4px solid var(--color-danger, #D32F2F);
+  background-color: var(--color-danger-bg, #FFEBEE);
+  color: #9A0007;
+  padding: 10px 14px;
+  font-size: var(--font-size-sm, 13px);
+  margin-bottom: var(--space-2, 8px);
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.fieldError {
+  color: var(--color-danger, #D32F2F);
+  font-size: 11px;
+  font-weight: 600;
+  margin-top: 4px;
+  display: block;
+}

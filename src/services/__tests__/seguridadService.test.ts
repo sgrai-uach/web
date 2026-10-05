@@ -46,14 +46,16 @@ describe('Servicio de Seguridad (Roles y Permisos)', () => {
       expect(res.data[0].nombre).toBe('Administrador');
     });
 
-    it('debe lanzar SeguridadServiceError con status 403 en acceso denegado', async () => {
+    it('debe lanzar SeguridadServiceError con status 403 y mensaje requerido en acceso denegado', async () => {
       vi.mocked(apiClient.GET).mockResolvedValueOnce({
         data: undefined,
-        error: { message: 'Forbidden' },
+        error: undefined,
         response: { ok: false, status: 403 } as Response,
       });
 
-      await expect(listarRolesYPermisos(userId)).rejects.toThrow(SeguridadServiceError);
+      await expect(listarRolesYPermisos(userId)).rejects.toThrow(
+        'Acceso denegado. Se requieren permisos de gestión de roles para acceder.'
+      );
     });
   });
 

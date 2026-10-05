@@ -4,6 +4,187 @@
  */
 
 export interface paths {
+    "/api/puntos-criticos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Listar puntos críticos y sectores de prevención
+         * @description Retorna una lista paginada de los puntos críticos registrados, incluyendo coordenadas espaciales, tipo de riesgo, prioridad y delegación territorial asociada.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    pagina?: number;
+                    limite?: number;
+                    delegacionId?: string;
+                    activo?: boolean;
+                    prioridad?: "BAJA" | "MEDIA" | "ALTA" | "CRITICA";
+                    busqueda?: string;
+                };
+                header: {
+                    "x-user-id": string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data: {
+                                id: string;
+                                codigo: string;
+                                nombre: string;
+                                descripcion: string | null;
+                                tipoRiesgo: string | null;
+                                prioridad: "BAJA" | "MEDIA" | "ALTA" | "CRITICA";
+                                activo: boolean;
+                                estadoTexto: string;
+                                latitud: number;
+                                longitud: number;
+                                delegacion: {
+                                    id: string;
+                                    codigo: string;
+                                    nombre: string;
+                                } | null;
+                                creadoEn: string;
+                            }[];
+                            meta: {
+                                total: number;
+                                pagina: number;
+                                limite: number;
+                                totalPaginas: number;
+                            };
+                        };
+                    };
+                };
+                400: {
+                    content: {
+                        "application/json": {
+                            message: string;
+                            statusCode?: number;
+                        };
+                    };
+                };
+                403: {
+                    content: {
+                        "application/json": {
+                            message: string;
+                            statusCode?: number;
+                        };
+                    };
+                };
+                500: {
+                    content: {
+                        "application/json": {
+                            message: string;
+                            statusCode?: number;
+                        };
+                    };
+                };
+            };
+        };
+    };
+    "/api/puntos-criticos/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Desactivar (borrado lógico) de un punto crítico
+         * @description Desactiva un punto crítico del catálogo operativo mediante borrado lógico, registrando fecha y usuario auditor, siempre que no tenga misiones preventivas o patrullas activas asignadas.
+         */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: {
+                    "x-user-id"?: string;
+                    authorization?: string;
+                };
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            message: string;
+                            id: string;
+                            codigo: string;
+                            nombre: string;
+                            activo: boolean;
+                            eliminadoEn?: string;
+                            eliminadoPorId?: string;
+                        };
+                    };
+                };
+                400: {
+                    content: {
+                        "application/json": {
+                            message: string;
+                            statusCode?: number;
+                        };
+                    };
+                };
+                401: {
+                    content: {
+                        "application/json": {
+                            message: string;
+                            statusCode?: number;
+                        };
+                    };
+                };
+                403: {
+                    content: {
+                        "application/json": {
+                            message: string;
+                            statusCode?: number;
+                        };
+                    };
+                };
+                404: {
+                    content: {
+                        "application/json": {
+                            message: string;
+                            statusCode?: number;
+                        };
+                    };
+                };
+                409: {
+                    content: {
+                        "application/json": {
+                            message: string;
+                            statusCode?: number;
+                        };
+                    };
+                };
+                500: {
+                    content: {
+                        "application/json": {
+                            message: string;
+                            statusCode?: number;
+                        };
+                    };
+                };
+            };
+        };
+    };
     "/api/recursos": {
         parameters: {
             query?: never;
@@ -3488,6 +3669,274 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/eventos-atp/recuperacion": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Crear evento de recuperación y despachar patrulla con recursos logísticos (HU-29)
+         * @description Permite al Encargado de operaciones generar un nuevo evento territorial de recuperación, asignando una patrulla verificadora disponible y recursos de inventario para su entrega directa en terreno, sin requerir la existencia formal de un incidente previo.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    /** @description UUID del usuario autenticado (Encargado o Administrador) */
+                    "x-user-id": string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Datos del evento de recuperación, sector geográfico, patrulla y recursos solicitados */
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        /**
+                         * @description Título o nombre descriptivo del evento de recuperación
+                         * @example Entrega de frazadas y techumbre en Sector Collico
+                         */
+                        nombre: string;
+                        /**
+                         * @description Detalle técnico, justificación o indicaciones para la patrulla
+                         * @example Familias afectadas por voladura de techumbre tras temporal de viento
+                         */
+                        descripcion?: string | null;
+                        /**
+                         * @description Nombre del sector, barrio o población afectada en Valdivia
+                         * @example Collico
+                         */
+                        sector: string;
+                        /**
+                         * @description Dirección exacta o punto de referencia en terreno
+                         * @example Calle Balmaceda 1245 con Las Palmeras
+                         */
+                        direccionTexto?: string | null;
+                        /**
+                         * @description Nivel de urgencia o prioridad operativa
+                         * @default MEDIA
+                         * @example ALTA
+                         * @enum {string}
+                         */
+                        prioridad?: "BAJA" | "MEDIA" | "ALTA" | "CRITICA";
+                        /**
+                         * @description Nombre del referente vecinal o contacto en terreno
+                         * @example Juan Pérez (Presidente JJVV)
+                         */
+                        contactoNombre?: string | null;
+                        /**
+                         * @description Teléfono de contacto en terreno
+                         * @example +56912345678
+                         */
+                        contactoTelefono?: string | null;
+                        /**
+                         * @description Latitud geográfica en formato WGS84
+                         * @example -39.8142
+                         */
+                        latitud: number;
+                        /**
+                         * @description Longitud geográfica en formato WGS84
+                         * @example -73.2459
+                         */
+                        longitud: number;
+                        /**
+                         * Format: uuid
+                         * @description Identificador de la delegación territorial correspondiente
+                         * @example 30000000-0000-4000-8000-000000000001
+                         */
+                        delegacionId?: string | null;
+                        /**
+                         * Format: uuid
+                         * @description Identificador de la patrulla verificadora disponible asignada a la entrega
+                         * @example 50000000-0000-4000-8000-000000000001
+                         */
+                        patrullaId: string;
+                        /**
+                         * @description Número estimado de familias o viviendas beneficiadas
+                         * @default 0
+                         * @example 4
+                         */
+                        familiasAfectadas?: number;
+                        /** @description Listado de insumos y recursos logísticos a entregar */
+                        recursos: {
+                            /**
+                             * Format: uuid
+                             * @description UUID del recurso logístico en inventario
+                             * @example 00000000-0000-4000-8000-000000000001
+                             */
+                            recursoId: string;
+                            /**
+                             * @description Cantidad de unidades requeridas para entrega en el evento
+                             * @example 10
+                             */
+                            cantidad: number;
+                        }[];
+                    };
+                };
+            };
+            responses: {
+                /** @description Evento de recuperación registrado exitosamente y patrulla despachada */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example Evento de recuperación registrado y patrulla despachada exitosamente. */
+                            message: string;
+                            data: {
+                                /**
+                                 * Format: uuid
+                                 * @description Identificador único UUID del evento de recuperación
+                                 */
+                                id: string;
+                                /**
+                                 * @description Código oficial único del evento (ej. REC-2026-0001)
+                                 * @example REC-2026-0001
+                                 */
+                                codigo: string;
+                                /** @example Entrega de frazadas y techumbre en Sector Collico */
+                                nombre: string;
+                                /** @example Familias afectadas por temporal de viento */
+                                descripcion: string | null;
+                                /** @example Collico */
+                                sector: string;
+                                /** @example Calle Balmaceda 1245 con Las Palmeras */
+                                direccionTexto: string | null;
+                                /**
+                                 * @example ALTA
+                                 * @enum {string}
+                                 */
+                                prioridad: "BAJA" | "MEDIA" | "ALTA" | "CRITICA";
+                                /** @example Juan Pérez (Presidente JJVV) */
+                                contactoNombre: string | null;
+                                /** @example +56912345678 */
+                                contactoTelefono: string | null;
+                                /** @example -39.8142 */
+                                latitud: number;
+                                /** @example -73.2459 */
+                                longitud: number;
+                                /**
+                                 * @example PLANIFICADA
+                                 * @enum {string}
+                                 */
+                                estado: "PLANIFICADA" | "EN_EJECUCION" | "COMPLETADA" | "CANCELADA";
+                                /** @example 4 */
+                                familiasAfectadas: number;
+                                /** @description Delegación territorial asignada */
+                                delegacion: {
+                                    /** Format: uuid */
+                                    id: string;
+                                    codigo: string;
+                                    nombre: string;
+                                } | null;
+                                /** @description Misión táctica despachada a terreno */
+                                mision: {
+                                    /**
+                                     * Format: uuid
+                                     * @example 60000000-0000-4000-8000-000000000001
+                                     */
+                                    id: string;
+                                    /** @example MIS-2026-0042 */
+                                    codigo: string;
+                                    /** @example Entrega de frazadas y techumbre en Sector Collico */
+                                    titulo: string;
+                                    /** @example DESPACHADA */
+                                    estado: string;
+                                    /** @example RECUPERACION */
+                                    tipoMision: string;
+                                };
+                                /** @description Patrulla asignada a la operación */
+                                patrulla: {
+                                    /**
+                                     * Format: uuid
+                                     * @example 50000000-0000-4000-8000-000000000001
+                                     */
+                                    id: string;
+                                    /** @example Patrulla Verificadora Alfa */
+                                    nombre: string;
+                                    /** @example EN_RECUPERACION */
+                                    estado: string;
+                                };
+                                /** @description Recursos reservados o descontados para la entrega */
+                                recursos: {
+                                    /**
+                                     * Format: uuid
+                                     * @example 00000000-0000-4000-8000-000000000001
+                                     */
+                                    recursoId: string;
+                                    /** @example Sacos de Arena 25kg */
+                                    nombre: string;
+                                    /** @example 10 */
+                                    cantidadAsignada: number;
+                                }[];
+                                /**
+                                 * Format: uuid
+                                 * @description Identificador del Encargado que creó el evento
+                                 */
+                                creadoPorId: string;
+                                /** @description Fecha de registro ISO 8601 */
+                                creadoEn: string;
+                                /** @description Fecha de actualización ISO 8601 */
+                                actualizadoEn: string;
+                            };
+                        };
+                    };
+                };
+                /** @description Datos de entrada inválidos o faltantes en el payload */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description No autenticado / cabecera X-User-Id ausente o inválida */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Acceso denegado. Se requiere permiso 'recuperacion:crear' */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Patrulla o recurso no encontrado en el sistema */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Conflicto operativo: Patrulla no disponible o stock insuficiente en bodega */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Error interno del servidor */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/eventos-atp/prevencion": {
         parameters: {
             query?: never;
@@ -5329,6 +5778,283 @@ export interface components {
                 limite: number;
                 /** @example 1 */
                 totalPaginas: number;
+            };
+        };
+        CrearEventoRecuperacionInput: {
+            /**
+             * @description Título o nombre descriptivo del evento de recuperación
+             * @example Entrega de frazadas y techumbre en Sector Collico
+             */
+            nombre: string;
+            /**
+             * @description Detalle técnico, justificación o indicaciones para la patrulla
+             * @example Familias afectadas por voladura de techumbre tras temporal de viento
+             */
+            descripcion?: string | null;
+            /**
+             * @description Nombre del sector, barrio o población afectada en Valdivia
+             * @example Collico
+             */
+            sector: string;
+            /**
+             * @description Dirección exacta o punto de referencia en terreno
+             * @example Calle Balmaceda 1245 con Las Palmeras
+             */
+            direccionTexto?: string | null;
+            /**
+             * @description Nivel de urgencia o prioridad operativa
+             * @default MEDIA
+             * @example ALTA
+             * @enum {string}
+             */
+            prioridad: "BAJA" | "MEDIA" | "ALTA" | "CRITICA";
+            /**
+             * @description Nombre del referente vecinal o contacto en terreno
+             * @example Juan Pérez (Presidente JJVV)
+             */
+            contactoNombre?: string | null;
+            /**
+             * @description Teléfono de contacto en terreno
+             * @example +56912345678
+             */
+            contactoTelefono?: string | null;
+            /**
+             * @description Latitud geográfica en formato WGS84
+             * @example -39.8142
+             */
+            latitud: number;
+            /**
+             * @description Longitud geográfica en formato WGS84
+             * @example -73.2459
+             */
+            longitud: number;
+            /**
+             * Format: uuid
+             * @description Identificador de la delegación territorial correspondiente
+             * @example 30000000-0000-4000-8000-000000000001
+             */
+            delegacionId?: string | null;
+            /**
+             * Format: uuid
+             * @description Identificador de la patrulla verificadora disponible asignada a la entrega
+             * @example 50000000-0000-4000-8000-000000000001
+             */
+            patrullaId: string;
+            /**
+             * @description Número estimado de familias o viviendas beneficiadas
+             * @default 0
+             * @example 4
+             */
+            familiasAfectadas: number;
+            /** @description Listado de insumos y recursos logísticos a entregar */
+            recursos: {
+                /**
+                 * Format: uuid
+                 * @description UUID del recurso logístico en inventario
+                 * @example 00000000-0000-4000-8000-000000000001
+                 */
+                recursoId: string;
+                /**
+                 * @description Cantidad de unidades requeridas para entrega en el evento
+                 * @example 10
+                 */
+                cantidad: number;
+            }[];
+        };
+        EventoRecuperacion: {
+            /**
+             * Format: uuid
+             * @description Identificador único UUID del evento de recuperación
+             */
+            id: string;
+            /**
+             * @description Código oficial único del evento (ej. REC-2026-0001)
+             * @example REC-2026-0001
+             */
+            codigo: string;
+            /** @example Entrega de frazadas y techumbre en Sector Collico */
+            nombre: string;
+            /** @example Familias afectadas por temporal de viento */
+            descripcion: string | null;
+            /** @example Collico */
+            sector: string;
+            /** @example Calle Balmaceda 1245 con Las Palmeras */
+            direccionTexto: string | null;
+            /**
+             * @example ALTA
+             * @enum {string}
+             */
+            prioridad: "BAJA" | "MEDIA" | "ALTA" | "CRITICA";
+            /** @example Juan Pérez (Presidente JJVV) */
+            contactoNombre: string | null;
+            /** @example +56912345678 */
+            contactoTelefono: string | null;
+            /** @example -39.8142 */
+            latitud: number;
+            /** @example -73.2459 */
+            longitud: number;
+            /**
+             * @example PLANIFICADA
+             * @enum {string}
+             */
+            estado: "PLANIFICADA" | "EN_EJECUCION" | "COMPLETADA" | "CANCELADA";
+            /** @example 4 */
+            familiasAfectadas: number;
+            /** @description Delegación territorial asignada */
+            delegacion: {
+                /** Format: uuid */
+                id: string;
+                codigo: string;
+                nombre: string;
+            } | null;
+            /** @description Misión táctica despachada a terreno */
+            mision: {
+                /**
+                 * Format: uuid
+                 * @example 60000000-0000-4000-8000-000000000001
+                 */
+                id: string;
+                /** @example MIS-2026-0042 */
+                codigo: string;
+                /** @example Entrega de frazadas y techumbre en Sector Collico */
+                titulo: string;
+                /** @example DESPACHADA */
+                estado: string;
+                /** @example RECUPERACION */
+                tipoMision: string;
+            };
+            /** @description Patrulla asignada a la operación */
+            patrulla: {
+                /**
+                 * Format: uuid
+                 * @example 50000000-0000-4000-8000-000000000001
+                 */
+                id: string;
+                /** @example Patrulla Verificadora Alfa */
+                nombre: string;
+                /** @example EN_RECUPERACION */
+                estado: string;
+            };
+            /** @description Recursos reservados o descontados para la entrega */
+            recursos: {
+                /**
+                 * Format: uuid
+                 * @example 00000000-0000-4000-8000-000000000001
+                 */
+                recursoId: string;
+                /** @example Sacos de Arena 25kg */
+                nombre: string;
+                /** @example 10 */
+                cantidadAsignada: number;
+            }[];
+            /**
+             * Format: uuid
+             * @description Identificador del Encargado que creó el evento
+             */
+            creadoPorId: string;
+            /** @description Fecha de registro ISO 8601 */
+            creadoEn: string;
+            /** @description Fecha de actualización ISO 8601 */
+            actualizadoEn: string;
+        };
+        CrearEventoRecuperacionResponse: {
+            /** @example Evento de recuperación registrado y patrulla despachada exitosamente. */
+            message: string;
+            data: {
+                /**
+                 * Format: uuid
+                 * @description Identificador único UUID del evento de recuperación
+                 */
+                id: string;
+                /**
+                 * @description Código oficial único del evento (ej. REC-2026-0001)
+                 * @example REC-2026-0001
+                 */
+                codigo: string;
+                /** @example Entrega de frazadas y techumbre en Sector Collico */
+                nombre: string;
+                /** @example Familias afectadas por temporal de viento */
+                descripcion: string | null;
+                /** @example Collico */
+                sector: string;
+                /** @example Calle Balmaceda 1245 con Las Palmeras */
+                direccionTexto: string | null;
+                /**
+                 * @example ALTA
+                 * @enum {string}
+                 */
+                prioridad: "BAJA" | "MEDIA" | "ALTA" | "CRITICA";
+                /** @example Juan Pérez (Presidente JJVV) */
+                contactoNombre: string | null;
+                /** @example +56912345678 */
+                contactoTelefono: string | null;
+                /** @example -39.8142 */
+                latitud: number;
+                /** @example -73.2459 */
+                longitud: number;
+                /**
+                 * @example PLANIFICADA
+                 * @enum {string}
+                 */
+                estado: "PLANIFICADA" | "EN_EJECUCION" | "COMPLETADA" | "CANCELADA";
+                /** @example 4 */
+                familiasAfectadas: number;
+                /** @description Delegación territorial asignada */
+                delegacion: {
+                    /** Format: uuid */
+                    id: string;
+                    codigo: string;
+                    nombre: string;
+                } | null;
+                /** @description Misión táctica despachada a terreno */
+                mision: {
+                    /**
+                     * Format: uuid
+                     * @example 60000000-0000-4000-8000-000000000001
+                     */
+                    id: string;
+                    /** @example MIS-2026-0042 */
+                    codigo: string;
+                    /** @example Entrega de frazadas y techumbre en Sector Collico */
+                    titulo: string;
+                    /** @example DESPACHADA */
+                    estado: string;
+                    /** @example RECUPERACION */
+                    tipoMision: string;
+                };
+                /** @description Patrulla asignada a la operación */
+                patrulla: {
+                    /**
+                     * Format: uuid
+                     * @example 50000000-0000-4000-8000-000000000001
+                     */
+                    id: string;
+                    /** @example Patrulla Verificadora Alfa */
+                    nombre: string;
+                    /** @example EN_RECUPERACION */
+                    estado: string;
+                };
+                /** @description Recursos reservados o descontados para la entrega */
+                recursos: {
+                    /**
+                     * Format: uuid
+                     * @example 00000000-0000-4000-8000-000000000001
+                     */
+                    recursoId: string;
+                    /** @example Sacos de Arena 25kg */
+                    nombre: string;
+                    /** @example 10 */
+                    cantidadAsignada: number;
+                }[];
+                /**
+                 * Format: uuid
+                 * @description Identificador del Encargado que creó el evento
+                 */
+                creadoPorId: string;
+                /** @description Fecha de registro ISO 8601 */
+                creadoEn: string;
+                /** @description Fecha de actualización ISO 8601 */
+                actualizadoEn: string;
             };
         };
     };

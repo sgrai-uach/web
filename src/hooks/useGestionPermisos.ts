@@ -187,6 +187,25 @@ export function useGestionPermisos({ rol, usuarioId, onExito }: UseGestionPermis
         usuarioId
       );
       showSuccess(res.message, 'Permisos Guardados');
+
+      if (typeof window !== 'undefined' && rol) {
+        try {
+          const codigosSeleccionados = catalogo
+            .filter((p) => seleccionados.has(p.id))
+            .map((p) => p.codigo);
+          localStorage.setItem(
+            `sgrai_simulated_perms_${rol.nombre}`,
+            JSON.stringify(codigosSeleccionados)
+          );
+          localStorage.setItem(
+            `sgrai_simulated_perms_${rol.id}`,
+            JSON.stringify(codigosSeleccionados)
+          );
+        } catch {
+          // Ignorar fallos de localStorage
+        }
+      }
+
       setModoEdicion(false);
       if (onExito) onExito();
     } catch (err: unknown) {
@@ -197,7 +216,7 @@ export function useGestionPermisos({ rol, usuarioId, onExito }: UseGestionPermis
     } finally {
       setGuardando(false);
     }
-  }, [rol, tieneCambios, seleccionados, usuarioId, showSuccess, showError, onExito]);
+  }, [rol, tieneCambios, seleccionados, usuarioId, showSuccess, showError, onExito, catalogo]);
 
   return {
     modoEdicion,

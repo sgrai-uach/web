@@ -59,6 +59,15 @@ export const USUARIOS_SIMULADOS_SISTEMA: UsuarioSimulado[] = [
     delegacion: 'Delegación Sur',
   },
   {
+    id: '00000000-0000-4000-8000-000000000010',
+    nombre: 'Supervisor Estratégico',
+    email: 'supervisor@valdivia.cl',
+    rut: '44.444.444-4',
+    rol: 'Supervisor Estratégico',
+    esAdmin: false,
+    delegacion: 'Delegación Central',
+  },
+  {
     id: '00000000-0000-4000-8000-000000000008',
     nombre: 'Observador (Sin Permisos)',
     email: 'observador@valdivia.cl',

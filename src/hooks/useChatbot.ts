@@ -94,6 +94,16 @@ export function useChatbot() {
 
   const pasoRef = useRef<PasoChat>('TIPO_AFECTACION');
   const datosRef = useRef<DatosReporte>(DATOS_INICIALES);
+  const timeoutsRef = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
+
+  // Limpiar temporizadores activos al desmontar
+  useEffect(() => {
+    const activeTimeouts = timeoutsRef.current;
+    return () => {
+      activeTimeouts.forEach((t) => clearTimeout(t));
+      activeTimeouts.clear();
+    };
+  }, []);
 
   // Mantener las refs sincronizadas en efectos sin mutar durante el render
   useEffect(() => {
@@ -190,7 +200,8 @@ export function useChatbot() {
     resultado?: ResultadoAviso
   ) => {
     setIsBotTyping(true);
-    setTimeout(() => {
+    const timer = setTimeout(() => {
+      timeoutsRef.current.delete(timer);
       const nuevoMensaje: MensajeChat = {
         id: `bot-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
         remitente: 'bot',
@@ -204,6 +215,7 @@ export function useChatbot() {
       setMensajes((prev) => [...prev, nuevoMensaje]);
       setIsBotTyping(false);
     }, 380);
+    timeoutsRef.current.add(timer);
   }, []);
 
   // Agregar mensaje del usuario inmediatamente

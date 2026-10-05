@@ -4,37 +4,13 @@ import React, { useState } from 'react';
 import dynamic from 'next/dynamic';
 import type { IncidenteResumen } from '@/services/incidentesService';
 import type { EventoPrevencionDTO } from '@/types/evento-prevencion';
+import type { EventoRecuperacionResponse } from '@/types/recuperacion';
 import Button from '@/components/ui/Button';
 import { ShieldAlert, Truck, Layers } from 'lucide-react';
 
-export interface EventoRecuperacionItemProps {
-  id?: string;
-  codigo?: string;
-  nombre?: string;
-  descripcion?: string | null;
-  sector?: string;
-  direccionTexto?: string | null;
-  prioridad?: string;
-  latitud: number;
-  longitud: number;
-  familiasAfectadas?: number;
-  patrulla?: {
-    nombre?: string;
-    estado?: string;
-  };
-  mision?: {
-    codigo?: string;
-    estado?: string;
-  };
-  recursos?: {
-    nombre?: string;
-    cantidadAsignada?: number;
-  }[];
-}
-
 export interface MapaOperativoMandoProps {
   incidentes?: IncidenteResumen[];
-  eventosRecuperacion?: EventoRecuperacionItemProps[];
+  eventosRecuperacion?: EventoRecuperacionResponse[];
   eventosPrevencion?: EventoPrevencionDTO[];
   onSelectIncidente?: (id: string) => void;
   onCrearRecuperacion?: () => void;

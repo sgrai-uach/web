@@ -6,6 +6,7 @@ import type { EventoPrevencionDTO } from '@/types/evento-prevencion';
 
 export interface UsePrevencionSocketOptions {
   onEventoCreado?: (evento: EventoPrevencionDTO) => void;
+  onPrevencionCreada?: (evento: EventoPrevencionDTO) => void;
   enabled?: boolean;
 }
 
@@ -15,16 +16,18 @@ export interface UsePrevencionSocketOptions {
  */
 export function usePrevencionSocket({
   onEventoCreado,
+  onPrevencionCreada,
   enabled = true,
 }: UsePrevencionSocketOptions = {}) {
   const [conectado, setConectado] = useState(false);
   const [ultimoEvento, setUltimoEvento] = useState<string | null>(null);
 
-  const callbackRef = useRef(onEventoCreado);
+  const handler = onPrevencionCreada || onEventoCreado;
+  const callbackRef = useRef(handler);
 
   useEffect(() => {
-    callbackRef.current = onEventoCreado;
-  }, [onEventoCreado]);
+    callbackRef.current = handler;
+  }, [handler]);
 
   useEffect(() => {
     if (!enabled) return;
