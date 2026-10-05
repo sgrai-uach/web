@@ -5,6 +5,7 @@ import type {
   RecursoCreado,
   ListarRecursosResponse,
   FiltrosRecursosState,
+  EliminarRecursoResponse,
   EditarRecursoDTO,
   RecursoItem,
 } from '@/types/recurso';
@@ -192,6 +193,49 @@ export async function actualizarRecurso(
 
     throw new RecursoServiceError({
       message: `Error HTTP ${response.status}: No fue posible actualizar el recurso`,
+      statusCode: response.status,
+    });
+  } catch (err: unknown) {
+    if (err instanceof RecursoServiceError) {
+      throw err;
+    }
+    const formatted = formatApiError(err);
+    throw new RecursoServiceError(formatted);
+  }
+}
+
+/**
+ * Da de baja lógicamente un recurso logístico en el inventario.
+ * Bloqueado por la API si el recurso está en uso en terreno o en misión activa (409 Conflict).
+ */
+export async function eliminarRecurso(
+  id: string,
+  userId: string = DEFAULT_ADMIN_USER_ID
+): Promise<EliminarRecursoResponse> {
+  try {
+    const { data, error, response } = await apiClient.DELETE('/api/recursos/{id}', {
+      params: {
+        path: { id },
+        header: {
+          'x-user-id': userId,
+        },
+      },
+    });
+
+    if (response.status === 200 && data) {
+      return data as EliminarRecursoResponse;
+    }
+
+    if (error) {
+      const formatted = formatApiError({
+        ...(typeof error === 'object' && error !== null ? error : {}),
+        status: response.status,
+      });
+      throw new RecursoServiceError(formatted);
+    }
+
+    throw new RecursoServiceError({
+      message: `Error HTTP ${response.status}: No fue posible dar de baja el recurso`,
       statusCode: response.status,
     });
   } catch (err: unknown) {

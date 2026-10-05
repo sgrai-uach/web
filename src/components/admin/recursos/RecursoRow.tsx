@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Truck, Package, Pencil } from 'lucide-react';
+import { Truck, Package, Pencil, Trash2 } from 'lucide-react';
 import type { RecursoItem } from '@/types/recurso';
 import { obtenerNombreDelegacion } from '@/lib/utils/delegacionUtils';
 import BadgeEstado from './BadgeEstado';
@@ -12,9 +12,18 @@ interface RecursoRowProps {
   indice: number;
   onSeleccionar: (recurso: RecursoItem) => void;
   onEditar?: (recurso: RecursoItem) => void;
+  onEliminar?: (recurso: RecursoItem) => void;
+  puedeEliminar?: boolean;
 }
 
-export default function RecursoRow({ recurso, indice, onSeleccionar, onEditar }: RecursoRowProps) {
+export default function RecursoRow({
+  recurso,
+  indice,
+  onSeleccionar,
+  onEditar,
+  onEliminar,
+  puedeEliminar = false,
+}: RecursoRowProps) {
   const esFilaPar = indice % 2 === 0;
   const tieneBajoStock =
     recurso.estado === 'BAJO_STOCK' ||
@@ -131,8 +140,30 @@ export default function RecursoRow({ recurso, indice, onSeleccionar, onEditar }:
               <span>Editar</span>
             </Button>
           )}
+
+          {puedeEliminar && onEliminar && (
+            <Button
+              type="button"
+              variant="destructive"
+              size="sm"
+              onClick={(e) => {
+                e.stopPropagation();
+                onEliminar(recurso);
+              }}
+              title={`Dar de baja ${recurso.nombre}`}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+              }}
+            >
+              <Trash2 size={13} aria-hidden="true" />
+              <span>Eliminar</span>
+            </Button>
+          )}
         </div>
       </td>
     </tr>
   );
 }
+

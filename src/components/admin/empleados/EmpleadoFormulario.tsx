@@ -14,12 +14,14 @@ interface EmpleadoFormularioProps {
   usuario: EmpleadoUsuario;
   onEmpleadoActualizado: (empleado: EmpleadoUsuario) => void;
   onCancelar: () => void;
+  onDarDeBaja?: () => void;
 }
 
 export default function EmpleadoFormulario({
   usuario,
   onEmpleadoActualizado,
   onCancelar,
+  onDarDeBaja,
 }: EmpleadoFormularioProps) {
   const {
     catalogos,
@@ -117,7 +119,12 @@ export default function EmpleadoFormulario({
         />
       )}
 
-      <EmpleadoFormActions guardando={guardando} onCancelar={onCancelar} />
+      <EmpleadoFormActions
+        guardando={guardando}
+        onCancelar={onCancelar}
+        onDarDeBaja={onDarDeBaja}
+        deshabilitarBaja={!usuario.usuario_activo || !activo}
+      />
     </form>
   );
 }

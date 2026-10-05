@@ -11,7 +11,7 @@ export interface ConnectionStatusBadgeProps {
 
 export default function ConnectionStatusBadge({
   connected,
-  activeLabel = 'En vivo (WebSockets)',
+  activeLabel = 'En vivo',
   inactiveLabel = 'Reconectando...',
   tooltip,
   className = '',

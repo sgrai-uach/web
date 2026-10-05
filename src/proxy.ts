@@ -21,7 +21,7 @@ function esRutaPublica(pathname: string): boolean {
   return false;
 }
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
   const token = request.cookies.get(AUTH_COOKIE_NAME)?.value;
 
