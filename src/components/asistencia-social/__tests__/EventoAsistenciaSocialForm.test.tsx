@@ -330,4 +330,34 @@ describe('EventoAsistenciaSocialForm', () => {
       );
     });
   });
+
+  it('debe desplegar la ficha resumen del caso en modal al hacer clic en Desplegar Ficha del Caso y cerrarla al presionar Cerrar Ficha', async () => {
+    render(<EventoAsistenciaSocialForm basePath="/gestion/asistente-social" />);
+
+    // Ingresar datos
+    fireEvent.change(screen.getByLabelText(/Descripción de la Excepcionalidad Social/i), {
+      target: { value: 'Familia damnificada por anegamiento severo' },
+    });
+    fireEvent.change(screen.getByPlaceholderText(/Ej\. Calle Los Alerces 1420/i), {
+      target: { value: 'Pasaje Los Coihues 450' },
+    });
+
+    // Abrir ficha
+    const desplegarBtn = screen.getByRole('button', { name: /Desplegar Ficha del Caso/i });
+    expect(desplegarBtn).toBeDefined();
+    fireEvent.click(desplegarBtn);
+
+    // Verificar que el modal se desplegó con los datos
+    expect(screen.getByText(/Ficha de Evento Social \(Vista Previa\)/i)).toBeDefined();
+    expect(screen.getAllByText('Familia damnificada por anegamiento severo').length).toBe(2);
+    expect(screen.getAllByText('Pasaje Los Coihues 450').length).toBeGreaterThanOrEqual(1);
+
+    // Cerrar ficha
+    const cerrarBtn = screen.getByRole('button', { name: /Cerrar Ficha/i });
+    fireEvent.click(cerrarBtn);
+
+    await waitFor(() => {
+      expect(screen.queryByText(/Ficha de Evento Social \(Vista Previa\)/i)).toBeNull();
+    });
+  });
 });

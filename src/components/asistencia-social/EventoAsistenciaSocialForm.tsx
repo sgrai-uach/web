@@ -12,6 +12,8 @@ import {
   Save,
   ArrowLeft,
   Link as LinkIcon,
+  FileText,
+  Eye,
 } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
@@ -38,6 +40,7 @@ import {
   geocodificacionInversaEnValdivia,
 } from '@/lib/maps/geocoding';
 import { incidentesService } from '@/services/incidentesService';
+import EventoAsistenciaSocialDetalleModal from './EventoAsistenciaSocialDetalleModal';
 
 // Carga dinámica de Leaflet para evitar problemas de SSR en Next.js
 const LocationPickerMap = dynamic(
@@ -106,6 +109,7 @@ export default function EventoAsistenciaSocialForm({
 
   // Estados de control
   const [enviando, setEnviando] = useState(false);
+  const [fichaModalAbierta, setFichaModalAbierta] = useState(false);
   const [errores, setErrores] = useState<Record<string, string>>({});
   const [errorServidor, setErrorServidor] = useState<string | null>(null);
 
@@ -722,7 +726,7 @@ export default function EventoAsistenciaSocialForm({
       <div
         style={{
           display: 'flex',
-          justifyContent: 'flex-end',
+          justifyContent: 'space-between',
           alignItems: 'center',
           gap: 'var(--space-3, 12px)',
           marginTop: 'var(--space-2, 8px)',
@@ -730,25 +734,81 @@ export default function EventoAsistenciaSocialForm({
         }}
       >
         <Button
-          href={basePath}
-          variant="secondary"
+          type="button"
+          variant="outline"
           size="lg"
+          onClick={() => setFichaModalAbierta(true)}
           disabled={enviando}
+          style={{
+            backgroundColor: '#FFFFFF',
+            border: '1px solid var(--color-primary-teal, #1B6F7D)',
+            color: 'var(--color-primary-teal, #1B6F7D)',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '8px',
+          }}
         >
-          <ArrowLeft size={16} style={{ marginRight: '6px' }} />
-          <span>Cancelar</span>
+          <FileText size={18} />
+          <span>Desplegar Ficha del Caso</span>
         </Button>
 
-        <Button
-          type="submit"
-          variant="primary"
-          size="lg"
-          disabled={enviando}
-        >
-          <Save size={16} style={{ marginRight: '6px' }} />
-          <span>{enviando ? 'Guardando Evento...' : 'Guardar Evento de Asistencia Social'}</span>
-        </Button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3, 12px)', flexWrap: 'wrap' }}>
+          <Button
+            href={basePath}
+            variant="secondary"
+            size="lg"
+            disabled={enviando}
+          >
+            <ArrowLeft size={16} style={{ marginRight: '6px' }} />
+            <span>Cancelar</span>
+          </Button>
+
+          <Button
+            type="submit"
+            variant="primary"
+            size="lg"
+            disabled={enviando}
+          >
+            <Save size={16} style={{ marginRight: '6px' }} />
+            <span>{enviando ? 'Guardando Evento...' : 'Guardar Evento de Asistencia Social'}</span>
+          </Button>
+        </div>
       </div>
+
+      {/* Modal de Ficha Resumen / Vista Previa */}
+      <EventoAsistenciaSocialDetalleModal
+        isOpen={fichaModalAbierta}
+        onClose={() => setFichaModalAbierta(false)}
+        datos={{
+          codigo: 'AS-BORRADOR',
+          descripcion,
+          tipoAfectacion,
+          prioridad,
+          personasAfectadas,
+          familiasAfectadas,
+          direccionTexto,
+          latitud: latitud !== '' ? latitud : null,
+          longitud: longitud !== '' ? longitud : null,
+          delegacionNombre:
+            DELEGACIONES_MUNICIPALES.find((d) => d.id === delegacionId)?.nombre || null,
+          incidenteId: incidenteId || null,
+          incidenteCodigo:
+            incidentesDisponibles.find((i) => i.id === incidenteId)?.codigo || null,
+          contactoNombre,
+          contactoTelefono,
+          contactoRut,
+          creadoPorNombre: auth?.usuario?.nombre || usuarioActivo.nombre,
+          creadoEn: new Date().toISOString(),
+          estado: 'PENDIENTE',
+        }}
+        esVistaPrevia={true}
+        onConfirmarGuardado={() => {
+          setFichaModalAbierta(false);
+          const syntheticEvent = { preventDefault: () => {} } as React.FormEvent;
+          handleSubmit(syntheticEvent);
+        }}
+        guardando={enviando}
+      />
     </form>
   );
 }

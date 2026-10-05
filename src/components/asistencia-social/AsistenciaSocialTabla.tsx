@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import type {
   EventoAsistenciaSocialItem,
   PrioridadEventoSocial,
@@ -8,7 +8,9 @@ import type {
 } from '@/types/asistenciaSocial';
 import { TIPOS_AFECTACION_SOCIAL } from '@/types/asistenciaSocial';
 import Pagination from '@/components/common/Pagination';
-import { MapPin, Users, Phone, User, Calendar } from 'lucide-react';
+import Button from '@/components/ui/Button';
+import { MapPin, Users, Phone, User, Calendar, Eye } from 'lucide-react';
+import EventoAsistenciaSocialDetalleModal from './EventoAsistenciaSocialDetalleModal';
 
 interface AsistenciaSocialTablaProps {
   eventos: EventoAsistenciaSocialItem[];
@@ -101,6 +103,8 @@ export default function AsistenciaSocialTabla({
   onCambiarLimite,
   cargando = false,
 }: AsistenciaSocialTablaProps) {
+  const [eventoSeleccionado, setEventoSeleccionado] = useState<EventoAsistenciaSocialItem | null>(null);
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4, 16px)' }}>
       <div
@@ -136,18 +140,19 @@ export default function AsistenciaSocialTabla({
               <th style={{ padding: '12px 16px' }}>Contacto</th>
               <th style={{ padding: '12px 16px' }}>Estado</th>
               <th style={{ padding: '12px 16px' }}>Fecha Registro</th>
+              <th style={{ padding: '12px 16px', textAlign: 'right' }}>Acciones</th>
             </tr>
           </thead>
           <tbody>
             {cargando ? (
               <tr>
-                <td colSpan={7} style={{ padding: '32px', textAlign: 'center', color: '#666' }}>
+                <td colSpan={8} style={{ padding: '32px', textAlign: 'center', color: '#666' }}>
                   Cargando eventos de asistencia social...
                 </td>
               </tr>
             ) : eventos.length === 0 ? (
               <tr>
-                <td colSpan={7} style={{ padding: '32px', textAlign: 'center', color: '#666' }}>
+                <td colSpan={8} style={{ padding: '32px', textAlign: 'center', color: '#666' }}>
                   No hay eventos registrados.
                 </td>
               </tr>
@@ -302,6 +307,26 @@ export default function AsistenciaSocialTabla({
                         </div>
                       )}
                     </td>
+
+                    <td style={{ padding: '12px 16px', verticalAlign: 'top', textAlign: 'right', whiteSpace: 'nowrap' }}>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setEventoSeleccionado(evento)}
+                        style={{
+                          border: '1px solid var(--border-color-neutral, #DFE3E8)',
+                          padding: '4px 10px',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '5px',
+                        }}
+                        title={`Ver ficha técnica de ${evento.codigo}`}
+                      >
+                        <Eye size={14} color="var(--color-primary-teal, #1B6F7D)" />
+                        <span>Ver Ficha</span>
+                      </Button>
+                    </td>
                   </tr>
                 );
               })
@@ -320,6 +345,35 @@ export default function AsistenciaSocialTabla({
           onCambiarLimite={onCambiarLimite || (() => {})}
         />
       )}
+
+      {/* Modal Ficha Técnica del Evento Seleccionado */}
+      <EventoAsistenciaSocialDetalleModal
+        isOpen={Boolean(eventoSeleccionado)}
+        onClose={() => setEventoSeleccionado(null)}
+        datos={
+          eventoSeleccionado
+            ? {
+                codigo: eventoSeleccionado.codigo,
+                descripcion: eventoSeleccionado.descripcion,
+                tipoAfectacion: eventoSeleccionado.tipoAfectacion,
+                prioridad: eventoSeleccionado.prioridad,
+                personasAfectadas: eventoSeleccionado.personasAfectadas,
+                familiasAfectadas: eventoSeleccionado.familiasAfectadas,
+                direccionTexto: eventoSeleccionado.direccionTexto,
+                latitud: eventoSeleccionado.latitud,
+                longitud: eventoSeleccionado.longitud,
+                delegacionNombre: eventoSeleccionado.delegacionNombre,
+                incidenteId: eventoSeleccionado.incidenteId,
+                contactoNombre: eventoSeleccionado.contactoNombre,
+                contactoTelefono: eventoSeleccionado.contactoTelefono,
+                contactoRut: eventoSeleccionado.contactoRut,
+                creadoPorNombre: eventoSeleccionado.creadoPor?.nombre,
+                creadoEn: eventoSeleccionado.creadoEn,
+                estado: eventoSeleccionado.estado,
+              }
+            : null
+        }
+      />
     </div>
   );
 }
