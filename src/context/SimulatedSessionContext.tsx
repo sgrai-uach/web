@@ -73,6 +73,8 @@ function obtenerPermisosFallback(rol: string, esAdmin: boolean): Set<string> {
       'personal:leer',
       'personal:crear',
       'personal:gestionar',
+      'asistencia_social:crear',
+      'asistencia_social:leer',
     ]);
   }
 
@@ -90,7 +92,13 @@ function obtenerPermisosFallback(rol: string, esAdmin: boolean): Set<string> {
       'incidentes:kanban',
       'misiones:asignar',
       'recursos:leer',
+      'asistencia_social:crear',
+      'asistencia_social:leer',
     ]);
+  }
+
+  if (rol === 'Asistente Social') {
+    return new Set(['asistencia_social:leer']);
   }
 
   if (rol === 'Supervisor Estratégico' || rol === 'Supervisor') {
