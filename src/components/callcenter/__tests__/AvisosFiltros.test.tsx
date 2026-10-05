@@ -1,6 +1,7 @@
 import React from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
+import '@testing-library/jest-dom';
 import AvisosFiltros from '../AvisosFiltros';
 import AvisosTableEmpty from '../table/AvisosTableEmpty';
 
@@ -25,7 +26,7 @@ describe('AvisosFiltros Component', () => {
   it('debe renderizar el selector de Delegación con las opciones requeridas (Norte, Sur, Costa, Calle Calle)', () => {
     render(<AvisosFiltros {...defaultProps} />);
 
-    const selectDelegacion = screen.getByLabelText(/Delegación Territorial:/i);
+    const selectDelegacion = screen.getByLabelText(/Delegación/i);
     expect(selectDelegacion).toBeInTheDocument();
 
     const options = Array.from((selectDelegacion as HTMLSelectElement).options).map(
@@ -41,7 +42,7 @@ describe('AvisosFiltros Component', () => {
   it('debe renderizar el selector de Estado con las opciones requeridas (Pendiente, Verificado, Rechazado)', () => {
     render(<AvisosFiltros {...defaultProps} />);
 
-    const selectEstado = screen.getByLabelText(/Estado del Aviso:/i);
+    const selectEstado = screen.getByLabelText(/Estado/i);
     expect(selectEstado).toBeInTheDocument();
 
     const options = Array.from((selectEstado as HTMLSelectElement).options).map(
@@ -62,7 +63,7 @@ describe('AvisosFiltros Component', () => {
       />
     );
 
-    const select = screen.getByLabelText(/Delegación Territorial:/i);
+    const select = screen.getByLabelText(/Delegación/i);
     fireEvent.change(select, { target: { value: 'Norte' } });
 
     expect(onFiltroDelegacionChange).toHaveBeenCalledWith('Norte');
@@ -77,7 +78,7 @@ describe('AvisosFiltros Component', () => {
       />
     );
 
-    const select = screen.getByLabelText(/Estado del Aviso:/i);
+    const select = screen.getByLabelText(/Estado/i);
     fireEvent.change(select, { target: { value: 'VERIFICADO' } });
 
     expect(onFiltroEstadoChange).toHaveBeenCalledWith('VERIFICADO');

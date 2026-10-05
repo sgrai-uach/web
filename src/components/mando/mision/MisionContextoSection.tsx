@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { AlertCircle, MapPin, ShieldAlert, FileText, CheckCircle2 } from 'lucide-react';
+import { AlertCircle, MapPin } from 'lucide-react';
 import Heading from '@/components/ui/Heading';
 import type { IncidenteMisionResumen, PrevencionMisionResumen } from '@/types/misiones';
 import styles from '@/styles/mision-detalle.module.css';

@@ -1,4 +1,4 @@
-import apiClient from '@/lib/api/client';
+import apiClient, { DEFAULT_ADMIN_USER_ID } from '@/lib/api/client';
 import { formatApiError } from '@/lib/utils/errorUtils';
 import type {
   ActualizarPermisosRolResponse,
@@ -101,7 +101,7 @@ export async function listarRolesYPermisos(userId: string): Promise<ListarRolesR
   if (error || !data) {
     let mensaje = 'Error al consultar los roles y permisos del sistema';
     if (response.status === 403) {
-      mensaje = 'Acceso denegado. Se requiere perfil de Administrador para ver este módulo.';
+      mensaje = 'Acceso denegado. Se requieren permisos de gestión de roles para acceder.';
     } else if (response.status === 401) {
       mensaje = 'Sesión no válida o usuario no autenticado.';
     }
@@ -122,13 +122,13 @@ export async function listarRolesYPermisos(userId: string): Promise<ListarRolesR
  */
 export async function obtenerDetalleRol(
   id: string,
-  userId: string
+  userId?: string
 ): Promise<RolDetalleResponse> {
   const { data, error, response } = await apiClient.GET('/api/seguridad/roles/{id}', {
     params: {
       path: { id },
       header: {
-        'x-user-id': userId,
+        'x-user-id': userId || DEFAULT_ADMIN_USER_ID,
       },
     },
   });
@@ -136,7 +136,7 @@ export async function obtenerDetalleRol(
   if (error || !data) {
     let mensaje = 'Error al obtener el detalle del perfil';
     if (response.status === 403) {
-      mensaje = 'Acceso denegado. Se requiere perfil de Administrador.';
+      mensaje = 'Acceso denegado. Se requieren permisos de gestión de roles para acceder.';
     } else if (response.status === 404) {
       mensaje = 'El perfil solicitado no existe en el sistema.';
     }
@@ -205,7 +205,7 @@ export async function obtenerCatalogoPermisos(
     if (error || !data) {
       let mensaje = 'Error al consultar el catálogo de permisos del sistema';
       if (response?.status === 403) {
-        mensaje = 'Acceso denegado. Se requiere perfil de Administrador.';
+        mensaje = 'Acceso denegado. Se requieren permisos de gestión de roles para acceder.';
       } else if (response?.status === 401) {
         mensaje = 'Sesión no válida o no autenticada.';
       } else if (response?.status === 404) {
@@ -257,7 +257,7 @@ export async function actualizarPermisosRol(
     if (error || !response || response.status >= 400) {
       let mensaje = 'Error al actualizar los permisos del perfil';
       if (response?.status === 403) {
-        mensaje = 'Acceso denegado. Se requiere perfil de Administrador.';
+        mensaje = 'Acceso denegado. Se requieren permisos de gestión de roles para acceder.';
       } else if (response?.status === 404) {
         mensaje = 'El perfil especificado no existe en el sistema.';
       } else if (response?.status === 400) {

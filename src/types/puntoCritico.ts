@@ -30,3 +30,71 @@ export interface FiltrosPuntosCriticosState {
   prioridad?: PrioridadPuntoCritico;
   busqueda?: string;
 }
+
+/* ==========================================================================
+   Tipos para Eliminación / Desactivación Lógica (HU-56)
+   ========================================================================== */
+
+export type EliminarPuntoCriticoResponse = NonNullable<
+  paths['/api/puntos-criticos/{id}']['delete']['responses'][200]['content']['application/json']
+>;
+
+export interface PuntoCriticoEliminadoSocketPayload {
+  id: string;
+  codigo: string;
+  nombre: string;
+  eliminadoPorId?: string;
+  eliminadoEn?: string;
+}
+
+/* ==========================================================================
+   Tipos para Edición de Puntos Críticos (HU-55)
+   ========================================================================== */
+
+export interface PuntoCriticoDetalleResponse {
+  id: string;
+  codigo: string;
+  nombre: string;
+  descripcion: string | null;
+  tipoRiesgo: string | null;
+  prioridad: PrioridadPuntoCritico;
+  activo: boolean;
+  estadoTexto: string;
+  latitud: number;
+  longitud: number;
+  delegacion: DelegacionResumen | null;
+  creadoEn: string;
+  actualizadoEn?: string | null;
+  actualizadoPorId?: string | null;
+}
+
+export interface ActualizarPuntoCriticoDTO {
+  nombre: string;
+  descripcion?: string | null;
+  tipoRiesgo?: string | null;
+  prioridad: PrioridadPuntoCritico;
+  delegacionId?: string | null;
+  latitud: number;
+  longitud: number;
+}
+
+export interface PuntoCriticoEditFormState {
+  nombre: string;
+  descripcion: string;
+  tipoRiesgo: string;
+  prioridad: PrioridadPuntoCritico;
+  delegacionId: string;
+  latitud: number | string;
+  longitud: number | string;
+}
+
+export interface PuntoCriticoFormErrors {
+  nombre?: string;
+  descripcion?: string;
+  tipoRiesgo?: string;
+  prioridad?: string;
+  delegacionId?: string;
+  latitud?: string;
+  longitud?: string;
+  general?: string;
+}

@@ -17,6 +17,7 @@ export const PERMISOS_SISTEMA = {
   SEGURIDAD_ROLES_GESTIONAR: 'seguridad:roles:gestionar',
   RECURSOS_LEER: 'recursos:leer',
   RECURSOS_CREAR: 'recursos:crear',
+  RECURSOS_EDITAR: 'recursos:editar',
 } as const;
 
 export type PermisoCodigoSistema = (typeof PERMISOS_SISTEMA)[keyof typeof PERMISOS_SISTEMA];
