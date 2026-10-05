@@ -1,0 +1,54 @@
+@startuml
+title H59 - Inicio de Sesión Usuarios
+skinparam maxMessageSize 250
+
+box "Frontend (sgrai-web)" #White
+actor "Funcionario" as user
+participant "LoginFormUI" as view
+participant "Hook\n(useAuth)" as hook
+participant "AuthService" as service
+end box
+
+box "Backend (sgrai-api)" #LightGoldenRodYellow
+participant "AuthController" as controller
+end box
+
+box "Capa de Datos" #F0F8FF
+participant "UsuariosRepository" as repository
+database "PostgreSQL" as db
+end box
+
+== 1. Credenciales ==
+user -> view ++: Ingresa RUT y Contraseña
+view -> hook ++: form.handleSubmit()
+hook -> hook: zod.validate(LoginSchema)
+hook -> hook: setIsLoading(true)
+
+== 2. Petición Auth ==
+hook -> service ++: login({rut, password})
+service -> controller ++: POST /api/auth/login
+
+== 3. Verificación de DB ==
+controller -> repository ++: findByRut(rut)
+repository -> db ++: SELECT id, password_hash, rol_id FROM usuarios WHERE rut = :rut
+return Hash
+return Hash
+
+controller -> controller: bcrypt.compare(password, hash)
+
+alt Contraseña Inválida
+    controller --> service: 401 Unauthorized
+    service --> hook: throw Error
+    hook -> view: setError('password', 'Credenciales incorrectas')
+    view -> user: Muestra mensaje de error en rojo
+else Éxito (JWT)
+    controller -> controller: sign(JWT_PAYLOAD)
+    controller --> service: 200 OK { token, user: { rol, id } }
+    service --> hook: Promise.resolve(AuthResponse)
+    
+    == 4. Inicialización Sesión ==
+    hook -> hook: cookieStore.set('sgrai_token', token)
+    hook -> hook: router.push('/dashboard')
+    view -> user: Redirige al panel correspondiente según su rol
+end
+@enduml

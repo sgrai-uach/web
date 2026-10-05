@@ -1,0 +1,50 @@
+@startuml
+title H5 - Alterar Permisos
+skinparam maxMessageSize 250
+
+box "Frontend (sgrai-web)" #White
+actor "Administrador" as user
+participant "RolEditModalUI" as view
+participant "Hook\n(useRolEdit)" as hook
+participant "Servicio UI\n(rolesService)" as service
+end box
+
+box "Backend (sgrai-api)" #LightGoldenRodYellow
+participant "RolesController" as controller
+end box
+
+box "Capa de Datos" #F0F8FF
+participant "RolesRepository" as repository
+database "PostgreSQL" as db
+end box
+
+== 1. Modificación de Datos ==
+user -> view ++: Clic Editar en Rol
+view -> user: Muestra switches de permisos
+user -> view: Activa/Desactiva permisos y presiona "Guardar"
+view -> hook ++: handleGuardar(nuevosPermisos)
+hook -> hook: zod.validate(editRolSchema)
+hook -> hook: setIsSubmitting(true)
+
+== 2. Procesamiento Backend ==
+hook -> service ++: actualizarRol(id, { permisosIds: [...] })
+service -> controller ++: PUT /api/auth/roles/:id (JSON)
+
+== 3. Operación Transaccional en DB ==
+controller -> repository ++: updateRolPermisos(id, permisos)
+repository -> db ++: BEGIN TRANSACTION
+repository -> db: DELETE FROM rol_permisos WHERE rol_id = :id
+repository -> db: INSERT INTO rol_permisos (rol_id, permiso_id) VALUES (...)
+repository -> db: COMMIT
+return Success
+return OK
+
+controller --> service: 200 OK (RolDto)
+service --> hook: Promise.resolve()
+
+== 4. Feedback al Usuario ==
+hook -> hook: setIsSubmitting(false)
+hook -> view: onExito() -> Cierra Modal
+view -> view: Refresca lista principal de roles
+view -> user: toast.success("Permisos del rol actualizados")
+@enduml

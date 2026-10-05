@@ -1,0 +1,44 @@
+@startuml
+title H56 - Operación Genérica
+skinparam maxMessageSize 250
+
+box "Frontend (sgrai-web)" #White
+actor "Usuario" as user
+participant "Componente UI" as view
+participant "Hook React" as hook
+participant "Servicio API" as service
+end box
+
+box "Backend (sgrai-api)" #LightGoldenRodYellow
+participant "Controlador API" as controller
+end box
+
+box "Capa de Datos" #F0F8FF
+participant "Repositorio" as repository
+database "PostgreSQL" as db
+end box
+
+== 1. Ingreso de Datos y Validación UI ==
+user -> view ++: Ejecuta Acción (Click/Submit)
+view -> hook ++: dispatch(evento)
+hook -> hook: valida reglas de negocio cliente
+hook -> hook: setIsLoading(true)
+
+== 2. Procesamiento Backend ==
+hook -> service ++: callApiEndpoint(data)
+service -> controller ++: HTTP REQUEST /api/...
+
+== 3. Consulta DB ==
+controller -> repository ++: ejecutarAccion(data)
+repository -> db ++: INSERT / UPDATE / SELECT (SQL Query Compleja)
+return Registros Afectados
+return Entity
+controller --> service: HTTP Status (200 OK / 201 Created)
+service --> hook: Promise.resolve(Payload)
+
+== 4. Feedback al Usuario ==
+hook -> hook: setIsLoading(false)
+hook -> hook: setState(Payload)
+hook -> view: trigger UI Update
+view -> user: Muestra Toast Exito o DataGrid Actualizado
+@enduml

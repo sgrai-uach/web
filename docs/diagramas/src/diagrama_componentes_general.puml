@@ -1,0 +1,103 @@
+@startuml
+title Diagrama de Componentes General (Arquitectura SGRAI)
+skinparam componentStyle uml2
+skinparam packageStyle rectangle
+skinparam roundcorner 6
+skinparam shadowing false
+skinparam defaultFontName "Noto Sans", "Helvetica", "Arial", sans-serif
+skinparam defaultFontSize 12
+skinparam ArrowFontSize 11
+skinparam ArrowColor #1B6F7D
+skinparam ComponentBorderColor #3B3F45
+skinparam PackageBorderColor #14505A
+
+skinparam nodesep 30
+skinparam ranksep 40
+
+package "sgrai-web (Cliente Frontend Next.js)" as pkg_web #F9FAFB {
+
+  package "1. Vistas y Páginas (src/app)" as pkg_ui #FFFFFF {
+    [Portal Ciudadano\n(ChatContainer)] as ui_chat
+    [Call Center\n(BandejaAvisos, IncidenteManual)] as ui_cc
+    [Centro de Mando\n(KanbanBoard, MisionDetalle)] as ui_mando
+    [Dashboard Estadístico\n(DashboardView, KpiCards)] as ui_kpi
+    [Administración\n(Empleados, Roles, Recursos)] as ui_admin
+  }
+
+  package "2. Capa de Estado y Lógica (src/hooks)" as pkg_hooks #FFFFFF {
+    [useChatbot] as h_chat
+    [useAvisos / useIncidenteManualForm] as h_avisos
+    [useKanban / useIncidentesKpis] as h_mando
+    [useAdminEmpleados / useRecursos / useRoles] as h_admin
+    [useAuth] as h_auth
+    [useCallCenterSocket] as h_socket
+  }
+
+  package "3. Servicios de Integración (src/services)" as pkg_services #FFFFFF {
+    [avisosService] as s_avisos
+    [incidentesService] as s_incidentes
+    [empleadosService] as s_empleados
+    [recursosService] as s_recursos
+    [rolesService] as s_roles
+    [authService] as s_auth
+  }
+
+  package "4. Infraestructura y Clientes (src/lib & context)" as pkg_infra #FFFFFF {
+    [apiClient (openapi-fetch)] as apiClient
+    [socketClient (Socket.io)] as socketClient
+    [SimulatedSessionContext / ToastProvider] as ctx
+    [Validaciones (Zod Schemas)] as zod
+  }
+
+  pkg_ui -down-> pkg_hooks
+  pkg_hooks -down-> pkg_services
+  pkg_services -down-> pkg_infra
+}
+
+package "sgrai-api (Backend Nest.js)" as pkg_api #FEFCE8 {
+
+  package "1. Capa de Entrada (Controllers & Gateway)" as pkg_controllers #FFFFFF {
+    [AvisosController] as c_avisos
+    [IncidentesController] as c_incidentes
+    [KpisController] as c_kpis
+    [EmpleadosController] as c_empleados
+    [RecursosController] as c_recursos
+    [RolesController] as c_roles
+    [AuthController] as c_auth
+    [SocketGateway (WebSockets)] as c_gateway
+  }
+
+  package "Seguridad (Guards)" as pkg_guards #FFFFFF {
+    [JwtAuthGuard] as g_jwt
+    [RolesGuard] as g_roles
+  }
+
+  package "2. Servicios de Dominio (src/services)" as pkg_backend_services #FFFFFF {
+    [AvisosService] as b_avisos
+    [IncidentesService] as b_incidentes
+    [EstadisticasService] as b_kpis
+    [EmpleadosService] as b_empleados
+    [RecursosService] as b_recursos
+    [RolesService] as b_roles
+    [AuthService] as b_auth
+  }
+
+  package "3. Persistencia y DAL (src/repositories)" as pkg_dal #FFFFFF {
+    [AvisosRepository] as r_avisos
+    [IncidentesRepository] as r_incidentes
+    [EmpleadosRepository] as r_empleados
+    [RecursosRepository] as r_recursos
+    [RolesRepository] as r_roles
+  }
+
+  pkg_controllers -right-> pkg_guards
+  pkg_controllers -down-> pkg_backend_services
+  pkg_backend_services -down-> pkg_dal
+}
+
+database "PostgreSQL + PostGIS" as db #EFF6FF
+
+pkg_infra -down-> pkg_controllers : " Peticiones HTTP / Sockets "
+pkg_dal -down-> db : " Consultas SQL / PostGIS "
+
+@enduml

@@ -1,0 +1,53 @@
+@startuml
+title H54 - Filtros Bandeja Call Center
+skinparam maxMessageSize 250
+
+box "Frontend (sgrai-web)" #White
+actor "Call Center" as user
+participant "BandejaAvisosUI" as view
+participant "Hook\n(useAvisos)" as hook
+participant "Servicio UI\n(avisosService)" as service
+end box
+
+box "Backend (sgrai-api)" #LightGoldenRodYellow
+participant "AvisosController" as controller
+end box
+
+box "Capa de Datos" #F0F8FF
+participant "AvisosRepository" as repository
+database "PostgreSQL" as db
+end box
+
+== 1. Interacción de Filtrado ==
+
+user -> view ++: Cambia Select de "Estado" o "Prioridad"
+view -> view: searchParams.set('estado', value)
+view -> hook ++: actualiza variables locales
+hook -> hook: useDebounce(filtros, 500ms)
+hook -> hook: setCargando(true)
+
+== 2. Procesamiento Backend ==
+
+hook -> service ++: listarAvisos(filtros)
+service -> controller ++: GET /api/avisos?estado=X&prioridad=Y&limit=20
+
+== 3. Consulta Paginada de DB ==
+
+controller -> repository ++: findWithFilters(filtros)
+repository -> db ++: SELECT a.* FROM avisos a \nWHERE (a.estado = :estado OR :estado IS NULL) \nAND (a.prioridad = :prioridad OR :prioridad IS NULL) \nORDER BY a.creado_at DESC LIMIT 20 OFFSET 0
+return Filas(20)
+repository -> db ++: SELECT COUNT(*) FROM avisos WHERE ...
+return total(85)
+return [Avisos, 85]
+
+controller --> service: 200 OK (PaginatedAvisosDto)
+service --> hook: Promise.resolve(AvisosPaginadosResponse)
+
+== 4. Actualización de Grilla ==
+
+hook -> hook: setAvisos(data)
+hook -> hook: setTotalItems(85)
+hook -> hook: setCargando(false)
+hook -> view: trigger render
+view -> user: Muestra DataGrid con registros filtrados y Paginador actualizado
+@enduml

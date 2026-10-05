@@ -1,0 +1,56 @@
+@startuml
+title H2 - Panel Seguimiento Informante
+skinparam maxMessageSize 250
+
+box "Frontend (sgrai-web)" #White
+actor "Informante" as user
+participant "SeguimientoFormUI" as view
+participant "Hook\n(useSeguimiento)" as hook
+participant "Servicio UI\n(avisosService)" as service
+end box
+
+box "Backend (sgrai-api)" #LightGoldenRodYellow
+participant "AvisosController" as controller
+end box
+
+box "Capa de Datos" #F0F8FF
+participant "AvisosRepository" as repository
+database "PostgreSQL" as db
+end box
+
+== 1. Ingreso de Datos y Validación en Cliente ==
+user -> view ++: Accede a panel de seguimiento
+view -> user: Muestra Input de Código
+user -> view: Ingresa "12345678" y Consulta
+view -> hook ++: form.handleSubmit(onSubmit)
+hook -> hook: zod.validate(codigoSchema)
+hook -> hook: setIsLoading(true)
+
+== 2. Procesamiento Backend ==
+hook -> service ++: obtenerDetalleAviso(codigo)
+service -> controller ++: GET /api/incidentes/avisos/:codigo
+controller -> controller: Validar longitud de código (8 chars)
+
+== 3. Consulta DB ==
+controller -> repository ++: findByCodigo(codigo)
+repository -> db ++: SELECT id, codigo_seguimiento, estado, creado_at \nFROM avisos WHERE codigo_seguimiento = :codigo LIMIT 1
+return Row / Null
+return Entidad / Null
+
+alt Código No Existe
+    controller --> service: 404 Not Found
+    service --> hook: throw Error
+    hook -> hook: setIsLoading(false)
+    hook -> view: form.setError('codigo', 'No encontrado')
+    view -> user: "No se encontró ningún reporte con este código"
+else Reporte Encontrado
+    controller --> service: 200 OK (DetalleAvisoDTO)
+    service --> hook: Promise.resolve(DTO)
+    
+    == 4. Feedback al Usuario ==
+    hook -> hook: setIsLoading(false)
+    hook -> hook: setDetalleAviso(DTO)
+    hook -> view: trigger render
+    view -> user: Visualiza Tarjeta con el estado actual del reporte
+end
+@enduml

@@ -1,0 +1,47 @@
+@startuml
+title H7 - Listar Recursos
+skinparam maxMessageSize 250
+
+box "Frontend (sgrai-web)" #White
+actor "Administrador" as user
+participant "RecursosListUI" as view
+participant "Hook\n(useRecursos)" as hook
+participant "Servicio UI\n(recursosService)" as service
+end box
+
+box "Backend (sgrai-api)" #LightGoldenRodYellow
+participant "RecursosController" as controller
+end box
+
+box "Capa de Datos" #F0F8FF
+participant "RecursosRepository" as repository
+database "PostgreSQL" as db
+end box
+
+== 1. Interacción de Paginación/Filtro ==
+user -> view ++: Cambia de página o aplica filtro de búsqueda
+view -> hook ++: updateFiltros({ page: 2 })
+hook -> hook: setIsLoading(true)
+
+== 2. Backend ==
+hook -> service ++: listarRecursos(filtros)
+service -> controller ++: GET /api/recursos?page=2&limit=10
+
+== 3. Consulta Paginada DB ==
+controller -> repository ++: findWithPagination(filtros)
+repository -> db ++: SELECT * FROM recursos ORDER BY creado_at DESC LIMIT 10 OFFSET 10
+return Rows
+repository -> db ++: SELECT COUNT(*) FROM recursos
+return Total
+return [Entities, TotalCount]
+
+controller --> service: 200 OK (PaginatedResultDto)
+service --> hook: Promise.resolve(Data)
+
+== 4. UI Actualizada ==
+hook -> hook: setRecursos(Data.items)
+hook -> hook: setTotalItems(Data.total)
+hook -> hook: setIsLoading(false)
+hook -> view: Renders DataGrid
+view -> user: Muestra página 2 de la tabla de recursos
+@enduml

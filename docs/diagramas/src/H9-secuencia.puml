@@ -1,0 +1,60 @@
+@startuml
+title H9 - Eliminar Recurso
+skinparam maxMessageSize 250
+
+box "Frontend (sgrai-web)" #White
+actor "Administrador" as user
+participant "RecursosListUI" as view
+participant "Hook\n(useRecursos)" as hook
+participant "Servicio UI\n(recursosService)" as service
+end box
+
+box "Backend (sgrai-api)" #LightGoldenRodYellow
+participant "RecursosController" as controller
+end box
+
+box "Capa de Datos" #F0F8FF
+participant "RecursosRepository" as repository
+database "PostgreSQL" as db
+end box
+
+== 1. Confirmación de Eliminación ==
+
+user -> view ++: Clic en el icono basurero del recurso
+view -> user: Abre Dialog "Confirmar eliminación"
+user -> view: Presiona "Confirmar"
+
+view -> hook ++: handleEliminar(id)
+hook -> hook: setCargandoEliminacion(id)
+
+== 2. Procesamiento en Backend ==
+
+hook -> service ++: eliminarRecurso(id)
+service -> controller ++: DELETE /api/recursos/:id
+
+== 3. Validación de Relaciones e Integridad ==
+
+controller -> repository ++: delete(id)
+repository -> db ++: DELETE FROM recursos WHERE id = :id
+return Violación FK o Success
+return QueryFailedError o Success
+
+alt Recurso en uso (Violación FK)
+    controller --> service: 409 Conflict (Ej: "Recurso asignado a cuadrilla")
+    service --> hook: throw Error("El recurso está en uso")
+    
+    == 4. Feedback de Restricción ==
+    hook -> hook: clearCargandoEliminacion()
+    hook -> view: toast.error("No se puede eliminar porque está en uso")
+    view -> user: Muestra toast rojo
+else Eliminación Exitosa
+    controller --> service: 204 No Content
+    service --> hook: Promise.resolve()
+    
+    == 4. Actualización UI Local ==
+    hook -> hook: setRecursos(prev => prev.filter(r => r.id !== id))
+    hook -> hook: clearCargandoEliminacion()
+    hook -> view: toast.success("Recurso eliminado")
+    view -> user: Desaparece la fila del listado
+end
+@enduml

@@ -1,0 +1,56 @@
+@startuml
+title H13 - Eliminar Empleado
+skinparam maxMessageSize 250
+
+box "Frontend (sgrai-web)" #White
+actor "Administrador" as user
+participant "EmpleadoBajaModalUI" as view
+participant "Hook\n(useAdminEmpleados)" as hook
+participant "Servicio UI\n(empleadosService)" as service
+end box
+
+box "Backend (sgrai-api)" #LightGoldenRodYellow
+participant "EmpleadosController" as controller
+end box
+
+box "Capa de Datos" #F0F8FF
+participant "EmpleadosRepository" as repository
+database "PostgreSQL" as db
+end box
+
+== 1. Confirmación de Baja ==
+user -> view ++: Selecciona Funcionario y hace clic en "Dar de baja"
+view -> hook ++: handleBaja(id)
+hook -> hook: setIsDeleting(true)
+
+== 2. Procesamiento Backend ==
+hook -> service ++: darDeBaja(id)
+service -> controller ++: DELETE /api/empleados/:id
+
+== 3. Restricciones DB (Integridad de Misiones Activas) ==
+controller -> repository ++: checkActiveMissions(id)
+repository -> db ++: SELECT EXISTS(SELECT 1 FROM recursos_misiones rm \nJOIN empleados e ON rm.empleado_id = e.id \nWHERE e.id = :id AND rm.estado = 'ACTIVA')
+return in_mission
+return boolean
+
+alt Está en Misión Activa
+    controller --> service: 400 Bad Request / 409 Conflict\n("Empleado está asignado a una misión en curso")
+    service --> hook: throw Error
+    hook -> hook: setIsDeleting(false)
+    hook -> view: toast.error("No se puede dar de baja, está en terreno")
+    view -> user: "El empleado tiene misiones activas y no puede ser dado de baja."
+else Sin Misiones Activas
+    controller -> repository ++: softDelete(id)
+    repository -> db ++: UPDATE empleados SET activo = false WHERE id = :id
+    return OK
+    return OK
+    controller --> service: 204 No Content
+    service --> hook: Promise.resolve()
+    
+    == 4. Remoción UI ==
+    hook -> hook: setIsDeleting(false)
+    hook -> hook: setEmpleados(prev => filter)
+    hook -> view: toast.success("Dado de baja exitosamente")
+    view -> user: El funcionario desaparece de la tabla de activos
+end
+@enduml

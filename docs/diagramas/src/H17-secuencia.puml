@@ -1,0 +1,40 @@
+@startuml
+title H17 - Detalle de Misión
+skinparam maxMessageSize 250
+
+box "Frontend (sgrai-web)" #White
+actor "Encargado" as user
+participant "MisionDetalleModal" as view
+participant "Servicio UI\n(misionesService)" as service
+end box
+
+box "Backend (sgrai-api)" #LightGoldenRodYellow
+participant "MisionesController" as controller
+end box
+
+box "Capa de Datos" #F0F8FF
+participant "MisionesRepository" as repository
+database "PostgreSQL" as db
+end box
+
+== 1. Apertura de Detalle ==
+user -> view ++: Hace clic en una Misión activa
+view -> view: setIsLoading(true)
+
+== 2. Petición Backend ==
+view -> service ++: obtenerDetalleMision(id)
+service -> controller ++: GET /api/misiones/:id
+
+== 3. Consulta SQL con JOINs ==
+controller -> repository ++: findDetailed(id)
+repository -> db ++: SELECT m.*, i.*, c.*, r.* \nFROM misiones m \nJOIN incidentes i ON m.incidente_id = i.id \nLEFT JOIN misiones_cuadrillas mc ON m.id = mc.mision_id \nLEFT JOIN cuadrillas c ON mc.cuadrilla_id = c.id \nWHERE m.id = :id
+return Row (Misión con Arrays de Cuadrillas y Recursos)
+return Entity
+
+controller --> service: 200 OK (DetalleMisionDTO)
+service --> view: Promise.resolve(DTO)
+
+== 4. Renderizado ==
+view -> view: setIsLoading(false)
+view -> user: Muestra ventana emergente con listado de recursos asignados, estado y timeline.
+@enduml

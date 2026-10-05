@@ -1,0 +1,56 @@
+@startuml
+title H18 - Dashboard KPIs Encargado
+skinparam maxMessageSize 250
+
+box "Frontend (sgrai-web)" #White
+actor "Supervisor" as user
+participant "DashboardPageUI" as view
+participant "Hook\n(useIncidentesKpis)" as hook
+participant "Servicio UI\n(incidentesService)" as service
+end box
+
+box "Backend (sgrai-api)" #LightGoldenRodYellow
+participant "KpisController" as controller
+end box
+
+box "Capa de Datos" #F0F8FF
+participant "IncidentesRepository" as repository
+database "PostgreSQL" as db
+end box
+
+== 1. Selección de Filtros ==
+
+user -> view ++: Ingresa a Dashboard o cambia DatePicker
+view -> view: Actualiza estado local (fechaInicio, fechaFin)
+view -> hook ++: refetch(query)
+hook -> hook: setIsFetching(true)
+
+== 2. Procesamiento en Backend ==
+
+hook -> service ++: obtenerKpisIncidentes(query)
+service -> controller ++: GET /api/incidentes/kpis?fechaInicio=...&fechaFin=...
+
+controller -> controller: Validar formato ISO8601 de fechas
+
+== 3. Consultas Analíticas (Agregación SQL) ==
+
+controller -> repository ++: getMetricasGenerales(query)
+repository -> db ++: SELECT COUNT(*) as total, \nCOUNT(*) FILTER (WHERE estado='RESUELTO') as resueltos, \nAVG(EXTRACT(EPOCH FROM (resuelto_at - creado_at))) as tiempo_promedio \nFROM incidentes WHERE creado_at >= :inicio AND creado_at <= :fin
+return { total: 10, resueltos: 5, tiempo_promedio: 3600 }
+return Result
+
+controller -> repository ++: getAgrupacionTipos(query)
+repository -> db ++: SELECT tipo, COUNT(*) as cantidad FROM incidentes \nWHERE creado_at >= :inicio AND creado_at <= :fin GROUP BY tipo
+return [{tipo: 'Inundación', cantidad: 3}, ...]
+return Result
+
+controller --> service: 200 OK (KpisPayloadDTO)
+service --> hook: Promise.resolve(ResultadoKpis)
+
+== 4. Actualización UI ==
+
+hook -> hook: setData(ResultadoKpis)
+hook -> hook: setIsFetching(false)
+hook -> view: trigger render
+view -> user: Visualiza Tarjetas KPI (Total, Promedio) y Gráficos (Torta/Barras)
+@enduml

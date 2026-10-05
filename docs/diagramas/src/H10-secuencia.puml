@@ -1,0 +1,57 @@
+@startuml
+title H10 - Registrar Funcionario
+skinparam maxMessageSize 250
+
+box "Frontend (sgrai-web)" #White
+actor "Administrador" as user
+participant "EmpleadoFormUI" as view
+participant "Hook\n(useAdminEmpleados)" as hook
+participant "Servicio UI\n(empleadosService)" as service
+end box
+
+box "Backend (sgrai-api)" #LightGoldenRodYellow
+participant "EmpleadosController" as controller
+end box
+
+box "Capa de Datos" #F0F8FF
+participant "EmpleadosRepository" as repository
+database "PostgreSQL" as db
+end box
+
+== 1. Ingreso de Datos y Validación ==
+user -> view ++: Abre modal, llena RUT, Nombre, Rol y Contraseña
+view -> hook ++: form.handleSubmit(onSubmit)
+hook -> hook: zod.validate(CreateEmpleadoSchema)\n(Verifica complejidad de contraseña y formato RUT)
+hook -> hook: setIsSubmitting(true)
+
+== 2. Procesamiento Backend ==
+hook -> service ++: crearEmpleado(payload)
+service -> controller ++: POST /api/empleados (JSON)
+
+controller -> controller: Hashear Password (bcrypt)
+
+== 3. Integridad DB ==
+controller -> repository ++: checkRut(rut)
+repository -> db ++: SELECT EXISTS(SELECT 1 FROM empleados WHERE rut = :rut)
+return booleano
+return exists
+
+alt RUT Duplicado
+    controller --> service: 409 Conflict ("RUT ya existe")
+    service --> hook: throw Error
+    hook -> view: form.setError('rut', 'Ya registrado')
+    view -> user: "El funcionario ya existe en el sistema"
+else Funcionario Nuevo
+    controller -> repository ++: save(empleado)
+    repository -> db ++: INSERT INTO empleados (rut, nombre, password_hash, rol_id)\nVALUES (...) RETURNING id
+    return Entity
+    return OK
+    controller --> service: 201 Created
+    service --> hook: Promise.resolve()
+    
+    == 4. Feedback ==
+    hook -> hook: setIsSubmitting(false)
+    hook -> view: onExito() -> Refresca listado
+    view -> user: toast.success("Funcionario registrado correctamente")
+end
+@enduml

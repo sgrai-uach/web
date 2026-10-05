@@ -1,0 +1,57 @@
+@startuml
+title H53 - Ingreso Manual de Avisos
+skinparam maxMessageSize 250
+
+box "Frontend (sgrai-web)" #White
+actor "Call Center" as user
+participant "IncidenteManualFormUI" as view
+participant "Hook\n(useIncidenteManualForm)" as hook
+participant "Servicio UI\n(incidentesManualesService)" as service
+end box
+
+box "Backend (sgrai-api)" #LightGoldenRodYellow
+participant "AvisosController" as controller
+participant "SocketGateway" as socket
+end box
+
+box "Capa de Datos" #F0F8FF
+participant "AvisosRepository" as repository
+database "PostgreSQL" as db
+end box
+
+== 1. Ingreso de Datos ==
+
+user -> view ++: Llena Formulario Completo (Operador, Informante, Geolocalización)
+user -> view: Presiona "Registrar Aviso"
+view -> hook ++: form.handleSubmit(onSubmit)
+hook -> hook: zod.validate(AvisoManualSchema)
+hook -> hook: setIsSubmitting(true)
+
+== 2. Procesamiento Backend ==
+
+hook -> service ++: crearIncidenteManual(payload: CrearAvisoManualDto)
+service -> controller ++: POST /api/incidentes/manual (JSON)
+
+controller -> controller: ClassValidator / ValidationPipe
+
+== 3. Guardado en DB y Emisión de Socket ==
+
+controller -> repository ++: save(avisoManual)
+repository -> db ++: INSERT INTO avisos (informante_nombre, lat, lng, origen, estado, operador_id) \nVALUES (:nombre, :lat, :lng, 'LLAMADA', 'NO_VERIFICADO', :op_id) RETURNING *
+return AvisoDBEntity
+return Entidad Guardada
+
+controller -> socket ++: emit('nuevo_aviso_callcenter', DTO)
+socket -> socket: Notifica a salas de Encargados
+return OK
+
+controller --> service: 201 Created
+service --> hook: Promise.resolve(ResultadoAviso)
+
+== 4. Feedback al Operador ==
+
+hook -> hook: setIsSubmitting(false)
+hook -> view: onExito()
+view -> view: form.reset()
+view -> user: Toast Verde "Aviso registrado exitosamente. Limpiando formulario..."
+@enduml

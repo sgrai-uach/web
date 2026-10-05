@@ -1,0 +1,53 @@
+@startuml
+title H15 - Tablero Kanban Encargado
+skinparam maxMessageSize 250
+
+box "Frontend (sgrai-web)" #White
+actor "Encargado" as user
+participant "KanbanBoardUI" as view
+participant "Hook\n(useKanban)" as hook
+participant "Servicio UI\n(incidentesService)" as service
+end box
+
+box "Backend (sgrai-api)" #LightGoldenRodYellow
+participant "IncidentesController" as controller
+participant "SocketGateway" as socket
+end box
+
+box "Capa de Datos" #F0F8FF
+participant "IncidentesRepository" as repository
+database "PostgreSQL" as db
+end box
+
+== 1. Interacción Drag & Drop ==
+user -> view ++: Arrastra Tarjeta Incidente a "En Atención"
+view -> view: Actualiza posición localmente (Optimistic Update)
+view -> hook ++: moverIncidente(id, 'EN_ATENCION')
+
+== 2. Procesamiento Backend ==
+hook -> service ++: actualizarEstadoIncidente(id, 'EN_ATENCION')
+service -> controller ++: PATCH /api/incidentes/:id/estado
+
+== 3. Actualización DB y Sockets ==
+controller -> repository ++: updateEstado(id, estado)
+repository -> db ++: UPDATE incidentes SET estado = 'EN_ATENCION', \nupdated_at = NOW() WHERE id = :id
+return OK
+return OK
+
+controller -> socket ++: emit('incidente_actualizado', IncidenteDTO)
+socket -> socket: Notifica a todos los clientes (CallCenter, otros Encargados)
+return OK
+
+controller --> service: 200 OK
+service --> hook: Promise.resolve()
+
+== 4. Consolidación UI ==
+alt Falla del servidor (Error 500)
+    service --> hook: Error
+    hook -> view: Rollback (Vuelve a mover tarjeta al origen)
+    view -> user: toast.error("No se pudo cambiar el estado")
+else Éxito
+    hook -> hook: Consolida estado sin re-fetch
+    view -> user: Tarjeta se queda en la nueva columna
+end
+@enduml

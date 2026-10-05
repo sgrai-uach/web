@@ -1,0 +1,31 @@
+@startuml
+title H52 - Recepción de Avisos Call Center
+skinparam maxMessageSize 250
+
+box "Frontend (sgrai-web)" #White
+actor "Call Center" as user
+participant "BandejaAvisosUI" as view
+participant "Hook Sockets\n(useCallCenterSocket)" as hook
+end box
+
+box "Backend (sgrai-api)" #LightGoldenRodYellow
+participant "SocketGateway" as socket
+end box
+
+box "Eventos Externos"
+participant "Ciudadano / Portal" as trigger
+end box
+
+== 1. Emisión Origen ==
+trigger -> socket: POST /api/incidentes/avisos (Nuevo reporte)
+socket -> socket: broadcast.to('callcenter').emit('nuevo_aviso', DTO)
+
+== 2. Recepción en Cliente (Tiempo Real) ==
+socket --> hook ++: Evento 'nuevo_aviso' recibido por Socket.io-client
+hook -> hook: store.unshift(nuevoAviso)
+hook -> view: Dispara re-render
+
+== 3. Feedback Activo ==
+view -> user: Muestra "badge" de nuevo mensaje o nueva fila en tope de tabla
+view -> user: Play sonido de notificación suave (Opcional)
+@enduml

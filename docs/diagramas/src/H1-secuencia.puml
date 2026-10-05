@@ -1,0 +1,119 @@
+@startuml
+title H1 - Reportar Incidente
+skinparam maxMessageSize 250
+
+box "Frontend (sgrai-web)" #White
+actor "Informante\n(Ciudadano)" as user
+participant "Cliente UI\n(ChatContainer)" as view
+participant "Hook\n(useChatbot)" as hook
+participant "Servicio UI\n(avisosService)" as service
+end box
+
+box "Backend (sgrai-api)" #LightGoldenRodYellow
+participant "API Nest.js\n(Route & Service)" as controller
+end box
+
+box "Capa de Datos" #F0F8FF
+participant "TypeORM\n(Query Builder)" as repository
+database "PostgreSQL\n(+ PostGIS)" as db
+end box
+
+== 1. Ingreso de Datos y Validación en Cliente ==
+
+user -> view ++: Accede al portal ciudadano (H1)
+view -> user: Presenta bienvenida y opciones de tipo
+user -> view: selecciona (tipoAfectacion: string)
+
+view -> hook ++: seleccionarTipoAfectacion(tipo)
+hook -> hook: localStorage.setItem('sgrai_chat_draft', JSON.stringify(datos))
+hook -> view: agregarMensajeBot("Entendido. Por favor, indica la dirección exacta...")
+view -> user: Muestra mensaje bot
+user -> view: enviarTexto(direccion)
+
+view -> hook: procesarDireccion(direccion)
+hook -> hook: Valida: direccion.trim().length >= 5
+hook -> hook: localStorage.setItem('sgrai_chat_draft', JSON.stringify(datos))
+hook -> view: agregarMensajeBot("¿Deseas agregar algún detalle adicional? ...")
+view -> user: Muestra mensaje bot
+user -> view: enviarTexto(descripcion)
+
+view -> hook: procesarDescripcion(descripcion)
+hook -> hook: localStorage.setItem(...)
+hook -> view: agregarMensajeBot("Para registrar formalmente tu reporte, ¿cuál es tu nombre completo?")
+view -> user: Muestra mensaje bot
+user -> view: enviarTexto(nombre)
+
+view -> hook: procesarNombre(nombre)
+hook -> hook: Valida: nombre.trim().length >= 3
+hook -> hook: localStorage.setItem(...)
+hook -> view: agregarMensajeBot("Ingresa tu RUT (con o sin puntos y con guion)...")
+view -> user: Muestra mensaje bot
+user -> view: enviarTexto(rut)
+
+view -> hook: procesarRut(rut)
+hook -> hook: validarRutChileno(texto) y formatearRut(texto)
+hook -> hook: localStorage.setItem(...)
+hook -> view: agregarMensajeBot("Ingresa tu número de teléfono de contacto (obligatorio)...")
+view -> user: Muestra mensaje bot
+user -> view: enviarTexto(telefono)
+
+view -> hook: procesarTelefono(telefono)
+hook -> hook: validarTelefonoChileno(texto) y normalizarTelefonoParaEnvio(texto)
+hook -> hook: localStorage.setItem(...)
+hook -> view: agregarMensajeBot("Por favor, revisa el resumen...", "resumen")
+view -> user: Muestra resumen
+user -> view: confirmarYEnviarReporte()
+
+view -> hook: confirmarYEnviarReporte()
+
+== 2. Procesamiento y Reglas de Negocio en Backend ==
+
+hook -> service ++: enviarAvisoIncidente(payload: CrearAvisoPayload)
+service -> controller ++: POST /api/incidentes/avisos (JSON)
+
+controller -> controller: ClassValidator / class-transformer
+controller -> controller: normalizarRutChileno(rut), normalizarTelefono(tel)
+
+== 3. Validación Espacial y Detección de Duplicados ==
+
+controller -> repository ++: buscarDuplicadoPorUbicacionYTipo(lat, lng, tipo)
+repository -> db ++: SELECT id, codigo_seguimiento FROM avisos \nWHERE tipo = :tipo AND ST_DistanceSphere(geom, ST_MakePoint(:lng, :lat)) <= 50 \nAND creado_at >= NOW() - INTERVAL '24 hours' AND estado NOT IN ('RESUELTO') LIMIT 1
+return Resultado (Record / Null)
+return avisoExistente / null
+
+alt Duplicado Detectado (Modelo SAESA)
+    controller -> repository ++: guardarDuplicado(nuevo, existente.id)
+    repository -> db ++: INSERT INTO avisos (..., es_duplicado, incidente_original_id)\nVALUES (..., true, :original_id)
+    return OK
+    return OK
+    return 200 OK (data: { esDuplicado: true, codigoSeguimiento: existente.codigo })
+    service -> hook: return { exito: true, esDuplicado: true, codigoSeguimiento }
+    
+    == 4. Feedback al Usuario ==
+    
+    hook -> hook: localStorage.removeItem('sgrai_chat_draft')
+    hook -> view: agregarMensajeBot("Aviso recibido: Este incidente ya fue informado...", "resultado")
+    view -> user: Muestra tarjeta duplicado
+
+else Incidente Nuevo (No Duplicado)
+    controller -> controller: generarCodigoSeguimiento()
+    controller -> repository ++: guardarNuevo(nuevo)
+    repository -> db ++: INSERT INTO avisos (..., es_duplicado, codigo_seguimiento)\nVALUES (..., false, :nuevo_codigo)
+    return Entity (id)
+    return OK
+    return 201 Created (data: { esDuplicado: false, codigoSeguimiento: nuevo_codigo })
+    service -> hook: return { exito: true, esDuplicado: false, codigoSeguimiento }
+    
+    == 4. Feedback al Usuario ==
+    
+    hook -> hook: localStorage.removeItem('sgrai_chat_draft')
+    hook -> view: agregarMensajeBot("Reporte recibido con éxito...", "resultado")
+    view -> user: Muestra éxito
+
+else Error Validación
+    controller --> service: 400 Bad Request
+    service --> hook: return { exito: false, mensaje, errores }
+    hook -> view: setMensajeError(mensaje)
+    view -> user: Muestra error
+end
+@enduml

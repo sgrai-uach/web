@@ -1,0 +1,45 @@
+@startuml
+title H4 - Visualizar Permisos
+skinparam maxMessageSize 250
+
+box "Frontend (sgrai-web)" #White
+actor "Administrador" as user
+participant "RolesListUI" as view
+participant "Hook\n(useRoles)" as hook
+participant "Servicio UI\n(rolesService)" as service
+end box
+
+box "Backend (sgrai-api)" #LightGoldenRodYellow
+participant "RolesController" as controller
+end box
+
+box "Capa de Datos" #F0F8FF
+participant "RolesRepository" as repository
+database "PostgreSQL" as db
+end box
+
+== 1. Inicialización ==
+user -> view ++: Accede a Roles y Permisos
+view -> hook ++: useEffect() -> fetchRoles()
+hook -> hook: setCargando(true)
+
+== 2. Procesamiento Backend ==
+hook -> service ++: obtenerRoles()
+service -> controller ++: GET /api/auth/roles
+controller -> controller: Validar permisos del token JWT (Admin)
+
+== 3. Consulta DB ==
+controller -> repository ++: getRolesWithPermisos()
+repository -> db ++: SELECT r.id, r.nombre, json_agg(p.nombre) as permisos \nFROM roles r \nLEFT JOIN rol_permisos rp ON r.id = rp.rol_id \nLEFT JOIN permisos p ON rp.permiso_id = p.id \nGROUP BY r.id
+return Filas
+return Entidades(Roles)
+
+controller --> service: 200 OK (Array<RolDto>)
+service --> hook: Promise.resolve(Roles)
+
+== 4. Actualización de UI ==
+hook -> hook: setCargando(false)
+hook -> hook: setRoles(Roles)
+hook -> view: Renderiza Tabla
+view -> user: Muestra listado de roles con sus "chips" de permisos
+@enduml

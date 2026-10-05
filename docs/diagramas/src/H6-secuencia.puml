@@ -1,0 +1,68 @@
+@startuml
+title H6 - Crear Recurso
+skinparam maxMessageSize 250
+
+box "Frontend (sgrai-web)" #White
+actor "Administrador" as user
+participant "RecursoFormUI" as view
+participant "Hook\n(useRecursoForm)" as hook
+participant "Servicio UI\n(recursosService)" as service
+end box
+
+box "Backend (sgrai-api)" #LightGoldenRodYellow
+participant "RecursosController" as controller
+end box
+
+box "Capa de Datos" #F0F8FF
+participant "RecursosRepository" as repository
+database "PostgreSQL" as db
+end box
+
+== 1. Ingreso de Datos y Validación en Cliente ==
+
+user -> view ++: Abre Modal Crear Recurso
+view -> user: Muestra Formulario Vacío
+user -> view: Ingresa datos (Patente, Tipo, Marca) y presiona "Guardar"
+
+view -> hook ++: form.handleSubmit(onSubmit)
+hook -> hook: zod.validate(recursoFormSchema)
+hook -> hook: setIsSubmitting(true)
+
+== 2. Procesamiento en Backend ==
+
+hook -> service ++: crearRecurso(payload: CreateRecursoDTO)
+service -> controller ++: POST /api/recursos (JSON)
+
+controller -> controller: ClassValidator / ValidationPipe
+
+== 3. Detección de Duplicados y Guardado ==
+
+controller -> repository ++: checkPatenteExiste(dto.patente)
+repository -> db ++: SELECT EXISTS(SELECT 1 FROM recursos WHERE patente = :patente)
+return boolean (true/false)
+return bool
+
+alt Patente duplicada
+    controller --> service: 409 Conflict (message: "Patente ya registrada")
+    service --> hook: throw new AvisosServiceError(409)
+    
+    == 4. Feedback al Usuario (Error) ==
+    hook -> view: form.setError('patente', { message: 'Ya existe' })
+    hook -> hook: setIsSubmitting(false)
+    view -> user: Muestra input de Patente en rojo con texto de error
+
+else Recurso Válido
+    controller -> repository ++: save(nuevoRecurso)
+    repository -> db ++: INSERT INTO recursos (tipo, patente, base_id, estado, creado_at)\nVALUES (:tipo, :patente, :base_id, 'DISPONIBLE', NOW()) RETURNING id
+    return Entity Guardada
+    return OK
+    return 201 Created (RecursoDTO)
+    service --> hook: Promise.resolve(Recurso)
+    
+    == 4. Feedback al Usuario (Éxito) ==
+    hook -> hook: setIsSubmitting(false)
+    hook -> view: onExitoCallback()
+    view -> view: Cierra Modal y Refresca Listado (useRecursos)
+    view -> user: toast.success("Recurso creado correctamente")
+end
+@enduml

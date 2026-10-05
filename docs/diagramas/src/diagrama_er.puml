@@ -1,0 +1,217 @@
+@startdot
+graph DER {
+  layout=dot;
+  rankdir=LR;
+  nodesep=0.5;
+  ranksep=0.9;
+  splines=true;
+
+  node [fontname="Noto Sans, Arial", fontsize=11];
+  edge [fontname="Noto Sans, Arial", fontsize=11, color="#1B6F7D"];
+
+  // =============================================================
+  // ENTIDADES (Rectángulos planos institucionales)
+  // =============================================================
+  node [shape=box, style=filled, fillcolor="#FFFFFF", color="#14505A", penwidth=2, fontsize=13, fontcolor="#14505A"];
+  Empleado [label="Empleado"];
+  Rol [label="Rol"];
+  Permiso [label="Permiso"];
+  Cuadrilla [label="Cuadrilla"];
+  Recurso [label="Recurso"];
+  Incidente [label="Incidente"];
+  Aviso [label="Aviso"];
+  Mision [label="Misión"];
+  PuntoCritico [label="Punto Crítico"];
+
+  // =============================================================
+  // RELACIONES (Rombos / Diamonds)
+  // =============================================================
+  node [shape=diamond, style=filled, fillcolor="#FFFFFF", color="#1B6F7D", penwidth=1.8, fontsize=11, fontcolor="#14505A"];
+  Tiene [label="Tiene"];
+  Contiene [label="Contiene"];
+  Lidera [label="Lidera"];
+  Recepciona [label="Recepciona"];
+  Supervisa [label="Supervisa"];
+  Consolida [label="Consolida"];
+  Origina [label="Origina"];
+  Asigna [label="Asigna"];
+  Utiliza [label="Utiliza"];
+  Asocia [label="Asocia"];
+
+  // =============================================================
+  // CLAVES PRIMARIAS (Elipses verdes con texto subrayado)
+  // =============================================================
+  node [shape=ellipse, style=filled, fillcolor="#82E0AA", color="#14505A", penwidth=1.8, fontsize=10, fontcolor="#000000"];
+  pk_emp [label=<<u>rut</u>>];
+  pk_rol [label=<<u>id</u>>];
+  pk_perm [label=<<u>id</u>>];
+  pk_cuad [label=<<u>id</u>>];
+  pk_rec [label=<<u>patente</u>>];
+  pk_inc [label=<<u>id</u>>];
+  pk_aviso [label=<<u>codigo_seguimiento</u>>];
+  pk_mis [label=<<u>id</u>>];
+  pk_pc [label=<<u>id</u>>];
+
+  // =============================================================
+  // ATRIBUTOS NORMALES (Elipses blancas)
+  // =============================================================
+  node [shape=ellipse, style=filled, fillcolor="#FFFFFF", color="#1B6F7D", penwidth=1.2, fontsize=10, fontcolor="#2B2B2B"];
+  
+  // Empleado
+  a_emp_nom [label="nombre"];
+  a_emp_pass [label="password_hash"];
+  a_emp_cargo [label="cargo"];
+  a_emp_act [label="activo"];
+
+  // Rol
+  a_rol_nom [label="nombre"];
+  a_rol_desc [label="descripcion"];
+
+  // Permiso
+  a_perm_nom [label="nombre"];
+  a_perm_mod [label="modulo"];
+
+  // Cuadrilla
+  a_cuad_nom [label="nombre"];
+  a_cuad_est [label="estado"];
+
+  // Recurso
+  a_rec_tipo [label="tipo"];
+  a_rec_est [label="estado"];
+
+  // Incidente
+  a_inc_tipo [label="tipo"];
+  a_inc_desc [label="descripcion"];
+  a_inc_lat [label="latitud"];
+  a_inc_lng [label="longitud"];
+  a_inc_est [label="estado"];
+
+  // Aviso
+  a_av_tipo [label="tipo"];
+  a_av_desc [label="descripcion"];
+  a_av_lat [label="latitud"];
+  a_av_lng [label="longitud"];
+  a_av_est [label="estado"];
+  a_av_orig [label="origen"];
+
+  // Misión
+  a_mis_est [label="estado"];
+  a_mis_ini [label="fecha_inicio"];
+  a_mis_fin [label="fecha_fin"];
+
+  // Punto Crítico
+  a_pc_nom [label="nombre"];
+  a_pc_sec [label="sector"];
+  a_pc_riesgo [label="nivel_riesgo"];
+  a_pc_lat [label="latitud"];
+  a_pc_lng [label="longitud"];
+
+  // =============================================================
+  // CONEXIONES DE ATRIBUTOS (Abanicos pegados a cada entidad)
+  // =============================================================
+  edge [penwidth=1, color="#5F676E", weight=8];
+
+  // Atributos de Permiso
+  pk_perm -- Permiso;
+  a_perm_nom -- Permiso;
+  a_perm_mod -- Permiso;
+
+  // Atributos de Rol
+  pk_rol -- Rol;
+  a_rol_nom -- Rol;
+  a_rol_desc -- Rol;
+
+  // Atributos de Empleado
+  pk_emp -- Empleado;
+  a_emp_nom -- Empleado;
+  a_emp_pass -- Empleado;
+  a_emp_cargo -- Empleado;
+  a_emp_act -- Empleado;
+
+  // Atributos de Cuadrilla
+  pk_cuad -- Cuadrilla;
+  a_cuad_nom -- Cuadrilla;
+  a_cuad_est -- Cuadrilla;
+
+  // Atributos de Recurso
+  pk_rec -- Recurso;
+  a_rec_tipo -- Recurso;
+  a_rec_est -- Recurso;
+
+  // Atributos de Incidente
+  pk_inc -- Incidente;
+  a_inc_tipo -- Incidente;
+  a_inc_desc -- Incidente;
+  a_inc_lat -- Incidente;
+  a_inc_lng -- Incidente;
+  a_inc_est -- Incidente;
+
+  // Atributos de Aviso
+  Aviso -- pk_aviso;
+  Aviso -- a_av_tipo;
+  Aviso -- a_av_desc;
+  Aviso -- a_av_lat;
+  Aviso -- a_av_lng;
+  Aviso -- a_av_est;
+  Aviso -- a_av_orig;
+
+  // Atributos de Misión
+  Mision -- pk_mis;
+  Mision -- a_mis_est;
+  Mision -- a_mis_ini;
+  Mision -- a_mis_fin;
+
+  // Atributos de Punto Crítico
+  PuntoCritico -- pk_pc;
+  PuntoCritico -- a_pc_nom;
+  PuntoCritico -- a_pc_sec;
+  PuntoCritico -- a_pc_riesgo;
+  PuntoCritico -- a_pc_lat;
+  PuntoCritico -- a_pc_lng;
+
+  // =============================================================
+  // CONEXIONES DE RELACIONES (Líneas principales con cardinalidad)
+  // =============================================================
+  edge [penwidth=1.8, color="#1B6F7D", fontcolor="#000000", fontsize=12, weight=1];
+
+  // Auth: Permiso (N) - Contiene - (M) Rol
+  Permiso -- Contiene [label="N"];
+  Contiene -- Rol [label="M"];
+
+  // Roles: Rol (1) - Tiene - (M) Empleado
+  Rol -- Tiene [label="1"];
+  Tiene -- Empleado [label="M"];
+
+  // Personal y Cuadrillas: Empleado (1) - Lidera - (1) Cuadrilla
+  Empleado -- Lidera [label="1"];
+  Lidera -- Cuadrilla [label="1"];
+
+  // Call Center: Empleado (1) - Recepciona - (N) Aviso
+  Empleado -- Recepciona [label="1"];
+  Recepciona -- Aviso [label="N"];
+
+  // Mando: Empleado (1) - Supervisa - (N) Incidente
+  Empleado -- Supervisa [label="1"];
+  Supervisa -- Incidente [label="N"];
+
+  // Despacho: Incidente (1) - Consolida - (N) Aviso
+  Incidente -- Consolida [label="1"];
+  Consolida -- Aviso [label="N"];
+
+  // Misiones: Incidente (1) - Origina - (N) Misión
+  Incidente -- Origina [label="1"];
+  Origina -- Mision [label="N"];
+
+  // Asignación Cuadrilla: Cuadrilla (M) - Asigna - (N) Misión
+  Cuadrilla -- Asigna [label="M"];
+  Asigna -- Mision [label="N"];
+
+  // Logística Recurso: Recurso (M) - Utiliza - (N) Misión
+  Recurso -- Utiliza [label="M"];
+  Utiliza -- Mision [label="N"];
+
+  // Territorio: Incidente (M) - Asocia - (1) Punto Crítico
+  Incidente -- Asocia [label="M"];
+  Asocia -- PuntoCritico [label="1"];
+}
+@enddot

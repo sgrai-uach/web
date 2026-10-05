@@ -1,0 +1,50 @@
+@startuml
+title H57 - Listado Puntos Críticos
+skinparam maxMessageSize 250
+
+box "Frontend (sgrai-web)" #White
+actor "Encargado" as user
+participant "PuntosCriticosPageUI" as view
+participant "Hook\n(usePuntosCriticos)" as hook
+participant "Servicio UI\n(puntosCriticosService)" as service
+end box
+
+box "Backend (sgrai-api)" #LightGoldenRodYellow
+participant "PuntosCriticosController" as controller
+end box
+
+box "Capa de Datos" #F0F8FF
+participant "PuntosCriticosRepository" as repository
+database "PostgreSQL" as db
+end box
+
+== 1. Renderizado Inicial ==
+
+user -> view ++: Ingresa a módulo "/admin/puntos-criticos"
+view -> hook ++: useEffect(fetchPuntos, [])
+hook -> hook: setIsLoading(true)
+
+== 2. Fetch Backend ==
+
+hook -> service ++: getPuntosCriticos(filtros)
+service -> controller ++: GET /api/puntos-criticos
+
+== 3. Consulta Espacial y DB ==
+
+controller -> repository ++: find(filtros)
+repository -> db ++: SELECT id, nombre, sector, lat, lng, nivel_riesgo, geom \nFROM puntos_criticos WHERE activo = true
+return Registros
+return Entidades
+
+controller --> service: 200 OK (Array<PuntoCriticoDto>)
+service --> hook: Promise.resolve(PuntosCriticosResponse)
+
+== 4. Visualización Dual (Mapa / Lista) ==
+
+hook -> hook: setPuntos(data)
+hook -> hook: setIsLoading(false)
+hook -> view: trigger render
+view -> view: Renderiza `<SidebarList puntos={data} />`
+view -> view: Renderiza `<MapBox><Marker lat={lat} lng={lng} /></MapBox>`
+view -> user: Visualiza lista lateral y pines en el mapa interactivo
+@enduml

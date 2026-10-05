@@ -1,0 +1,44 @@
+@startuml
+title H12 - Editar Empleados
+skinparam maxMessageSize 250
+
+box "Frontend (sgrai-web)" #White
+actor "Administrador" as user
+participant "EmpleadoEditUI" as view
+participant "Hook\n(useAdminEmpleados)" as hook
+participant "Servicio UI\n(empleadosService)" as service
+end box
+
+box "Backend (sgrai-api)" #LightGoldenRodYellow
+participant "EmpleadosController" as controller
+end box
+
+box "Capa de Datos" #F0F8FF
+participant "EmpleadosRepository" as repository
+database "PostgreSQL" as db
+end box
+
+== 1. Modificación ==
+user -> view ++: Edita cargo o rol de un empleado y guarda
+view -> hook ++: form.handleSubmit()
+hook -> hook: zod.validate(EditEmpleadoSchema)
+hook -> hook: setIsSubmitting(true)
+
+== 2. Backend ==
+hook -> service ++: actualizarEmpleado(id, payload)
+service -> controller ++: PUT /api/empleados/:id (JSON)
+
+== 3. Update DB ==
+controller -> repository ++: update(id, payload)
+repository -> db ++: UPDATE empleados SET rol_id = :rol_id, cargo = :cargo \nWHERE id = :id
+return OK
+return OK
+
+controller --> service: 200 OK
+service --> hook: Promise.resolve()
+
+== 4. Feedback ==
+hook -> hook: setIsSubmitting(false)
+hook -> view: onExito()
+view -> user: Muestra éxito y cierra el modal
+@enduml

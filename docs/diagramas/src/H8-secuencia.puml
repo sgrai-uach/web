@@ -1,0 +1,67 @@
+@startuml
+title H8 - Editar Recurso
+skinparam maxMessageSize 250
+
+box "Frontend (sgrai-web)" #White
+actor "Administrador" as user
+participant "RecursoEditarModalUI" as view
+participant "Hook\n(useRecursoEditForm)" as hook
+participant "Servicio UI\n(recursosService)" as service
+end box
+
+box "Backend (sgrai-api)" #LightGoldenRodYellow
+participant "RecursosController" as controller
+end box
+
+box "Capa de Datos" #F0F8FF
+participant "RecursosRepository" as repository
+database "PostgreSQL" as db
+end box
+
+== 1. Carga de Datos y Edición ==
+
+user -> view ++: Clic en "Editar" en la tabla de recursos
+view -> hook ++: inicializaConValoresOriginales(recurso)
+hook -> hook: form.reset(recurso)
+view -> user: Muestra Modal precargado
+user -> view: Modifica campos (Ej: cambia Tipo o Marca) y presiona "Guardar"
+
+view -> hook: form.handleSubmit(onSubmit)
+hook -> hook: zod.validate(editRecursoSchema)
+hook -> hook: setIsSubmitting(true)
+
+== 2. Procesamiento en Backend ==
+
+hook -> service ++: actualizarRecurso(id, payload: UpdateRecursoDTO)
+service -> controller ++: PUT /api/recursos/:id (JSON)
+
+controller -> controller: ClassValidator / Partial<CreateRecursoDTO>
+
+== 3. Búsqueda y Actualización ==
+
+controller -> repository ++: findById(id)
+repository -> db ++: SELECT * FROM recursos WHERE id = :id LIMIT 1
+return Record / Null
+return RecursoEntity / Null
+
+alt Recurso no encontrado
+    controller --> service: 404 Not Found
+    service --> hook: throw Error
+    hook -> hook: setIsSubmitting(false)
+    hook -> view: toast.error("El recurso no existe")
+    view -> user: Muestra error
+else Actualización Exitosa
+    controller -> repository ++: save(merge(existente, dto))
+    repository -> db ++: UPDATE recursos SET tipo = :tipo, estado = :estado, updated_at = NOW()\nWHERE id = :id
+    return OK
+    return OK
+    return 200 OK (RecursoDTO actualizado)
+    service --> hook: Promise.resolve(Recurso)
+    
+    == 4. Feedback al Usuario ==
+    hook -> hook: setIsSubmitting(false)
+    hook -> view: onExitoCallback()
+    view -> view: Cierra Modal y gatilla refresco de lista
+    view -> user: toast.success("Recurso actualizado exitosamente")
+end
+@enduml
