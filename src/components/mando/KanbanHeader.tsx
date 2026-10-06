@@ -11,8 +11,6 @@ import {
   ClipboardList,
   ShieldAlert,
   PackagePlus,
-  Kanban,
-  MapPin,
   HeartHandshake,
   Plus,
   ChevronDown,
@@ -90,45 +88,6 @@ export const KanbanHeader: React.FC<KanbanHeaderProps> = ({
         description={`Dirección de Gestión de Riesgos de Desastres — Tablero Táctico ICS (${totalIncidentesVisibles} ${totalIncidentesVisibles === 1 ? 'incidente cargado' : 'incidentes cargados'})`}
         actionSlot={
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-            {onCambiarVista && (
-              <div
-                style={{
-                  display: 'inline-flex',
-                  border: '1px solid var(--border-color-neutral-dark, #CCD2D9)',
-                  backgroundColor: '#FFFFFF',
-                }}
-              >
-                <Button
-                  type="button"
-                  variant={vistaActiva === 'kanban' ? 'secondary' : 'ghost'}
-                  size="sm"
-                  onClick={() => onCambiarVista('kanban')}
-                  aria-pressed={vistaActiva === 'kanban'}
-                  style={{
-                    backgroundColor: vistaActiva === 'kanban' ? 'var(--color-charcoal, #3B3F45)' : 'transparent',
-                    color: vistaActiva === 'kanban' ? '#FFFFFF' : 'var(--color-charcoal, #3B3F45)',
-                  }}
-                >
-                  <Kanban size={14} style={{ marginRight: '4px' }} />
-                  <span>Tablero Kanban</span>
-                </Button>
-                <Button
-                  type="button"
-                  variant={vistaActiva === 'mapa' ? 'secondary' : 'ghost'}
-                  size="sm"
-                  onClick={() => onCambiarVista('mapa')}
-                  aria-pressed={vistaActiva === 'mapa'}
-                  style={{
-                    backgroundColor: vistaActiva === 'mapa' ? 'var(--color-charcoal, #3B3F45)' : 'transparent',
-                    color: vistaActiva === 'mapa' ? '#FFFFFF' : 'var(--color-charcoal, #3B3F45)',
-                  }}
-                >
-                  <MapPin size={14} style={{ marginRight: '4px' }} />
-                  <span>Mapa Operativo</span>
-                </Button>
-              </div>
-            )}
-
             {onAbrirMisiones && (
               <Button
                 type="button"

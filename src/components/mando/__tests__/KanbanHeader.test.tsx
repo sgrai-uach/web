@@ -39,24 +39,6 @@ describe('KanbanHeader (HU-30)', () => {
     expect(onOpenCrearPrevencion).toHaveBeenCalledTimes(1);
   });
 
-  it('debe permitir conmutar entre Tablero Kanban y Mapa Operativo', () => {
-    const onCambiarVista = vi.fn();
-
-    render(
-      <KanbanHeader
-        totalIncidentesVisibles={5}
-        conectado={true}
-        vistaActiva="kanban"
-        onCambiarVista={onCambiarVista}
-      />
-    );
-
-    const btnMapa = screen.getByRole('button', { name: /Mapa Operativo/i });
-    expect(btnMapa).toBeInTheDocument();
-
-    fireEvent.click(btnMapa);
-    expect(onCambiarVista).toHaveBeenCalledWith('mapa');
-  });
 
   it('debe renderizar el botón de Misiones Operativas si se pasa onAbrirMisiones', () => {
     const onAbrirMisiones = vi.fn();

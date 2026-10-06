@@ -21,6 +21,7 @@ import { MisionesModal } from './misiones/MisionesModal';
 import { ModalCrearEventoPrevencion } from './ModalCrearEventoPrevencion';
 import { ModalCrearEventoRecuperacion } from './ModalCrearEventoRecuperacion';
 import { MapaOperativoMando } from './MapaOperativoMando';
+import { KanbanViewSwitcher } from './KanbanViewSwitcher';
 import { Zap } from 'lucide-react';
 import InlineNotice from '@/components/ui/InlineNotice';
 import styles from '@/styles/mando.module.css';
@@ -180,8 +181,6 @@ export const KanbanBoard: React.FC = () => {
         onAbrirMisiones={() => setMisionesModalAbierto(true)}
         onOpenCrearPrevencion={() => setModalPrevencionAbierto(true)}
         onOpenCrearRecuperacion={() => setModalRecuperacionAbierto(true)}
-        vistaActiva={vistaActiva}
-        onCambiarVista={setVistaActiva}
       />
 
       {esForbidden ? (
@@ -227,6 +226,12 @@ export const KanbanBoard: React.FC = () => {
               <span>Actualización en vivo: {ultimoEvento}</span>
             </div>
           )}
+
+          {/* Selector de visualización entre filtros y tablero */}
+          <KanbanViewSwitcher
+            vistaActiva={vistaActiva}
+            onCambiarVista={setVistaActiva}
+          />
 
           {error && !esForbidden && (
             <div style={{ marginBottom: 'var(--space-3)' }}>
