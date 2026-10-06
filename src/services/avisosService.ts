@@ -213,8 +213,9 @@ export async function obtenerDetalleAviso(
 export async function verificarAviso(
   id: string,
   body: VerificarAvisoInput,
-  operadorId: string
+  _operadorId?: string
 ): Promise<VerificarAvisoSuccessResponse> {
+  void _operadorId;
   const { data, error, response } = await apiClient.POST(
     '/api/incidentes/avisos/{id}/verificar',
     {
@@ -260,8 +261,9 @@ export async function verificarAviso(
 export async function descartarAviso(
   id: string,
   body: DescartarAvisoInput,
-  operadorId: string
+  _operadorId?: string
 ): Promise<DescartarAvisoSuccessResponse> {
+  void _operadorId;
   if (!body.motivoDescarte || body.motivoDescarte.trim().length < 5) {
     throw new AvisosServiceError(
       400,

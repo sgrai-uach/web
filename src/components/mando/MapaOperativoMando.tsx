@@ -3,14 +3,15 @@
 import React, { useState } from 'react';
 import dynamic from 'next/dynamic';
 import type { IncidenteResumen } from '@/services/incidentesService';
+import type { EventoPrevencionDTO } from '@/types/evento-prevencion';
 import type { EventoRecuperacionResponse } from '@/types/recuperacion';
 import Button from '@/components/ui/Button';
-import { Truck, Layers } from 'lucide-react';
+import { ShieldAlert, Truck, Layers } from 'lucide-react';
 
 export interface MapaOperativoMandoProps {
   incidentes?: IncidenteResumen[];
   eventosRecuperacion?: EventoRecuperacionResponse[];
-  eventosPrevencion?: unknown[];
+  eventosPrevencion?: EventoPrevencionDTO[];
   onSelectIncidente?: (id: string) => void;
   onCrearRecuperacion?: () => void;
   onCrearPrevencion?: () => void;
@@ -38,7 +39,7 @@ const DynamicMapaOperativoInner = dynamic(() => import('./MapaOperativoMandoInne
         Cargando Mapa Operativo de Valdivia...
       </div>
       <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted, #5F676E)' }}>
-        Capas cartográficas e incidentes en tiempo real
+        Capas cartográficas, incidentes y puntos territoriales en tiempo real
       </div>
     </div>
   ),
@@ -47,11 +48,14 @@ const DynamicMapaOperativoInner = dynamic(() => import('./MapaOperativoMandoInne
 export const MapaOperativoMando: React.FC<MapaOperativoMandoProps> = ({
   incidentes = [],
   eventosRecuperacion = [],
+  eventosPrevencion = [],
   onSelectIncidente,
   onCrearRecuperacion,
+  onCrearPrevencion,
   height = '520px',
 }) => {
   const [mostrarIncidentes, setMostrarIncidentes] = useState(true);
+  const [mostrarPrevenciones, setMostrarPrevenciones] = useState(true);
   const [mostrarRecuperaciones, setMostrarRecuperaciones] = useState(true);
 
   return (
@@ -64,7 +68,7 @@ export const MapaOperativoMando: React.FC<MapaOperativoMandoProps> = ({
         width: '100%',
       }}
     >
-      {/* Barra de herramientas del mapa */}
+      {/* Barra de herramientas del mapa táctico */}
       <div
         style={{
           display: 'flex',
@@ -107,8 +111,8 @@ export const MapaOperativoMando: React.FC<MapaOperativoMandoProps> = ({
           <label style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
             <input
               type="checkbox"
-              checked={mostrarRecuperaciones}
-              onChange={(e) => setMostrarRecuperaciones(e.target.checked)}
+              checked={mostrarPrevenciones}
+              onChange={(e) => setMostrarPrevenciones(e.target.checked)}
             />
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
               <span
@@ -116,36 +120,80 @@ export const MapaOperativoMando: React.FC<MapaOperativoMandoProps> = ({
                   width: '10px',
                   height: '10px',
                   borderRadius: '9999px',
-                  backgroundColor: '#0D9488',
+                  backgroundColor: '#D97706',
                   display: 'inline-block',
                 }}
               />
-              Eventos de Recuperación ({eventosRecuperacion.length})
+              Eventos de Prevención ({eventosPrevencion.length})
             </span>
           </label>
+
+          {eventosRecuperacion && (
+            <label style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
+              <input
+                type="checkbox"
+                checked={mostrarRecuperaciones}
+                onChange={(e) => setMostrarRecuperaciones(e.target.checked)}
+              />
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                <span
+                  style={{
+                    width: '10px',
+                    height: '10px',
+                    borderRadius: '9999px',
+                    backgroundColor: '#0D9488',
+                    display: 'inline-block',
+                  }}
+                />
+                Eventos de Recuperación ({eventosRecuperacion.length})
+              </span>
+            </label>
+          )}
         </div>
 
-        {onCrearRecuperacion && (
-          <Button
-            type="button"
-            variant="primary"
-            size="sm"
-            onClick={onCrearRecuperacion}
-            title="Crear un nuevo evento de recuperación territorial"
-          >
-            <Truck size={14} style={{ marginRight: '6px' }} />
-            <span>Crear Recuperación</span>
-          </Button>
-        )}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          {onCrearPrevencion && (
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={onCrearPrevencion}
+              title="Crear un nuevo evento de prevención territorial"
+              style={{
+                backgroundColor: '#B45309',
+                color: '#FFFFFF',
+                border: 'none',
+              }}
+            >
+              <ShieldAlert size={14} style={{ marginRight: '6px' }} />
+              <span>Crear Prevención</span>
+            </Button>
+          )}
+
+          {onCrearRecuperacion && (
+            <Button
+              type="button"
+              variant="primary"
+              size="sm"
+              onClick={onCrearRecuperacion}
+              title="Crear un nuevo evento de recuperación territorial"
+            >
+              <Truck size={14} style={{ marginRight: '6px' }} />
+              <span>Crear Recuperación</span>
+            </Button>
+          )}
+        </div>
       </div>
 
-      {/* Contenedor del mapa */}
+      {/* Contenedor del mapa Leaflet */}
       <div style={{ width: '100%', height, position: 'relative' }}>
         <DynamicMapaOperativoInner
           incidentes={incidentes}
+          eventosPrevencion={eventosPrevencion}
           eventosRecuperacion={eventosRecuperacion}
           onSelectIncidente={onSelectIncidente}
           mostrarIncidentes={mostrarIncidentes}
+          mostrarPrevenciones={mostrarPrevenciones}
           mostrarRecuperaciones={mostrarRecuperaciones}
         />
       </div>

@@ -4021,6 +4021,264 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/eventos-atp/prevencion": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Crear evento de prevención territorial y despachar misión (HU-30)
+         * @description Registra un nuevo evento preventivo georreferenciado sobre un punto crítico o coordenadas libres en una delegación de Valdivia, asigna recursos opcionales del inventario, despacha una misión operativa a una patrulla verificadora disponible (actualizando su estado a EN_PREVENCION) y emite notificaciones WebSocket en tiempo real.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        /**
+                         * @description Título o nombre descriptivo de la operación preventiva
+                         * @example Inspección preventiva y limpieza de colectores en Angachilla
+                         */
+                        nombre: string;
+                        /**
+                         * @description Instrucciones de mitigación, detalle de vulnerabilidad y objetivos
+                         * @example Monitoreo preventivo del caudal y despeje de rejillas por alerta temprana de temporal
+                         */
+                        descripcion: string;
+                        /**
+                         * @description Sector, población o referencia barrial dentro de Valdivia
+                         * @example Humedal Angachilla
+                         */
+                        sector?: string | null;
+                        /**
+                         * @description Dirección física o punto de referencia en terreno
+                         * @example Pasaje Los Robles s/n con Av. Simpson
+                         */
+                        direccionTexto?: string | null;
+                        /**
+                         * @description Nivel de urgencia o prioridad operativa
+                         * @default MEDIA
+                         * @example ALTA
+                         * @enum {string}
+                         */
+                        prioridad?: "BAJA" | "MEDIA" | "ALTA" | "CRITICA";
+                        /**
+                         * Format: uuid
+                         * @description Identificador de la delegación territorial correspondiente (Norte, Sur, Costa o Calle Calle)
+                         * @example 30000000-0000-4000-8000-000000000001
+                         */
+                        delegacionId: string;
+                        /**
+                         * Format: uuid
+                         * @description Identificador opcional del punto crítico preexistente en el inventario
+                         * @example 40000000-0000-4000-8000-000000000001
+                         */
+                        puntoCriticoId?: string | null;
+                        /**
+                         * @description Latitud geográfica en formato WGS84
+                         * @example -39.8456
+                         */
+                        latitud: number;
+                        /**
+                         * @description Longitud geográfica en formato WGS84
+                         * @example -73.2389
+                         */
+                        longitud: number;
+                        /**
+                         * Format: uuid
+                         * @description Identificador de la patrulla verificadora disponible asignada al evento
+                         * @example 50000000-0000-4000-8000-000000000001
+                         */
+                        patrullaId: string;
+                        /**
+                         * @description Listado de insumos o herramientas asignadas para la misión preventiva
+                         * @default []
+                         */
+                        recursos?: {
+                            /**
+                             * Format: uuid
+                             * @description UUID del recurso logístico en inventario
+                             * @example 00000000-0000-4000-8000-000000000001
+                             */
+                            recursoId: string;
+                            /**
+                             * @description Cantidad de unidades del recurso requeridas
+                             * @example 5
+                             */
+                            cantidad: number;
+                        }[];
+                    };
+                };
+            };
+            responses: {
+                /** @description Evento de prevención creado y patrulla despachada exitosamente */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example Evento de prevención creado y patrulla despachada exitosamente. */
+                            message: string;
+                            data: {
+                                /**
+                                 * Format: uuid
+                                 * @description Identificador único UUID del evento de prevención
+                                 */
+                                id: string;
+                                /**
+                                 * @description Código institucional único (ej. PREV-2026-0001)
+                                 * @example PREV-2026-0001
+                                 */
+                                codigo: string;
+                                /** @example Inspección preventiva y limpieza de colectores en Angachilla */
+                                nombre: string;
+                                /** @example Monitoreo preventivo del caudal y despeje de rejillas */
+                                descripcion: string;
+                                /** @example Humedal Angachilla */
+                                sector: string | null;
+                                /** @example Pasaje Los Robles s/n */
+                                direccionTexto: string | null;
+                                /**
+                                 * @example ALTA
+                                 * @enum {string}
+                                 */
+                                prioridad: "BAJA" | "MEDIA" | "ALTA" | "CRITICA";
+                                /**
+                                 * @example PLANIFICADA
+                                 * @enum {string}
+                                 */
+                                estado: "PLANIFICADA" | "EN_CURSO" | "COMPLETADA" | "CANCELADA";
+                                /** @example -39.8456 */
+                                latitud: number;
+                                /** @example -73.2389 */
+                                longitud: number;
+                                /** @description Punto crítico territorial asociado (si fue designado) */
+                                puntoCritico: {
+                                    /** Format: uuid */
+                                    id: string;
+                                    codigo: string;
+                                    nombre: string;
+                                } | null;
+                                /** @description Delegación territorial asignada */
+                                delegacion: {
+                                    /** Format: uuid */
+                                    id: string;
+                                    codigo: string;
+                                    nombre: string;
+                                } | null;
+                                /** @description Misión táctica despachada a la patrulla */
+                                mision: {
+                                    /**
+                                     * Format: uuid
+                                     * @example 60000000-0000-4000-8000-000000000001
+                                     */
+                                    id: string;
+                                    /** @example MIS-2026-0045 */
+                                    codigo: string;
+                                    /** @example Inspección preventiva y limpieza de colectores en Angachilla */
+                                    titulo: string;
+                                    /** @example DESPACHADA */
+                                    estado: string;
+                                    /** @example PREVENCION */
+                                    tipoMision: string;
+                                };
+                                /** @description Patrulla asignada en estado EN_PREVENCION */
+                                patrulla: {
+                                    /**
+                                     * Format: uuid
+                                     * @example 50000000-0000-4000-8000-000000000001
+                                     */
+                                    id: string;
+                                    /** @example Patrulla Verificadora Alfa */
+                                    nombre: string;
+                                    /** @example EN_PREVENCION */
+                                    estado: string;
+                                };
+                                /** @description Recursos asignados al evento */
+                                recursos: {
+                                    /**
+                                     * Format: uuid
+                                     * @example 00000000-0000-4000-8000-000000000001
+                                     */
+                                    recursoId: string;
+                                    /** @example Sacos de Arena 25kg */
+                                    nombre: string;
+                                    /** @example 5 */
+                                    cantidadAsignada: number;
+                                }[];
+                                /**
+                                 * Format: uuid
+                                 * @description Identificador del Encargado que creó el evento
+                                 */
+                                creadoPorId: string;
+                                /** @description Fecha de registro ISO 8601 */
+                                creadoEn: string;
+                                /** @description Fecha de actualización ISO 8601 */
+                                actualizadoEn: string;
+                            };
+                        };
+                    };
+                };
+                /** @description Datos de entrada inválidos para el evento de prevención */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description No autenticado o token de sesión inválido */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Acceso denegado. Se requiere permiso 'prevencion:eventos:crear' */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Patrulla, delegación, punto crítico o recurso no encontrado */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Conflicto: la patrulla verificadora no está disponible o stock insuficiente */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Error interno del servidor */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {

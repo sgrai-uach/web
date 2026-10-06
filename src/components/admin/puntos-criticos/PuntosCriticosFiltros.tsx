@@ -95,6 +95,7 @@ export default function PuntosCriticosFiltros({
     });
   }
 
+
   return (
     <FilterBar
       titulo="Filtros de Puntos Críticos"
@@ -133,6 +134,7 @@ export default function PuntosCriticosFiltros({
           options={OPCIONES_PRIORIDAD}
           onChange={(val) => onCambiarPrioridad((val as PrioridadPuntoCritico) || undefined)}
         />
+
       </div>
 
       <ActiveFilterChips
