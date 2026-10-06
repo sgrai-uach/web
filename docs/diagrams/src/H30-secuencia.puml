@@ -1,0 +1,63 @@
+@startuml
+title H30 - Crear Evento Prevencion
+skinparam maxMessageSize 250
+
+box "Frontend (sgrai-web)" #White
+actor "Encargado de Mando" as user
+participant "PrevencionModalUI" as view
+participant "Hook\n(usePrevencionForm)" as hook
+participant "Servicio UI\n(prevencionService)" as service
+end box
+
+box "Backend (sgrai-api)" #LightGoldenRodYellow
+participant "PrevencionController" as controller
+participant "SocketGateway" as socket
+end box
+
+box "Capa de Datos" #F0F8FF
+participant "PrevencionRepository" as repository
+database "PostgreSQL / PostGIS" as db
+end box
+
+== 1. Ingreso de Datos y Vinculación a Punto Crítico ==
+user -> view ++: Abre modal "Nuevo Evento de Prevención"
+user -> view: Selecciona Punto Crítico preexistente (opcional)
+view -> hook ++: seleccionarPuntoCritico(puntoId)
+hook --> view: Autocompleta GPS, sector territorial y delegación
+user -> view: Ingresa instrucciones tácticas (>= 5 chars),\nselecciona patrulla disponible e insumos
+view -> hook: submitForm(prevencionData)
+hook -> hook: Validar campos requeridos y stock
+hook -> hook: setIsLoading(true)
+
+== 2. Procesamiento Backend y Validaciones ==
+hook -> service ++: crearEventoPrevencion(payload)
+service -> controller ++: POST /api/prevencion (Payload JSON)
+controller -> controller: Validar permisos (prevencion:eventos:crear)
+
+== 3. Persistencia y Emisión WebSocket ==
+controller -> repository ++: registrarOperacionPreventiva(data)
+repository -> db ++: BEGIN TRANSACTION;\n- INSERT INTO eventos_prevencion (punto_critico_id, geom, ...);\n- INSERT INTO misiones (tipo = 'PREVENCION', estado = 'DESPACHADA', ...);\n- UPDATE patrullas SET estado = 'EN_PREVENCION' WHERE id = :patrullaId;\nCOMMIT;
+return Operación confirmada
+return Entidad PrevencionDTO
+
+controller -> socket ++: emit('prevencion:creada', PrevencionDTO)
+socket -> socket: Emite a sala:encargados y canal del Mapa Operativo
+return OK
+
+controller --> service: 201 Created (PrevencionDTO)
+service --> hook: Promise.resolve(DTO)
+
+== 4. Feedback al Usuario y Refresco de Vista ==
+alt Conflicto o Error de Validación (HTTP 400 / 409)
+    controller --> service: Error HTTP (400 / 409)
+    service --> hook: throw Error
+    hook -> hook: setIsLoading(false)
+    hook -> view: setFormErrors(errorPayload)
+    view -> user: Muestra mensajes de corrección en formulario
+else Creación Exitosa (HTTP 201)
+    hook -> hook: setIsLoading(false)
+    hook -> view: toast.success("Evento de prevención registrado exitosamente")
+    view -> view: Cierra modal automáticamente
+    view -> user: Muestra nuevo marcador ámbar en Mapa Operativo\ny actualiza contadores del tablero
+end
+@enduml

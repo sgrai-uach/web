@@ -1,0 +1,64 @@
+@startuml
+title H29 - Crear Evento Recuperacion
+skinparam maxMessageSize 250
+
+box "Frontend (sgrai-web)" #White
+actor "Encargado de Mando" as user
+participant "RecuperacionModalUI" as view
+participant "Hook\n(useRecuperacionForm)" as hook
+participant "Servicio UI\n(recuperacionService)" as service
+end box
+
+box "Backend (sgrai-api)" #LightGoldenRodYellow
+participant "RecuperacionController" as controller
+participant "SocketGateway" as socket
+end box
+
+box "Capa de Datos" #F0F8FF
+participant "RecuperacionRepository" as repository
+database "PostgreSQL / PostGIS" as db
+end box
+
+== 1. Ingreso de Datos y Selección de Insumos ==
+user -> view ++: Abre modal "Nuevo Evento de Recuperación"
+view -> hook ++: cargarPatrullasYRecursosDisponibles()
+hook -> service ++: getRecursosDisponibles()
+service --> hook: Lista de recursos y stock en bodega
+hook --> view: Opciones de patrullas e insumos disponibles
+user -> view: Completa título, sector, fija punto GPS,\nasigna patrulla y selecciona insumos con cantidades
+view -> hook: submitForm(recuperacionData)
+hook -> hook: Validar que cantidad solicitada <= stockDisponible
+hook -> hook: setIsLoading(true)
+
+== 2. Procesamiento Backend y Transacción ==
+hook -> service ++: despacharRecuperacion(payload)
+service -> controller ++: POST /api/recuperacion (Payload JSON)
+controller -> controller: Validar permisos (recuperacion:crear) y verificar concurrencia
+
+== 3. Persistencia Transaccional y Emisión en Tiempo Real ==
+controller -> repository ++: ejecutarDespachoRecuperacion(data)
+repository -> db ++: BEGIN TRANSACTION;\n- INSERT INTO eventos_recuperacion (...);\n- INSERT INTO misiones (tipo = 'RECUPERACION', estado = 'DESPACHADA', ...);\n- UPDATE patrullas SET estado = 'EN_RECUPERACION' WHERE id = :patrullaId;\n- UPDATE recursos SET en_uso = en_uso + :cant WHERE id = :recursoId;\nCOMMIT;
+return Transacción completada con éxito
+return Entidad RecuperacionDTO
+
+controller -> socket ++: emit('recuperacion:creada', RecuperacionDTO)
+socket -> socket: Notifica a sala:encargados y canal del Mapa Operativo
+return OK
+
+controller --> service: 201 Created (RecuperacionDTO)
+service --> hook: Promise.resolve(DTO)
+
+== 4. Feedback y Actualización en Mapa ==
+alt Conflicto de Concurrencia (HTTP 409 Conflict: Patrulla ocupada o Stock agotado)
+    controller --> service: 409 Conflict
+    service --> hook: throw Error(mensaje)
+    hook -> hook: setIsLoading(false)
+    hook -> view: setBannerError("Patrulla o stock no disponible")
+    view -> user: Muestra advertencia ámbar para reasignar
+else Despacho Exitoso (HTTP 201)
+    hook -> hook: setIsLoading(false)
+    hook -> view: toast.success("Evento de recuperación registrado exitosamente")
+    view -> view: Cierra modal automáticamente
+    view -> user: Dibuja marcador esmeralda en Mapa Operativo
+end
+@enduml

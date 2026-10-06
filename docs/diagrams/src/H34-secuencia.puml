@@ -1,0 +1,52 @@
+@startuml
+title H34 - Filtros Listados Encargado
+skinparam maxMessageSize 250
+
+box "Frontend (sgrai-web)" #White
+actor "Encargado de Mando" as user
+participant "FiltrosBarUI" as view
+participant "Hook\n(useFiltrosEncargado)" as hook
+participant "Servicio UI\n(incidentesService)" as service
+end box
+
+box "Backend (sgrai-api)" #LightGoldenRodYellow
+participant "IncidentesController" as controller
+end box
+
+box "Capa de Datos" #F0F8FF
+participant "IncidentesRepository" as repository
+database "PostgreSQL / PostGIS" as db
+end box
+
+== 1. Interacción con Barra de Filtros ==
+user -> view ++: Escribe texto en buscador o selecciona filtros\n(Delegación canónica, Estado, Prioridad)
+view -> hook ++: onFilterChange({ texto, delegacion, estado, prioridad })
+hook -> hook: debounce(300ms) para búsqueda textual
+hook -> hook: Construye matriz de filtros conjuntiva (AND)
+hook -> hook: setIsLoading(true)
+
+== 2. Procesamiento Backend con Parámetros ==
+hook -> service ++: listarIncidentes(filtros)
+service -> controller ++: GET /api/incidentes?delegacion=Norte&estado=EN_ATENCION&q=Picarte...
+controller -> controller: Validar query params y mapear delegación a UUID/Nombre
+
+== 3. Consulta Dinámica en Base de Datos ==
+controller -> repository ++: findWithFilters(filtrosDTO)
+repository -> db ++: SELECT i.*, d.nombre as delegacion_nombre \nFROM incidentes i JOIN delegaciones d ON i.delegacion_id = d.id \nWHERE d.nombre = :delegacion AND i.estado = :estado \nAND (i.titulo ILIKE :q OR i.codigo ILIKE :q) \nORDER BY i.created_at DESC
+return Rows coincidentes
+return Lista de Incidentes y Misiones
+
+controller --> service: 200 OK (DataPayload + Paginación)
+service --> hook: Promise.resolve(resultado)
+
+== 4. Consolidación Reactiva de UI ==
+hook -> hook: setIsLoading(false)
+hook -> hook: setIncidentesFiltrados(resultado.items)
+hook -> view: renderActualizado()
+
+alt Sin coincidencias
+    view -> user: Muestra Empty State amigable y botón "Limpiar Filtros"
+else Resultados encontrados
+    view -> user: Actualiza columnas del Kanban, oculta dinámicamente\ncolumnas vacías y recalcula paginación 1..N
+end
+@enduml

@@ -1,0 +1,65 @@
+@startuml
+title H28 - Crear Evento Asistencia Social
+skinparam maxMessageSize 250
+
+box "Frontend (sgrai-web)" #White
+actor "Encargado / Admin" as user
+participant "EventoSocialFormUI" as view
+participant "Hook\n(useEventoSocial)" as hook
+participant "Servicio UI\n(asistenciaSocialService)" as service
+end box
+
+box "Backend (sgrai-api)" #LightGoldenRodYellow
+participant "AsistenciaSocialController" as controller
+participant "SocketGateway" as socket
+end box
+
+box "Capa de Datos" #F0F8FF
+participant "AsistenciaSocialRepository" as repository
+database "PostgreSQL / PostGIS" as db
+end box
+
+== 1. Ingreso de Datos y Geocodificación ==
+user -> view ++: Abre formulario de Asistencia Social
+view -> user: Despliega formulario y mapa Leaflet
+user -> view: Selecciona causal (ej. Anegamiento), descripción\ny marca punto o escribe dirección
+view -> hook ++: sincronizarUbicacion(coords, direccion)
+hook -> hook: Geocodificación inversa / directa bidireccional
+hook --> view: Coordenadas y dirección validadas
+user -> view: Presiona "Guardar Evento de Asistencia Social"
+view -> hook: submitForm(eventoSocialData)
+hook -> hook: Validar campos mínimos (descripción >= 5, dirección >= 3)
+hook -> hook: setIsLoading(true)
+
+== 2. Procesamiento Backend ==
+hook -> service ++: crearEventoSocial(payload)
+service -> controller ++: POST /api/asistencia-social (Payload JSON)
+controller -> controller: Validar DTO y permisos (asistencia_social:crear)
+
+== 3. Persistencia en Base de Datos y WebSockets ==
+controller -> repository ++: createEventoSocial(data)
+repository -> db ++: INSERT INTO eventos_atp_asistencia_social \n(codigo, causal, geom, estado, ...) \nVALUES ('AS-2026-0001', ...) RETURNING *
+return Registro creado con ID y correlativo
+return Entidad EventoSocial
+
+controller -> socket ++: emit('asistencia_social:creada', EventoSocialDTO)
+socket -> socket: Notifica a salas de Encargados y Asistentes Sociales
+return OK
+
+controller --> service: 201 Created (EventoSocialDTO)
+service --> hook: Promise.resolve(DTO)
+
+== 4. Feedback al Usuario y Redirección ==
+alt Error de validación o conflicto (HTTP 400 / 403)
+    controller --> service: Error HTTP (400 / 403)
+    service --> hook: throw Error
+    hook -> hook: setIsLoading(false)
+    hook -> view: setErrors(apiErrors)
+    view -> user: Muestra alerta con campos erróneos
+else Creación Exitosa (HTTP 201)
+    hook -> hook: setIsLoading(false)
+    hook -> view: toast.success("Evento de asistencia social registrado exitosamente")
+    view -> view: Redirige a bandeja /gestion/asistente-social
+    view -> user: Visualiza nuevo evento en estado PENDIENTE
+end
+@enduml

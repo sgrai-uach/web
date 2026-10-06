@@ -1,0 +1,59 @@
+@startuml
+title H50 - Listado Recursos Supervisor
+skinparam maxMessageSize 250
+
+box "Frontend (sgrai-web)" #White
+actor "Supervisor Estratégico" as user
+participant "RecursosListUI" as view
+participant "AuthContext / Guard" as auth
+participant "Hook\n(useRecursos)" as hook
+participant "Servicio UI\n(recursosService)" as service
+end box
+
+box "Backend (sgrai-api)" #LightGoldenRodYellow
+participant "RecursosController" as controller
+end box
+
+box "Capa de Datos" #F0F8FF
+participant "RecursosRepository" as repository
+database "PostgreSQL" as db
+end box
+
+== 1. Acceso y Evaluación de Permisos RBAC ==
+user -> view ++: Ingresa a ruta /gestion/admin/recursos
+view -> auth ++: tienePermiso('recursos:leer')
+auth --> view: true (Permitido para lectura)
+view -> auth: tienePermiso('recursos:crear')
+auth --> view: false (Sin privilegios de mutación)
+view -> hook ++: cargarInventario()
+hook -> hook: setIsLoading(true)
+
+== 2. Consulta de Inventario a la API ==
+hook -> service ++: getRecursos()
+service -> controller ++: GET /api/recursos (Bearer JWT)
+controller -> controller: Validar autenticación y permiso de lectura
+
+== 3. Extracción de Registros en Base de Datos ==
+controller -> repository ++: findAllRecursos()
+repository -> db ++: SELECT r.*, b.nombre as base_nombre \nFROM recursos r LEFT JOIN bases_operativas b ON r.base_id = b.id \nORDER BY r.tipo, r.nombre ASC
+return Lista de activos y existencias
+return Entidades Recurso[]
+
+controller --> service: 200 OK (RecursosDTO[])
+service --> hook: Promise.resolve(recursos)
+
+== 4. Renderizado en Modo Solo Lectura ==
+hook -> hook: setIsLoading(false)
+hook -> hook: setRecursos(recursos)
+hook -> view: renderTabla()
+view -> view: Oculta botón "+ Registrar Nuevo Recurso" en DOM\ny deshabilita acciones de edición y eliminación
+view -> user: Visualiza tabla con stock libre, en uso y ficha de solo lectura
+
+== 5. Flujo Alternativo: Intento Forzado de Creación ==
+alt Intento de navegación manual a /gestion/admin/recursos/nuevo
+    user -> view: Navega directamente a URL /nuevo
+    view -> auth ++: tienePermiso('recursos:crear')
+    auth --> view: false (Acceso No Autorizado)
+    view -> user: Despliega componente AccesoDenegadoState (HTTP 403)\ncon botón "Volver al Inventario"
+end
+@enduml
