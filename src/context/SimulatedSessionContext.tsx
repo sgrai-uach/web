@@ -94,6 +94,8 @@ function obtenerPermisosFallback(rol: string, esAdmin: boolean): Set<string> {
       'misiones:asignar',
       'eventos_atp:crear',
       'puntos_criticos:leer',
+      'puntos_criticos:crear',
+      'puntos_criticos:gestionar',
       'puntos_criticos:eliminar',
       'personal:leer',
       'personal:crear',
@@ -130,6 +132,7 @@ export function SimulatedSessionProvider({
 }: {
   children: React.ReactNode;
 }) {
+  const [isMounted, setIsMounted] = useState(false);
   const activeUserId = useSyncExternalStore(
     subscribeStorage,
     getStorageSnapshot,
@@ -151,11 +154,11 @@ export function SimulatedSessionProvider({
   const [usuarioDetalleServidor, setUsuarioDetalleServidor] =
     useState<UsuarioActivoDetalle | null>(null);
 
-  const isMounted = useSyncExternalStore(
-    () => () => {},
-    () => true,
-    () => false
-  );
+  useEffect(() => {
+    queueMicrotask(() => {
+      setIsMounted(true);
+    });
+  }, []);
 
   const auth = useContext(AuthContext);
 

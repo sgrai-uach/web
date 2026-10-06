@@ -3,13 +3,12 @@
 import React, { useState, useMemo } from 'react';
 import {
   useIncidentesKanban,
-  ESTADOS_KANBAN,
 } from '@/hooks/useIncidentesKanban';
 import { useIncidentesKpis } from '@/hooks/useIncidentesKpis';
 import { usePrevencionSocket } from '@/hooks/usePrevencionSocket';
 import { useRecuperacionSocket } from '@/hooks/useRecuperacionSocket';
 import { useToast } from '@/components/ui/Toast';
-import { type EstadoIncidente } from '@/services/incidentesService';
+import type { EstadoIncidente } from '@/services/incidentesService';
 import type { EventoPrevencionDTO } from '@/types/evento-prevencion';
 import type { EventoRecuperacionResponse } from '@/types/recuperacion';
 import { KanbanHeader } from './KanbanHeader';
@@ -54,6 +53,8 @@ export const KanbanBoard: React.FC = () => {
     esForbidden,
     filtros,
     setFiltros,
+    estadosVisibles,
+    limpiarFiltros,
     cargarMas,
     recargar,
     conectado,
@@ -62,6 +63,7 @@ export const KanbanBoard: React.FC = () => {
     incidenteSeleccionadoId,
     setIncidenteSeleccionadoId,
   } = useIncidentesKanban();
+
 
   const [estadoEnfocado, setEstadoEnfocado] = useState<EstadoIncidente | null>(null);
 
@@ -158,6 +160,16 @@ export const KanbanBoard: React.FC = () => {
     recargar();
   };
 
+  const contadoresPorEstado = useMemo(() => {
+    const mapa: Record<string, number> = {
+      TODOS: totalIncidentesVisibles,
+    };
+    Object.entries(columnas).forEach(([estado, items]) => {
+      mapa[estado] = items.length;
+    });
+    return mapa;
+  }, [columnas, totalIncidentesVisibles]);
+
   return (
     <div className={styles.pageContainer}>
       <KanbanHeader
@@ -191,7 +203,9 @@ export const KanbanBoard: React.FC = () => {
           <KanbanFiltros
             filtros={filtros}
             onFiltrosChange={setFiltros}
+            onLimpiarFiltros={limpiarFiltros}
             onRecargar={handleRefrescoCompleto}
+            contadoresPorEstado={contadoresPorEstado}
             cargando={cargando}
           />
 
@@ -225,7 +239,7 @@ export const KanbanBoard: React.FC = () => {
           {vistaActiva === 'kanban' ? (
             <main className={styles.kanbanArea}>
               <div className={styles.kanbanBoard}>
-                {ESTADOS_KANBAN.map((estado) => (
+                {estadosVisibles.map((estado) => (
                   <KanbanColumn
                     key={estado}
                     id={`kanban-col-${estado}`}

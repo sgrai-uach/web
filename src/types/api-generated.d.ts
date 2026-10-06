@@ -92,6 +92,90 @@ export interface paths {
                 };
             };
         };
+        post: {
+            parameters: {
+                query?: never;
+                header?: {
+                    "x-user-id"?: string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        nombre: string;
+                        descripcion?: string | null;
+                        tipo_riesgo: string;
+                        nivel_prioridad: "BAJA" | "MEDIA" | "ALTA" | "CRITICA";
+                        lat: number;
+                        lng: number;
+                        radio_afectacion_metros?: number;
+                        delegacion_id?: string | null;
+                        activo?: boolean;
+                    };
+                };
+            };
+            responses: {
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            id: string;
+                            codigo: string;
+                            nombre: string;
+                            descripcion: string | null;
+                            tipo_riesgo: string;
+                            nivel_prioridad: "BAJA" | "MEDIA" | "ALTA" | "CRITICA";
+                            latitud: number;
+                            longitud: number;
+                            radio_afectacion_metros: number;
+                            delegacion_id: string | null;
+                            delegacion_nombre?: string | null;
+                            activo: boolean;
+                            creado_por_id?: string | null;
+                            creado_por_nombre?: string | null;
+                            creado_en: string;
+                            actualizado_en: string;
+                        };
+                    };
+                };
+                400: {
+                    content: {
+                        "application/json": {
+                            message: string;
+                            statusCode?: number;
+                        };
+                    };
+                };
+                401: {
+                    content: {
+                        "application/json": {
+                            message: string;
+                            statusCode?: number;
+                        };
+                    };
+                };
+                403: {
+                    content: {
+                        "application/json": {
+                            message: string;
+                            statusCode?: number;
+                        };
+                    };
+                };
+                500: {
+                    content: {
+                        "application/json": {
+                            message: string;
+                            statusCode?: number;
+                        };
+                    };
+                };
+            };
+        };
     };
     "/api/puntos-criticos/{id}": {
         parameters: {

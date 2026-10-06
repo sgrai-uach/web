@@ -16,11 +16,9 @@ interface PuntosCriticosFiltrosProps {
   delegacionId?: string;
   delegacionNombre?: string;
   prioridad?: PrioridadPuntoCritico;
-  activo?: boolean;
   onCambiarBusqueda: (busqueda: string) => void;
   onCambiarDelegacion: (delegacionId?: string, delegacionNombre?: string) => void;
   onCambiarPrioridad: (prioridad?: PrioridadPuntoCritico) => void;
-  onCambiarActivo?: (activo?: boolean) => void;
   onLimpiarFiltros: () => void;
 }
 
@@ -32,22 +30,14 @@ const OPCIONES_PRIORIDAD = [
   { valor: 'BAJA', etiqueta: 'Baja' },
 ] as const;
 
-const OPCIONES_ACTIVO = [
-  { valor: '', etiqueta: 'Todos los estados' },
-  { valor: 'true', etiqueta: 'Activos' },
-  { valor: 'false', etiqueta: 'Inactivos' },
-] as const;
-
 export default function PuntosCriticosFiltros({
   busqueda,
   delegacionId,
   delegacionNombre,
   prioridad,
-  activo,
   onCambiarBusqueda,
   onCambiarDelegacion,
   onCambiarPrioridad,
-  onCambiarActivo,
   onLimpiarFiltros,
 }: PuntosCriticosFiltrosProps) {
   const { nombresDelegaciones, resolverId, resolverNombre } = useCatalogos();
@@ -105,14 +95,6 @@ export default function PuntosCriticosFiltros({
     });
   }
 
-  if (activo !== undefined && onCambiarActivo) {
-    chipsActivos.push({
-      id: 'activo',
-      etiqueta: 'Estado',
-      valorVisible: activo ? 'Activos' : 'Inactivos',
-      onRemove: () => onCambiarActivo(undefined),
-    });
-  }
 
   return (
     <FilterBar
@@ -153,18 +135,6 @@ export default function PuntosCriticosFiltros({
           onChange={(val) => onCambiarPrioridad((val as PrioridadPuntoCritico) || undefined)}
         />
 
-        {onCambiarActivo && (
-          <FilterSelect
-            id="filtro-activo-pc"
-            label="Estado del Punto:"
-            value={activo === undefined ? '' : String(activo)}
-            options={OPCIONES_ACTIVO}
-            onChange={(val) => {
-              if (val === '') onCambiarActivo(undefined);
-              else onCambiarActivo(val === 'true');
-            }}
-          />
-        )}
       </div>
 
       <ActiveFilterChips

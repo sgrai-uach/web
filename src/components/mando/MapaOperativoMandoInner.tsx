@@ -11,6 +11,7 @@ interface MapaOperativoMandoInnerProps {
   incidentes?: IncidenteResumen[];
   eventosPrevencion?: EventoPrevencionDTO[];
   eventosRecuperacion?: EventoRecuperacionResponse[];
+
   onSelectIncidente?: (id: string) => void;
   mostrarIncidentes?: boolean;
   mostrarPrevenciones?: boolean;
