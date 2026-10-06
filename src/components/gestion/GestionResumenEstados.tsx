@@ -379,7 +379,7 @@ export default function GestionResumenEstados() {
                 }}
               >
                 <PhoneCall size={16} />
-                Call Center 1451
+                Call Center
               </span>
               <span
                 style={{
