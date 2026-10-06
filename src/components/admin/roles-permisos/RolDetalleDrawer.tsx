@@ -66,7 +66,6 @@ export default function RolDetalleDrawer({
         inset: 0,
         zIndex: 9999,
         backgroundColor: 'rgba(20, 80, 90, 0.45)',
-        backdropFilter: 'blur(2px)',
         display: 'flex',
         justifyContent: 'flex-end',
         alignItems: 'stretch',
