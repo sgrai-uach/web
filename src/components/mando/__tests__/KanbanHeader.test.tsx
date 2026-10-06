@@ -16,7 +16,7 @@ describe('KanbanHeader (HU-30)', () => {
     expect(screen.getByText('12 incidentes')).toBeInTheDocument();
   });
 
-  it('debe renderizar el botón "Nuevo Evento de Prevención" y ejecutar onOpenCrearPrevencion', () => {
+  it('debe renderizar el botón "Nuevo Evento" y desplegar "Nuevo Evento de Prevención" para ejecutar onOpenCrearPrevencion', () => {
     const onOpenCrearPrevencion = vi.fn();
 
     render(
@@ -27,7 +27,12 @@ describe('KanbanHeader (HU-30)', () => {
       />
     );
 
-    const btnPrevencion = screen.getByRole('button', { name: /Nuevo Evento de Prevención/i });
+    // Abrir dropdown compacto
+    const btnDropdown = screen.getByRole('button', { name: /Nuevo Evento/i });
+    expect(btnDropdown).toBeInTheDocument();
+    fireEvent.click(btnDropdown);
+
+    const btnPrevencion = screen.getByRole('menuitem', { name: /Nuevo Evento de Prevención/i });
     expect(btnPrevencion).toBeInTheDocument();
 
     fireEvent.click(btnPrevencion);
@@ -71,7 +76,7 @@ describe('KanbanHeader (HU-30)', () => {
     expect(onAbrirMisiones).toHaveBeenCalledTimes(1);
   });
 
-  it('debe renderizar el botón "Nuevo Evento de Recuperación" si se pasa onOpenCrearRecuperacion', () => {
+  it('debe renderizar el botón "Nuevo Evento" y desplegar "Nuevo Evento de Recuperación" si se pasa onOpenCrearRecuperacion', () => {
     const onOpenCrearRecuperacion = vi.fn();
 
     render(
@@ -82,7 +87,12 @@ describe('KanbanHeader (HU-30)', () => {
       />
     );
 
-    const btnRecuperacion = screen.getByRole('button', { name: /Nuevo Evento de Recuperación/i });
+    // Abrir dropdown compacto
+    const btnDropdown = screen.getByRole('button', { name: /Nuevo Evento/i });
+    expect(btnDropdown).toBeInTheDocument();
+    fireEvent.click(btnDropdown);
+
+    const btnRecuperacion = screen.getByRole('menuitem', { name: /Nuevo Evento de Recuperación/i });
     expect(btnRecuperacion).toBeInTheDocument();
 
     fireEvent.click(btnRecuperacion);
