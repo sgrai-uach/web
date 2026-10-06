@@ -106,11 +106,11 @@ export default function IncidenteExitoCard({
         </Button>
 
         <Button
-          href="/"
+          href="/gestion"
           variant="secondary"
           icon={<Home size={16} />}
         >
-          Volver al inicio
+          Volver a Gestión
         </Button>
       </div>
     </div>

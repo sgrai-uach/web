@@ -15,7 +15,7 @@ export default function ManualIncidentPage() {
       {/* Breadcrumbs Institucionales */}
       <Breadcrumbs
         items={[
-          { label: 'Inicio', href: '/' },
+          { label: 'Inicio', href: '/gestion' },
           { label: 'Operaciones' },
           { label: 'Ingreso Manual' },
         ]}
