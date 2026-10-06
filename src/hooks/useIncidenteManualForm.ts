@@ -20,6 +20,7 @@ import {
   geocodificarDireccionEnValdivia,
   geocodificacionInversaEnValdivia,
 } from '@/lib/maps/geocoding';
+import { useToast } from '@/components/ui/Toast';
 
 interface UseIncidenteManualFormOptions {
   operadorId: string;
@@ -30,6 +31,13 @@ export function useIncidenteManualForm({
   operadorId,
   onExito,
 }: UseIncidenteManualFormOptions) {
+  let toast: ReturnType<typeof useToast> | null = null;
+  try {
+    toast = useToast();
+  } catch {
+    // Modo aislado sin ToastProvider (ej. pruebas unitarias)
+  }
+
   const [tiposAfectacion, setTiposAfectacion] = useState<string[]>(TIPOS_AFECTACION_FALLBACK);
   const [cargandoTipos, setCargandoTipos] = useState(true);
 
@@ -174,6 +182,10 @@ export function useIncidenteManualForm({
         }
       });
       setErrores(mapaErrores);
+      toast?.showError(
+        'Por favor completa los campos requeridos antes de guardar.',
+        'Campos requeridos'
+      );
       return;
     }
 
@@ -186,24 +198,37 @@ export function useIncidenteManualForm({
       if (respuesta.tipo === 'EXITO') {
         setModalDuplicadosAbierto(false);
         setResultadoExitoso(respuesta.datos);
+        setErrorGeneral(null);
+        toast?.showSuccess('Incidente ingresado y verificado exitosamente.');
         onExito?.(respuesta.datos);
       } else if (respuesta.tipo === 'DUPLICADO') {
         setCoincidenciasConflicto(respuesta.coincidencias);
         setMensajeConflicto(respuesta.mensaje);
         setModalDuplicadosAbierto(true);
+        setErrorGeneral(null);
+        toast?.showWarning(
+          `Se detectaron ${respuesta.coincidencias.length} incidentes similares en la misma zona. Revisa la ventana de duplicados.`,
+          'Posible duplicado detectado'
+        );
       } else if (respuesta.tipo === 'ERROR_VALIDACION') {
-        setErrorGeneral(
+        const msg =
           respuesta.errores.length > 0
             ? `${respuesta.mensaje}: ${respuesta.errores.join(', ')}`
-            : respuesta.mensaje
-        );
+            : respuesta.mensaje;
+        setErrorGeneral(msg);
+        toast?.showError(msg, 'Error de validación');
       } else if (respuesta.tipo === 'NO_AUTORIZADO') {
-        setErrorGeneral('Acceso restringido: El operador no posee el permiso crear_incidente_manual.');
+        const msg = 'Acceso restringido: El operador no posee el permiso crear_incidente_manual.';
+        setErrorGeneral(msg);
+        toast?.showError(msg, 'No autorizado');
       } else {
         setErrorGeneral(respuesta.mensaje);
+        toast?.showError(respuesta.mensaje, 'Error del sistema');
       }
     } catch {
-      setErrorGeneral('Error inesperado de red al procesar el reporte.');
+      const msg = 'Error inesperado de red al procesar el reporte.';
+      setErrorGeneral(msg);
+      toast?.showError(msg, 'Error de conexión');
     } finally {
       setEnviando(false);
     }

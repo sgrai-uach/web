@@ -175,6 +175,62 @@ describe('Servicio incidentes-manuales', () => {
       }
     });
 
+    it('debe manejar 201 Created cuando la respuesta viene envuelta en { data: { incidente: ... } } sin objeto aviso', async () => {
+      vi.spyOn(apiClient, 'POST').mockResolvedValueOnce({
+        data: {
+          data: {
+            incidente: {
+              id: 'inc-999',
+              codigo: 'INC-9999',
+              tipoAfectacion: 'Anegamiento',
+              descripcion: 'Agua en calle',
+              direccion: 'Av. Francia 123',
+              estado: 'REPORTADO',
+              prioridad: 'ALTA',
+            },
+          },
+        },
+        error: undefined,
+        response: new Response(null, { status: 201 }),
+      } as unknown as Awaited<ReturnType<typeof apiClient.POST>>);
+
+      const resultado = await crearIncidenteManual(payloadValido, 'op-123');
+
+      expect(resultado.tipo).toBe('EXITO');
+      if (resultado.tipo === 'EXITO') {
+        expect(resultado.datos.codigoIncidente).toBe('INC-9999');
+        expect(resultado.datos.codigoAviso).toBe('INC-9999');
+      }
+    });
+
+    it('debe capturar 409 Conflict con coincidencias en la raíz del objeto de error', async () => {
+      vi.spyOn(apiClient, 'POST').mockResolvedValueOnce({
+        data: undefined,
+        error: {
+          message: 'Incidente duplicado',
+          coincidencias: [
+            {
+              id: 'dup-root',
+              codigo: 'INC-ROOT',
+              tipoAfectacion: 'Anegamiento',
+              direccion: 'Picarte 200',
+              estado: 'REPORTADO',
+              distanciaMetros: 100,
+            },
+          ],
+        },
+        response: new Response(null, { status: 409 }),
+      } as unknown as Awaited<ReturnType<typeof apiClient.POST>>);
+
+      const resultado = await crearIncidenteManual(payloadValido, 'op-123');
+
+      expect(resultado.tipo).toBe('DUPLICADO');
+      if (resultado.tipo === 'DUPLICADO') {
+        expect(resultado.coincidencias).toHaveLength(1);
+        expect(resultado.coincidencias[0].codigo).toBe('INC-ROOT');
+      }
+    });
+
     it('debe capturar 400 Bad Request y retornar tipo ERROR_VALIDACION', async () => {
       vi.spyOn(apiClient, 'POST').mockResolvedValueOnce({
         data: undefined,

@@ -14,7 +14,6 @@ import InformanteFields from './form/InformanteFields';
 import FormSubmitActions from './form/FormSubmitActions';
 import DuplicadosModal from './DuplicadosModal';
 import IncidenteExitoCard from './IncidenteExitoCard';
-import InlineNotice from '@/components/ui/InlineNotice';
 import { useSimulatedSession } from '@/context/SimulatedSessionContext';
 import styles from './IncidenteManualForm.module.css';
 
@@ -48,14 +47,6 @@ export default function IncidenteManualForm({
 
   return (
     <div className={styles.container}>
-      {form.errorGeneral && (
-        <div className={styles.noticeWrapper}>
-          <InlineNotice variant="error">
-            {form.errorGeneral}
-          </InlineNotice>
-        </div>
-      )}
-
       <form
         onSubmit={(e) => form.handleSubmit(e, false)}
         className={styles.form}

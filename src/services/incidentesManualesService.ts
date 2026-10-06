@@ -73,9 +73,35 @@ export async function verificarDuplicado(
       return { hayDuplicados: false, coincidencias: [] };
     }
 
+    const resData = (data as any)?.data ?? data;
+    const coincidenciasRaw = resData?.coincidencias ?? (Array.isArray(resData) ? resData : []);
+
+    const coincidencias: DuplicadoItem[] = (
+      Array.isArray(coincidenciasRaw) ? coincidenciasRaw : []
+    ).map((item: any, idx: number) => ({
+      id: item?.id || item?.incidente_id || item?.aviso_id || `dup-${idx}`,
+      codigo:
+        item?.codigo ||
+        item?.codigoSeguimiento ||
+        item?.codigo_seguimiento ||
+        item?.codigoIncidente ||
+        item?.codigo_incidente ||
+        'S/C',
+      tipoAfectacion:
+        item?.tipoAfectacion || item?.tipo_afectacion || item?.tipo || 'No especificado',
+      direccion: item?.direccion || item?.ubicacion || 'Sin dirección',
+      estado: item?.estado || item?.estadoIncidente || 'REPORTADO',
+      distanciaMetros: Number(
+        item?.distanciaMetros ?? item?.distancia_metros ?? item?.distancia ?? 0
+      ),
+      creadoEn:
+        item?.creadoEn || item?.creado_en || item?.createdAt || new Date().toISOString(),
+      origen: item?.origen === 'aviso' ? 'aviso' : 'incidente',
+    }));
+
     return {
-      hayDuplicados: Boolean(data.hayDuplicados),
-      coincidencias: (data.coincidencias || []) as DuplicadoItem[],
+      hayDuplicados: Boolean(resData?.hayDuplicados ?? (coincidencias.length > 0)),
+      coincidencias,
     };
   } catch {
     return { hayDuplicados: false, coincidencias: [] };
@@ -100,37 +126,109 @@ export async function crearIncidenteManual(
       body: payload,
     });
 
-    if (response.status === 201 && data) {
-      const incidente = data.incidente;
-      const aviso = data.aviso;
+    // Manejar 201 Created (o 200 OK) sin asumir estructura rígida del body
+    if ((response.status === 201 || response.status === 200 || response.ok) && !error) {
+      const rawData = data as any;
+      const innerData = rawData?.data ?? rawData;
+      const incidente = innerData?.incidente ?? (innerData?.codigo ? innerData : null);
+      const aviso = innerData?.aviso ?? (innerData?.codigoSeguimiento ? innerData : null);
+
+      const codigoIncidente =
+        incidente?.codigo ||
+        incidente?.codigoIncidente ||
+        incidente?.id ||
+        innerData?.codigo ||
+        'INC-REGISTRADO';
+
+      const codigoAviso =
+        aviso?.codigoSeguimiento ||
+        aviso?.codigo ||
+        incidente?.codigoSeguimiento ||
+        innerData?.codigoSeguimiento ||
+        codigoIncidente;
+
       return {
         tipo: 'EXITO',
         datos: {
-          codigoIncidente: incidente.codigo,
-          codigoAviso: aviso.codigoSeguimiento,
-          tipoAfectacion: incidente.tipoAfectacion,
-          direccion: incidente.direccion,
-          estado: incidente.estado,
-          prioridad: incidente.prioridad,
-          creadoEn: incidente.creadoEn,
+          codigoIncidente,
+          codigoAviso,
+          tipoAfectacion:
+            incidente?.tipoAfectacion || innerData?.tipoAfectacion || payload.tipoAfectacion,
+          direccion: incidente?.direccion || innerData?.direccion || payload.direccion,
+          estado: incidente?.estado || innerData?.estado || 'REPORTADO',
+          prioridad: incidente?.prioridad || innerData?.prioridad || payload.prioridad || 'MEDIA',
+          creadoEn: incidente?.creadoEn || innerData?.creadoEn || new Date().toISOString(),
         },
-        mensaje: data.mensaje || 'Incidente ingresado y verificado exitosamente.',
+        mensaje:
+          rawData?.mensaje ||
+          rawData?.message ||
+          innerData?.mensaje ||
+          innerData?.message ||
+          'Incidente ingresado y verificado exitosamente.',
       };
     }
 
     if (response.status === 409) {
-      const errObj = error as
-        | {
-            message?: string;
-            requiereConfirmacion?: boolean;
-            data?: { coincidencias?: DuplicadoItem[] };
+      const errPayload = (error || data) as any;
+      const rawCoincidencias =
+        errPayload?.coincidencias ||
+        errPayload?.data?.coincidencias ||
+        (Array.isArray(errPayload?.data) ? errPayload.data : null) ||
+        errPayload?.details?.coincidencias ||
+        errPayload?.detalles?.coincidencias ||
+        [];
+
+      let coincidenciasNormalizadas: DuplicadoItem[] = (
+        Array.isArray(rawCoincidencias) ? rawCoincidencias : []
+      ).map((item: any, idx: number) => ({
+        id: item?.id || item?.incidente_id || item?.aviso_id || `dup-${idx}`,
+        codigo:
+          item?.codigo ||
+          item?.codigoSeguimiento ||
+          item?.codigo_seguimiento ||
+          item?.codigoIncidente ||
+          item?.codigo_incidente ||
+          'S/C',
+        tipoAfectacion:
+          item?.tipoAfectacion || item?.tipo_afectacion || item?.tipo || 'No especificado',
+        direccion: item?.direccion || item?.ubicacion || 'Sin dirección',
+        estado: item?.estado || item?.estadoIncidente || 'REPORTADO',
+        distanciaMetros: Number(
+          item?.distanciaMetros ?? item?.distancia_metros ?? item?.distancia ?? 0
+        ),
+        creadoEn:
+          item?.creadoEn || item?.creado_en || item?.createdAt || new Date().toISOString(),
+        origen: item?.origen === 'aviso' ? 'aviso' : 'incidente',
+      }));
+
+      // Si el 409 no adjuntó coincidencias en el cuerpo, consultamos defensivamente al endpoint de verificación
+      if (coincidenciasNormalizadas.length === 0 && (payload.latitud || payload.direccion)) {
+        try {
+          const resVerif = await verificarDuplicado(
+            {
+              tipoAfectacion: payload.tipoAfectacion,
+              direccion: payload.direccion,
+              latitud: payload.latitud,
+              longitud: payload.longitud,
+              radioMetros: 300,
+              horasVentana: 24,
+            },
+            operadorId
+          );
+          if (resVerif.coincidencias && resVerif.coincidencias.length > 0) {
+            coincidenciasNormalizadas = resVerif.coincidencias;
           }
-        | undefined;
+        } catch {
+          // Ignorar fallo de verificación secundaria
+        }
+      }
+
       return {
         tipo: 'DUPLICADO',
-        coincidencias: (errObj?.data?.coincidencias || []) as DuplicadoItem[],
+        coincidencias: coincidenciasNormalizadas,
         mensaje:
-          errObj?.message ||
+          errPayload?.message ||
+          errPayload?.mensaje ||
           'Se detectaron incidentes similares reportados recientemente en la misma zona.',
       };
     }
@@ -143,17 +241,20 @@ export async function crearIncidenteManual(
     }
 
     if (response.status === 400) {
-      const errObj = error as { message?: string; errors?: unknown } | undefined;
+      const errObj = (error || data) as any;
       let errorList: string[] = [];
       if (Array.isArray(errObj?.errors)) {
-        errorList = errObj.errors.map((e) =>
-          typeof e === 'string' ? e : e?.mensaje || JSON.stringify(e)
+        errorList = errObj.errors.map((e: any) =>
+          typeof e === 'string' ? e : e?.mensaje || e?.message || JSON.stringify(e)
         );
       }
       return {
         tipo: 'ERROR_VALIDACION',
         errores: errorList,
-        mensaje: errObj?.message || 'Los datos proporcionados no cumplen con las validaciones requeridas.',
+        mensaje:
+          errObj?.message ||
+          errObj?.mensaje ||
+          'Los datos proporcionados no cumplen con las validaciones requeridas.',
       };
     }
 
