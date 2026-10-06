@@ -189,7 +189,7 @@ export const DELEGACIONES_OPCIONES: { valor: FiltroDelegacion; etiqueta: string 
 
 export const ESTADOS_OPCIONES: { valor: FiltroEstado; etiqueta: string }[] = [
   { valor: 'TODOS', etiqueta: 'Todos los estados' },
-  { valor: 'PENDIENTE', etiqueta: 'Pendiente' },
+  { valor: 'PENDIENTE', etiqueta: 'Reportado' },
   { valor: 'VERIFICADO', etiqueta: 'Verificado' },
   { valor: 'RECHAZADO', etiqueta: 'Rechazado' },
 ];

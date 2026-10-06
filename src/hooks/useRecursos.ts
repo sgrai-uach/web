@@ -6,33 +6,9 @@ import { DEFAULT_ADMIN_USER_ID } from '@/lib/api/client';
 import { getRecursos, RecursoServiceError } from '@/services/recursosService';
 import { getErrorMessage } from '@/lib/utils/errorUtils';
 import { getSocket } from '@/lib/socket/client';
+import { catalogosService, DELEGACIONES_FALLBACK } from '@/services/catalogosService';
 
-export const DELEGACIONES_MUNICIPALES = [
-  {
-    id: '30000000-0000-4000-8000-000000000001',
-    codigo: 'DEL_NORTE',
-    nombre: 'Delegación Municipal Norte',
-    descripcion: 'Las Ánimas, Cabo Blanco',
-  },
-  {
-    id: '30000000-0000-4000-8000-000000000002',
-    codigo: 'DEL_SUR',
-    nombre: 'Delegación Municipal Sur',
-    descripcion: 'Angachilla, Guacamayo',
-  },
-  {
-    id: '30000000-0000-4000-8000-000000000003',
-    codigo: 'DEL_COSTA',
-    nombre: 'Delegación Municipal Costa',
-    descripcion: 'Niebla, Los Molinos, Corral',
-  },
-  {
-    id: '30000000-0000-4000-8000-000000000004',
-    codigo: 'DEL_CALLE_CALLE',
-    nombre: 'Delegación Municipal Calle Calle',
-    descripcion: 'Collico, Corvi',
-  },
-];
+export const DELEGACIONES_MUNICIPALES = DELEGACIONES_FALLBACK;
 
 import { USUARIOS_SIMULADOS_SISTEMA } from '@/config/usuariosSimulados';
 export const USUARIOS_PRUEBA = USUARIOS_SIMULADOS_SISTEMA;
@@ -76,7 +52,20 @@ export function useRecursos(
     setStatusCode(null);
 
     try {
-      const response = await getRecursos(filtros, userId, controller.signal);
+      const delegacionId =
+        filtros.delegacionId ||
+        (filtros.delegacionNombre && filtros.delegacionNombre !== 'TODAS'
+          ? catalogosService.resolverDelegacionId(filtros.delegacionNombre)
+          : undefined);
+
+      const response = await getRecursos(
+        {
+          ...filtros,
+          delegacionId,
+        },
+        userId,
+        controller.signal
+      );
       setData(response);
       setStatusCode(200);
       setError(null);
@@ -176,14 +165,17 @@ export function useRecursos(
     };
   }, [actualizarRecursoEnLista, removerRecursoDeLista]);
 
+  const metaRaw = data?.meta as Record<string, unknown> | undefined;
+  const metaNormalizado = {
+    total: typeof metaRaw?.total === 'number' ? metaRaw.total : 0,
+    pagina: typeof metaRaw?.page === 'number' ? metaRaw.page : (typeof metaRaw?.pagina === 'number' ? metaRaw.pagina : (filtros.pagina || 1)),
+    limite: typeof metaRaw?.limit === 'number' ? metaRaw.limit : (typeof metaRaw?.limite === 'number' ? metaRaw.limite : (filtros.limite || 10)),
+    totalPaginas: typeof metaRaw?.totalPages === 'number' ? metaRaw.totalPages : (typeof metaRaw?.totalPaginas === 'number' ? metaRaw.totalPaginas : 0),
+  };
+
   return {
     recursos: data?.data ?? [],
-    meta: data?.meta ?? {
-      total: 0,
-      pagina: filtros.pagina || 1,
-      limite: filtros.limite || 10,
-      totalPaginas: 0,
-    },
+    meta: metaNormalizado,
     cargando,
     error,
     statusCode,

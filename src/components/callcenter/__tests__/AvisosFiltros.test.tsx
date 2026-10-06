@@ -15,13 +15,37 @@ describe('AvisosFiltros Component', () => {
     onFiltroSemaforoChange: vi.fn(),
     filtroDelegacion: 'TODAS' as const,
     onFiltroDelegacionChange: vi.fn(),
-    filtroEstado: 'PENDIENTE' as const,
+    filtroEstado: 'TODOS' as const,
     onFiltroEstadoChange: vi.fn(),
     hayFiltrosActivos: false,
     onLimpiarFiltros: vi.fn(),
     onRefrescar: vi.fn(),
     cargando: false,
   };
+
+  it('debe iniciar sin filtros de estado activos cuando está en TODOS', () => {
+    render(<AvisosFiltros {...defaultProps} filtroEstado="TODOS" hayFiltrosActivos={false} />);
+    expect(screen.queryByTestId('indicador-filtros-activos')).not.toBeInTheDocument();
+  });
+
+  it('debe mostrar chip "Estado: Reportado" cuando el usuario selecciona PENDIENTE', () => {
+    const onFiltroEstadoChange = vi.fn();
+    render(
+      <AvisosFiltros
+        {...defaultProps}
+        filtroEstado="PENDIENTE"
+        hayFiltrosActivos={true}
+        onFiltroEstadoChange={onFiltroEstadoChange}
+      />
+    );
+
+    expect(screen.getByTestId('indicador-filtros-activos')).toBeInTheDocument();
+    expect(screen.getByText(/Estado: Reportado/i)).toBeInTheDocument();
+
+    const btnQuitar = screen.getByTitle(/Quitar filtro de estado/i);
+    fireEvent.click(btnQuitar);
+    expect(onFiltroEstadoChange).toHaveBeenCalledWith('TODOS');
+  });
 
   it('debe renderizar el selector de Delegación con las opciones requeridas (Norte, Sur, Costa, Calle Calle)', () => {
     render(<AvisosFiltros {...defaultProps} />);

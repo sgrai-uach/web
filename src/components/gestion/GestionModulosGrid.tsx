@@ -126,15 +126,23 @@ const MODULOS_SISTEMA: ModuloConfig[] = [
   },
   {
     id: 'asistente-social',
-    titulo: 'Fichas FIBE (Asistencia Social)',
+    titulo: 'Asistencia Social',
     descripcion:
-      'Levantamiento y seguimiento de Fichas Básicas de Emergencia (FIBE) para familias y viviendas afectadas por incidentes.',
+      'Levantamiento de Fichas Básicas de Emergencia (FIBE), eventos sociales excepcionales y derivación territorial.',
     href: '/gestion/asistente-social',
     icon: ClipboardList,
-    requiredPermissions: ['asistencia_social:fibe:gestionar', 'fibe:gestionar'],
-    disabled: true,
-    badge: 'Próximamente',
-    accionPrimaria: 'Módulo en Desarrollo',
+    requiredPermissions: [
+      'asistencia_social:leer',
+      'asistencia_social:crear',
+      'asistencia_social:fibe:gestionar',
+      'fibe:gestionar',
+    ],
+    accionPrimaria: 'Ver Eventos Sociales',
+    accionSecundaria: {
+      label: '+ Nuevo Evento',
+      href: '/gestion/asistente-social/nuevo',
+      permiso: 'asistencia_social:crear',
+    },
   },
   {
     id: 'dashboard',

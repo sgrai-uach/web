@@ -26,10 +26,36 @@ export interface FiltrosPuntosCriticosState {
   pagina: number;
   limite: number;
   delegacionId?: string;
+  delegacionNombre?: string;
   activo?: boolean;
   prioridad?: PrioridadPuntoCritico;
   busqueda?: string;
 }
+
+/* ==========================================================================
+/* ==========================================================================
+   Tipos para Creación de Puntos Críticos (HU-58)
+   ========================================================================== */
+
+export const TIPOS_RIESGO_CANONICOS = [
+  'Inundación',
+  'Desborde de Río',
+  'Remoción en Masa / Deslizamiento',
+  'Caída de Árboles',
+  'Corte de Ruta',
+  'Colapso Estructural',
+  'Incendio de Interfase',
+  'Anegamiento de Calzada',
+  'Otro',
+] as const;
+
+export type TipoRiesgoCanonico = (typeof TIPOS_RIESGO_CANONICOS)[number];
+
+export type CrearPuntoCriticoInput =
+  paths['/api/puntos-criticos']['post']['requestBody']['content']['application/json'];
+
+export type PuntoCriticoDetalle =
+  paths['/api/puntos-criticos']['post']['responses'][201]['content']['application/json'];
 
 /* ==========================================================================
    Tipos para Eliminación / Desactivación Lógica (HU-56)

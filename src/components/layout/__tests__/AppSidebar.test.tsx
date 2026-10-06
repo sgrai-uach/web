@@ -74,7 +74,7 @@ describe('AppSidebar — Control de Acceso y Visibilidad RBAC en Portal de Gesti
     expect(screen.getByText('Bandeja de Avisos')).toBeDefined();
     expect(screen.getByText('Ingreso Manual')).toBeDefined();
     expect(screen.getByText('Centro de Mando')).toBeDefined();
-    expect(screen.getByText('Fichas FIBE')).toBeDefined();
+    expect(screen.getByText('Asistencia Social')).toBeDefined();
 
     // Módulos estratégicos y administrativos
     expect(screen.getByText('Dashboard y Reportes')).toBeDefined();

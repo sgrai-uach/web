@@ -30,7 +30,7 @@ export default function AvisosKpiCards({ metricas }: AvisosKpiCardsProps) {
         }}
       >
         <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: '#666', fontWeight: 600 }}>
-          Total Pendientes
+          Total Avisos
         </div>
         <div style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--color-primary-teal, #1B6F7D)' }}>
           {metricas.total}

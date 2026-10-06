@@ -71,7 +71,7 @@ Para localizar rápidamente un rol en situaciones con múltiples perfiles:
 - **Buscador Predictivo:** Ingrese texto para filtrar simultáneamente por nombre de perfil (ej. *"Call Center"*), descripción o módulos asociados (ej. *"Incidentes"*).
 - **Filtro por Tipo:** Alterne entre **Todos**, **Sistema** (roles estándar) o **Personalizado** (roles creados ad-hoc).
 - **Filtro por Permisos:** Alterne entre **Todos**, **Con Permisos** (para ver qué roles pueden operar) o **Sin Permisos** (para identificar roles que requieren parametrización).
-- **Botón Refrescar:** Permite re-sincronizar los datos en caliente contra `sgrai-api` sin recargar el navegador.
+- **Botón Actualizar:** Permite re-sincronizar los datos en caliente contra `sgrai-api` sin recargar el navegador.
 
 ### Paso 4: Despliegue Interactivo de Permisos Agrupados por Módulo
 1. En la tarjeta del perfil deseado, haga clic en el botón **"Ver Permisos &rarr;"**.
@@ -101,7 +101,7 @@ Al abrir el detalle de perfiles que no poseen permisos activos en base de datos 
 | **HTTP 403 Forbidden** | Pantalla completa de advertencia con borde rojo: *"Se requiere perfil de Administrador — HTTP 403"*. | El usuario logueado no posee el rol `Administrador` (por ejemplo, al simular la sesión de *Operador Call Center*). El acceso al panel queda estrictamente bloqueado. Para restaurar el acceso, haga clic en el botón *"Cambiar a Administrador General &rarr;"*. |
 | **HTTP 401 Unauthorized** | Redirección o notificación Toast: *"Sesión no válida o usuario no autenticado"*. | Ausencia o caducidad del identificador en la cabecera `X-User-Id`. Se debe reautenticar la sesión en la plataforma. |
 | **HTTP 404 Not Found** | Notificación Toast de error al consultar un rol inexistente. | El perfil solicitado fue dado de baja o el identificador no existe en el catálogo. |
-| **Error de Red / API Desconectada** | Notificación Toast de error: *"Error al cargar perfiles — Error de comunicación con el servidor"*. | Verifique que el servicio `sgrai-api` se encuentre en ejecución en el puerto configurado (`http://localhost:3001`). Utilice el botón *"Refrescar"* una vez restablecida la conectividad. |
+| **Error de Red / API Desconectada** | Notificación Toast de error: *"Error al cargar perfiles — Error de comunicación con el servidor"*. | Verifique que el servicio `sgrai-api` se encuentre en ejecución en el puerto configurado (`http://localhost:3001`). Utilice el botón *"Actualizar"* una vez restablecida la conectividad. |
 
 ---
 

@@ -95,15 +95,17 @@ export default function AvisosTable({
         </table>
       </div>
 
-      <Pagination
-        paginaActual={paginaActual}
-        totalPaginas={totalPaginas}
-        totalItems={totalItems}
-        limite={limite}
-        onCambiarPagina={onCambiarPagina}
-        onCambiarLimite={onCambiarLimite}
-        nombreEntidad="avisos"
-      />
+      {avisos.length > 0 && (
+        <Pagination
+          paginaActual={paginaActual}
+          totalPaginas={totalPaginas}
+          totalItems={totalItems}
+          limite={limite}
+          onCambiarPagina={onCambiarPagina}
+          onCambiarLimite={onCambiarLimite}
+          nombreEntidad="avisos"
+        />
+      )}
     </div>
   );
 }

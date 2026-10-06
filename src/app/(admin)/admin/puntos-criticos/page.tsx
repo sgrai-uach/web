@@ -66,7 +66,17 @@ export default function PuntosCriticosPage() {
     Boolean(usuarioActivo.esAdmin) ||
     usuarioActivo.id === DEFAULT_ADMIN_USER_ID ||
     hasPermission('puntos_criticos:leer') ||
+    hasPermission('puntos_criticos:crear') ||
+    hasPermission('eventos_atp:crear') ||
     hasPermission('puntos_criticos:eliminar');
+
+  const puedeCrear =
+    usuarioActivo.rol === 'Administrador' ||
+    Boolean(usuarioActivo.esAdmin) ||
+    usuarioActivo.id === DEFAULT_ADMIN_USER_ID ||
+    hasPermission('puntos_criticos:crear') ||
+    hasPermission('eventos_atp:crear') ||
+    hasPermission('puntos_criticos:gestionar');
 
   const puedeEliminar =
     usuarioActivo.rol === 'Administrador' ||
@@ -84,9 +94,12 @@ export default function PuntosCriticosPage() {
     setFiltros((prev) => ({ ...prev, busqueda, pagina: 1 }));
   }, []);
 
-  const handleCambiarDelegacion = useCallback((delegacionId?: string) => {
-    setFiltros((prev) => ({ ...prev, delegacionId, pagina: 1 }));
-  }, []);
+  const handleCambiarDelegacion = useCallback(
+    (delegacionId?: string, delegacionNombre?: string) => {
+      setFiltros((prev) => ({ ...prev, delegacionId, delegacionNombre, pagina: 1 }));
+    },
+    []
+  );
 
   const handleCambiarPrioridad = useCallback(
     (prioridad?: PrioridadPuntoCritico) => {
@@ -199,11 +212,13 @@ export default function PuntosCriticosPage() {
       <PuntosCriticosHeader
         totalPuntos={puntosActivos.length}
         tieneAcceso={true}
+        puedeCrear={puedeCrear}
       />
 
       <PuntosCriticosFiltros
         busqueda={filtros.busqueda || ''}
         delegacionId={filtros.delegacionId}
+        delegacionNombre={filtros.delegacionNombre}
         prioridad={filtros.prioridad}
         onCambiarBusqueda={handleCambiarBusqueda}
         onCambiarDelegacion={handleCambiarDelegacion}

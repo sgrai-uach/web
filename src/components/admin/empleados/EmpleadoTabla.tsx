@@ -3,7 +3,7 @@
 import React from 'react';
 import type { EmpleadoUsuario } from '@/types/empleados';
 import Pagination from '@/components/common/Pagination';
-import { Trash2, CheckCircle2, XCircle, Shield, MapPin, Phone, Mail } from 'lucide-react';
+import { Trash2, CheckCircle2, XCircle, Shield, MapPin, Phone, Mail, Pencil } from 'lucide-react';
 
 interface EmpleadoTablaProps {
   empleados: EmpleadoUsuario[];
@@ -67,7 +67,7 @@ export default function EmpleadoTabla({
               <th style={{ padding: '0.75rem 0.875rem', width: '150px' }}>Rol</th>
               <th style={{ padding: '0.75rem 0.875rem', width: '150px' }}>Delegación</th>
               <th style={{ padding: '0.75rem 0.875rem', width: '100px' }}>Estado</th>
-              <th style={{ padding: '0.75rem 0.5rem', textAlign: 'center', width: '46px' }} title="Baja lógica"></th>
+              <th style={{ padding: '0.75rem 0.5rem', textAlign: 'center', width: '84px' }}>Acciones</th>
             </tr>
           </thead>
           <tbody>
@@ -219,23 +219,23 @@ export default function EmpleadoTabla({
                       )}
                     </td>
 
-                    {/* Botón pequeño de icono solo para dar de baja */}
-                    <td style={{ padding: '0.75rem 0.5rem', textAlign: 'center', width: '46px' }}>
-                      {usr.usuario_activo && onDarDeBaja && (
+                    {/* Botones de acción: Editar y Baja lógica */}
+                    <td style={{ padding: '0.75rem 0.5rem', textAlign: 'center', width: '84px' }}>
+                      <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem' }}>
                         <button
                           type="button"
                           onClick={(e) => {
                             e.stopPropagation();
-                            onDarDeBaja(usr);
+                            onSelectUsuario(usr);
                           }}
-                          title={`Dar de baja a ${usr.nombres} ${usr.apellidos}`}
-                          aria-label={`Dar de baja a ${usr.nombres} ${usr.apellidos}`}
+                          title={`Editar antecedentes de ${usr.nombres} ${usr.apellidos}`}
+                          aria-label={`Editar antecedentes de ${usr.nombres} ${usr.apellidos}`}
                           style={{
                             background: 'transparent',
-                            border: '1px solid #FECACA',
-                            borderRadius: '4px',
+                            border: '1px solid var(--border-color-neutral, #DFE3E8)',
+                            borderRadius: '0px',
                             padding: '0.35rem',
-                            color: '#DC2626',
+                            color: 'var(--color-primary-teal, #1B6F7D)',
                             cursor: 'pointer',
                             display: 'inline-flex',
                             alignItems: 'center',
@@ -243,17 +243,51 @@ export default function EmpleadoTabla({
                             transition: 'all 0.15s ease',
                           }}
                           onMouseEnter={(e) => {
-                            e.currentTarget.style.backgroundColor = '#FEF2F2';
-                            e.currentTarget.style.borderColor = '#EF4444';
+                            e.currentTarget.style.backgroundColor = 'var(--color-info-bg, #E0F2F1)';
+                            e.currentTarget.style.borderColor = 'var(--color-primary-teal, #1B6F7D)';
                           }}
                           onMouseLeave={(e) => {
                             e.currentTarget.style.backgroundColor = 'transparent';
-                            e.currentTarget.style.borderColor = '#FECACA';
+                            e.currentTarget.style.borderColor = 'var(--border-color-neutral, #DFE3E8)';
                           }}
                         >
-                          <Trash2 size={14} />
+                          <Pencil size={14} />
                         </button>
-                      )}
+
+                        {usr.usuario_activo && onDarDeBaja && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onDarDeBaja(usr);
+                            }}
+                            title={`Dar de baja a ${usr.nombres} ${usr.apellidos}`}
+                            aria-label={`Dar de baja a ${usr.nombres} ${usr.apellidos}`}
+                            style={{
+                              background: 'transparent',
+                              border: '1px solid #FECACA',
+                              borderRadius: '0px',
+                              padding: '0.35rem',
+                              color: '#DC2626',
+                              cursor: 'pointer',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              transition: 'all 0.15s ease',
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.backgroundColor = '#FEF2F2';
+                              e.currentTarget.style.borderColor = '#EF4444';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.backgroundColor = 'transparent';
+                              e.currentTarget.style.borderColor = '#FECACA';
+                            }}
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 );
@@ -263,16 +297,18 @@ export default function EmpleadoTabla({
         </table>
       </div>
 
-      <Pagination
-        paginaActual={paginaActual}
-        totalPaginas={totalPaginas}
-        totalItems={totalItems}
-        limite={limite}
-        onCambiarPagina={onCambiarPagina}
-        onCambiarLimite={onCambiarLimite}
-        nombreEntidad="empleados"
-        opcionesLimite={[5, 10, 20, 50]}
-      />
+      {totalItems > 0 && (
+        <Pagination
+          paginaActual={paginaActual}
+          totalPaginas={totalPaginas}
+          totalItems={totalItems}
+          limite={limite}
+          onCambiarPagina={onCambiarPagina}
+          onCambiarLimite={onCambiarLimite}
+          nombreEntidad="personal municipal"
+          opcionesLimite={[10, 20, 50]}
+        />
+      )}
     </div>
   );
 }

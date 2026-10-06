@@ -8,6 +8,7 @@ import {
   type EstadoIncidente,
   type PrioridadIncidente,
   type PaginacionMeta,
+  type ListarIncidentesQuery,
 } from '@/services/incidentesService';
 import {
   useEncargadoKanbanSocket,
@@ -23,12 +24,16 @@ export const ESTADOS_KANBAN: EstadoIncidente[] = [
   'NO_ABORDABLE',
 ];
 
+import { catalogosService } from '@/services/catalogosService';
 import { useSimulatedSession } from '@/context/SimulatedSessionContext';
 
 export interface FiltrosKanban {
   busqueda: string;
+  delegacion: string; // Nombre: 'TODAS', 'Norte', 'Sur', 'Costa', 'Calle Calle'
+  estado: string; // 'TODOS' o EstadoIncidente
   prioridad: PrioridadIncidente | '';
   tipoAfectacion: string;
+  fuenteOrigen: string; // '', 'CHATBOT', 'LLAMADA_TELEFONICA', 'FUNCIONARIO_TERRENO', 'WEB'
   delegacionId?: string;
   soloHoy?: boolean;
 }
@@ -82,11 +87,23 @@ export function useIncidentesKanban(initialUserId?: string) {
 
   const [filtros, setFiltros] = useState<FiltrosKanban>({
     busqueda: '',
+    delegacion: 'TODAS',
+    estado: 'TODOS',
     prioridad: '',
     tipoAfectacion: '',
+    fuenteOrigen: '',
   });
 
   const [incidenteSeleccionadoId, setIncidenteSeleccionadoId] = useState<string | null>(null);
+
+  // Columnas visibles según el filtro de Estado (permite ocultar columnas)
+  const estadosVisibles: EstadoIncidente[] = useMemo(() => {
+    if (filtros.estado && filtros.estado !== 'TODOS') {
+      const match = ESTADOS_KANBAN.find((e) => e === filtros.estado);
+      if (match) return [match];
+    }
+    return ESTADOS_KANBAN;
+  }, [filtros.estado]);
 
   // Carga inicial o recarga completa por columnas
   const ejecutarConsulta = useCallback(
@@ -98,16 +115,26 @@ export function useIncidentesKanban(initialUserId?: string) {
       }
 
       try {
-        const promesas = ESTADOS_KANBAN.map((estado) =>
+        const delegacionIdResuelta =
+          filtros.delegacionId?.trim() ||
+          catalogosService.resolverDelegacionId(filtros.delegacion) ||
+          undefined;
+
+        const columnasAConsultar = filtros.estado && filtros.estado !== 'TODOS'
+          ? [filtros.estado as EstadoIncidente]
+          : ESTADOS_KANBAN;
+
+        const promesas = columnasAConsultar.map((estado) =>
           listarIncidentes(
             {
               page: 1,
               limit: 20,
               estado,
+              delegacionId: delegacionIdResuelta,
+              fuenteOrigen: (filtros.fuenteOrigen as ListarIncidentesQuery['fuenteOrigen']) || undefined,
               prioridad: filtros.prioridad || undefined,
               tipoAfectacion: filtros.tipoAfectacion || undefined,
               busqueda: filtros.busqueda.trim() || undefined,
-              delegacionId: filtros.delegacionId?.trim() || undefined,
               soloHoy: filtros.soloHoy ? true : undefined,
             },
             userId
@@ -141,7 +168,7 @@ export function useIncidentesKanban(initialUserId?: string) {
           NO_ABORDABLE: null,
         };
 
-        ESTADOS_KANBAN.forEach((estado, idx) => {
+        columnasAConsultar.forEach((estado, idx) => {
           const res = resultados[idx];
           if (res.exito) {
             nuevasColumnas[estado] = res.incidentes;
@@ -180,15 +207,21 @@ export function useIncidentesKanban(initialUserId?: string) {
       setCargandoColumna((prev) => ({ ...prev, [estado]: true }));
 
       try {
+        const delegacionIdResuelta =
+          filtros.delegacionId?.trim() ||
+          catalogosService.resolverDelegacionId(filtros.delegacion) ||
+          undefined;
+
         const res = await listarIncidentes(
           {
             page: meta.pagina + 1,
             limit: meta.limite,
             estado,
+            delegacionId: delegacionIdResuelta,
+            fuenteOrigen: (filtros.fuenteOrigen as ListarIncidentesQuery['fuenteOrigen']) || undefined,
             prioridad: filtros.prioridad || undefined,
             tipoAfectacion: filtros.tipoAfectacion || undefined,
             busqueda: filtros.busqueda.trim() || undefined,
-            delegacionId: filtros.delegacionId?.trim() || undefined,
             soloHoy: filtros.soloHoy ? true : undefined,
           },
           userId
@@ -210,6 +243,19 @@ export function useIncidentesKanban(initialUserId?: string) {
     },
     [cargandoColumna, filtros, paginacionColumna, userId]
   );
+
+  const limpiarFiltros = useCallback(() => {
+    setFiltros({
+      busqueda: '',
+      delegacion: 'TODAS',
+      estado: 'TODOS',
+      prioridad: '',
+      tipoAfectacion: '',
+      fuenteOrigen: '',
+      delegacionId: undefined,
+      soloHoy: false,
+    });
+  }, []);
 
   // Manejo de eventos de Socket en tiempo real
   const handleIncidenteCreado = useCallback(
@@ -334,6 +380,8 @@ export function useIncidentesKanban(initialUserId?: string) {
     esForbidden,
     filtros,
     setFiltros,
+    estadosVisibles,
+    limpiarFiltros,
     cargarMas,
     recargar: cargarTablero,
     conectado,

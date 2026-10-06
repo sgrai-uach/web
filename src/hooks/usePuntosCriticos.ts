@@ -15,6 +15,7 @@ import {
   PuntoCriticoServiceError,
 } from '@/services/puntosCriticosService';
 import { getErrorMessage } from '@/lib/utils/errorUtils';
+import { catalogosService } from '@/services/catalogosService';
 
 export const DELEGACIONES_MUNICIPALES = [
   {
@@ -82,7 +83,16 @@ export function usePuntosCriticos(
     setStatusCode(null);
 
     try {
-      const response = await getPuntosCriticos(filtros, userId, controller.signal);
+      let resolvedDelegacionId = filtros.delegacionId;
+      if (!resolvedDelegacionId && filtros.delegacionNombre && filtros.delegacionNombre !== 'TODAS') {
+        resolvedDelegacionId = catalogosService.resolverDelegacionId(filtros.delegacionNombre);
+      }
+
+      const response = await getPuntosCriticos(
+        { ...filtros, delegacionId: resolvedDelegacionId },
+        userId,
+        controller.signal
+      );
       setData(response);
       setStatusCode(200);
       setError(null);
@@ -120,7 +130,7 @@ export function usePuntosCriticos(
     };
   }, [fetchData]);
 
-  // Actualizar un punto crítico en memoria sin recargar la lista
+  // Actualizar un punto crítico en memoria sin recargar la lista (HU-55)
   const actualizarPuntoCriticoEnLista = useCallback((puntoActualizado: PuntoCriticoItem) => {
     if (!puntoActualizado || !puntoActualizado.id) return;
     setData((prev) => {
@@ -155,6 +165,7 @@ export function usePuntosCriticos(
 
   // Suscripción reactiva en tiempo real vía WebSockets (Socket.io)
   useEffect(() => {
+    if (typeof window === 'undefined') return;
     let socketInstance: Socket | null = null;
     try {
       socketInstance = getSocket();
@@ -163,6 +174,10 @@ export function usePuntosCriticos(
     }
 
     if (!socketInstance) return;
+
+    const handlePuntoCreado = () => {
+      fetchData();
+    };
 
     const handlePuntoCriticoEliminado = (payload: PuntoCriticoEliminadoSocketPayload) => {
       setData((prev) => {
@@ -186,14 +201,16 @@ export function usePuntosCriticos(
       actualizarPuntoCriticoEnLista(puntoActualizado);
     };
 
+    socketInstance.on('punto_critico:creado', handlePuntoCreado);
     socketInstance.on('punto_critico:eliminado', handlePuntoCriticoEliminado);
     socketInstance.on('punto_critico:actualizado', handlePuntoActualizado);
 
     return () => {
+      socketInstance?.off('punto_critico:creado', handlePuntoCreado);
       socketInstance?.off('punto_critico:eliminado', handlePuntoCriticoEliminado);
       socketInstance?.off('punto_critico:actualizado', handlePuntoActualizado);
     };
-  }, [actualizarPuntoCriticoEnLista]);
+  }, [fetchData, actualizarPuntoCriticoEnLista]);
 
   return {
     puntosCriticos: data?.data ?? [],

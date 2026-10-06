@@ -26,11 +26,11 @@ function mapearEstadoParaApi(
       return 'VERIFICADO';
     case 'RECHAZADO':
       return 'DESCARTADO';
-    case 'TODOS':
-      return 'TODOS';
     case 'PENDIENTE':
-    default:
       return 'NO_VERIFICADO';
+    case 'TODOS':
+    default:
+      return 'TODOS';
   }
 }
 
@@ -63,9 +63,9 @@ export function useAvisos() {
         : 'TODAS';
     const estadoRaw = searchParams?.get('estado')?.toUpperCase();
     const estado: FiltroEstado =
-      estadoRaw === 'TODOS' || estadoRaw === 'VERIFICADO' || estadoRaw === 'RECHAZADO'
+      estadoRaw === 'TODOS' || estadoRaw === 'VERIFICADO' || estadoRaw === 'RECHAZADO' || estadoRaw === 'PENDIENTE'
         ? (estadoRaw as FiltroEstado)
-        : 'PENDIENTE';
+        : 'TODOS';
 
     return { q, origen, prioridad, delegacion, estado };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -106,7 +106,7 @@ export function useAvisos() {
     if (filtroOrigen !== 'TODOS') params.set('origen', filtroOrigen);
     if (filtroSemaforo !== 'TODOS') params.set('prioridad', filtroSemaforo);
     if (filtroDelegacion !== 'TODAS') params.set('delegacion', filtroDelegacion);
-    if (filtroEstado !== 'PENDIENTE') params.set('estado', filtroEstado);
+    if (filtroEstado !== 'TODOS') params.set('estado', filtroEstado);
 
     const queryString = params.toString();
     const nuevaUrl = queryString ? `${pathname || '/callcenter'}?${queryString}` : (pathname || '/callcenter');
@@ -332,7 +332,7 @@ export function useAvisos() {
       filtroOrigen !== 'TODOS' ||
       filtroSemaforo !== 'TODOS' ||
       filtroDelegacion !== 'TODAS' ||
-      filtroEstado !== 'PENDIENTE'
+      filtroEstado !== 'TODOS'
     );
   }, [busqueda, filtroOrigen, filtroSemaforo, filtroDelegacion, filtroEstado]);
 
@@ -342,7 +342,7 @@ export function useAvisos() {
     setFiltroOrigen('TODOS');
     setFiltroSemaforo('TODOS');
     setFiltroDelegacion('TODAS');
-    setFiltroEstado('PENDIENTE');
+    setFiltroEstado('TODOS');
     setPaginaActual(1);
   }, []);
 

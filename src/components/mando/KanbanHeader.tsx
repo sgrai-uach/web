@@ -5,7 +5,7 @@ import { Breadcrumbs } from '@/components/common/Breadcrumbs';
 import ConnectionStatusBadge from '@/components/common/ConnectionStatusBadge';
 import PageTitleCard from '@/components/common/PageTitleCard';
 import Button from '@/components/ui/Button';
-import { ClipboardList, ShieldAlert, PackagePlus, Kanban, MapPin } from 'lucide-react';
+import { ClipboardList, ShieldAlert, PackagePlus, Kanban, MapPin, HeartHandshake } from 'lucide-react';
 import styles from '@/styles/mando.module.css';
 
 interface KanbanHeaderProps {
@@ -134,10 +134,19 @@ export const KanbanHeader: React.FC<KanbanHeaderProps> = ({
                 <span>Nuevo Evento de Recuperación</span>
               </Button>
             )}
+
+            <Button
+              href="/gestion/asistente-social/nuevo"
+              variant="secondary"
+              size="md"
+              title="Registrar nuevo caso excepcional de asistencia social (FIBE)"
+            >
+              <HeartHandshake size={16} style={{ marginRight: '6px' }} />
+              <span>Nuevo Evento Social</span>
+            </Button>
           </div>
         }
       />
     </div>
   );
 };
-

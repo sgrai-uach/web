@@ -1,186 +1,147 @@
 'use client';
 
-import React, { useState, useEffect, useTransition } from 'react';
+import React from 'react';
 import type { PrioridadPuntoCritico } from '@/types/puntoCritico';
-import { DELEGACIONES_MUNICIPALES } from '@/hooks/usePuntosCriticos';
-import Button from '@/components/ui/Button';
+import { useCatalogos } from '@/hooks/useCatalogos';
+import {
+  FilterBar,
+  FilterSearchInput,
+  FilterSelect,
+  ActiveFilterChips,
+  type ActiveChipItem,
+} from '@/components/common/filters';
 
 interface PuntosCriticosFiltrosProps {
   busqueda: string;
   delegacionId?: string;
+  delegacionNombre?: string;
   prioridad?: PrioridadPuntoCritico;
   onCambiarBusqueda: (busqueda: string) => void;
-  onCambiarDelegacion: (delegacionId?: string) => void;
+  onCambiarDelegacion: (delegacionId?: string, delegacionNombre?: string) => void;
   onCambiarPrioridad: (prioridad?: PrioridadPuntoCritico) => void;
   onLimpiarFiltros: () => void;
 }
 
+const OPCIONES_PRIORIDAD = [
+  { valor: '', etiqueta: 'Todas las prioridades' },
+  { valor: 'CRITICA', etiqueta: 'Crítica' },
+  { valor: 'ALTA', etiqueta: 'Alta' },
+  { valor: 'MEDIA', etiqueta: 'Media' },
+  { valor: 'BAJA', etiqueta: 'Baja' },
+] as const;
+
 export default function PuntosCriticosFiltros({
   busqueda,
   delegacionId,
+  delegacionNombre,
   prioridad,
   onCambiarBusqueda,
   onCambiarDelegacion,
   onCambiarPrioridad,
   onLimpiarFiltros,
 }: PuntosCriticosFiltrosProps) {
-  const [localBusqueda, setLocalBusqueda] = useState(busqueda);
-  const [busquedaPrevia, setBusquedaPrevia] = useState(busqueda);
-  const [, startTransition] = useTransition();
+  const { nombresDelegaciones, resolverId, resolverNombre } = useCatalogos();
 
-  if (busqueda !== busquedaPrevia) {
-    setBusquedaPrevia(busqueda);
-    setLocalBusqueda(busqueda);
-  }
+  // Nombre visible para la delegación seleccionada
+  const nombreDelegacionSeleccionada =
+    delegacionNombre ||
+    (delegacionId ? resolverNombre(delegacionId) || delegacionId : 'TODAS');
 
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      if (localBusqueda !== busqueda) {
-        startTransition(() => {
-          onCambiarBusqueda(localBusqueda);
-        });
-      }
-    }, 350);
+  const opcionesDelegacion = [
+    { valor: 'TODAS', etiqueta: 'Todas las delegaciones' },
+    ...nombresDelegaciones.map((n) => ({
+      valor: n,
+      etiqueta: n,
+    })),
+  ];
 
-    return () => clearTimeout(handler);
-  }, [localBusqueda, busqueda, onCambiarBusqueda]);
-
-  const hayFiltrosActivos = Boolean(
-    busqueda?.trim() ||
-      delegacionId ||
-      prioridad
-  );
-
-  const selectStyle: React.CSSProperties = {
-    padding: '8px 10px',
-    fontSize: '13px',
-    border: '1px solid var(--border-color-neutral-dark, #CCD2D9)',
-    borderRadius: 'var(--radius-none, 0px)',
-    outline: 'none',
-    backgroundColor: 'var(--color-white, #FFFFFF)',
-    color: 'var(--color-text-dark, #2B2B2B)',
-    fontFamily: 'inherit',
+  const handleDelegacionChange = (valor: string) => {
+    if (valor === 'TODAS' || !valor) {
+      onCambiarDelegacion(undefined, undefined);
+    } else {
+      const idResuelto = resolverId(valor);
+      onCambiarDelegacion(idResuelto, valor);
+    }
   };
 
+  // Construcción de chips activos
+  const chipsActivos: ActiveChipItem[] = [];
+
+  if (busqueda?.trim()) {
+    chipsActivos.push({
+      id: 'busqueda',
+      etiqueta: 'Búsqueda',
+      valorVisible: `"${busqueda.trim()}"`,
+      onRemove: () => onCambiarBusqueda(''),
+    });
+  }
+
+  if (nombreDelegacionSeleccionada && nombreDelegacionSeleccionada !== 'TODAS') {
+    chipsActivos.push({
+      id: 'delegacion',
+      etiqueta: 'Delegación',
+      valorVisible: nombreDelegacionSeleccionada,
+      onRemove: () => handleDelegacionChange('TODAS'),
+      esDelegacion: true,
+    });
+  }
+
+  if (prioridad) {
+    chipsActivos.push({
+      id: 'prioridad',
+      etiqueta: 'Prioridad',
+      valorVisible: prioridad,
+      onRemove: () => onCambiarPrioridad(undefined),
+    });
+  }
+
+
   return (
-    <div
-      style={{
-        backgroundColor: 'var(--color-white, #FFFFFF)',
-        padding: '16px 20px',
-        border: '1px solid var(--border-color-neutral, #DFE3E8)',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '14px',
-        boxShadow: 'var(--shadow-sm)',
-      }}
+    <FilterBar
+      titulo="Filtros de Puntos Críticos"
+      storageKey="sgrai:filtros:puntos-criticos:colapsado"
+      totalFiltrosActivos={chipsActivos.length}
     >
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
           gap: '12px',
           alignItems: 'flex-end',
         }}
       >
-        {/* Buscador Textual */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-          <label
-            htmlFor="filtro-busqueda-pc"
-            style={{
-              fontSize: '13px',
-              fontWeight: 700,
-              color: 'var(--color-primary-teal-dark, #14505A)',
-            }}
-          >
-            Buscar sector o código:
-          </label>
-          <input
-            id="filtro-busqueda-pc"
-            type="text"
-            value={localBusqueda}
-            onChange={(e) => setLocalBusqueda(e.target.value)}
-            placeholder="Ej: PC-ANG-01, Humedal, Inundación..."
-            style={selectStyle}
-          />
-        </div>
+        <FilterSearchInput
+          id="filtro-busqueda-pc"
+          label="Buscar sector o código:"
+          value={busqueda}
+          onChange={onCambiarBusqueda}
+          placeholder="Ej: PC-ANG-01, Humedal, Inundación..."
+          debounceMs={300}
+        />
 
-        {/* Delegación Territorial */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-          <label
-            htmlFor="filtro-delegacion-pc"
-            style={{
-              fontSize: '13px',
-              fontWeight: 700,
-              color: 'var(--color-primary-teal-dark, #14505A)',
-            }}
-          >
-            Delegación Territorial:
-          </label>
-          <select
-            id="filtro-delegacion-pc"
-            value={delegacionId || ''}
-            onChange={(e) => onCambiarDelegacion(e.target.value || undefined)}
-            style={selectStyle}
-          >
-            <option value="">Todas las delegaciones</option>
-            {DELEGACIONES_MUNICIPALES.map((del) => (
-              <option key={del.id} value={del.id}>
-                {del.nombre}
-              </option>
-            ))}
-          </select>
-        </div>
+        <FilterSelect
+          id="filtro-delegacion-pc"
+          label="Delegación Territorial:"
+          value={nombreDelegacionSeleccionada}
+          options={opcionesDelegacion}
+          onChange={handleDelegacionChange}
+        />
 
-        {/* Prioridad / Gravedad */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-          <label
-            htmlFor="filtro-prioridad-pc"
-            style={{
-              fontSize: '13px',
-              fontWeight: 700,
-              color: 'var(--color-primary-teal-dark, #14505A)',
-            }}
-          >
-            Prioridad operativa:
-          </label>
-          <select
-            id="filtro-prioridad-pc"
-            value={prioridad || ''}
-            onChange={(e) =>
-              onCambiarPrioridad(
-                (e.target.value as PrioridadPuntoCritico) || undefined
-              )
-            }
-            style={selectStyle}
-          >
-            <option value="">Todas las prioridades</option>
-            <option value="CRITICA">Crítica</option>
-            <option value="ALTA">Alta</option>
-            <option value="MEDIA">Media</option>
-            <option value="BAJA">Baja</option>
-          </select>
-        </div>
+        <FilterSelect
+          id="filtro-prioridad-pc"
+          label="Prioridad Operativa:"
+          value={prioridad || ''}
+          options={OPCIONES_PRIORIDAD}
+          onChange={(val) => onCambiarPrioridad((val as PrioridadPuntoCritico) || undefined)}
+        />
+
       </div>
 
-      {hayFiltrosActivos && (
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'flex-end',
-            paddingTop: '6px',
-            borderTop: '1px dashed var(--border-color-neutral, #DFE3E8)',
-          }}
-        >
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={onLimpiarFiltros}
-          >
-            Limpiar Filtros
-          </Button>
-        </div>
-      )}
-    </div>
+      <ActiveFilterChips
+        chips={chipsActivos}
+        onClearAll={onLimpiarFiltros}
+        clearAllText="Limpiar filtros"
+      />
+    </FilterBar>
   );
 }

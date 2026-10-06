@@ -1,7 +1,10 @@
 /**
- * Tipos TypeScript para el Detalle de Misión (HU-17).
- * Conforme al contrato OpenAPI de sgrai-api y HANDOVER_HU17_DETALLE_MISION_FRONTEND.md.
+ * Contratos de datos y tipos TypeScript para el módulo de Misiones Operativas
+ * (Centro de Mando / Despacho, HU-17 y HU-34).
+ * Conforme a docs/architecture/architecture.md y contratos OpenAPI de sgrai-api.
  */
+
+import type { PaginationMeta } from './common';
 
 export interface AdjuntoEvidencia {
   id: string;
@@ -116,6 +119,44 @@ export type EstadoMision =
   | 'RECHAZADA';
 
 export type PrioridadMision = 'BAJA' | 'MEDIA' | 'ALTA' | 'CRITICA';
+
+export interface MisionItem {
+  id: string;
+  codigo: string;
+  titulo: string;
+  descripcion?: string | null;
+  tipoMision: TipoMision;
+  estado: EstadoMision;
+  prioridad: PrioridadMision;
+  delegacionId?: string | null;
+  delegacionNombre?: string | null;
+  incidenteId?: string | null;
+  incidenteCodigo?: string | null;
+  cuadrillaId?: string | null;
+  cuadrillaNombre?: string | null;
+  patrullaId?: string | null;
+  patrullaNombre?: string | null;
+  justificacionRechazo?: string | null;
+  fechaInicio?: string | null;
+  fechaCierre?: string | null;
+  creadoEn: string;
+  actualizadoEn?: string;
+}
+
+export interface FiltrosMisiones {
+  busqueda: string;
+  estado: string; // 'TODOS' o EstadoMision
+  tipoMision: string; // 'TODOS' o TipoMision
+  prioridad: string; // '' o PrioridadMision
+  delegacion: string; // 'TODAS', 'Norte', 'Sur', 'Costa', 'Calle Calle' (nombre legible en UI)
+  page: number;
+  limit: number;
+}
+
+export interface ListarMisionesResponse {
+  data: MisionItem[];
+  meta: PaginationMeta;
+}
 
 export interface MisionDetalleCompleto {
   id: string;

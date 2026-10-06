@@ -61,6 +61,7 @@ export const MisionDetalleModal: React.FC<MisionDetalleModalProps> = ({
       activo = false;
     };
   }, [misionId, userId]);
+
   // Manejo de tecla Escape
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {

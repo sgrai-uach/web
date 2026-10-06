@@ -34,9 +34,9 @@ export default function Pagination({
   const currentPagina = paginaActual ?? pagina ?? 1;
   const currentTotal = totalItems ?? total ?? 0;
 
-  if (currentTotal === 0 && totalPaginas === 0) return null;
+  if (currentTotal <= 0) return null;
 
-  const desde = currentTotal === 0 ? 0 : Math.min((currentPagina - 1) * limite + 1, currentTotal);
+  const desde = Math.min((currentPagina - 1) * limite + 1, currentTotal);
   const hasta = Math.min(currentPagina * limite, currentTotal);
 
   return (

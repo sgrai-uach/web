@@ -216,7 +216,7 @@ export function useGestionPermisos({ rol, usuarioId, onExito }: UseGestionPermis
     } finally {
       setGuardando(false);
     }
-  }, [rol, tieneCambios, seleccionados, usuarioId, showSuccess, showError, onExito]);
+  }, [rol, tieneCambios, seleccionados, usuarioId, showSuccess, showError, onExito, catalogo]);
 
   return {
     modoEdicion,

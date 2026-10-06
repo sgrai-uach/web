@@ -1,11 +1,10 @@
 'use client';
 
-import { useState, useEffect, useCallback, useContext } from 'react';
+import { useState, useCallback, useContext } from 'react';
 import type { EmpleadoUsuario } from '@/types/empleados';
 import { empleadosService } from '@/services/empleadosService';
 import { toUserFriendlyErrorMessage } from '@/lib/utils/errorUtils';
 import { useToast } from '@/components/ui/Toast';
-import { useSmartScroll } from '@/hooks/useSmartScroll';
 import { SimulatedSessionContext } from '@/context/SimulatedSessionContext';
 import { AuthContext } from '@/context/AuthContext';
 
@@ -24,24 +23,7 @@ export function useAdminEmpleados() {
 
   const { showSuccess, showError } = useToast();
 
-  const { targetRef: formularioRef, scrollToTarget: scrollToFormulario } =
-    useSmartScroll<HTMLDivElement>({
-      threshold: 0.5,
-      block: 'nearest',
-      behavior: 'smooth',
-    });
-
-  // Desplazamiento suave al montar el formulario al seleccionar un usuario
-  useEffect(() => {
-    if (usuarioSeleccionado) {
-      const frameId = requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          scrollToFormulario(true);
-        });
-      });
-      return () => cancelAnimationFrame(frameId);
-    }
-  }, [usuarioSeleccionado, scrollToFormulario]);
+  const formularioRef = { current: null };
 
   const seleccionarUsuario = useCallback((usr: EmpleadoUsuario) => {
     setUsuarioSeleccionado(usr);

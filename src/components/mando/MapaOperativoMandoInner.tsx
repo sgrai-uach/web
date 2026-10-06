@@ -4,19 +4,21 @@ import React, { useEffect, useRef } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import type { IncidenteResumen } from '@/services/incidentesService';
+import type { EventoPrevencionDTO } from '@/types/evento-prevencion';
 import type { EventoRecuperacionResponse } from '@/types/recuperacion';
 
 interface MapaOperativoMandoInnerProps {
   incidentes?: IncidenteResumen[];
+  eventosPrevencion?: EventoPrevencionDTO[];
   eventosRecuperacion?: EventoRecuperacionResponse[];
-  eventosPrevencion?: unknown[];
+
   onSelectIncidente?: (id: string) => void;
   mostrarIncidentes?: boolean;
-  mostrarRecuperaciones?: boolean;
   mostrarPrevenciones?: boolean;
+  mostrarRecuperaciones?: boolean;
 }
 
-// SVG de marcador para Incidentes (Teal Institucional / Naranja según prioridad)
+// SVG de marcador para Incidentes
 function createIncidentePinSvg(prioridad: string): string {
   const color =
     prioridad === 'CRITICA'
@@ -36,6 +38,17 @@ function createIncidentePinSvg(prioridad: string): string {
   `;
 }
 
+// SVG de marcador exclusivo para Eventos de Prevención (Ámbar táctico con ícono de Escudo / Prevención)
+function createPrevencionPinSvg(): string {
+  return `
+    <svg width="36" height="46" viewBox="0 0 36 46" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M18 0C8.05888 0 0 8.05888 0 18C0 31.5 18 46 18 46C18 46 36 31.5 36 18C36 8.05888 27.9411 0 18 0Z" fill="#D97706"/>
+      <circle cx="18" cy="18" r="10" fill="#FFFFFF"/>
+      <path d="M18 11L13 13.5V18C13 21.5 15.2 24.5 18 25.5C20.8 24.5 23 21.5 23 18V13.5L18 11Z" fill="#B45309"/>
+    </svg>
+  `;
+}
+
 // SVG de marcador exclusivo para Eventos de Recuperación (Verde Esmeralda con ícono distintivo)
 function createRecuperacionPinSvg(): string {
   return `
@@ -49,9 +62,11 @@ function createRecuperacionPinSvg(): string {
 
 export default function MapaOperativoMandoInner({
   incidentes = [],
+  eventosPrevencion = [],
   eventosRecuperacion = [],
   onSelectIncidente,
   mostrarIncidentes = true,
+  mostrarPrevenciones = true,
   mostrarRecuperaciones = true,
 }: MapaOperativoMandoInnerProps) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
@@ -153,8 +168,74 @@ export default function MapaOperativoMandoInner({
       });
     }
 
-    // 2. Dibujar eventos de recuperación (HU-29) con ícono y popup completo
-    if (mostrarRecuperaciones) {
+    // 2. Dibujar eventos de prevención (HU-30) con ícono distintivo y popup táctico
+    if (mostrarPrevenciones) {
+      eventosPrevencion.forEach((prev) => {
+        if (!prev.latitud || !prev.longitud) return;
+
+        const pinSvg = createPrevencionPinSvg();
+        const icon = L.divIcon({
+          html: `<div style="display: flex; justify-content: center; align-items: center; filter: drop-shadow(0 2px 6px rgba(217,119,6,0.5)); cursor: pointer;">${pinSvg}</div>`,
+          className: 'marcador-prevencion',
+          iconSize: [36, 46],
+          iconAnchor: [18, 46],
+          popupAnchor: [0, -42],
+        });
+
+        const recursosList = prev.recursos && prev.recursos.length > 0
+          ? prev.recursos
+              .map(
+                (r: { nombre?: string; cantidadAsignada?: number }) =>
+                  `<li style="margin-bottom: 2px;"><strong>${r.nombre || 'Recurso'}:</strong> ${r.cantidadAsignada || 0} un.</li>`
+              )
+              .join('')
+          : '<li>Equipamiento táctico estándar</li>';
+
+        const popupHtml = `
+          <div style="font-family: inherit; font-size: 13px; color: #2B2B2B; min-width: 250px; max-width: 280px; padding: 2px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; border-bottom: 2px solid #D97706; padding-bottom: 4px;">
+              <strong style="color: #B45309; font-size: 14px;">${prev.codigo}</strong>
+              <span style="background-color: #FEF3C7; color: #92400E; padding: 2px 6px; font-size: 10px; font-weight: 700; border: 1px solid #FCD34D;">
+                ${prev.prioridad}
+              </span>
+            </div>
+
+            <div style="font-weight: 700; color: #14505A; margin-bottom: 4px;">${prev.nombre}</div>
+            <div style="font-size: 12px; color: #3B3F45; margin-bottom: 4px;">
+              <strong>Sector:</strong> ${prev.sector || 'Valdivia'}
+              ${prev.direccionTexto ? `<br><strong>Dirección:</strong> ${prev.direccionTexto}` : ''}
+              ${prev.puntoCritico ? `<br><strong style="color: #B45309;">Punto Crítico:</strong> ${prev.puntoCritico.codigo}` : ''}
+            </div>
+
+            <div style="background-color: #FFFBEB; border: 1px solid #FDE68A; padding: 6px; margin-bottom: 6px; font-size: 11px;">
+              <div style="color: #92400E; font-weight: 700; margin-bottom: 2px;">
+                Patrulla Asignada:
+              </div>
+              <div>${prev.patrulla.nombre} (<strong>${prev.patrulla.estado}</strong>)</div>
+              ${prev.mision ? `<div style="margin-top: 2px; color: #555;">Misión: <strong>${prev.mision.codigo}</strong> (${prev.mision.estado})</div>` : ''}
+            </div>
+
+            <div style="font-size: 11px; margin-bottom: 4px;">
+              <strong>Instrucciones:</strong>
+              <p style="margin: 2px 0 0 0; color: #555;">${prev.descripcion}</p>
+            </div>
+
+            <div style="font-size: 11px;">
+              <strong>Insumos Despachados:</strong>
+              <ul style="margin: 4px 0 0 16px; padding: 0;">
+                ${recursosList}
+              </ul>
+            </div>
+          </div>
+        `;
+
+        const marker = L.marker([prev.latitud, prev.longitud], { icon }).addTo(layer);
+        marker.bindPopup(popupHtml);
+      });
+    }
+
+    // 3. Dibujar eventos de recuperación (HU-29) con ícono distintivo y popup táctico
+    if (mostrarRecuperaciones && eventosRecuperacion && eventosRecuperacion.length > 0) {
       eventosRecuperacion.forEach((rec) => {
         if (!rec.latitud || !rec.longitud) return;
 
@@ -170,8 +251,8 @@ export default function MapaOperativoMandoInner({
         const recursosList = rec.recursos && rec.recursos.length > 0
           ? rec.recursos
               .map(
-                (r) =>
-                  `<li style="margin-bottom: 2px;"><strong>${r.nombre}:</strong> ${r.cantidadAsignada} un.</li>`
+                (r: { nombre?: string; cantidadAsignada?: number }) =>
+                  `<li style="margin-bottom: 2px;"><strong>${r.nombre || 'Recurso'}:</strong> ${r.cantidadAsignada || 0} un.</li>`
               )
               .join('')
           : '<li>Sin recursos registrados</li>';
@@ -187,7 +268,7 @@ export default function MapaOperativoMandoInner({
 
             <div style="font-weight: 700; color: #14505A; margin-bottom: 4px;">${rec.nombre}</div>
             <div style="font-size: 12px; color: #3B3F45; margin-bottom: 4px;">
-              <strong>Sector:</strong> ${rec.sector}
+              <strong>Sector:</strong> ${rec.sector || 'Valdivia'}
               ${rec.direccionTexto ? `<br><strong>Dirección:</strong> ${rec.direccionTexto}` : ''}
             </div>
 
@@ -195,13 +276,14 @@ export default function MapaOperativoMandoInner({
               <div style="color: #166534; font-weight: 700; margin-bottom: 2px;">
                 Patrulla Asignada:
               </div>
-              <div>${rec.patrulla.nombre} (${rec.patrulla.estado})</div>
+              <div>${rec.patrulla?.nombre || 'Patrulla'} (${rec.patrulla?.estado || 'EN_RECUPERACION'})</div>
               ${rec.mision ? `<div style="margin-top: 2px; color: #555;">Misión: <strong>${rec.mision.codigo}</strong> (${rec.mision.estado})</div>` : ''}
             </div>
 
+            ${rec.familiasAfectadas ? `
             <div style="font-size: 11px; margin-bottom: 6px;">
               <strong>Familias Beneficiadas:</strong> ${rec.familiasAfectadas}
-            </div>
+            </div>` : ''}
 
             <div style="font-size: 11px;">
               <strong>Insumos Despachados:</strong>
@@ -216,7 +298,7 @@ export default function MapaOperativoMandoInner({
         marker.bindPopup(popupHtml);
       });
     }
-  }, [incidentes, eventosRecuperacion, mostrarIncidentes, mostrarRecuperaciones, onSelectIncidente]);
+  }, [incidentes, eventosPrevencion, eventosRecuperacion, mostrarIncidentes, mostrarPrevenciones, mostrarRecuperaciones, onSelectIncidente]);
 
   return (
     <div
@@ -228,7 +310,7 @@ export default function MapaOperativoMandoInner({
         backgroundColor: '#ECEFF3',
         zIndex: 1,
       }}
-      aria-label="Mapa cartográfico táctico de incidentes y eventos de recuperación"
+      aria-label="Mapa cartográfico táctico de incidentes, prevención y recuperación"
     />
   );
 }

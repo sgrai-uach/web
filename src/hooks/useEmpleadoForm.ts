@@ -136,14 +136,11 @@ export function useEmpleadoForm({ usuario, onEmpleadoActualizado }: UseEmpleadoF
       const targetId = usuario.personal_id || usuario.usuario_id;
       const dataActualizada = await empleadosService.updateEmpleado(targetId, payload);
 
-      setMensajeExito('Los datos han sido actualizados exitosamente en la base de datos.');
-      setTimeout(() => {
-        onEmpleadoActualizado({
-          ...usuario,
-          ...dataActualizada,
-          es_personal: esRolTerreno,
-        });
-      }, 700);
+      onEmpleadoActualizado({
+        ...usuario,
+        ...dataActualizada,
+        es_personal: esRolTerreno,
+      });
     } catch (err: unknown) {
       setErrorMsg(getErrorMessage(err, 'Error al conectar con la API para actualizar los datos'));
     } finally {

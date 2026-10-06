@@ -3,12 +3,13 @@
 import React, { useState, useMemo } from 'react';
 import {
   useIncidentesKanban,
-  ESTADOS_KANBAN,
 } from '@/hooks/useIncidentesKanban';
 import { useIncidentesKpis } from '@/hooks/useIncidentesKpis';
+import { usePrevencionSocket } from '@/hooks/usePrevencionSocket';
 import { useRecuperacionSocket } from '@/hooks/useRecuperacionSocket';
 import { useToast } from '@/components/ui/Toast';
-import { type EstadoIncidente } from '@/services/incidentesService';
+import type { EstadoIncidente } from '@/services/incidentesService';
+import type { EventoPrevencionDTO } from '@/types/evento-prevencion';
 import type { EventoRecuperacionResponse } from '@/types/recuperacion';
 import { KanbanHeader } from './KanbanHeader';
 import { KanbanFiltros } from './KanbanFiltros';
@@ -16,6 +17,8 @@ import { KanbanColumn } from './KanbanColumn';
 import { IncidentesKpiCards } from './IncidentesKpiCards';
 import { IncidenteDetalleDrawer } from './IncidenteDetalleDrawer';
 import { AccesoDenegado } from './AccesoDenegado';
+import { MisionesModal } from './misiones/MisionesModal';
+import { ModalCrearEventoPrevencion } from './ModalCrearEventoPrevencion';
 import { ModalCrearEventoRecuperacion } from './ModalCrearEventoRecuperacion';
 import { MapaOperativoMando } from './MapaOperativoMando';
 import { Zap } from 'lucide-react';
@@ -33,7 +36,10 @@ const TITULOS_COLUMNAS = {
 export const KanbanBoard: React.FC = () => {
   const { showInfo } = useToast();
   const [vistaActiva, setVistaActiva] = useState<'kanban' | 'mapa'>('kanban');
+  const [misionesModalAbierto, setMisionesModalAbierto] = useState(false);
+  const [modalPrevencionAbierto, setModalPrevencionAbierto] = useState(false);
   const [modalRecuperacionAbierto, setModalRecuperacionAbierto] = useState(false);
+  const [eventosPrevencion, setEventosPrevencion] = useState<EventoPrevencionDTO[]>([]);
   const [eventosRecuperacion, setEventosRecuperacion] = useState<EventoRecuperacionResponse[]>([]);
 
   const {
@@ -47,6 +53,8 @@ export const KanbanBoard: React.FC = () => {
     esForbidden,
     filtros,
     setFiltros,
+    estadosVisibles,
+    limpiarFiltros,
     cargarMas,
     recargar,
     conectado,
@@ -69,7 +77,22 @@ export const KanbanBoard: React.FC = () => {
     conectado: conectadoKpis,
   } = useIncidentesKpis({ userId });
 
-  // Hook de tiempo real para escuchar recuperaciones despachadas
+  // Hook de tiempo real para eventos de prevención (HU-30)
+  usePrevencionSocket({
+    onPrevencionCreada: (nuevoEvento) => {
+      setEventosPrevencion((prev) => {
+        const existe = prev.some((e) => e.id === nuevoEvento.id);
+        if (existe) return prev;
+        return [nuevoEvento, ...prev];
+      });
+      showInfo(
+        `Nuevo evento de prevención en ${nuevoEvento.sector || 'sector'}: ${nuevoEvento.codigo}`,
+        'Operación Preventiva en Vivo'
+      );
+    },
+  });
+
+  // Hook de tiempo real para eventos de recuperación (HU-29)
   useRecuperacionSocket({
     onRecuperacionCreada: (nuevoEvento) => {
       setEventosRecuperacion((prev) => {
@@ -98,20 +121,31 @@ export const KanbanBoard: React.FC = () => {
     });
   };
 
-  // Manejo de clic en tarjeta de estado (Opción B: enfocar columna y activar soloHoy)
+  // Manejo de clic en tarjeta de estado
   const handleSelectEstado = (estado: EstadoIncidente) => {
     if (estadoEnfocado === estado) {
       setEstadoEnfocado(null);
+      if (filtros.estado === estado) {
+        setFiltros({
+          ...filtros,
+          estado: 'TODOS',
+        });
+      }
     } else {
       setEstadoEnfocado(estado);
-      // Activar filtro "soloHoy"
-      if (!filtros.soloHoy) {
+      if (filtros.estado && filtros.estado !== 'TODOS' && filtros.estado !== estado) {
+        setFiltros({
+          ...filtros,
+          estado,
+          soloHoy: true,
+        });
+      } else if (!filtros.soloHoy) {
         setFiltros({
           ...filtros,
           soloHoy: true,
         });
       }
-      // Desplazamiento suave hacia la columna seleccionada
+
       setTimeout(() => {
         const colEl = document.getElementById(`kanban-col-${estado}`);
         if (colEl) {
@@ -126,6 +160,16 @@ export const KanbanBoard: React.FC = () => {
     recargar();
   };
 
+  const contadoresPorEstado = useMemo(() => {
+    const mapa: Record<string, number> = {
+      TODOS: totalIncidentesVisibles,
+    };
+    Object.entries(columnas).forEach(([estado, items]) => {
+      mapa[estado] = items.length;
+    });
+    return mapa;
+  }, [columnas, totalIncidentesVisibles]);
+
   return (
     <div className={styles.pageContainer}>
       <KanbanHeader
@@ -133,6 +177,8 @@ export const KanbanBoard: React.FC = () => {
         conectado={conectado}
         userId={userId}
         setUserId={setUserId}
+        onAbrirMisiones={() => setMisionesModalAbierto(true)}
+        onOpenCrearPrevencion={() => setModalPrevencionAbierto(true)}
         onOpenCrearRecuperacion={() => setModalRecuperacionAbierto(true)}
         vistaActiva={vistaActiva}
         onCambiarVista={setVistaActiva}
@@ -157,7 +203,9 @@ export const KanbanBoard: React.FC = () => {
           <KanbanFiltros
             filtros={filtros}
             onFiltrosChange={setFiltros}
+            onLimpiarFiltros={limpiarFiltros}
             onRecargar={handleRefrescoCompleto}
+            contadoresPorEstado={contadoresPorEstado}
             cargando={cargando}
           />
 
@@ -191,7 +239,7 @@ export const KanbanBoard: React.FC = () => {
           {vistaActiva === 'kanban' ? (
             <main className={styles.kanbanArea}>
               <div className={styles.kanbanBoard}>
-                {ESTADOS_KANBAN.map((estado) => (
+                {estadosVisibles.map((estado) => (
                   <KanbanColumn
                     key={estado}
                     id={`kanban-col-${estado}`}
@@ -211,8 +259,10 @@ export const KanbanBoard: React.FC = () => {
             <main style={{ marginTop: 'var(--space-4, 16px)' }}>
               <MapaOperativoMando
                 incidentes={todosLosIncidentes}
+                eventosPrevencion={eventosPrevencion}
                 eventosRecuperacion={eventosRecuperacion}
                 onSelectIncidente={(incId) => setIncidenteSeleccionadoId(incId)}
+                onCrearPrevencion={() => setModalPrevencionAbierto(true)}
                 onCrearRecuperacion={() => setModalRecuperacionAbierto(true)}
               />
             </main>
@@ -222,6 +272,22 @@ export const KanbanBoard: React.FC = () => {
             incidenteId={incidenteSeleccionadoId}
             userId={userId}
             onCerrar={() => setIncidenteSeleccionadoId(null)}
+          />
+
+          <MisionesModal
+            isOpen={misionesModalAbierto}
+            onClose={() => setMisionesModalAbierto(false)}
+            userId={userId}
+          />
+
+          <ModalCrearEventoPrevencion
+            isOpen={modalPrevencionAbierto}
+            onClose={() => setModalPrevencionAbierto(false)}
+            userId={userId}
+            onSuccess={(eventoCreado) => {
+              setEventosPrevencion((prev) => [eventoCreado, ...prev]);
+              handleRefrescoCompleto();
+            }}
           />
 
           <ModalCrearEventoRecuperacion
@@ -238,5 +304,3 @@ export const KanbanBoard: React.FC = () => {
     </div>
   );
 };
-
-

@@ -64,12 +64,15 @@ export const NAV_GROUPS: NavGroup[] = [
       },
       {
         id: 'asistente-social',
-        label: 'Fichas FIBE',
+        label: 'Asistencia Social',
         href: '/gestion/asistente-social',
         icon: ClipboardList,
-        disabled: true,
-        badge: 'Próx.',
-        requiredPermissions: ['asistencia_social:fibe:gestionar', 'fibe:gestionar'],
+        requiredPermissions: [
+          'asistencia_social:leer',
+          'asistencia_social:crear',
+          'asistencia_social:fibe:gestionar',
+          'fibe:gestionar',
+        ],
       },
     ],
   },
@@ -116,7 +119,7 @@ export const NAV_GROUPS: NavGroup[] = [
         label: 'Puntos Críticos',
         href: '/gestion/admin/puntos-criticos',
         icon: AlertTriangle,
-        requiredPermissions: ['puntos_criticos:leer', 'seguridad:roles:gestionar'],
+        requiredPermissions: ['puntos_criticos:leer', 'puntos_criticos:crear', 'seguridad:roles:gestionar'],
       },
       {
         id: 'roles-permisos',

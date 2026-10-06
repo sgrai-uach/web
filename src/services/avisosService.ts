@@ -1,5 +1,6 @@
 import apiClient from '@/lib/api/client';
 import { formatApiError } from '@/lib/utils/errorUtils';
+import { catalogosService } from '@/services/catalogosService';
 import type {
   AvisoDetalleResponse,
   AvisosPaginadosResponse,
@@ -147,6 +148,10 @@ export async function listarAvisos(
 
   if (params.delegacion && params.delegacion !== 'TODAS') {
     queryObj.delegacion = params.delegacion;
+    const delId = catalogosService.resolverDelegacionId(params.delegacion);
+    if (delId) {
+      queryObj.delegacionId = delId;
+    }
   }
 
   const { data, error, response } = await apiClient.GET('/api/incidentes/avisos', {
@@ -208,8 +213,9 @@ export async function obtenerDetalleAviso(
 export async function verificarAviso(
   id: string,
   body: VerificarAvisoInput,
-  operadorId: string
+  _operadorId?: string
 ): Promise<VerificarAvisoSuccessResponse> {
+  void _operadorId;
   const { data, error, response } = await apiClient.POST(
     '/api/incidentes/avisos/{id}/verificar',
     {
@@ -255,8 +261,9 @@ export async function verificarAviso(
 export async function descartarAviso(
   id: string,
   body: DescartarAvisoInput,
-  operadorId: string
+  _operadorId?: string
 ): Promise<DescartarAvisoSuccessResponse> {
+  void _operadorId;
   if (!body.motivoDescarte || body.motivoDescarte.trim().length < 5) {
     throw new AvisosServiceError(
       400,

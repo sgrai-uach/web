@@ -66,12 +66,18 @@ describe('PuntosCriticosPage - RBAC y Renderizado (CA-1, CA-4)', () => {
       error: null,
       statusCode: 200,
       removerPuntoLocalmente: vi.fn(),
+      recargar: vi.fn(),
+      actualizarPuntoCriticoEnLista: vi.fn(),
     });
 
     render(<PuntosCriticosPage />);
 
     expect(screen.getByText('Puntos Críticos y Sectores Vulnerables')).toBeInTheDocument();
-    expect(screen.getByText('PC-ANG-01')).toBeInTheDocument();
+    expect(screen.getByText('Sector Humedal Angachilla')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /nuevo punto crítico/i })).toHaveAttribute(
+      'href',
+      '/admin/puntos-criticos/nuevo'
+    );
   });
 
   it('debe renderizar AccesoDenegadoState si el usuario carece de permiso o recibe 403 Forbidden (CA-4)', () => {
@@ -103,6 +109,7 @@ describe('PuntosCriticosPage - RBAC y Renderizado (CA-1, CA-4)', () => {
       statusCode: 403,
       recargar: vi.fn(),
       removerPuntoLocalmente: vi.fn(),
+      actualizarPuntoCriticoEnLista: vi.fn(),
     });
 
     render(<PuntosCriticosPage />);
@@ -146,6 +153,7 @@ describe('PuntosCriticosPage - RBAC y Renderizado (CA-1, CA-4)', () => {
       statusCode: 200,
       recargar: vi.fn(),
       removerPuntoLocalmente: vi.fn(),
+      actualizarPuntoCriticoEnLista: vi.fn(),
     });
 
     render(<PuntosCriticosPage />);
@@ -184,12 +192,52 @@ describe('PuntosCriticosPage - RBAC y Renderizado (CA-1, CA-4)', () => {
       statusCode: 200,
       recargar: vi.fn(),
       removerPuntoLocalmente: vi.fn(),
+      actualizarPuntoCriticoEnLista: vi.fn(),
     });
 
     render(<PuntosCriticosPage />);
 
     expect(screen.getByText('Puntos Críticos y Sectores Vulnerables')).toBeInTheDocument();
     expect(screen.getByText('PC-ANG-01')).toBeInTheDocument();
+    expect(screen.queryByText('Acceso Restringido')).toBeNull();
+  });
+
+  it('debe permitir acceso y mostrar botón "+ Nuevo Punto Crítico" a un usuario no Administrador con permiso puntos_criticos:crear', () => {
+    vi.spyOn(sessionContextModule, 'useSimulatedSession').mockReturnValue({
+      usuarioActivo: {
+        id: '00000000-0000-4000-8000-000000000003',
+        nombre: 'Encargado Territorial',
+        email: 'encargado@valdivia.cl',
+        rut: '33.333.333-3',
+        rol: 'Encargado',
+        esAdmin: false,
+      },
+      setUsuarioActivo: vi.fn(),
+      cambiarUsuarioPorId: vi.fn(),
+      usuariosDisponibles: [],
+      permisos: new Set(['puntos_criticos:crear']),
+      cargandoPermisos: false,
+      refrescarPermisos: vi.fn(),
+      hasPermission: vi.fn((codigo: string) => codigo === 'puntos_criticos:crear'),
+      hasAnyPermission: vi.fn().mockReturnValue(true),
+      usuarioDetalleServidor: null,
+    });
+
+    vi.spyOn(usePuntosCriticosModule, 'usePuntosCriticos').mockReturnValue({
+      puntosCriticos: [mockPunto],
+      meta: { total: 1, pagina: 1, limite: 10, totalPaginas: 1 },
+      cargando: false,
+      error: null,
+      statusCode: 200,
+      recargar: vi.fn(),
+      removerPuntoLocalmente: vi.fn(),
+      actualizarPuntoCriticoEnLista: vi.fn(),
+    });
+
+    render(<PuntosCriticosPage />);
+
+    expect(screen.getByText('Puntos Críticos y Sectores Vulnerables')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /nuevo punto crítico/i })).toBeInTheDocument();
     expect(screen.queryByText('Acceso Restringido')).toBeNull();
   });
 
@@ -291,6 +339,7 @@ describe('PuntosCriticosPage - RBAC y Renderizado (CA-1, CA-4)', () => {
         statusCode: 200,
         recargar: vi.fn(),
         removerPuntoLocalmente: vi.fn(),
+        actualizarPuntoCriticoEnLista: vi.fn(),
       });
 
       render(<PuntosCriticosPage />);

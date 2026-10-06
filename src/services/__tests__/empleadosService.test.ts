@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import {
   empleadosService,
   createEmpleado,
+  getEmpleadosPaginado,
   EmpleadosServiceError,
 } from '../empleadosService';
 import type { RegistrarEmpleadoPayload } from '@/types/empleados';
@@ -218,6 +219,129 @@ describe('empleadosService', () => {
 
       await expect(createEmpleado(payloadValido)).rejects.toThrow(
         'Error interno en la base de datos'
+      );
+    });
+  });
+
+  describe('getEmpleados y getEmpleadosPaginado (H34 + HU-13)', () => {
+    const mockPersonal = [
+      {
+        usuario_id: 'usr-1',
+        rut: '11.111.111-1',
+        nombres: 'Ana',
+        apellidos: 'Silva',
+        email: 'asilva@valdivia.cl',
+        usuario_activo: true,
+        rol_id: 'rol-1',
+        rol_codigo: 'PATRULLA',
+        rol_nombre: 'Patrulla Verificadora',
+        delegacion_id: 'del-1',
+        delegacion_codigo: 'DEL_NORTE',
+        delegacion_nombre: 'Norte',
+        es_personal: true,
+      },
+    ];
+
+    it('debe procesar respuesta estandarizada con objeto meta (total, page, limit, totalPages)', async () => {
+      const mockMeta = {
+        total: 45,
+        page: 2,
+        limit: 20,
+        totalPages: 3,
+        hasNext: true,
+        hasPrev: true,
+      };
+
+      vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          data: mockPersonal,
+          meta: mockMeta,
+        }),
+      } as Response);
+
+      const res = await getEmpleadosPaginado({ page: 2, limit: 20 });
+
+      expect(res.data).toHaveLength(1);
+      expect(res.data[0].nombres).toBe('Ana');
+      expect(res.meta.total).toBe(45);
+      expect(res.meta.page).toBe(2);
+      expect(res.meta.limit).toBe(20);
+      expect(res.meta.totalPages).toBe(3);
+      expect(res.meta.hasNext).toBe(true);
+      expect(res.meta.hasPrev).toBe(true);
+    });
+
+    it('debe soportar fallback defensivo si la API devuelve estructura provisoria paginacion', async () => {
+      vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          data: mockPersonal,
+          paginacion: {
+            pagina: 1,
+            limite: 10,
+            total_retornados: 25,
+          },
+        }),
+      } as Response);
+
+      const res = await getEmpleadosPaginado({ pagina: 1, limite: 10 });
+
+      expect(res.data).toHaveLength(1);
+      expect(res.meta.total).toBe(25);
+      expect(res.meta.page).toBe(1);
+      expect(res.meta.limit).toBe(10);
+      expect(res.meta.totalPages).toBe(3);
+    });
+
+    it('getEmpleados debe retornar array de funcionarios con meta adjunto', async () => {
+      vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          data: mockPersonal,
+          meta: {
+            total: 1,
+            page: 1,
+            limit: 10,
+            totalPages: 1,
+            hasNext: false,
+            hasPrev: false,
+          },
+        }),
+      } as Response);
+
+      const res = await empleadosService.getEmpleados({ q: 'Ana' });
+
+      expect(Array.isArray(res)).toBe(true);
+      expect(res).toHaveLength(1);
+      expect(res.meta).toBeDefined();
+      expect(res.meta?.total).toBe(1);
+      expect(res.meta?.page).toBe(1);
+    });
+
+    it('debe mapear parámetros de consulta estándar page y limit en la URL de fetch', async () => {
+      const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          data: mockPersonal,
+          meta: { total: 1, page: 3, limit: 15, totalPages: 1, hasNext: false, hasPrev: true },
+        }),
+      } as Response);
+
+      await getEmpleadosPaginado({
+        page: 3,
+        limit: 15,
+        delegacionNombre: 'Norte',
+        rol_id: 'rol-1',
+      });
+
+      expect(fetchSpy).toHaveBeenCalledWith(
+        expect.stringMatching(/\/api\/personal\?.*page=3.*limit=15/),
+        expect.anything()
       );
     });
   });
