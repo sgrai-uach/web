@@ -1,10 +1,14 @@
 'use client';
 
-import { FilterX } from 'lucide-react';
-import Button from '@/components/ui/Button';
-import Input from '@/components/ui/Input';
-import Select from '@/components/ui/Select';
+import React, { useMemo } from 'react';
 import { DELEGACIONES_MUNICIPALES } from '@/hooks/usePuntosCriticos';
+import {
+  FilterBar,
+  FilterSearchInput,
+  FilterSelect,
+  ActiveFilterChips,
+  type ActiveChipItem,
+} from '@/components/common/filters';
 import type {
   FiltrosEventosAsistenciaSocialState,
   PrioridadEventoSocial,
@@ -20,6 +24,22 @@ interface AsistenciaSocialFiltrosProps {
   onLimpiarFiltros: () => void;
 }
 
+const OPCIONES_PRIORIDAD = [
+  { valor: '', etiqueta: 'Todas las prioridades' },
+  { valor: 'CRITICA', etiqueta: 'Crítica' },
+  { valor: 'ALTA', etiqueta: 'Alta' },
+  { valor: 'MEDIA', etiqueta: 'Media' },
+  { valor: 'BAJA', etiqueta: 'Baja' },
+];
+
+const OPCIONES_ESTADO = [
+  { valor: 'PENDIENTE', etiqueta: 'Pendientes de asignación' },
+  { valor: 'ASIGNADO', etiqueta: 'Asistente asignado' },
+  { valor: 'EN_EVALUACION_FIBE', etiqueta: 'En evaluación FIBE' },
+  { valor: 'FINALIZADO', etiqueta: 'Finalizados' },
+  { valor: '', etiqueta: 'Todos los estados' },
+];
+
 export default function AsistenciaSocialFiltros({
   filtros,
   onCambiarBusqueda,
@@ -28,93 +48,114 @@ export default function AsistenciaSocialFiltros({
   onCambiarEstado,
   onLimpiarFiltros,
 }: AsistenciaSocialFiltrosProps) {
-  const tieneFiltrosActivos =
-    Boolean(filtros.busqueda) ||
-    Boolean(filtros.delegacionId) ||
-    Boolean(filtros.prioridad) ||
-    (Boolean(filtros.estado) && filtros.estado !== 'PENDIENTE');
+  const opcionesDelegacion = useMemo(
+    () => [
+      { valor: '', etiqueta: 'Todas las delegaciones' },
+      ...DELEGACIONES_MUNICIPALES.map((d) => ({
+        valor: d.id,
+        etiqueta: d.nombre,
+      })),
+    ],
+    []
+  );
+
+  const chipsActivos = useMemo<ActiveChipItem[]>(() => {
+    const chips: ActiveChipItem[] = [];
+
+    if (filtros.busqueda && filtros.busqueda.trim() !== '') {
+      chips.push({
+        id: 'busqueda',
+        etiqueta: 'Búsqueda',
+        valorVisible: `"${filtros.busqueda}"`,
+        onRemove: () => onCambiarBusqueda(''),
+      });
+    }
+
+    if (filtros.delegacionId) {
+      const match = DELEGACIONES_MUNICIPALES.find((d) => d.id === filtros.delegacionId);
+      chips.push({
+        id: 'delegacion',
+        etiqueta: 'Delegación',
+        valorVisible: match ? match.nombre : filtros.delegacionId,
+        onRemove: () => onCambiarDelegacion(undefined),
+      });
+    }
+
+    if (filtros.prioridad) {
+      const match = OPCIONES_PRIORIDAD.find((p) => p.valor === filtros.prioridad);
+      chips.push({
+        id: 'prioridad',
+        etiqueta: 'Prioridad',
+        valorVisible: match ? match.etiqueta : filtros.prioridad,
+        onRemove: () => onCambiarPrioridad(undefined),
+      });
+    }
+
+    if (filtros.estado && filtros.estado !== 'PENDIENTE') {
+      const match = OPCIONES_ESTADO.find((e) => e.valor === filtros.estado);
+      chips.push({
+        id: 'estado',
+        etiqueta: 'Estado',
+        valorVisible: match ? match.etiqueta : filtros.estado,
+        onRemove: () => onCambiarEstado('PENDIENTE'),
+      });
+    }
+
+    return chips;
+  }, [filtros, onCambiarBusqueda, onCambiarDelegacion, onCambiarPrioridad, onCambiarEstado]);
 
   return (
-    <div
-      style={{
-        backgroundColor: '#FFFFFF',
-        border: '1px solid var(--border-color-neutral, #DFE3E8)',
-        padding: 'var(--space-4, 16px)',
-        display: 'flex',
-        flexWrap: 'wrap',
-        gap: 'var(--space-4, 16px)',
-        alignItems: 'flex-end',
-      }}
+    <FilterBar
+      titulo="Filtros y Búsqueda"
+      storageKey="sgrai:filtros:asistencia-social:colapsado"
+      totalFiltrosActivos={chipsActivos.length}
     >
-      <div style={{ flex: '1 1 240px', minWidth: '220px' }}>
-        <Input
-          label="Búsqueda Rápida"
-          placeholder="Código AS, dirección, contacto..."
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+          gap: '12px',
+          alignItems: 'flex-end',
+        }}
+      >
+        <FilterSearchInput
+          id="filtro-busqueda-asistencia-social"
+          label="Búsqueda Rápida:"
           value={filtros.busqueda || ''}
-          onChange={(e) => onCambiarBusqueda(e.target.value)}
+          onChange={onCambiarBusqueda}
+          placeholder="Código AS, dirección, contacto..."
         />
-      </div>
 
-      <div style={{ flex: '1 1 180px', minWidth: '160px' }}>
-        <Select
-          label="Delegación Territorial"
+        <FilterSelect
+          id="filtro-delegacion-asistencia-social"
+          label="Delegación Territorial:"
           value={filtros.delegacionId || ''}
-          onChange={(e) => onCambiarDelegacion(e.target.value || undefined)}
-          options={[
-            { value: '', label: 'Todas las delegaciones' },
-            ...DELEGACIONES_MUNICIPALES.map((d) => ({
-              value: d.id,
-              label: d.nombre,
-            })),
-          ]}
+          options={opcionesDelegacion}
+          onChange={(val) => onCambiarDelegacion(val || undefined)}
         />
-      </div>
 
-      <div style={{ flex: '1 1 140px', minWidth: '130px' }}>
-        <Select
-          label="Prioridad"
+        <FilterSelect
+          id="filtro-prioridad-asistencia-social"
+          label="Prioridad:"
           value={filtros.prioridad || ''}
-          onChange={(e) => onCambiarPrioridad((e.target.value as PrioridadEventoSocial) || undefined)}
-          options={[
-            { value: '', label: 'Todas las prioridades' },
-            { value: 'CRITICA', label: 'Crítica' },
-            { value: 'ALTA', label: 'Alta' },
-            { value: 'MEDIA', label: 'Media' },
-            { value: 'BAJA', label: 'Baja' },
-          ]}
+          options={OPCIONES_PRIORIDAD}
+          onChange={(val) => onCambiarPrioridad((val as PrioridadEventoSocial) || undefined)}
+        />
+
+        <FilterSelect
+          id="filtro-estado-asistencia-social"
+          label="Estado del Caso:"
+          value={filtros.estado || ''}
+          options={OPCIONES_ESTADO}
+          onChange={(val) => onCambiarEstado((val as EstadoEventoSocial) || undefined)}
         />
       </div>
 
-      <div style={{ flex: '1 1 160px', minWidth: '140px' }}>
-        <Select
-          label="Estado del Caso"
-          value={filtros.estado || 'PENDIENTE'}
-          onChange={(e) => onCambiarEstado((e.target.value as EstadoEventoSocial) || undefined)}
-          options={[
-            { value: 'PENDIENTE', label: 'Pendientes de asignación' },
-            { value: 'ASIGNADO', label: 'Asistente asignado' },
-            { value: 'EN_EVALUACION_FIBE', label: 'En evaluación FIBE' },
-            { value: 'FINALIZADO', label: 'Finalizados' },
-            { value: '', label: 'Todos los estados' },
-          ]}
-        />
-      </div>
-
-      {tieneFiltrosActivos && (
-        <div>
-          <Button
-            type="button"
-            variant="ghost"
-            size="md"
-            onClick={onLimpiarFiltros}
-            title="Restablecer todos los filtros"
-            style={{ border: '1px solid var(--border-color-neutral, #DFE3E8)' }}
-          >
-            <FilterX size={15} style={{ marginRight: '6px' }} />
-            <span>Limpiar</span>
-          </Button>
-        </div>
-      )}
-    </div>
+      <ActiveFilterChips
+        chips={chipsActivos}
+        onClearAll={onLimpiarFiltros}
+        clearAllText="Limpiar filtros"
+      />
+    </FilterBar>
   );
 }

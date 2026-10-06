@@ -343,6 +343,7 @@ export default function AsistenciaSocialTabla({
           totalItems={meta.total}
           limite={meta.limite}
           onCambiarLimite={onCambiarLimite || (() => {})}
+          nombreEntidad="casos registrados"
         />
       )}
 

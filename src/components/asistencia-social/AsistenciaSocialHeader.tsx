@@ -29,12 +29,7 @@ export default function AsistenciaSocialHeader({
 
       <PageTitleCard
         title="Asistencia Social"
-        badge={
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-            <HeartHandshake size={14} />
-            <span>{`${totalCasos} ${totalCasos === 1 ? 'caso registrado' : 'casos registrados'}`}</span>
-          </div>
-        }
+        badge={`${totalCasos} ${totalCasos === 1 ? 'caso registrado' : 'casos registrados'}`}
         description="Gestión de casos excepcionales para levantamiento de Ficha Básica de Emergencia (FIBE) y asistencia a familias afectadas en Valdivia."
         actionSlot={
           puedeCrear ? (
