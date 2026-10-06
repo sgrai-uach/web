@@ -2,17 +2,8 @@ import React from 'react';
 import Heading from '@/components/ui/Heading';
 import Button from '@/components/ui/Button';
 import AppFooter from '@/components/layout/AppFooter';
-import {
-  Users,
-  ShieldCheck,
-  Bot,
-  Search,
-  PhoneCall,
-  MapPin,
-  Boxes,
-  ArrowRight,
-  Phone,
-} from 'lucide-react';
+import { Phone, Users, ShieldCheck, Bot, Search, PhoneCall, MapPin, Boxes, ArrowRight } from 'lucide-react';
+import { EMERGENCY_PHONE } from '@/lib/constants/contacto';
 
 export default function Home() {
   return (
@@ -49,7 +40,7 @@ export default function Home() {
           <span>DIRECCIÓN DE GESTIÓN DE RIESGOS DE DESASTRES &bull; MUNICIPALIDAD DE VALDIVIA</span>
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
             <Phone size={13} />
-            Mesa Central de Emergencias 1412 / 1451
+            Mesa Central de Emergencias {EMERGENCY_PHONE}
           </span>
         </div>
       </div>
@@ -200,7 +191,7 @@ export default function Home() {
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px' }}>
                   <PhoneCall size={16} color="var(--color-primary-teal, #1B6F7D)" />
-                  <span>Acceso directo a central telefónica 1412</span>
+                  <span>Acceso directo a central telefónica {EMERGENCY_PHONE}</span>
                 </div>
               </div>
             </div>

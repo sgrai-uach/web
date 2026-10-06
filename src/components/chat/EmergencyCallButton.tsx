@@ -2,10 +2,11 @@
 
 import React from 'react';
 import { Phone } from 'lucide-react';
+import { EMERGENCY_PHONE } from '@/lib/constants/contacto';
 import styles from '@/styles/chatbot.module.css';
 
 export const EmergencyCallButton: React.FC = () => {
-  const telefonoEmergencia = process.env.NEXT_PUBLIC_EMERGENCY_PHONE || '1451';
+  const telefonoEmergencia = EMERGENCY_PHONE;
 
   return (
     <a

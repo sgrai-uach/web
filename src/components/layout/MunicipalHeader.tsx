@@ -3,6 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { Phone } from 'lucide-react';
+import { EMERGENCY_PHONE } from '@/lib/constants/contacto';
 import styles from './MunicipalHeader.module.css';
 
 export const MunicipalHeader: React.FC = () => {
@@ -19,8 +20,7 @@ export const MunicipalHeader: React.FC = () => {
   const instagramUrl =
     process.env.NEXT_PUBLIC_INSTAGRAM_URL ||
     'https://www.instagram.com/munivaldivia';
-  const emergencyPhone =
-    process.env.NEXT_PUBLIC_EMERGENCY_PHONE || '1451';
+  const emergencyPhone = EMERGENCY_PHONE;
 
   return (
     <header className={styles.headerWrapper}>

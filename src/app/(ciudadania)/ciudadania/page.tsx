@@ -5,6 +5,7 @@ import { SeguimientoBuscador } from '@/components/seguimiento/SeguimientoBuscado
 import Heading from '@/components/ui/Heading';
 import Button from '@/components/ui/Button';
 import { Bot, PhoneCall, ArrowRight, CheckCircle2 } from 'lucide-react';
+import { EMERGENCY_PHONE } from '@/lib/constants/contacto';
 import styles from '@/styles/seguimiento.module.css';
 
 export const metadata: Metadata = {
@@ -119,14 +120,14 @@ export default function PortalCiudadaniaPage() {
               </Button>
 
               <Button
-                href="tel:1412"
+                href={`tel:${EMERGENCY_PHONE}`}
                 variant="secondary"
                 size="md"
                 fullWidth
                 icon={<PhoneCall size={15} />}
-                title="Llamada de emergencia directa al 1412"
+                title={`Llamada de emergencia directa al ${EMERGENCY_PHONE}`}
               >
-                Llamar a Emergencias (1412)
+                Llamar a Emergencias ({EMERGENCY_PHONE})
               </Button>
             </div>
           </section>

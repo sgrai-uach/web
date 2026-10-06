@@ -5,6 +5,7 @@ import { Phone } from 'lucide-react';
 import styles from '@/styles/seguimiento.module.css';
 import Heading from '@/components/ui/Heading';
 import Button from '@/components/ui/Button';
+import { EMERGENCY_PHONE } from '@/lib/constants/contacto';
 
 interface SeguimientoErrorCardProps {
   codigo?: string;
@@ -17,7 +18,7 @@ export const SeguimientoErrorCard: React.FC<SeguimientoErrorCardProps> = ({
   mensaje = 'No encontramos ningún reporte con el código ingresado. Por favor, verifica el número entregado por el asistente.',
   onReintentar,
 }) => {
-  const emergencyPhone = process.env.NEXT_PUBLIC_EMERGENCY_PHONE || '1451';
+  const emergencyPhone = EMERGENCY_PHONE;
 
   return (
     <div className={styles.errorCard} role="alert">
