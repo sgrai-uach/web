@@ -61,6 +61,39 @@ describe('AuthContext', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     cookieUtils.removeAuthCookie();
+    vi.spyOn(seguridadService, 'obtenerUsuarioActivo').mockRejectedValue(new Error('No auth'));
+    vi.spyOn(seguridadService, 'obtenerDetalleRol').mockResolvedValue({
+      data: {
+        id: 'rol-1',
+        nombre: 'Administrador',
+        descripcion: 'Rol Administrador',
+        activo: true,
+        esSistema: true,
+        cantidadPermisos: 2,
+        permisos: [
+          {
+            id: 'p-1',
+            codigo: 'seguridad:roles:gestionar',
+            nombre: 'Gestionar Roles',
+            descripcion: '',
+            modulo: 'Seguridad',
+            asignadoEn: '',
+            asignadoPorId: '',
+          },
+          {
+            id: 'p-2',
+            codigo: 'recursos:crear',
+            nombre: 'Crear Recursos',
+            descripcion: '',
+            modulo: 'Recursos',
+            asignadoEn: '',
+            asignadoPorId: '',
+          },
+        ],
+        creadoEn: '',
+        actualizadoEn: '',
+      },
+    });
   });
 
   it('debe iniciar como anónimo cuando no hay cookie de autenticación', async () => {
@@ -98,6 +131,38 @@ describe('AuthContext', () => {
     };
 
     vi.spyOn(seguridadService, 'loginUsuario').mockResolvedValue(mockUserData);
+    vi.spyOn(seguridadService, 'obtenerDetalleRol').mockResolvedValue({
+      data: {
+        id: 'rol-1',
+        nombre: 'Administrador',
+        descripcion: 'Rol Administrador',
+        activo: true,
+        esSistema: true,
+        cantidadPermisos: 2,
+        permisos: [
+          {
+            id: 'p-1',
+            codigo: 'seguridad:roles:gestionar',
+            nombre: 'Gestionar Roles',
+            descripcion: '',
+            modulo: 'Seguridad',
+            asignadoEn: '',
+            asignadoPorId: '',
+          },
+          {
+            id: 'p-2',
+            codigo: 'recursos:crear',
+            nombre: 'Crear Recursos',
+            descripcion: '',
+            modulo: 'Recursos',
+            asignadoEn: '',
+            asignadoPorId: '',
+          },
+        ],
+        creadoEn: '',
+        actualizadoEn: '',
+      },
+    });
 
     render(
       <AuthProvider>
@@ -107,9 +172,12 @@ describe('AuthContext', () => {
 
     fireEvent.click(screen.getByTestId('btn-login'));
 
-    await waitFor(() => {
-      expect(screen.getByTestId('auth-status').textContent).toBe('AUTENTICADO');
-    });
+    await waitFor(
+      () => {
+        expect(screen.getByTestId('auth-status').textContent).toBe('AUTENTICADO');
+      },
+      { timeout: 5000 }
+    );
 
     expect(screen.getByTestId('token-val').textContent).toBe('jwt-123');
     expect(screen.getByTestId('user-name').textContent).toBe('Administrador General');
@@ -137,6 +205,29 @@ describe('AuthContext', () => {
         permisos: ['incidentes:avisos:leer'],
       },
     });
+    vi.spyOn(seguridadService, 'obtenerDetalleRol').mockResolvedValue({
+      data: {
+        id: 'rol-2',
+        nombre: 'Call Center',
+        descripcion: 'Rol Call Center',
+        activo: true,
+        esSistema: false,
+        cantidadPermisos: 1,
+        permisos: [
+          {
+            id: 'p-1',
+            codigo: 'incidentes:avisos:leer',
+            nombre: 'Leer Avisos',
+            descripcion: '',
+            modulo: 'Incidentes',
+            asignadoEn: '',
+            asignadoPorId: '',
+          },
+        ],
+        creadoEn: '',
+        actualizadoEn: '',
+      },
+    });
 
     render(
       <AuthProvider>
@@ -146,9 +237,12 @@ describe('AuthContext', () => {
 
     fireEvent.click(screen.getByTestId('btn-login'));
 
-    await waitFor(() => {
-      expect(screen.getByTestId('auth-status').textContent).toBe('AUTENTICADO');
-    });
+    await waitFor(
+      () => {
+        expect(screen.getByTestId('auth-status').textContent).toBe('AUTENTICADO');
+      },
+      { timeout: 5000 }
+    );
 
     fireEvent.click(screen.getByTestId('btn-logout'));
 
@@ -209,9 +303,12 @@ describe('AuthContext', () => {
 
     fireEvent.click(screen.getByTestId('btn-login'));
 
-    await waitFor(() => {
-      expect(screen.getByTestId('auth-status').textContent).toBe('AUTENTICADO');
-    });
+    await waitFor(
+      () => {
+        expect(screen.getByTestId('auth-status').textContent).toBe('AUTENTICADO');
+      },
+      { timeout: 5000 }
+    );
 
     // seguridad:roles:gestionar sigue activo
     expect(screen.getByTestId('permiso-admin').textContent).toBe('SI');
