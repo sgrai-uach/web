@@ -49,6 +49,19 @@ vi.mock('@/services/seguridadService', () => ({
   }),
 }));
 
+vi.mock('@/services/empleadosService', () => ({
+  empleadosService: {
+    getEmpleadosPaginado: vi.fn().mockResolvedValue({
+      data: [
+        { usuario_id: 'usr-1', usuario_activo: true },
+        { usuario_id: 'usr-2', usuario_activo: true },
+        { usuario_id: 'usr-3', usuario_activo: false },
+      ],
+      meta: { total: 3 },
+    }),
+  },
+}));
+
 function createAuthContextValue(usuario: AuthContextValue['usuario']): AuthContextValue {
   const tieneAlgunPermiso = (codigos: string[]): boolean => {
     if (!usuario) return false;
@@ -201,5 +214,38 @@ describe('GestionResumenEstados — Métricas condicionales', () => {
     // No debe ver inventario ni roles
     expect(screen.queryByText('Inventario Logístico')).not.toBeInTheDocument();
     expect(screen.queryByText('Seguridad & RBAC')).not.toBeInTheDocument();
+  });
+
+  it('renderiza widget de gestión de personal con conteo de activos e inactivos', async () => {
+    const authVal = createAuthContextValue({
+      id: 'usr-rrhh',
+      rut: '10.100.100-0',
+      nombre: 'Encargado de Personal',
+      email: 'rrhh@valdivia.cl',
+      rolId: 'rol-rrhh',
+      rolNombre: 'Encargado de Personal',
+      rolCodigo: 'RRHH',
+      delegacionId: null,
+      permisos: ['personal:leer'],
+    });
+
+    render(
+      <AuthContext.Provider value={authVal}>
+        <GestionResumenEstados />
+      </AuthContext.Provider>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Gestión de Personal')).toBeInTheDocument();
+      expect(screen.getByText('Activos')).toBeInTheDocument();
+      expect(screen.getByText('Inactivos')).toBeInTheDocument();
+      expect(screen.getByText('2')).toBeInTheDocument();
+      expect(screen.getByText('1')).toBeInTheDocument();
+      expect(screen.getByText(/Total funcionarios registrados: 3/i)).toBeInTheDocument();
+    });
+
+    // No debe ver los otros widgets sin permisos
+    expect(screen.queryByText('Centro de Mando')).not.toBeInTheDocument();
+    expect(screen.queryByText('Inventario Logístico')).not.toBeInTheDocument();
   });
 });

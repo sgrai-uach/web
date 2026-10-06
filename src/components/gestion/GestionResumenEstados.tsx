@@ -19,6 +19,7 @@ import { incidentesService } from '@/services/incidentesService';
 import { listarAvisos } from '@/services/avisosService';
 import { getRecursos } from '@/services/recursosService';
 import { listarRolesYPermisos } from '@/services/seguridadService';
+import { empleadosService } from '@/services/empleadosService';
 
 interface MetricasMando {
   reportados: number;
@@ -42,6 +43,12 @@ interface MetricasInventario {
 interface MetricasSeguridad {
   totalRoles: number;
   rolesActivos: number;
+}
+
+interface MetricasPersonal {
+  activos: number;
+  inactivos: number;
+  total: number;
 }
 
 export default function GestionResumenEstados() {
@@ -75,6 +82,12 @@ export default function GestionResumenEstados() {
   const [metricasSeguridad, setMetricasSeguridad] = useState<MetricasSeguridad>({
     totalRoles: 0,
     rolesActivos: 0,
+  });
+
+  const [metricasPersonal, setMetricasPersonal] = useState<MetricasPersonal>({
+    activos: 0,
+    inactivos: 0,
+    total: 0,
   });
 
   const [cargando, setCargando] = useState(true);
@@ -171,6 +184,24 @@ export default function GestionResumenEstados() {
         );
       }
 
+      if (puedeVerPersonal) {
+        promesas.push(
+          empleadosService
+            .getEmpleadosPaginado({ incluir_inactivos: true, limit: 100 })
+            .then((res) => {
+              if (cancelado || !res?.data) return;
+              const activos = res.data.filter((e) => e.usuario_activo).length;
+              const inactivos = res.data.filter((e) => !e.usuario_activo).length;
+              setMetricasPersonal({
+                activos,
+                inactivos,
+                total: res.data.length,
+              });
+            })
+            .catch(() => { })
+        );
+      }
+
       await Promise.allSettled(promesas);
       if (!cancelado) {
         setCargando(false);
@@ -182,7 +213,7 @@ export default function GestionResumenEstados() {
     return () => {
       cancelado = true;
     };
-  }, [puedeVerMando, puedeVerCallCenter, puedeVerInventario, puedeVerSeguridad, usuario?.id]);
+  }, [puedeVerMando, puedeVerCallCenter, puedeVerInventario, puedeVerSeguridad, puedeVerPersonal, usuario?.id]);
 
   const hayModulosConMetricas =
     puedeVerMando || puedeVerCallCenter || puedeVerInventario || puedeVerSeguridad || puedeVerPersonal;
@@ -683,24 +714,52 @@ export default function GestionResumenEstados() {
 
             <div
               style={{
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '8px',
-                backgroundColor: 'var(--color-bg-light, #ECEFF3)',
-                padding: '12px',
+                display: 'grid',
+                gridTemplateColumns: 'repeat(2, 1fr)',
+                gap: '12px',
               }}
             >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: '13px', color: 'var(--color-text-muted, #5F676E)' }}>
-                  Personal y Cuadrillas
-                </span>
-                <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--color-primary-teal, #1B6F7D)' }}>
+              <div style={{ backgroundColor: 'var(--color-bg-light, #ECEFF3)', padding: '10px' }}>
+                <span style={{ fontSize: '11px', color: 'var(--color-text-muted, #5F676E)', display: 'block' }}>
                   Activos
                 </span>
+                <span
+                  style={{
+                    fontSize: '22px',
+                    fontWeight: 800,
+                    color: 'var(--color-primary-teal, #1B6F7D)',
+                  }}
+                >
+                  {cargando ? '—' : metricasPersonal.activos}
+                </span>
               </div>
-              <p style={{ margin: 0, fontSize: '12px', color: 'var(--color-text-muted, #5F676E)' }}>
-                Asignación de roles, delegaciones y cuadrillas operativas en terreno.
-              </p>
+              <div style={{ backgroundColor: 'var(--color-bg-light, #ECEFF3)', padding: '10px' }}>
+                <span style={{ fontSize: '11px', color: 'var(--color-text-muted, #5F676E)', display: 'block' }}>
+                  Inactivos
+                </span>
+                <span
+                  style={{
+                    fontSize: '22px',
+                    fontWeight: 800,
+                    color: 'var(--color-charcoal, #3B3F45)',
+                  }}
+                >
+                  {cargando ? '—' : metricasPersonal.inactivos}
+                </span>
+              </div>
+            </div>
+            <div
+              style={{
+                marginTop: '12px',
+                fontSize: '12px',
+                color: 'var(--color-text-muted, #5F676E)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+              }}
+            >
+              <Users size={14} />
+              <span>Total funcionarios registrados: {cargando ? '—' : metricasPersonal.total}</span>
             </div>
           </div>
         )}
