@@ -4,6 +4,7 @@ import React from 'react';
 import type { AvisoItem } from '@/types/avisos';
 import { normalizarEstadoAviso, obtenerDelegacionAviso } from '@/types/avisos';
 import Button from '@/components/ui/Button';
+import { formatearTiempoEspera } from '@/lib/utils/timeUtils';
 
 interface AvisosTableRowProps {
   aviso: AvisoItem;
@@ -27,6 +28,8 @@ function formatearFechaHora(fechaIso: string) {
 }
 
 function renderSemaforo(minutos: number) {
+  const tiempoTexto = formatearTiempoEspera(minutos);
+
   if (minutos > 30) {
     return (
       <span
@@ -51,7 +54,7 @@ function renderSemaforo(minutos: number) {
             display: 'inline-block',
           }}
         />
-        {minutos} min &bull; URGENTE
+        {tiempoTexto} &bull; URGENTE
       </span>
     );
   }
@@ -79,7 +82,7 @@ function renderSemaforo(minutos: number) {
             display: 'inline-block',
           }}
         />
-        {minutos} min
+        {tiempoTexto}
       </span>
     );
   }
@@ -106,7 +109,7 @@ function renderSemaforo(minutos: number) {
           display: 'inline-block',
         }}
       />
-      {minutos} min
+      {tiempoTexto}
     </span>
   );
 }

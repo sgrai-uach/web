@@ -2,6 +2,7 @@ import React from 'react';
 import { X } from 'lucide-react';
 import Heading from '@/components/ui/Heading';
 import Button from '@/components/ui/Button';
+import { formatearTiempoEspera } from '@/lib/utils/timeUtils';
 import type { AvisoItem } from '@/types/avisos';
 
 interface AvisoDetalleHeaderProps {
@@ -21,6 +22,11 @@ export default function AvisoDetalleHeader({ aviso, onClose }: AvisoDetalleHeade
     }
   };
 
+  const esperaTexto =
+    aviso.minutosEnEspera <= 0
+      ? 'Ahora'
+      : `${formatearTiempoEspera(aviso.minutosEnEspera)} en espera`;
+
   return (
     <div
       style={{
@@ -38,7 +44,7 @@ export default function AvisoDetalleHeader({ aviso, onClose }: AvisoDetalleHeade
             Aviso Call Center
           </span>
           <span style={{ fontSize: '0.75rem', color: '#666' }}>
-            Recibido: {formatearFecha(aviso.creadoEn)} ({aviso.minutosEnEspera} min en espera)
+            Recibido: {formatearFecha(aviso.creadoEn)} ({esperaTexto})
           </span>
         </div>
         <Heading as="h3" variant="h3" color="teal-dark" noMargin>
