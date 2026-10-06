@@ -267,7 +267,7 @@ export function useChatbot() {
     setPaso('DESCRIPCION');
 
     agregarMensajeBot(
-      '¿Deseas agregar algún detalle adicional sobre lo que ocurre? Puedes describirlo brevemente o presionar "Omitir detalle".',
+      '¿Deseas agregar algún detalle adicional sobre lo que ocurre? Puedes describirlo brevemente (mínimo 5 caracteres) o presionar "Omitir detalle".',
       'opciones',
       [{ label: 'Omitir detalle', value: 'OMITIR' }]
     );
@@ -275,10 +275,15 @@ export function useChatbot() {
 
   // Procesar descripción (o su omisión)
   const procesarDescripcion = useCallback((descripcion: string) => {
-    setErrorInput(null);
     const texto = descripcion.trim();
     const esOmision = texto === 'OMITIR' || texto.toLowerCase() === 'omitir detalle' || texto === '';
 
+    if (!esOmision && texto.length < 5) {
+      setErrorInput('El detalle del incidente debe tener al menos 5 caracteres (o puedes presionar "Omitir detalle").');
+      return;
+    }
+
+    setErrorInput(null);
     const valorDesc = esOmision ? '' : texto;
     agregarMensajeUsuario(esOmision ? 'Sin detalle adicional' : texto);
     datosRef.current = { ...datosRef.current, descripcion: valorDesc };
@@ -476,7 +481,7 @@ export function useChatbot() {
       pasoRef.current = 'MODIFICAR_DESCRIPCION';
       setPaso('MODIFICAR_DESCRIPCION');
       agregarMensajeBot(
-        'Ingresa el nuevo detalle adicional (o presiona "Omitir detalle" si no deseas agregar información):',
+        'Ingresa el nuevo detalle adicional con al menos 5 caracteres (o presiona "Omitir detalle" si no deseas agregar información):',
         'opciones',
         [{ label: 'Omitir detalle', value: 'OMITIR' }]
       );
@@ -575,9 +580,13 @@ export function useChatbot() {
         datosActualizados
       );
     } else if (pasoActual === 'MODIFICAR_DESCRIPCION') {
-      setErrorInput(null);
       const limpio = texto.trim();
       const esOmision = limpio === 'OMITIR' || limpio.toLowerCase() === 'omitir detalle' || limpio === '';
+      if (!esOmision && limpio.length < 5) {
+        setErrorInput('El detalle del incidente debe tener al menos 5 caracteres (o puedes presionar "Omitir detalle").');
+        return;
+      }
+      setErrorInput(null);
       const valorDesc = esOmision ? '' : limpio;
       agregarMensajeUsuario(esOmision ? 'Sin detalle adicional' : limpio);
       const datosActualizados: DatosReporte = {

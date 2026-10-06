@@ -59,7 +59,37 @@ describe('useChatbot', () => {
     expect(result.current.errorInput).toBeNull();
   });
 
-  it('debe permitir omitir descripción o ingresar una breve y avanzar a NOMBRE', () => {
+  it('debe permitir omitir descripción o ingresar una con mínimo 5 caracteres y avanzar a NOMBRE', () => {
+    const { result } = renderHook(() => useChatbot());
+
+    act(() => {
+      result.current.seleccionarTipoAfectacion('Anegamiento');
+      result.current.enviarTexto('Av. Alemania 550, Valdivia');
+    });
+
+    expect(result.current.paso).toBe('DESCRIPCION');
+
+    // Intento con descripción de menos de 5 caracteres
+    act(() => {
+      result.current.enviarTexto('Agua');
+    });
+
+    expect(result.current.paso).toBe('DESCRIPCION');
+    expect(result.current.errorInput).toBe(
+      'El detalle del incidente debe tener al menos 5 caracteres (o puedes presionar "Omitir detalle").'
+    );
+
+    // Ingreso válido con 5 o más caracteres
+    act(() => {
+      result.current.enviarTexto('Agua ingresando a la vivienda');
+    });
+
+    expect(result.current.paso).toBe('NOMBRE');
+    expect(result.current.errorInput).toBeNull();
+    expect(result.current.datos.descripcion).toBe('Agua ingresando a la vivienda');
+  });
+
+  it('debe permitir omitir la descripción mediante OMITIR o texto vacío', () => {
     const { result } = renderHook(() => useChatbot());
 
     act(() => {
@@ -320,6 +350,64 @@ describe('useChatbot', () => {
     expect(result.current.datos.direccion).toBe('Los Boldos con Las Encinas, Isla Teja');
     expect(result.current.datos.tipoAfectacion).toBe('Anegamiento');
     expect(result.current.datos.informanteNombre).toBe('Juan Pérez');
+  });
+
+  it('debe permitir modificar el detalle con validación de mínimo 5 caracteres o presionar OMITIR', () => {
+    const { result } = renderHook(() => useChatbot());
+
+    act(() => {
+      result.current.seleccionarTipoAfectacion('Anegamiento');
+      result.current.enviarTexto('Av. Alemania 550, Valdivia');
+      result.current.procesarDescripcion('OMITIR');
+      result.current.enviarTexto('Juan Pérez');
+      result.current.enviarTexto('11.111.111-1');
+      result.current.enviarTexto('+56912345678');
+    });
+
+    act(() => {
+      result.current.solicitarModificacion();
+    });
+
+    act(() => {
+      result.current.seleccionarCampoModificar('MOD_DESCRIPCION');
+    });
+
+    expect(result.current.paso).toBe('MODIFICAR_DESCRIPCION');
+
+    // Intento con descripción de menos de 5 caracteres
+    act(() => {
+      result.current.enviarTexto('Hola');
+    });
+
+    expect(result.current.paso).toBe('MODIFICAR_DESCRIPCION');
+    expect(result.current.errorInput).toBe(
+      'El detalle del incidente debe tener al menos 5 caracteres (o puedes presionar "Omitir detalle").'
+    );
+
+    // Modificación válida con 5 o más caracteres
+    act(() => {
+      result.current.enviarTexto('Agua ingresó al living y patio trasero');
+    });
+
+    expect(result.current.paso).toBe('CONFIRMACION');
+    expect(result.current.errorInput).toBeNull();
+    expect(result.current.datos.descripcion).toBe('Agua ingresó al living y patio trasero');
+
+    // Modificación omitiendo el detalle
+    act(() => {
+      result.current.solicitarModificacion();
+    });
+
+    act(() => {
+      result.current.seleccionarCampoModificar('MOD_DESCRIPCION');
+    });
+
+    act(() => {
+      result.current.enviarTexto('OMITIR');
+    });
+
+    expect(result.current.paso).toBe('CONFIRMACION');
+    expect(result.current.datos.descripcion).toBe('');
   });
 
   it('debe permitir cancelar la modificación y retornar a CONFIRMACION con los datos intactos', () => {

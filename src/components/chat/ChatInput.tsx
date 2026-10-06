@@ -62,7 +62,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   if (pasoActual === 'DIRECCION' || pasoActual === 'MODIFICAR_DIRECCION') {
     placeholder = 'Ej: Av. Alemania 550, Valdivia';
   } else if (pasoActual === 'DESCRIPCION' || pasoActual === 'MODIFICAR_DESCRIPCION') {
-    placeholder = 'Describe lo que ocurre o presiona "Omitir detalle"...';
+    placeholder = 'Describe lo que ocurre (mínimo 5 caracteres) o presiona "Omitir detalle"...';
   } else if (pasoActual === 'NOMBRE' || pasoActual === 'MODIFICAR_NOMBRE') {
     placeholder = 'Ej: Juan Pérez González';
   } else if (pasoActual === 'RUT' || pasoActual === 'MODIFICAR_RUT') {

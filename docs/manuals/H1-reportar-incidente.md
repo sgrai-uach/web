@@ -43,7 +43,7 @@ El asistente solicitará la ubicación del suceso:
 
 ### Paso 3: Detalle o Descripción Adicional (Opcional)
 El asistente consultará si deseas agregar más información sobre el estado del incidente:
-- Puedes redactar una breve descripción en el campo de texto y presionar **Enviar**.
+- Puedes redactar una breve descripción en el campo de texto (mínimo 5 caracteres según requisitos del sistema) y presionar **Enviar**.
 - Si no posees más detalles, puedes presionar el botón **Omitir detalle** para avanzar sin demora.
 
 ---
