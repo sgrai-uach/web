@@ -2093,8 +2093,22 @@ export interface paths {
                     solo_personal?: "true" | "false";
                     /** @description Filtrar por delegación municipal */
                     delegacion_id?: string;
+                    /** @description Alias de delegacion_id */
+                    delegacionId?: string;
                     /** @description Filtrar por rol */
                     rol_id?: string;
+                    /** @description Filtrar por código canónico de rol (ej: ASISTENTE_SOCIAL) */
+                    rolCodigo?: string;
+                    /** @description Alias de rolCodigo */
+                    rol_codigo?: string;
+                    /** @description Filtrar por estado operativo */
+                    estadoOperativo?: "disponible" | "en_mision" | "descanso" | "licencia" | "inactivo" | string;
+                    /** @description Alias de estadoOperativo */
+                    estado_operativo?: "disponible" | "en_mision" | "descanso" | "licencia" | "inactivo" | string;
+                    /** @description Página para paginación */
+                    page?: number;
+                    /** @description Cantidad de registros por página */
+                    limit?: number;
                     /** @description Campo de ordenamiento */
                     ordenar_por?: "apellidos" | "nombres" | "rut";
                     /** @description Dirección de ordenamiento */
@@ -2141,9 +2155,39 @@ export interface paths {
                                 disponible_terreno?: boolean | null;
                                 observaciones?: string | null;
                                 es_personal?: boolean;
+                                /** @description Cantidad de casos FIBE asignados y activos */
+                                casos_fibe_asignados?: number;
                                 usuario_updated_at?: string;
                                 personal_updated_at?: string | unknown;
                             }[];
+                            meta?: {
+                                total?: number;
+                                page?: number;
+                                limit?: number;
+                                totalPages?: number;
+                            };
+                        };
+                    };
+                };
+                /** @description No autenticado */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+                /** @description No autorizado - Requiere permiso asistencia_social:leer */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
                         };
                     };
                 };
