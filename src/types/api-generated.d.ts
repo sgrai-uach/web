@@ -2082,31 +2082,60 @@ export interface paths {
         };
         /**
          * Listar empleados y personal
-         * @description Lista y busca empleados y personal operativo del SGRAI con filtros territoriales, de rol y búsqueda textual.
+         * @description Lista y busca empleados y personal del SGRAI con filtros territoriales (delegacionId), estado operativo (disponibilidad actual), cargo, especialidad, rol y búsqueda textual, con paginación estándar. La disponibilidad se expone siempre presente (reside en `usuario.estado_operativo`); `disponible_terreno` es `null` cuando el usuario no possui ficha de terreno.
          */
         get: {
             parameters: {
                 query?: {
-                    /** @description Término de búsqueda (RUT, nombres, apellidos o email) */
-                    q?: string;
-                    /** @description Filtrar únicamente personal con ficha de terreno */
-                    solo_personal?: "true" | "false";
-                    /** @description Filtrar por delegación municipal */
+                    /** @description Número de página (inicia en 1) */
+                    page?: number;
+                    /** @description Cantidad de elementos por página (máximo 100) */
+                    limit?: number;
+                    /** @description Filtrar por UUID de delegación territorial */
+                    delegacionId?: string;
                     delegacion_id?: string;
-                    /** @description Filtrar por rol */
+                    /** @description Filtrar por UUID de rol */
+                    rolId?: string;
                     rol_id?: string;
+                    /** @description Filtrar por estado operativo (disponibilidad actual) del funcionario */
+                    estadoOperativo?: "disponible" | "en_mision" | "en_patrulla" | "descanso" | "licencia" | "inactivo";
+                    estado_operativo?: "disponible" | "en_mision" | "en_patrulla" | "descanso" | "licencia" | "inactivo";
+                    /** @description Filtrar por cargo funcional de personal */
+                    cargo?: string;
+                    /** @description Filtrar por especialidad técnica de personal */
+                    especialidad?: string;
+                    /** @description Si es true, solo retorna usuarios con ficha operativa en personal */
+                    soloPersonal?: boolean | null;
+                    solo_personal?: boolean | null;
+                    /** @description Búsqueda textual sobre RUT, nombres, apellidos o email */
+                    busqueda?: string;
+                    /** @description Alias rápido para búsqueda textual */
+                    q?: string;
+                    /** @description Alias legado de 'page' */
+                    pagina?: number;
+                    /** @description Alias legado de 'limit' */
+                    limite?: number;
+                    /** @description Si es true, incluye funcionarios inactivos (activo = false) */
+                    incluirInactivos?: boolean | null;
+                    incluir_inactivos?: boolean | null;
+                    /** @description Filtrar por estado activo/inactivo/todos de usuario */
+                    estado?: "activo" | "inactivo" | "todos";
                     /** @description Campo de ordenamiento */
+                    ordenarPor?: "apellidos" | "nombres" | "rut";
                     ordenar_por?: "apellidos" | "nombres" | "rut";
-                    /** @description Dirección de ordenamiento */
+                    /** @description Dirección del ordenamiento */
                     orden?: "asc" | "desc";
                 };
-                header?: never;
+                header: {
+                    /** @description Token Bearer JWT de sesión con permiso personal:leer, personal:gestionar o personal:crear */
+                    authorization: string;
+                };
                 path?: never;
                 cookie?: never;
             };
             requestBody?: never;
             responses: {
-                /** @description Lista de empleados obtenida exitosamente */
+                /** @description Lista paginada de empleados y personal obtenida exitosamente */
                 200: {
                     headers: {
                         [name: string]: unknown;
@@ -2121,31 +2150,75 @@ export interface paths {
                                 apellidos: string;
                                 /** Format: email */
                                 email: string;
-                                telefono?: string | null;
+                                telefono: string | null;
                                 usuario_activo: boolean;
                                 fecha_ingreso?: string | null;
                                 fecha_salida?: string | null;
                                 /** Format: uuid */
-                                rol_id: string;
-                                rol_codigo: string;
-                                rol_nombre: string;
+                                rol_id: string | null;
+                                rol_codigo: string | null;
+                                rol_nombre: string | null;
                                 /** Format: uuid */
-                                delegacion_id?: string | null;
-                                delegacion_codigo?: string | null;
-                                delegacion_nombre?: string | null;
+                                delegacion_id: string | null;
+                                delegacion_codigo: string | null;
+                                delegacion_nombre: string | null;
                                 /** Format: uuid */
-                                personal_id?: string | null;
-                                especialidad?: string | null;
-                                cargo?: string | null;
-                                estado_operativo?: string | null;
-                                disponible_terreno?: boolean | null;
-                                observaciones?: string | null;
-                                es_personal?: boolean;
-                                usuario_updated_at?: string;
-                                personal_updated_at?: string | unknown;
+                                personal_id: string | null;
+                                especialidad: string | null;
+                                cargo: string | null;
+                                /**
+                                 * @description Disponibilidad actual del funcionario. Siempre presente: reside en `usuario.estado_operativo`.
+                                 * @example disponible
+                                 * @enum {string}
+                                 */
+                                estado_operativo: "disponible" | "en_mision" | "en_patrulla" | "descanso" | "licencia" | "inactivo";
+                                /**
+                                 * @description Capacidad/aptitud para salir a terreno. `null` indica que el usuario no possui ficha de terreno (no aplica).
+                                 * @example true
+                                 */
+                                disponible_terreno: boolean | null;
+                                observaciones: string | null;
+                                /** Format: date-time */
+                                personal_updated_at?: string | null;
+                                es_personal: boolean;
                             }[];
+                            meta: {
+                                /** @description Total de registros coincidentes */
+                                total: number;
+                                /** @description Página actual */
+                                page: number;
+                                /** @description Elementos por página */
+                                limit: number;
+                                /** @description Total de páginas */
+                                totalPages: number;
+                                /** @description ¿Existe página siguiente? */
+                                hasNext: boolean;
+                                /** @description ¿Existe página anterior? */
+                                hasPrev: boolean;
+                            };
                         };
                     };
+                };
+                /** @description Parámetros de consulta inválidos */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description No autenticado: token de sesión ausente o expirado */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Acceso denegado: requiere personal:leer, personal:gestionar o personal:crear */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
                 };
                 /** @description Error interno del servidor */
                 500: {
@@ -2159,7 +2232,7 @@ export interface paths {
         put?: never;
         /**
          * Registrar nuevo funcionario
-         * @description Registra a un nuevo funcionario o empleado municipal en el sistema SGRAI, aprovisionando su cuenta institucional y opcionalmente su ficha de terreno si su rol o funciones lo requieren.
+         * @description Registra a un nuevo funcionario o empleado municipal en el sistema SGRAI, aprovisionando su cuenta institucional con su disponibilidad inicial (`usuario.estado_operativo`) y opcionalmente su ficha de terreno si su rol o funciones lo requieren.
          */
         post: {
             parameters: {
@@ -2240,15 +2313,13 @@ export interface paths {
                          */
                         especialidad?: string | null;
                         /**
-                         * @description Estado operativo inicial para personal de terreno (por defecto disponible)
-                         * @default disponible
+                         * @description Estado operativo inicial (disponibilidad actual). Se persiste en `usuario.estado_operativo`. Por defecto 'disponible' si la cuenta está activa e 'inactivo' si la cuenta se crea deshabilitada. Los estados 'en_mision' y 'en_patrulla' sólo se admiten para perfiles de terreno.
                          * @example disponible
                          * @enum {string}
                          */
                         estado_operativo?: "disponible" | "en_mision" | "en_patrulla" | "descanso" | "licencia" | "inactivo";
                         /**
-                         * @description Disponibilidad activa para despliegue en emergencias
-                         * @default true
+                         * @description Capacidad/aptitud para salir a emergencias (sólo ficha de terreno). Por defecto true si es rol de terreno. `null` significa que no aplica (usuario sin ficha de terreno).
                          * @example true
                          */
                         disponible_terreno?: boolean;
@@ -2297,7 +2368,12 @@ export interface paths {
                                 personal_id?: string | null;
                                 especialidad?: string | null;
                                 cargo?: string | null;
-                                estado_operativo?: string | null;
+                                /**
+                                 * @description Disponibilidad actual del funcionario (reside en `usuario.estado_operativo`).
+                                 * @example disponible
+                                 * @enum {string|null}
+                                 */
+                                estado_operativo?: "disponible" | "en_mision" | "en_patrulla" | "descanso" | "licencia" | "inactivo" | null;
                                 disponible_terreno?: boolean | null;
                                 observaciones?: string | null;
                                 es_personal?: boolean;
@@ -2366,12 +2442,15 @@ export interface paths {
         };
         /**
          * Obtener detalle de empleado
-         * @description Consulta los datos detallados de un empleado por ID (usuario_id o personal_id).
+         * @description Consulta los datos detallados de un empleado por ID (usuario_id o personal_id). La disponibilidad (estado operativo) se obtiene de `usuario.estado_operativo`.
          */
         get: {
             parameters: {
                 query?: never;
-                header?: never;
+                header: {
+                    /** @description Token Bearer JWT de sesión con permiso personal:leer, personal:gestionar o personal:crear */
+                    authorization: string;
+                };
                 path: {
                     /** @description UUID del usuario o de la ficha de personal */
                     id: string;
@@ -2411,7 +2490,12 @@ export interface paths {
                                 personal_id?: string | null;
                                 especialidad?: string | null;
                                 cargo?: string | null;
-                                estado_operativo?: string | null;
+                                /**
+                                 * @description Disponibilidad actual del funcionario (reside en `usuario.estado_operativo`).
+                                 * @example disponible
+                                 * @enum {string|null}
+                                 */
+                                estado_operativo?: "disponible" | "en_mision" | "en_patrulla" | "descanso" | "licencia" | "inactivo" | null;
                                 disponible_terreno?: boolean | null;
                                 observaciones?: string | null;
                                 es_personal?: boolean;
@@ -2428,14 +2512,14 @@ export interface paths {
                     };
                     content?: never;
                 };
-                /** @description No autenticado */
+                /** @description No autenticado: token de sesión ausente o expirado */
                 401: {
                     headers: {
                         [name: string]: unknown;
                     };
                     content?: never;
                 };
-                /** @description Acceso denegado */
+                /** @description Acceso denegado: requiere personal:leer, personal:gestionar o personal:crear */
                 403: {
                     headers: {
                         [name: string]: unknown;
@@ -2584,10 +2668,18 @@ export interface paths {
                         activo?: boolean;
                         fecha_ingreso?: string | null;
                         fecha_salida?: string | null;
+                        /**
+                         * @description Estado operativo (disponibilidad actual) persistido en `usuario.estado_operativo`. Los estados 'en_mision' y 'en_patrulla' sólo se admiten para perfiles de terreno.
+                         * @example disponible
+                         * @enum {string}
+                         */
+                        estado_operativo?: "disponible" | "en_mision" | "en_patrulla" | "descanso" | "licencia" | "inactivo";
                         especialidad?: string | null;
                         cargo?: string | null;
-                        /** @enum {string} */
-                        estado_operativo?: "disponible" | "en_mision" | "en_patrulla" | "descanso" | "licencia" | "inactivo";
+                        /**
+                         * @description Capacidad/aptitud para salir a terreno (sólo aplica a la ficha de terreno).
+                         * @example true
+                         */
                         disponible_terreno?: boolean;
                         observaciones?: string | null;
                     };
@@ -2626,7 +2718,12 @@ export interface paths {
                                 personal_id?: string | null;
                                 especialidad?: string | null;
                                 cargo?: string | null;
-                                estado_operativo?: string | null;
+                                /**
+                                 * @description Disponibilidad actual del funcionario (reside en `usuario.estado_operativo`).
+                                 * @example disponible
+                                 * @enum {string|null}
+                                 */
+                                estado_operativo?: "disponible" | "en_mision" | "en_patrulla" | "descanso" | "licencia" | "inactivo" | null;
                                 disponible_terreno?: boolean | null;
                                 observaciones?: string | null;
                                 es_personal?: boolean;
