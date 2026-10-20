@@ -8,7 +8,6 @@ import type {
   PermisoCatalogoItem,
   PermisosCatalogoPorModulo,
   PermisosPorModulo,
-  RecuperarContrasenaRequest,
   RestablecerContrasenaRequest,
   RolDetalleResponse,
   RolItem,
