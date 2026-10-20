@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useCallback, useContext, useEffect, useTransition } from 'react';
-import { useSearchParams, useRouter, usePathname } from 'next/navigation';
+import React, { useState, useCallback, useContext, useEffect, useRef } from 'react';
+import { useSearchParams, usePathname } from 'next/navigation';
 import { useSimulatedSession } from '@/context/SimulatedSessionContext';
 import { AuthContext } from '@/context/AuthContext';
 import { useAsistentesSociales } from '@/hooks/useAsistentesSociales';
@@ -24,10 +24,8 @@ interface AsistentesSocialesClientProps {
 export default function AsistentesSocialesClient({
   basePath = '/gestion/asistente-social',
 }: AsistentesSocialesClientProps) {
-  const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const [, startTransition] = useTransition();
 
   const { usuarioActivo, hasPermission } = useSimulatedSession();
   const auth = useContext(AuthContext);
@@ -64,91 +62,63 @@ export default function AsistentesSocialesClient({
     estadoOperativo: initialEstado,
   });
 
-  // Sincronizar URLSearchParams cuando cambien los filtros
-  const syncUrlParams = useCallback(
-    (nuevosFiltros: FiltrosAsistentesSocialesState) => {
-      const params = new URLSearchParams();
+  // Sincronizar URLSearchParams cuando cambien los filtros sin causar re-renders del Router
+  const primerRenderRef = useRef(true);
+  useEffect(() => {
+    if (primerRenderRef.current) {
+      primerRenderRef.current = false;
+      return;
+    }
 
-      if (nuevosFiltros.busqueda && nuevosFiltros.busqueda.trim() !== '') {
-        params.set('q', nuevosFiltros.busqueda.trim());
-      }
-      if (nuevosFiltros.delegacionId) {
-        params.set('delegacionId', nuevosFiltros.delegacionId);
-      }
-      if (nuevosFiltros.estadoOperativo) {
-        params.set('estadoOperativo', nuevosFiltros.estadoOperativo);
-      }
-      if (nuevosFiltros.pagina && nuevosFiltros.pagina > 1) {
-        params.set('page', String(nuevosFiltros.pagina));
-      }
+    if (typeof window === 'undefined') return;
 
-      const queryString = params.toString();
-      const targetUrl = queryString ? `${pathname}?${queryString}` : pathname;
+    const params = new URLSearchParams();
+    if (filtros.busqueda && filtros.busqueda.trim() !== '') {
+      params.set('q', filtros.busqueda.trim());
+    }
+    if (filtros.delegacionId) {
+      params.set('delegacionId', filtros.delegacionId);
+    }
+    if (filtros.estadoOperativo) {
+      params.set('estadoOperativo', filtros.estadoOperativo);
+    }
+    if (filtros.pagina && filtros.pagina > 1) {
+      params.set('page', String(filtros.pagina));
+    }
 
-      startTransition(() => {
-        router.replace(targetUrl, { scroll: false });
-      });
-    },
-    [pathname, router]
-  );
+    const queryString = params.toString();
+    const targetUrl = queryString ? `${pathname}?${queryString}` : pathname;
+
+    window.history.replaceState(null, '', targetUrl);
+  }, [filtros, pathname]);
 
   const { asistentes, meta, cargando } = useAsistentesSociales(filtros);
 
-  const handleCambiarBusqueda = useCallback(
-    (busqueda: string) => {
-      setFiltros((prev) => {
-        const next = { ...prev, busqueda, pagina: 1 };
-        syncUrlParams(next);
-        return next;
-      });
-    },
-    [syncUrlParams]
-  );
+  const handleCambiarBusqueda = useCallback((busqueda: string) => {
+    setFiltros((prev) => ({ ...prev, busqueda, pagina: 1 }));
+  }, []);
 
-  const handleCambiarDelegacion = useCallback(
-    (delegacionId?: string) => {
-      setFiltros((prev) => {
-        const next = { ...prev, delegacionId, pagina: 1 };
-        syncUrlParams(next);
-        return next;
-      });
-    },
-    [syncUrlParams]
-  );
+  const handleCambiarDelegacion = useCallback((delegacionId?: string) => {
+    setFiltros((prev) => ({ ...prev, delegacionId, pagina: 1 }));
+  }, []);
 
-  const handleCambiarEstadoOperativo = useCallback(
-    (estadoOperativo?: EstadoOperativoPersonal) => {
-      setFiltros((prev) => {
-        const next = { ...prev, estadoOperativo, pagina: 1 };
-        syncUrlParams(next);
-        return next;
-      });
-    },
-    [syncUrlParams]
-  );
+  const handleCambiarEstadoOperativo = useCallback((estadoOperativo?: EstadoOperativoPersonal) => {
+    setFiltros((prev) => ({ ...prev, estadoOperativo, pagina: 1 }));
+  }, []);
 
   const handleLimpiarFiltros = useCallback(() => {
-    const next: FiltrosAsistentesSocialesState = {
+    setFiltros({
       pagina: 1,
       limite: 20,
       busqueda: '',
       delegacionId: undefined,
       estadoOperativo: undefined,
-    };
-    setFiltros(next);
-    syncUrlParams(next);
-  }, [syncUrlParams]);
+    });
+  }, []);
 
-  const handleCambiarPagina = useCallback(
-    (nuevaPagina: number) => {
-      setFiltros((prev) => {
-        const next = { ...prev, pagina: nuevaPagina };
-        syncUrlParams(next);
-        return next;
-      });
-    },
-    [syncUrlParams]
-  );
+  const handleCambiarPagina = useCallback((nuevaPagina: number) => {
+    setFiltros((prev) => ({ ...prev, pagina: nuevaPagina }));
+  }, []);
 
   if (!tienePermisoLectura) {
     return (
