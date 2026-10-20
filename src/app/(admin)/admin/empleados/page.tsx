@@ -70,6 +70,14 @@ export default function AdminEmpleadosPage() {
     setRolFiltro,
     estadoFiltro,
     setEstadoFiltro,
+    estadoOperativoFiltro,
+    setEstadoOperativoFiltro,
+    especialidadFiltro,
+    setEspecialidadFiltro,
+    cargoFiltro,
+    setCargoFiltro,
+    incluirInactivos,
+    setIncluirInactivos,
     ordenarPor,
     setOrdenarPor,
     orden,
@@ -154,12 +162,21 @@ export default function AdminEmpleadosPage() {
           setRolFiltro={setRolFiltro}
           estadoFiltro={estadoFiltro}
           setEstadoFiltro={setEstadoFiltro}
+          estadoOperativoFiltro={estadoOperativoFiltro}
+          setEstadoOperativoFiltro={setEstadoOperativoFiltro}
+          especialidadFiltro={especialidadFiltro}
+          setEspecialidadFiltro={setEspecialidadFiltro}
+          cargoFiltro={cargoFiltro}
+          setCargoFiltro={setCargoFiltro}
+          incluirInactivos={incluirInactivos}
+          setIncluirInactivos={setIncluirInactivos}
           ordenarPor={ordenarPor}
           setOrdenarPor={setOrdenarPor}
           orden={orden}
           setOrden={setOrden}
           delegaciones={catalogos.delegaciones}
           roles={catalogos.roles}
+          especialidades={catalogos.especialidades}
           cargando={cargando}
           onLimpiarFiltros={limpiarFiltros}
         />
@@ -179,6 +196,7 @@ export default function AdminEmpleadosPage() {
           usuarioSeleccionadoId={usuarioSeleccionado?.usuario_id}
           onSelectUsuario={seleccionarUsuario}
           onDarDeBaja={solicitarBaja}
+          onLimpiarFiltros={limpiarFiltros}
         />
       </div>
 
