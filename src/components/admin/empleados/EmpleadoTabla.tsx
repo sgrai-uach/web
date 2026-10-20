@@ -3,7 +3,9 @@
 import React from 'react';
 import type { EmpleadoUsuario } from '@/types/empleados';
 import Pagination from '@/components/common/Pagination';
-import { Trash2, CheckCircle2, XCircle, Shield, MapPin, Phone, Mail, Pencil } from 'lucide-react';
+import EmptyState from '@/components/common/EmptyState';
+import BadgeEstadoOperativo from './BadgeEstadoOperativo';
+import { Trash2, Shield, MapPin, Phone, Mail, Pencil, UserX } from 'lucide-react';
 
 interface EmpleadoTablaProps {
   empleados: EmpleadoUsuario[];
@@ -17,6 +19,7 @@ interface EmpleadoTablaProps {
   usuarioSeleccionadoId?: string;
   onSelectUsuario: (usuario: EmpleadoUsuario) => void;
   onDarDeBaja?: (usuario: EmpleadoUsuario) => void;
+  onLimpiarFiltros?: () => void;
 }
 
 export default function EmpleadoTabla({
@@ -31,6 +34,7 @@ export default function EmpleadoTabla({
   usuarioSeleccionadoId,
   onSelectUsuario,
   onDarDeBaja,
+  onLimpiarFiltros,
 }: EmpleadoTablaProps) {
   return (
     <div
@@ -62,27 +66,68 @@ export default function EmpleadoTabla({
                 letterSpacing: '0.5px',
               }}
             >
-              <th style={{ padding: '0.75rem 0.875rem' }}>Funcionario</th>
-              <th style={{ padding: '0.75rem 0.875rem' }}>Contacto</th>
-              <th style={{ padding: '0.75rem 0.875rem', width: '150px' }}>Rol</th>
-              <th style={{ padding: '0.75rem 0.875rem', width: '150px' }}>Delegación</th>
-              <th style={{ padding: '0.75rem 0.875rem', width: '100px' }}>Estado</th>
+              <th style={{ padding: '0.75rem 0.875rem', width: '110px' }}>RUT</th>
+              <th style={{ padding: '0.75rem 0.875rem' }}>Nombre y apellidos</th>
+              <th style={{ padding: '0.75rem 0.875rem' }}>Correo</th>
+              <th style={{ padding: '0.75rem 0.875rem', width: '130px' }}>Teléfono</th>
+              <th style={{ padding: '0.75rem 0.875rem', width: '170px' }}>Rol / Cargo</th>
+              <th style={{ padding: '0.75rem 0.875rem', width: '160px' }}>Delegación</th>
+              <th style={{ padding: '0.75rem 0.875rem', width: '150px' }}>Estado Operativo</th>
               <th style={{ padding: '0.75rem 0.5rem', textAlign: 'center', width: '84px' }}>Acciones</th>
             </tr>
           </thead>
           <tbody>
             {cargando && empleados.length === 0 ? (
               <tr>
-                <td colSpan={6} style={{ padding: '2.5rem 1rem', textAlign: 'center', color: '#64748B' }}>
-                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', fontWeight: 600 }}>
-                    <span style={{ color: 'var(--color-primary-teal, #1B6F7D)' }}>Cargando personal municipal...</span>
+                <td colSpan={8} style={{ padding: 0 }}>
+                  <div
+                    data-testid="empleados-skeleton"
+                    aria-busy="true"
+                    aria-label="Cargando personal municipal"
+                    style={{ padding: '1.5rem' }}
+                  >
+                    {[0, 1, 2, 3].map((fila) => (
+                      <div
+                        key={fila}
+                        style={{
+                          height: '2.25rem',
+                          marginBottom: '0.5rem',
+                          backgroundColor: 'var(--color-bg-light, #ECEFF3)',
+                          borderRadius: '2px',
+                          opacity: 1 - fila * 0.15,
+                        }}
+                      />
+                    ))}
                   </div>
                 </td>
               </tr>
             ) : empleados.length === 0 ? (
               <tr>
-                <td colSpan={6} style={{ padding: '2.5rem 1rem', textAlign: 'center', color: '#64748B' }}>
-                  No se encontraron funcionarios coincidentes con los filtros aplicados.
+                <td colSpan={8} style={{ padding: 0 }}>
+                  <EmptyState
+                    icon={<UserX size={28} />}
+                    title="No se encontraron funcionarios"
+                    description="No hay resultados que coincidan con los filtros aplicados. Adjusta los criterios o limpia los filtros para ver el directorio completo."
+                    action={
+                      onLimpiarFiltros ? (
+                        <button
+                          type="button"
+                          onClick={onLimpiarFiltros}
+                          style={{
+                            backgroundColor: 'var(--color-primary-teal, #1B6F7D)',
+                            color: '#FFFFFF',
+                            border: 'none',
+                            padding: '0.5rem 0.875rem',
+                            fontSize: '0.8125rem',
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                          }}
+                        >
+                          Limpiar filtros
+                        </button>
+                      ) : undefined
+                    }
+                  />
                 </td>
               </tr>
             ) : (
@@ -114,17 +159,29 @@ export default function EmpleadoTabla({
                         : 'transparent';
                     }}
                   >
-                    {/* Funcionario */}
+                    {/* RUT */}
+                    <td style={{ padding: '0.875rem 1rem', fontWeight: 600 }}>{usr.rut}</td>
+
+                    {/* Nombre y apellidos */}
                     <td style={{ padding: '0.875rem 1rem' }}>
                       <div style={{ fontWeight: 700, color: 'var(--color-text-dark, #2B2B2B)' }}>
                         {usr.nombres} {usr.apellidos}
                       </div>
-                      <div style={{ fontSize: '0.75rem', color: '#64748B', marginTop: '0.15rem' }}>
-                        RUT: <strong>{usr.rut}</strong>
-                      </div>
+                      {!usr.usuario_activo && (
+                        <div
+                          style={{
+                            fontSize: '0.7rem',
+                            color: 'var(--color-danger, #D32F2F)',
+                            marginTop: '0.15rem',
+                            fontWeight: 700,
+                          }}
+                        >
+                          FUNCIONARIO DADO DE BAJA
+                        </div>
+                      )}
                     </td>
 
-                    {/* Contacto */}
+                    {/* Correo */}
                     <td style={{ padding: '0.875rem 1rem' }}>
                       <div
                         style={{
@@ -140,7 +197,11 @@ export default function EmpleadoTabla({
                           {usr.email}
                         </span>
                       </div>
-                      {usr.telefono && (
+                    </td>
+
+                    {/* Teléfono */}
+                    <td style={{ padding: '0.875rem 1rem' }}>
+                      {usr.telefono ? (
                         <div
                           style={{
                             display: 'flex',
@@ -148,16 +209,17 @@ export default function EmpleadoTabla({
                             gap: '0.35rem',
                             color: '#64748B',
                             fontSize: '0.75rem',
-                            marginTop: '0.2rem',
                           }}
                         >
                           <Phone size={12} style={{ flexShrink: 0 }} />
                           <span>{usr.telefono}</span>
                         </div>
+                      ) : (
+                        <span style={{ color: '#94A3B8', fontSize: '0.75rem' }}>—</span>
                       )}
                     </td>
 
-                    {/* Rol */}
+                    {/* Rol / Cargo */}
                     <td style={{ padding: '0.875rem 1rem' }}>
                       <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
                         <Shield size={13} style={{ color: 'var(--color-primary-teal, #1B6F7D)' }} />
@@ -182,41 +244,9 @@ export default function EmpleadoTabla({
                       </div>
                     </td>
 
-                    {/* Estado */}
+                    {/* Estado Operativo (disponibilidad actual) */}
                     <td style={{ padding: '0.875rem 1rem' }}>
-                      {usr.usuario_activo ? (
-                        <span
-                          style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '0.25rem',
-                            backgroundColor: 'var(--color-success-bg, #E8F5E9)',
-                            color: 'var(--color-success, #2E7D32)',
-                            padding: '0.2rem 0.5rem',
-                            fontSize: '0.75rem',
-                            fontWeight: 700,
-                          }}
-                        >
-                          <CheckCircle2 size={12} />
-                          <span>Activo</span>
-                        </span>
-                      ) : (
-                        <span
-                          style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '0.25rem',
-                            backgroundColor: 'var(--color-danger-bg, #FFEBEE)',
-                            color: 'var(--color-danger, #D32F2F)',
-                            padding: '0.2rem 0.5rem',
-                            fontSize: '0.75rem',
-                            fontWeight: 700,
-                          }}
-                        >
-                          <XCircle size={12} />
-                          <span>Inactivo</span>
-                        </span>
-                      )}
+                      <BadgeEstadoOperativo estado={usr.estado_operativo} />
                     </td>
 
                     {/* Botones de acción: Editar y Baja lógica */}
