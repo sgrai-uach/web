@@ -594,6 +594,120 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/seguridad/recuperar-contrasena": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Solicitar recuperación de contraseña
+         * @description Inicia el flujo de recuperación de credenciales mediante correo institucional (@valdivia.cl) o RUT chileno. Aplica protección estricta contra enumeración de cuentas respondiendo siempre 200 OK con un mensaje genérico.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["RecuperarContrasenaRequest"];
+                };
+            };
+            responses: {
+                /** @description Respuesta genérica que previene la enumeración de cuentas en el sistema */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MensajeGenericoResponse"];
+                    };
+                };
+                /** @description Cuerpo de solicitud mal formado o identificador inválido */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Error interno del servidor al procesar la solicitud */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/seguridad/restablecer-contrasena": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Restablecer contraseña con token de recuperación
+         * @description Valida el token criptográfico efímero, actualiza la contraseña con hash seguro bcrypt (factor 10), invalida el token consumido y reinicia atómicamente los contadores de bloqueo (intentos_fallidos = 0, bloqueado_hasta = NULL).
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["RestablecerContrasenaRequest"];
+                };
+            };
+            responses: {
+                /** @description Contraseña actualizada exitosamente y cuenta desbloqueada */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MensajeGenericoResponse"];
+                    };
+                };
+                /** @description Token inválido, expirado, ya consumido o contraseña no cumple con políticas de seguridad */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Error interno del servidor al procesar el restablecimiento */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/seguridad/roles": {
         parameters: {
             query?: never;
@@ -6140,6 +6254,37 @@ export interface components {
                 /** @description Fecha de actualización ISO 8601 */
                 actualizadoEn: string;
             };
+        };
+        MensajeGenericoResponse: {
+            /**
+             * @description Mensaje descriptivo del resultado de la operación
+             * @example Si el identificador corresponde a una cuenta registrada, se enviará un enlace de recuperación.
+             */
+            message: string;
+        };
+        RecuperarContrasenaRequest: {
+            /**
+             * @description Correo institucional (@valdivia.cl) o RUT chileno del funcionario
+             * @example carlos.miranda@valdivia.cl
+             */
+            identificador: string;
+        };
+        RestablecerContrasenaRequest: {
+            /**
+             * @description Token criptográfico efímero recibido por correo institucional
+             * @example N2ZmNGViMGQzYjYw...
+             */
+            token: string;
+            /**
+             * @description Contraseña segura: 8-72 caracteres, con mayúsculas, minúsculas y dígitos
+             * @example Valdivia2026!
+             */
+            nuevaPassword: string;
+            /**
+             * @description Confirmación idéntica de la nueva contraseña
+             * @example Valdivia2026!
+             */
+            confirmacionPassword: string;
         };
     };
     responses: never;
