@@ -223,5 +223,73 @@ describe('RestablecerContrasenaForm (HU-65)', () => {
       ).toBeDefined();
       expect(mockPush).not.toHaveBeenCalled();
     });
+
+    describe('Lista dinámica de requisitos de seguridad en tiempo real', () => {
+      it('debe mostrar todos los requisitos como pendientes inicialmente (0 de 4 cumplidos)', () => {
+        render(<RestablecerContrasenaForm />);
+
+        const counter = screen.getByTestId('requirements-counter');
+        expect(counter.textContent).toBe('0 de 4 cumplidos');
+
+        const reqLongitud = screen.getByTestId('req-longitud');
+        const reqMayuscula = screen.getByTestId('req-mayuscula');
+        const reqMinuscula = screen.getByTestId('req-minuscula');
+        const reqNumero = screen.getByTestId('req-numero');
+
+        expect(reqLongitud.getAttribute('data-cumplido')).toBe('false');
+        expect(reqMayuscula.getAttribute('data-cumplido')).toBe('false');
+        expect(reqMinuscula.getAttribute('data-cumplido')).toBe('false');
+        expect(reqNumero.getAttribute('data-cumplido')).toBe('false');
+      });
+
+      it('debe marcar dinámicamente cada requisito conforme el usuario escribe', () => {
+        render(<RestablecerContrasenaForm />);
+
+        const nuevaPassInput = screen.getByLabelText(/^Nueva Contraseña/i);
+        const counter = screen.getByTestId('requirements-counter');
+        const reqLongitud = screen.getByTestId('req-longitud');
+        const reqMayuscula = screen.getByTestId('req-mayuscula');
+        const reqMinuscula = screen.getByTestId('req-minuscula');
+        const reqNumero = screen.getByTestId('req-numero');
+
+        // 1. Escribir sólo minúscula
+        fireEvent.change(nuevaPassInput, { target: { value: 'pass' } });
+        expect(reqMinuscula.getAttribute('data-cumplido')).toBe('true');
+        expect(reqMayuscula.getAttribute('data-cumplido')).toBe('false');
+        expect(reqNumero.getAttribute('data-cumplido')).toBe('false');
+        expect(reqLongitud.getAttribute('data-cumplido')).toBe('false');
+        expect(counter.textContent).toBe('1 de 4 cumplidos');
+
+        // 2. Agregar mayúscula
+        fireEvent.change(nuevaPassInput, { target: { value: 'passW' } });
+        expect(reqMinuscula.getAttribute('data-cumplido')).toBe('true');
+        expect(reqMayuscula.getAttribute('data-cumplido')).toBe('true');
+        expect(reqNumero.getAttribute('data-cumplido')).toBe('false');
+        expect(reqLongitud.getAttribute('data-cumplido')).toBe('false');
+        expect(counter.textContent).toBe('2 de 4 cumplidos');
+
+        // 3. Agregar dígito
+        fireEvent.change(nuevaPassInput, { target: { value: 'passW1' } });
+        expect(reqNumero.getAttribute('data-cumplido')).toBe('true');
+        expect(reqLongitud.getAttribute('data-cumplido')).toBe('false');
+        expect(counter.textContent).toBe('3 de 4 cumplidos');
+
+        // 4. Cumplir mínimo 8 caracteres
+        fireEvent.change(nuevaPassInput, { target: { value: 'passWord1' } });
+        expect(reqLongitud.getAttribute('data-cumplido')).toBe('true');
+        expect(reqMayuscula.getAttribute('data-cumplido')).toBe('true');
+        expect(reqMinuscula.getAttribute('data-cumplido')).toBe('true');
+        expect(reqNumero.getAttribute('data-cumplido')).toBe('true');
+        expect(counter.textContent).toBe('4 de 4 cumplidos');
+
+        // 5. Si borra caracteres, vuelve a desmarcarse dinámicamente
+        fireEvent.change(nuevaPassInput, { target: { value: '' } });
+        expect(reqLongitud.getAttribute('data-cumplido')).toBe('false');
+        expect(reqMayuscula.getAttribute('data-cumplido')).toBe('false');
+        expect(reqMinuscula.getAttribute('data-cumplido')).toBe('false');
+        expect(reqNumero.getAttribute('data-cumplido')).toBe('false');
+        expect(counter.textContent).toBe('0 de 4 cumplidos');
+      });
+    });
   });
 });
