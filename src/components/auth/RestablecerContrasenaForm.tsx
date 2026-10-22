@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ArrowLeft, Eye, EyeOff, KeyRound, RotateCcw } from 'lucide-react';
+import { ArrowLeft, Check, Circle, Eye, EyeOff, KeyRound, RotateCcw } from 'lucide-react';
 import Input from '@/components/ui/Input';
 import Button from '@/components/ui/Button';
 import InlineNotice from '@/components/ui/InlineNotice';
@@ -23,6 +23,32 @@ export default function RestablecerContrasenaForm() {
   const [errorConfirmacion, setErrorConfirmacion] = useState<string | null>(null);
   const [errorServidor, setErrorServidor] = useState<string | null>(null);
   const [cargando, setCargando] = useState(false);
+
+  const requisitos = [
+    {
+      id: 'longitud',
+      label: 'Mínimo 8 caracteres',
+      cumplido: nuevaPassword.length >= 8,
+    },
+    {
+      id: 'mayuscula',
+      label: 'Al menos una letra mayúscula (A-Z)',
+      cumplido: /[A-Z]/.test(nuevaPassword),
+    },
+    {
+      id: 'minuscula',
+      label: 'Al menos una letra minúscula (a-z)',
+      cumplido: /[a-z]/.test(nuevaPassword),
+    },
+    {
+      id: 'numero',
+      label: 'Al menos un dígito numérico (0-9)',
+      cumplido: /\d/.test(nuevaPassword),
+    },
+  ];
+
+  const totalCumplidos = requisitos.filter((r) => r.cumplido).length;
+  const todosCumplidos = totalCumplidos === requisitos.length;
 
   const validarFormulario = (): boolean => {
     setErrorNuevaPassword(null);
@@ -186,13 +212,46 @@ export default function RestablecerContrasenaForm() {
                 </div>
               </div>
 
-              <div className={styles.requirementsBox}>
-                <div className={styles.requirementsTitle}>Requisitos de seguridad:</div>
-                <ul className={styles.requirementsList}>
-                  <li>Mínimo 8 caracteres</li>
-                  <li>Al menos una letra mayúscula (A-Z)</li>
-                  <li>Al menos una letra minúscula (a-z)</li>
-                  <li>Al menos un dígito numérico (0-9)</li>
+              <div
+                className={`${styles.requirementsBox} ${todosCumplidos ? styles.requirementsBoxAllMet : ''}`}
+                aria-live="polite"
+                aria-atomic="true"
+              >
+                <div className={styles.requirementsHeader}>
+                  <span className={styles.requirementsTitle}>Requisitos de seguridad:</span>
+                  <span
+                    className={`${styles.requirementsCounter} ${todosCumplidos ? styles.requirementsCounterAllMet : ''}`}
+                    data-testid="requirements-counter"
+                  >
+                    {totalCumplidos} de {requisitos.length} cumplidos
+                  </span>
+                </div>
+                <ul className={styles.requirementsList} aria-label="Lista de requisitos de seguridad de la contraseña">
+                  {requisitos.map((req) => (
+                    <li
+                      key={req.id}
+                      className={`${styles.requirementItem} ${req.cumplido ? styles.requirementItemMet : styles.requirementItemPending}`}
+                      data-testid={`req-${req.id}`}
+                      data-cumplido={req.cumplido}
+                    >
+                      <span
+                        className={`${styles.requirementIconWrapper} ${req.cumplido ? styles.requirementIconMet : styles.requirementIconPending}`}
+                        aria-hidden="true"
+                      >
+                        {req.cumplido ? (
+                          <Check size={13} strokeWidth={2.8} />
+                        ) : (
+                          <Circle size={6} fill="currentColor" strokeWidth={0} />
+                        )}
+                      </span>
+                      <span className={styles.requirementText}>
+                        {req.label}
+                        <span className={styles.srOnly}>
+                          {req.cumplido ? ' (cumplido)' : ' (pendiente)'}
+                        </span>
+                      </span>
+                    </li>
+                  ))}
                 </ul>
               </div>
 
