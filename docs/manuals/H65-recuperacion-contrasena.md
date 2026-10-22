@@ -81,11 +81,12 @@ Permitir a los funcionarios municipales solicitar la recuperación de sus creden
 
 ### Paso 3: Restablecimiento de la Contraseña
 1. En el correo recibido, haga clic en el botón o enlace **"Restablecer Contraseña"** que contiene el token criptográfico único (`/restablecer-contrasena?token=...`).
-2. En la pantalla de restablecimiento, ingrese su **Nueva Contraseña** cumpliendo con los estándares institucionales:
+2. En la pantalla de restablecimiento, ingrese su **Nueva Contraseña**. La interfaz incluye una **caja de requisitos de seguridad en tiempo real** que reduce la carga cognitiva, evaluando y marcando dinámicamente con un indicador verde cada condición cumplida (ej. *"2 de 4 cumplidos"*):
    - Mínimo 8 caracteres.
-   - Al menos una letra mayúscula.
-   - Al menos una letra minúscula.
-   - Al menos un dígito numérico.
+   - Al menos una letra mayúscula (A-Z).
+   - Al menos una letra minúscula (a-z).
+   - Al menos un dígito numérico (0-9).
+   Al completar las 4 condiciones, la caja pasará a estado de confirmación verde destacando *"4 de 4 cumplidos"*.
 3. Ingrese nuevamente la contraseña en el campo **Confirmar Nueva Contraseña**. Puede usar los iconos de ojo para alternar la visibilidad de ambas contraseñas.
 4. Presione **"Restablecer Contraseña"**.
 5. Tras completarse el cambio, el sistema lo redirigirá a `/login` con un banner verde confirmando: *"Su contraseña ha sido restablecida exitosamente. Inicie sesión con su nueva credencial."*
