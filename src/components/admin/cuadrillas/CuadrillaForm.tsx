@@ -361,7 +361,7 @@ export default function CuadrillaForm({ onSuccess, onCancel }: CuadrillaFormProp
 
         {errores.general && (
           <div style={{ marginBottom: '16px' }}>
-            <InlineNotice variant="danger" title="Error en el formulario">
+            <InlineNotice variant="error" title="Error en el formulario">
               {errores.general}
             </InlineNotice>
           </div>

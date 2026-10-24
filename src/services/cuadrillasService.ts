@@ -179,7 +179,7 @@ export const cuadrillasService = {
 
       // 5. Errores de validación de formulario (400 Bad Request)
       if (response && response.status === 400) {
-        const errObj = error as { message?: string; errors?: Array<{ path?: string[]; message: string }> };
+        const errObj = error as unknown as { message?: string; errors?: Array<{ path?: string[]; message: string }> };
         const msg = errObj?.message || 'Los datos de la cuadrilla no son válidos.';
         throw new CuadrillaServiceError(
           msg,
