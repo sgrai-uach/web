@@ -1,6 +1,6 @@
 /**
  * Tipos TypeScript canónicos para el módulo de Patrullas Verificadoras (Centro de Mando / Operaciones).
- * Sincronizado con sgrai-api (Migración 024 y endpoint GET /api/patrullas).
+ * Sincronizado con sgrai-api (Migración 026 y endpoint GET /api/patrullas).
  */
 
 export type EstadoPatrullaEnum =
