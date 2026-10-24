@@ -462,7 +462,7 @@ export default function CuadrillaForm({ onSuccess, onCancel }: CuadrillaFormProp
                     type="text"
                     id="buscar-delegado"
                     className={`${styles.searchInput} ${errores.usuarioDelegadoId ? styles.searchInputError : ''}`}
-                    placeholder="Buscar funcionario por nombre, apellido o RUT..."
+                    placeholder="Buscar brigadista por nombre, apellido o RUT..."
                     value={busquedaDelegado}
                     onFocus={() => setDesplegableAbierto(true)}
                     onChange={(e) => {
@@ -514,7 +514,7 @@ export default function CuadrillaForm({ onSuccess, onCancel }: CuadrillaFormProp
                             {candidato.nombreCompleto}
                           </span>
                           <span className={styles.dropdownItemMeta}>
-                            RUT: {candidato.rut} • Cargo actual: {candidato.rolNombre}
+                            RUT: {candidato.rut} • Rol: {candidato.rolNombre}
                             {candidato.delegacionNombre && ` • Delegación: ${candidato.delegacionNombre}`}
                           </span>
                         </li>
@@ -522,17 +522,17 @@ export default function CuadrillaForm({ onSuccess, onCancel }: CuadrillaFormProp
                     ) : (
                       <li className={styles.dropdownEmpty}>
                         {buscandoCandidatos
-                          ? 'Buscando en nómina de funcionarios...'
+                          ? 'Buscando brigadistas disponibles...'
                           : cargandoCatalogos
-                          ? 'Cargando personal disponible...'
-                          : 'No se encontraron funcionarios con ese nombre o RUT.'}
+                          ? 'Cargando nómina de brigadistas...'
+                          : 'No se encontraron brigadistas disponibles con ese nombre o RUT.'}
                       </li>
                     )}
                   </ul>
                 )}
 
                 <span className={styles.helperText}>
-                  Seleccione al funcionario a cargo de coordinar la cuadrilla en terreno.
+                  Seleccione al brigadista que asumirá la coordinación de la cuadrilla en terreno.
                 </span>
               </div>
             )}
@@ -542,7 +542,7 @@ export default function CuadrillaForm({ onSuccess, onCancel }: CuadrillaFormProp
           <div className={styles.noticeBox}>
             <Info size={18} className={styles.noticeIcon} />
             <div>
-              <strong>Asignación de Responsable:</strong> Si el funcionario seleccionado es actualmente Operario o Brigadista, al guardar la cuadrilla se le designará automáticamente como Delegado de Cuadrilla, permitiéndole coordinar la unidad en terreno desde su dispositivo móvil.
+              <strong>Asignación de Responsable:</strong> Al guardar la cuadrilla, el funcionario seleccionado (con rol de Brigadista) será designado automáticamente como Delegado de Cuadrilla, permitiéndole coordinar la unidad en terreno desde su dispositivo móvil.
             </div>
           </div>
 

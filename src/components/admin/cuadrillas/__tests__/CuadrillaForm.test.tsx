@@ -30,8 +30,8 @@ describe('CuadrillaForm (H79)', () => {
       nombreCompleto: 'Carlos Silva',
       rut: '15.123.456-7',
       email: 'carlos@valdivia.cl',
-      rolNombre: 'Operario',
-      rolCodigo: 'OPERARIO',
+      rolNombre: 'Brigadista',
+      rolCodigo: 'BRIGADISTA',
       delegacionNombre: 'Calle Calle',
     },
     {
@@ -57,7 +57,7 @@ describe('CuadrillaForm (H79)', () => {
     expect(screen.getByRole('heading', { name: /Alta de Cuadrilla Operativa/i })).toBeDefined();
     expect(screen.getByLabelText(/Nombre de la Cuadrilla/i)).toBeDefined();
     expect(screen.getByLabelText(/Delegación Municipal Base/i)).toBeDefined();
-    expect(screen.getByPlaceholderText(/Buscar funcionario por nombre, apellido o RUT/i)).toBeDefined();
+    expect(screen.getByPlaceholderText(/Buscar brigadista por nombre, apellido o RUT/i)).toBeDefined();
     expect(screen.getByRole('button', { name: /Guardar Cuadrilla/i })).toBeDefined();
     expect(screen.getByRole('button', { name: /Cancelar/i })).toBeDefined();
 
@@ -83,7 +83,7 @@ describe('CuadrillaForm (H79)', () => {
   it('debe filtrar y permitir seleccionar un delegado usando el buscador', async () => {
     render(<CuadrillaForm />);
 
-    const buscador = screen.getByPlaceholderText(/Buscar funcionario por nombre, apellido o RUT/i);
+    const buscador = screen.getByPlaceholderText(/Buscar brigadista por nombre, apellido o RUT/i);
 
     // Escribir en el buscador para filtrar
     fireEvent.focus(buscador);
@@ -133,7 +133,7 @@ describe('CuadrillaForm (H79)', () => {
     fireEvent.change(selectDelegacion, { target: { value: 'del-calle-calle' } });
 
     // 3. Buscar y seleccionar delegado
-    const buscador = screen.getByPlaceholderText(/Buscar funcionario por nombre, apellido o RUT/i);
+    const buscador = screen.getByPlaceholderText(/Buscar brigadista por nombre, apellido o RUT/i);
     fireEvent.focus(buscador);
     fireEvent.change(buscador, { target: { value: 'Carlos' } });
     const opcion = await screen.findByText('Carlos Silva');
@@ -181,7 +181,7 @@ describe('CuadrillaForm (H79)', () => {
       target: { value: 'del-calle-calle' },
     });
 
-    const buscador = screen.getByPlaceholderText(/Buscar funcionario por nombre, apellido o RUT/i);
+    const buscador = screen.getByPlaceholderText(/Buscar brigadista por nombre, apellido o RUT/i);
     fireEvent.focus(buscador);
     fireEvent.change(buscador, { target: { value: 'Carlos' } });
     const opcion = await screen.findByText('Carlos Silva');

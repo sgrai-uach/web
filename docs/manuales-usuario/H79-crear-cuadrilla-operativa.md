@@ -41,17 +41,17 @@ El formulario solicita los siguientes campos obligatorios:
 |---|---|---|---|
 | **Nombre de la Cuadrilla** | Texto | Obligatorio. Mínimo 3 caracteres, máximo 100. | Debe ser único en todo el sistema (ej. *"Cuadrilla Vías y Calles"*, *"Cuadrilla Despeje Norte"*). La verificación es insensible a mayúsculas y espacios. |
 | **Delegación Municipal Base** | Selector | Obligatorio. Debe pertenecer a las delegaciones comunales activas. | Opciones estándar: *Norte*, *Sur*, *Costa* o *Calle Calle*. Define la base física y jurisdicción primaria de la unidad. |
-| **Delegado Responsable de Cuadrilla** | Buscador / Selector | Obligatorio. Funcionario activo de terreno. | Permite buscar interactivamente ingresando **Nombre, Apellido o RUT**. Filtra personal de terreno (operarios, brigadistas o delegados). |
+| **Delegado Responsable de Cuadrilla** | Buscador / Selector | Obligatorio. Funcionario activo de terreno con rol de Brigadista. | Permite buscar interactivamente ingresando **Nombre, Apellido o RUT**. Filtra exclusivamente personal con rol de **Brigadista**. |
 
 ---
 
-### Paso 3: Asignación y Selección del Delegado de Terreno
+### Paso 3: Asignación y Selección del Brigadista Responsable
 1. En el campo de búsqueda de delegado, comience a escribir el nombre o RUT del funcionario.
-2. El sistema desplegará de forma inmediata las coincidencias activas indicando su RUT, rol actual y delegación.
-3. Haga clic sobre el funcionario deseado. El sistema fijará al delegado en una tarjeta destacada con la opción *"Cambiar Delegado"* en caso de requerir rectificación.
+2. El sistema desplegará de forma inmediata a los brigadistas activos disponibles indicando su RUT, rol y delegación.
+3. Haga clic sobre el brigadista deseado. El sistema fijará al funcionario en una tarjeta destacada con la opción *"Cambiar Delegado"* en caso de requerir rectificación.
 
 > [!NOTE]
-> **Asignación de Responsable:** Si el funcionario seleccionado es actualmente Operario o Brigadista, al guardar la cuadrilla se le designará automáticamente como Delegado de Cuadrilla, permitiéndole coordinar la unidad en terreno desde su dispositivo móvil.
+> **Asignación de Responsable:** Al guardar la cuadrilla, el funcionario seleccionado (con rol actual de Brigadista) será designado automáticamente como Delegado de Cuadrilla, permitiéndole coordinar la unidad en terreno desde su dispositivo móvil.
 
 ---
 

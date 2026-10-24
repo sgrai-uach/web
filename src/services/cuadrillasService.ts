@@ -80,16 +80,6 @@ export function formatearNombreRol(codigo?: string | null, nombre?: string | nul
  */
 export const CANDIDATOS_DELEGADOS_FALLBACK: PersonalCandidatoDelegado[] = [
   {
-    id: '00000000-0000-4000-8000-000000000005',
-    nombreCompleto: 'Carlos Silva Valenzuela',
-    rut: '15.123.456-7',
-    email: 'carlos.silva@valdivia.cl',
-    rolNombre: 'Operario',
-    rolCodigo: 'OPERARIO',
-    delegacionNombre: 'Calle Calle',
-    estadoOperativo: 'disponible',
-  },
-  {
     id: '00000000-0000-4000-8000-000000000006',
     nombreCompleto: 'Andrés Morales Ríos',
     rut: '16.789.012-3',
@@ -100,33 +90,33 @@ export const CANDIDATOS_DELEGADOS_FALLBACK: PersonalCandidatoDelegado[] = [
     estadoOperativo: 'disponible',
   },
   {
-    id: '00000000-0000-4000-8000-000000000007',
-    nombreCompleto: 'Patricio Fuentealba Soto',
-    rut: '14.567.890-1',
-    email: 'patricio.fuentealba@valdivia.cl',
-    rolNombre: 'Delegado de Cuadrilla',
-    rolCodigo: 'DELEGADO_CUADRILLA',
+    id: '00000000-0000-4000-8000-000000000010',
+    nombreCompleto: 'Felipe Sandoval Cárdenas',
+    rut: '17.654.321-0',
+    email: 'felipe.sandoval@valdivia.cl',
+    rolNombre: 'Brigadista',
+    rolCodigo: 'BRIGADISTA',
+    delegacionNombre: 'Calle Calle',
+    estadoOperativo: 'disponible',
+  },
+  {
+    id: '00000000-0000-4000-8000-000000000011',
+    nombreCompleto: 'Matías Oyarzún Vera',
+    rut: '18.123.789-4',
+    email: 'matias.oyarzun@valdivia.cl',
+    rolNombre: 'Brigadista',
+    rolCodigo: 'BRIGADISTA',
     delegacionNombre: 'Costa',
     estadoOperativo: 'disponible',
   },
   {
-    id: '00000000-0000-4000-8000-000000000008',
-    nombreCompleto: 'Jorge Muñoz Sepúlveda',
-    rut: '17.234.567-8',
-    email: 'jorge.munoz@valdivia.cl',
-    rolNombre: 'Conductor',
-    rolCodigo: 'CONDUCTOR',
+    id: '00000000-0000-4000-8000-000000000012',
+    nombreCompleto: 'Sebastián Alarcón Toledo',
+    rut: '15.987.654-2',
+    email: 'sebastian.alarcon@valdivia.cl',
+    rolNombre: 'Brigadista',
+    rolCodigo: 'BRIGADISTA',
     delegacionNombre: 'Sur',
-    estadoOperativo: 'disponible',
-  },
-  {
-    id: '00000000-0000-4000-8000-000000000009',
-    nombreCompleto: 'Rodrigo Araya Navarro',
-    rut: '13.890.123-4',
-    email: 'rodrigo.araya@valdivia.cl',
-    rolNombre: 'Operario',
-    rolCodigo: 'OPERARIO',
-    delegacionNombre: 'Norte',
     estadoOperativo: 'disponible',
   },
 ];
@@ -254,11 +244,17 @@ export const cuadrillasService = {
             // Excluir únicamente si está explícitamente inactivo
             if (emp.usuario_activo === false) return false;
 
-            const rol = (emp.rol_codigo || '').toUpperCase();
-            // Excluir informantes externos o ciudadanos
-            if (rol === 'INFORMANTE' || rol === 'CIUDADANO') return false;
+            const rolCodigo = (emp.rol_codigo || '').toUpperCase();
+            const rolNombre = (emp.rol_nombre || '').toLowerCase();
+            const cargo = (emp.cargo || '').toLowerCase();
 
-            return true;
+            // Filtrar exclusivamente personal con rol o cargo de Brigadista
+            const esBrigadista =
+              rolCodigo === 'BRIGADISTA' ||
+              rolNombre.includes('brigad') ||
+              cargo.includes('brigad');
+
+            return esBrigadista;
           })
           .map((emp) => ({
             id: emp.usuario_id,
