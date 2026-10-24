@@ -46,14 +46,13 @@ En la parte superior del panel se visualiza el resumen consolidado de las unidad
 * **Disponibles:** Patrullas listas para recibir una nueva orden de verificación.
 * **En Misión / Verificación:** Unidades que se encuentran actualmente atendiendo un incidente o patrullaje.
 * **No disponibles:** Unidades en mantención, fuera de turno o relevo de dotación.
-* **Indicador de Sincronización:** Muestra si la conexión WebSocket está en vivo (*"Sincronizado en tiempo real"*).
 
 ### Paso 4: Filtrado y Búsqueda de Equipos
 El panel cuenta con controles híbridos estandarizados:
 1. **Búsqueda rápida:** Ingrese texto parcial para filtrar por nombre de la patrulla o por nombre del funcionario líder.
 2. **Selector de Delegación:** Filtre por jurisdicción territorial (*Norte*, *Sur*, *Costa*, *Calle Calle* o *Todas las delegaciones*).
 3. **Selector de Estado:** Filtre por estado operativo (*Disponibles*, *En Verificación*, *En Misión*, etc.).
-4. **Refrescar:** Actualice manualmente el listado en caso de requerir revalidación forzada.
+4. **Actualizar:** Presione el botón **Actualizar** para revalidar inmediatamente el listado de patrullas.
 
 ### Paso 5: Consulta de la Ficha de Patrulla y Navegación a Incidentes
 Cada tarjeta expone la dotación técnica:
@@ -99,7 +98,7 @@ El panel se conecta automáticamente al servidor de tiempo real mediante el cana
 |---|---|---|
 | **Acceso Restringido (403)** | El usuario no posee el permiso `misiones:leer`. | Solicite al Administrador del sistema la incorporación del rol Encargado o la asignación del permiso en `/gestion/admin/permisos`. |
 | **"No se encontraron patrullas"** | No hay registros que coincidan con la delegación o estado seleccionado. | Presione el botón **"Limpiar Filtros"** para restablecer la vista completa. |
-| **Error de conexión con el servidor municipal** | Caída momentánea de red o indisponibilidad temporal del backend. | Verifique su conexión de red municipal y presione el botón **Refrescar**. |
+| **Error de conexión con el servidor municipal** | Caída momentánea de red o indisponibilidad temporal del backend. | Verifique su conexión de red municipal y presione el botón **Actualizar**. |
 
 ---
 

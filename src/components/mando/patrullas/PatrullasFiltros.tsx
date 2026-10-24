@@ -85,7 +85,7 @@ export const PatrullasFiltros: React.FC<PatrullasFiltrosProps> = ({
       <div
         style={{
           display: 'flex',
-          alignItems: 'center',
+          alignItems: 'flex-end',
           gap: '12px',
           flexWrap: 'wrap',
           width: '100%',
@@ -120,18 +120,19 @@ export const PatrullasFiltros: React.FC<PatrullasFiltrosProps> = ({
           disabled={cargando}
         />
 
-        {/* Botón de Refrescar */}
+        {/* Botón de Actualizar */}
         <Button
           type="button"
           variant="outline"
           size="sm"
           onClick={onRefrescar}
           disabled={cargando}
-          title="Refrescar lista de patrullas"
-          style={{ minHeight: '38px', borderRadius: 0 }}
+          title="Actualizar lista de patrullas"
+          data-testid="btn-actualizar-patrullas"
+          style={{ height: '38px', borderRadius: 0 }}
         >
           <RotateCw size={14} className={cargando ? 'animate-spin' : ''} style={{ marginRight: '6px' }} />
-          <span>Refrescar</span>
+          <span>Actualizar</span>
         </Button>
       </div>
 

@@ -150,10 +150,6 @@ export const PanelPatrullasModal: React.FC<PanelPatrullasModalProps> = ({
                     </div>
                   )}
                 </div>
-
-                <div style={{ fontSize: '12px', color: 'var(--color-text-muted, #5F676E)' }}>
-                  {conectado ? 'Sincronizado en tiempo real' : 'Conectando tiempo real...'}
-                </div>
               </div>
 
               {/* Filtros */}
