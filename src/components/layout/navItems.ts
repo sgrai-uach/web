@@ -11,6 +11,7 @@ import {
   ShieldCheck,
   Users,
   AlertTriangle,
+  HardHat,
 } from 'lucide-react';
 
 export interface NavItem {
@@ -113,6 +114,13 @@ export const NAV_GROUPS: NavGroup[] = [
         href: '/gestion/admin/recursos',
         icon: Boxes,
         requiredPermissions: ['recursos:leer', 'recursos:crear'],
+      },
+      {
+        id: 'cuadrillas',
+        label: 'Cuadrillas',
+        href: '/gestion/admin/cuadrillas/nuevo',
+        icon: HardHat,
+        requiredPermissions: ['recursos:crear', 'recursos:leer'],
       },
       {
         id: 'puntos-criticos',
