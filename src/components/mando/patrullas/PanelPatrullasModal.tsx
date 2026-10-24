@@ -79,16 +79,35 @@ export const PanelPatrullasModal: React.FC<PanelPatrullasModalProps> = ({
             </span>
           </div>
 
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={onClose}
-            aria-label="Cerrar modal de patrullas"
-            style={{ color: '#FFFFFF', minHeight: 'auto', padding: '4px' }}
-          >
-            <X size={20} />
-          </Button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              href="/gestion/admin/patrullas/nuevo"
+              title="Registrar nueva patrulla verificadora"
+              style={{
+                color: '#FFFFFF',
+                borderColor: 'rgba(255, 255, 255, 0.4)',
+                minHeight: 'auto',
+                padding: '4px 8px',
+                fontSize: '12px',
+              }}
+            >
+              + Nueva Patrulla
+            </Button>
+
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={onClose}
+              aria-label="Cerrar modal de patrullas"
+              style={{ color: '#FFFFFF', minHeight: 'auto', padding: '4px' }}
+            >
+              <X size={20} />
+            </Button>
+          </div>
         </header>
 
         {/* Notificación en vivo de Socket */}
