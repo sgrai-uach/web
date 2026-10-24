@@ -51,7 +51,7 @@ El formulario solicita los siguientes campos obligatorios:
 3. Haga clic sobre el funcionario deseado. El sistema fijará al delegado en una tarjeta destacada con la opción *"Cambiar Delegado"* en caso de requerir rectificación.
 
 > [!NOTE]
-> **Promoción Automática de Rol:** Si el funcionario seleccionado poseía previamente el rol de Operario o Brigadista, al guardar la cuadrilla la API de SGRAI le promoverá automáticamente al rol `DELEGADO_CUADRILLA` en una transacción atómica, otorgándole acceso a la PWA de terreno para coordinar misiones.
+> **Asignación de Responsable:** Si el funcionario seleccionado es actualmente Operario o Brigadista, al guardar la cuadrilla se le designará automáticamente como Delegado de Cuadrilla, permitiéndole coordinar la unidad en terreno desde su dispositivo móvil.
 
 ---
 

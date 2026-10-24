@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   CheckCircle2,
@@ -10,6 +10,7 @@ import {
   ArrowLeft,
   Save,
   RotateCcw,
+  X,
 } from 'lucide-react';
 import Heading from '@/components/ui/Heading';
 import Button from '@/components/ui/Button';
@@ -33,6 +34,7 @@ interface CuadrillaFormProps {
 
 export default function CuadrillaForm({ onSuccess, onCancel }: CuadrillaFormProps) {
   const router = useRouter();
+  const searchContainerRef = useRef<HTMLDivElement>(null);
 
   // Estados del formulario
   const [nombre, setNombre] = useState('');
@@ -47,6 +49,7 @@ export default function CuadrillaForm({ onSuccess, onCancel }: CuadrillaFormProp
   // Estados del buscador de delegados
   const [busquedaDelegado, setBusquedaDelegado] = useState('');
   const [desplegableAbierto, setDesplegableAbierto] = useState(false);
+  const [buscandoCandidatos, setBuscandoCandidatos] = useState(false);
 
   // Estados de envío y retroalimentación
   const [guardando, setGuardando] = useState(false);
@@ -90,6 +93,53 @@ export default function CuadrillaForm({ onSuccess, onCancel }: CuadrillaFormProp
     };
   }, []);
 
+  // Cierre del dropdown al hacer clic fuera
+  useEffect(() => {
+    function handleClickAfuera(event: MouseEvent) {
+      if (
+        searchContainerRef.current &&
+        !searchContainerRef.current.contains(event.target as Node)
+      ) {
+        setDesplegableAbierto(false);
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickAfuera);
+    return () => {
+      document.removeEventListener('mousedown', handleClickAfuera);
+    };
+  }, []);
+
+  // Búsqueda dinámica con debounce hacia la API cuando el usuario escribe
+  useEffect(() => {
+    if (!busquedaDelegado.trim()) return;
+
+    let cancelado = false;
+    const timer = setTimeout(async () => {
+      try {
+        setBuscandoCandidatos(true);
+        const resultados = await cuadrillasService.obtenerCandidatosDelegados(busquedaDelegado);
+        if (!cancelado) {
+          setCandidatos((prev) => {
+            // Combinar evitando duplicados
+            const idsExistentes = new Set(prev.map((p) => p.id));
+            const nuevos = resultados.filter((r) => !idsExistentes.has(r.id));
+            return [...resultados, ...nuevos];
+          });
+        }
+      } finally {
+        if (!cancelado) {
+          setBuscandoCandidatos(false);
+        }
+      }
+    }, 250);
+
+    return () => {
+      cancelado = true;
+      clearTimeout(timer);
+    };
+  }, [busquedaDelegado]);
+
   // Suscripción WebSocket para sincronización en tiempo real
   useEffect(() => {
     try {
@@ -115,7 +165,8 @@ export default function CuadrillaForm({ onSuccess, onCancel }: CuadrillaFormProp
       (c) =>
         c.nombreCompleto.toLowerCase().includes(q) ||
         c.rut.toLowerCase().includes(q) ||
-        c.rolNombre.toLowerCase().includes(q)
+        c.rolNombre.toLowerCase().includes(q) ||
+        (c.delegacionNombre && c.delegacionNombre.toLowerCase().includes(q))
     );
   }, [candidatos, busquedaDelegado]);
 
@@ -265,8 +316,8 @@ export default function CuadrillaForm({ onSuccess, onCancel }: CuadrillaFormProp
           <div className={styles.noticeBox}>
             <Info size={18} className={styles.noticeIcon} />
             <div>
-              El funcionario <strong>{cuadrillaCreada.delegado?.nombre}</strong> ha quedado vinculado como Delegado de Cuadrilla.
-              Podrá acceder a la plataforma PWA de terreno para recibir misiones de despeje y reportar bitácoras de trabajo.
+              El funcionario <strong>{cuadrillaCreada.delegado?.nombre}</strong> ha quedado asignado como Delegado de Cuadrilla.
+              Podrá ingresar a la aplicación móvil de terreno para coordinar labores de despeje y registrar avances operativos.
             </div>
           </div>
 
@@ -375,7 +426,7 @@ export default function CuadrillaForm({ onSuccess, onCancel }: CuadrillaFormProp
           </div>
 
           {/* 3. Delegado de Cuadrilla (Selector con Buscador) */}
-          <div className={styles.fieldGroup}>
+          <div className={styles.fieldGroup} ref={searchContainerRef}>
             <label className={styles.label}>
               Delegado Responsable de Cuadrilla <span className={styles.requiredAsterisk}>*</span>
             </label>
@@ -387,13 +438,18 @@ export default function CuadrillaForm({ onSuccess, onCancel }: CuadrillaFormProp
                     {delegadoSeleccionado.nombreCompleto}
                   </span>
                   <span className={styles.selectedMeta}>
-                    RUT: {delegadoSeleccionado.rut} — Cargo / Rol: {delegadoSeleccionado.rolNombre}
+                    RUT: {delegadoSeleccionado.rut} — Cargo actual: {delegadoSeleccionado.rolNombre}
+                    {delegadoSeleccionado.delegacionNombre && ` (${delegadoSeleccionado.delegacionNombre})`}
                   </span>
                 </div>
                 <button
                   type="button"
                   className={styles.changeBtn}
-                  onClick={() => setDelegadoSeleccionado(null)}
+                  onClick={() => {
+                    setDelegadoSeleccionado(null);
+                    setBusquedaDelegado('');
+                    setDesplegableAbierto(true);
+                  }}
                 >
                   Cambiar Delegado
                 </button>
@@ -412,9 +468,29 @@ export default function CuadrillaForm({ onSuccess, onCancel }: CuadrillaFormProp
                     onChange={(e) => {
                       setBusquedaDelegado(e.target.value);
                       setDesplegableAbierto(true);
+                      if (errores.usuarioDelegadoId) {
+                        setErrores((prev) => ({ ...prev, usuarioDelegadoId: undefined }));
+                      }
                     }}
                     autoComplete="off"
                   />
+                  {busquedaDelegado && (
+                    <button
+                      type="button"
+                      onClick={() => setBusquedaDelegado('')}
+                      style={{
+                        position: 'absolute',
+                        right: '12px',
+                        background: 'none',
+                        border: 'none',
+                        color: 'var(--color-text-muted)',
+                        cursor: 'pointer',
+                      }}
+                      title="Limpiar búsqueda"
+                    >
+                      <X size={16} />
+                    </button>
+                  )}
                 </div>
 
                 {errores.usuarioDelegadoId && (
@@ -426,7 +502,7 @@ export default function CuadrillaForm({ onSuccess, onCancel }: CuadrillaFormProp
                 {desplegableAbierto && (
                   <ul className={styles.dropdownList} role="listbox">
                     {candidatosFiltrados.length > 0 ? (
-                      candidatosFiltrados.slice(0, 15).map((candidato) => (
+                      candidatosFiltrados.slice(0, 20).map((candidato) => (
                         <li
                           key={candidato.id}
                           className={styles.dropdownItem}
@@ -438,16 +514,18 @@ export default function CuadrillaForm({ onSuccess, onCancel }: CuadrillaFormProp
                             {candidato.nombreCompleto}
                           </span>
                           <span className={styles.dropdownItemMeta}>
-                            RUT: {candidato.rut} • Rol actual: {candidato.rolNombre}
+                            RUT: {candidato.rut} • Cargo actual: {candidato.rolNombre}
                             {candidato.delegacionNombre && ` • Delegación: ${candidato.delegacionNombre}`}
                           </span>
                         </li>
                       ))
                     ) : (
                       <li className={styles.dropdownEmpty}>
-                        {cargandoCatalogos
-                          ? 'Cargando nómina de personal de terreno...'
-                          : 'No se encontraron operadores de terreno coincidentes.'}
+                        {buscandoCandidatos
+                          ? 'Buscando en nómina de funcionarios...'
+                          : cargandoCatalogos
+                          ? 'Cargando personal disponible...'
+                          : 'No se encontraron funcionarios con ese nombre o RUT.'}
                       </li>
                     )}
                   </ul>
@@ -460,11 +538,11 @@ export default function CuadrillaForm({ onSuccess, onCancel }: CuadrillaFormProp
             )}
           </div>
 
-          {/* Nota Institucional sobre Roles y Terreno */}
+          {/* Nota Institucional amigable y no técnica */}
           <div className={styles.noticeBox}>
             <Info size={18} className={styles.noticeIcon} />
             <div>
-              <strong>Promoción Automática de Rol:</strong> Si el funcionario seleccionado posee actualmente rol de Operario o Brigadista, el sistema le asignará de manera atómica el rol <code>DELEGADO_CUADRILLA</code> al guardar, permitiéndole coordinar la unidad desde la PWA móvil en terreno.
+              <strong>Asignación de Responsable:</strong> Si el funcionario seleccionado es actualmente Operario o Brigadista, al guardar la cuadrilla se le designará automáticamente como Delegado de Cuadrilla, permitiéndole coordinar la unidad en terreno desde su dispositivo móvil.
             </div>
           </div>
 

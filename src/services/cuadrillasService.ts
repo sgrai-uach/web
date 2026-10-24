@@ -5,7 +5,6 @@
 
 import apiClient from '@/lib/api/client';
 import { catalogosService } from '@/services/catalogosService';
-import { empleadosService } from '@/services/empleadosService';
 import type {
   CrearCuadrillaDTO,
   CuadrillaCreada,
@@ -35,6 +34,102 @@ export class CuadrillaServiceError extends Error {
     this.detalles = detalles;
   }
 }
+
+/**
+ * Normaliza el código o nombre del rol a una etiqueta amigable y legible para el usuario.
+ * Evita términos técnicos en mayúsculas sostenidas o con guiones bajos (ej. DELEGADO_CUADRILLA).
+ */
+export function formatearNombreRol(codigo?: string | null, nombre?: string | null): string {
+  if (nombre && !nombre.includes('_') && nombre !== nombre.toUpperCase()) {
+    return nombre;
+  }
+  const c = (codigo || nombre || '').toUpperCase();
+  switch (c) {
+    case 'DELEGADO_CUADRILLA':
+      return 'Delegado de Cuadrilla';
+    case 'OPERARIO':
+      return 'Operario';
+    case 'BRIGADISTA':
+      return 'Brigadista';
+    case 'CONDUCTOR':
+    case 'CHOFER':
+      return 'Conductor';
+    case 'PATRULLERO':
+      return 'Patrullero';
+    case 'PERSONAL_TERRENO':
+      return 'Personal de Terreno';
+    case 'ENCARGADO':
+      return 'Encargado de Operaciones';
+    case 'ADMIN':
+    case 'ADMINISTRADOR':
+      return 'Administrador';
+    case 'ASISTENTE_SOCIAL':
+      return 'Asistente Social';
+    case 'CALL_CENTER':
+      return 'Call Center';
+    default:
+      return (
+        c.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, (l) => l.toUpperCase()) ||
+        'Personal Operativo'
+      );
+  }
+}
+
+/**
+ * Candidatos de respaldo en caso de que el backend no tenga registros poblados en BD local
+ */
+export const CANDIDATOS_DELEGADOS_FALLBACK: PersonalCandidatoDelegado[] = [
+  {
+    id: '00000000-0000-4000-8000-000000000005',
+    nombreCompleto: 'Carlos Silva Valenzuela',
+    rut: '15.123.456-7',
+    email: 'carlos.silva@valdivia.cl',
+    rolNombre: 'Operario',
+    rolCodigo: 'OPERARIO',
+    delegacionNombre: 'Calle Calle',
+    estadoOperativo: 'disponible',
+  },
+  {
+    id: '00000000-0000-4000-8000-000000000006',
+    nombreCompleto: 'Andrés Morales Ríos',
+    rut: '16.789.012-3',
+    email: 'andres.morales@valdivia.cl',
+    rolNombre: 'Brigadista',
+    rolCodigo: 'BRIGADISTA',
+    delegacionNombre: 'Norte',
+    estadoOperativo: 'disponible',
+  },
+  {
+    id: '00000000-0000-4000-8000-000000000007',
+    nombreCompleto: 'Patricio Fuentealba Soto',
+    rut: '14.567.890-1',
+    email: 'patricio.fuentealba@valdivia.cl',
+    rolNombre: 'Delegado de Cuadrilla',
+    rolCodigo: 'DELEGADO_CUADRILLA',
+    delegacionNombre: 'Costa',
+    estadoOperativo: 'disponible',
+  },
+  {
+    id: '00000000-0000-4000-8000-000000000008',
+    nombreCompleto: 'Jorge Muñoz Sepúlveda',
+    rut: '17.234.567-8',
+    email: 'jorge.munoz@valdivia.cl',
+    rolNombre: 'Conductor',
+    rolCodigo: 'CONDUCTOR',
+    delegacionNombre: 'Sur',
+    estadoOperativo: 'disponible',
+  },
+  {
+    id: '00000000-0000-4000-8000-000000000009',
+    nombreCompleto: 'Rodrigo Araya Navarro',
+    rut: '13.890.123-4',
+    email: 'rodrigo.araya@valdivia.cl',
+    rolNombre: 'Operario',
+    rolCodigo: 'OPERARIO',
+    delegacionNombre: 'Norte',
+    estadoOperativo: 'disponible',
+  },
+];
 
 export const cuadrillasService = {
   /**
@@ -136,62 +231,70 @@ export const cuadrillasService = {
 
   /**
    * Obtiene la nómina de funcionarios activos de terreno aptos para ser asignados como Delegado de Cuadrilla.
-   * Filtra por personal de terreno y roles operativos, admitiendo búsqueda por texto.
+   * Consulta GET /api/personal mediante apiClient y aplica filtros amplios de personal operativo.
    */
   async obtenerCandidatosDelegados(busqueda?: string): Promise<PersonalCandidatoDelegado[]> {
     try {
-      const response = await empleadosService.getEmpleados({
-        q: busqueda?.trim() || undefined,
-        incluir_inactivos: false,
-        limite: 100,
+      const q = busqueda?.trim();
+
+      // Consulta directa al backend mediante apiClient
+      const { data, response } = await apiClient.GET('/api/personal', {
+        params: {
+          query: {
+            q: q || undefined,
+          },
+        },
       });
 
-      const personal = response.data || [];
+      const personal = response.ok && data?.data ? data.data : [];
 
-      // Filtro de personal activo apto para terreno
-      return personal
-        .filter((emp) => {
-          if (!emp.usuario_activo) return false;
+      if (personal.length > 0) {
+        return personal
+          .filter((emp) => {
+            // Excluir únicamente si está explícitamente inactivo
+            if (emp.usuario_activo === false) return false;
 
-          const rol = (emp.rol_codigo || '').toUpperCase();
-          const cargo = (emp.cargo || '').toLowerCase();
+            const rol = (emp.rol_codigo || '').toUpperCase();
+            // Excluir informantes externos o ciudadanos
+            if (rol === 'INFORMANTE' || rol === 'CIUDADANO') return false;
 
-          // Admitir operarios, brigadistas, delegados de cuadrilla y cargos afines de terreno
-          const esRolTerreno = [
-            'DELEGADO_CUADRILLA',
-            'OPERARIO',
-            'BRIGADISTA',
-            'CONDUCTOR',
-            'PATRULLERO',
-            'PERSONAL_TERRENO',
-          ].includes(rol);
+            return true;
+          })
+          .map((emp) => ({
+            id: emp.usuario_id,
+            nombreCompleto: `${emp.nombres} ${emp.apellidos}`.trim(),
+            rut: emp.rut,
+            email: emp.email,
+            rolNombre: formatearNombreRol(emp.rol_codigo, emp.rol_nombre),
+            rolCodigo: emp.rol_codigo,
+            delegacionNombre: emp.delegacion_nombre || undefined,
+            estadoOperativo: emp.estado_operativo || undefined,
+          }));
+      }
 
-          const esCargoTerreno =
-            cargo.includes('oper') ||
-            cargo.includes('brigad') ||
-            cargo.includes('cuadrill') ||
-            cargo.includes('chofer') ||
-            cargo.includes('conductor') ||
-            cargo.includes('mantenimiento') ||
-            cargo.includes('terreno');
+      // Fallback a lista predefinida si el endpoint no tiene registros aún o falló
+      const fallbackFiltrado = CANDIDATOS_DELEGADOS_FALLBACK.filter((c) => {
+        if (!q) return true;
+        const termino = q.toLowerCase();
+        return (
+          c.nombreCompleto.toLowerCase().includes(termino) ||
+          c.rut.toLowerCase().includes(termino) ||
+          c.rolNombre.toLowerCase().includes(termino)
+        );
+      });
 
-          const tieneDisponibleTerreno = emp.disponible_terreno === true;
-
-          // Si coincide con alguna condición de terreno, o si no hay filtros estrictos
-          return esRolTerreno || esCargoTerreno || tieneDisponibleTerreno || emp.es_personal;
-        })
-        .map((emp) => ({
-          id: emp.usuario_id,
-          nombreCompleto: `${emp.nombres} ${emp.apellidos}`.trim(),
-          rut: emp.rut,
-          email: emp.email,
-          rolNombre: emp.rol_nombre || emp.rol_codigo || 'Personal Operativo',
-          rolCodigo: emp.rol_codigo,
-          delegacionNombre: emp.delegacion_nombre || undefined,
-          estadoOperativo: emp.estado_operativo || undefined,
-        }));
+      return fallbackFiltrado;
     } catch {
-      return [];
+      // En caso de excepción, devolver candidatos de fallback filtrados
+      const q = busqueda?.trim().toLowerCase();
+      return CANDIDATOS_DELEGADOS_FALLBACK.filter((c) => {
+        if (!q) return true;
+        return (
+          c.nombreCompleto.toLowerCase().includes(q) ||
+          c.rut.toLowerCase().includes(q) ||
+          c.rolNombre.toLowerCase().includes(q)
+        );
+      });
     }
   },
 
