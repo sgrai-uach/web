@@ -85,6 +85,21 @@ const MODULOS_SISTEMA: ModuloConfig[] = [
     accionPrimaria: 'Explorar Inventario',
   },
   {
+    id: 'patrullas-admin',
+    titulo: 'Patrullas Verificadoras',
+    descripcion:
+      'Administración y monitoreo de unidades móviles de evaluación y triaje rápido, dotación de personal operativo y vehículos institucionales.',
+    href: '/gestion/admin/patrullas',
+    icon: ShieldCheck,
+    requiredPermissions: ['recursos:leer', 'recursos:crear', 'misiones:leer'],
+    accionPrimaria: 'Gestionar Patrullas',
+    accionSecundaria: {
+      label: '+ Nueva Patrulla',
+      href: '/gestion/admin/patrullas?nuevo=1',
+      permiso: 'recursos:crear',
+    },
+  },
+  {
     id: 'empleados',
     titulo: 'Gestión de Personal',
     descripcion:

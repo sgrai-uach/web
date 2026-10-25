@@ -82,23 +82,6 @@ export const PanelPatrullasModal: React.FC<PanelPatrullasModalProps> = ({
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Button
               type="button"
-              variant="outline"
-              size="sm"
-              href="/gestion/admin/patrullas/nuevo"
-              title="Registrar nueva patrulla verificadora"
-              style={{
-                color: '#FFFFFF',
-                borderColor: 'rgba(255, 255, 255, 0.4)',
-                minHeight: 'auto',
-                padding: '4px 8px',
-                fontSize: '12px',
-              }}
-            >
-              + Nueva Patrulla
-            </Button>
-
-            <Button
-              type="button"
               variant="ghost"
               size="sm"
               onClick={onClose}
