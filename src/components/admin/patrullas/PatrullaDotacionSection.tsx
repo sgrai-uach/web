@@ -39,7 +39,7 @@ export const PatrullaDotacionSection: React.FC<PatrullaDotacionSectionProps> = (
       </div>
       <p className={styles.sectionDescription}>
         Seleccione los funcionarios que integrarán la patrulla verificadora. Solo se habilitan
-        usuarios activos con ficha operativa y rol <strong>PATRULLA_VERIFICADORA</strong>.
+        usuarios activos con ficha operativa habilitados para funciones de <strong>Patrulla Verificadora</strong>.
       </p>
 
       {/* Lista interactiva de funcionarios */}
@@ -68,9 +68,9 @@ export const PatrullaDotacionSection: React.FC<PatrullaDotacionSectionProps> = (
               color: 'var(--color-charcoal, #3B3F45)',
             }}
           >
-            No se encontraron funcionarios activos con rol <strong>PATRULLA_VERIFICADORA</strong>{' '}
-            en el sistema. Para crear una patrulla, primero debe registrar o asignar dicho rol en el
-            módulo de Personal.
+            No se encontraron funcionarios activos con rol de <strong>Patrulla Verificadora</strong>{' '}
+            en el sistema. Para crear una patrulla, primero debe registrar o asignar dicha función en el
+            módulo de Gestión de Personal.
           </div>
         ) : (
           <div className={styles.personalList} role="group" aria-label="Lista de funcionarios elegibles">
@@ -110,7 +110,7 @@ export const PatrullaDotacionSection: React.FC<PatrullaDotacionSectionProps> = (
                       <span className={styles.personalMeta}>
                         {p.cargo || 'Evaluador de Terreno'} &bull; Delegación:{' '}
                         {p.delegacion_nombre || 'Sin delegación'} &bull; Estado:{' '}
-                        {p.estado_operativo || 'disponible'}
+                        {p.estado_operativo === 'en_patrulla' ? 'En patrulla' : 'Disponible'}
                       </span>
                     </div>
                   </div>

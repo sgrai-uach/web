@@ -135,7 +135,7 @@ export const PatrullaConfirmModal: React.FC<PatrullaConfirmModalProps> = ({
                 className={styles.resumenValue}
                 style={{ color: 'var(--color-success, #2E7D32)' }}
               >
-                DISPONIBLE
+                Disponible
               </span>
             </div>
           </div>

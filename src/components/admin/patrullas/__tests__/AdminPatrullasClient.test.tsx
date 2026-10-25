@@ -204,7 +204,7 @@ describe('AdminPatrullasClient (Pestaña dedicada de Patrullas Verificadoras)', 
 
     const btnNueva = screen.getByTestId('btn-nueva-patrulla');
     expect(btnNueva).toBeInTheDocument();
-    expect(btnNueva).toHaveTextContent('+ Nueva Patrulla');
+    expect(btnNueva).toHaveTextContent('Nueva Patrulla');
 
     // Al hacer clic, debe abrir el modal de creación
     fireEvent.click(btnNueva);

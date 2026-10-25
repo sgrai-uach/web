@@ -27,8 +27,8 @@ export const PatrullaVehiculoSection: React.FC<PatrullaVehiculoSectionProps> = (
         </h2>
       </div>
       <p className={styles.sectionDescription}>
-        Asigne un vehículo institucional individualizado del inventario municipal en estado disponible.
-        Al guardar, el vehículo pasará atómicamente a estado ASIGNADO.
+        Asigne un vehículo institucional del inventario municipal que se encuentre disponible. Al
+        registrar la patrulla, el vehículo quedará formalmente asignado a esta unidad.
       </p>
 
       <div className={styles.fieldGrid}>
@@ -54,13 +54,13 @@ export const PatrullaVehiculoSection: React.FC<PatrullaVehiculoSectionProps> = (
               const modelo = v.detalles?.modelo ? `- ${v.detalles.modelo}` : '';
               return (
                 <option key={v.id} value={v.id}>
-                  {v.nombre} {modelo} {patente} ({v.estado})
+                  {v.nombre} {modelo} {patente}
                 </option>
               );
             })}
           </select>
           <span id="help-patrulla-vehiculo" className={styles.helperText}>
-            Solo se listan recursos con individualización (`esIndividual: true`) y estado DISPONIBLE.
+            Solo se muestran vehículos institucionales activos y disponibles para asignación inmediata.
           </span>
         </div>
       </div>

@@ -61,7 +61,7 @@ export const PatrullaSuccessActions: React.FC<PatrullaSuccessActionsProps> = ({
           >
             La unidad <strong>&ldquo;{nombreDisplay}&rdquo;</strong>{' '}
             {patrulla.codigo ? `[${patrulla.codigo}]` : ''} ha sido dada de alta con estado inicial{' '}
-            <strong style={{ color: 'var(--color-success, #2E7D32)' }}>DISPONIBLE</strong>. Su dotación
+            <strong style={{ color: 'var(--color-success, #2E7D32)' }}>Disponible</strong>. Su dotación
             y vehículo han quedado asignados y se encuentra visible de inmediato en la consola del
             Centro de Mando.
           </p>

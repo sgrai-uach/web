@@ -147,7 +147,7 @@ export default function AdminPatrullasClient() {
               icon={<Plus size={16} />}
               data-testid="btn-nueva-patrulla"
             >
-              + Nueva Patrulla
+              Nueva Patrulla
             </Button>
           ) : undefined
         }
