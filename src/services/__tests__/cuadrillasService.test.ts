@@ -2,7 +2,6 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { cuadrillasService, CuadrillaServiceError } from '../cuadrillasService';
 import apiClient from '@/lib/api/client';
 import { catalogosService } from '@/services/catalogosService';
-import { empleadosService } from '@/services/empleadosService';
 import type { CrearCuadrillaDTO } from '@/types/cuadrilla';
 
 describe('cuadrillasService (H79)', () => {
@@ -415,6 +414,113 @@ describe('cuadrillasService (H79)', () => {
       const resultado = await cuadrillasService.obtenerCuadrillas({ pagina: 1, limite: 10 });
       expect(resultado.cuadrillas.length).toBeGreaterThan(0);
       expect(resultado.meta.total).toBeGreaterThan(0);
+    });
+  });
+
+  describe('desactivarCuadrilla (HU-82)', () => {
+    const mockCuadrillaId = '50000000-0000-4000-8000-000000000001';
+
+    it('debe desactivar exitosamente la cuadrilla cuando la API responde 200 OK', async () => {
+      const mockSuccessResponse = {
+        message: 'Cuadrilla operativa desactivada exitosamente',
+        data: {
+          id: mockCuadrillaId,
+          nombre: 'Cuadrilla Vías y Despeje Urbano',
+          activo: false,
+          estado: 'NO_DISPONIBLE',
+          recursosDesvinculados: 2,
+          trabajadoresDesvinculados: 2,
+          delegadoRevertido: true,
+          eliminadoEn: '2026-10-26T12:30:00.000Z',
+          eliminadoPorId: '00000000-0000-4000-8000-000000000001',
+        },
+      };
+
+      vi.spyOn(apiClient, 'DELETE').mockResolvedValueOnce({
+        data: mockSuccessResponse,
+        error: null,
+        response: new Response(null, { status: 200 }),
+      } as unknown as Awaited<ReturnType<typeof apiClient.DELETE>>);
+
+      const resultado = await cuadrillasService.desactivarCuadrilla(mockCuadrillaId);
+
+      expect(resultado.id).toBe(mockCuadrillaId);
+      expect(resultado.activo).toBe(false);
+      expect(resultado.estado).toBe('NO_DISPONIBLE');
+      expect(resultado.recursosDesvinculados).toBe(2);
+      expect(resultado.trabajadoresDesvinculados).toBe(2);
+      expect(resultado.delegadoRevertido).toBe(true);
+    });
+
+    it('debe lanzar CuadrillaServiceError con código CUADRILLA_EN_MISION ante 409 Conflict', async () => {
+      vi.spyOn(apiClient, 'DELETE').mockResolvedValueOnce({
+        data: null,
+        error: {
+          message:
+            'No es posible desactivar la cuadrilla porque posee misiones activas en curso (PLANIFICADA, DESPACHADA o EN_CURSO)',
+        },
+        response: new Response(null, { status: 409 }),
+      } as unknown as Awaited<ReturnType<typeof apiClient.DELETE>>);
+
+      await expect(cuadrillasService.desactivarCuadrilla(mockCuadrillaId)).rejects.toThrowError(
+        CuadrillaServiceError
+      );
+
+      try {
+        await cuadrillasService.desactivarCuadrilla(mockCuadrillaId);
+      } catch (err: unknown) {
+        const error = err as CuadrillaServiceError;
+        expect(error.status).toBe(409);
+        expect(error.codigo).toBe('CUADRILLA_EN_MISION');
+        expect(error.message).toContain('misiones activas');
+      }
+    });
+
+    it('debe lanzar CuadrillaServiceError con status 403 ante permisos insuficientes', async () => {
+      vi.spyOn(apiClient, 'DELETE').mockResolvedValueOnce({
+        data: null,
+        error: { message: 'Permisos insuficientes' },
+        response: new Response(null, { status: 403 }),
+      } as unknown as Awaited<ReturnType<typeof apiClient.DELETE>>);
+
+      try {
+        await cuadrillasService.desactivarCuadrilla(mockCuadrillaId);
+      } catch (err: unknown) {
+        const error = err as CuadrillaServiceError;
+        expect(error.status).toBe(403);
+        expect(error.codigo).toBe('PERMISOS_INSUFICIENTES');
+      }
+    });
+
+    it('debe lanzar CuadrillaServiceError con status 404 si la cuadrilla no existe', async () => {
+      vi.spyOn(apiClient, 'DELETE').mockResolvedValueOnce({
+        data: null,
+        error: { message: 'Cuadrilla no encontrada' },
+        response: new Response(null, { status: 404 }),
+      } as unknown as Awaited<ReturnType<typeof apiClient.DELETE>>);
+
+      try {
+        await cuadrillasService.desactivarCuadrilla('id-inexistente-1234');
+      } catch (err: unknown) {
+        const error = err as CuadrillaServiceError;
+        expect(error.status).toBe(404);
+        expect(error.codigo).toBe('RECURSO_NO_ENCONTRADO');
+      }
+    });
+
+    it('debe rechazar en modo fallback si la cuadrilla local está EN_MISION', async () => {
+      vi.spyOn(apiClient, 'DELETE').mockRejectedValueOnce(new Error('Network offline'));
+
+      // 50000000-0000-4000-8000-000000000002 está EN_MISION en CUADRILLAS_FALLBACK
+      const idCuadrillaEnMision = '50000000-0000-4000-8000-000000000002';
+
+      try {
+        await cuadrillasService.desactivarCuadrilla(idCuadrillaEnMision);
+      } catch (err: unknown) {
+        const error = err as CuadrillaServiceError;
+        expect(error.status).toBe(409);
+        expect(error.codigo).toBe('CUADRILLA_EN_MISION');
+      }
     });
   });
 });

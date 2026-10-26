@@ -7,10 +7,8 @@ import {
   Eye,
   Users,
   Wrench,
-  AlertTriangle,
-  CheckCircle2,
   Clock,
-  ShieldAlert,
+  Trash2,
 } from 'lucide-react';
 import type { CuadrillaItem, EstadoCuadrilla } from '@/types/cuadrilla';
 import Button from '@/components/ui/Button';
@@ -20,7 +18,9 @@ interface CuadrillasTablaProps {
   cargando: boolean;
   onEditarCuadrilla: (cuadrilla: CuadrillaItem) => void;
   onVerDetalle: (cuadrilla: CuadrillaItem) => void;
+  onDesactivarCuadrilla?: (cuadrilla: CuadrillaItem) => void;
   puedeEditar?: boolean;
+  puedeEliminar?: boolean;
 }
 
 /**
@@ -113,7 +113,9 @@ export default function CuadrillasTabla({
   cargando,
   onEditarCuadrilla,
   onVerDetalle,
+  onDesactivarCuadrilla,
   puedeEditar = true,
+  puedeEliminar = true,
 }: CuadrillasTablaProps) {
   if (cargando) {
     return (
@@ -204,6 +206,7 @@ export default function CuadrillasTabla({
             const estadoNorm = (cuadrilla.estado || '').toUpperCase();
             const bloqueadaPorMision =
               estadoNorm === 'EN_MISION' || estadoNorm === 'EN_TRANSITO' || estadoNorm === 'EN_OPERACION';
+            const estaInactiva = cuadrilla.activo === false || estadoNorm === 'NO_DISPONIBLE';
             const cantTrabajadores = cuadrilla.trabajadores?.length ?? cuadrilla.totalTrabajadores ?? 0;
             const cantRecursos = cuadrilla.recursos?.length ?? cuadrilla.totalRecursos ?? 0;
 
@@ -323,7 +326,7 @@ export default function CuadrillasTabla({
                       Detalle
                     </Button>
 
-                    {puedeEditar && (
+                    {puedeEditar && !estaInactiva && (
                       <div
                         style={{ display: 'inline-block' }}
                         title={
@@ -345,6 +348,32 @@ export default function CuadrillasTabla({
                           }}
                         >
                           Editar
+                        </Button>
+                      </div>
+                    )}
+
+                    {puedeEliminar && !estaInactiva && onDesactivarCuadrilla && (
+                      <div
+                        style={{ display: 'inline-block' }}
+                        title={
+                          bloqueadaPorMision
+                            ? 'No se puede desactivar una cuadrilla que se encuentra actualmente en misión activa en terreno'
+                            : 'Desactivar y retirar de servicio operativo la cuadrilla'
+                        }
+                      >
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          disabled={bloqueadaPorMision}
+                          onClick={() => onDesactivarCuadrilla(cuadrilla)}
+                          aria-label={`Desactivar cuadrilla ${cuadrilla.nombre}`}
+                          icon={<Trash2 size={14} />}
+                          style={{
+                            opacity: bloqueadaPorMision ? 0.6 : 1,
+                            cursor: bloqueadaPorMision ? 'not-allowed' : 'pointer',
+                          }}
+                        >
+                          Desactivar
                         </Button>
                       </div>
                     )}

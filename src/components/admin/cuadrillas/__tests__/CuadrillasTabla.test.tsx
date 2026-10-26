@@ -108,4 +108,48 @@ describe('CuadrillasTabla (H81)', () => {
     fireEvent.click(botonesDetalle[0]);
     expect(onDetalle).toHaveBeenCalledWith(mockCuadrillas[0]);
   });
+
+  it('debe renderizar la acción Desactivar cuando puedeEliminar es true', () => {
+    const onDesactivar = vi.fn();
+    render(
+      <CuadrillasTabla
+        cuadrillas={mockCuadrillas}
+        cargando={false}
+        onEditarCuadrilla={vi.fn()}
+        onVerDetalle={vi.fn()}
+        onDesactivarCuadrilla={onDesactivar}
+        puedeEditar={true}
+        puedeEliminar={true}
+      />
+    );
+
+    const botonesDesactivar = screen.getAllByRole('button', { name: /desactivar/i });
+    expect(botonesDesactivar).toHaveLength(2);
+
+    // Primer botón (DISPONIBLE): habilitado
+    expect(botonesDesactivar[0]).not.toBeDisabled();
+    fireEvent.click(botonesDesactivar[0]);
+    expect(onDesactivar).toHaveBeenCalledWith(mockCuadrillas[0]);
+
+    // Segundo botón (EN_MISION): deshabilitado
+    expect(botonesDesactivar[1]).toBeDisabled();
+    fireEvent.click(botonesDesactivar[1]);
+    expect(onDesactivar).toHaveBeenCalledTimes(1); // No vuelve a ejecutarse
+  });
+
+  it('no debe renderizar el botón Desactivar cuando puedeEliminar es false', () => {
+    render(
+      <CuadrillasTabla
+        cuadrillas={mockCuadrillas}
+        cargando={false}
+        onEditarCuadrilla={vi.fn()}
+        onVerDetalle={vi.fn()}
+        onDesactivarCuadrilla={vi.fn()}
+        puedeEditar={true}
+        puedeEliminar={false}
+      />
+    );
+
+    expect(screen.queryByRole('button', { name: /desactivar/i })).not.toBeInTheDocument();
+  });
 });

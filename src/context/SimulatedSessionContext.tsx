@@ -86,6 +86,7 @@ function obtenerPermisosFallback(rol: string, esAdmin: boolean): Set<string> {
       'recursos:crear',
       'recursos:editar',
       'recursos:eliminar',
+      'cuadrillas:eliminar',
       'incidentes:kanban',
       'incidentes:avisos:leer',
       'incidentes:avisos:verificar',

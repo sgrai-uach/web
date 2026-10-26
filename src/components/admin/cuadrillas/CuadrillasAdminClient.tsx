@@ -2,7 +2,7 @@
 
 import React, { useState, useCallback, useEffect } from 'react';
 import Link from 'next/link';
-import { Plus, HardHat } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import type {
   CuadrillaItem,
   FiltrosCuadrillasState,
@@ -19,17 +19,27 @@ import CuadrillasFiltros from '@/components/admin/cuadrillas/CuadrillasFiltros';
 import CuadrillasTabla from '@/components/admin/cuadrillas/CuadrillasTabla';
 import CuadrillaDetalleDrawer from '@/components/admin/cuadrillas/CuadrillaDetalleDrawer';
 import CuadrillaEditarModal from '@/components/admin/cuadrillas/CuadrillaEditarModal';
+import CuadrillaDesactivarModal from '@/components/admin/cuadrillas/CuadrillaDesactivarModal';
 
 export default function CuadrillasAdminClient() {
-  const { showSuccess } = useToast();
-  const { hasPermission, isMounted } = useSimulatedSession();
+  const { showSuccess, showError } = useToast();
+  const { hasPermission, usuarioActivo, isMounted } = useSimulatedSession();
 
   const puedeCrear = Boolean(isMounted && hasPermission('recursos:crear'));
   const puedeEditar = Boolean(isMounted && hasPermission('recursos:editar'));
+  const puedeEliminar = Boolean(
+    isMounted &&
+      (hasPermission('cuadrillas:eliminar') ||
+        hasPermission('recursos:eliminar') ||
+        usuarioActivo?.rol === 'Administrador' ||
+        usuarioActivo?.esAdmin)
+  );
 
   // Estados de modales
   const [cuadrillaAEditar, setCuadrillaAEditar] = useState<CuadrillaItem | null>(null);
+  const [cuadrillaADesactivar, setCuadrillaADesactivar] = useState<CuadrillaItem | null>(null);
   const [cuadrillaDetalle, setCuadrillaDetalle] = useState<CuadrillaItem | null>(null);
+  const [desactivando, setDesactivando] = useState<boolean>(false);
 
   // Delegaciones para selector de filtro
   const [delegaciones, setDelegaciones] = useState<DelegacionResumen[]>([]);
@@ -47,8 +57,8 @@ export default function CuadrillasAdminClient() {
     cuadrillas,
     meta,
     cargando,
-    recargar,
     actualizarCuadrillaEnLista,
+    removerCuadrillaDeLista,
   } = useCuadrillas(filtros);
 
   // Carga de delegaciones
@@ -97,6 +107,49 @@ export default function CuadrillasAdminClient() {
     },
     [actualizarCuadrillaEnLista, cuadrillaDetalle, showSuccess]
   );
+
+  const handleConfirmarDesactivar = useCallback(async () => {
+    if (!cuadrillaADesactivar) return;
+    try {
+      setDesactivando(true);
+      const res = await cuadrillasService.desactivarCuadrilla(cuadrillaADesactivar.id);
+
+      // Si el filtro no incluye inactivas, remover de la lista local
+      if (!filtros.estado || filtros.estado === 'ACTIVAS' || filtros.estado === 'DISPONIBLE') {
+        removerCuadrillaDeLista(cuadrillaADesactivar.id);
+      } else {
+        actualizarCuadrillaEnLista({
+          ...cuadrillaADesactivar,
+          activo: false,
+          estado: 'NO_DISPONIBLE',
+          eliminadoEn: res.eliminadoEn,
+        });
+      }
+
+      if (cuadrillaDetalle && cuadrillaDetalle.id === cuadrillaADesactivar.id) {
+        setCuadrillaDetalle(null);
+      }
+
+      showSuccess(
+        `La cuadrilla "${cuadrillaADesactivar.nombre}" ha sido desactivada exitosamente. Se desvincularon ${res.recursosDesvinculados} recursos y ${res.trabajadoresDesvinculados} trabajadores.`,
+        'Cuadrilla Desactivada'
+      );
+      setCuadrillaADesactivar(null);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Error al intentar desactivar la cuadrilla.';
+      showError(msg, 'No se pudo desactivar');
+    } finally {
+      setDesactivando(false);
+    }
+  }, [
+    cuadrillaADesactivar,
+    filtros.estado,
+    removerCuadrillaDeLista,
+    actualizarCuadrillaEnLista,
+    cuadrillaDetalle,
+    showSuccess,
+    showError,
+  ]);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
@@ -149,11 +202,13 @@ export default function CuadrillasAdminClient() {
           </p>
         </div>
 
-        <Link href="/gestion/admin/cuadrillas/nuevo" style={{ textDecoration: 'none' }}>
-          <Button variant="primary" icon={<Plus size={16} />}>
-            Registrar Nueva Cuadrilla
-          </Button>
-        </Link>
+        {puedeCrear && (
+          <Link href="/gestion/admin/cuadrillas/nuevo" style={{ textDecoration: 'none' }}>
+            <Button variant="primary" icon={<Plus size={16} />}>
+              Registrar Nueva Cuadrilla
+            </Button>
+          </Link>
+        )}
       </div>
 
       {/* Filtros */}
@@ -173,8 +228,10 @@ export default function CuadrillasAdminClient() {
         cuadrillas={cuadrillas}
         cargando={cargando}
         puedeEditar={puedeEditar}
+        puedeEliminar={puedeEliminar}
         onEditarCuadrilla={(c) => setCuadrillaAEditar(c)}
         onVerDetalle={(c) => setCuadrillaDetalle(c)}
+        onDesactivarCuadrilla={(c) => setCuadrillaADesactivar(c)}
       />
 
       {/* Paginación */}
@@ -193,10 +250,15 @@ export default function CuadrillasAdminClient() {
         cuadrilla={cuadrillaDetalle}
         isOpen={Boolean(cuadrillaDetalle)}
         puedeEditar={puedeEditar}
+        puedeEliminar={puedeEliminar}
         onCerrar={() => setCuadrillaDetalle(null)}
         onEditar={(c) => {
           setCuadrillaDetalle(null);
           setCuadrillaAEditar(c);
+        }}
+        onDesactivar={(c) => {
+          setCuadrillaDetalle(null);
+          setCuadrillaADesactivar(c);
         }}
       />
 
@@ -206,6 +268,14 @@ export default function CuadrillasAdminClient() {
         isOpen={Boolean(cuadrillaAEditar)}
         onCerrar={() => setCuadrillaAEditar(null)}
         onGuardadoExitoso={handleGuardadoExitoso}
+      />
+
+      {/* Modal de Desactivación (HU-82) */}
+      <CuadrillaDesactivarModal
+        cuadrilla={cuadrillaADesactivar}
+        desactivando={desactivando}
+        onConfirmar={handleConfirmarDesactivar}
+        onCancelar={() => setCuadrillaADesactivar(null)}
       />
     </div>
   );
