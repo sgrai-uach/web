@@ -7,22 +7,31 @@ import apiClient from '@/lib/api/client';
 import { catalogosService } from '@/services/catalogosService';
 import type {
   CrearCuadrillaDTO,
-  CuadrillaCreada,
+  EditarCuadrillaDTO,
+  CuadrillaItem,
+  CuadrillaDetalle,
   CrearCuadrillaApiResponse,
+  EditarCuadrillaApiResponse,
+  ListarCuadrillasApiResponse,
+  DetalleCuadrillaApiResponse,
   PersonalCandidatoDelegado,
+  PersonalOperativoDisponible,
+  RecursoInventarioDisponible,
   DelegacionResumen,
+  FiltrosCuadrillasState,
+  MetaPaginacionCuadrillas,
 } from '@/types/cuadrilla';
 
 export class CuadrillaServiceError extends Error {
   public status?: number;
   public codigo?: string;
-  public campo?: 'nombre' | 'delegacionId' | 'usuarioDelegadoId' | 'general';
+  public campo?: 'nombre' | 'delegacionId' | 'usuarioDelegadoId' | 'recursos' | 'trabajadores' | 'general';
   public detalles?: Array<{ campo: string; mensaje: string }>;
 
   constructor(
     message: string,
     status?: number,
-    campo?: 'nombre' | 'delegacionId' | 'usuarioDelegadoId' | 'general',
+    campo?: 'nombre' | 'delegacionId' | 'usuarioDelegadoId' | 'recursos' | 'trabajadores' | 'general',
     codigo?: string,
     detalles?: Array<{ campo: string; mensaje: string }>
   ) {
@@ -118,6 +127,138 @@ export const CANDIDATOS_DELEGADOS_FALLBACK: PersonalCandidatoDelegado[] = [
     rolCodigo: 'BRIGADISTA',
     delegacionNombre: 'Sur',
     estadoOperativo: 'disponible',
+  },
+];
+
+/**
+ * Cuadrillas de respaldo para desarrollo o cuando la API no dispone de registros
+ */
+export const CUADRILLAS_FALLBACK: CuadrillaItem[] = [
+  {
+    id: '50000000-0000-4000-8000-000000000001',
+    nombre: 'Cuadrilla Vías y Despeje Urbano',
+    estado: 'DISPONIBLE',
+    delegacion: {
+      id: '30000000-0000-4000-8000-000000000001',
+      nombre: 'Delegación Municipal Norte',
+    },
+    delegado: {
+      id: '00000000-0000-4000-8000-000000000005',
+      nombre: 'Carlos Delegado',
+      email: 'carlos@valdivia.cl',
+      rut: '15.111.222-3',
+    },
+    recursos: [
+      {
+        id: 'cd100000-0000-4000-8000-000000000001',
+        recursoId: 'e1000000-0000-4000-8000-000000000001',
+        nombre: 'Camioneta de Rescate 4x4',
+        cantidadAsignada: 1,
+        esIndividual: true,
+      },
+      {
+        id: 'cd100000-0000-4000-8000-000000000002',
+        recursoId: 'e1000000-0000-4000-8000-000000000003',
+        nombre: 'Motosierra Stihl MS-382',
+        cantidadAsignada: 2,
+        esIndividual: false,
+      },
+    ],
+    trabajadores: [
+      {
+        id: 'cp100000-0000-4000-8000-000000000001',
+        personalId: '40000000-0000-4000-8000-000000000001',
+        usuarioId: '00000000-0000-4000-8000-000000000009',
+        nombre: 'Pedro Obrero',
+        rut: '16.222.333-4',
+        cargo: 'Motosierrista',
+        especialidad: 'Poda de Altura',
+        asignadoEn: '2026-10-24T12:00:00.000Z',
+      },
+      {
+        id: 'cp100000-0000-4000-8000-000000000002',
+        personalId: '40000000-0000-4000-8000-000000000002',
+        usuarioId: '00000000-0000-4000-8000-000000000013',
+        nombre: 'Jorge Almonacid',
+        rut: '17.333.444-5',
+        cargo: 'Operario',
+        especialidad: 'Retiro de Escombros',
+        asignadoEn: '2026-10-24T12:00:00.000Z',
+      },
+    ],
+    totalRecursos: 2,
+    totalTrabajadores: 2,
+    creadoEn: '2026-10-24T12:00:00.000Z',
+    actualizadoEn: '2026-10-26T01:30:00.000Z',
+  },
+  {
+    id: '50000000-0000-4000-8000-000000000002',
+    nombre: 'Cuadrilla Mitigación Costera',
+    estado: 'EN_MISION',
+    delegacion: {
+      id: '30000000-0000-4000-8000-000000000002',
+      nombre: 'Delegación Municipal Costa',
+    },
+    delegado: {
+      id: '00000000-0000-4000-8000-000000000011',
+      nombre: 'Matías Oyarzún Vera',
+      email: 'matias.oyarzun@valdivia.cl',
+      rut: '18.123.789-4',
+    },
+    recursos: [
+      {
+        id: 'cd200000-0000-4000-8000-000000000001',
+        recursoId: 'e1000000-0000-4000-8000-000000000002',
+        nombre: 'Camión Tolva 10m3',
+        cantidadAsignada: 1,
+        esIndividual: true,
+      },
+    ],
+    trabajadores: [
+      {
+        id: 'cp200000-0000-4000-8000-000000000001',
+        personalId: '40000000-0000-4000-8000-000000000003',
+        usuarioId: '00000000-0000-4000-8000-000000000014',
+        nombre: 'Claudio Soto',
+        rut: '14.555.666-7',
+        cargo: 'Conductor',
+        especialidad: 'Maquinaria Pesada',
+        asignadoEn: '2026-10-25T08:00:00.000Z',
+      },
+    ],
+    totalRecursos: 1,
+    totalTrabajadores: 1,
+    creadoEn: '2026-10-25T08:00:00.000Z',
+    actualizadoEn: null,
+  },
+  {
+    id: '50000000-0000-4000-8000-000000000003',
+    nombre: 'Cuadrilla Drenaje y Aguas Lluvias Sur',
+    estado: 'DISPONIBLE',
+    delegacion: {
+      id: '30000000-0000-4000-8000-000000000003',
+      nombre: 'Delegación Municipal Sur',
+    },
+    delegado: {
+      id: '00000000-0000-4000-8000-000000000012',
+      nombre: 'Sebastián Alarcón Toledo',
+      email: 'sebastian.alarcon@valdivia.cl',
+      rut: '15.987.654-2',
+    },
+    recursos: [
+      {
+        id: 'cd300000-0000-4000-8000-000000000001',
+        recursoId: 'e1000000-0000-4000-8000-000000000004',
+        nombre: 'Motobomba de Achique 3"',
+        cantidadAsignada: 2,
+        esIndividual: false,
+      },
+    ],
+    trabajadores: [],
+    totalRecursos: 1,
+    totalTrabajadores: 0,
+    creadoEn: '2026-10-23T10:00:00.000Z',
+    actualizadoEn: null,
   },
 ];
 
@@ -295,6 +436,430 @@ export const cuadrillasService = {
   },
 
   /**
+   * Modifica los datos, delegado responsable y dotación (trabajadores y recursos) de una cuadrilla (H81).
+   * Se comunica con PUT /api/cuadrillas/{id}.
+   */
+  async actualizarCuadrilla(id: string, payload: EditarCuadrillaDTO): Promise<CuadrillaDetalle> {
+    try {
+      const { data, error, response } = await apiClient.PUT(
+        `/api/cuadrillas/${id}` as unknown as Parameters<typeof apiClient.PUT>[0],
+        {
+          body: {
+            nombre: payload.nombre.trim(),
+            delegacionId: payload.delegacionId,
+            usuarioDelegadoId: payload.usuarioDelegadoId,
+            recursos: payload.recursos || [],
+            trabajadores: payload.trabajadores || [],
+          } as unknown as Parameters<typeof apiClient.PUT>[1]['body'],
+        } as unknown as Parameters<typeof apiClient.PUT>[1]
+      );
+
+      // 1. Manejo de respuesta exitosa (200 OK)
+      if (response && response.status === 200) {
+        const resp = data as unknown as EditarCuadrillaApiResponse;
+        if (resp && resp.data) {
+          return resp.data;
+        }
+      }
+
+      // 2. Manejo de conflicto operativo (409 Conflict)
+      if (response && response.status === 409) {
+        const errObj = error as unknown as { message?: string };
+        const msg = errObj?.message || 'Conflicto operativo al intentar modificar la cuadrilla.';
+        const msgLower = msg.toLowerCase();
+
+        if (msgLower.includes('recurso') || msgLower.includes('individual')) {
+          throw new CuadrillaServiceError(
+            msg,
+            409,
+            'recursos',
+            'RECURSO_EN_USO'
+          );
+        }
+
+        if (
+          msgLower.includes('misión') ||
+          msgLower.includes('mision') ||
+          msgLower.includes('en misión') ||
+          msgLower.includes('misiones operativas')
+        ) {
+          throw new CuadrillaServiceError(
+            'No es posible modificar los datos ni la dotación de una cuadrilla que se encuentra actualmente en misión activa en terreno.',
+            409,
+            'general',
+            'CUADRILLA_EN_MISION'
+          );
+        }
+
+        if (msgLower.includes('nombre') || msgLower.includes('duplicado')) {
+          throw new CuadrillaServiceError(
+            'Ya existe otra cuadrilla operativa con el nombre ingresado.',
+            409,
+            'nombre',
+            'NOMBRE_DUPLICADO'
+          );
+        }
+
+        throw new CuadrillaServiceError(msg, 409, 'general', 'CONFLICTO_OPERATIVO');
+      }
+
+      // 3. Permisos insuficientes (403 Forbidden)
+      if (response && response.status === 403) {
+        throw new CuadrillaServiceError(
+          'No tiene permisos suficientes para modificar cuadrillas operativas (requiere permiso recursos:editar o rol Administrador).',
+          403,
+          'general',
+          'PERMISOS_INSUFICIENTES'
+        );
+      }
+
+      // 4. Recursos o personal no encontrados (404 Not Found)
+      if (response && response.status === 404) {
+        const errObj = error as unknown as { message?: string };
+        throw new CuadrillaServiceError(
+          errObj?.message || 'La cuadrilla operativa especificada o uno de sus recursos no existe.',
+          404,
+          'general',
+          'RECURSO_NO_ENCONTRADO'
+        );
+      }
+
+      // 5. Errores de validación (400 Bad Request)
+      if (response && response.status === 400) {
+        const errObj = error as unknown as { message?: string; errors?: Array<{ campo?: string; path?: string[]; mensaje?: string; message?: string }> };
+        const msg = errObj?.message || 'Los datos de la cuadrilla o dotación no son válidos.';
+        throw new CuadrillaServiceError(
+          msg,
+          400,
+          'general',
+          'DATOS_INVALIDOS',
+          errObj?.errors?.map((e) => ({
+            campo: e.campo || (e.path ? e.path.join('.') : 'general'),
+            mensaje: e.mensaje || e.message || 'Dato no válido',
+          }))
+        );
+      }
+
+      if (error || (response && !response.ok)) {
+        throw new CuadrillaServiceError(
+          'Error inesperado al intentar actualizar la cuadrilla. Intente nuevamente.',
+          response ? response.status : 500
+        );
+      }
+
+      const fallBackResp = data as unknown as EditarCuadrillaApiResponse;
+      if (fallBackResp?.data) {
+        return fallBackResp.data;
+      }
+
+      throw new CuadrillaServiceError('Respuesta inesperada del servidor al actualizar cuadrilla.', 500);
+    } catch (err: unknown) {
+      if (err instanceof CuadrillaServiceError) {
+        throw err;
+      }
+      throw new CuadrillaServiceError(
+        err instanceof Error ? err.message : 'Error de comunicación con el servicio de cuadrillas.',
+        500
+      );
+    }
+  },
+
+  /**
+   * Obtiene el listado de cuadrillas operativas con soporte de filtros y paginación.
+   */
+  async obtenerCuadrillas(filtros?: FiltrosCuadrillasState): Promise<{ cuadrillas: CuadrillaItem[]; meta: MetaPaginacionCuadrillas }> {
+    const pagina = filtros?.pagina || 1;
+    const limite = filtros?.limite || 10;
+    const busqueda = filtros?.busqueda?.trim();
+    const delegacionId = filtros?.delegacionId;
+    const estado = filtros?.estado;
+
+    try {
+      const { data, response } = await apiClient.GET('/api/cuadrillas' as unknown as Parameters<typeof apiClient.GET>[0], {
+        params: {
+          query: {
+            pagina,
+            limite,
+            q: busqueda || undefined,
+            delegacionId: delegacionId || undefined,
+            estado: estado || undefined,
+          },
+        } as unknown as Parameters<typeof apiClient.GET>[1],
+      });
+
+      if (response && response.ok && data) {
+        const resp = data as unknown as ListarCuadrillasApiResponse;
+        if (resp && Array.isArray(resp.data)) {
+          return {
+            cuadrillas: resp.data,
+            meta: resp.meta || {
+              total: resp.data.length,
+              pagina,
+              limite,
+              paginasTotales: Math.ceil(resp.data.length / limite) || 1,
+            },
+          };
+        }
+      }
+    } catch {
+      // Continuar al fallback si falla la llamada
+    }
+
+    // Filtrado de respaldo en memoria local (fallback)
+    let resultado = [...CUADRILLAS_FALLBACK];
+
+    if (busqueda) {
+      const qLower = busqueda.toLowerCase();
+      resultado = resultado.filter(
+        (c) =>
+          c.nombre.toLowerCase().includes(qLower) ||
+          c.delegado.nombre.toLowerCase().includes(qLower) ||
+          (c.delegado.rut && c.delegado.rut.toLowerCase().includes(qLower))
+      );
+    }
+
+    if (delegacionId) {
+      resultado = resultado.filter((c) => c.delegacion.id === delegacionId);
+    }
+
+    if (estado) {
+      resultado = resultado.filter((c) => c.estado === estado);
+    }
+
+    const total = resultado.length;
+    const paginasTotales = Math.ceil(total / limite) || 1;
+    const inicio = (pagina - 1) * limite;
+    const paginadas = resultado.slice(inicio, inicio + limite);
+
+    return {
+      cuadrillas: paginadas,
+      meta: {
+        total,
+        pagina,
+        limite,
+        paginasTotales,
+      },
+    };
+  },
+
+  /**
+   * Obtiene el detalle individual de una cuadrilla operativa por ID.
+   */
+  async obtenerCuadrillaPorId(id: string): Promise<CuadrillaDetalle> {
+    try {
+      const { data, response } = await apiClient.GET(
+        `/api/cuadrillas/${id}` as unknown as Parameters<typeof apiClient.GET>[0]
+      );
+
+      if (response && response.ok && data) {
+        const resp = data as unknown as DetalleCuadrillaApiResponse;
+        if (resp && resp.data) {
+          return resp.data;
+        }
+      }
+    } catch {
+      // Continuar al fallback
+    }
+
+    const cuadrillaLocal = CUADRILLAS_FALLBACK.find((c) => c.id === id);
+    if (cuadrillaLocal) {
+      return cuadrillaLocal;
+    }
+
+    throw new CuadrillaServiceError('La cuadrilla operativa especificada no existe.', 404, 'general', 'RECURSO_NO_ENCONTRADO');
+  },
+
+  /**
+   * Obtiene el personal de terreno disponible para conformar la dotación de la cuadrilla (cuadrilla_personal).
+   * Consulta GET /api/personal?estadoOperativo=disponible&soloPersonal=true.
+   */
+  async obtenerPersonalOperativoDisponible(busqueda?: string): Promise<PersonalOperativoDisponible[]> {
+    try {
+      const q = busqueda?.trim();
+      const { data, response } = await apiClient.GET('/api/personal', {
+        params: {
+          query: {
+            q: q || undefined,
+            estadoOperativo: 'disponible',
+            soloPersonal: 'true',
+          },
+        },
+      });
+
+      if (response && response.ok && data?.data && Array.isArray(data.data)) {
+        return data.data
+          .filter((emp) => emp.usuario_activo !== false)
+          .map((emp) => ({
+            id: emp.personal_id || emp.id || emp.usuario_id,
+            usuarioId: emp.usuario_id,
+            nombre: `${emp.nombres} ${emp.apellidos}`.trim(),
+            rut: emp.rut,
+            cargo: emp.cargo || 'Operario',
+            especialidad: emp.especialidad || 'Labores Generales',
+            delegacionNombre: emp.delegacion_nombre,
+            estadoOperativo: emp.estado_operativo,
+            disponibleTerreno: emp.disponible_terreno,
+          }));
+      }
+    } catch {
+      // Fallback a candidatos predefinidos
+    }
+
+    const fallbacks: PersonalOperativoDisponible[] = [
+      {
+        id: '40000000-0000-4000-8000-000000000001',
+        usuarioId: '00000000-0000-4000-8000-000000000009',
+        nombre: 'Pedro Obrero',
+        rut: '16.222.333-4',
+        cargo: 'Motosierrista',
+        especialidad: 'Poda de Altura',
+        delegacionNombre: 'Norte',
+        estadoOperativo: 'disponible',
+        disponibleTerreno: true,
+      },
+      {
+        id: '40000000-0000-4000-8000-000000000002',
+        usuarioId: '00000000-0000-4000-8000-000000000013',
+        nombre: 'Jorge Almonacid',
+        rut: '17.333.444-5',
+        cargo: 'Operario',
+        especialidad: 'Retiro de Escombros',
+        delegacionNombre: 'Norte',
+        estadoOperativo: 'disponible',
+        disponibleTerreno: true,
+      },
+      {
+        id: '40000000-0000-4000-8000-000000000003',
+        usuarioId: '00000000-0000-4000-8000-000000000014',
+        nombre: 'Claudio Soto',
+        rut: '14.555.666-7',
+        cargo: 'Conductor',
+        especialidad: 'Maquinaria Pesada',
+        delegacionNombre: 'Costa',
+        estadoOperativo: 'disponible',
+        disponibleTerreno: true,
+      },
+      {
+        id: '40000000-0000-4000-8000-000000000004',
+        usuarioId: '00000000-0000-4000-8000-000000000015',
+        nombre: 'Marcelo Navarro',
+        rut: '16.888.999-1',
+        cargo: 'Operario de Motobomba',
+        especialidad: 'Drenaje de Inundaciones',
+        delegacionNombre: 'Sur',
+        estadoOperativo: 'disponible',
+        disponibleTerreno: true,
+      },
+      {
+        id: '40000000-0000-4000-8000-000000000005',
+        usuarioId: '00000000-0000-4000-8000-000000000016',
+        nombre: 'Rodrigo Fuentes',
+        rut: '18.444.555-8',
+        cargo: 'Brigadista Auxiliar',
+        especialidad: 'Despeje de Vías',
+        delegacionNombre: 'Calle Calle',
+        estadoOperativo: 'disponible',
+        disponibleTerreno: true,
+      },
+    ];
+
+    if (!busqueda) return fallbacks;
+    const q = busqueda.toLowerCase();
+    return fallbacks.filter(
+      (p) =>
+        p.nombre.toLowerCase().includes(q) ||
+        (p.rut && p.rut.toLowerCase().includes(q)) ||
+        (p.cargo && p.cargo.toLowerCase().includes(q)) ||
+        (p.especialidad && p.especialidad.toLowerCase().includes(q))
+    );
+  },
+
+  /**
+   * Obtiene los recursos logísticos y vehículos disponibles en inventario para ser dotados en la cuadrilla.
+   * Consulta GET /api/recursos?estado=DISPONIBLE.
+   */
+  async obtenerRecursosDisponibles(): Promise<RecursoInventarioDisponible[]> {
+    try {
+      const { data, response } = await apiClient.GET('/api/recursos', {
+        params: {
+          query: {
+            estado: 'DISPONIBLE',
+            limite: 100,
+          },
+        },
+      });
+
+      if (response && response.ok && data?.data && Array.isArray(data.data)) {
+        return data.data.map((r) => ({
+          id: r.id,
+          nombre: r.nombre,
+          tipo: r.tipo,
+          esIndividual: Boolean(r.esIndividual),
+          cantidadInventario: r.cantidadDisponible ?? r.cantidadTotal ?? 1,
+          cantidadDisponible: r.cantidadDisponible ?? 1,
+          unidadMedida: r.unidadMedida,
+          delegacionNombre: r.delegacionNombre,
+        }));
+      }
+    } catch {
+      // Fallback a inventario local
+    }
+
+    return [
+      {
+        id: 'e1000000-0000-4000-8000-000000000001',
+        nombre: 'Camioneta de Rescate 4x4',
+        tipo: 'VEHICULO',
+        esIndividual: true,
+        cantidadInventario: 1,
+        cantidadDisponible: 1,
+        unidadMedida: 'Unidad',
+        delegacionNombre: 'Norte',
+      },
+      {
+        id: 'e1000000-0000-4000-8000-000000000002',
+        nombre: 'Camión Tolva 10m3',
+        tipo: 'VEHICULO',
+        esIndividual: true,
+        cantidadInventario: 1,
+        cantidadDisponible: 1,
+        unidadMedida: 'Unidad',
+        delegacionNombre: 'Costa',
+      },
+      {
+        id: 'e1000000-0000-4000-8000-000000000003',
+        nombre: 'Motosierra Stihl MS-382',
+        tipo: 'HERRAMIENTA',
+        esIndividual: false,
+        cantidadInventario: 10,
+        cantidadDisponible: 6,
+        unidadMedida: 'Unidad',
+        delegacionNombre: 'Norte',
+      },
+      {
+        id: 'e1000000-0000-4000-8000-000000000004',
+        nombre: 'Motobomba de Achique 3"',
+        tipo: 'MAQUINARIA',
+        esIndividual: false,
+        cantidadInventario: 8,
+        cantidadDisponible: 4,
+        unidadMedida: 'Unidad',
+        delegacionNombre: 'Sur',
+      },
+      {
+        id: 'e1000000-0000-4000-8000-000000000005',
+        nombre: 'Generador Eléctrico 5kVA',
+        tipo: 'EQUIPAMIENTO',
+        esIndividual: true,
+        cantidadInventario: 1,
+        cantidadDisponible: 1,
+        unidadMedida: 'Unidad',
+        delegacionNombre: 'Calle Calle',
+      },
+    ];
+  },
+
+  /**
    * Obtiene las delegaciones municipales activas para el selector base.
    */
   async obtenerDelegaciones(): Promise<DelegacionResumen[]> {
@@ -310,3 +875,4 @@ export const cuadrillasService = {
     }
   },
 };
+
