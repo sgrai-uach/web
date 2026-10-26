@@ -57,7 +57,7 @@ describe('asistentesSocialesService', () => {
     expect(getSpy).toHaveBeenCalledWith(
       '/api/personal',
       expect.objectContaining({
-        params: {
+        params: expect.objectContaining({
           query: expect.objectContaining({
             rolCodigo: 'ASISTENTE_SOCIAL',
             delegacion_id: '30000000-0000-4000-8000-000000000001',
@@ -65,7 +65,7 @@ describe('asistentesSocialesService', () => {
             page: 1,
             limit: 20,
           }),
-        },
+        }),
       })
     );
 

@@ -1,4 +1,5 @@
 import apiClient from '@/lib/api/client';
+import { getAuthCookie } from '@/lib/utils/cookieUtils';
 import { formatApiError } from '@/lib/utils/errorUtils';
 import type {
   AsistenteSocialItem,
@@ -157,18 +158,20 @@ export async function obtenerAsistentesSociales(
   }
 
   try {
+    const token = getAuthCookie();
     const { data, error, response } = await apiClient.GET('/api/personal', {
       params: {
         query: queryParams as unknown as {
           rolCodigo: string;
           delegacion_id?: string;
           delegacionId?: string;
-          estadoOperativo?: string;
-          estado_operativo?: string;
+          estadoOperativo?: EstadoOperativoPersonal;
+          estado_operativo?: EstadoOperativoPersonal;
           page?: number;
           limit?: number;
           q?: string;
         },
+        header: { authorization: token ? `Bearer ${token}` : '' },
       },
     });
 
