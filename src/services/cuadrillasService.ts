@@ -5,6 +5,7 @@
 
 import apiClient from '@/lib/api/client';
 import { catalogosService } from '@/services/catalogosService';
+import { getAuthCookie } from '@/lib/utils/cookieUtils';
 import type {
   CrearCuadrillaDTO,
   EditarCuadrillaDTO,
@@ -47,6 +48,17 @@ export class CuadrillaServiceError extends Error {
     this.codigo = codigo;
     this.detalles = detalles;
   }
+}
+
+function getAuthorizationHeader(explicitToken?: string): string {
+  const token =
+    explicitToken ||
+    getAuthCookie() ||
+    (typeof window !== 'undefined'
+      ? localStorage.getItem('sgrai_auth_token') || localStorage.getItem('token')
+      : null);
+
+  return token ? `Bearer ${token}` : '';
 }
 
 /**
@@ -490,11 +502,15 @@ export const cuadrillasService = {
     try {
       const q = busqueda?.trim();
 
+      const authHeader = getAuthorizationHeader();
       // Consulta directa al backend mediante apiClient
       const { data, response } = await apiClient.GET('/api/personal', {
         params: {
           query: {
             q: q || undefined,
+          },
+          header: {
+            authorization: authHeader,
           },
         },
       });
@@ -525,7 +541,7 @@ export const cuadrillasService = {
             rut: emp.rut,
             email: emp.email,
             rolNombre: formatearNombreRol(emp.rol_codigo, emp.rol_nombre),
-            rolCodigo: emp.rol_codigo,
+            rolCodigo: emp.rol_codigo || '',
             delegacionNombre: emp.delegacion_nombre || undefined,
             estadoOperativo: emp.estado_operativo || undefined,
           }));
@@ -833,12 +849,16 @@ export const cuadrillasService = {
   async obtenerPersonalOperativoDisponible(busqueda?: string): Promise<PersonalOperativoDisponible[]> {
     try {
       const q = busqueda?.trim();
+      const authHeader = getAuthorizationHeader();
       const { data, response } = await apiClient.GET('/api/personal', {
         params: {
           query: {
             q: q || undefined,
             estadoOperativo: 'disponible',
-            soloPersonal: 'true',
+            soloPersonal: true,
+          },
+          header: {
+            authorization: authHeader,
           },
         },
       });
