@@ -13,7 +13,7 @@
 .modalBox {
   background-color: var(--color-white, #FFFFFF);
   width: 100%;
-  maxWidth: 580px;
+  max-width: 520px;
   box-shadow: var(--shadow-md, 0 4px 12px rgba(0, 0, 0, 0.15));
   border: 1px solid var(--border-color-neutral, #DFE3E8);
   border-radius: var(--radius-none, 0px);
