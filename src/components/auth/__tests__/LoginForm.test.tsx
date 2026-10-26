@@ -233,4 +233,24 @@ describe('LoginForm', () => {
       expect(mockPush).toHaveBeenCalledWith('/gestion');
     });
   });
+
+  describe('Recuperación de contraseña (HU-65)', () => {
+    it('debe renderizar el enlace "¿Olvidaste tu contraseña?" apuntando a /recuperar-contrasena', () => {
+      renderLoginForm();
+
+      const recoveryLink = screen.getByRole('link', { name: /¿Olvidaste tu contraseña\?/i });
+      expect(recoveryLink).toBeDefined();
+      expect(recoveryLink.getAttribute('href')).toBe('/recuperar-contrasena');
+    });
+
+    it('debe mostrar el banner de éxito cuando el query param es motivo=password_restablecida', () => {
+      mockSearchParams = new URLSearchParams('motivo=password_restablecida');
+
+      renderLoginForm();
+
+      expect(
+        screen.getByText(/Su contraseña ha sido restablecida exitosamente\. Inicie sesión con su nueva credencial\./i)
+      ).toBeDefined();
+    });
+  });
 });

@@ -10,6 +10,8 @@ import {
 export type CrearIncidenteManualPayload = components['schemas']['CrearIncidenteManualInput'];
 export type VerificarDuplicadoPayload = components['schemas']['VerificarDuplicadoInput'];
 
+type GenericRecord = Record<string, unknown>;
+
 export type ResultadoCreacionManual =
   | {
       tipo: 'EXITO';
@@ -73,34 +75,46 @@ export async function verificarDuplicado(
       return { hayDuplicados: false, coincidencias: [] };
     }
 
-    const resData = (data as any)?.data ?? data;
-    const coincidenciasRaw = resData?.coincidencias ?? (Array.isArray(resData) ? resData : []);
+    const resData = (data as GenericRecord)?.data ?? data;
+    const coincidenciasRaw =
+      (resData as GenericRecord)?.coincidencias ?? (Array.isArray(resData) ? resData : []);
 
     const coincidencias: DuplicadoItem[] = (
       Array.isArray(coincidenciasRaw) ? coincidenciasRaw : []
-    ).map((item: any, idx: number) => ({
-      id: item?.id || item?.incidente_id || item?.aviso_id || `dup-${idx}`,
-      codigo:
-        item?.codigo ||
-        item?.codigoSeguimiento ||
-        item?.codigo_seguimiento ||
-        item?.codigoIncidente ||
-        item?.codigo_incidente ||
-        'S/C',
-      tipoAfectacion:
-        item?.tipoAfectacion || item?.tipo_afectacion || item?.tipo || 'No especificado',
-      direccion: item?.direccion || item?.ubicacion || 'Sin dirección',
-      estado: item?.estado || item?.estadoIncidente || 'REPORTADO',
-      distanciaMetros: Number(
-        item?.distanciaMetros ?? item?.distancia_metros ?? item?.distancia ?? 0
-      ),
-      creadoEn:
-        item?.creadoEn || item?.creado_en || item?.createdAt || new Date().toISOString(),
-      origen: item?.origen === 'aviso' ? 'aviso' : 'incidente',
-    }));
+    ).map((rawItem: unknown, idx: number) => {
+      const item = rawItem as GenericRecord;
+      return {
+        id: (item?.id as string) || (item?.incidente_id as string) || (item?.aviso_id as string) || `dup-${idx}`,
+        codigo:
+          (item?.codigo as string) ||
+          (item?.codigoSeguimiento as string) ||
+          (item?.codigo_seguimiento as string) ||
+          (item?.codigoIncidente as string) ||
+          (item?.codigo_incidente as string) ||
+          'S/C',
+        tipoAfectacion:
+          (item?.tipoAfectacion as string) ||
+          (item?.tipo_afectacion as string) ||
+          (item?.tipo as string) ||
+          'No especificado',
+        direccion: (item?.direccion as string) || (item?.ubicacion as string) || 'Sin dirección',
+        estado: (item?.estado as string) || (item?.estadoIncidente as string) || 'REPORTADO',
+        distanciaMetros: Number(
+          item?.distanciaMetros ?? item?.distancia_metros ?? item?.distancia ?? 0
+        ),
+        creadoEn:
+          (item?.creadoEn as string) ||
+          (item?.creado_en as string) ||
+          (item?.createdAt as string) ||
+          new Date().toISOString(),
+        origen: item?.origen === 'aviso' ? 'aviso' : 'incidente',
+      };
+    });
 
     return {
-      hayDuplicados: Boolean(resData?.hayDuplicados ?? (coincidencias.length > 0)),
+      hayDuplicados: Boolean(
+        (resData as GenericRecord)?.hayDuplicados ?? (coincidencias.length > 0)
+      ),
       coincidencias,
     };
   } catch {
@@ -128,23 +142,23 @@ export async function crearIncidenteManual(
 
     // Manejar 201 Created (o 200 OK) sin asumir estructura rígida del body
     if ((response.status === 201 || response.status === 200 || response.ok) && !error) {
-      const rawData = data as any;
-      const innerData = rawData?.data ?? rawData;
-      const incidente = innerData?.incidente ?? (innerData?.codigo ? innerData : null);
-      const aviso = innerData?.aviso ?? (innerData?.codigoSeguimiento ? innerData : null);
+      const rawData = data as GenericRecord;
+      const innerData = (rawData?.data as GenericRecord) ?? rawData;
+      const incidente = (innerData?.incidente as GenericRecord) ?? (innerData?.codigo ? innerData : null);
+      const aviso = (innerData?.aviso as GenericRecord) ?? (innerData?.codigoSeguimiento ? innerData : null);
 
       const codigoIncidente =
-        incidente?.codigo ||
-        incidente?.codigoIncidente ||
-        incidente?.id ||
-        innerData?.codigo ||
+        (incidente?.codigo as string) ||
+        (incidente?.codigoIncidente as string) ||
+        (incidente?.id as string) ||
+        (innerData?.codigo as string) ||
         'INC-REGISTRADO';
 
       const codigoAviso =
-        aviso?.codigoSeguimiento ||
-        aviso?.codigo ||
-        incidente?.codigoSeguimiento ||
-        innerData?.codigoSeguimiento ||
+        (aviso?.codigoSeguimiento as string) ||
+        (aviso?.codigo as string) ||
+        (incidente?.codigoSeguimiento as string) ||
+        (innerData?.codigoSeguimiento as string) ||
         codigoIncidente;
 
       return {
@@ -153,53 +167,62 @@ export async function crearIncidenteManual(
           codigoIncidente,
           codigoAviso,
           tipoAfectacion:
-            incidente?.tipoAfectacion || innerData?.tipoAfectacion || payload.tipoAfectacion,
-          direccion: incidente?.direccion || innerData?.direccion || payload.direccion,
-          estado: incidente?.estado || innerData?.estado || 'REPORTADO',
-          prioridad: incidente?.prioridad || innerData?.prioridad || payload.prioridad || 'MEDIA',
-          creadoEn: incidente?.creadoEn || innerData?.creadoEn || new Date().toISOString(),
+            (incidente?.tipoAfectacion as string) || (innerData?.tipoAfectacion as string) || payload.tipoAfectacion,
+          direccion: (incidente?.direccion as string) || (innerData?.direccion as string) || payload.direccion,
+          estado: (incidente?.estado as string) || (innerData?.estado as string) || 'REPORTADO',
+          prioridad: (incidente?.prioridad as string) || (innerData?.prioridad as string) || payload.prioridad || 'MEDIA',
+          creadoEn: (incidente?.creadoEn as string) || (innerData?.creadoEn as string) || new Date().toISOString(),
         },
         mensaje:
-          rawData?.mensaje ||
-          rawData?.message ||
-          innerData?.mensaje ||
-          innerData?.message ||
+          (rawData?.mensaje as string) ||
+          (rawData?.message as string) ||
+          (innerData?.mensaje as string) ||
+          (innerData?.message as string) ||
           'Incidente ingresado y verificado exitosamente.',
       };
     }
 
     if (response.status === 409) {
-      const errPayload = (error || data) as any;
+      const errPayload = (error || data) as GenericRecord;
       const rawCoincidencias =
         errPayload?.coincidencias ||
-        errPayload?.data?.coincidencias ||
+        (errPayload?.data as GenericRecord)?.coincidencias ||
         (Array.isArray(errPayload?.data) ? errPayload.data : null) ||
-        errPayload?.details?.coincidencias ||
-        errPayload?.detalles?.coincidencias ||
+        (errPayload?.details as GenericRecord)?.coincidencias ||
+        (errPayload?.detalles as GenericRecord)?.coincidencias ||
         [];
 
       let coincidenciasNormalizadas: DuplicadoItem[] = (
         Array.isArray(rawCoincidencias) ? rawCoincidencias : []
-      ).map((item: any, idx: number) => ({
-        id: item?.id || item?.incidente_id || item?.aviso_id || `dup-${idx}`,
-        codigo:
-          item?.codigo ||
-          item?.codigoSeguimiento ||
-          item?.codigo_seguimiento ||
-          item?.codigoIncidente ||
-          item?.codigo_incidente ||
-          'S/C',
-        tipoAfectacion:
-          item?.tipoAfectacion || item?.tipo_afectacion || item?.tipo || 'No especificado',
-        direccion: item?.direccion || item?.ubicacion || 'Sin dirección',
-        estado: item?.estado || item?.estadoIncidente || 'REPORTADO',
-        distanciaMetros: Number(
-          item?.distanciaMetros ?? item?.distancia_metros ?? item?.distancia ?? 0
-        ),
-        creadoEn:
-          item?.creadoEn || item?.creado_en || item?.createdAt || new Date().toISOString(),
-        origen: item?.origen === 'aviso' ? 'aviso' : 'incidente',
-      }));
+      ).map((rawItem: unknown, idx: number) => {
+        const item = rawItem as GenericRecord;
+        return {
+          id: (item?.id as string) || (item?.incidente_id as string) || (item?.aviso_id as string) || `dup-${idx}`,
+          codigo:
+            (item?.codigo as string) ||
+            (item?.codigoSeguimiento as string) ||
+            (item?.codigo_seguimiento as string) ||
+            (item?.codigoIncidente as string) ||
+            (item?.codigo_incidente as string) ||
+            'S/C',
+          tipoAfectacion:
+            (item?.tipoAfectacion as string) ||
+            (item?.tipo_afectacion as string) ||
+            (item?.tipo as string) ||
+            'No especificado',
+          direccion: (item?.direccion as string) || (item?.ubicacion as string) || 'Sin dirección',
+          estado: (item?.estado as string) || (item?.estadoIncidente as string) || 'REPORTADO',
+          distanciaMetros: Number(
+            item?.distanciaMetros ?? item?.distancia_metros ?? item?.distancia ?? 0
+          ),
+          creadoEn:
+            (item?.creadoEn as string) ||
+            (item?.creado_en as string) ||
+            (item?.createdAt as string) ||
+            new Date().toISOString(),
+          origen: item?.origen === 'aviso' ? 'aviso' : 'incidente',
+        };
+      });
 
       // Si el 409 no adjuntó coincidencias en el cuerpo, consultamos defensivamente al endpoint de verificación
       if (coincidenciasNormalizadas.length === 0 && (payload.latitud || payload.direccion)) {
@@ -227,8 +250,8 @@ export async function crearIncidenteManual(
         tipo: 'DUPLICADO',
         coincidencias: coincidenciasNormalizadas,
         mensaje:
-          errPayload?.message ||
-          errPayload?.mensaje ||
+          (errPayload?.message as string) ||
+          (errPayload?.mensaje as string) ||
           'Se detectaron incidentes similares reportados recientemente en la misma zona.',
       };
     }
@@ -241,19 +264,21 @@ export async function crearIncidenteManual(
     }
 
     if (response.status === 400) {
-      const errObj = (error || data) as any;
+      const errObj = (error || data) as GenericRecord;
       let errorList: string[] = [];
       if (Array.isArray(errObj?.errors)) {
-        errorList = errObj.errors.map((e: any) =>
-          typeof e === 'string' ? e : e?.mensaje || e?.message || JSON.stringify(e)
-        );
+        errorList = errObj.errors.map((e: unknown) => {
+          if (typeof e === 'string') return e;
+          const rec = e as GenericRecord;
+          return (rec?.mensaje as string) || (rec?.message as string) || JSON.stringify(e);
+        });
       }
       return {
         tipo: 'ERROR_VALIDACION',
         errores: errorList,
         mensaje:
-          errObj?.message ||
-          errObj?.mensaje ||
+          (errObj?.message as string) ||
+          (errObj?.mensaje as string) ||
           'Los datos proporcionados no cumplen con las validaciones requeridas.',
       };
     }

@@ -4,271 +4,6 @@
  */
 
 export interface paths {
-    "/api/puntos-criticos": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Listar puntos críticos y sectores de prevención
-         * @description Retorna una lista paginada de los puntos críticos registrados, incluyendo coordenadas espaciales, tipo de riesgo, prioridad y delegación territorial asociada.
-         */
-        get: {
-            parameters: {
-                query?: {
-                    pagina?: number;
-                    limite?: number;
-                    delegacionId?: string;
-                    activo?: boolean;
-                    prioridad?: "BAJA" | "MEDIA" | "ALTA" | "CRITICA";
-                    busqueda?: string;
-                };
-                header: {
-                    "x-user-id": string;
-                };
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            data: {
-                                id: string;
-                                codigo: string;
-                                nombre: string;
-                                descripcion: string | null;
-                                tipoRiesgo: string | null;
-                                prioridad: "BAJA" | "MEDIA" | "ALTA" | "CRITICA";
-                                activo: boolean;
-                                estadoTexto: string;
-                                latitud: number;
-                                longitud: number;
-                                delegacion: {
-                                    id: string;
-                                    codigo: string;
-                                    nombre: string;
-                                } | null;
-                                creadoEn: string;
-                            }[];
-                            meta: {
-                                total: number;
-                                pagina: number;
-                                limite: number;
-                                totalPaginas: number;
-                            };
-                        };
-                    };
-                };
-                400: {
-                    content: {
-                        "application/json": {
-                            message: string;
-                            statusCode?: number;
-                        };
-                    };
-                };
-                403: {
-                    content: {
-                        "application/json": {
-                            message: string;
-                            statusCode?: number;
-                        };
-                    };
-                };
-                500: {
-                    content: {
-                        "application/json": {
-                            message: string;
-                            statusCode?: number;
-                        };
-                    };
-                };
-            };
-        };
-        post: {
-            parameters: {
-                query?: never;
-                header?: {
-                    "x-user-id"?: string;
-                };
-                path?: never;
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": {
-                        nombre: string;
-                        descripcion?: string | null;
-                        tipo_riesgo: string;
-                        nivel_prioridad: "BAJA" | "MEDIA" | "ALTA" | "CRITICA";
-                        lat: number;
-                        lng: number;
-                        radio_afectacion_metros?: number;
-                        delegacion_id?: string | null;
-                        activo?: boolean;
-                    };
-                };
-            };
-            responses: {
-                201: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            id: string;
-                            codigo: string;
-                            nombre: string;
-                            descripcion: string | null;
-                            tipo_riesgo: string;
-                            nivel_prioridad: "BAJA" | "MEDIA" | "ALTA" | "CRITICA";
-                            latitud: number;
-                            longitud: number;
-                            radio_afectacion_metros: number;
-                            delegacion_id: string | null;
-                            delegacion_nombre?: string | null;
-                            activo: boolean;
-                            creado_por_id?: string | null;
-                            creado_por_nombre?: string | null;
-                            creado_en: string;
-                            actualizado_en: string;
-                        };
-                    };
-                };
-                400: {
-                    content: {
-                        "application/json": {
-                            message: string;
-                            statusCode?: number;
-                        };
-                    };
-                };
-                401: {
-                    content: {
-                        "application/json": {
-                            message: string;
-                            statusCode?: number;
-                        };
-                    };
-                };
-                403: {
-                    content: {
-                        "application/json": {
-                            message: string;
-                            statusCode?: number;
-                        };
-                    };
-                };
-                500: {
-                    content: {
-                        "application/json": {
-                            message: string;
-                            statusCode?: number;
-                        };
-                    };
-                };
-            };
-        };
-    };
-    "/api/puntos-criticos/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Desactivar (borrado lógico) de un punto crítico
-         * @description Desactiva un punto crítico del catálogo operativo mediante borrado lógico, registrando fecha y usuario auditor, siempre que no tenga misiones preventivas o patrullas activas asignadas.
-         */
-        delete: {
-            parameters: {
-                query?: never;
-                header?: {
-                    "x-user-id"?: string;
-                    authorization?: string;
-                };
-                path: {
-                    id: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            message: string;
-                            id: string;
-                            codigo: string;
-                            nombre: string;
-                            activo: boolean;
-                            eliminadoEn?: string;
-                            eliminadoPorId?: string;
-                        };
-                    };
-                };
-                400: {
-                    content: {
-                        "application/json": {
-                            message: string;
-                            statusCode?: number;
-                        };
-                    };
-                };
-                401: {
-                    content: {
-                        "application/json": {
-                            message: string;
-                            statusCode?: number;
-                        };
-                    };
-                };
-                403: {
-                    content: {
-                        "application/json": {
-                            message: string;
-                            statusCode?: number;
-                        };
-                    };
-                };
-                404: {
-                    content: {
-                        "application/json": {
-                            message: string;
-                            statusCode?: number;
-                        };
-                    };
-                };
-                409: {
-                    content: {
-                        "application/json": {
-                            message: string;
-                            statusCode?: number;
-                        };
-                    };
-                };
-                500: {
-                    content: {
-                        "application/json": {
-                            message: string;
-                            statusCode?: number;
-                        };
-                    };
-                };
-            };
-        };
-    };
     "/api/recursos": {
         parameters: {
             query?: never;
@@ -278,14 +13,18 @@ export interface paths {
         };
         /**
          * Listar recursos logísticos y verificar disponibilidad
-         * @description Retorna una lista paginada de los recursos registrados en el inventario, incluyendo estado de disponibilidad operativa, cantidades y delegación territorial asociada.
+         * @description Retorna una lista paginada de los recursos registrados en el inventario, incluyendo estado de disponibilidad operativa, cantidades y delegación territorial asociada. Accesible por perfiles con permiso recursos:leer (Administrador, Encargado, Supervisor - HU-50).
          */
         get: {
             parameters: {
                 query?: {
-                    /** @description Número de página para paginación (inicia en 1) */
+                    /** @description Número de página para paginación (estándar SGRAI, inicia en 1) */
+                    page?: number;
+                    /** @description Cantidad de elementos por página (estándar SGRAI, máximo 100) */
+                    limit?: number;
+                    /** @description Alias legado de 'page' (retrocompatibilidad, inicia en 1) */
                     pagina?: number;
-                    /** @description Cantidad de elementos por página (máximo 100) */
+                    /** @description Alias legado de 'limit' (retrocompatibilidad, máximo 100) */
                     limite?: number;
                     /** @description Filtrar por UUID de delegación territorial */
                     delegacionId?: string;
@@ -295,10 +34,12 @@ export interface paths {
                     esIndividual?: boolean | null;
                     /** @description Búsqueda textual por nombre o descripción del recurso */
                     busqueda?: string;
+                    /** @description Parámetro indicador de modo solo lectura para perfiles como Supervisor (HU-50) */
+                    soloLectura?: boolean | null;
                 };
-                header: {
-                    /** @description UUID del usuario administrador autenticado */
-                    "x-user-id": string;
+                header?: {
+                    /** @description UUID del usuario autenticado (opcional si se envía Authorization: Bearer <token>) */
+                    "x-user-id"?: string;
                 };
                 path?: never;
                 cookie?: never;
@@ -354,12 +95,22 @@ export interface paths {
                             meta: {
                                 /** @description Total general de registros coincidentes */
                                 total: number;
-                                /** @description Página actual */
-                                pagina: number;
-                                /** @description Límite de elementos por página */
-                                limite: number;
-                                /** @description Cantidad total de páginas disponibles */
-                                totalPaginas: number;
+                                /** @description Página actual (estándar SGRAI) */
+                                page?: number;
+                                /** @description Límite de elementos por página (estándar SGRAI) */
+                                limit?: number;
+                                /** @description Cantidad total de páginas disponibles (estándar SGRAI) */
+                                totalPages?: number;
+                                /** @description ¿Existe página siguiente? */
+                                hasNext?: boolean;
+                                /** @description ¿Existe página anterior? */
+                                hasPrev?: boolean;
+                                /** @description Alias legado de 'page' */
+                                pagina?: number;
+                                /** @description Alias legado de 'limit' */
+                                limite?: number;
+                                /** @description Alias legado de 'totalPages' */
+                                totalPaginas?: number;
                             };
                         };
                     };
@@ -371,14 +122,14 @@ export interface paths {
                     };
                     content?: never;
                 };
-                /** @description No autenticado / cabecera X-User-Id ausente */
+                /** @description No autenticado / token o cabecera de autenticación ausente */
                 401: {
                     headers: {
                         [name: string]: unknown;
                     };
                     content?: never;
                 };
-                /** @description Acceso denegado. Se requiere perfil de Administrador */
+                /** @description Acceso denegado. Se requiere permiso recursos:leer o perfil Administrador */
                 403: {
                     headers: {
                         [name: string]: unknown;
@@ -580,6 +331,120 @@ export interface paths {
                     content?: never;
                 };
                 /** @description Error interno del servidor al procesar el inicio de sesión */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/seguridad/recuperar-contrasena": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Solicitar recuperación de contraseña
+         * @description Inicia el flujo de recuperación de credenciales mediante correo institucional (@valdivia.cl) o RUT chileno. Aplica protección estricta contra enumeración de cuentas respondiendo siempre 200 OK con un mensaje genérico.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["RecuperarContrasenaRequest"];
+                };
+            };
+            responses: {
+                /** @description Respuesta genérica que previene la enumeración de cuentas en el sistema */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MensajeGenericoResponse"];
+                    };
+                };
+                /** @description Cuerpo de solicitud mal formado o identificador inválido */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Error interno del servidor al procesar la solicitud */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/seguridad/restablecer-contrasena": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Restablecer contraseña con token de recuperación
+         * @description Valida el token criptográfico efímero, actualiza la contraseña con hash seguro bcrypt (factor 10), invalida el token consumido y reinicia atómicamente los contadores de bloqueo (intentos_fallidos = 0, bloqueado_hasta = NULL).
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["RestablecerContrasenaRequest"];
+                };
+            };
+            responses: {
+                /** @description Contraseña actualizada exitosamente y cuenta desbloqueada */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MensajeGenericoResponse"];
+                    };
+                };
+                /** @description Token inválido, expirado, ya consumido o contraseña no cumple con políticas de seguridad */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Error interno del servidor al procesar el restablecimiento */
                 500: {
                     headers: {
                         [name: string]: unknown;
@@ -940,6 +805,8 @@ export interface paths {
                     limit?: number;
                     /** @description Estado del aviso a consultar (por defecto NO_VERIFICADO; si es TODOS omite el filtro) */
                     estado?: "PENDIENTE_VERIFICACION" | "NO_VERIFICADO" | "VERIFICADO" | "DESCARTADO" | "TODOS";
+                    /** @description Filtrar por UUID de delegación territorial (tiene prioridad sobre 'delegacion') */
+                    delegacionId?: string;
                     /** @description Delegación territorial ('Norte', 'Sur', 'Costa', 'Calle Calle', 'TODAS') */
                     delegacion?: string;
                     /** @description Texto libre para filtrar por descripción, dirección o informante */
@@ -947,7 +814,7 @@ export interface paths {
                     /** @description Alias de búsqueda rápida para texto libre */
                     q?: string;
                     /** @description Canal por el cual ingresó el reporte */
-                    origen?: "WEB" | "CHATBOT" | "TELEFONO";
+                    origen?: "WEB" | "CHATBOT" | "LLAMADA_TELEFONICA";
                 };
                 header: {
                     /** @description Token Bearer JWT de sesión */
@@ -1743,7 +1610,7 @@ export interface paths {
         get: {
             parameters: {
                 query?: {
-                    /** @description Número de página para paginación (comienza en 1) */
+                    /** @description Número de página (inicia en 1) */
                     page?: number;
                     /** @description Cantidad de elementos por página (máximo 100) */
                     limit?: number;
@@ -1755,12 +1622,14 @@ export interface paths {
                     tipoAfectacion?: string;
                     /** @description Búsqueda textual sobre código, dirección o descripción del incidente */
                     busqueda?: string;
+                    /** @description Filtrar por UUID de delegación territorial */
+                    delegacionId?: string;
+                    /** @description Filtrar por canal de origen del reporte */
+                    fuenteOrigen?: "CHATBOT" | "LLAMADA_TELEFONICA" | "FUNCIONARIO_TERRENO" | "WEB";
                     /** @description Filtrar incidentes por fecha específica (YYYY-MM-DD) */
                     fecha?: string;
                     /** @description Filtrar únicamente incidentes registrados en el día actual (zona horaria Chile) */
                     soloHoy?: boolean | null;
-                    /** @description Filtrar incidentes por delegación territorial */
-                    delegacionId?: string;
                 };
                 header: {
                     /** @description ID del usuario Encargado o Administrador autenticado */
@@ -1825,7 +1694,22 @@ export interface paths {
                                 /** @description Última fecha y hora de actualización en formato ISO 8601 */
                                 actualizadoEn: string;
                             }[];
-                            paginacion: {
+                            meta: {
+                                /** @description Total de registros coincidentes */
+                                total: number;
+                                /** @description Página actual */
+                                page: number;
+                                /** @description Elementos por página */
+                                limit: number;
+                                /** @description Total de páginas */
+                                totalPages: number;
+                                /** @description ¿Existe página siguiente? */
+                                hasNext: boolean;
+                                /** @description ¿Existe página anterior? */
+                                hasPrev: boolean;
+                            };
+                            /** @description Metadatos de paginación legados (retrocompatibilidad, usar 'meta') */
+                            paginacion?: {
                                 /** @description Total de registros coincidentes en la base de datos */
                                 total: number;
                                 /** @description Página actual retornada */
@@ -2082,7 +1966,7 @@ export interface paths {
         };
         /**
          * Listar empleados y personal
-         * @description Lista y busca empleados y personal del SGRAI con filtros territoriales (delegacionId), estado operativo (disponibilidad actual), cargo, especialidad, rol y búsqueda textual, con paginación estándar. La disponibilidad se expone siempre presente (reside en `usuario.estado_operativo`); `disponible_terreno` es `null` cuando el usuario no possui ficha de terreno.
+         * @description Lista y busca empleados y personal del SGRAI con filtros territoriales (delegacionId), estado operativo (disponibilidad actual), cargo, especialidad, rol (rolId o rolCodigo, ej. ASISTENTE_SOCIAL) y búsqueda textual, con paginación estándar y cómputo de casos FIBE asignados (H26). La disponibilidad se expone siempre presente (reside en `usuario.estado_operativo`); `disponible_terreno` es `null` cuando el usuario no possui ficha de terreno.
          */
         get: {
             parameters: {
@@ -2097,6 +1981,9 @@ export interface paths {
                     /** @description Filtrar por UUID de rol */
                     rolId?: string;
                     rol_id?: string;
+                    /** @description Filtrar por código de rol canónico (ej. ASISTENTE_SOCIAL) */
+                    rolCodigo?: string;
+                    rol_codigo?: string;
                     /** @description Filtrar por estado operativo (disponibilidad actual) del funcionario */
                     estadoOperativo?: "disponible" | "en_mision" | "en_patrulla" | "descanso" | "licencia" | "inactivo";
                     estado_operativo?: "disponible" | "en_mision" | "en_patrulla" | "descanso" | "licencia" | "inactivo";
@@ -2181,6 +2068,12 @@ export interface paths {
                                 /** Format: date-time */
                                 personal_updated_at?: string | null;
                                 es_personal: boolean;
+                                /**
+                                 * @description Cantidad de casos FIBE activos asignados al asistente social
+                                 * @default 0
+                                 * @example 2
+                                 */
+                                casos_fibe_asignados: number;
                             }[];
                             meta: {
                                 /** @description Total de registros coincidentes */
@@ -2213,7 +2106,7 @@ export interface paths {
                     };
                     content?: never;
                 };
-                /** @description Acceso denegado: requiere personal:leer, personal:gestionar o personal:crear */
+                /** @description Acceso denegado: requiere personal:leer, personal:gestionar o personal:crear; al consultar rol ASISTENTE_SOCIAL también requiere asistencia_social:leer */
                 403: {
                     headers: {
                         [name: string]: unknown;
@@ -3203,6 +3096,163 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/misiones": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Listar misiones operativas con filtros y paginación
+         * @description Retorna una lista paginada de misiones operativas del SGRAI para el Encargado. Admite filtros combinados por estado, tipo táctico, prioridad, delegación territorial (vía incidente o patrulla/cuadrilla) y búsqueda textual libre.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description Número de página (inicia en 1) */
+                    page?: number;
+                    /** @description Cantidad de elementos por página (máximo 100) */
+                    limit?: number;
+                    /** @description Filtrar por estado operativo de la misión */
+                    estado?: "PLANIFICADA" | "DESPACHADA" | "EN_CURSO" | "COMPLETADA" | "CANCELADA" | "RECHAZADA";
+                    /** @description Filtrar por tipo táctico de misión */
+                    tipoMision?: "VERIFICACION" | "ATENCION_CUADRILLA" | "PREVENCION" | "RECUPERACION" | "ASISTENCIA_SOCIAL";
+                    /** @description Filtrar por nivel de severidad o prioridad */
+                    prioridad?: "BAJA" | "MEDIA" | "ALTA" | "CRITICA";
+                    /** @description Filtrar por UUID de delegación territorial asociada (vía incidente o patrulla/cuadrilla) */
+                    delegacionId?: string;
+                    /** @description Filtrar por UUID de incidente específico */
+                    incidenteId?: string;
+                    /** @description Filtrar por UUID de cuadrilla asignada */
+                    cuadrillaId?: string;
+                    /** @description Filtrar por UUID de patrulla verificadora asignada */
+                    patrullaId?: string;
+                    /** @description Búsqueda textual sobre código, título o descripción de la misión */
+                    busqueda?: string;
+                    /** @description Campo de ordenamiento */
+                    ordenarPor?: "creadoEn" | "codigo" | "prioridad";
+                    /** @description Dirección de ordenamiento */
+                    orden?: "asc" | "desc";
+                };
+                header: {
+                    /** @description Token Bearer JWT de sesión */
+                    authorization: string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Listado de misiones y metadatos de paginación obtenidos exitosamente */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example Listado de misiones obtenido exitosamente */
+                            message: string;
+                            data: {
+                                /**
+                                 * Format: uuid
+                                 * @description Identificador único UUID de la misión
+                                 */
+                                id: string;
+                                /** @description Código oficial de la misión (ej. MIS-12345) */
+                                codigo: string;
+                                /** @description Título breve descriptivo del objetivo */
+                                titulo: string;
+                                /** @description Instrucciones detalladas de la orden de operación */
+                                descripcion: string | null;
+                                /**
+                                 * @description Tipo táctico de misión
+                                 * @enum {string}
+                                 */
+                                tipoMision: "VERIFICACION" | "ATENCION_CUADRILLA" | "PREVENCION" | "RECUPERACION" | "ASISTENCIA_SOCIAL";
+                                /**
+                                 * @description Estado operativo actual
+                                 * @enum {string}
+                                 */
+                                estado: "PLANIFICADA" | "DESPACHADA" | "EN_CURSO" | "COMPLETADA" | "CANCELADA" | "RECHAZADA";
+                                /**
+                                 * @description Nivel de prioridad o severidad
+                                 * @enum {string}
+                                 */
+                                prioridad: "BAJA" | "MEDIA" | "ALTA" | "CRITICA";
+                                /** @description Justificación si la misión fue rechazada */
+                                justificacionRechazo?: string | null;
+                                /**
+                                 * Format: uuid
+                                 * @description UUID de incidente asociado si aplica
+                                 */
+                                incidenteId?: string | null;
+                                /** @description Código legible del incidente */
+                                incidenteCodigo?: string | null;
+                                /** Format: uuid */
+                                cuadrillaId?: string | null;
+                                cuadrillaNombre?: string | null;
+                                /** Format: uuid */
+                                patrullaId?: string | null;
+                                patrullaNombre?: string | null;
+                                /** Format: uuid */
+                                delegacionId?: string | null;
+                                delegacionNombre?: string | null;
+                                fechaInicio?: string | null;
+                                fechaCierre?: string | null;
+                                /** @description Fecha de registro ISO 8601 */
+                                creadoEn: string;
+                                /** @description Fecha de última modificación ISO 8601 */
+                                actualizadoEn: string;
+                            }[];
+                            meta: {
+                                /** @description Total de registros coincidentes */
+                                total: number;
+                                /** @description Página actual */
+                                page: number;
+                                /** @description Elementos por página */
+                                limit: number;
+                                /** @description Total de páginas */
+                                totalPages: number;
+                                /** @description ¿Existe página siguiente? */
+                                hasNext: boolean;
+                                /** @description ¿Existe página anterior? */
+                                hasPrev: boolean;
+                            };
+                        };
+                    };
+                };
+                /** @description Parámetros de consulta inválidos */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description No autenticado o token ausente/inválido */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Error interno del servidor */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/misiones/{id}": {
         parameters: {
             query?: never;
@@ -3550,172 +3600,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/puntos-criticos": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Listar puntos críticos y sectores vulnerables monitoreados
-         * @description Retorna una lista paginada de puntos críticos y sectores vulnerables monitoreados en Valdivia, incluyendo su ubicación espacial, factores de riesgo, nivel de gravedad y delegación territorial asociada. Acceso restringido al rol Administrador.
-         */
-        get: {
-            parameters: {
-                query?: {
-                    /** @description Número de página actual (inicia en 1) */
-                    pagina?: number;
-                    /** @description Cantidad de elementos por página (máximo 100) */
-                    limite?: number;
-                    /** @description Filtrar por identificador de la delegación territorial */
-                    delegacionId?: string;
-                    /** @description Filtrar por estado activo/inactivo del punto crítico */
-                    activo?: boolean | null;
-                    /** @description Filtrar por gravedad/prioridad de riesgo */
-                    prioridad?: "BAJA" | "MEDIA" | "ALTA" | "CRITICA";
-                    /** @description Búsqueda textual insensible a mayúsculas por código, nombre, tipo de riesgo o descripción */
-                    busqueda?: string;
-                };
-                header: {
-                    /** @description UUID del usuario Administrador autenticado */
-                    "x-user-id": string;
-                };
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description Listado paginado de puntos críticos */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            /** @description Colección de puntos críticos almacenados */
-                            data: {
-                                /**
-                                 * Format: uuid
-                                 * @description Identificador único (UUID) del punto crítico
-                                 * @example 40000000-0000-4000-8000-000000000001
-                                 */
-                                id: string;
-                                /**
-                                 * @description Código institucional único (ej. PC-ANG-01)
-                                 * @example PC-ANG-01
-                                 */
-                                codigo: string;
-                                /**
-                                 * @description Nombre descriptivo del punto crítico o sector vulnerable
-                                 * @example Sector Humedal Angachilla - Pasaje Los Robles
-                                 */
-                                nombre: string;
-                                /**
-                                 * @description Detalle situacional y factores de riesgo del sector
-                                 * @example Zona baja propensa a anegamiento por desborde en temporada invernal
-                                 */
-                                descripcion: string | null;
-                                /**
-                                 * @description Clasificación de la amenaza recurrente
-                                 * @example Inundación y desborde de cauce
-                                 */
-                                tipoRiesgo: string | null;
-                                /**
-                                 * @description Nivel de gravedad o prioridad operativa homologado con incidentes
-                                 * @example ALTA
-                                 * @enum {string}
-                                 */
-                                prioridad: "BAJA" | "MEDIA" | "ALTA" | "CRITICA";
-                                /**
-                                 * @description Estado actual de vigencia operativa del punto crítico
-                                 * @example true
-                                 */
-                                activo: boolean;
-                                /**
-                                 * @description Etiqueta textual legible de estado para la vista de usuario
-                                 * @example Activo
-                                 */
-                                estadoTexto: string;
-                                /**
-                                 * @description Coordenada latitud EPSG:4326
-                                 * @example -39.8456
-                                 */
-                                latitud: number;
-                                /**
-                                 * @description Coordenada longitud EPSG:4326
-                                 * @example -73.2389
-                                 */
-                                longitud: number;
-                                /** @description Delegación municipal territorial de pertenencia */
-                                delegacion: {
-                                    /**
-                                     * Format: uuid
-                                     * @example 30000000-0000-4000-8000-000000000001
-                                     */
-                                    id: string;
-                                    /** @example DEL-SUR */
-                                    codigo: string;
-                                    /** @example Delegación Municipal Sur */
-                                    nombre: string;
-                                } | null;
-                                /**
-                                 * @description Fecha y hora de registro en formato ISO-8601
-                                 * @example 2026-06-15T12:00:00.000Z
-                                 */
-                                creadoEn: string;
-                            }[];
-                            meta: {
-                                /** @example 1 */
-                                total: number;
-                                /** @example 1 */
-                                pagina: number;
-                                /** @example 10 */
-                                limite: number;
-                                /** @example 1 */
-                                totalPaginas: number;
-                            };
-                        };
-                    };
-                };
-                /** @description Parámetros de consulta inválidos */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-                /** @description Cabecera de autenticación X-User-Id ausente o usuario no válido */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-                /** @description Acceso denegado. Se requiere perfil de Administrador */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-                /** @description Error interno del servidor */
-                500: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/incidentes/kpis": {
         parameters: {
             query?: never;
@@ -3845,6 +3729,841 @@ export interface paths {
         put?: never;
         post?: never;
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/puntos-criticos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Listar puntos críticos y sectores vulnerables
+         * @description Retorna la colección paginada de puntos críticos y sectores vulnerables monitoreados en Valdivia. Admite filtros por delegación, prioridad, estado activo y búsqueda textual. Requiere rol Administrador.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description Número de página actual (inicia en 1) */
+                    pagina?: number;
+                    /** @description Cantidad de elementos por página (máximo 100) */
+                    limite?: number;
+                    /** @description Filtrar por identificador de la delegación territorial */
+                    delegacionId?: string;
+                    /** @description Filtrar por estado activo/inactivo del punto crítico */
+                    activo?: boolean | null;
+                    /** @description Filtrar por gravedad/prioridad de riesgo */
+                    prioridad?: "BAJA" | "MEDIA" | "ALTA" | "CRITICA";
+                    /** @description Búsqueda textual insensible a mayúsculas por código, nombre, tipo de riesgo o descripción */
+                    busqueda?: string;
+                };
+                header: {
+                    /** @description UUID del usuario administrador autenticado */
+                    "x-user-id": string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Colección paginada de puntos críticos obtenida exitosamente */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @description Colección de puntos críticos almacenados */
+                            data: {
+                                /**
+                                 * Format: uuid
+                                 * @description Identificador único (UUID) del punto crítico
+                                 * @example 40000000-0000-4000-8000-000000000001
+                                 */
+                                id: string;
+                                /**
+                                 * @description Código institucional único (ej. PC-ANG-01)
+                                 * @example PC-ANG-01
+                                 */
+                                codigo: string;
+                                /**
+                                 * @description Nombre descriptivo del punto crítico o sector vulnerable
+                                 * @example Sector Humedal Angachilla - Pasaje Los Robles
+                                 */
+                                nombre: string;
+                                /**
+                                 * @description Detalle situacional y factores de riesgo del sector
+                                 * @example Zona baja propensa a anegamiento por desborde en temporada invernal
+                                 */
+                                descripcion: string | null;
+                                /**
+                                 * @description Clasificación de la amenaza recurrente
+                                 * @example Inundación y desborde de cauce
+                                 */
+                                tipoRiesgo: string | null;
+                                /**
+                                 * @description Nivel de gravedad o prioridad operativa homologado con incidentes
+                                 * @example ALTA
+                                 * @enum {string}
+                                 */
+                                prioridad: "BAJA" | "MEDIA" | "ALTA" | "CRITICA";
+                                /**
+                                 * @description Estado actual de vigencia operativa del punto crítico
+                                 * @example true
+                                 */
+                                activo: boolean;
+                                /**
+                                 * @description Etiqueta textual legible de estado para la vista de usuario
+                                 * @example Activo
+                                 */
+                                estadoTexto: string;
+                                /**
+                                 * @description Coordenada latitud EPSG:4326
+                                 * @example -39.8456
+                                 */
+                                latitud: number;
+                                /**
+                                 * @description Coordenada longitud EPSG:4326
+                                 * @example -73.2389
+                                 */
+                                longitud: number;
+                                /** @description Delegación municipal territorial de pertenencia */
+                                delegacion: {
+                                    /**
+                                     * Format: uuid
+                                     * @example 30000000-0000-4000-8000-000000000001
+                                     */
+                                    id: string;
+                                    /** @example DEL-SUR */
+                                    codigo: string;
+                                    /** @example Delegación Municipal Sur */
+                                    nombre: string;
+                                } | null;
+                                /**
+                                 * @description Fecha y hora de registro en formato ISO-8601
+                                 * @example 2026-06-15T12:00:00.000Z
+                                 */
+                                creadoEn: string;
+                            }[];
+                            meta: {
+                                /** @example 1 */
+                                total: number;
+                                /** @example 1 */
+                                pagina: number;
+                                /** @example 10 */
+                                limite: number;
+                                /** @example 1 */
+                                totalPaginas: number;
+                            };
+                        };
+                    };
+                };
+                /** @description Parámetros de consulta inválidos */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description No autenticado. Se requiere cabecera de autenticación válida */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Acceso denegado. Se requiere perfil de Administrador con permiso puntos_criticos:leer */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Error interno del servidor al procesar la solicitud */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        /**
+         * Crear nuevo punto crítico o sector vulnerable
+         * @description Registra un nuevo punto crítico o sector vulnerable con coordenadas PostGIS (EPSG:4326), autogenera su código correlativo institucional y emite notificación en tiempo real vía Socket.io. Requiere rol Administrador con permiso puntos_criticos:crear.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    /** @description UUID del usuario administrador autenticado */
+                    "x-user-id": string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Datos requeridos para la creación del punto crítico */
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        /**
+                         * @description Nombre descriptivo del punto crítico o sector vulnerable
+                         * @example Sector Humedal Angachilla - Pasaje Los Robles
+                         */
+                        nombre: string;
+                        /**
+                         * @description Detalle situacional y factores de riesgo del sector
+                         * @example Zona baja propensa a anegamiento por desborde en temporada invernal
+                         */
+                        descripcion?: string | null;
+                        /**
+                         * @description Clasificación de la amenaza recurrente (VARCHAR hasta 100 caracteres). Sugerencias: Inundación y anegamiento, Deslizamiento / Remoción en masa, Desborde de cauce / humedal, Incendio forestal / pastizales, Colapso estructural / socavón, Viento / Voladura de techumbres, Otro.
+                         * @example Inundación y anegamiento
+                         */
+                        tipoRiesgo?: string | null;
+                        /**
+                         * @description Nivel de gravedad o prioridad operativa homologado con incidentes
+                         * @default MEDIA
+                         * @example ALTA
+                         */
+                        prioridad?: string;
+                        /**
+                         * @description UUID de la delegación municipal territorial asignada
+                         * @example 30000000-0000-4000-8000-000000000001
+                         */
+                        delegacionId?: string | null;
+                        /**
+                         * @description Coordenada latitud WGS84 EPSG:4326
+                         * @example -39.8456
+                         */
+                        latitud: number | null;
+                        /**
+                         * @description Coordenada longitud WGS84 EPSG:4326
+                         * @example -73.2389
+                         */
+                        longitud: number | null;
+                    };
+                };
+            };
+            responses: {
+                /** @description Punto crítico creado exitosamente */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /**
+                             * Format: uuid
+                             * @description Identificador único (UUID) del punto crítico
+                             * @example 40000000-0000-4000-8000-000000000001
+                             */
+                            id: string;
+                            /**
+                             * @description Código institucional único (inmutable)
+                             * @example PC-ANG-01
+                             */
+                            codigo: string;
+                            /**
+                             * @description Nombre descriptivo del punto crítico o sector vulnerable
+                             * @example Sector Humedal Angachilla - Pasaje Los Robles
+                             */
+                            nombre: string;
+                            /**
+                             * @description Detalle situacional y factores de riesgo del sector
+                             * @example Zona baja propensa a anegamiento por desborde en temporada invernal
+                             */
+                            descripcion: string | null;
+                            /**
+                             * @description Clasificación de la amenaza recurrente
+                             * @example Inundación y desborde de cauce
+                             */
+                            tipoRiesgo: string | null;
+                            /**
+                             * @description Nivel de gravedad o prioridad operativa homologado con incidentes
+                             * @example ALTA
+                             * @enum {string}
+                             */
+                            prioridad: "BAJA" | "MEDIA" | "ALTA" | "CRITICA";
+                            /**
+                             * @description Estado actual de vigencia operativa del punto crítico
+                             * @example true
+                             */
+                            activo: boolean;
+                            /**
+                             * @description Etiqueta textual legible de estado para la vista de usuario
+                             * @example Activo
+                             */
+                            estadoTexto: string;
+                            /**
+                             * @description Coordenada latitud EPSG:4326
+                             * @example -39.8456
+                             */
+                            latitud: number;
+                            /**
+                             * @description Coordenada longitud EPSG:4326
+                             * @example -73.2389
+                             */
+                            longitud: number;
+                            /** @description Delegación municipal territorial de pertenencia */
+                            delegacion: {
+                                /**
+                                 * Format: uuid
+                                 * @example 30000000-0000-4000-8000-000000000001
+                                 */
+                                id: string;
+                                /** @example DEL-SUR */
+                                codigo: string;
+                                /** @example Delegación Municipal Sur */
+                                nombre: string;
+                            } | null;
+                            /**
+                             * @description Fecha y hora de registro en formato ISO-8601
+                             * @example 2026-06-15T12:00:00.000Z
+                             */
+                            creadoEn: string;
+                            /**
+                             * Format: uuid
+                             * @description UUID del administrador responsable de la creación del punto crítico
+                             * @example 00000000-0000-4000-8000-000000000001
+                             */
+                            creadoPorId?: string | null;
+                            /**
+                             * @description Fecha y hora de última actualización en formato ISO-8601
+                             * @example 2026-10-04T19:00:00.000Z
+                             */
+                            actualizadoEn?: string | null;
+                            /**
+                             * Format: uuid
+                             * @description UUID del administrador responsable de la última actualización
+                             * @example 00000000-0000-4000-8000-000000000001
+                             */
+                            actualizadoPorId?: string | null;
+                        };
+                    };
+                };
+                /** @description Datos de creación inválidos o delegación no encontrada */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description No autenticado. Se requiere cabecera de autenticación válida */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Acceso denegado. Se requiere perfil de Administrador con permiso puntos_criticos:crear */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Conflicto por código duplicado */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Error interno del servidor al procesar la solicitud */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/puntos-criticos/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Obtener detalle de punto crítico para edición
+         * @description Retorna el detalle completo de un punto crítico específico con su delegación territorial y auditoría para precargar el formulario de edición. Requiere rol Administrador.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header: {
+                    /** @description UUID del usuario administrador autenticado */
+                    "x-user-id": string;
+                };
+                path: {
+                    /** @description UUID del punto crítico */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Detalle del punto crítico obtenido exitosamente */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /**
+                             * Format: uuid
+                             * @description Identificador único (UUID) del punto crítico
+                             * @example 40000000-0000-4000-8000-000000000001
+                             */
+                            id: string;
+                            /**
+                             * @description Código institucional único (inmutable)
+                             * @example PC-ANG-01
+                             */
+                            codigo: string;
+                            /**
+                             * @description Nombre descriptivo del punto crítico o sector vulnerable
+                             * @example Sector Humedal Angachilla - Pasaje Los Robles
+                             */
+                            nombre: string;
+                            /**
+                             * @description Detalle situacional y factores de riesgo del sector
+                             * @example Zona baja propensa a anegamiento por desborde en temporada invernal
+                             */
+                            descripcion: string | null;
+                            /**
+                             * @description Clasificación de la amenaza recurrente
+                             * @example Inundación y desborde de cauce
+                             */
+                            tipoRiesgo: string | null;
+                            /**
+                             * @description Nivel de gravedad o prioridad operativa homologado con incidentes
+                             * @example ALTA
+                             * @enum {string}
+                             */
+                            prioridad: "BAJA" | "MEDIA" | "ALTA" | "CRITICA";
+                            /**
+                             * @description Estado actual de vigencia operativa del punto crítico
+                             * @example true
+                             */
+                            activo: boolean;
+                            /**
+                             * @description Etiqueta textual legible de estado para la vista de usuario
+                             * @example Activo
+                             */
+                            estadoTexto: string;
+                            /**
+                             * @description Coordenada latitud EPSG:4326
+                             * @example -39.8456
+                             */
+                            latitud: number;
+                            /**
+                             * @description Coordenada longitud EPSG:4326
+                             * @example -73.2389
+                             */
+                            longitud: number;
+                            /** @description Delegación municipal territorial de pertenencia */
+                            delegacion: {
+                                /**
+                                 * Format: uuid
+                                 * @example 30000000-0000-4000-8000-000000000001
+                                 */
+                                id: string;
+                                /** @example DEL-SUR */
+                                codigo: string;
+                                /** @example Delegación Municipal Sur */
+                                nombre: string;
+                            } | null;
+                            /**
+                             * @description Fecha y hora de registro en formato ISO-8601
+                             * @example 2026-06-15T12:00:00.000Z
+                             */
+                            creadoEn: string;
+                            /**
+                             * Format: uuid
+                             * @description UUID del administrador responsable de la creación del punto crítico
+                             * @example 00000000-0000-4000-8000-000000000001
+                             */
+                            creadoPorId?: string | null;
+                            /**
+                             * @description Fecha y hora de última actualización en formato ISO-8601
+                             * @example 2026-10-04T19:00:00.000Z
+                             */
+                            actualizadoEn?: string | null;
+                            /**
+                             * Format: uuid
+                             * @description UUID del administrador responsable de la última actualización
+                             * @example 00000000-0000-4000-8000-000000000001
+                             */
+                            actualizadoPorId?: string | null;
+                        };
+                    };
+                };
+                /** @description Identificador de punto crítico inválido */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description No autenticado. Se requiere cabecera de autenticación válida */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Acceso denegado. Se requiere perfil de Administrador */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Punto crítico no encontrado */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Error interno del servidor al procesar la solicitud */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        /**
+         * Editar características y ubicación de un punto crítico
+         * @description Modifica los datos y la ubicación geográfica (PostGIS EPSG:4326) de un punto crítico comunal. El código institucional es inmutable. Permite actualizar la ubicación en cualquier momento y emite notificación reactiva vía Socket.io a la central, supervisores y cuadrillas/patrullas.
+         */
+        put: {
+            parameters: {
+                query?: never;
+                header: {
+                    /** @description UUID del usuario administrador autenticado */
+                    "x-user-id": string;
+                };
+                path: {
+                    /** @description UUID del punto crítico */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            /** @description Campos actualizables del punto crítico */
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        /**
+                         * @description Nombre descriptivo del punto crítico o sector vulnerable
+                         * @example Sector Humedal Angachilla - Pasaje Los Robles
+                         */
+                        nombre: string;
+                        /**
+                         * @description Detalle situacional y factores de riesgo del sector
+                         * @example Zona baja propensa a anegamiento por desborde en temporada invernal
+                         */
+                        descripcion?: string | null;
+                        /**
+                         * @description Clasificación de la amenaza recurrente
+                         * @example Inundación y desborde de cauce
+                         */
+                        tipoRiesgo?: string | null;
+                        /**
+                         * @description Nivel de gravedad o prioridad operativa homologado con incidentes
+                         * @example ALTA
+                         * @enum {string}
+                         */
+                        prioridad: "BAJA" | "MEDIA" | "ALTA" | "CRITICA";
+                        /**
+                         * Format: uuid
+                         * @description UUID de la delegación municipal territorial asignada
+                         * @example 30000000-0000-4000-8000-000000000001
+                         */
+                        delegacionId?: string | null;
+                        /**
+                         * @description Coordenada latitud WGS84 EPSG:4326
+                         * @example -39.8456
+                         */
+                        latitud: number | null;
+                        /**
+                         * @description Coordenada longitud WGS84 EPSG:4326
+                         * @example -73.2389
+                         */
+                        longitud: number | null;
+                    };
+                };
+            };
+            responses: {
+                /** @description Punto crítico actualizado exitosamente */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /**
+                             * Format: uuid
+                             * @description Identificador único (UUID) del punto crítico
+                             * @example 40000000-0000-4000-8000-000000000001
+                             */
+                            id: string;
+                            /**
+                             * @description Código institucional único (inmutable)
+                             * @example PC-ANG-01
+                             */
+                            codigo: string;
+                            /**
+                             * @description Nombre descriptivo del punto crítico o sector vulnerable
+                             * @example Sector Humedal Angachilla - Pasaje Los Robles
+                             */
+                            nombre: string;
+                            /**
+                             * @description Detalle situacional y factores de riesgo del sector
+                             * @example Zona baja propensa a anegamiento por desborde en temporada invernal
+                             */
+                            descripcion: string | null;
+                            /**
+                             * @description Clasificación de la amenaza recurrente
+                             * @example Inundación y desborde de cauce
+                             */
+                            tipoRiesgo: string | null;
+                            /**
+                             * @description Nivel de gravedad o prioridad operativa homologado con incidentes
+                             * @example ALTA
+                             * @enum {string}
+                             */
+                            prioridad: "BAJA" | "MEDIA" | "ALTA" | "CRITICA";
+                            /**
+                             * @description Estado actual de vigencia operativa del punto crítico
+                             * @example true
+                             */
+                            activo: boolean;
+                            /**
+                             * @description Etiqueta textual legible de estado para la vista de usuario
+                             * @example Activo
+                             */
+                            estadoTexto: string;
+                            /**
+                             * @description Coordenada latitud EPSG:4326
+                             * @example -39.8456
+                             */
+                            latitud: number;
+                            /**
+                             * @description Coordenada longitud EPSG:4326
+                             * @example -73.2389
+                             */
+                            longitud: number;
+                            /** @description Delegación municipal territorial de pertenencia */
+                            delegacion: {
+                                /**
+                                 * Format: uuid
+                                 * @example 30000000-0000-4000-8000-000000000001
+                                 */
+                                id: string;
+                                /** @example DEL-SUR */
+                                codigo: string;
+                                /** @example Delegación Municipal Sur */
+                                nombre: string;
+                            } | null;
+                            /**
+                             * @description Fecha y hora de registro en formato ISO-8601
+                             * @example 2026-06-15T12:00:00.000Z
+                             */
+                            creadoEn: string;
+                            /**
+                             * Format: uuid
+                             * @description UUID del administrador responsable de la creación del punto crítico
+                             * @example 00000000-0000-4000-8000-000000000001
+                             */
+                            creadoPorId?: string | null;
+                            /**
+                             * @description Fecha y hora de última actualización en formato ISO-8601
+                             * @example 2026-10-04T19:00:00.000Z
+                             */
+                            actualizadoEn?: string | null;
+                            /**
+                             * Format: uuid
+                             * @description UUID del administrador responsable de la última actualización
+                             * @example 00000000-0000-4000-8000-000000000001
+                             */
+                            actualizadoPorId?: string | null;
+                        };
+                    };
+                };
+                /** @description Parámetros de edición o formato inválidos */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description No autenticado. Se requiere cabecera de autenticación válida */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Acceso denegado. Se requiere perfil de Administrador con permiso puntos_criticos:editar */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Punto crítico no encontrado */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Conflicto operativo: no es posible editar un punto crítico que se encuentra desactivado del sistema */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Error interno del servidor al procesar la solicitud */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        /**
+         * Desactivar punto crítico (borrado lógico)
+         * @description Aplica un borrado lógico (soft delete) a un punto crítico comunal registrando la fecha, hora y el identificador del usuario Administrador responsable. Impide la eliminación con código 409 Conflict si existen misiones preventivas activas (PLANIFICADA, DESPACHADA, EN_CURSO) o patrullas asignadas. Emite un evento en tiempo real vía Socket.io ('punto_critico:eliminado') para la actualización reactiva del mapa interactivo y la tabla.
+         */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: {
+                    /** @description Token Bearer JWT de sesión */
+                    authorization?: string;
+                    /** @description UUID del usuario Administrador autenticado */
+                    "x-user-id"?: string;
+                };
+                path: {
+                    /** @description UUID del punto crítico */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Punto crítico desactivado exitosamente (baja lógica aplicada) */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /**
+                             * @description Mensaje de confirmación del borrado lógico
+                             * @example Punto crítico desactivado exitosamente del sistema.
+                             */
+                            message: string;
+                            /**
+                             * Format: uuid
+                             * @description Identificador UUID del punto crítico desactivado
+                             * @example 40000000-0000-4000-8000-000000000001
+                             */
+                            id: string;
+                            /**
+                             * @description Código institucional del punto crítico
+                             * @example PC-ANG-01
+                             */
+                            codigo: string;
+                            /**
+                             * @description Nombre del punto crítico desactivado
+                             * @example Sector Humedal Angachilla - Pasaje Los Robles
+                             */
+                            nombre: string;
+                            /**
+                             * @description Estado operativo resultante tras el borrado lógico
+                             * @example false
+                             */
+                            activo: boolean;
+                            /**
+                             * @description Fecha y hora en que se ejecutó la desactivación (ISO-8601)
+                             * @example 2026-10-04T00:30:00.000Z
+                             */
+                            eliminadoEn: string;
+                            /**
+                             * Format: uuid
+                             * @description Identificador UUID del administrador que realizó la desactivación
+                             * @example 00000000-0000-4000-8000-000000000001
+                             */
+                            eliminadoPorId: string;
+                        };
+                    };
+                };
+                /** @description Identificador UUID de punto crítico inválido */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Cabecera de autenticación ausente o token no válido */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Acceso denegado. Se requiere perfil de Administrador con permiso puntos_criticos:eliminar */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Punto crítico no encontrado o ya dado de baja */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Conflicto operativo: existen misiones preventivas activas en curso o patrullas asignadas en el lugar */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Error interno del servidor al procesar la solicitud */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
         options?: never;
         head?: never;
         patch?: never;
@@ -4098,6 +4817,391 @@ export interface paths {
                 };
                 /** @description Conflicto operativo: Patrulla no disponible o stock insuficiente en bodega */
                 409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Error interno del servidor */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/eventos-atp/asistencia-social": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Listar eventos de asistencia social
+         * @description Listar eventos de asistencia social para el panel de eventos pendientes para levantamiento de FIBE.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description Número de página actual (inicia en 1) */
+                    pagina?: number;
+                    /** @description Cantidad de elementos por página (máximo 100) */
+                    limite?: number;
+                    /** @description Filtrar por estado del ciclo de vida (ej. PENDIENTE) */
+                    estado?: "PENDIENTE" | "ASIGNADO" | "EN_EVALUACION_FIBE" | "FINALIZADO" | "DESCARTADO";
+                    /** @description Filtrar por delegación municipal territorial */
+                    delegacionId?: string;
+                    /** @description Filtrar por prioridad o urgencia social */
+                    prioridad?: "BAJA" | "MEDIA" | "ALTA" | "CRITICA";
+                    /** @description Búsqueda textual insensible a mayúsculas por código, descripción, dirección o contacto */
+                    busqueda?: string;
+                };
+                header?: {
+                    /** @description Token Bearer del usuario con permiso 'asistencia_social:leer' */
+                    authorization?: string;
+                    /** @description UUID del usuario autenticado */
+                    "x-user-id"?: string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Listado paginado de eventos de asistencia social */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data: {
+                                /**
+                                 * Format: uuid
+                                 * @example 70000000-0000-4000-8000-000000000001
+                                 */
+                                id: string;
+                                /** @example AS-2026-0001 */
+                                codigo: string;
+                                /** @example Familia de 4 integrantes con vivienda inundada. */
+                                descripcion: string;
+                                /** @example VIVIENDA_ANEGADA */
+                                tipoAfectacion: string;
+                                /** @example 4 */
+                                personasAfectadas: number;
+                                /** @example 1 */
+                                familiasAfectadas: number;
+                                /** @example Calle Los Alerces 1420, Sector Collico */
+                                direccionTexto: string;
+                                /** @example -39.8234 */
+                                latitud: number;
+                                /** @example -73.2189 */
+                                longitud: number;
+                                /**
+                                 * @example ALTA
+                                 * @enum {string}
+                                 */
+                                prioridad: "BAJA" | "MEDIA" | "ALTA" | "CRITICA";
+                                /**
+                                 * @example PENDIENTE
+                                 * @enum {string}
+                                 */
+                                estado: "PENDIENTE" | "ASIGNADO" | "EN_EVALUACION_FIBE" | "FINALIZADO" | "DESCARTADO";
+                                /** @example María González */
+                                contactoNombre: string | null;
+                                /** @example +56912345678 */
+                                contactoTelefono: string | null;
+                                /** @example 12.345.678-9 */
+                                contactoRut: string | null;
+                                /**
+                                 * Format: uuid
+                                 * @example 30000000-0000-4000-8000-000000000001
+                                 */
+                                delegacionId: string | null;
+                                /** @example Delegación Municipal Costa */
+                                delegacionNombre: string | null;
+                                /**
+                                 * Format: uuid
+                                 * @example null
+                                 */
+                                incidenteId: string | null;
+                                /**
+                                 * Format: uuid
+                                 * @example null
+                                 */
+                                asistenteSocialId: string | null;
+                                /** @example null */
+                                asistenteSocialNombre: string | null;
+                                /** @description Funcionario responsable de la creación del evento */
+                                creadoPor: {
+                                    /**
+                                     * Format: uuid
+                                     * @example 00000000-0000-4000-8000-000000000003
+                                     */
+                                    id: string;
+                                    /** @example Encargado de Operaciones */
+                                    nombre: string;
+                                };
+                                /**
+                                 * Format: date-time
+                                 * @example 2026-10-05T12:00:00.000Z
+                                 */
+                                creadoEn: string;
+                                /**
+                                 * Format: date-time
+                                 * @example 2026-10-05T12:00:00.000Z
+                                 */
+                                actualizadoEn: string;
+                            }[];
+                            /** @example 1 */
+                            total: number;
+                            /** @example 1 */
+                            pagina: number;
+                            /** @example 10 */
+                            limite: number;
+                            /** @example 1 */
+                            totalPaginas: number;
+                        };
+                    };
+                };
+                /** @description Parámetros de consulta inválidos */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description No autenticado */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Acceso denegado. Se requiere permiso 'asistencia_social:leer' */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Error interno del servidor */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        /**
+         * Crear evento de asistencia social
+         * @description Registrar un nuevo evento excepcional de asistencia social para levantamiento de FIBE sin vincular a un incidente previo.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: {
+                    /** @description Token Bearer del usuario con permiso 'asistencia_social:crear' */
+                    authorization?: string;
+                    /** @description UUID del usuario autenticado (Encargado o Administrador) */
+                    "x-user-id"?: string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Datos del caso excepcional de vulnerabilidad y requerimiento de FIBE */
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        /**
+                         * @description Descripción de la situación de excepcionalidad y motivos del levantamiento de FIBE
+                         * @example Familia de 4 integrantes con vivienda inundada por desborde secundario fuera de radio de incidente.
+                         */
+                        descripcion: string;
+                        /**
+                         * @description Clasificación principal del tipo de daño o vulnerabilidad habitacional
+                         * @example VIVIENDA_ANEGADA
+                         */
+                        tipoAfectacion: string;
+                        /**
+                         * @description Dirección física o punto de referencia territorial en Valdivia
+                         * @example Calle Los Alerces 1420, Sector Collico
+                         */
+                        direccionTexto: string;
+                        /**
+                         * @description Coordenada latitud en formato WGS84 capturada en mapa
+                         * @example -39.8234
+                         */
+                        latitud: number | null;
+                        /**
+                         * @description Coordenada longitud en formato WGS84 capturada en mapa
+                         * @example -73.2189
+                         */
+                        longitud: number | null;
+                        /**
+                         * @description Número estimado de personas afectadas en el inmueble
+                         * @default 0
+                         * @example 4
+                         */
+                        personasAfectadas?: number | null;
+                        /**
+                         * @description Número estimado de grupos familiares afectados
+                         * @default 0
+                         * @example 1
+                         */
+                        familiasAfectadas?: number | null;
+                        /**
+                         * @description Nivel de urgencia o prioridad social preliminar
+                         * @default MEDIA
+                         * @example ALTA
+                         * @enum {string}
+                         */
+                        prioridad?: "BAJA" | "MEDIA" | "ALTA" | "CRITICA";
+                        /**
+                         * @description Nombre de la persona de contacto o jefe/a de hogar
+                         * @example María González
+                         */
+                        contactoNombre?: string | null;
+                        /**
+                         * @description Teléfono de contacto preliminar
+                         * @example +56912345678
+                         */
+                        contactoTelefono?: string | null;
+                        /**
+                         * @description RUT preliminar del contacto o afectado
+                         * @example 12.345.678-9
+                         */
+                        contactoRut?: string | null;
+                        /**
+                         * Format: uuid
+                         * @description Identificador de la delegación territorial correspondiente
+                         * @example 30000000-0000-4000-8000-000000000001
+                         */
+                        delegacionId?: string | null;
+                        /**
+                         * Format: uuid
+                         * @description Identificador opcional de incidente previo (nulo para casos excepcionales independientes)
+                         * @example null
+                         */
+                        incidenteId?: string | null;
+                    };
+                };
+            };
+            responses: {
+                /** @description Evento de asistencia social registrado exitosamente */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            message: string;
+                            data: {
+                                /**
+                                 * Format: uuid
+                                 * @example 70000000-0000-4000-8000-000000000001
+                                 */
+                                id: string;
+                                /** @example AS-2026-0001 */
+                                codigo: string;
+                                /** @example Familia de 4 integrantes con vivienda inundada. */
+                                descripcion: string;
+                                /** @example VIVIENDA_ANEGADA */
+                                tipoAfectacion: string;
+                                /** @example 4 */
+                                personasAfectadas: number;
+                                /** @example 1 */
+                                familiasAfectadas: number;
+                                /** @example Calle Los Alerces 1420, Sector Collico */
+                                direccionTexto: string;
+                                /** @example -39.8234 */
+                                latitud: number;
+                                /** @example -73.2189 */
+                                longitud: number;
+                                /**
+                                 * @example ALTA
+                                 * @enum {string}
+                                 */
+                                prioridad: "BAJA" | "MEDIA" | "ALTA" | "CRITICA";
+                                /**
+                                 * @example PENDIENTE
+                                 * @enum {string}
+                                 */
+                                estado: "PENDIENTE" | "ASIGNADO" | "EN_EVALUACION_FIBE" | "FINALIZADO" | "DESCARTADO";
+                                /** @example María González */
+                                contactoNombre: string | null;
+                                /** @example +56912345678 */
+                                contactoTelefono: string | null;
+                                /** @example 12.345.678-9 */
+                                contactoRut: string | null;
+                                /**
+                                 * Format: uuid
+                                 * @example 30000000-0000-4000-8000-000000000001
+                                 */
+                                delegacionId: string | null;
+                                /** @example Delegación Municipal Costa */
+                                delegacionNombre: string | null;
+                                /**
+                                 * Format: uuid
+                                 * @example null
+                                 */
+                                incidenteId: string | null;
+                                /**
+                                 * Format: uuid
+                                 * @example null
+                                 */
+                                asistenteSocialId: string | null;
+                                /** @example null */
+                                asistenteSocialNombre: string | null;
+                                /** @description Funcionario responsable de la creación del evento */
+                                creadoPor: {
+                                    /**
+                                     * Format: uuid
+                                     * @example 00000000-0000-4000-8000-000000000003
+                                     */
+                                    id: string;
+                                    /** @example Encargado de Operaciones */
+                                    nombre: string;
+                                };
+                                /**
+                                 * Format: date-time
+                                 * @example 2026-10-05T12:00:00.000Z
+                                 */
+                                creadoEn: string;
+                                /**
+                                 * Format: date-time
+                                 * @example 2026-10-05T12:00:00.000Z
+                                 */
+                                actualizadoEn: string;
+                            };
+                        };
+                    };
+                };
+                /** @description Datos de entrada inválidos o campos obligatorios faltantes */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description No autenticado */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Acceso denegado. Se requiere permiso 'asistencia_social:crear' */
+                403: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -4594,12 +5698,22 @@ export interface components {
             meta: {
                 /** @description Total general de registros coincidentes */
                 total: number;
-                /** @description Página actual */
-                pagina: number;
-                /** @description Límite de elementos por página */
-                limite: number;
-                /** @description Cantidad total de páginas disponibles */
-                totalPaginas: number;
+                /** @description Página actual (estándar SGRAI) */
+                page?: number;
+                /** @description Límite de elementos por página (estándar SGRAI) */
+                limit?: number;
+                /** @description Cantidad total de páginas disponibles (estándar SGRAI) */
+                totalPages?: number;
+                /** @description ¿Existe página siguiente? */
+                hasNext?: boolean;
+                /** @description ¿Existe página anterior? */
+                hasPrev?: boolean;
+                /** @description Alias legado de 'page' */
+                pagina?: number;
+                /** @description Alias legado de 'limit' */
+                limite?: number;
+                /** @description Alias legado de 'totalPages' */
+                totalPaginas?: number;
             };
         };
         ModificarEmpleadoInput: {
@@ -4616,10 +5730,18 @@ export interface components {
             activo?: boolean;
             fecha_ingreso?: string | null;
             fecha_salida?: string | null;
+            /**
+             * @description Estado operativo (disponibilidad actual) persistido en `usuario.estado_operativo`. Los estados 'en_mision' y 'en_patrulla' sólo se admiten para perfiles de terreno.
+             * @example disponible
+             * @enum {string}
+             */
+            estado_operativo?: "disponible" | "en_mision" | "en_patrulla" | "descanso" | "licencia" | "inactivo";
             especialidad?: string | null;
             cargo?: string | null;
-            /** @enum {string} */
-            estado_operativo?: "disponible" | "en_mision" | "en_patrulla" | "descanso" | "licencia" | "inactivo";
+            /**
+             * @description Capacidad/aptitud para salir a terreno (sólo aplica a la ficha de terreno).
+             * @example true
+             */
             disponible_terreno?: boolean;
             observaciones?: string | null;
         };
@@ -4689,18 +5811,16 @@ export interface components {
              */
             especialidad?: string | null;
             /**
-             * @description Estado operativo inicial para personal de terreno (por defecto disponible)
-             * @default disponible
+             * @description Estado operativo inicial (disponibilidad actual). Se persiste en `usuario.estado_operativo`. Por defecto 'disponible' si la cuenta está activa e 'inactivo' si la cuenta se crea deshabilitada. Los estados 'en_mision' y 'en_patrulla' sólo se admiten para perfiles de terreno.
              * @example disponible
              * @enum {string}
              */
-            estado_operativo: "disponible" | "en_mision" | "en_patrulla" | "descanso" | "licencia" | "inactivo";
+            estado_operativo?: "disponible" | "en_mision" | "en_patrulla" | "descanso" | "licencia" | "inactivo";
             /**
-             * @description Disponibilidad activa para despliegue en emergencias
-             * @default true
+             * @description Capacidad/aptitud para salir a emergencias (sólo ficha de terreno). Por defecto true si es rol de terreno. `null` significa que no aplica (usuario sin ficha de terreno).
              * @example true
              */
-            disponible_terreno: boolean;
+            disponible_terreno?: boolean;
             /**
              * @description Observaciones técnicas o médicas para terreno
              * @example Apto para faenas pesadas y turnos nocturnos
@@ -4737,7 +5857,12 @@ export interface components {
                 personal_id?: string | null;
                 especialidad?: string | null;
                 cargo?: string | null;
-                estado_operativo?: string | null;
+                /**
+                 * @description Disponibilidad actual del funcionario (reside en `usuario.estado_operativo`).
+                 * @example disponible
+                 * @enum {string|null}
+                 */
+                estado_operativo?: "disponible" | "en_mision" | "en_patrulla" | "descanso" | "licencia" | "inactivo" | null;
                 disponible_terreno?: boolean | null;
                 observaciones?: string | null;
                 es_personal?: boolean;
@@ -4769,7 +5894,12 @@ export interface components {
             personal_id?: string | null;
             especialidad?: string | null;
             cargo?: string | null;
-            estado_operativo?: string | null;
+            /**
+             * @description Disponibilidad actual del funcionario (reside en `usuario.estado_operativo`).
+             * @example disponible
+             * @enum {string|null}
+             */
+            estado_operativo?: "disponible" | "en_mision" | "en_patrulla" | "descanso" | "licencia" | "inactivo" | null;
             disponible_terreno?: boolean | null;
             observaciones?: string | null;
             es_personal?: boolean;
@@ -4801,7 +5931,12 @@ export interface components {
                 personal_id?: string | null;
                 especialidad?: string | null;
                 cargo?: string | null;
-                estado_operativo?: string | null;
+                /**
+                 * @description Disponibilidad actual del funcionario (reside en `usuario.estado_operativo`).
+                 * @example disponible
+                 * @enum {string|null}
+                 */
+                estado_operativo?: "disponible" | "en_mision" | "en_patrulla" | "descanso" | "licencia" | "inactivo" | null;
                 disponible_terreno?: boolean | null;
                 observaciones?: string | null;
                 es_personal?: boolean;
@@ -4835,7 +5970,12 @@ export interface components {
                 personal_id?: string | null;
                 especialidad?: string | null;
                 cargo?: string | null;
-                estado_operativo?: string | null;
+                /**
+                 * @description Disponibilidad actual del funcionario (reside en `usuario.estado_operativo`).
+                 * @example disponible
+                 * @enum {string|null}
+                 */
+                estado_operativo?: "disponible" | "en_mision" | "en_patrulla" | "descanso" | "licencia" | "inactivo" | null;
                 disponible_terreno?: boolean | null;
                 observaciones?: string | null;
                 es_personal?: boolean;
@@ -4860,6 +6000,236 @@ export interface components {
                 especialidades: string[];
                 cargos: string[];
             };
+        };
+        ListarPersonalResponse: {
+            data: {
+                /** Format: uuid */
+                usuario_id: string;
+                rut: string;
+                nombres: string;
+                apellidos: string;
+                /** Format: email */
+                email: string;
+                telefono: string | null;
+                usuario_activo: boolean;
+                fecha_ingreso?: string | null;
+                fecha_salida?: string | null;
+                /** Format: uuid */
+                rol_id: string | null;
+                rol_codigo: string | null;
+                rol_nombre: string | null;
+                /** Format: uuid */
+                delegacion_id: string | null;
+                delegacion_codigo: string | null;
+                delegacion_nombre: string | null;
+                /** Format: uuid */
+                personal_id: string | null;
+                especialidad: string | null;
+                cargo: string | null;
+                /**
+                 * @description Disponibilidad actual del funcionario. Siempre presente: reside en `usuario.estado_operativo`.
+                 * @example disponible
+                 * @enum {string}
+                 */
+                estado_operativo: "disponible" | "en_mision" | "en_patrulla" | "descanso" | "licencia" | "inactivo";
+                /**
+                 * @description Capacidad/aptitud para salir a terreno. `null` indica que el usuario no possui ficha de terreno (no aplica).
+                 * @example true
+                 */
+                disponible_terreno: boolean | null;
+                observaciones: string | null;
+                /** Format: date-time */
+                personal_updated_at?: string | null;
+                es_personal: boolean;
+                /**
+                 * @description Cantidad de casos FIBE activos asignados al asistente social
+                 * @default 0
+                 * @example 2
+                 */
+                casos_fibe_asignados: number;
+            }[];
+            meta: {
+                /** @description Total de registros coincidentes */
+                total: number;
+                /** @description Página actual */
+                page: number;
+                /** @description Elementos por página */
+                limit: number;
+                /** @description Total de páginas */
+                totalPages: number;
+                /** @description ¿Existe página siguiente? */
+                hasNext: boolean;
+                /** @description ¿Existe página anterior? */
+                hasPrev: boolean;
+            };
+        };
+        PersonalItem: {
+            /** Format: uuid */
+            usuario_id: string;
+            rut: string;
+            nombres: string;
+            apellidos: string;
+            /** Format: email */
+            email: string;
+            telefono: string | null;
+            usuario_activo: boolean;
+            fecha_ingreso?: string | null;
+            fecha_salida?: string | null;
+            /** Format: uuid */
+            rol_id: string | null;
+            rol_codigo: string | null;
+            rol_nombre: string | null;
+            /** Format: uuid */
+            delegacion_id: string | null;
+            delegacion_codigo: string | null;
+            delegacion_nombre: string | null;
+            /** Format: uuid */
+            personal_id: string | null;
+            especialidad: string | null;
+            cargo: string | null;
+            /**
+             * @description Disponibilidad actual del funcionario. Siempre presente: reside en `usuario.estado_operativo`.
+             * @example disponible
+             * @enum {string}
+             */
+            estado_operativo: "disponible" | "en_mision" | "en_patrulla" | "descanso" | "licencia" | "inactivo";
+            /**
+             * @description Capacidad/aptitud para salir a terreno. `null` indica que el usuario no possui ficha de terreno (no aplica).
+             * @example true
+             */
+            disponible_terreno: boolean | null;
+            observaciones: string | null;
+            /** Format: date-time */
+            personal_updated_at?: string | null;
+            es_personal: boolean;
+            /**
+             * @description Cantidad de casos FIBE activos asignados al asistente social
+             * @default 0
+             * @example 2
+             */
+            casos_fibe_asignados: number;
+        };
+        ListarMisionesResponse: {
+            /** @example Listado de misiones obtenido exitosamente */
+            message: string;
+            data: {
+                /**
+                 * Format: uuid
+                 * @description Identificador único UUID de la misión
+                 */
+                id: string;
+                /** @description Código oficial de la misión (ej. MIS-12345) */
+                codigo: string;
+                /** @description Título breve descriptivo del objetivo */
+                titulo: string;
+                /** @description Instrucciones detalladas de la orden de operación */
+                descripcion: string | null;
+                /**
+                 * @description Tipo táctico de misión
+                 * @enum {string}
+                 */
+                tipoMision: "VERIFICACION" | "ATENCION_CUADRILLA" | "PREVENCION" | "RECUPERACION" | "ASISTENCIA_SOCIAL";
+                /**
+                 * @description Estado operativo actual
+                 * @enum {string}
+                 */
+                estado: "PLANIFICADA" | "DESPACHADA" | "EN_CURSO" | "COMPLETADA" | "CANCELADA" | "RECHAZADA";
+                /**
+                 * @description Nivel de prioridad o severidad
+                 * @enum {string}
+                 */
+                prioridad: "BAJA" | "MEDIA" | "ALTA" | "CRITICA";
+                /** @description Justificación si la misión fue rechazada */
+                justificacionRechazo?: string | null;
+                /**
+                 * Format: uuid
+                 * @description UUID de incidente asociado si aplica
+                 */
+                incidenteId?: string | null;
+                /** @description Código legible del incidente */
+                incidenteCodigo?: string | null;
+                /** Format: uuid */
+                cuadrillaId?: string | null;
+                cuadrillaNombre?: string | null;
+                /** Format: uuid */
+                patrullaId?: string | null;
+                patrullaNombre?: string | null;
+                /** Format: uuid */
+                delegacionId?: string | null;
+                delegacionNombre?: string | null;
+                fechaInicio?: string | null;
+                fechaCierre?: string | null;
+                /** @description Fecha de registro ISO 8601 */
+                creadoEn: string;
+                /** @description Fecha de última modificación ISO 8601 */
+                actualizadoEn: string;
+            }[];
+            meta: {
+                /** @description Total de registros coincidentes */
+                total: number;
+                /** @description Página actual */
+                page: number;
+                /** @description Elementos por página */
+                limit: number;
+                /** @description Total de páginas */
+                totalPages: number;
+                /** @description ¿Existe página siguiente? */
+                hasNext: boolean;
+                /** @description ¿Existe página anterior? */
+                hasPrev: boolean;
+            };
+        };
+        MisionItem: {
+            /**
+             * Format: uuid
+             * @description Identificador único UUID de la misión
+             */
+            id: string;
+            /** @description Código oficial de la misión (ej. MIS-12345) */
+            codigo: string;
+            /** @description Título breve descriptivo del objetivo */
+            titulo: string;
+            /** @description Instrucciones detalladas de la orden de operación */
+            descripcion: string | null;
+            /**
+             * @description Tipo táctico de misión
+             * @enum {string}
+             */
+            tipoMision: "VERIFICACION" | "ATENCION_CUADRILLA" | "PREVENCION" | "RECUPERACION" | "ASISTENCIA_SOCIAL";
+            /**
+             * @description Estado operativo actual
+             * @enum {string}
+             */
+            estado: "PLANIFICADA" | "DESPACHADA" | "EN_CURSO" | "COMPLETADA" | "CANCELADA" | "RECHAZADA";
+            /**
+             * @description Nivel de prioridad o severidad
+             * @enum {string}
+             */
+            prioridad: "BAJA" | "MEDIA" | "ALTA" | "CRITICA";
+            /** @description Justificación si la misión fue rechazada */
+            justificacionRechazo?: string | null;
+            /**
+             * Format: uuid
+             * @description UUID de incidente asociado si aplica
+             */
+            incidenteId?: string | null;
+            /** @description Código legible del incidente */
+            incidenteCodigo?: string | null;
+            /** Format: uuid */
+            cuadrillaId?: string | null;
+            cuadrillaNombre?: string | null;
+            /** Format: uuid */
+            patrullaId?: string | null;
+            patrullaNombre?: string | null;
+            /** Format: uuid */
+            delegacionId?: string | null;
+            delegacionNombre?: string | null;
+            fechaInicio?: string | null;
+            fechaCierre?: string | null;
+            /** @description Fecha de registro ISO 8601 */
+            creadoEn: string;
+            /** @description Fecha de última modificación ISO 8601 */
+            actualizadoEn: string;
         };
         DetalleEmpleadoResponse: {
             data: {
@@ -4886,7 +6256,12 @@ export interface components {
                 personal_id?: string | null;
                 especialidad?: string | null;
                 cargo?: string | null;
-                estado_operativo?: string | null;
+                /**
+                 * @description Disponibilidad actual del funcionario (reside en `usuario.estado_operativo`).
+                 * @example disponible
+                 * @enum {string|null}
+                 */
+                estado_operativo?: "disponible" | "en_mision" | "en_patrulla" | "descanso" | "licencia" | "inactivo" | null;
                 disponible_terreno?: boolean | null;
                 observaciones?: string | null;
                 es_personal?: boolean;
@@ -5219,6 +6594,20 @@ export interface components {
             /** @example Avisos obtenidos exitosamente */
             message: string;
             data: components["schemas"]["AvisoItem"][];
+            meta?: {
+                /** @description Total de registros coincidentes */
+                total: number;
+                /** @description Página actual */
+                page: number;
+                /** @description Elementos por página */
+                limit: number;
+                /** @description Total de páginas */
+                totalPages: number;
+                /** @description ¿Existe página siguiente? */
+                hasNext: boolean;
+                /** @description ¿Existe página anterior? */
+                hasPrev: boolean;
+            };
             pagination: {
                 page: number;
                 limit: number;
@@ -5244,7 +6633,7 @@ export interface components {
             informanteRut: string;
             informanteTelefono: string | null;
             /** @enum {string} */
-            origenReporte: "WEB" | "CHATBOT" | "TELEFONO";
+            origenReporte: "WEB" | "CHATBOT" | "LLAMADA_TELEFONICA";
             /** @enum {string} */
             estado: "PENDIENTE_VERIFICACION" | "NO_VERIFICADO" | "VERIFICADO" | "DESCARTADO";
             esDuplicado: boolean;
@@ -5333,7 +6722,7 @@ export interface components {
              * @example WEB
              * @enum {string}
              */
-            origenReporte: "WEB" | "CHATBOT" | "TELEFONO";
+            origenReporte: "WEB" | "CHATBOT" | "LLAMADA_TELEFONICA";
             /**
              * Format: uuid
              * @description ID opcional del catálogo de tipo de incidente
@@ -5483,7 +6872,22 @@ export interface components {
                 /** @description Última fecha y hora de actualización en formato ISO 8601 */
                 actualizadoEn: string;
             }[];
-            paginacion: {
+            meta: {
+                /** @description Total de registros coincidentes */
+                total: number;
+                /** @description Página actual */
+                page: number;
+                /** @description Elementos por página */
+                limit: number;
+                /** @description Total de páginas */
+                totalPages: number;
+                /** @description ¿Existe página siguiente? */
+                hasNext: boolean;
+                /** @description ¿Existe página anterior? */
+                hasPrev: boolean;
+            };
+            /** @description Metadatos de paginación legados (retrocompatibilidad, usar 'meta') */
+            paginacion?: {
                 /** @description Total de registros coincidentes en la base de datos */
                 total: number;
                 /** @description Página actual retornada */
@@ -5806,77 +7210,6 @@ export interface components {
                 actualizadoEn: string;
             };
         };
-        PuntoCriticoItem: {
-            /**
-             * Format: uuid
-             * @description Identificador único (UUID) del punto crítico
-             * @example 40000000-0000-4000-8000-000000000001
-             */
-            id: string;
-            /**
-             * @description Código institucional único (ej. PC-ANG-01)
-             * @example PC-ANG-01
-             */
-            codigo: string;
-            /**
-             * @description Nombre descriptivo del punto crítico o sector vulnerable
-             * @example Sector Humedal Angachilla - Pasaje Los Robles
-             */
-            nombre: string;
-            /**
-             * @description Detalle situacional y factores de riesgo del sector
-             * @example Zona baja propensa a anegamiento por desborde en temporada invernal
-             */
-            descripcion: string | null;
-            /**
-             * @description Clasificación de la amenaza recurrente
-             * @example Inundación y desborde de cauce
-             */
-            tipoRiesgo: string | null;
-            /**
-             * @description Nivel de gravedad o prioridad operativa homologado con incidentes
-             * @example ALTA
-             * @enum {string}
-             */
-            prioridad: "BAJA" | "MEDIA" | "ALTA" | "CRITICA";
-            /**
-             * @description Estado actual de vigencia operativa del punto crítico
-             * @example true
-             */
-            activo: boolean;
-            /**
-             * @description Etiqueta textual legible de estado para la vista de usuario
-             * @example Activo
-             */
-            estadoTexto: string;
-            /**
-             * @description Coordenada latitud EPSG:4326
-             * @example -39.8456
-             */
-            latitud: number;
-            /**
-             * @description Coordenada longitud EPSG:4326
-             * @example -73.2389
-             */
-            longitud: number;
-            /** @description Delegación municipal territorial de pertenencia */
-            delegacion: {
-                /**
-                 * Format: uuid
-                 * @example 30000000-0000-4000-8000-000000000001
-                 */
-                id: string;
-                /** @example DEL-SUR */
-                codigo: string;
-                /** @example Delegación Municipal Sur */
-                nombre: string;
-            } | null;
-            /**
-             * @description Fecha y hora de registro en formato ISO-8601
-             * @example 2026-06-15T12:00:00.000Z
-             */
-            creadoEn: string;
-        };
         ListarPuntosCriticosResponse: {
             /** @description Colección de puntos críticos almacenados */
             data: {
@@ -5960,6 +7293,591 @@ export interface components {
                 /** @example 1 */
                 totalPaginas: number;
             };
+        };
+        PuntoCriticoItemResponse: {
+            /**
+             * Format: uuid
+             * @description Identificador único (UUID) del punto crítico
+             * @example 40000000-0000-4000-8000-000000000001
+             */
+            id: string;
+            /**
+             * @description Código institucional único (ej. PC-ANG-01)
+             * @example PC-ANG-01
+             */
+            codigo: string;
+            /**
+             * @description Nombre descriptivo del punto crítico o sector vulnerable
+             * @example Sector Humedal Angachilla - Pasaje Los Robles
+             */
+            nombre: string;
+            /**
+             * @description Detalle situacional y factores de riesgo del sector
+             * @example Zona baja propensa a anegamiento por desborde en temporada invernal
+             */
+            descripcion: string | null;
+            /**
+             * @description Clasificación de la amenaza recurrente
+             * @example Inundación y desborde de cauce
+             */
+            tipoRiesgo: string | null;
+            /**
+             * @description Nivel de gravedad o prioridad operativa homologado con incidentes
+             * @example ALTA
+             * @enum {string}
+             */
+            prioridad: "BAJA" | "MEDIA" | "ALTA" | "CRITICA";
+            /**
+             * @description Estado actual de vigencia operativa del punto crítico
+             * @example true
+             */
+            activo: boolean;
+            /**
+             * @description Etiqueta textual legible de estado para la vista de usuario
+             * @example Activo
+             */
+            estadoTexto: string;
+            /**
+             * @description Coordenada latitud EPSG:4326
+             * @example -39.8456
+             */
+            latitud: number;
+            /**
+             * @description Coordenada longitud EPSG:4326
+             * @example -73.2389
+             */
+            longitud: number;
+            /** @description Delegación municipal territorial de pertenencia */
+            delegacion: {
+                /**
+                 * Format: uuid
+                 * @example 30000000-0000-4000-8000-000000000001
+                 */
+                id: string;
+                /** @example DEL-SUR */
+                codigo: string;
+                /** @example Delegación Municipal Sur */
+                nombre: string;
+            } | null;
+            /**
+             * @description Fecha y hora de registro en formato ISO-8601
+             * @example 2026-06-15T12:00:00.000Z
+             */
+            creadoEn: string;
+        };
+        CrearPuntoCriticoBody: {
+            /**
+             * @description Nombre descriptivo del punto crítico o sector vulnerable
+             * @example Sector Humedal Angachilla - Pasaje Los Robles
+             */
+            nombre: string;
+            /**
+             * @description Detalle situacional y factores de riesgo del sector
+             * @example Zona baja propensa a anegamiento por desborde en temporada invernal
+             */
+            descripcion?: string | null;
+            /**
+             * @description Clasificación de la amenaza recurrente (VARCHAR hasta 100 caracteres). Sugerencias: Inundación y anegamiento, Deslizamiento / Remoción en masa, Desborde de cauce / humedal, Incendio forestal / pastizales, Colapso estructural / socavón, Viento / Voladura de techumbres, Otro.
+             * @example Inundación y anegamiento
+             */
+            tipoRiesgo?: string | null;
+            /**
+             * @description Nivel de gravedad o prioridad operativa homologado con incidentes
+             * @default MEDIA
+             * @example ALTA
+             */
+            prioridad: string;
+            /**
+             * @description UUID de la delegación municipal territorial asignada
+             * @example 30000000-0000-4000-8000-000000000001
+             */
+            delegacionId?: string | null;
+            /**
+             * @description Coordenada latitud WGS84 EPSG:4326
+             * @example -39.8456
+             */
+            latitud: number | null;
+            /**
+             * @description Coordenada longitud WGS84 EPSG:4326
+             * @example -73.2389
+             */
+            longitud: number | null;
+        };
+        ActualizarPuntoCriticoBody: {
+            /**
+             * @description Nombre descriptivo del punto crítico o sector vulnerable
+             * @example Sector Humedal Angachilla - Pasaje Los Robles
+             */
+            nombre: string;
+            /**
+             * @description Detalle situacional y factores de riesgo del sector
+             * @example Zona baja propensa a anegamiento por desborde en temporada invernal
+             */
+            descripcion?: string | null;
+            /**
+             * @description Clasificación de la amenaza recurrente
+             * @example Inundación y desborde de cauce
+             */
+            tipoRiesgo?: string | null;
+            /**
+             * @description Nivel de gravedad o prioridad operativa homologado con incidentes
+             * @example ALTA
+             * @enum {string}
+             */
+            prioridad: "BAJA" | "MEDIA" | "ALTA" | "CRITICA";
+            /**
+             * Format: uuid
+             * @description UUID de la delegación municipal territorial asignada
+             * @example 30000000-0000-4000-8000-000000000001
+             */
+            delegacionId?: string | null;
+            /**
+             * @description Coordenada latitud WGS84 EPSG:4326
+             * @example -39.8456
+             */
+            latitud: number | null;
+            /**
+             * @description Coordenada longitud WGS84 EPSG:4326
+             * @example -73.2389
+             */
+            longitud: number | null;
+        };
+        PuntoCriticoDetalleResponse: {
+            /**
+             * Format: uuid
+             * @description Identificador único (UUID) del punto crítico
+             * @example 40000000-0000-4000-8000-000000000001
+             */
+            id: string;
+            /**
+             * @description Código institucional único (inmutable)
+             * @example PC-ANG-01
+             */
+            codigo: string;
+            /**
+             * @description Nombre descriptivo del punto crítico o sector vulnerable
+             * @example Sector Humedal Angachilla - Pasaje Los Robles
+             */
+            nombre: string;
+            /**
+             * @description Detalle situacional y factores de riesgo del sector
+             * @example Zona baja propensa a anegamiento por desborde en temporada invernal
+             */
+            descripcion: string | null;
+            /**
+             * @description Clasificación de la amenaza recurrente
+             * @example Inundación y desborde de cauce
+             */
+            tipoRiesgo: string | null;
+            /**
+             * @description Nivel de gravedad o prioridad operativa homologado con incidentes
+             * @example ALTA
+             * @enum {string}
+             */
+            prioridad: "BAJA" | "MEDIA" | "ALTA" | "CRITICA";
+            /**
+             * @description Estado actual de vigencia operativa del punto crítico
+             * @example true
+             */
+            activo: boolean;
+            /**
+             * @description Etiqueta textual legible de estado para la vista de usuario
+             * @example Activo
+             */
+            estadoTexto: string;
+            /**
+             * @description Coordenada latitud EPSG:4326
+             * @example -39.8456
+             */
+            latitud: number;
+            /**
+             * @description Coordenada longitud EPSG:4326
+             * @example -73.2389
+             */
+            longitud: number;
+            /** @description Delegación municipal territorial de pertenencia */
+            delegacion: {
+                /**
+                 * Format: uuid
+                 * @example 30000000-0000-4000-8000-000000000001
+                 */
+                id: string;
+                /** @example DEL-SUR */
+                codigo: string;
+                /** @example Delegación Municipal Sur */
+                nombre: string;
+            } | null;
+            /**
+             * @description Fecha y hora de registro en formato ISO-8601
+             * @example 2026-06-15T12:00:00.000Z
+             */
+            creadoEn: string;
+            /**
+             * Format: uuid
+             * @description UUID del administrador responsable de la creación del punto crítico
+             * @example 00000000-0000-4000-8000-000000000001
+             */
+            creadoPorId?: string | null;
+            /**
+             * @description Fecha y hora de última actualización en formato ISO-8601
+             * @example 2026-10-04T19:00:00.000Z
+             */
+            actualizadoEn?: string | null;
+            /**
+             * Format: uuid
+             * @description UUID del administrador responsable de la última actualización
+             * @example 00000000-0000-4000-8000-000000000001
+             */
+            actualizadoPorId?: string | null;
+        };
+        EliminarPuntoCriticoResponse: {
+            /**
+             * @description Mensaje de confirmación del borrado lógico
+             * @example Punto crítico desactivado exitosamente del sistema.
+             */
+            message: string;
+            /**
+             * Format: uuid
+             * @description Identificador UUID del punto crítico desactivado
+             * @example 40000000-0000-4000-8000-000000000001
+             */
+            id: string;
+            /**
+             * @description Código institucional del punto crítico
+             * @example PC-ANG-01
+             */
+            codigo: string;
+            /**
+             * @description Nombre del punto crítico desactivado
+             * @example Sector Humedal Angachilla - Pasaje Los Robles
+             */
+            nombre: string;
+            /**
+             * @description Estado operativo resultante tras el borrado lógico
+             * @example false
+             */
+            activo: boolean;
+            /**
+             * @description Fecha y hora en que se ejecutó la desactivación (ISO-8601)
+             * @example 2026-10-04T00:30:00.000Z
+             */
+            eliminadoEn: string;
+            /**
+             * Format: uuid
+             * @description Identificador UUID del administrador que realizó la desactivación
+             * @example 00000000-0000-4000-8000-000000000001
+             */
+            eliminadoPorId: string;
+        };
+        CrearEventoAsistenciaSocialInput: {
+            /**
+             * @description Descripción de la situación de excepcionalidad y motivos del levantamiento de FIBE
+             * @example Familia de 4 integrantes con vivienda inundada por desborde secundario fuera de radio de incidente.
+             */
+            descripcion: string;
+            /**
+             * @description Clasificación principal del tipo de daño o vulnerabilidad habitacional
+             * @example VIVIENDA_ANEGADA
+             */
+            tipoAfectacion: string;
+            /**
+             * @description Dirección física o punto de referencia territorial en Valdivia
+             * @example Calle Los Alerces 1420, Sector Collico
+             */
+            direccionTexto: string;
+            /**
+             * @description Coordenada latitud en formato WGS84 capturada en mapa
+             * @example -39.8234
+             */
+            latitud: number | null;
+            /**
+             * @description Coordenada longitud en formato WGS84 capturada en mapa
+             * @example -73.2189
+             */
+            longitud: number | null;
+            /**
+             * @description Número estimado de personas afectadas en el inmueble
+             * @default 0
+             * @example 4
+             */
+            personasAfectadas: number | null;
+            /**
+             * @description Número estimado de grupos familiares afectados
+             * @default 0
+             * @example 1
+             */
+            familiasAfectadas: number | null;
+            /**
+             * @description Nivel de urgencia o prioridad social preliminar
+             * @default MEDIA
+             * @example ALTA
+             * @enum {string}
+             */
+            prioridad: "BAJA" | "MEDIA" | "ALTA" | "CRITICA";
+            /**
+             * @description Nombre de la persona de contacto o jefe/a de hogar
+             * @example María González
+             */
+            contactoNombre?: string | null;
+            /**
+             * @description Teléfono de contacto preliminar
+             * @example +56912345678
+             */
+            contactoTelefono?: string | null;
+            /**
+             * @description RUT preliminar del contacto o afectado
+             * @example 12.345.678-9
+             */
+            contactoRut?: string | null;
+            /**
+             * Format: uuid
+             * @description Identificador de la delegación territorial correspondiente
+             * @example 30000000-0000-4000-8000-000000000001
+             */
+            delegacionId?: string | null;
+            /**
+             * Format: uuid
+             * @description Identificador opcional de incidente previo (nulo para casos excepcionales independientes)
+             * @example null
+             */
+            incidenteId?: string | null;
+        };
+        EventoAsistenciaSocialResponse: {
+            /**
+             * Format: uuid
+             * @example 70000000-0000-4000-8000-000000000001
+             */
+            id: string;
+            /** @example AS-2026-0001 */
+            codigo: string;
+            /** @example Familia de 4 integrantes con vivienda inundada. */
+            descripcion: string;
+            /** @example VIVIENDA_ANEGADA */
+            tipoAfectacion: string;
+            /** @example 4 */
+            personasAfectadas: number;
+            /** @example 1 */
+            familiasAfectadas: number;
+            /** @example Calle Los Alerces 1420, Sector Collico */
+            direccionTexto: string;
+            /** @example -39.8234 */
+            latitud: number;
+            /** @example -73.2189 */
+            longitud: number;
+            /**
+             * @example ALTA
+             * @enum {string}
+             */
+            prioridad: "BAJA" | "MEDIA" | "ALTA" | "CRITICA";
+            /**
+             * @example PENDIENTE
+             * @enum {string}
+             */
+            estado: "PENDIENTE" | "ASIGNADO" | "EN_EVALUACION_FIBE" | "FINALIZADO" | "DESCARTADO";
+            /** @example María González */
+            contactoNombre: string | null;
+            /** @example +56912345678 */
+            contactoTelefono: string | null;
+            /** @example 12.345.678-9 */
+            contactoRut: string | null;
+            /**
+             * Format: uuid
+             * @example 30000000-0000-4000-8000-000000000001
+             */
+            delegacionId: string | null;
+            /** @example Delegación Municipal Costa */
+            delegacionNombre: string | null;
+            /**
+             * Format: uuid
+             * @example null
+             */
+            incidenteId: string | null;
+            /**
+             * Format: uuid
+             * @example null
+             */
+            asistenteSocialId: string | null;
+            /** @example null */
+            asistenteSocialNombre: string | null;
+            /** @description Funcionario responsable de la creación del evento */
+            creadoPor: {
+                /**
+                 * Format: uuid
+                 * @example 00000000-0000-4000-8000-000000000003
+                 */
+                id: string;
+                /** @example Encargado de Operaciones */
+                nombre: string;
+            };
+            /**
+             * Format: date-time
+             * @example 2026-10-05T12:00:00.000Z
+             */
+            creadoEn: string;
+            /**
+             * Format: date-time
+             * @example 2026-10-05T12:00:00.000Z
+             */
+            actualizadoEn: string;
+        };
+        ListarEventosAsistenciaSocialResponse: {
+            data: {
+                /**
+                 * Format: uuid
+                 * @example 70000000-0000-4000-8000-000000000001
+                 */
+                id: string;
+                /** @example AS-2026-0001 */
+                codigo: string;
+                /** @example Familia de 4 integrantes con vivienda inundada. */
+                descripcion: string;
+                /** @example VIVIENDA_ANEGADA */
+                tipoAfectacion: string;
+                /** @example 4 */
+                personasAfectadas: number;
+                /** @example 1 */
+                familiasAfectadas: number;
+                /** @example Calle Los Alerces 1420, Sector Collico */
+                direccionTexto: string;
+                /** @example -39.8234 */
+                latitud: number;
+                /** @example -73.2189 */
+                longitud: number;
+                /**
+                 * @example ALTA
+                 * @enum {string}
+                 */
+                prioridad: "BAJA" | "MEDIA" | "ALTA" | "CRITICA";
+                /**
+                 * @example PENDIENTE
+                 * @enum {string}
+                 */
+                estado: "PENDIENTE" | "ASIGNADO" | "EN_EVALUACION_FIBE" | "FINALIZADO" | "DESCARTADO";
+                /** @example María González */
+                contactoNombre: string | null;
+                /** @example +56912345678 */
+                contactoTelefono: string | null;
+                /** @example 12.345.678-9 */
+                contactoRut: string | null;
+                /**
+                 * Format: uuid
+                 * @example 30000000-0000-4000-8000-000000000001
+                 */
+                delegacionId: string | null;
+                /** @example Delegación Municipal Costa */
+                delegacionNombre: string | null;
+                /**
+                 * Format: uuid
+                 * @example null
+                 */
+                incidenteId: string | null;
+                /**
+                 * Format: uuid
+                 * @example null
+                 */
+                asistenteSocialId: string | null;
+                /** @example null */
+                asistenteSocialNombre: string | null;
+                /** @description Funcionario responsable de la creación del evento */
+                creadoPor: {
+                    /**
+                     * Format: uuid
+                     * @example 00000000-0000-4000-8000-000000000003
+                     */
+                    id: string;
+                    /** @example Encargado de Operaciones */
+                    nombre: string;
+                };
+                /**
+                 * Format: date-time
+                 * @example 2026-10-05T12:00:00.000Z
+                 */
+                creadoEn: string;
+                /**
+                 * Format: date-time
+                 * @example 2026-10-05T12:00:00.000Z
+                 */
+                actualizadoEn: string;
+            }[];
+            /** @example 1 */
+            total: number;
+            /** @example 1 */
+            pagina: number;
+            /** @example 10 */
+            limite: number;
+            /** @example 1 */
+            totalPaginas: number;
+        };
+        PuntoCriticoItem: {
+            /**
+             * Format: uuid
+             * @description Identificador único (UUID) del punto crítico
+             * @example 40000000-0000-4000-8000-000000000001
+             */
+            id: string;
+            /**
+             * @description Código institucional único (ej. PC-ANG-01)
+             * @example PC-ANG-01
+             */
+            codigo: string;
+            /**
+             * @description Nombre descriptivo del punto crítico o sector vulnerable
+             * @example Sector Humedal Angachilla - Pasaje Los Robles
+             */
+            nombre: string;
+            /**
+             * @description Detalle situacional y factores de riesgo del sector
+             * @example Zona baja propensa a anegamiento por desborde en temporada invernal
+             */
+            descripcion: string | null;
+            /**
+             * @description Clasificación de la amenaza recurrente
+             * @example Inundación y desborde de cauce
+             */
+            tipoRiesgo: string | null;
+            /**
+             * @description Nivel de gravedad o prioridad operativa homologado con incidentes
+             * @example ALTA
+             * @enum {string}
+             */
+            prioridad: "BAJA" | "MEDIA" | "ALTA" | "CRITICA";
+            /**
+             * @description Estado actual de vigencia operativa del punto crítico
+             * @example true
+             */
+            activo: boolean;
+            /**
+             * @description Etiqueta textual legible de estado para la vista de usuario
+             * @example Activo
+             */
+            estadoTexto: string;
+            /**
+             * @description Coordenada latitud EPSG:4326
+             * @example -39.8456
+             */
+            latitud: number;
+            /**
+             * @description Coordenada longitud EPSG:4326
+             * @example -73.2389
+             */
+            longitud: number;
+            /** @description Delegación municipal territorial de pertenencia */
+            delegacion: {
+                /**
+                 * Format: uuid
+                 * @example 30000000-0000-4000-8000-000000000001
+                 */
+                id: string;
+                /** @example DEL-SUR */
+                codigo: string;
+                /** @example Delegación Municipal Sur */
+                nombre: string;
+            } | null;
+            /**
+             * @description Fecha y hora de registro en formato ISO-8601
+             * @example 2026-06-15T12:00:00.000Z
+             */
+            creadoEn: string;
         };
         CrearEventoRecuperacionInput: {
             /**
@@ -6237,6 +8155,212 @@ export interface components {
                 /** @description Fecha de actualización ISO 8601 */
                 actualizadoEn: string;
             };
+        };
+        CrearEventoPrevencionInput: {
+            /**
+             * @description Título o nombre descriptivo de la operación preventiva
+             * @example Inspección preventiva y limpieza de colectores en Angachilla
+             */
+            nombre: string;
+            /**
+             * @description Instrucciones de mitigación, detalle de vulnerabilidad y objetivos
+             * @example Monitoreo preventivo del caudal y despeje de rejillas por alerta temprana de temporal
+             */
+            descripcion: string;
+            /**
+             * @description Sector, población o referencia barrial dentro de Valdivia
+             * @example Humedal Angachilla
+             */
+            sector?: string | null;
+            /**
+             * @description Dirección física o punto de referencia en terreno
+             * @example Pasaje Los Robles s/n con Av. Simpson
+             */
+            direccionTexto?: string | null;
+            /**
+             * @description Nivel de urgencia o prioridad operativa
+             * @default MEDIA
+             * @example ALTA
+             * @enum {string}
+             */
+            prioridad: "BAJA" | "MEDIA" | "ALTA" | "CRITICA";
+            /**
+             * Format: uuid
+             * @description Identificador de la delegación territorial correspondiente (Norte, Sur, Costa o Calle Calle)
+             * @example 30000000-0000-4000-8000-000000000001
+             */
+            delegacionId: string;
+            /**
+             * Format: uuid
+             * @description Identificador opcional del punto crítico preexistente en el inventario
+             * @example 40000000-0000-4000-8000-000000000001
+             */
+            puntoCriticoId?: string | null;
+            /**
+             * @description Latitud geográfica en formato WGS84
+             * @example -39.8456
+             */
+            latitud: number;
+            /**
+             * @description Longitud geográfica en formato WGS84
+             * @example -73.2389
+             */
+            longitud: number;
+            /**
+             * Format: uuid
+             * @description Identificador de la patrulla verificadora disponible asignada al evento
+             * @example 50000000-0000-4000-8000-000000000001
+             */
+            patrullaId: string;
+            /**
+             * @description Listado de insumos o herramientas asignadas para la misión preventiva
+             * @default []
+             */
+            recursos: {
+                /**
+                 * Format: uuid
+                 * @description UUID del recurso logístico en inventario
+                 * @example 00000000-0000-4000-8000-000000000001
+                 */
+                recursoId: string;
+                /**
+                 * @description Cantidad de unidades del recurso requeridas
+                 * @example 5
+                 */
+                cantidad: number;
+            }[];
+        };
+        CrearEventoPrevencionResponse: {
+            /** @example Evento de prevención creado y patrulla despachada exitosamente. */
+            message: string;
+            data: {
+                /**
+                 * Format: uuid
+                 * @description Identificador único UUID del evento de prevención
+                 */
+                id: string;
+                /**
+                 * @description Código institucional único (ej. PREV-2026-0001)
+                 * @example PREV-2026-0001
+                 */
+                codigo: string;
+                /** @example Inspección preventiva y limpieza de colectores en Angachilla */
+                nombre: string;
+                /** @example Monitoreo preventivo del caudal y despeje de rejillas */
+                descripcion: string;
+                /** @example Humedal Angachilla */
+                sector: string | null;
+                /** @example Pasaje Los Robles s/n */
+                direccionTexto: string | null;
+                /**
+                 * @example ALTA
+                 * @enum {string}
+                 */
+                prioridad: "BAJA" | "MEDIA" | "ALTA" | "CRITICA";
+                /**
+                 * @example PLANIFICADA
+                 * @enum {string}
+                 */
+                estado: "PLANIFICADA" | "EN_CURSO" | "COMPLETADA" | "CANCELADA";
+                /** @example -39.8456 */
+                latitud: number;
+                /** @example -73.2389 */
+                longitud: number;
+                /** @description Punto crítico territorial asociado (si fue designado) */
+                puntoCritico: {
+                    /** Format: uuid */
+                    id: string;
+                    codigo: string;
+                    nombre: string;
+                } | null;
+                /** @description Delegación territorial asignada */
+                delegacion: {
+                    /** Format: uuid */
+                    id: string;
+                    codigo: string;
+                    nombre: string;
+                } | null;
+                /** @description Misión táctica despachada a la patrulla */
+                mision: {
+                    /**
+                     * Format: uuid
+                     * @example 60000000-0000-4000-8000-000000000001
+                     */
+                    id: string;
+                    /** @example MIS-2026-0045 */
+                    codigo: string;
+                    /** @example Inspección preventiva y limpieza de colectores en Angachilla */
+                    titulo: string;
+                    /** @example DESPACHADA */
+                    estado: string;
+                    /** @example PREVENCION */
+                    tipoMision: string;
+                };
+                /** @description Patrulla asignada en estado EN_PREVENCION */
+                patrulla: {
+                    /**
+                     * Format: uuid
+                     * @example 50000000-0000-4000-8000-000000000001
+                     */
+                    id: string;
+                    /** @example Patrulla Verificadora Alfa */
+                    nombre: string;
+                    /** @example EN_PREVENCION */
+                    estado: string;
+                };
+                /** @description Recursos asignados al evento */
+                recursos: {
+                    /**
+                     * Format: uuid
+                     * @example 00000000-0000-4000-8000-000000000001
+                     */
+                    recursoId: string;
+                    /** @example Sacos de Arena 25kg */
+                    nombre: string;
+                    /** @example 5 */
+                    cantidadAsignada: number;
+                }[];
+                /**
+                 * Format: uuid
+                 * @description Identificador del Encargado que creó el evento
+                 */
+                creadoPorId: string;
+                /** @description Fecha de registro ISO 8601 */
+                creadoEn: string;
+                /** @description Fecha de actualización ISO 8601 */
+                actualizadoEn: string;
+            };
+        };
+        MensajeGenericoResponse: {
+            /**
+             * @description Mensaje descriptivo del resultado de la operación
+             * @example Si el identificador corresponde a una cuenta registrada, se enviará un enlace de recuperación.
+             */
+            message: string;
+        };
+        RecuperarContrasenaRequest: {
+            /**
+             * @description Correo institucional (@valdivia.cl) o RUT chileno del funcionario
+             * @example carlos.miranda@valdivia.cl
+             */
+            identificador: string;
+        };
+        RestablecerContrasenaRequest: {
+            /**
+             * @description Token criptográfico efímero recibido por correo institucional
+             * @example N2ZmNGViMGQzYjYw...
+             */
+            token: string;
+            /**
+             * @description Contraseña segura: 8-72 caracteres, con mayúsculas, minúsculas y dígitos
+             * @example Valdivia2026!
+             */
+            nuevaPassword: string;
+            /**
+             * @description Confirmación idéntica de la nueva contraseña
+             * @example Valdivia2026!
+             */
+            confirmacionPassword: string;
         };
     };
     responses: never;

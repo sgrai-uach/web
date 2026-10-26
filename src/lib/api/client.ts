@@ -27,6 +27,11 @@ export function handleUnauthorizedSession() {
   removeAuthCookie();
 
   const pathname = window.location.pathname;
+  const rutasPublicas = ['/login', '/recuperar-contrasena', '/restablecer-contrasena'];
+  if (rutasPublicas.some((r) => pathname === r || pathname.startsWith(`${r}/`)) || pathname.startsWith('/ciudadania')) {
+    return;
+  }
+
   if (!pathname.startsWith('/login')) {
     const esRutaProtegida = RUTAS_PROTEGIDAS.some(
       (ruta) => pathname === ruta || pathname.startsWith(`${ruta}/`)

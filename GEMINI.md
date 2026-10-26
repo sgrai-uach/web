@@ -154,6 +154,9 @@ Este repositorio consume `sgrai-api` como único origen de datos y lógica. Regl
 - Se pueden crear eventos de **prevención** o **recuperación** sobre "puntos críticos" sin exigir un incidente formal previo — no bloquees ese flujo en el formulario exigiendo un incidente asociado.
 - No existe módulo de "Albergues" en la UI. Los casos vulnerables se marcan con un indicador "requiere asistencia social" a nivel de incidente, que deriva a la vista de Asistencia Social (levantamiento de Ficha FIBE).
 - Todos los listados (incidentes, recursos, personal, misiones, avisos) deben soportar **filtros por delegación, estado y otros atributos** — es un requisito transversal repetido en varias historias de usuario (Encargado, Supervisor, Call Center).
+- **Alerta Temprana Preventiva (ATP)**: Instrumento preventivo oficial que agrupa incidentes, operativos de prevención y mitigación en puntos críticos, eventos de recuperación post-desastre y casos de asistencia social bajo una misma contingencia climática o de emergencia comunal.
+- **Exclusión de DIDECO**: DIDECO está completamente fuera de alcance del proyecto. La labor social corresponde exclusivamente al levantamiento de la Ficha Básica de Emergencia (FIBE) y gestión de casos de vulnerabilidad por la Asistente Social de la Dirección de Gestión del Riesgo de Desastres (DGRD).
+- **Cierre de Sesión Seguro (H27)**: Todo usuario autenticado cuenta con el botón de salida segura en `HeaderUserWidget`, el cual elimina la cookie `sgrai_token`, resetea el estado en memoria y redirige a `/login`.
 
 ## 6. Roles y vistas de este repositorio
 
@@ -170,13 +173,13 @@ Este repositorio consume `sgrai-api` como único origen de datos y lógica. Regl
 
 Cada funcionalidad de cara a un rol debe entregarse junto con su manual de usuario, no como una tarea aparte para después.
 
-- **Ubicación estándar:** `/docs/manuales-usuario/` en la raíz de este repositorio.
+- **Ubicación estándar:** `/docs/manuals/` en la raíz de este repositorio.
 - **Convención de nombre:** un archivo por historia de usuario o por funcionalidad agrupada, siguiendo el ID del backlog: `H<numero>-<slug-corto>.md` (ej. `H1-reportar-incidente.md`, `H18-dashboard-kpis-encargado.md`). Si varias HU conforman una sola pantalla/flujo coherente para el usuario final, se puede consolidar en un solo manual (ej. `H14-H34-centro-de-mando-encargado.md`), indicando en el encabezado qué HU cubre.
 - **Cuándo se crea:** como parte del mismo PR que implementa la funcionalidad — no se abre un PR aparte de documentación después. Si el PR no incluye el manual correspondiente, no debería pasar la Pair Review.
 - **Contenido mínimo de cada manual:**
   - Rol(es) al que está dirigido.
   - Objetivo de la funcionalidad en una o dos frases (qué problema resuelve para ese rol).
-  - Pasos numerados para completar el flujo, con capturas de pantalla (guardadas en `/docs/manuales-usuario/assets/<mismo-slug>/`).
+  - Pasos numerados para completar el flujo, con capturas de pantalla (guardadas en `/docs/manuals/assets/<mismo-slug>/`).
   - Casos especiales o mensajes de error esperables y qué hacer ante ellos.
 - Si la funcionalidad involucra datos o acciones que también afectan `sgrai-api` o `sgrai-pwa` (ej. un incidente que después ve la Patrulla Verificadora), menciona brevemente esa relación al final del manual, con un link relativo al manual correspondiente en el otro repositorio si ya existe.
 
