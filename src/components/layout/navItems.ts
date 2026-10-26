@@ -118,7 +118,7 @@ export const NAV_GROUPS: NavGroup[] = [
       {
         id: 'cuadrillas',
         label: 'Cuadrillas',
-        href: '/gestion/admin/cuadrillas/nuevo',
+        href: '/gestion/admin/cuadrillas',
         icon: HardHat,
         requiredPermissions: ['recursos:crear', 'recursos:leer'],
       },

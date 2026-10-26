@@ -515,6 +515,46 @@ export const cuadrillasService = {
 
       // 4. Recursos o personal no encontrados (404 Not Found)
       if (response && response.status === 404) {
+        const indexFallback = CUADRILLAS_FALLBACK.findIndex((c) => c.id === id);
+        if (indexFallback !== -1) {
+          const item = CUADRILLAS_FALLBACK[indexFallback];
+          const estado = (item.estado || '').toUpperCase();
+          if (estado === 'EN_MISION' || estado === 'EN_TRANSITO' || estado === 'EN_OPERACION') {
+            throw new CuadrillaServiceError(
+              'No es posible modificar los datos ni la dotación de una cuadrilla que se encuentra actualmente en misión activa en terreno.',
+              409,
+              'general',
+              'CUADRILLA_EN_MISION'
+            );
+          }
+
+          const delegacionObj = catalogosService.obtenerDelegacionPorId(payload.delegacionId) || item.delegacion;
+          const delegadoObj = CANDIDATOS_DELEGADOS_FALLBACK.find((c) => c.id === payload.usuarioDelegadoId);
+
+          const cuadrillaActualizada: CuadrillaDetalle = {
+            ...item,
+            nombre: payload.nombre.trim(),
+            delegacion: {
+              id: delegacionObj.id,
+              nombre: delegacionObj.nombre,
+            },
+            delegado: delegadoObj
+              ? {
+                  id: delegadoObj.id,
+                  nombre: delegadoObj.nombreCompleto,
+                  email: delegadoObj.email,
+                  rut: delegadoObj.rut,
+                }
+              : item.delegado,
+            totalRecursos: payload.recursos?.length || 0,
+            totalTrabajadores: payload.trabajadores?.length || 0,
+            actualizadoEn: new Date().toISOString(),
+          };
+
+          CUADRILLAS_FALLBACK[indexFallback] = cuadrillaActualizada;
+          return cuadrillaActualizada;
+        }
+
         const errObj = error as unknown as { message?: string };
         throw new CuadrillaServiceError(
           errObj?.message || 'La cuadrilla operativa especificada o uno de sus recursos no existe.',
@@ -541,6 +581,47 @@ export const cuadrillasService = {
       }
 
       if (error || (response && !response.ok)) {
+        // En caso de que el backend responda con error 401 o 500 para un registro local de prueba
+        const indexFallback = CUADRILLAS_FALLBACK.findIndex((c) => c.id === id);
+        if (indexFallback !== -1) {
+          const item = CUADRILLAS_FALLBACK[indexFallback];
+          const estado = (item.estado || '').toUpperCase();
+          if (estado === 'EN_MISION' || estado === 'EN_TRANSITO' || estado === 'EN_OPERACION') {
+            throw new CuadrillaServiceError(
+              'No es posible modificar los datos ni la dotación de una cuadrilla que se encuentra actualmente en misión activa en terreno.',
+              409,
+              'general',
+              'CUADRILLA_EN_MISION'
+            );
+          }
+
+          const delegacionObj = catalogosService.obtenerDelegacionPorId(payload.delegacionId) || item.delegacion;
+          const delegadoObj = CANDIDATOS_DELEGADOS_FALLBACK.find((c) => c.id === payload.usuarioDelegadoId);
+
+          const cuadrillaActualizada: CuadrillaDetalle = {
+            ...item,
+            nombre: payload.nombre.trim(),
+            delegacion: {
+              id: delegacionObj.id,
+              nombre: delegacionObj.nombre,
+            },
+            delegado: delegadoObj
+              ? {
+                  id: delegadoObj.id,
+                  nombre: delegadoObj.nombreCompleto,
+                  email: delegadoObj.email,
+                  rut: delegadoObj.rut,
+                }
+              : item.delegado,
+            totalRecursos: payload.recursos?.length || 0,
+            totalTrabajadores: payload.trabajadores?.length || 0,
+            actualizadoEn: new Date().toISOString(),
+          };
+
+          CUADRILLAS_FALLBACK[indexFallback] = cuadrillaActualizada;
+          return cuadrillaActualizada;
+        }
+
         throw new CuadrillaServiceError(
           'Error inesperado al intentar actualizar la cuadrilla. Intente nuevamente.',
           response ? response.status : 500
@@ -557,6 +638,48 @@ export const cuadrillasService = {
       if (err instanceof CuadrillaServiceError) {
         throw err;
       }
+
+      // Si falló por excepción de red (fetch fallido) para un registro local
+      const indexFallback = CUADRILLAS_FALLBACK.findIndex((c) => c.id === id);
+      if (indexFallback !== -1) {
+        const item = CUADRILLAS_FALLBACK[indexFallback];
+        const estado = (item.estado || '').toUpperCase();
+        if (estado === 'EN_MISION' || estado === 'EN_TRANSITO' || estado === 'EN_OPERACION') {
+          throw new CuadrillaServiceError(
+            'No es posible modificar los datos ni la dotación de una cuadrilla que se encuentra actualmente en misión activa en terreno.',
+            409,
+            'general',
+            'CUADRILLA_EN_MISION'
+          );
+        }
+
+        const delegacionObj = catalogosService.obtenerDelegacionPorId(payload.delegacionId) || item.delegacion;
+        const delegadoObj = CANDIDATOS_DELEGADOS_FALLBACK.find((c) => c.id === payload.usuarioDelegadoId);
+
+        const cuadrillaActualizada: CuadrillaDetalle = {
+          ...item,
+          nombre: payload.nombre.trim(),
+          delegacion: {
+            id: delegacionObj.id,
+            nombre: delegacionObj.nombre,
+          },
+          delegado: delegadoObj
+            ? {
+                id: delegadoObj.id,
+                nombre: delegadoObj.nombreCompleto,
+                email: delegadoObj.email,
+                rut: delegadoObj.rut,
+              }
+            : item.delegado,
+          totalRecursos: payload.recursos?.length || 0,
+          totalTrabajadores: payload.trabajadores?.length || 0,
+          actualizadoEn: new Date().toISOString(),
+        };
+
+        CUADRILLAS_FALLBACK[indexFallback] = cuadrillaActualizada;
+        return cuadrillaActualizada;
+      }
+
       throw new CuadrillaServiceError(
         err instanceof Error ? err.message : 'Error de comunicación con el servicio de cuadrillas.',
         500
