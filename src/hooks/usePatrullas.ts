@@ -10,6 +10,7 @@ import type {
   PatrullaActualizadaSocketPayload,
   MisionAsignadaSocketPayload,
   PatrullaCreadaSocketPayload,
+  PatrullaDesactivadaSocketPayload,
   EstadoPatrullaEnum,
 } from '@/types/patrullas';
 
@@ -204,11 +205,20 @@ export function usePatrullas({
       consultar(filtrosRef.current);
     };
 
+    const handlePatrullaDesactivada = (payload: PatrullaDesactivadaSocketPayload) => {
+      if (!payload?.patrullaId) return;
+      const nombre = payload.nombre || 'Patrulla';
+      setUltimoEvento(`Patrulla dada de baja: ${nombre}`);
+      setPatrullas((prev) => prev.filter((p) => p.id !== payload.patrullaId));
+      consultar(filtrosRef.current);
+    };
+
     socket.on('connect', onConnect);
     socket.on('disconnect', onDisconnect);
     socket.on('patrulla:actualizada', handlePatrullaActualizada);
     socket.on('mision:asignada', handleMisionAsignada);
     socket.on('patrulla:creada', handlePatrullaCreada);
+    socket.on('patrulla:desactivada', handlePatrullaDesactivada);
 
     return () => {
       socket.off('connect', onConnect);
@@ -216,6 +226,7 @@ export function usePatrullas({
       socket.off('patrulla:actualizada', handlePatrullaActualizada);
       socket.off('mision:asignada', handleMisionAsignada);
       socket.off('patrulla:creada', handlePatrullaCreada);
+      socket.off('patrulla:desactivada', handlePatrullaDesactivada);
       socket.emit('leave', 'encargado');
       socket.emit('salir', 'sala:encargados');
       socket.emit('leave', 'mapa');

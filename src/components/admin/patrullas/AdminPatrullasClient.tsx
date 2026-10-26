@@ -18,6 +18,7 @@ import { usePatrullas } from '@/hooks/usePatrullas';
 import { PatrullasFiltros, PatrullaCard, PatrullasSkeleton } from '@/components/mando/patrullas';
 import PatrullaCrearModal from './PatrullaCrearModal';
 import PatrullaEditarModal from './PatrullaEditarModal';
+import PatrullaDesactivarModal from './PatrullaDesactivarModal';
 import PatrullaDetalleDrawer from './PatrullaDetalleDrawer';
 import type { PatrullaVerificadoraDTO } from '@/types/patrullas';
 import styles from './AdminPatrullas.module.css';
@@ -25,6 +26,7 @@ import styles from './AdminPatrullas.module.css';
 export default function AdminPatrullasClient() {
   const [modalCrearAbierto, setModalCrearAbierto] = useState(false);
   const [patrullaAEditar, setPatrullaAEditar] = useState<PatrullaVerificadoraDTO | null>(null);
+  const [patrullaADesactivar, setPatrullaADesactivar] = useState<PatrullaVerificadoraDTO | null>(null);
   const [patrullaADetalle, setPatrullaADetalle] = useState<PatrullaVerificadoraDTO | null>(null);
   const { showSuccess } = useToast();
   const searchParams = useSearchParams();
@@ -47,6 +49,13 @@ export default function AdminPatrullasClient() {
       ? auth.tieneAlgunPermiso(['recursos:editar']) || auth.usuario.rolCodigo === 'ADMIN'
       : session?.usuarioActivo
       ? session.hasAnyPermission(['recursos:editar']) || session.usuarioActivo.esAdmin
+      : true;
+
+  const puedeDesactivar =
+    auth?.usuario
+      ? auth.tieneAlgunPermiso(['recursos:eliminar']) || auth.usuario.rolCodigo === 'ADMIN'
+      : session?.usuarioActivo
+      ? session.hasAnyPermission(['recursos:eliminar']) || session.usuarioActivo.esAdmin
       : true;
 
   const puedeVer =
@@ -100,6 +109,15 @@ export default function AdminPatrullasClient() {
     setPatrullaAEditar(null);
     if (patrullaADetalle?.id === patrullaActualizada.id) {
       setPatrullaADetalle(patrullaActualizada);
+    }
+  };
+
+  const handlePatrullaDesactivada = (patrullaDesactivada: PatrullaVerificadoraDTO) => {
+    showSuccess(`Patrulla "${patrullaDesactivada.nombre}" desactivada exitosamente.`);
+    recargar();
+    setPatrullaADesactivar(null);
+    if (patrullaADetalle?.id === patrullaDesactivada.id) {
+      setPatrullaADetalle(null);
     }
   };
 
@@ -264,6 +282,8 @@ export default function AdminPatrullasClient() {
                 onVerDetalle={(p) => setPatrullaADetalle(p)}
                 onEditar={(p) => setPatrullaAEditar(p)}
                 puedeEditar={puedeEditar}
+                onDesactivar={(p) => setPatrullaADesactivar(p)}
+                puedeDesactivar={puedeDesactivar}
               />
             ))}
           </div>
@@ -297,6 +317,15 @@ export default function AdminPatrullasClient() {
         onPatrullaActualizada={handlePatrullaActualizada}
       />
 
+      {/* Modal Institucional de Desactivación de Patrulla Verificadora */}
+      <PatrullaDesactivarModal
+        isOpen={Boolean(patrullaADesactivar)}
+        patrulla={patrullaADesactivar}
+        usuarioActivoId={userId}
+        onClose={() => setPatrullaADesactivar(null)}
+        onPatrullaDesactivada={handlePatrullaDesactivada}
+      />
+
       {/* Drawer de Ficha Técnica / Detalle Unitario */}
       <PatrullaDetalleDrawer
         patrulla={patrullaADetalle}
@@ -306,6 +335,11 @@ export default function AdminPatrullasClient() {
           setPatrullaAEditar(p);
         }}
         puedeEditar={puedeEditar}
+        onDesactivar={(p) => {
+          setPatrullaADetalle(null);
+          setPatrullaADesactivar(p);
+        }}
+        puedeDesactivar={puedeDesactivar}
       />
     </div>
   );

@@ -317,5 +317,46 @@ describe('AdminPatrullasClient (Pestaña dedicada de Patrullas Verificadoras)', 
         expect(screen.getByTestId('drawer-actualizado-en')).toBeInTheDocument();
       });
     });
+
+    it('9. renderiza la acción "Desactivar" con permiso recursos:eliminar y abre PatrullaDesactivarModal', async () => {
+      renderWithSession(['recursos:leer', 'recursos:eliminar']);
+
+      await waitFor(() => {
+        expect(screen.getByText('Patrulla Rápida Costa-1')).toBeInTheDocument();
+      });
+
+      const btnDesactivar = screen.getByTestId('btn-desactivar-patrulla-f1000000-0000-4000-8000-000000000001');
+      expect(btnDesactivar).toBeInTheDocument();
+      expect(btnDesactivar).not.toBeDisabled();
+
+      fireEvent.click(btnDesactivar);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('patrulla-desactivar-modal')).toBeInTheDocument();
+        expect(screen.getByText('Desactivar Patrulla Verificadora')).toBeInTheDocument();
+      });
+    });
+
+    it('10. deshabilita la acción "Desactivar" si la patrulla posee misiones activas o está en verificación', async () => {
+      vi.mocked(patrullasServiceModule.patrullasService.listar).mockResolvedValueOnce({
+        exito: true,
+        data: [patrullaActiva],
+        meta: { total: 1, page: 1, limit: 20, totalPages: 1, hasNext: false, hasPrev: false },
+        mensaje: 'OK',
+      });
+
+      renderWithSession(['recursos:leer', 'recursos:eliminar']);
+
+      await waitFor(() => {
+        expect(screen.getByText('Patrulla Sur Operativa')).toBeInTheDocument();
+      });
+
+      const btnDesactivar = screen.getByTestId('btn-desactivar-patrulla-f1000000-0000-4000-8000-000000000002');
+      expect(btnDesactivar).toBeDisabled();
+
+      const mensajeEsperado =
+        'No es posible desactivar la patrulla mientras se encuentre en verificación o en misión activa';
+      expect(btnDesactivar).toHaveAttribute('aria-label', mensajeEsperado);
+    });
   });
 });

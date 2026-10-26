@@ -16,6 +16,7 @@ import {
   AlertTriangle,
   UserCheck,
   Shield,
+  Trash2,
 } from 'lucide-react';
 import Heading from '@/components/ui/Heading';
 import Button from '@/components/ui/Button';
@@ -26,6 +27,8 @@ export interface PatrullaDetalleDrawerProps {
   onClose: () => void;
   onEditar?: (patrulla: PatrullaVerificadoraDTO) => void;
   puedeEditar?: boolean;
+  onDesactivar?: (patrulla: PatrullaVerificadoraDTO) => void;
+  puedeDesactivar?: boolean;
 }
 
 const CONFIG_ESTADOS: Record<
@@ -80,6 +83,8 @@ export const PatrullaDetalleDrawer: React.FC<PatrullaDetalleDrawerProps> = ({
   onClose,
   onEditar,
   puedeEditar = true,
+  onDesactivar,
+  puedeDesactivar = false,
 }) => {
   useEffect(() => {
     if (!patrulla) return;
@@ -416,7 +421,7 @@ export const PatrullaDetalleDrawer: React.FC<PatrullaDetalleDrawerProps> = ({
           </div>
         </div>
 
-        {/* Footer del Drawer con Acción 'Editar Patrulla' */}
+        {/* Footer del Drawer con Acciones de Gestión */}
         <footer
           style={{
             padding: '16px 20px',
@@ -432,32 +437,61 @@ export const PatrullaDetalleDrawer: React.FC<PatrullaDetalleDrawerProps> = ({
             Cerrar Ficha
           </Button>
 
-          {puedeEditar && (
-            <div
-              title={
-                estaBloqueada
-                  ? 'No es posible editar la patrulla mientras se encuentre en verificación o en misión activa'
-                  : 'Modificar delegación, vehículo o personal asignado'
-              }
-            >
-              <Button
-                type="button"
-                variant="primary"
-                size="md"
-                disabled={estaBloqueada}
-                onClick={() => onEditar?.(patrulla)}
-                icon={<Edit size={16} />}
-                data-testid="btn-drawer-editar-patrulla"
-                aria-label={
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            {puedeEditar && (
+              <div
+                title={
                   estaBloqueada
                     ? 'No es posible editar la patrulla mientras se encuentre en verificación o en misión activa'
-                    : 'Editar Patrulla'
+                    : 'Modificar delegación, vehículo o personal asignado'
                 }
               >
-                Editar Patrulla
-              </Button>
-            </div>
-          )}
+                <Button
+                  type="button"
+                  variant="primary"
+                  size="md"
+                  disabled={estaBloqueada}
+                  onClick={() => onEditar?.(patrulla)}
+                  icon={<Edit size={16} />}
+                  data-testid="btn-drawer-editar-patrulla"
+                  aria-label={
+                    estaBloqueada
+                      ? 'No es posible editar la patrulla mientras se encuentre en verificación o en misión activa'
+                      : 'Editar Patrulla'
+                  }
+                >
+                  Editar Patrulla
+                </Button>
+              </div>
+            )}
+
+            {puedeDesactivar && (
+              <div
+                title={
+                  estaBloqueada
+                    ? 'No es posible desactivar la patrulla mientras se encuentre en verificación o en misión activa'
+                    : 'Dar de baja lógica la patrulla y liberar recursos asignados'
+                }
+              >
+                <Button
+                  type="button"
+                  variant="destructive"
+                  size="md"
+                  disabled={estaBloqueada}
+                  onClick={() => onDesactivar?.(patrulla)}
+                  icon={<Trash2 size={16} />}
+                  data-testid="btn-drawer-desactivar-patrulla"
+                  aria-label={
+                    estaBloqueada
+                      ? 'No es posible desactivar la patrulla mientras se encuentre en verificación o en misión activa'
+                      : 'Desactivar Patrulla'
+                  }
+                >
+                  Desactivar Patrulla
+                </Button>
+              </div>
+            )}
+          </div>
         </footer>
       </aside>
     </div>

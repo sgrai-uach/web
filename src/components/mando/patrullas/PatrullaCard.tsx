@@ -15,6 +15,7 @@ import {
   AlertTriangle,
   Edit,
   Eye,
+  Trash2,
 } from 'lucide-react';
 import type { PatrullaVerificadoraDTO, EstadoPatrullaEnum } from '@/types/patrullas';
 import styles from './PanelPatrullas.module.css';
@@ -26,6 +27,8 @@ export interface PatrullaCardProps {
   onVerDetalle?: (patrulla: PatrullaVerificadoraDTO) => void;
   onEditar?: (patrulla: PatrullaVerificadoraDTO) => void;
   puedeEditar?: boolean;
+  onDesactivar?: (patrulla: PatrullaVerificadoraDTO) => void;
+  puedeDesactivar?: boolean;
 }
 
 const CONFIG_ESTADOS: Record<
@@ -75,6 +78,8 @@ export const PatrullaCard: React.FC<PatrullaCardProps> = ({
   onVerDetalle,
   onEditar,
   puedeEditar = true,
+  onDesactivar,
+  puedeDesactivar = false,
 }) => {
   const configEstado = CONFIG_ESTADOS[patrulla.estado] || CONFIG_ESTADOS.NO_DISPONIBLE;
   const IconoEstado = configEstado.icono;
@@ -83,6 +88,7 @@ export const PatrullaCard: React.FC<PatrullaCardProps> = ({
   const cantIntegrantes = patrulla.integrantes?.length || 0;
   const estaBloqueada = patrulla.estado === 'EN_VERIFICACION' || Boolean(patrulla.misionActiva);
   const mensajeBloqueo = 'No es posible editar la patrulla mientras se encuentre en verificación o en misión activa';
+  const mensajeBloqueoDesactivar = 'No es posible desactivar la patrulla mientras se encuentre en verificación o en misión activa';
 
   return (
     <article
@@ -201,8 +207,8 @@ export const PatrullaCard: React.FC<PatrullaCardProps> = ({
           )}
         </div>
 
-        {/* Acciones de la Tarjeta (Ver Detalle / Editar Patrulla) */}
-        {(onVerDetalle || onEditar) && (
+        {/* Acciones de la Tarjeta (Ver Detalle / Editar Patrulla / Desactivar) */}
+        {(onVerDetalle || onEditar || (onDesactivar && puedeDesactivar)) && (
           <div className={styles.cardActionsRow} data-testid={`card-actions-${patrulla.id}`}>
             {onVerDetalle && (
               <button
@@ -231,7 +237,26 @@ export const PatrullaCard: React.FC<PatrullaCardProps> = ({
                   aria-label={estaBloqueada ? mensajeBloqueo : 'Editar Patrulla'}
                 >
                   <Edit size={13} aria-hidden="true" />
-                  <span>Editar Patrulla</span>
+                  <span>Editar</span>
+                </button>
+              </div>
+            )}
+
+            {onDesactivar && puedeDesactivar && (
+              <div
+                title={estaBloqueada ? mensajeBloqueoDesactivar : undefined}
+                style={{ display: 'inline-block' }}
+              >
+                <button
+                  type="button"
+                  className={`${styles.btnCardAction} ${styles.btnCardActionDanger}`}
+                  disabled={estaBloqueada}
+                  onClick={() => onDesactivar(patrulla)}
+                  data-testid={`btn-desactivar-patrulla-${patrulla.id}`}
+                  aria-label={estaBloqueada ? mensajeBloqueoDesactivar : 'Desactivar Patrulla'}
+                >
+                  <Trash2 size={13} aria-hidden="true" />
+                  <span>Desactivar</span>
                 </button>
               </div>
             )}
