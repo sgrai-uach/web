@@ -2,7 +2,7 @@
 
 import React, { useContext, useState, useEffect } from 'react';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
-import { Plus, ShieldCheck, Zap } from 'lucide-react';
+import { Plus, ShieldCheck } from 'lucide-react';
 import { Breadcrumbs } from '@/components/common/Breadcrumbs';
 import PageTitleCard from '@/components/common/PageTitleCard';
 import ConnectionStatusBadge from '@/components/common/ConnectionStatusBadge';
@@ -59,7 +59,10 @@ export default function AdminPatrullasClient() {
   // Apertura automática si query param ?nuevo=1
   useEffect(() => {
     if (searchParams?.get('nuevo') === '1' && puedeCrear) {
-      setModalCrearAbierto(true);
+      const timer = setTimeout(() => {
+        setModalCrearAbierto(true);
+      }, 0);
+      return () => clearTimeout(timer);
     }
   }, [searchParams, puedeCrear]);
 
@@ -72,7 +75,6 @@ export default function AdminPatrullasClient() {
     error,
     esForbidden,
     conectado,
-    ultimoEvento,
     filtros,
     setFiltros,
     cambiarPagina,
@@ -203,25 +205,6 @@ export default function AdminPatrullasClient() {
         </div>
       </div>
 
-      {/* Notificación en vivo de Socket */}
-      {ultimoEvento && (
-        <div
-          style={{
-            backgroundColor: 'var(--color-info-bg, #E0F2F1)',
-            color: 'var(--color-primary-teal, #1B6F7D)',
-            padding: '8px 16px',
-            fontSize: '13px',
-            fontWeight: 600,
-            borderLeft: '4px solid var(--color-primary-teal, #1B6F7D)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-          }}
-        >
-          <Zap size={16} color="var(--color-primary-teal, #1B6F7D)" />
-          <span>Actualización en tiempo real: {ultimoEvento}</span>
-        </div>
-      )}
 
       {/* Contenedor Principal: Filtros + Grid de Patrullas + Paginación */}
       <div className={styles.tableContainer}>
