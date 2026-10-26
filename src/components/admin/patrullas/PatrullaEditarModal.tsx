@@ -11,7 +11,6 @@ import {
   Truck,
   Users,
   UserCheck,
-  FileCheck,
 } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import Heading from '@/components/ui/Heading';
@@ -422,13 +421,6 @@ const PatrullaEditarModalInner: React.FC<PatrullaEditarModalInnerProps> = ({
                         : 'No asignado'}
                     </span>
                   </div>
-                </div>
-
-                <div className={styles.auditNoticeBox}>
-                  <FileCheck size={18} color="var(--color-primary-teal, #1B6F7D)" aria-hidden="true" />
-                  <span>
-                    Esta acción quedará registrada en el historial de auditoría de la plataforma municipal (<code>actualizado_en</code>).
-                  </span>
                 </div>
               </div>
 

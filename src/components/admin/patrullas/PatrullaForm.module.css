@@ -328,17 +328,3 @@
   display: inline-block;
   margin-left: 4px;
 }
-
-.auditNoticeBox {
-  background-color: var(--color-info-bg, #E0F2F1);
-  border: 1px solid #B2DFDB;
-  border-left: 4px solid var(--color-primary-teal, #1B6F7D);
-  padding: 10px 14px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 12px;
-  color: var(--color-primary-teal-dark, #14505A);
-  font-weight: 500;
-  border-radius: var(--radius-none, 0px);
-}
