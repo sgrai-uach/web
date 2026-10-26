@@ -52,10 +52,11 @@ export const TIPOS_RIESGO_CANONICOS = [
 export type TipoRiesgoCanonico = (typeof TIPOS_RIESGO_CANONICOS)[number];
 
 export type CrearPuntoCriticoInput =
-  paths['/api/puntos-criticos']['post']['requestBody']['content']['application/json'];
+  NonNullable<paths['/api/puntos-criticos']['post']['requestBody']>['content']['application/json'];
 
-export type PuntoCriticoDetalle =
-  paths['/api/puntos-criticos']['post']['responses'][201]['content']['application/json'];
+export type PuntoCriticoDetalle = NonNullable<
+  paths['/api/puntos-criticos']['post']['responses'][201]['content']
+>['application/json'];
 
 /* ==========================================================================
    Tipos para Eliminación / Desactivación Lógica (HU-56)

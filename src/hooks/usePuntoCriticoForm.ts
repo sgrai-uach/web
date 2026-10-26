@@ -218,7 +218,7 @@ export function usePuntoCriticoForm() {
       setServerFieldErrors([]);
 
       try {
-        const payload: CrearPuntoCriticoInput = {
+        const payload = {
           nombre: formData.nombre.trim(),
           descripcion: formData.descripcion.trim() ? formData.descripcion.trim() : null,
           tipo_riesgo: tipoRiesgoFinal,
@@ -231,7 +231,7 @@ export function usePuntoCriticoForm() {
               : parseInt(String(formData.radioMetros), 10) || 50,
           delegacion_id: formData.delegacionId.trim() ? formData.delegacionId.trim() : null,
           activo: formData.activo,
-        };
+        } as unknown as CrearPuntoCriticoInput;
 
         const userId = usuarioActivoId;
         const nuevoPunto = await crearPuntoCritico(payload, userId);
