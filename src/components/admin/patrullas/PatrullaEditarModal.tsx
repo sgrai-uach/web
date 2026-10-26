@@ -1,7 +1,18 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { ShieldCheck, X, Save, Check, MapPin, Truck, Users } from 'lucide-react';
+import {
+  ShieldCheck,
+  Shield,
+  X,
+  Save,
+  Check,
+  MapPin,
+  Truck,
+  Users,
+  UserCheck,
+  FileCheck,
+} from 'lucide-react';
 import Button from '@/components/ui/Button';
 import Heading from '@/components/ui/Heading';
 import InlineNotice from '@/components/ui/InlineNotice';
@@ -346,55 +357,66 @@ const PatrullaEditarModalInner: React.FC<PatrullaEditarModalInnerProps> = ({
               </div>
 
               <div className={styles.modalBody}>
-                <p style={{ margin: '0 0 16px 0', fontSize: '14px', color: 'var(--color-text-dark, #2B2B2B)' }}>
+                <p style={{ margin: 0, fontSize: '14px', color: 'var(--color-text-dark, #2B2B2B)' }}>
                   ¿Está seguro de que desea aplicar las modificaciones a la patrulla{' '}
-                  <strong>{patrulla.codigo || patrulla.nombre}</strong>?
+                  <strong className={styles.codigoBadge}>{patrulla.codigo || patrulla.nombre}</strong>?
                 </p>
 
-                <div className={styles.confirmSummaryBox}>
-                  <div className={styles.confirmItem}>
-                    <span className={styles.confirmLabel}>Nombre:</span>
-                    <span className={styles.confirmValue}>
+                <div className={styles.confirmCard}>
+                  <div className={styles.confirmRow}>
+                    <span className={styles.confirmRowLabel}>
+                      <Shield size={15} color="var(--color-primary-teal, #1B6F7D)" aria-hidden="true" />
+                      Nombre de la Patrulla:
+                    </span>
+                    <span className={styles.confirmRowValue}>
                       {formData.nombre.trim() || patrulla.codigo || patrulla.nombre}
                     </span>
                   </div>
 
-                  <div className={styles.confirmItem}>
-                    <span className={styles.confirmLabel}>
-                      <MapPin size={14} style={{ display: 'inline', marginRight: '4px' }} />
+                  <div className={styles.confirmRow}>
+                    <span className={styles.confirmRowLabel}>
+                      <MapPin size={15} color="var(--color-primary-teal, #1B6F7D)" aria-hidden="true" />
                       Delegación Base:
                     </span>
-                    <span className={styles.confirmValue}>
+                    <span className={styles.confirmRowValue}>
                       {delegacionSeleccionada?.nombre || 'Delegación no seleccionada'}
+                      {delegacionSeleccionada?.codigo ? ` (${delegacionSeleccionada.codigo})` : ''}
                     </span>
                   </div>
 
-                  <div className={styles.confirmItem}>
-                    <span className={styles.confirmLabel}>
-                      <Truck size={14} style={{ display: 'inline', marginRight: '4px' }} />
+                  <div className={styles.confirmRow}>
+                    <span className={styles.confirmRowLabel}>
+                      <Truck size={15} color="var(--color-primary-teal, #1B6F7D)" aria-hidden="true" />
                       Vehículo:
                     </span>
-                    <span className={styles.confirmValue}>
+                    <span className={styles.confirmRowValue}>
                       {vehiculoSeleccionado
-                        ? vehiculoSeleccionado.nombre
+                        ? `${vehiculoSeleccionado.nombre} ${
+                            vehiculoSeleccionado.detalles?.patente
+                              ? `[Patente: ${vehiculoSeleccionado.detalles.patente}]`
+                              : ''
+                          }`
                         : 'Sin vehículo (despliegue pedestre / a pie)'}
                     </span>
                   </div>
 
-                  <div className={styles.confirmItem}>
-                    <span className={styles.confirmLabel}>
-                      <Users size={14} style={{ display: 'inline', marginRight: '4px' }} />
+                  <div className={styles.confirmRow}>
+                    <span className={styles.confirmRowLabel}>
+                      <Users size={15} color="var(--color-primary-teal, #1B6F7D)" aria-hidden="true" />
                       Dotación:
                     </span>
-                    <span className={styles.confirmValue}>
+                    <span className={styles.confirmRowValue}>
                       {formData.personalIds.length}{' '}
                       {formData.personalIds.length === 1 ? 'funcionario' : 'funcionarios'}
                     </span>
                   </div>
 
-                  <div className={styles.confirmItem}>
-                    <span className={styles.confirmLabel}>Líder Táctico:</span>
-                    <span className={styles.confirmValue}>
+                  <div className={styles.confirmRow}>
+                    <span className={styles.confirmRowLabel}>
+                      <UserCheck size={15} color="var(--color-primary-teal, #1B6F7D)" aria-hidden="true" />
+                      Líder Táctico:
+                    </span>
+                    <span className={styles.confirmRowValue}>
                       {liderSeleccionado
                         ? `${liderSeleccionado.nombres} ${liderSeleccionado.apellidos}`
                         : 'No asignado'}
@@ -402,17 +424,11 @@ const PatrullaEditarModalInner: React.FC<PatrullaEditarModalInnerProps> = ({
                   </div>
                 </div>
 
-                <div
-                  style={{
-                    backgroundColor: 'var(--color-bg-light, #ECEFF3)',
-                    borderLeft: '4px solid var(--color-primary-teal, #1B6F7D)',
-                    padding: '10px 12px',
-                    fontSize: '12px',
-                    color: 'var(--color-charcoal, #3B3F45)',
-                    marginTop: '16px',
-                  }}
-                >
-                  Esta acción quedará registrada en el historial de auditoría de la plataforma municipal.
+                <div className={styles.auditNoticeBox}>
+                  <FileCheck size={18} color="var(--color-primary-teal, #1B6F7D)" aria-hidden="true" />
+                  <span>
+                    Esta acción quedará registrada en el historial de auditoría de la plataforma municipal (<code>actualizado_en</code>).
+                  </span>
                 </div>
               </div>
 
