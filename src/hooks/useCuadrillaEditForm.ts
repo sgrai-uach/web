@@ -237,7 +237,7 @@ export function useCuadrillaEditForm({
       nuevosErrores.usuarioDelegadoId = 'Debe designar un Delegado responsable de la cuadrilla.';
     }
 
-    if (Object.keys(nuevosErrores).length > 0) {
+    if (Object.keys(nuevosErrores).length > 0 || !delegadoSeleccionado) {
       setErrores(nuevosErrores);
       return;
     }

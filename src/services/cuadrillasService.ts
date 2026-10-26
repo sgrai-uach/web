@@ -10,6 +10,7 @@ import type {
   EditarCuadrillaDTO,
   CuadrillaItem,
   CuadrillaDetalle,
+  CuadrillaCreada,
   CuadrillaRecursoDetalle,
   CuadrillaTrabajadorDetalle,
   CrearCuadrillaApiResponse,
@@ -715,7 +716,7 @@ export const cuadrillasService = {
     const estado = filtros?.estado;
 
     try {
-      const { data, response } = await apiClient.GET('/api/cuadrillas' as unknown as Parameters<typeof apiClient.GET>[0], {
+      const { data, response } = await (apiClient.GET as any)('/api/cuadrillas', {
         params: {
           query: {
             pagina,
@@ -724,7 +725,7 @@ export const cuadrillasService = {
             delegacionId: delegacionId || undefined,
             estado: estado || undefined,
           },
-        } as unknown as Parameters<typeof apiClient.GET>[1],
+        },
       });
 
       if (response && response.ok && data) {
@@ -830,15 +831,15 @@ export const cuadrillasService = {
         return data.data
           .filter((emp) => emp.usuario_activo !== false)
           .map((emp) => ({
-            id: emp.personal_id || emp.id || emp.usuario_id,
+            id: emp.personal_id || (emp as any).id || emp.usuario_id,
             usuarioId: emp.usuario_id,
             nombre: `${emp.nombres} ${emp.apellidos}`.trim(),
             rut: emp.rut,
             cargo: emp.cargo || 'Operario',
             especialidad: emp.especialidad || 'Labores Generales',
-            delegacionNombre: emp.delegacion_nombre,
-            estadoOperativo: emp.estado_operativo,
-            disponibleTerreno: emp.disponible_terreno,
+            delegacionNombre: emp.delegacion_nombre ?? undefined,
+            estadoOperativo: emp.estado_operativo ?? undefined,
+            disponibleTerreno: emp.disponible_terreno ?? undefined,
           }));
       }
     } catch {
@@ -920,7 +921,7 @@ export const cuadrillasService = {
    */
   async obtenerRecursosDisponibles(): Promise<RecursoInventarioDisponible[]> {
     try {
-      const { data, response } = await apiClient.GET('/api/recursos', {
+      const { data, response } = await (apiClient.GET as any)('/api/recursos', {
         params: {
           query: {
             estado: 'DISPONIBLE',
@@ -930,15 +931,15 @@ export const cuadrillasService = {
       });
 
       if (response && response.ok && data?.data && Array.isArray(data.data)) {
-        return data.data.map((r) => ({
+        return data.data.map((r: any) => ({
           id: r.id,
           nombre: r.nombre,
           tipo: r.tipo,
           esIndividual: Boolean(r.esIndividual),
           cantidadInventario: r.cantidadDisponible ?? r.cantidadTotal ?? 1,
           cantidadDisponible: r.cantidadDisponible ?? 1,
-          unidadMedida: r.unidadMedida,
-          delegacionNombre: r.delegacionNombre,
+          unidadMedida: r.unidadMedida || 'Unidad',
+          delegacionNombre: r.delegacionNombre || r.delegacion?.nombre,
         }));
       }
     } catch {
