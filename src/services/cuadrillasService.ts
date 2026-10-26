@@ -10,6 +10,8 @@ import type {
   EditarCuadrillaDTO,
   CuadrillaItem,
   CuadrillaDetalle,
+  CuadrillaRecursoDetalle,
+  CuadrillaTrabajadorDetalle,
   CrearCuadrillaApiResponse,
   EditarCuadrillaApiResponse,
   ListarCuadrillasApiResponse,
@@ -196,7 +198,7 @@ export const CUADRILLAS_FALLBACK: CuadrillaItem[] = [
     nombre: 'Cuadrilla Mitigación Costera',
     estado: 'EN_MISION',
     delegacion: {
-      id: '30000000-0000-4000-8000-000000000002',
+      id: '30000000-0000-4000-8000-000000000003',
       nombre: 'Delegación Municipal Costa',
     },
     delegado: {
@@ -236,7 +238,7 @@ export const CUADRILLAS_FALLBACK: CuadrillaItem[] = [
     nombre: 'Cuadrilla Drenaje y Aguas Lluvias Sur',
     estado: 'DISPONIBLE',
     delegacion: {
-      id: '30000000-0000-4000-8000-000000000003',
+      id: '30000000-0000-4000-8000-000000000002',
       nombre: 'Delegación Municipal Sur',
     },
     delegado: {
@@ -261,6 +263,120 @@ export const CUADRILLAS_FALLBACK: CuadrillaItem[] = [
     actualizadoEn: null,
   },
 ];
+
+/**
+ * Helper interno para simular la actualización en memoria de una cuadrilla de respaldo (fallback).
+ * Mapea fielmente los recursos y trabajadores desde el payload y catálogos locales.
+ */
+async function aplicarActualizacionFallback(
+  item: CuadrillaItem,
+  payload: EditarCuadrillaDTO
+): Promise<CuadrillaDetalle> {
+  const estado = (item.estado || '').toUpperCase();
+  if (estado === 'EN_MISION' || estado === 'EN_TRANSITO' || estado === 'EN_OPERACION') {
+    throw new CuadrillaServiceError(
+      'No es posible modificar los datos ni la dotación de una cuadrilla que se encuentra actualmente en misión activa en terreno.',
+      409,
+      'general',
+      'CUADRILLA_EN_MISION'
+    );
+  }
+
+  const delegacionItem = catalogosService.obtenerDelegacionPorId(payload.delegacionId);
+  const delegacionNombre =
+    delegacionItem?.nombre ||
+    catalogosService.resolverDelegacionNombre(payload.delegacionId) ||
+    item.delegacion.nombre;
+
+  const delegacionObj: DelegacionResumen = {
+    id: delegacionItem?.id || payload.delegacionId,
+    nombre: delegacionNombre,
+    codigo: delegacionItem?.codigo || item.delegacion.codigo,
+  };
+
+  let delegadoObj = CANDIDATOS_DELEGADOS_FALLBACK.find((c) => c.id === payload.usuarioDelegadoId);
+  if (!delegadoObj) {
+    try {
+      const candidatos = await cuadrillasService.obtenerCandidatosDelegados();
+      delegadoObj = candidatos.find((c) => c.id === payload.usuarioDelegadoId);
+    } catch {
+      // Ignorar fallo de búsqueda
+    }
+  }
+
+  // Mapear recursos asignados
+  let recursosDisponibles: RecursoInventarioDisponible[] = [];
+  try {
+    recursosDisponibles = await cuadrillasService.obtenerRecursosDisponibles();
+  } catch {
+    // Ignorar fallo de inventario
+  }
+
+  const recursosActualizados: CuadrillaRecursoDetalle[] = (payload.recursos || []).map((r, i) => {
+    const existente = item.recursos?.find((ir) => ir.recursoId === r.recursoId);
+    if (existente) {
+      return {
+        ...existente,
+        cantidadAsignada: r.cantidad,
+      };
+    }
+    const encontrado = recursosDisponibles.find((rec) => rec.id === r.recursoId);
+    return {
+      id: `cd-${item.id.slice(0, 8)}-${i + 1}`,
+      recursoId: r.recursoId,
+      nombre: encontrado?.nombre || `Recurso Asignado`,
+      cantidadAsignada: r.cantidad,
+      esIndividual: encontrado?.esIndividual ?? false,
+    };
+  });
+
+  // Mapear trabajadores asignados
+  let personalDisponible: PersonalOperativoDisponible[] = [];
+  try {
+    personalDisponible = await cuadrillasService.obtenerPersonalOperativoDisponible();
+  } catch {
+    // Ignorar fallo de personal
+  }
+
+  const trabajadoresActualizados: CuadrillaTrabajadorDetalle[] = (payload.trabajadores || []).map((t, i) => {
+    const existente = item.trabajadores?.find((it) => it.personalId === t.personalId);
+    if (existente) {
+      return existente;
+    }
+    const encontrado = personalDisponible.find((p) => p.id === t.personalId);
+    return {
+      id: `cp-${item.id.slice(0, 8)}-${i + 1}`,
+      personalId: t.personalId,
+      usuarioId: encontrado?.usuarioId || t.personalId,
+      nombre: encontrado?.nombre || 'Personal Operativo',
+      rut: encontrado?.rut || null,
+      cargo: encontrado?.cargo || 'Brigadista',
+      especialidad: encontrado?.especialidad || null,
+      asignadoEn: new Date().toISOString(),
+    };
+  });
+
+  const cuadrillaActualizada: CuadrillaDetalle = {
+    ...item,
+    nombre: payload.nombre.trim(),
+    delegacion: delegacionObj,
+    delegado: delegadoObj
+      ? {
+          id: delegadoObj.id,
+          nombre: delegadoObj.nombreCompleto,
+          email: delegadoObj.email,
+          rut: delegadoObj.rut,
+        }
+      : item.delegado,
+    recursos: recursosActualizados,
+    trabajadores: trabajadoresActualizados,
+    totalRecursos: recursosActualizados.length,
+    totalTrabajadores: trabajadoresActualizados.length,
+    actualizadoEn: new Date().toISOString(),
+  };
+
+  return cuadrillaActualizada;
+}
 
 export const cuadrillasService = {
   /**
@@ -517,40 +633,7 @@ export const cuadrillasService = {
       if (response && response.status === 404) {
         const indexFallback = CUADRILLAS_FALLBACK.findIndex((c) => c.id === id);
         if (indexFallback !== -1) {
-          const item = CUADRILLAS_FALLBACK[indexFallback];
-          const estado = (item.estado || '').toUpperCase();
-          if (estado === 'EN_MISION' || estado === 'EN_TRANSITO' || estado === 'EN_OPERACION') {
-            throw new CuadrillaServiceError(
-              'No es posible modificar los datos ni la dotación de una cuadrilla que se encuentra actualmente en misión activa en terreno.',
-              409,
-              'general',
-              'CUADRILLA_EN_MISION'
-            );
-          }
-
-          const delegacionObj = catalogosService.obtenerDelegacionPorId(payload.delegacionId) || item.delegacion;
-          const delegadoObj = CANDIDATOS_DELEGADOS_FALLBACK.find((c) => c.id === payload.usuarioDelegadoId);
-
-          const cuadrillaActualizada: CuadrillaDetalle = {
-            ...item,
-            nombre: payload.nombre.trim(),
-            delegacion: {
-              id: delegacionObj.id,
-              nombre: delegacionObj.nombre,
-            },
-            delegado: delegadoObj
-              ? {
-                  id: delegadoObj.id,
-                  nombre: delegadoObj.nombreCompleto,
-                  email: delegadoObj.email,
-                  rut: delegadoObj.rut,
-                }
-              : item.delegado,
-            totalRecursos: payload.recursos?.length || 0,
-            totalTrabajadores: payload.trabajadores?.length || 0,
-            actualizadoEn: new Date().toISOString(),
-          };
-
+          const cuadrillaActualizada = await aplicarActualizacionFallback(CUADRILLAS_FALLBACK[indexFallback], payload);
           CUADRILLAS_FALLBACK[indexFallback] = cuadrillaActualizada;
           return cuadrillaActualizada;
         }
@@ -584,40 +667,7 @@ export const cuadrillasService = {
         // En caso de que el backend responda con error 401 o 500 para un registro local de prueba
         const indexFallback = CUADRILLAS_FALLBACK.findIndex((c) => c.id === id);
         if (indexFallback !== -1) {
-          const item = CUADRILLAS_FALLBACK[indexFallback];
-          const estado = (item.estado || '').toUpperCase();
-          if (estado === 'EN_MISION' || estado === 'EN_TRANSITO' || estado === 'EN_OPERACION') {
-            throw new CuadrillaServiceError(
-              'No es posible modificar los datos ni la dotación de una cuadrilla que se encuentra actualmente en misión activa en terreno.',
-              409,
-              'general',
-              'CUADRILLA_EN_MISION'
-            );
-          }
-
-          const delegacionObj = catalogosService.obtenerDelegacionPorId(payload.delegacionId) || item.delegacion;
-          const delegadoObj = CANDIDATOS_DELEGADOS_FALLBACK.find((c) => c.id === payload.usuarioDelegadoId);
-
-          const cuadrillaActualizada: CuadrillaDetalle = {
-            ...item,
-            nombre: payload.nombre.trim(),
-            delegacion: {
-              id: delegacionObj.id,
-              nombre: delegacionObj.nombre,
-            },
-            delegado: delegadoObj
-              ? {
-                  id: delegadoObj.id,
-                  nombre: delegadoObj.nombreCompleto,
-                  email: delegadoObj.email,
-                  rut: delegadoObj.rut,
-                }
-              : item.delegado,
-            totalRecursos: payload.recursos?.length || 0,
-            totalTrabajadores: payload.trabajadores?.length || 0,
-            actualizadoEn: new Date().toISOString(),
-          };
-
+          const cuadrillaActualizada = await aplicarActualizacionFallback(CUADRILLAS_FALLBACK[indexFallback], payload);
           CUADRILLAS_FALLBACK[indexFallback] = cuadrillaActualizada;
           return cuadrillaActualizada;
         }
@@ -642,40 +692,7 @@ export const cuadrillasService = {
       // Si falló por excepción de red (fetch fallido) para un registro local
       const indexFallback = CUADRILLAS_FALLBACK.findIndex((c) => c.id === id);
       if (indexFallback !== -1) {
-        const item = CUADRILLAS_FALLBACK[indexFallback];
-        const estado = (item.estado || '').toUpperCase();
-        if (estado === 'EN_MISION' || estado === 'EN_TRANSITO' || estado === 'EN_OPERACION') {
-          throw new CuadrillaServiceError(
-            'No es posible modificar los datos ni la dotación de una cuadrilla que se encuentra actualmente en misión activa en terreno.',
-            409,
-            'general',
-            'CUADRILLA_EN_MISION'
-          );
-        }
-
-        const delegacionObj = catalogosService.obtenerDelegacionPorId(payload.delegacionId) || item.delegacion;
-        const delegadoObj = CANDIDATOS_DELEGADOS_FALLBACK.find((c) => c.id === payload.usuarioDelegadoId);
-
-        const cuadrillaActualizada: CuadrillaDetalle = {
-          ...item,
-          nombre: payload.nombre.trim(),
-          delegacion: {
-            id: delegacionObj.id,
-            nombre: delegacionObj.nombre,
-          },
-          delegado: delegadoObj
-            ? {
-                id: delegadoObj.id,
-                nombre: delegadoObj.nombreCompleto,
-                email: delegadoObj.email,
-                rut: delegadoObj.rut,
-              }
-            : item.delegado,
-          totalRecursos: payload.recursos?.length || 0,
-          totalTrabajadores: payload.trabajadores?.length || 0,
-          actualizadoEn: new Date().toISOString(),
-        };
-
+        const cuadrillaActualizada = await aplicarActualizacionFallback(CUADRILLAS_FALLBACK[indexFallback], payload);
         CUADRILLAS_FALLBACK[indexFallback] = cuadrillaActualizada;
         return cuadrillaActualizada;
       }

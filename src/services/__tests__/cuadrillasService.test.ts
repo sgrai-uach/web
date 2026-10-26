@@ -357,6 +357,26 @@ describe('cuadrillasService (H79)', () => {
         expect(error.codigo).toBe('DATOS_INVALIDOS');
       }
     });
+
+    it('debe actualizar y preservar la dotación en fallback local cuando el backend responde 404', async () => {
+      vi.spyOn(apiClient, 'PUT').mockResolvedValueOnce({
+        data: null,
+        error: { message: 'Not found' },
+        response: new Response(null, { status: 404 }),
+      } as unknown as Awaited<ReturnType<typeof apiClient.PUT>>);
+
+      const resultado = await cuadrillasService.actualizarCuadrilla(
+        '50000000-0000-4000-8000-000000000003',
+        mockEditPayload
+      );
+
+      expect(resultado.id).toBe('50000000-0000-4000-8000-000000000003');
+      expect(resultado.nombre).toBe(mockEditPayload.nombre);
+      expect(resultado.recursos).toHaveLength(1);
+      expect(resultado.trabajadores).toHaveLength(1);
+      expect(resultado.totalTrabajadores).toBe(1);
+      expect(resultado.totalRecursos).toBe(1);
+    });
   });
 
   describe('obtenerCuadrillas', () => {
