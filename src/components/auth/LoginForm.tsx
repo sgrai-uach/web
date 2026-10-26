@@ -1,10 +1,12 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
   AlertCircle,
   ArrowLeft,
+  CheckCircle2,
   Eye,
   EyeOff,
   Info,
@@ -156,6 +158,13 @@ export default function LoginForm() {
           </div>
         )}
 
+        {motivo === 'password_restablecida' && (
+          <div className={`${styles.alertBox} ${styles.alertSuccess}`} role="status">
+            <CheckCircle2 size={18} className={styles.alertIcon} />
+            <span>Su contraseña ha sido restablecida exitosamente. Inicie sesión con su nueva credencial.</span>
+          </div>
+        )}
+
         {errorServidor && (
           <div
             className={`${styles.alertBox} ${styles.alertError}`}
@@ -217,6 +226,16 @@ export default function LoginForm() {
                 {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
             </div>
+          </div>
+
+          <div className={styles.forgotPasswordWrapper}>
+            <Link
+              href="/recuperar-contrasena"
+              className={styles.forgotPasswordLink}
+              tabIndex={cargando ? -1 : 0}
+            >
+              ¿Olvidaste tu contraseña?
+            </Link>
           </div>
 
           <div className={styles.submitArea}>

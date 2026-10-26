@@ -85,9 +85,39 @@
   border: 1px solid var(--color-primary-teal, #1B6F7D);
 }
 
+.alertSuccess {
+  background-color: var(--color-success-bg, #E8F5E9);
+  color: var(--color-success, #2E7D32);
+  border: 1px solid var(--color-success, #2E7D32);
+}
+
 .alertIcon {
   flex-shrink: 0;
   margin-top: 1px;
+}
+
+.forgotPasswordWrapper {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 8px;
+  margin-bottom: 20px;
+}
+
+.forgotPasswordLink {
+  font-size: 13px;
+  color: var(--color-primary-teal, #1B6F7D);
+  text-decoration: underline;
+  font-weight: 500;
+  transition: color 0.15s ease-in-out;
+}
+
+.forgotPasswordLink:hover {
+  color: var(--color-primary-teal-dark, #14505A);
+}
+
+.forgotPasswordLink:focus-visible {
+  outline: 2px solid var(--color-accent-mint, #4FAE9B);
+  outline-offset: 2px;
 }
 
 .passwordWrapper {

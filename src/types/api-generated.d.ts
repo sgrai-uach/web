@@ -594,6 +594,120 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/seguridad/recuperar-contrasena": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Solicitar recuperación de contraseña
+         * @description Inicia el flujo de recuperación de credenciales mediante correo institucional (@valdivia.cl) o RUT chileno. Aplica protección estricta contra enumeración de cuentas respondiendo siempre 200 OK con un mensaje genérico.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["RecuperarContrasenaRequest"];
+                };
+            };
+            responses: {
+                /** @description Respuesta genérica que previene la enumeración de cuentas en el sistema */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MensajeGenericoResponse"];
+                    };
+                };
+                /** @description Cuerpo de solicitud mal formado o identificador inválido */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Error interno del servidor al procesar la solicitud */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/seguridad/restablecer-contrasena": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Restablecer contraseña con token de recuperación
+         * @description Valida el token criptográfico efímero, actualiza la contraseña con hash seguro bcrypt (factor 10), invalida el token consumido y reinicia atómicamente los contadores de bloqueo (intentos_fallidos = 0, bloqueado_hasta = NULL).
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["RestablecerContrasenaRequest"];
+                };
+            };
+            responses: {
+                /** @description Contraseña actualizada exitosamente y cuenta desbloqueada */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MensajeGenericoResponse"];
+                    };
+                };
+                /** @description Token inválido, expirado, ya consumido o contraseña no cumple con políticas de seguridad */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Error interno del servidor al procesar el restablecimiento */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/seguridad/roles": {
         parameters: {
             query?: never;
@@ -2093,8 +2207,22 @@ export interface paths {
                     solo_personal?: "true" | "false";
                     /** @description Filtrar por delegación municipal */
                     delegacion_id?: string;
+                    /** @description Alias de delegacion_id */
+                    delegacionId?: string;
                     /** @description Filtrar por rol */
                     rol_id?: string;
+                    /** @description Filtrar por código canónico de rol (ej: ASISTENTE_SOCIAL) */
+                    rolCodigo?: string;
+                    /** @description Alias de rolCodigo */
+                    rol_codigo?: string;
+                    /** @description Filtrar por estado operativo */
+                    estadoOperativo?: "disponible" | "en_mision" | "descanso" | "licencia" | "inactivo" | string;
+                    /** @description Alias de estadoOperativo */
+                    estado_operativo?: "disponible" | "en_mision" | "descanso" | "licencia" | "inactivo" | string;
+                    /** @description Página para paginación */
+                    page?: number;
+                    /** @description Cantidad de registros por página */
+                    limit?: number;
                     /** @description Campo de ordenamiento */
                     ordenar_por?: "apellidos" | "nombres" | "rut";
                     /** @description Dirección de ordenamiento */
@@ -2141,9 +2269,39 @@ export interface paths {
                                 disponible_terreno?: boolean | null;
                                 observaciones?: string | null;
                                 es_personal?: boolean;
+                                /** @description Cantidad de casos FIBE asignados y activos */
+                                casos_fibe_asignados?: number;
                                 usuario_updated_at?: string;
                                 personal_updated_at?: string | unknown;
                             }[];
+                            meta?: {
+                                total?: number;
+                                page?: number;
+                                limit?: number;
+                                totalPages?: number;
+                            };
+                        };
+                    };
+                };
+                /** @description No autenticado */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+                /** @description No autorizado - Requiere permiso asistencia_social:leer */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
                         };
                     };
                 };
@@ -6140,6 +6298,37 @@ export interface components {
                 /** @description Fecha de actualización ISO 8601 */
                 actualizadoEn: string;
             };
+        };
+        MensajeGenericoResponse: {
+            /**
+             * @description Mensaje descriptivo del resultado de la operación
+             * @example Si el identificador corresponde a una cuenta registrada, se enviará un enlace de recuperación.
+             */
+            message: string;
+        };
+        RecuperarContrasenaRequest: {
+            /**
+             * @description Correo institucional (@valdivia.cl) o RUT chileno del funcionario
+             * @example carlos.miranda@valdivia.cl
+             */
+            identificador: string;
+        };
+        RestablecerContrasenaRequest: {
+            /**
+             * @description Token criptográfico efímero recibido por correo institucional
+             * @example N2ZmNGViMGQzYjYw...
+             */
+            token: string;
+            /**
+             * @description Contraseña segura: 8-72 caracteres, con mayúsculas, minúsculas y dígitos
+             * @example Valdivia2026!
+             */
+            nuevaPassword: string;
+            /**
+             * @description Confirmación idéntica de la nueva contraseña
+             * @example Valdivia2026!
+             */
+            confirmacionPassword: string;
         };
     };
     responses: never;

@@ -1,0 +1,88 @@
+.card {
+  background-color: var(--color-white, #FFFFFF);
+  border: 1px solid var(--border-color-neutral, #DFE3E8);
+  border-radius: var(--radius-none, 0px);
+  width: 100%;
+  max-width: 440px;
+  margin: 0 auto;
+  box-shadow: var(--shadow-sm, 0 1px 3px rgba(0, 0, 0, 0.08));
+}
+
+.header {
+  background-color: var(--color-primary-teal-dark, #14505A);
+  color: var(--color-text-light, #FFFFFF);
+  padding: 20px 24px;
+  border-bottom: 3px solid var(--color-accent-mint, #4FAE9B);
+  text-align: center;
+}
+
+.logoRow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.logoText {
+  font-weight: 800;
+  font-size: 22px;
+  letter-spacing: 0.5px;
+  color: #FFFFFF;
+}
+
+.logoDivider {
+  color: var(--color-sage, #A9CBA4);
+  font-size: 18px;
+}
+
+.logoSubtitle {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-sage, #A9CBA4);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.body {
+  padding: 24px;
+}
+
+.title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--color-charcoal-dark, #24272B);
+  margin: 0 0 8px 0;
+  text-align: center;
+}
+
+.instruction {
+  font-size: 13px;
+  color: var(--color-text-muted, #5F676E);
+  margin: 0 0 20px 0;
+  text-align: center;
+}
+
+.noticeWrapper {
+  margin-bottom: 18px;
+}
+
+.submitArea {
+  margin-top: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.footerNotes {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-color-neutral, #DFE3E8);
+  font-size: 11px;
+  color: var(--color-text-muted, #5F676E);
+  text-align: center;
+  line-height: 1.5;
+}
+
+.footerNotes p {
+  margin: 0;
+}
