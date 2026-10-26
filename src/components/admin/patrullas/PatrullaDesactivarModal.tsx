@@ -6,11 +6,6 @@ import {
   AlertTriangle,
   X,
   Truck,
-  Users,
-  ShieldCheck,
-  FileText,
-  UserCheck,
-  MapPin,
 } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import Heading from '@/components/ui/Heading';
@@ -191,7 +186,6 @@ export const PatrullaDesactivarModal: React.FC<PatrullaDesactivarModalProps> = (
           {/* Ficha Resumen de la Patrulla */}
           <div className={styles.resumenCard} aria-label="Resumen de la patrulla a dar de baja">
             <div className={styles.resumenRow}>
-              <ShieldCheck size={16} className={styles.resumenIcon} aria-hidden="true" />
               <span className={styles.resumenLabel}>Patrulla:</span>
               <span className={styles.resumenValue}>
                 <strong>{patrulla.nombre}</strong> {patrulla.codigo ? `(${patrulla.codigo})` : ''}
@@ -199,7 +193,6 @@ export const PatrullaDesactivarModal: React.FC<PatrullaDesactivarModalProps> = (
             </div>
 
             <div className={styles.resumenRow}>
-              <MapPin size={16} className={styles.resumenIcon} aria-hidden="true" />
               <span className={styles.resumenLabel}>Delegación:</span>
               <span className={styles.resumenValue}>
                 {patrulla.delegacion?.nombre || 'Sin delegación asignada'}
@@ -207,7 +200,6 @@ export const PatrullaDesactivarModal: React.FC<PatrullaDesactivarModalProps> = (
             </div>
 
             <div className={styles.resumenRow}>
-              <UserCheck size={16} className={styles.resumenIcon} aria-hidden="true" />
               <span className={styles.resumenLabel}>Funcionario Líder:</span>
               <span className={styles.resumenValue}>
                 {patrulla.lider?.nombre || 'Sin funcionario líder asignado'}
@@ -239,15 +231,9 @@ export const PatrullaDesactivarModal: React.FC<PatrullaDesactivarModalProps> = (
             </ul>
           </div>
 
-          {/* Nota de Auditoría Inmutable SENAPRED (§3.7) */}
+          {/* Nota de Auditoría Resumida SENAPRED (§3.7) */}
           <div className={styles.auditoriaNote}>
-            <FileText size={16} color="var(--color-primary-teal, #1B6F7D)" aria-hidden="true" />
-            <span>
-              <strong>Auditoría Inmutable:</strong> Toda la información histórica, los reportes
-              técnicos emitidos en terreno y las misiones previas se conservarán intactos para
-              auditorías del Sistema Nacional de Prevención y Respuesta ante Desastres (SENAPRED)
-              e informes institucionales.
-            </span>
+            <strong>Auditoría:</strong> Se preserva el historial de reportes técnicos y misiones para fines de auditoría SENAPRED.
           </div>
         </div>
 

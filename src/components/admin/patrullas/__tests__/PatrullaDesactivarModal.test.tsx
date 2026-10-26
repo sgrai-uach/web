@@ -105,7 +105,7 @@ describe('PatrullaDesactivarModal (HU-85: Desactivar Patrulla Verificadora)', ()
     expect(screen.getByText(/2 funcionarios quedarán liberados/i)).toBeInTheDocument();
 
     // Nota de auditoría SENAPRED
-    expect(screen.getByText(/Auditoría Inmutable:/i)).toBeInTheDocument();
+    expect(screen.getByText(/Auditoría:/i)).toBeInTheDocument();
     expect(screen.getByText(/SENAPRED/i)).toBeInTheDocument();
   });
 
