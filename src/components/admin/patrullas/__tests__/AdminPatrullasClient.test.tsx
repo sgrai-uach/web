@@ -241,4 +241,81 @@ describe('AdminPatrullasClient (Pestaña dedicada de Patrullas Verificadoras)', 
       expect(screen.queryByRole('heading', { name: /Registrar Nueva Patrulla Verificadora/i })).not.toBeInTheDocument();
     });
   });
+
+  describe('HU-84: Acción Editar Patrulla y Bloqueo Operativo', () => {
+    const patrullaActiva: PatrullaVerificadoraDTO = {
+      id: 'f1000000-0000-4000-8000-000000000002',
+      codigo: 'PV-SUR-02',
+      nombre: 'Patrulla Sur Operativa',
+      estado: 'EN_VERIFICACION',
+      delegacion: { id: '30000000-0000-4000-8000-000000000002', nombre: 'Sur', codigo: 'DEL_SUR' },
+      misionActiva: {
+        id: 'mis-2',
+        codigo: 'MIS-2026-002',
+        titulo: 'Verificar anegamiento sector Angachilla',
+        tipoMision: 'VERIFICACION',
+        estado: 'EN_CURSO',
+        prioridad: 'ALTA',
+      },
+      integrantes: [],
+      actualizadoEn: '2026-10-26T11:00:00.000Z',
+    };
+
+    it('6. muestra el botón "Editar Patrulla" habilitado para patrullas DISPONIBLES y abre el modal', async () => {
+      renderWithSession(['recursos:leer', 'recursos:editar']);
+
+      await waitFor(() => {
+        expect(screen.getByText('Patrulla Rápida Costa-1')).toBeInTheDocument();
+      });
+
+      const btnEditar = screen.getByTestId('btn-editar-patrulla-f1000000-0000-4000-8000-000000000001');
+      expect(btnEditar).toBeInTheDocument();
+      expect(btnEditar).not.toBeDisabled();
+
+      fireEvent.click(btnEditar);
+
+      await waitFor(() => {
+        expect(screen.getByRole('heading', { name: /Editar Patrulla Verificadora/i })).toBeInTheDocument();
+        expect(screen.getByDisplayValue('Patrulla Rápida Costa-1')).toBeInTheDocument();
+      });
+    });
+
+    it('7. deshabilita "Editar Patrulla" con tooltip reglamentario cuando la patrulla está EN_VERIFICACION o en misión activa', async () => {
+      vi.mocked(patrullasServiceModule.patrullasService.listar).mockResolvedValueOnce({
+        exito: true,
+        data: [patrullaActiva],
+        meta: { total: 1, page: 1, limit: 20, totalPages: 1, hasNext: false, hasPrev: false },
+        mensaje: 'OK',
+      });
+
+      renderWithSession(['recursos:leer', 'recursos:editar']);
+
+      await waitFor(() => {
+        expect(screen.getByText('Patrulla Sur Operativa')).toBeInTheDocument();
+      });
+
+      const btnEditar = screen.getByTestId('btn-editar-patrulla-f1000000-0000-4000-8000-000000000002');
+      expect(btnEditar).toBeDisabled();
+
+      const mensajeEsperado =
+        'No es posible editar la patrulla mientras se encuentre en verificación o en misión activa';
+      expect(btnEditar).toHaveAttribute('aria-label', mensajeEsperado);
+    });
+
+    it('8. abre el drawer de detalle unitario al presionar "Ver Ficha" y muestra la auditoría actualizado_en', async () => {
+      renderWithSession(['recursos:leer', 'recursos:editar']);
+
+      await waitFor(() => {
+        expect(screen.getByText('Patrulla Rápida Costa-1')).toBeInTheDocument();
+      });
+
+      const btnVerFicha = screen.getByTestId('btn-ver-detalle-f1000000-0000-4000-8000-000000000001');
+      fireEvent.click(btnVerFicha);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('patrulla-detalle-drawer')).toBeInTheDocument();
+        expect(screen.getByTestId('drawer-actualizado-en')).toBeInTheDocument();
+      });
+    });
+  });
 });

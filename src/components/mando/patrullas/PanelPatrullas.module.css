@@ -338,3 +338,55 @@
     opacity: 0.6;
   }
 }
+
+/* --- Acciones de Tarjeta de Patrulla --- */
+.cardActionsRow {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-2, 8px);
+  margin-top: var(--space-3, 12px);
+  padding-top: var(--space-2, 8px);
+  border-top: 1px solid var(--border-color-neutral, #DFE3E8);
+}
+
+.btnCardAction {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--font-size-xs, 12px);
+  font-weight: var(--font-weight-semibold, 600);
+  padding: 6px 12px;
+  border-radius: var(--radius-none, 0px);
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: all var(--transition-fast, 150ms ease-in-out);
+}
+
+.btnCardActionSecondary {
+  background-color: var(--color-bg-light, #ECEFF3);
+  color: var(--color-charcoal, #3B3F45);
+  border-color: var(--border-color-neutral-dark, #CCD2D9);
+}
+
+.btnCardActionSecondary:hover:not(:disabled) {
+  background-color: #DFE3E8;
+  color: var(--color-text-dark, #2B2B2B);
+}
+
+.btnCardActionPrimary {
+  background-color: var(--color-primary-teal, #1B6F7D);
+  color: #FFFFFF;
+}
+
+.btnCardActionPrimary:hover:not(:disabled) {
+  background-color: var(--color-primary-teal-dark, #14505A);
+}
+
+.btnCardAction:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  background-color: var(--color-bg-light, #ECEFF3) !important;
+  color: var(--color-text-muted, #5F676E) !important;
+  border-color: var(--border-color-neutral, #DFE3E8) !important;
+}

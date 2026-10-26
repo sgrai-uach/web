@@ -17,11 +17,15 @@ import { SimulatedSessionContext } from '@/context/SimulatedSessionContext';
 import { usePatrullas } from '@/hooks/usePatrullas';
 import { PatrullasFiltros, PatrullaCard, PatrullasSkeleton } from '@/components/mando/patrullas';
 import PatrullaCrearModal from './PatrullaCrearModal';
+import PatrullaEditarModal from './PatrullaEditarModal';
+import PatrullaDetalleDrawer from './PatrullaDetalleDrawer';
 import type { PatrullaVerificadoraDTO } from '@/types/patrullas';
 import styles from './AdminPatrullas.module.css';
 
 export default function AdminPatrullasClient() {
   const [modalCrearAbierto, setModalCrearAbierto] = useState(false);
+  const [patrullaAEditar, setPatrullaAEditar] = useState<PatrullaVerificadoraDTO | null>(null);
+  const [patrullaADetalle, setPatrullaADetalle] = useState<PatrullaVerificadoraDTO | null>(null);
   const { showSuccess } = useToast();
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -36,6 +40,13 @@ export default function AdminPatrullasClient() {
       ? auth.tieneAlgunPermiso(['recursos:crear']) || auth.usuario.rolCodigo === 'ADMIN'
       : session?.usuarioActivo
       ? session.hasAnyPermission(['recursos:crear']) || session.usuarioActivo.esAdmin
+      : true;
+
+  const puedeEditar =
+    auth?.usuario
+      ? auth.tieneAlgunPermiso(['recursos:editar']) || auth.usuario.rolCodigo === 'ADMIN'
+      : session?.usuarioActivo
+      ? session.hasAnyPermission(['recursos:editar']) || session.usuarioActivo.esAdmin
       : true;
 
   const puedeVer =
@@ -78,6 +89,15 @@ export default function AdminPatrullasClient() {
     setModalCrearAbierto(false);
     if (searchParams?.get('nuevo') === '1') {
       router.replace(pathname);
+    }
+  };
+
+  const handlePatrullaActualizada = (patrullaActualizada: PatrullaVerificadoraDTO) => {
+    showSuccess(`Patrulla "${patrullaActualizada.nombre}" modificada exitosamente.`);
+    recargar();
+    setPatrullaAEditar(null);
+    if (patrullaADetalle?.id === patrullaActualizada.id) {
+      setPatrullaADetalle(patrullaActualizada);
     }
   };
 
@@ -258,6 +278,9 @@ export default function AdminPatrullasClient() {
                 onSelectIncidente={(incidenteId) => {
                   router.push(`/gestion/centro-incidentes?incidente=${incidenteId}`);
                 }}
+                onVerDetalle={(p) => setPatrullaADetalle(p)}
+                onEditar={(p) => setPatrullaAEditar(p)}
+                puedeEditar={puedeEditar}
               />
             ))}
           </div>
@@ -281,6 +304,25 @@ export default function AdminPatrullasClient() {
         isOpen={modalCrearAbierto}
         onClose={handleCerrarModal}
         onPatrullaCreada={handlePatrullaCreada}
+      />
+
+      {/* Modal Institucional de Edición de Patrulla Verificadora */}
+      <PatrullaEditarModal
+        isOpen={Boolean(patrullaAEditar)}
+        patrulla={patrullaAEditar}
+        onClose={() => setPatrullaAEditar(null)}
+        onPatrullaActualizada={handlePatrullaActualizada}
+      />
+
+      {/* Drawer de Ficha Técnica / Detalle Unitario */}
+      <PatrullaDetalleDrawer
+        patrulla={patrullaADetalle}
+        onClose={() => setPatrullaADetalle(null)}
+        onEditar={(p) => {
+          setPatrullaADetalle(null);
+          setPatrullaAEditar(p);
+        }}
+        puedeEditar={puedeEditar}
       />
     </div>
   );
