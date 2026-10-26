@@ -1046,9 +1046,12 @@ export const cuadrillasService = {
    */
   async desactivarCuadrilla(id: string): Promise<DesactivarCuadrillaData> {
     try {
-      const { data, error, response } = await apiClient.DELETE(
-        `/api/cuadrillas/${id}` as unknown as Parameters<typeof apiClient.DELETE>[0]
-      );
+      const { data, error, response } = await (
+        apiClient.DELETE as unknown as (
+          url: string,
+          opts?: unknown
+        ) => Promise<{ data?: unknown; error?: unknown; response?: Response }>
+      )(`/api/cuadrillas/${id}`);
 
       // 1. Éxito (200 OK)
       if (response && response.status === 200) {
