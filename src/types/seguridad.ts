@@ -6,6 +6,9 @@ export type RolItem = components['schemas']['RolItem'];
 export type PermisoAsignado = components['schemas']['PermisoAsignado'];
 export type ListarRolesResponse = components['schemas']['ListarRolesResponse'];
 export type RolDetalleResponse = components['schemas']['RolDetalleResponse'];
+export type RecuperarContrasenaRequest = components['schemas']['RecuperarContrasenaRequest'];
+export type RestablecerContrasenaRequest = components['schemas']['RestablecerContrasenaRequest'];
+export type MensajeGenericoResponse = components['schemas']['MensajeGenericoResponse'];
 
 export type PermisosPorModulo = Record<string, PermisoAsignado[]>;
 
