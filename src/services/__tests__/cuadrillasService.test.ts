@@ -191,4 +191,210 @@ describe('cuadrillasService (H79)', () => {
       expect(candidatos[0].nombreCompleto).toBe('Juan Pérez');
     });
   });
+
+  describe('actualizarCuadrilla (H81)', () => {
+    const mockEditPayload = {
+      nombre: 'Cuadrilla Vías y Despeje Urbano Modificada',
+      delegacionId: '30000000-0000-4000-8000-000000000001',
+      usuarioDelegadoId: '00000000-0000-4000-8000-000000000005',
+      recursos: [
+        {
+          recursoId: 'e1000000-0000-4000-8000-000000000001',
+          cantidad: 1,
+        },
+      ],
+      trabajadores: [
+        {
+          personalId: '40000000-0000-4000-8000-000000000001',
+        },
+      ],
+    };
+
+    it('debe actualizar exitosamente la cuadrilla y dotación cuando la API retorna 200', async () => {
+      const mockSuccessResponse = {
+        message: 'Cuadrilla operativa actualizada exitosamente',
+        data: {
+          id: '50000000-0000-4000-8000-000000000001',
+          nombre: 'Cuadrilla Vías y Despeje Urbano Modificada',
+          estado: 'DISPONIBLE',
+          delegacion: {
+            id: '30000000-0000-4000-8000-000000000001',
+            nombre: 'Delegación Municipal Norte',
+          },
+          delegado: {
+            id: '00000000-0000-4000-8000-000000000005',
+            nombre: 'Carlos Delegado',
+            email: 'carlos@valdivia.cl',
+            rut: '15.111.222-3',
+          },
+          recursos: [
+            {
+              id: 'cd100000-0000-4000-8000-000000000001',
+              recursoId: 'e1000000-0000-4000-8000-000000000001',
+              nombre: 'Camioneta de Rescate 4x4',
+              cantidadAsignada: 1,
+              esIndividual: true,
+            },
+          ],
+          trabajadores: [
+            {
+              id: 'cp100000-0000-4000-8000-000000000001',
+              personalId: '40000000-0000-4000-8000-000000000001',
+              usuarioId: '00000000-0000-4000-8000-000000000009',
+              nombre: 'Pedro Obrero',
+              rut: '16.222.333-4',
+              cargo: 'Motosierrista',
+              especialidad: 'Poda de Altura',
+              asignadoEn: '2026-10-26T01:30:00.000Z',
+            },
+          ],
+          creadoEn: '2026-10-24T12:00:00.000Z',
+          actualizadoEn: '2026-10-26T01:30:00.000Z',
+        },
+      };
+
+      vi.spyOn(apiClient, 'PUT').mockResolvedValueOnce({
+        data: mockSuccessResponse,
+        error: null,
+        response: new Response(null, { status: 200 }),
+      } as unknown as Awaited<ReturnType<typeof apiClient.PUT>>);
+
+      const resultado = await cuadrillasService.actualizarCuadrilla(
+        '50000000-0000-4000-8000-000000000001',
+        mockEditPayload
+      );
+
+      expect(resultado.id).toBe('50000000-0000-4000-8000-000000000001');
+      expect(resultado.nombre).toBe('Cuadrilla Vías y Despeje Urbano Modificada');
+      expect(resultado.recursos).toHaveLength(1);
+      expect(resultado.trabajadores).toHaveLength(1);
+      expect(resultado.trabajadores[0].nombre).toBe('Pedro Obrero');
+    });
+
+    it('debe lanzar CuadrillaServiceError con código CUADRILLA_EN_MISION ante 409 Conflict por misión activa', async () => {
+      vi.spyOn(apiClient, 'PUT').mockResolvedValueOnce({
+        data: null,
+        error: { message: 'No es posible modificar los datos ni la dotación de una cuadrilla que se encuentra actualmente en misión activa.' },
+        response: new Response(null, { status: 409 }),
+      } as unknown as Awaited<ReturnType<typeof apiClient.PUT>>);
+
+      try {
+        await cuadrillasService.actualizarCuadrilla('cuadrilla-1', mockEditPayload);
+        expect.fail('Debería haber lanzado CuadrillaServiceError');
+      } catch (err) {
+        const error = err as CuadrillaServiceError;
+        expect(error).toBeInstanceOf(CuadrillaServiceError);
+        expect(error.status).toBe(409);
+        expect(error.codigo).toBe('CUADRILLA_EN_MISION');
+        expect(error.message).toContain('misión activa');
+      }
+    });
+
+    it('debe lanzar CuadrillaServiceError con código NOMBRE_DUPLICADO ante 409 Conflict por nombre repetido', async () => {
+      vi.spyOn(apiClient, 'PUT').mockResolvedValueOnce({
+        data: null,
+        error: { message: 'Ya existe otra cuadrilla operativa con el nombre ingresado.' },
+        response: new Response(null, { status: 409 }),
+      } as unknown as Awaited<ReturnType<typeof apiClient.PUT>>);
+
+      try {
+        await cuadrillasService.actualizarCuadrilla('cuadrilla-1', mockEditPayload);
+        expect.fail('Debería haber lanzado CuadrillaServiceError');
+      } catch (err) {
+        const error = err as CuadrillaServiceError;
+        expect(error.codigo).toBe('NOMBRE_DUPLICADO');
+        expect(error.campo).toBe('nombre');
+      }
+    });
+
+    it('debe lanzar CuadrillaServiceError con código RECURSO_EN_USO ante 409 Conflict por recurso asignado a otra cuadrilla', async () => {
+      vi.spyOn(apiClient, 'PUT').mockResolvedValueOnce({
+        data: null,
+        error: { message: 'El recurso individual Camioneta 4x4 ya se encuentra asignado a otra cuadrilla activa.' },
+        response: new Response(null, { status: 409 }),
+      } as unknown as Awaited<ReturnType<typeof apiClient.PUT>>);
+
+      try {
+        await cuadrillasService.actualizarCuadrilla('cuadrilla-1', mockEditPayload);
+        expect.fail('Debería haber lanzado CuadrillaServiceError');
+      } catch (err) {
+        const error = err as CuadrillaServiceError;
+        expect(error.codigo).toBe('RECURSO_EN_USO');
+        expect(error.campo).toBe('recursos');
+      }
+    });
+
+    it('debe lanzar CuadrillaServiceError con código PERMISOS_INSUFICIENTES ante 403 Forbidden', async () => {
+      vi.spyOn(apiClient, 'PUT').mockResolvedValueOnce({
+        data: null,
+        error: { message: 'Permisos insuficientes' },
+        response: new Response(null, { status: 403 }),
+      } as unknown as Awaited<ReturnType<typeof apiClient.PUT>>);
+
+      try {
+        await cuadrillasService.actualizarCuadrilla('cuadrilla-1', mockEditPayload);
+        expect.fail('Debería haber lanzado CuadrillaServiceError');
+      } catch (err) {
+        const error = err as CuadrillaServiceError;
+        expect(error.status).toBe(403);
+        expect(error.codigo).toBe('PERMISOS_INSUFICIENTES');
+      }
+    });
+
+    it('debe lanzar CuadrillaServiceError con código DATOS_INVALIDOS ante 400 Bad Request', async () => {
+      vi.spyOn(apiClient, 'PUT').mockResolvedValueOnce({
+        data: null,
+        error: { message: 'Datos inválidos', errors: [{ campo: 'nombre', mensaje: 'Muy corto' }] },
+        response: new Response(null, { status: 400 }),
+      } as unknown as Awaited<ReturnType<typeof apiClient.PUT>>);
+
+      try {
+        await cuadrillasService.actualizarCuadrilla('cuadrilla-1', mockEditPayload);
+        expect.fail('Debería haber lanzado CuadrillaServiceError');
+      } catch (err) {
+        const error = err as CuadrillaServiceError;
+        expect(error.status).toBe(400);
+        expect(error.codigo).toBe('DATOS_INVALIDOS');
+      }
+    });
+  });
+
+  describe('obtenerCuadrillas', () => {
+    it('debe retornar lista de cuadrillas cuando la API responde correctamente', async () => {
+      const mockListResp = {
+        message: 'Listado obtenido',
+        data: [
+          {
+            id: 'c-1',
+            nombre: 'Cuadrilla Test',
+            estado: 'DISPONIBLE',
+            delegacion: { id: 'd-1', nombre: 'Norte' },
+            delegado: { id: 'u-1', nombre: 'Juan', email: 'juan@valdivia.cl' },
+            recursos: [],
+            trabajadores: [],
+            creadoEn: '2026-10-24T12:00:00.000Z',
+          },
+        ],
+        meta: { total: 1, pagina: 1, limite: 10, paginasTotales: 1 },
+      };
+
+      vi.spyOn(apiClient, 'GET').mockResolvedValueOnce({
+        data: mockListResp,
+        error: null,
+        response: new Response(null, { status: 200 }),
+      } as unknown as Awaited<ReturnType<typeof apiClient.GET>>);
+
+      const resultado = await cuadrillasService.obtenerCuadrillas();
+      expect(resultado.cuadrillas).toHaveLength(1);
+      expect(resultado.cuadrillas[0].nombre).toBe('Cuadrilla Test');
+    });
+
+    it('debe utilizar datos de fallback cuando la llamada a la API falla o responde 404', async () => {
+      vi.spyOn(apiClient, 'GET').mockRejectedValueOnce(new Error('Network error'));
+
+      const resultado = await cuadrillasService.obtenerCuadrillas({ pagina: 1, limite: 10 });
+      expect(resultado.cuadrillas.length).toBeGreaterThan(0);
+      expect(resultado.meta.total).toBeGreaterThan(0);
+    });
+  });
 });
