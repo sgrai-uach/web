@@ -161,7 +161,7 @@ export default function CuadrillasFiltros({
               outline: 'none',
             }}
           >
-            <option value="">Solo Activas (Por defecto)</option>
+            <option value="">Solo Activas</option>
             <option value="DISPONIBLE">Disponibles</option>
             <option value="EN_MISION">En Misión (Terreno)</option>
             <option value="INACTIVAS">Inactivas (Dadas de baja)</option>
