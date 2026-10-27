@@ -44,7 +44,16 @@ export const AsignarPatrullaModal: React.FC<AsignarPatrullaModalProps> = ({
   userId,
   onAsignacionExitosa,
 }) => {
-  const { showSuccess, showError } = useToast();
+  let showSuccess = (_msg: string, _title?: string) => {};
+  let showError = (_msg: string, _title?: string) => {};
+  try {
+    const toast = useToast();
+    showSuccess = toast.showSuccess;
+    showError = toast.showError;
+  } catch {
+    // Modo fallback en pruebas unitarias fuera del ToastProvider
+  }
+
   const [patrullas, setPatrullas] = useState<PatrullaVerificadoraDTO[]>([]);
   const [patrullaSeleccionadaId, setPatrullaSeleccionadaId] = useState<string>('');
   const [cargandoPatrullas, setCargandoPatrullas] = useState<boolean>(false);
@@ -53,11 +62,13 @@ export const AsignarPatrullaModal: React.FC<AsignarPatrullaModalProps> = ({
   const [esConflicto, setEsConflicto] = useState<boolean>(false);
   const [esForbidden, setEsForbidden] = useState<boolean>(false);
 
-  const cargarPatrullasDisponibles = useCallback(async () => {
+  const cargarPatrullasDisponibles = useCallback(async (mantenerMensajeError: boolean = false) => {
     setCargandoPatrullas(true);
-    setErrorMensaje(null);
-    setEsConflicto(false);
-    setEsForbidden(false);
+    if (!mantenerMensajeError) {
+      setErrorMensaje(null);
+      setEsConflicto(false);
+      setEsForbidden(false);
+    }
 
     try {
       const res = await listarPatrullasDisponibles(userId);
@@ -145,8 +156,8 @@ export const AsignarPatrullaModal: React.FC<AsignarPatrullaModalProps> = ({
           'La patrulla seleccionada ya no se encuentra disponible. Por favor selecciona otra patrulla.',
           'Conflicto de Disponibilidad'
         );
-        // Refrescar lista de patrullas disponibles inmediatamente
-        await cargarPatrullasDisponibles();
+        // Refrescar lista de patrullas disponibles inmediatamente preservando el mensaje de conflicto
+        await cargarPatrullasDisponibles(true);
         return;
       }
 

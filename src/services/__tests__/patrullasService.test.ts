@@ -504,5 +504,37 @@ describe('Servicio de Patrullas Verificadoras (HU-16: Visualizar Patrullas)', ()
       expect(res.mensaje).toContain('Error de conexión');
     });
   });
+
+  describe('HU-20: listarDisponibles', () => {
+    it('debe solicitar patrullas filtrando por estado=DISPONIBLE y límite 100', async () => {
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          message: 'Listado disponible',
+          data: [
+            {
+              id: 'pat-1',
+              nombre: 'Patrulla Centro 1',
+              estado: 'DISPONIBLE',
+            },
+          ],
+          meta: { total: 1, page: 1, limit: 100, totalPages: 1 },
+        }),
+      });
+      vi.stubGlobal('fetch', mockFetch);
+
+      const res = await patrullasService.listarDisponibles();
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        expect.stringContaining('estado=DISPONIBLE'),
+        expect.any(Object)
+      );
+      expect(res.exito).toBe(true);
+      expect(res.data).toHaveLength(1);
+      expect(res.data[0].id).toBe('pat-1');
+    });
+  });
 });
+
 

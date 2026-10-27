@@ -7,6 +7,15 @@ import * as misionesService from '@/services/misionesService';
 import type { IncidenteDetalle } from '@/services/incidentesService';
 import type { MisionDetalleCompleto } from '@/types/misiones';
 
+vi.mock('@/components/ui/Toast', () => ({
+  useToast: () => ({
+    showSuccess: vi.fn(),
+    showError: vi.fn(),
+    showInfo: vi.fn(),
+    showWarning: vi.fn(),
+  }),
+}));
+
 describe('Componente IncidenteDetalleDrawer e integración HU-17', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -148,5 +157,69 @@ describe('Componente IncidenteDetalleDrawer e integración HU-17', () => {
 
     // El drawer de incidente sigue abierto sin pérdida de contexto
     expect(screen.getByText('INC-2026-0042')).toBeDefined();
+  });
+
+  it('muestra el botón "Asignar Patrulla" cuando el incidente está en estado REPORTADO y abre el modal', async () => {
+    const mockIncidenteReportado: IncidenteDetalle = {
+      ...mockDetalleIncidente,
+      id: 'inc-reportado-1',
+      codigo: 'INC-2026-9999',
+      estado: 'REPORTADO',
+      misiones: [],
+    };
+
+    vi.spyOn(incidentesService, 'obtenerDetalleIncidente').mockResolvedValueOnce({
+      exito: true,
+      datos: mockIncidenteReportado,
+      mensaje: 'OK',
+    });
+
+    render(
+      <IncidenteDetalleDrawer
+        incidenteId="inc-reportado-1"
+        userId="user-test"
+        onCerrar={vi.fn()}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('INC-2026-9999')).toBeDefined();
+    });
+
+    // En estado REPORTADO, los botones de asignar patrulla deben estar presentes
+    const botonesAsignar = screen.getAllByRole('button', { name: /Asignar Patrulla/i });
+    expect(botonesAsignar.length).toBeGreaterThan(0);
+
+    // Clic en el primer botón de asignar patrulla
+    fireEvent.click(botonesAsignar[0]);
+
+    // Debe abrirse el modal de asignación de patrulla
+    await waitFor(() => {
+      expect(screen.getByRole('dialog', { name: /Asignar Patrulla Verificadora/i })).toBeDefined();
+    });
+  });
+
+  it('NO muestra el botón "Asignar Patrulla" si el incidente ya está en estado EN_ATENCION o VERIFICANDO', async () => {
+    vi.spyOn(incidentesService, 'obtenerDetalleIncidente').mockResolvedValueOnce({
+      exito: true,
+      datos: mockDetalleIncidente, // estado: EN_ATENCION
+      mensaje: 'OK',
+    });
+
+    render(
+      <IncidenteDetalleDrawer
+        incidenteId="i1000000-0000-4000-8000-000000000001"
+        userId="user-test"
+        onCerrar={vi.fn()}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('INC-2026-0042')).toBeDefined();
+    });
+
+    // En estado EN_ATENCION, no debe estar el botón
+    const btnAsignar = screen.queryByRole('button', { name: /Asignar Patrulla/i });
+    expect(btnAsignar).toBeNull();
   });
 });
