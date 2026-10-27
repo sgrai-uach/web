@@ -12,6 +12,8 @@ import { IncidenteInformanteSection } from './drawer/IncidenteInformanteSection'
 import { IncidenteMisionesSection } from './drawer/IncidenteMisionesSection';
 import { IncidenteRecursosSection } from './drawer/IncidenteRecursosSection';
 import { MisionDetalleModal } from './mision/MisionDetalleModal';
+import { AsignarPatrullaModal } from './patrullas/AsignarPatrullaModal';
+import type { DespacharPatrullaResponseData } from '@/types/misiones';
 import InlineNotice from '@/components/ui/InlineNotice';
 import styles from '@/styles/mando.module.css';
 
@@ -30,6 +32,7 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
   const [cargando, setCargando] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [misionSeleccionadaId, setMisionSeleccionadaId] = useState<string | null>(null);
+  const [modalAsignarPatrullaAbierto, setModalAsignarPatrullaAbierto] = useState<boolean>(false);
 
   useEffect(() => {
     if (!incidenteId) return;
@@ -57,13 +60,43 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
     };
   }, [incidenteId, userId]);
 
+  const handleAsignacionExitosa = (data: DespacharPatrullaResponseData) => {
+    setDetalle((prev) => {
+      if (!prev) return prev;
+      const nuevaMision = {
+        id: data.mision.id,
+        codigo: data.mision.codigo,
+        titulo: data.mision.titulo,
+        tipoMision: data.mision.tipoMision,
+        estado: data.mision.estado,
+        prioridad: prev.prioridad,
+        justificacionRechazo: null,
+        patrulla: {
+          id: data.patrulla.id,
+          nombre: data.patrulla.nombre,
+          estado: data.patrulla.estado,
+        },
+        cuadrilla: null,
+      };
+      return {
+        ...prev,
+        estado: 'VERIFICANDO',
+        misiones: [nuevaMision, ...prev.misiones],
+      };
+    });
+  };
+
   if (!incidenteId) return null;
 
   return (
     <>
       <div className={styles.drawerOverlay} onClick={onCerrar} role="dialog" aria-modal="true">
         <div className={styles.drawerContent} onClick={(e) => e.stopPropagation()}>
-          <IncidenteDetalleHeader detalle={detalle} onCerrar={onCerrar} />
+          <IncidenteDetalleHeader
+            detalle={detalle}
+            onCerrar={onCerrar}
+            onAsignarPatrulla={() => setModalAsignarPatrullaAbierto(true)}
+          />
 
           <div className={styles.drawerBody}>
             {cargando && (
@@ -87,7 +120,9 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
                 <IncidenteInformanteSection detalle={detalle} />
                 <IncidenteMisionesSection
                   misiones={detalle.misiones}
+                  incidenteEstado={detalle.estado}
                   onVerDetalleMision={(misionId) => setMisionSeleccionadaId(misionId)}
+                  onAsignarPatrulla={() => setModalAsignarPatrullaAbierto(true)}
                 />
                 <IncidenteRecursosSection recursos={detalle.recursosAsociados} />
               </>
@@ -101,6 +136,25 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
         misionId={misionSeleccionadaId}
         userId={userId}
         onCerrar={() => setMisionSeleccionadaId(null)}
+      />
+
+      {/* Modal de Asignación de Patrulla Verificadora (HU-20) */}
+      <AsignarPatrullaModal
+        isOpen={modalAsignarPatrullaAbierto}
+        onClose={() => setModalAsignarPatrullaAbierto(false)}
+        incidente={
+          detalle
+            ? {
+                id: detalle.id,
+                codigo: detalle.codigo,
+                tipoAfectacion: detalle.tipoAfectacion,
+                direccion: detalle.direccion,
+                prioridad: detalle.prioridad,
+              }
+            : null
+        }
+        userId={userId}
+        onAsignacionExitosa={handleAsignacionExitosa}
       />
     </>
   );

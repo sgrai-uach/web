@@ -1,0 +1,205 @@
+.backdrop {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(20, 80, 90, 0.65);
+  backdrop-filter: blur(3px);
+  z-index: var(--z-modal-backdrop, 2000);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-4, 16px);
+}
+
+.modalBox {
+  background-color: var(--color-white, #FFFFFF);
+  width: 100%;
+  max-width: 560px;
+  box-shadow: var(--shadow-md, 0 4px 12px rgba(0, 0, 0, 0.15));
+  border: 1px solid var(--border-color-neutral, #DFE3E8);
+  border-radius: var(--radius-none, 0px);
+  z-index: var(--z-modal, 2010);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: fadeInModal 0.2s ease-out;
+}
+
+@keyframes fadeInModal {
+  from {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.modalHeader {
+  background-color: var(--color-primary-teal-dark, #14505A);
+  color: var(--color-white, #FFFFFF);
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 2px solid var(--color-primary-teal, #1B6F7D);
+}
+
+.headerTitleWrapper {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.closeButton {
+  background: transparent;
+  border: none;
+  color: var(--color-white, #FFFFFF);
+  cursor: pointer;
+  padding: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0;
+  transition: opacity 0.15s ease;
+}
+
+.closeButton:hover:not(:disabled) {
+  opacity: 0.8;
+}
+
+.closeButton:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.modalBody {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-height: 75vh;
+  overflow-y: auto;
+}
+
+.incidenteResumenCard {
+  background-color: var(--color-bg-light, #ECEFF3);
+  padding: 12px 16px;
+  border-left: 4px solid var(--color-primary-teal, #1B6F7D);
+  border-radius: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.incidenteHeaderRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.incidenteCodigo {
+  font-weight: 700;
+  color: var(--color-primary-teal-dark, #14505A);
+  font-size: 0.9375rem;
+}
+
+.badgePrioridad {
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  background-color: var(--color-primary-teal, #1B6F7D);
+  color: #FFFFFF;
+  border-radius: 0;
+  text-transform: uppercase;
+}
+
+.incidenteInfoGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  font-size: 0.8125rem;
+  color: var(--color-text-dark, #2B2B2B);
+}
+
+.incidenteLabel {
+  font-weight: 600;
+  color: var(--color-text-muted, #5F676E);
+  display: block;
+}
+
+.formGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.formLabel {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--color-charcoal, #3B3F45);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.selectInput {
+  width: 100%;
+  padding: 10px 12px;
+  font-size: 0.9375rem;
+  font-family: inherit;
+  color: var(--color-text-dark, #2B2B2B);
+  background-color: #FFFFFF;
+  border: 1px solid var(--border-color-neutral, #DFE3E8);
+  border-radius: var(--radius-none, 0px);
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.selectInput:focus {
+  border-color: var(--color-primary-teal, #1B6F7D);
+  box-shadow: 0 0 0 2px rgba(27, 111, 125, 0.2);
+}
+
+.selectInput:disabled {
+  background-color: var(--color-bg-light, #ECEFF3);
+  color: var(--color-text-muted, #5F676E);
+  cursor: not-allowed;
+}
+
+.patrullaPreviewBox {
+  background-color: #F8FAFB;
+  border: 1px solid var(--border-color-neutral, #DFE3E8);
+  padding: 12px 14px;
+  border-radius: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.8125rem;
+}
+
+.patrullaPreviewTitle {
+  font-weight: 700;
+  color: var(--color-primary-teal, #1B6F7D);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.patrullaPreviewRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--color-text-dark, #2B2B2B);
+}
+
+.modalFooter {
+  padding: 16px 20px;
+  background-color: var(--color-bg-light, #ECEFF3);
+  border-top: 1px solid var(--border-color-neutral, #DFE3E8);
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+}
