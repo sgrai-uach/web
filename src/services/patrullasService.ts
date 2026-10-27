@@ -513,9 +513,19 @@ export const patrullasService = {
       };
     }
   },
+
+  /**
+   * Consulta únicamente las patrullas en estado DISPONIBLE para despacho operativo (HU-20).
+   */
+  async listarDisponibles(
+    userId: string = DEFAULT_ENCARGADO_ID
+  ): Promise<ResultadoListarPatrullas> {
+    return patrullasService.listar({ estado: 'DISPONIBLE', limit: 100 }, userId);
+  },
 };
 
 export const listarPatrullas = patrullasService.listar;
+export const listarPatrullasDisponibles = patrullasService.listarDisponibles;
 export const obtenerPatrullaPorId = patrullasService.obtenerPorId;
 export const crearPatrulla = patrullasService.crear;
 export const editarPatrulla = patrullasService.editar;

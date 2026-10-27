@@ -185,3 +185,46 @@ export interface MisionDetalleResponse {
   message: string;
   data: MisionDetalleCompleto;
 }
+
+export interface DespacharPatrullaPayload {
+  incidenteId: string;
+  patrullaId: string;
+  titulo?: string;
+  descripcion?: string;
+  prioridad?: PrioridadMision;
+}
+
+export interface DespacharPatrullaResponseData {
+  mision: {
+    id: string;
+    codigo: string;
+    titulo: string;
+    estado: 'DESPACHADA';
+    tipoMision: 'VERIFICACION';
+  };
+  incidente: {
+    id: string;
+    codigo: string;
+    estado: 'VERIFICANDO';
+  };
+  patrulla: {
+    id: string;
+    nombre: string;
+    estado: 'EN_VERIFICACION';
+  };
+}
+
+export interface DespacharPatrullaResponse {
+  message: string;
+  data: DespacharPatrullaResponseData;
+}
+
+export interface ResultadoDespacharPatrulla {
+  exito: boolean;
+  data?: DespacharPatrullaResponseData;
+  mensaje: string;
+  codigoError?: number;
+  esConflicto?: boolean;
+  esForbidden?: boolean;
+}
+
