@@ -63,7 +63,10 @@ describe('useEncargadoKanbanSocket', () => {
       (socket as unknown as { _trigger: (ev: string) => void })._trigger('connect');
     });
 
+    expect(socket.emit).toHaveBeenCalledWith('join', 'encargado');
     expect(socket.emit).toHaveBeenCalledWith('unirse', 'sala:encargados');
+    expect(socket.emit).toHaveBeenCalledWith('join', 'mapa');
+    expect(socket.emit).toHaveBeenCalledWith('unirse', 'mapa');
   });
 
   it('debe escuchar incidente:creado e invocar el callback onIncidenteCreado', () => {
@@ -145,6 +148,9 @@ describe('useEncargadoKanbanSocket', () => {
     expect(socket.off).toHaveBeenCalledWith('disconnect', expect.any(Function));
     expect(socket.off).toHaveBeenCalledWith('incidente:creado', expect.any(Function));
     expect(socket.off).toHaveBeenCalledWith('incidente:actualizado', expect.any(Function));
+    expect(socket.emit).toHaveBeenCalledWith('leave', 'encargado');
     expect(socket.emit).toHaveBeenCalledWith('salir', 'sala:encargados');
+    expect(socket.emit).toHaveBeenCalledWith('leave', 'mapa');
+    expect(socket.emit).toHaveBeenCalledWith('salir', 'mapa');
   });
 });

@@ -72,7 +72,10 @@ export function useEncargadoKanbanSocket({
 
     const onConnect = () => {
       setConectado(true);
+      socket.emit('join', 'encargado');
       socket.emit('unirse', 'sala:encargados');
+      socket.emit('join', 'mapa');
+      socket.emit('unirse', 'mapa');
     };
 
     const onDisconnect = () => {
@@ -80,7 +83,10 @@ export function useEncargadoKanbanSocket({
     };
 
     if (socket.connected) {
+      socket.emit('join', 'encargado');
       socket.emit('unirse', 'sala:encargados');
+      socket.emit('join', 'mapa');
+      socket.emit('unirse', 'mapa');
       queueMicrotask(() => {
         setConectado(true);
       });
@@ -112,7 +118,10 @@ export function useEncargadoKanbanSocket({
       socket.off('disconnect', onDisconnect);
       socket.off('incidente:creado', handleCreado);
       socket.off('incidente:actualizado', handleActualizado);
+      socket.emit('leave', 'encargado');
       socket.emit('salir', 'sala:encargados');
+      socket.emit('leave', 'mapa');
+      socket.emit('salir', 'mapa');
     };
   }, [enabled]);
 
