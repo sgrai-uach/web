@@ -22,23 +22,9 @@ export const IncidenteMisionesSection: React.FC<IncidenteMisionesSectionProps> =
 }) => {
   return (
     <div className={styles.drawerSection}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
-        <Heading as="h3" variant="h4" color="teal" noMargin>
-          Misiones y Equipos en Terreno ({misiones.length})
-        </Heading>
-        {incidenteEstado === 'REPORTADO' && onAsignarPatrulla && (
-          <Button
-            type="button"
-            variant="primary"
-            size="sm"
-            onClick={onAsignarPatrulla}
-            title="Asignar patrulla verificadora"
-          >
-            <ShieldCheck size={13} style={{ marginRight: '4px' }} />
-            <span>Asignar Patrulla</span>
-          </Button>
-        )}
-      </div>
+      <Heading as="h3" variant="h4" color="teal" style={{ marginBottom: '0.75rem' }}>
+        Misiones y Equipos en Terreno ({misiones.length})
+      </Heading>
       {misiones.length === 0 ? (
         incidenteEstado === 'REPORTADO' ? (
           <div

@@ -14,6 +14,7 @@ import { IncidenteRecursosSection } from './drawer/IncidenteRecursosSection';
 import { MisionDetalleModal } from './mision/MisionDetalleModal';
 import { AsignarPatrullaModal } from './patrullas/AsignarPatrullaModal';
 import type { DespacharPatrullaResponseData } from '@/types/misiones';
+import type { EstadoIncidente } from '@/services/incidentesService';
 import InlineNotice from '@/components/ui/InlineNotice';
 import styles from '@/styles/mando.module.css';
 
@@ -21,12 +22,14 @@ interface IncidenteDetalleDrawerProps {
   incidenteId: string | null;
   userId: string;
   onCerrar: () => void;
+  onIncidenteActualizado?: (incidenteId: string, nuevoEstado: EstadoIncidente) => void;
 }
 
 export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
   incidenteId,
   userId,
   onCerrar,
+  onIncidenteActualizado,
 }) => {
   const [detalle, setDetalle] = useState<IncidenteDetalle | null>(null);
   const [cargando, setCargando] = useState<boolean>(false);
@@ -84,6 +87,9 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
         misiones: [nuevaMision, ...prev.misiones],
       };
     });
+
+    // Notificar al tablero Kanban para mover la tarjeta de inmediato
+    onIncidenteActualizado?.(data.incidente.id, 'VERIFICANDO');
   };
 
   if (!incidenteId) return null;
@@ -95,7 +101,6 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
           <IncidenteDetalleHeader
             detalle={detalle}
             onCerrar={onCerrar}
-            onAsignarPatrulla={() => setModalAsignarPatrullaAbierto(true)}
           />
 
           <div className={styles.drawerBody}>

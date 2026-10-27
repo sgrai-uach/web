@@ -159,7 +159,7 @@ describe('Componente IncidenteDetalleDrawer e integración HU-17', () => {
     expect(screen.getByText('INC-2026-0042')).toBeDefined();
   });
 
-  it('muestra el botón "Asignar Patrulla" cuando el incidente está en estado REPORTADO y abre el modal', async () => {
+  it('muestra el botón "Despachar Patrulla Verificadora" cuando el incidente está en estado REPORTADO y abre el modal', async () => {
     const mockIncidenteReportado: IncidenteDetalle = {
       ...mockDetalleIncidente,
       id: 'inc-reportado-1',
@@ -186,12 +186,12 @@ describe('Componente IncidenteDetalleDrawer e integración HU-17', () => {
       expect(screen.getByText('INC-2026-9999')).toBeDefined();
     });
 
-    // En estado REPORTADO, los botones de asignar patrulla deben estar presentes
-    const botonesAsignar = screen.getAllByRole('button', { name: /Asignar Patrulla/i });
-    expect(botonesAsignar.length).toBeGreaterThan(0);
+    // En estado REPORTADO, el botón de despachar patrulla en la sección inferior debe estar presente
+    const btnDespachar = screen.getByRole('button', { name: /Despachar Patrulla Verificadora/i });
+    expect(btnDespachar).toBeDefined();
 
-    // Clic en el primer botón de asignar patrulla
-    fireEvent.click(botonesAsignar[0]);
+    // Clic en el botón de despachar patrulla
+    fireEvent.click(btnDespachar);
 
     // Debe abrirse el modal de asignación de patrulla
     await waitFor(() => {
@@ -199,7 +199,7 @@ describe('Componente IncidenteDetalleDrawer e integración HU-17', () => {
     });
   });
 
-  it('NO muestra el botón "Asignar Patrulla" si el incidente ya está en estado EN_ATENCION o VERIFICANDO', async () => {
+  it('NO muestra el botón "Despachar Patrulla Verificadora" si el incidente ya está en estado EN_ATENCION o VERIFICANDO', async () => {
     vi.spyOn(incidentesService, 'obtenerDetalleIncidente').mockResolvedValueOnce({
       exito: true,
       datos: mockDetalleIncidente, // estado: EN_ATENCION
@@ -219,7 +219,7 @@ describe('Componente IncidenteDetalleDrawer e integración HU-17', () => {
     });
 
     // En estado EN_ATENCION, no debe estar el botón
-    const btnAsignar = screen.queryByRole('button', { name: /Asignar Patrulla/i });
-    expect(btnAsignar).toBeNull();
+    const btnDespachar = screen.queryByRole('button', { name: /Despachar Patrulla/i });
+    expect(btnDespachar).toBeNull();
   });
 });

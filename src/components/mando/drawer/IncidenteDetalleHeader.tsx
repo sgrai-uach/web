@@ -10,13 +10,11 @@ import styles from '@/styles/mando.module.css';
 interface IncidenteDetalleHeaderProps {
   detalle: IncidenteDetalle | null;
   onCerrar: () => void;
-  onAsignarPatrulla?: () => void;
 }
 
 export const IncidenteDetalleHeader: React.FC<IncidenteDetalleHeaderProps> = ({
   detalle,
   onCerrar,
-  onAsignarPatrulla,
 }) => {
   return (
     <div className={styles.drawerHeader}>
@@ -41,32 +39,16 @@ export const IncidenteDetalleHeader: React.FC<IncidenteDetalleHeaderProps> = ({
         )}
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-        {detalle?.estado === 'REPORTADO' && onAsignarPatrulla && (
-          <Button
-            type="button"
-            variant="primary"
-            size="sm"
-            onClick={onAsignarPatrulla}
-            title="Asignar patrulla verificadora"
-            aria-label="Asignar patrulla verificadora al incidente"
-          >
-            <ShieldCheck size={15} style={{ marginRight: '4px' }} />
-            <span>Asignar Patrulla</span>
-          </Button>
-        )}
-
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          className={styles.drawerCloseBtn}
-          onClick={onCerrar}
-          aria-label="Cerrar panel de detalle"
-        >
-          <X size={20} />
-        </Button>
-      </div>
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        className={styles.drawerCloseBtn}
+        onClick={onCerrar}
+        aria-label="Cerrar panel de detalle"
+      >
+        <X size={20} />
+      </Button>
     </div>
   );
 };
