@@ -30,6 +30,14 @@ describe('Middleware de Autenticación y Perímetro de Portales', () => {
     expect(middleware(reqSeguimiento).status).toBe(200);
   });
 
+  it('debe permitir acceso libre a rutas públicas de recuperación de contrasena sin cookie de sesión', () => {
+    const reqRecuperar = createMockRequest('http://localhost:3000/recuperar-contrasena');
+    expect(middleware(reqRecuperar).status).toBe(200);
+
+    const reqRestablecer = createMockRequest('http://localhost:3000/restablecer-contrasena?token=test123');
+    expect(middleware(reqRestablecer).status).toBe(200);
+  });
+
   it('debe redirigir al portal ciudadano ante solicitudes a rutas informantes heredadas', () => {
     const reqReportar = createMockRequest('http://localhost:3000/reportar');
     const resReportar = middleware(reqReportar);

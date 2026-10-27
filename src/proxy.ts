@@ -12,7 +12,13 @@ import { AUTH_COOKIE_NAME } from '@/lib/utils/cookieUtils';
  * Todo el resto del sistema (/gestion/* y herramientas operativas) requiere sesión obligatoria.
  */
 function esRutaPublica(pathname: string): boolean {
-  if (pathname === '/' || pathname === '/login' || pathname === '/ciudadania') {
+  if (
+    pathname === '/' ||
+    pathname === '/login' ||
+    pathname === '/recuperar-contrasena' ||
+    pathname === '/restablecer-contrasena' ||
+    pathname === '/ciudadania'
+  ) {
     return true;
   }
   if (pathname.startsWith('/ciudadania/')) {
