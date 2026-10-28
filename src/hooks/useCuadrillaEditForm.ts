@@ -208,13 +208,13 @@ export function useCuadrillaEditForm({
       const existe = prev.find((r) => r.recursoId === recurso.id);
       if (existe) {
         if (recurso.esIndividual) return prev; // No sumar más de 1 en individuales
-        const maxPermitido = existe.maxDisponible || recurso.cantidadDisponible;
+        const maxPermitido = existe.maxDisponible || recurso.cantidadDisponible || 1;
         const nuevaCantidad = Math.min(existe.cantidad + cantidad, maxPermitido);
         return prev.map((r) =>
           r.recursoId === recurso.id ? { ...r, cantidad: Math.max(1, nuevaCantidad) } : r
         );
       }
-      const maxPermitido = recurso.esIndividual ? 1 : Math.max(1, recurso.cantidadDisponible);
+      const maxPermitido = recurso.esIndividual ? 1 : Math.max(1, recurso.cantidadDisponible ?? 1);
       return [
         ...prev,
         {

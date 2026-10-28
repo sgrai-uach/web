@@ -25,6 +25,8 @@ import type {
   MetaPaginacionCuadrillas,
 } from '@/types/cuadrilla';
 
+type HttpGetFn = <T>(url: string, init?: unknown) => Promise<{ data?: T; error?: unknown; response: Response }>;
+
 export class CuadrillaServiceError extends Error {
   public status?: number;
   public codigo?: string;
@@ -716,8 +718,8 @@ export const cuadrillasService = {
     const estado = filtros?.estado;
 
     try {
-      const { data, response } = await apiClient.GET(
-        '/api/cuadrillas' as unknown as Parameters<typeof apiClient.GET>[0],
+      const { data, response } = await (apiClient.GET as unknown as HttpGetFn)<ListarCuadrillasApiResponse>(
+        '/api/cuadrillas',
         {
           params: {
             query: {
@@ -727,20 +729,19 @@ export const cuadrillasService = {
               delegacionId: delegacionId || undefined,
               estado: estado || undefined,
             },
-          } as unknown as Parameters<typeof apiClient.GET>[1],
+          },
         }
       );
 
       if (response && response.ok && data) {
-        const resp = data as unknown as ListarCuadrillasApiResponse;
-        if (resp && Array.isArray(resp.data)) {
+        if (Array.isArray(data.data)) {
           return {
-            cuadrillas: resp.data,
-            meta: resp.meta || {
-              total: resp.data.length,
+            cuadrillas: data.data,
+            meta: data.meta || {
+              total: data.data.length,
               pagina,
               limite,
-              paginasTotales: Math.ceil(resp.data.length / limite) || 1,
+              paginasTotales: Math.ceil(data.data.length / limite) || 1,
             },
           };
         }
@@ -791,15 +792,12 @@ export const cuadrillasService = {
    */
   async obtenerCuadrillaPorId(id: string): Promise<CuadrillaDetalle> {
     try {
-      const { data, response } = await apiClient.GET(
-        `/api/cuadrillas/${id}` as unknown as Parameters<typeof apiClient.GET>[0]
+      const { data, response } = await (apiClient.GET as unknown as HttpGetFn)<DetalleCuadrillaApiResponse>(
+        `/api/cuadrillas/${id}`
       );
 
-      if (response && response.ok && data) {
-        const resp = data as unknown as DetalleCuadrillaApiResponse;
-        if (resp && resp.data) {
-          return resp.data;
-        }
+      if (response && response.ok && data?.data) {
+        return data.data;
       }
     } catch {
       // Continuar al fallback
@@ -924,30 +922,31 @@ export const cuadrillasService = {
    */
   async obtenerRecursosDisponibles(): Promise<RecursoInventarioDisponible[]> {
     try {
-      const { data, response } = await apiClient.GET(
-        '/api/recursos' as unknown as Parameters<typeof apiClient.GET>[0],
+      interface RecursoRawApi {
+        id: string;
+        nombre: string;
+        tipo: string;
+        esIndividual?: boolean;
+        cantidadDisponible?: number;
+        cantidadTotal?: number;
+        unidadMedida?: string;
+        delegacionNombre?: string;
+        delegacion?: { nombre?: string };
+      }
+
+      const { data, response } = await (apiClient.GET as unknown as HttpGetFn)<{ data?: RecursoRawApi[] }>(
+        '/api/recursos',
         {
           params: {
             query: {
               estado: 'DISPONIBLE',
               limite: 100,
             },
-          } as unknown as Parameters<typeof apiClient.GET>[1],
+          },
         }
       );
 
       if (response && response.ok && data?.data && Array.isArray(data.data)) {
-        interface RecursoRawApi {
-          id: string;
-          nombre: string;
-          tipo: string;
-          esIndividual?: boolean;
-          cantidadDisponible?: number;
-          cantidadTotal?: number;
-          unidadMedida?: string;
-          delegacionNombre?: string;
-          delegacion?: { nombre?: string };
-        }
         return (data.data as unknown as RecursoRawApi[]).map((r) => ({
           id: r.id,
           nombre: r.nombre,
