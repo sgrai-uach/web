@@ -45,7 +45,7 @@ export interface PersonalCandidatoDelegado {
   rut: string;
   email: string;
   rolNombre: string;
-  rolCodigo: string;
+  rolCodigo?: string | null;
   delegacionNombre?: string;
   estadoOperativo?: string;
 }

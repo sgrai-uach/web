@@ -4,6 +4,7 @@
  */
 
 import apiClient from '@/lib/api/client';
+import { getAuthCookie } from '@/lib/utils/cookieUtils';
 import { catalogosService } from '@/services/catalogosService';
 import type {
   CrearCuadrillaDTO,
@@ -226,12 +227,16 @@ export const cuadrillasService = {
   async obtenerCandidatosDelegados(busqueda?: string): Promise<PersonalCandidatoDelegado[]> {
     try {
       const q = busqueda?.trim();
+      const token = getAuthCookie();
 
       // Consulta directa al backend mediante apiClient
       const { data, response } = await apiClient.GET('/api/personal', {
         params: {
           query: {
             q: q || undefined,
+          },
+          header: {
+            authorization: token ? `Bearer ${token}` : '',
           },
         },
       });

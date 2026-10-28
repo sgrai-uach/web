@@ -6,6 +6,7 @@ import { useEmpleadoForm } from '@/hooks/useEmpleadoForm';
 import EmpleadoFormHeader from './EmpleadoFormHeader';
 import EmpleadoDatosBasicosSection from './EmpleadoDatosBasicosSection';
 import EmpleadoCuentaRolSection from './EmpleadoCuentaRolSection';
+import EmpleadoDisponibilidadSection from './EmpleadoDisponibilidadSection';
 import EmpleadoTerrenoSection from './EmpleadoTerrenoSection';
 import EmpleadoFormActions from './EmpleadoFormActions';
 import InlineNotice from '@/components/ui/InlineNotice';
@@ -51,6 +52,10 @@ export default function EmpleadoFormulario({
     setEspecialidad,
     cargo,
     setCargo,
+    estadoOperativo,
+    setEstadoOperativo,
+    disponibleTerreno,
+    setDisponibleTerreno,
     esRolTerreno,
     guardando,
     mensajeExito,
@@ -115,6 +120,14 @@ export default function EmpleadoFormulario({
         setFechaSalida={setFechaSalida}
         roles={catalogos.roles}
         delegaciones={catalogos.delegaciones}
+      />
+
+      <EmpleadoDisponibilidadSection
+        estadoOperativo={estadoOperativo}
+        setEstadoOperativo={setEstadoOperativo}
+        esRolTerreno={esRolTerreno}
+        disponibleTerreno={disponibleTerreno}
+        setDisponibleTerreno={setDisponibleTerreno}
       />
 
       {esRolTerreno && (
