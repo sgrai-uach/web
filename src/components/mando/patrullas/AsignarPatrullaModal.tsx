@@ -276,7 +276,7 @@ export const AsignarPatrullaModal: React.FC<AsignarPatrullaModalProps> = ({
                 </label>
                 <button
                   type="button"
-                  onClick={cargarPatrullasDisponibles}
+                  onClick={() => cargarPatrullasDisponibles()}
                   disabled={cargandoPatrullas || despachando}
                   style={{
                     background: 'none',

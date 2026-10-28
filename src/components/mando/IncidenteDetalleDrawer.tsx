@@ -70,6 +70,7 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
         id: data.mision.id,
         codigo: data.mision.codigo,
         titulo: data.mision.titulo,
+        descripcion: null,
         tipoMision: data.mision.tipoMision,
         estado: data.mision.estado,
         prioridad: prev.prioridad,
@@ -80,6 +81,9 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
           estado: data.patrulla.estado,
         },
         cuadrilla: null,
+        fechaInicio: null,
+        fechaCierre: null,
+        creadoEn: new Date().toISOString(),
       };
       return {
         ...prev,
