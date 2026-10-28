@@ -29,7 +29,7 @@ Esta funcionalidad conforma las unidades pesadas indispensables para ejecutar fa
 ### Paso 1: Ingreso al Formulario de Alta
 1. En la barra lateral de navegación (`AppSidebar`), bajo el grupo **Administración**, hacer clic en **"Cuadrillas"** (o navegar a `/gestion/admin/cuadrillas/nuevo`).
 2. El sistema cargará el formulario institucional con la miga de pan:
-   `Inicio › Administración › Centro de Mando › Nueva Cuadrilla`.
+   `Inicio › Administración › Cuadrillas › Nueva Cuadrilla`.
 
 ---
 
@@ -39,19 +39,19 @@ El formulario solicita los siguientes campos obligatorios:
 
 | Campo | Tipo | Requisitos y Formato | Comportamiento |
 |---|---|---|---|
-| **Nombre de la Cuadrilla** | Texto | Obligatorio. Mínimo 3 caracteres, máximo 100. | Debe ser único en todo el sistema (ej. *"Cuadrilla Vías y Calles"*, *"Cuadrilla Despeje Norte"*). La verificación es insensible a mayúsculas y espacios. |
+| **Nombre de la Cuadrilla** | Texto | Obligatorio. Mínimo 3 caracteres, máximo 100. | Debe ser único en todo el sistema (ej. *"Cuadrilla Vías y Calles"*, *"Cuadrilla Despeje Norte"*). Los espacios redundantes se normalizan automáticamente. |
 | **Delegación Municipal Base** | Selector | Obligatorio. Debe pertenecer a las delegaciones comunales activas. | Opciones estándar: *Norte*, *Sur*, *Costa* o *Calle Calle*. Define la base física y jurisdicción primaria de la unidad. |
-| **Delegado Responsable de Cuadrilla** | Buscador / Selector | Obligatorio. Funcionario activo de terreno con rol de Brigadista. | Permite buscar interactivamente ingresando **Nombre, Apellido o RUT**. Filtra exclusivamente personal con rol de **Brigadista**. |
+| **Delegado Responsable de Cuadrilla** | Buscador / Selector | Obligatorio. Funcionario activo de terreno con rol de Delegado de Cuadrilla o Brigadista. | Permite buscar interactivamente ingresando **Nombre, Apellido o RUT**. Filtra personal con rol de **Delegado de Cuadrilla** o **Brigadista**. |
 
 ---
 
-### Paso 3: Asignación y Selección del Brigadista Responsable
+### Paso 3: Asignación y Selección del Responsable
 1. En el campo de búsqueda de delegado, comience a escribir el nombre o RUT del funcionario.
-2. El sistema desplegará de forma inmediata a los brigadistas activos disponibles indicando su RUT, rol y delegación.
-3. Haga clic sobre el brigadista deseado. El sistema fijará al funcionario en una tarjeta destacada con la opción *"Cambiar Delegado"* en caso de requerir rectificación.
+2. El sistema desplegará de forma inmediata a los delegados y brigadistas activos disponibles indicando su RUT, rol y delegación.
+3. Haga clic sobre el funcionario deseado. El sistema fijará al funcionario en una tarjeta destacada con la opción *"Cambiar Delegado"* en caso de requerir rectificación.
 
 > [!NOTE]
-> **Asignación de Responsable:** Al guardar la cuadrilla, el funcionario seleccionado (con rol actual de Brigadista) será designado automáticamente como Delegado de Cuadrilla, permitiéndole coordinar la unidad en terreno desde su dispositivo móvil.
+> **Asignación de Responsable:** Al guardar la cuadrilla, el funcionario seleccionado asumirá la función de Delegado de Cuadrilla, permitiéndole coordinar la unidad en terreno desde su dispositivo móvil.
 
 ---
 
@@ -64,7 +64,7 @@ El formulario solicita los siguientes campos obligatorios:
    * Nombre, RUT y correo del Delegado responsable.
    * Estado operativo inicial canónico: **`DISPONIBLE`**.
 4. En esta pantalla se presentan dos acciones directas:
-   * **"Ir al Centro de Mando"** (Botón primario): Dirige a `/gestion/centro-incidentes` para visualizar la cuadrilla lista para despacho táctico.
+   * **"Ir al Listado de Cuadrillas"** (Botón primario): Dirige a `/gestion/admin/cuadrillas` para consultar las unidades registradas.
    * **"Registrar Otra Cuadrilla"** (Botón secundario): Limpia el formulario para dar de alta otra unidad.
 
 ---

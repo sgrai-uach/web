@@ -3,7 +3,7 @@
  * Se comunica con sgrai-api vía apiClient / openapi-fetch.
  */
 
-import apiClient from '@/lib/api/client';
+import apiClient, { DEFAULT_ADMIN_USER_ID } from '@/lib/api/client';
 import { getAuthCookie } from '@/lib/utils/cookieUtils';
 import { catalogosService } from '@/services/catalogosService';
 import type {
@@ -81,6 +81,16 @@ export function formatearNombreRol(codigo?: string | null, nombre?: string | nul
  */
 export const CANDIDATOS_DELEGADOS_FALLBACK: PersonalCandidatoDelegado[] = [
   {
+    id: '00000000-0000-4000-8000-000000000005',
+    nombreCompleto: 'Carlos Mendoza Silva',
+    rut: '14.567.890-1',
+    email: 'carlos.mendoza@valdivia.cl',
+    rolNombre: 'Delegado de Cuadrilla',
+    rolCodigo: 'DELEGADO_CUADRILLA',
+    delegacionNombre: 'Centro',
+    estadoOperativo: 'disponible',
+  },
+  {
     id: '00000000-0000-4000-8000-000000000006',
     nombreCompleto: 'Andrés Morales Ríos',
     rut: '16.789.012-3',
@@ -127,24 +137,32 @@ export const cuadrillasService = {
    * Envía la solicitud para dar de alta una nueva cuadrilla operativa en sgrai-api.
    * Maneja errores semánticos (409 colisión de nombre, 400 validación, 403 permisos).
    */
-  async crearCuadrilla(payload: CrearCuadrillaDTO): Promise<CuadrillaCreada> {
+  async crearCuadrilla(
+    payload: CrearCuadrillaDTO,
+    userId: string = DEFAULT_ADMIN_USER_ID
+  ): Promise<CuadrillaCreada> {
     try {
-      const { data, error, response } = await apiClient.POST(
-        '/api/cuadrillas' as unknown as Parameters<typeof apiClient.POST>[0],
-        {
-          body: {
-            nombre: payload.nombre.trim(),
-            delegacionId: payload.delegacionId,
-            usuarioDelegadoId: payload.usuarioDelegadoId,
-          } as unknown as Parameters<typeof apiClient.POST>[1]['body'],
-        } as unknown as Parameters<typeof apiClient.POST>[1]
-      );
+      const token = getAuthCookie();
+      const nombreNormalizado = payload.nombre.trim().replace(/\s+/g, ' ');
+
+      const { data, error, response } = await apiClient.POST('/api/cuadrillas', {
+        params: {
+          header: {
+            authorization: token ? `Bearer ${token}` : '',
+            'x-user-id': userId,
+          },
+        },
+        body: {
+          nombre: nombreNormalizado,
+          delegacionId: payload.delegacionId,
+          usuarioDelegadoId: payload.usuarioDelegadoId,
+        },
+      });
 
       // 1. Manejo explícito de respuesta exitosa (201 Created)
       if (response && response.status === 201) {
-        const resp = data as unknown as CrearCuadrillaApiResponse;
-        if (resp && resp.data) {
-          return resp.data;
+        if (data && 'data' in data && data.data) {
+          return data.data;
         }
       }
 
@@ -253,13 +271,16 @@ export const cuadrillasService = {
             const rolNombre = (emp.rol_nombre || '').toLowerCase();
             const cargo = (emp.cargo || '').toLowerCase();
 
-            // Filtrar exclusivamente personal con rol o cargo de Brigadista
-            const esBrigadista =
+            // Filtrar personal con rol de Delegado de Cuadrilla o Brigadista aptos para coordinar en terreno
+            const esApto =
+              rolCodigo === 'DELEGADO_CUADRILLA' ||
               rolCodigo === 'BRIGADISTA' ||
+              rolNombre.includes('delegad') ||
               rolNombre.includes('brigad') ||
+              cargo.includes('delegad') ||
               cargo.includes('brigad');
 
-            return esBrigadista;
+            return esApto;
           })
           .map((emp) => ({
             id: emp.usuario_id,

@@ -17,13 +17,13 @@ describe('cuadrillasService (H79)', () => {
   };
 
   describe('crearCuadrilla', () => {
-    it('debe registrar exitosamente la cuadrilla cuando la API retorna 201', async () => {
+    it('debe registrar exitosamente la cuadrilla colapsando espacios y enviando cabeceras de identidad', async () => {
       const mockSuccessResponse = {
         message: 'Cuadrilla operativa creada exitosamente',
         data: {
           id: '50000000-0000-4000-8000-000000000001',
           nombre: 'Cuadrilla Vías y Calles',
-          estado: 'DISPONIBLE',
+          estado: 'DISPONIBLE' as const,
           delegacion: {
             id: '30000000-0000-4000-8000-000000000001',
             nombre: 'Delegación Municipal Calle Calle',
@@ -39,18 +39,40 @@ describe('cuadrillasService (H79)', () => {
         },
       };
 
-      vi.spyOn(apiClient, 'POST').mockResolvedValueOnce({
+      const postSpy = vi.spyOn(apiClient, 'POST').mockResolvedValueOnce({
         data: mockSuccessResponse,
         error: null,
         response: new Response(null, { status: 201 }),
       } as unknown as Awaited<ReturnType<typeof apiClient.POST>>);
 
-      const resultado = await cuadrillasService.crearCuadrilla(mockPayload);
+      const resultado = await cuadrillasService.crearCuadrilla(
+        {
+          nombre: '   Cuadrilla    Vías   y    Calles   ',
+          delegacionId: '30000000-0000-4000-8000-000000000001',
+          usuarioDelegadoId: '00000000-0000-4000-8000-000000000005',
+        },
+        'usr-custom-admin'
+      );
 
       expect(resultado.id).toBe('50000000-0000-4000-8000-000000000001');
       expect(resultado.nombre).toBe('Cuadrilla Vías y Calles');
       expect(resultado.estado).toBe('DISPONIBLE');
       expect(resultado.delegado.nombre).toBe('Carlos Operativo');
+
+      // Verifica colapso de espacios redundantes y cabecera de identidad
+      expect(postSpy).toHaveBeenCalledWith(
+        '/api/cuadrillas',
+        expect.objectContaining({
+          params: expect.objectContaining({
+            header: expect.objectContaining({
+              'x-user-id': 'usr-custom-admin',
+            }),
+          }),
+          body: expect.objectContaining({
+            nombre: 'Cuadrilla Vías y Calles',
+          }),
+        })
+      );
     });
 
     it('debe lanzar CuadrillaServiceError con código NOMBRE_DUPLICADO ante 409 Conflict', async () => {
@@ -125,7 +147,7 @@ describe('cuadrillasService (H79)', () => {
   });
 
   describe('obtenerCandidatosDelegados', () => {
-    it('debe filtrar al personal activo operativo de terreno', async () => {
+    it('debe admitir funcionarios activos tanto con rol DELEGADO_CUADRILLA como BRIGADISTA', async () => {
       vi.spyOn(apiClient, 'GET').mockResolvedValueOnce({
         data: {
           data: [
@@ -147,7 +169,7 @@ describe('cuadrillasService (H79)', () => {
               personal_id: 'p-1',
               especialidad: 'Mantenimiento',
               cargo: 'Operario de Vías',
-              estado_operativo: 'disponible',
+              estado_operativo: 'disponible' as const,
               disponible_terreno: true,
             },
             {
@@ -157,10 +179,10 @@ describe('cuadrillasService (H79)', () => {
               apellidos: 'González',
               email: 'maria@valdivia.cl',
               telefono: null,
-              usuario_activo: false, // inactivo
+              usuario_activo: false, // inactivo, debe excluirse
               rol_id: 'r-2',
-              rol_codigo: 'OPERARIO',
-              rol_nombre: 'Operario',
+              rol_codigo: 'DELEGADO_CUADRILLA',
+              rol_nombre: 'Delegado de Cuadrilla',
               delegacion_id: null,
               delegacion_codigo: null,
               delegacion_nombre: null,
@@ -179,6 +201,27 @@ describe('cuadrillasService (H79)', () => {
               rol_codigo: 'INFORMANTE', // informante externo excluido
               rol_nombre: 'Informante',
             },
+            {
+              usuario_id: 'u-4',
+              rut: '44.444.444-4',
+              nombres: 'Carlos',
+              apellidos: 'Mendoza',
+              email: 'carlos.mendoza@valdivia.cl',
+              telefono: '+56944444444',
+              usuario_activo: true,
+              rol_id: 'r-4',
+              rol_codigo: 'DELEGADO_CUADRILLA', // funcionario con rol delegado existente
+              rol_nombre: 'Delegado de Cuadrilla',
+              delegacion_id: 'd-2',
+              delegacion_codigo: 'DEL_SUR',
+              delegacion_nombre: 'Sur',
+              es_personal: true,
+              personal_id: 'p-4',
+              especialidad: 'Coordinación',
+              cargo: 'Delegado',
+              estado_operativo: 'disponible' as const,
+              disponible_terreno: true,
+            },
           ],
         },
         error: null,
@@ -186,9 +229,10 @@ describe('cuadrillasService (H79)', () => {
       } as unknown as Awaited<ReturnType<typeof apiClient.GET>>);
 
       const candidatos = await cuadrillasService.obtenerCandidatosDelegados();
-      expect(candidatos).toHaveLength(1);
-      expect(candidatos[0].id).toBe('u-1');
-      expect(candidatos[0].nombreCompleto).toBe('Juan Pérez');
+      expect(candidatos).toHaveLength(2);
+      expect(candidatos.map((c) => c.id)).toEqual(['u-1', 'u-4']);
+      expect(candidatos[0].rolNombre).toBe('Brigadista');
+      expect(candidatos[1].rolNombre).toBe('Delegado de Cuadrilla');
     });
   });
 });

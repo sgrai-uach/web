@@ -11,9 +11,15 @@ vi.mock('next/navigation', () => ({
   }),
 }));
 
+let mockSocketCallback: ((payload?: unknown) => void) | null = null;
+
 vi.mock('@/lib/socket/client', () => ({
   getSocket: () => ({
-    on: vi.fn(),
+    on: vi.fn((event: string, cb: (payload?: unknown) => void) => {
+      if (event === 'cuadrilla:creada') {
+        mockSocketCallback = cb;
+      }
+    }),
     off: vi.fn(),
   }),
 }));
@@ -30,8 +36,8 @@ describe('CuadrillaForm (H79)', () => {
       nombreCompleto: 'Carlos Silva',
       rut: '15.123.456-7',
       email: 'carlos@valdivia.cl',
-      rolNombre: 'Brigadista',
-      rolCodigo: 'BRIGADISTA',
+      rolNombre: 'Delegado de Cuadrilla',
+      rolCodigo: 'DELEGADO_CUADRILLA',
       delegacionNombre: 'Calle Calle',
     },
     {
@@ -47,6 +53,7 @@ describe('CuadrillaForm (H79)', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockSocketCallback = null;
     vi.spyOn(cuadrillasService, 'obtenerDelegaciones').mockResolvedValue(mockDelegaciones);
     vi.spyOn(cuadrillasService, 'obtenerCandidatosDelegados').mockResolvedValue(mockCandidatos);
   });
@@ -57,7 +64,9 @@ describe('CuadrillaForm (H79)', () => {
     expect(screen.getByRole('heading', { name: /Alta de Cuadrilla Operativa/i })).toBeDefined();
     expect(screen.getByLabelText(/Nombre de la Cuadrilla/i)).toBeDefined();
     expect(screen.getByLabelText(/Delegación Municipal Base/i)).toBeDefined();
-    expect(screen.getByPlaceholderText(/Buscar brigadista por nombre, apellido o RUT/i)).toBeDefined();
+    expect(
+      screen.getByPlaceholderText(/Buscar delegado o brigadista por nombre, apellido o RUT/i)
+    ).toBeDefined();
     expect(screen.getByRole('button', { name: /Guardar Cuadrilla/i })).toBeDefined();
     expect(screen.getByRole('button', { name: /Cancelar/i })).toBeDefined();
 
@@ -83,7 +92,7 @@ describe('CuadrillaForm (H79)', () => {
   it('debe filtrar y permitir seleccionar un delegado usando el buscador', async () => {
     render(<CuadrillaForm />);
 
-    const buscador = screen.getByPlaceholderText(/Buscar brigadista por nombre, apellido o RUT/i);
+    const buscador = screen.getByPlaceholderText(/Buscar delegado o brigadista por nombre, apellido o RUT/i);
 
     // Escribir en el buscador para filtrar
     fireEvent.focus(buscador);
@@ -105,7 +114,7 @@ describe('CuadrillaForm (H79)', () => {
   it('debe completar el flujo exitoso y mostrar la pantalla de confirmación con datos', async () => {
     const mockOnSuccess = vi.fn();
 
-    vi.spyOn(cuadrillasService, 'crearCuadrilla').mockResolvedValueOnce({
+    const crearSpy = vi.spyOn(cuadrillasService, 'crearCuadrilla').mockResolvedValueOnce({
       id: 'cuad-100',
       nombre: 'Cuadrilla Vías y Calles',
       estado: 'DISPONIBLE',
@@ -121,9 +130,9 @@ describe('CuadrillaForm (H79)', () => {
 
     render(<CuadrillaForm onSuccess={mockOnSuccess} />);
 
-    // 1. Ingresar nombre
+    // 1. Ingresar nombre con espacios múltiples para comprobar colapso
     const inputNombre = screen.getByLabelText(/Nombre de la Cuadrilla/i);
-    fireEvent.change(inputNombre, { target: { value: 'Cuadrilla Vías y Calles' } });
+    fireEvent.change(inputNombre, { target: { value: '  Cuadrilla   Vías   y   Calles  ' } });
 
     // 2. Seleccionar delegación
     await waitFor(() => {
@@ -133,7 +142,7 @@ describe('CuadrillaForm (H79)', () => {
     fireEvent.change(selectDelegacion, { target: { value: 'del-calle-calle' } });
 
     // 3. Buscar y seleccionar delegado
-    const buscador = screen.getByPlaceholderText(/Buscar brigadista por nombre, apellido o RUT/i);
+    const buscador = screen.getByPlaceholderText(/Buscar delegado o brigadista por nombre, apellido o RUT/i);
     fireEvent.focus(buscador);
     fireEvent.change(buscador, { target: { value: 'Carlos' } });
     const opcion = await screen.findByText('Carlos Silva');
@@ -143,12 +152,18 @@ describe('CuadrillaForm (H79)', () => {
     const botonGuardar = screen.getByRole('button', { name: /Guardar Cuadrilla/i });
     fireEvent.click(botonGuardar);
 
-    // 5. Verificar pantalla de éxito
+    // 5. Verificar pantalla de éxito y colapso de espacios en la llamada
     await waitFor(() => {
       expect(screen.getByText(/Cuadrilla Operativa Registrada Exitosamente/i)).toBeDefined();
       expect(screen.getByText('Cuadrilla Vías y Calles')).toBeDefined();
       expect(screen.getByText('DISPONIBLE')).toBeDefined();
     });
+
+    expect(crearSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        nombre: 'Cuadrilla Vías y Calles',
+      })
+    );
 
     expect(mockOnSuccess).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -181,7 +196,7 @@ describe('CuadrillaForm (H79)', () => {
       target: { value: 'del-calle-calle' },
     });
 
-    const buscador = screen.getByPlaceholderText(/Buscar brigadista por nombre, apellido o RUT/i);
+    const buscador = screen.getByPlaceholderText(/Buscar delegado o brigadista por nombre, apellido o RUT/i);
     fireEvent.focus(buscador);
     fireEvent.change(buscador, { target: { value: 'Carlos' } });
     const opcion = await screen.findByText('Carlos Silva');
@@ -196,7 +211,7 @@ describe('CuadrillaForm (H79)', () => {
     });
   });
 
-  it('debe redirigir al Centro de Mando al hacer clic en Cancelar', async () => {
+  it('debe redirigir al Listado de Cuadrillas al hacer clic en Cancelar', async () => {
     render(<CuadrillaForm />);
 
     await waitFor(() => {
@@ -206,6 +221,33 @@ describe('CuadrillaForm (H79)', () => {
     const botonCancelar = screen.getByRole('button', { name: /Cancelar/i });
     fireEvent.click(botonCancelar);
 
-    expect(mockPush).toHaveBeenCalledWith('/gestion/centro-incidentes');
+    expect(mockPush).toHaveBeenCalledWith('/gestion/admin/cuadrillas');
+  });
+
+  it('debe reaccionar a evento WebSocket cuadrilla:creada y deseleccionar funcionario asignado concurrentemente', async () => {
+    render(<CuadrillaForm />);
+
+    // Seleccionar a Carlos Silva (usr-1)
+    const buscador = screen.getByPlaceholderText(/Buscar delegado o brigadista por nombre, apellido o RUT/i);
+    fireEvent.focus(buscador);
+    fireEvent.change(buscador, { target: { value: 'Carlos' } });
+    const opcion = await screen.findByText('Carlos Silva');
+    fireEvent.click(opcion);
+
+    expect(screen.getByText('Carlos Silva')).toBeDefined();
+
+    // Simular evento en tiempo real donde otra sesión asigna a usr-1
+    expect(mockSocketCallback).toBeDefined();
+    mockSocketCallback?.({
+      cuadrilla: {
+        usuarioDelegadoId: 'usr-1',
+      },
+    });
+
+    await waitFor(() => {
+      expect(
+        screen.getByText(/El funcionario seleccionado acaba de ser asignado a otra cuadrilla en tiempo real/i)
+      ).toBeDefined();
+    });
   });
 });

@@ -56,3 +56,38 @@ export interface FormErrorCuadrilla {
   usuarioDelegadoId?: string;
   general?: string;
 }
+
+declare module '@/types/api-generated' {
+  interface paths {
+    '/api/cuadrillas': {
+      post: {
+        parameters: {
+          header?: {
+            authorization?: string;
+            'x-user-id'?: string;
+          };
+        };
+        requestBody: {
+          content: {
+            'application/json': {
+              nombre: string;
+              delegacionId: string;
+              usuarioDelegadoId: string;
+            };
+          };
+        };
+        responses: {
+          201: {
+            content: {
+              'application/json': CrearCuadrillaApiResponse;
+            };
+          };
+          400: { content: { 'application/json': unknown } };
+          403: { content: { 'application/json': unknown } };
+          409: { content: { 'application/json': unknown } };
+        };
+      };
+    };
+  }
+}
+

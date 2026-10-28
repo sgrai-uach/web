@@ -81,10 +81,10 @@ export default function NuevaCuadrillaClient() {
         <span style={{ color: 'var(--color-charcoal)' }}>Administración</span>
         <span>&rsaquo;</span>
         <Link
-          href="/gestion/centro-incidentes"
+          href="/gestion/admin/cuadrillas"
           style={{ color: 'var(--color-primary-teal)', fontWeight: 500, textDecoration: 'none' }}
         >
-          Centro de Mando
+          Cuadrillas
         </Link>
         <span>&rsaquo;</span>
         <span style={{ fontWeight: 600, color: 'var(--color-primary-teal-dark)' }}>Nueva Cuadrilla</span>

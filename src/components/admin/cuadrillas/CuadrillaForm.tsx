@@ -140,12 +140,48 @@ export default function CuadrillaForm({ onSuccess, onCancel }: CuadrillaFormProp
     };
   }, [busquedaDelegado]);
 
-  // Suscripción WebSocket para sincronización en tiempo real
+  // Suscripción WebSocket para sincronización en tiempo real ante creación concurrente de cuadrillas
   useEffect(() => {
     try {
       const socket = getSocket();
-      const handler = () => {
-        // Evento recibido en la sala de operaciones
+      const handler = (payload?: {
+        cuadrilla?: { delegado?: { id?: string }; usuarioDelegadoId?: string };
+        delegado?: { id?: string };
+        usuarioDelegadoId?: string;
+      }) => {
+        const delegadoAsignadoId =
+          payload?.cuadrilla?.delegado?.id ||
+          payload?.cuadrilla?.usuarioDelegadoId ||
+          payload?.delegado?.id ||
+          payload?.usuarioDelegadoId;
+
+        if (delegadoAsignadoId) {
+          // Remover del listado local de candidatos disponibles
+          setCandidatos((prev) => prev.filter((c) => c.id !== delegadoAsignadoId));
+
+          // Si el funcionario seleccionado actualmente fue tomado por otra sesión, deseleccionar y alertar
+          setDelegadoSeleccionado((actual) => {
+            if (actual && actual.id === delegadoAsignadoId) {
+              setErrores((prev) => ({
+                ...prev,
+                usuarioDelegadoId:
+                  'El funcionario seleccionado acaba de ser asignado a otra cuadrilla en tiempo real. Por favor seleccione otro responsable.',
+              }));
+              return null;
+            }
+            return actual;
+          });
+        }
+
+        // Refrescar candidatos desde el servidor para garantizar sincronía completa
+        cuadrillasService
+          .obtenerCandidatosDelegados(busquedaDelegado)
+          .then((actualizados) => {
+            setCandidatos(actualizados);
+          })
+          .catch(() => {
+            // Ignorar fallo de sincronización en segundo plano
+          });
       };
 
       socket.on('cuadrilla:creada', handler);
@@ -155,7 +191,7 @@ export default function CuadrillaForm({ onSuccess, onCancel }: CuadrillaFormProp
     } catch {
       // Ignorar fallo de socket en entornos de prueba o sin red
     }
-  }, []);
+  }, [busquedaDelegado]);
 
   // Filtrado reactivo de candidatos por nombre, apellido o RUT
   const candidatosFiltrados = useMemo(() => {
@@ -182,7 +218,7 @@ export default function CuadrillaForm({ onSuccess, onCancel }: CuadrillaFormProp
   const validarFormulario = (): boolean => {
     const nuevosErrores: FormErrorCuadrilla = {};
 
-    const nombreLimpio = nombre.trim();
+    const nombreLimpio = nombre.trim().replace(/\s+/g, ' ');
     if (!nombreLimpio) {
       nuevosErrores.nombre = 'El nombre de la cuadrilla es obligatorio.';
     } else if (nombreLimpio.length < 3) {
@@ -211,12 +247,13 @@ export default function CuadrillaForm({ onSuccess, onCancel }: CuadrillaFormProp
       return;
     }
 
+    const nombreLimpio = nombre.trim().replace(/\s+/g, ' ');
     setGuardando(true);
     setErrores({});
 
     try {
       const creada = await cuadrillasService.crearCuadrilla({
-        nombre: nombre.trim(),
+        nombre: nombreLimpio,
         delegacionId,
         usuarioDelegadoId: delegadoSeleccionado.id,
       });
@@ -254,12 +291,12 @@ export default function CuadrillaForm({ onSuccess, onCancel }: CuadrillaFormProp
     setCuadrillaCreada(null);
   };
 
-  // Navegación al Centro de Mando
-  const handleIrAlCentroDeMando = () => {
+  // Navegación al Listado de Cuadrillas
+  const handleIrAlListadoCuadrillas = () => {
     if (onCancel) {
       onCancel();
     } else {
-      router.push('/gestion/centro-incidentes');
+      router.push('/gestion/admin/cuadrillas');
     }
   };
 
@@ -333,10 +370,10 @@ export default function CuadrillaForm({ onSuccess, onCancel }: CuadrillaFormProp
             <Button
               type="button"
               variant="primary"
-              onClick={handleIrAlCentroDeMando}
+              onClick={handleIrAlListadoCuadrillas}
               icon={<ArrowLeft size={16} />}
             >
-              Ir al Centro de Mando
+              Ir al Listado de Cuadrillas
             </Button>
           </div>
         </div>
@@ -462,7 +499,7 @@ export default function CuadrillaForm({ onSuccess, onCancel }: CuadrillaFormProp
                     type="text"
                     id="buscar-delegado"
                     className={`${styles.searchInput} ${errores.usuarioDelegadoId ? styles.searchInputError : ''}`}
-                    placeholder="Buscar brigadista por nombre, apellido o RUT..."
+                    placeholder="Buscar delegado o brigadista por nombre, apellido o RUT..."
                     value={busquedaDelegado}
                     onFocus={() => setDesplegableAbierto(true)}
                     onChange={(e) => {
@@ -522,17 +559,17 @@ export default function CuadrillaForm({ onSuccess, onCancel }: CuadrillaFormProp
                     ) : (
                       <li className={styles.dropdownEmpty}>
                         {buscandoCandidatos
-                          ? 'Buscando brigadistas disponibles...'
+                          ? 'Buscando personal disponible...'
                           : cargandoCatalogos
-                          ? 'Cargando nómina de brigadistas...'
-                          : 'No se encontraron brigadistas disponibles con ese nombre o RUT.'}
+                          ? 'Cargando nómina de delegados y brigadistas...'
+                          : 'No se encontraron delegados o brigadistas disponibles con ese nombre o RUT.'}
                       </li>
                     )}
                   </ul>
                 )}
 
                 <span className={styles.helperText}>
-                  Seleccione al brigadista que asumirá la coordinación de la cuadrilla en terreno.
+                  Seleccione al funcionario (Delegado de Cuadrilla o Brigadista) que asumirá la coordinación de la cuadrilla en terreno.
                 </span>
               </div>
             )}
@@ -542,7 +579,7 @@ export default function CuadrillaForm({ onSuccess, onCancel }: CuadrillaFormProp
           <div className={styles.noticeBox}>
             <Info size={18} className={styles.noticeIcon} />
             <div>
-              <strong>Asignación de Responsable:</strong> Al guardar la cuadrilla, el funcionario seleccionado (con rol de Brigadista) será designado automáticamente como Delegado de Cuadrilla, permitiéndole coordinar la unidad en terreno desde su dispositivo móvil.
+              <strong>Asignación de Responsable:</strong> Al guardar la cuadrilla, el funcionario seleccionado asumirá la función de Delegado de Cuadrilla, permitiéndole coordinar la unidad en terreno desde su dispositivo móvil.
             </div>
           </div>
 
@@ -551,7 +588,7 @@ export default function CuadrillaForm({ onSuccess, onCancel }: CuadrillaFormProp
             <Button
               type="button"
               variant="outline"
-              onClick={handleIrAlCentroDeMando}
+              onClick={handleIrAlListadoCuadrillas}
               disabled={guardando}
             >
               Cancelar
