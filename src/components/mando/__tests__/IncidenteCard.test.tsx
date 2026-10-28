@@ -61,4 +61,44 @@ describe('IncidenteCard', () => {
 
     expect(handleClick).toHaveBeenCalledTimes(1);
   });
+
+  it('debe renderizar botón "Asignar Patrulla" en estado REPORTADO y llamar onAsignarPatrulla sin propagar', () => {
+    const handleClick = vi.fn();
+    const handleAsignar = vi.fn();
+    render(
+      <IncidenteCard
+        incidente={mockIncidente} // estado: REPORTADO
+        onClick={handleClick}
+        onAsignarPatrulla={handleAsignar}
+      />
+    );
+
+    const btnAsignar = screen.getByRole('button', {
+      name: /Asignar patrulla verificadora al incidente INC-58291045/i,
+    });
+    expect(btnAsignar).toBeDefined();
+
+    fireEvent.click(btnAsignar);
+
+    expect(handleAsignar).toHaveBeenCalledTimes(1);
+    expect(handleAsignar).toHaveBeenCalledWith(mockIncidente);
+    // No debe abrir el drawer (stopPropagation)
+    expect(handleClick).not.toHaveBeenCalled();
+  });
+
+  it('NO debe renderizar botón "Asignar Patrulla" si el incidente ya está en otro estado (ej. VERIFICANDO)', () => {
+    const handleAsignar = vi.fn();
+    render(
+      <IncidenteCard
+        incidente={{ ...mockIncidente, estado: 'VERIFICANDO' }}
+        onClick={vi.fn()}
+        onAsignarPatrulla={handleAsignar}
+      />
+    );
+
+    const btnAsignar = screen.queryByRole('button', {
+      name: /Asignar patrulla verificadora/i,
+    });
+    expect(btnAsignar).toBeNull();
+  });
 });

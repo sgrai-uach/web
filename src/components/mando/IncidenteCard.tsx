@@ -1,18 +1,22 @@
-'use client';
-
 import React from 'react';
-import { MapPin } from 'lucide-react';
+import { MapPin, ShieldCheck } from 'lucide-react';
 import type { IncidenteResumen } from '@/services/incidentesService';
 import { obtenerNombreDelegacion } from '@/lib/utils/delegacionUtils';
 import styles from '@/styles/mando.module.css';
 import Heading from '@/components/ui/Heading';
+import Button from '@/components/ui/Button';
 
 interface IncidenteCardProps {
   incidente: IncidenteResumen;
   onClick: (incidente: IncidenteResumen) => void;
+  onAsignarPatrulla?: (incidente: IncidenteResumen) => void;
 }
 
-export const IncidenteCard: React.FC<IncidenteCardProps> = ({ incidente, onClick }) => {
+export const IncidenteCard: React.FC<IncidenteCardProps> = ({
+  incidente,
+  onClick,
+  onAsignarPatrulla,
+}) => {
   const getPrioridadClass = (prioridad: string) => {
     switch (prioridad) {
       case 'CRITICA':
@@ -82,6 +86,26 @@ export const IncidenteCard: React.FC<IncidenteCardProps> = ({ incidente, onClick
 
         <span>{obtenerNombreDelegacion(incidente.delegacionNombre, 'Sin delegación')}</span>
       </div>
+
+      {incidente.estado === 'REPORTADO' && onAsignarPatrulla && (
+        <div style={{ marginTop: '0.625rem', paddingTop: '0.5rem', borderTop: '1px solid var(--border-color-neutral, #DFE3E8)' }}>
+          <Button
+            type="button"
+            variant="primary"
+            size="sm"
+            onClick={(e) => {
+              e.stopPropagation();
+              onAsignarPatrulla(incidente);
+            }}
+            style={{ width: '100%', justifyContent: 'center' }}
+            title={`Asignar patrulla verificadora al incidente ${incidente.codigo}`}
+            aria-label={`Asignar patrulla verificadora al incidente ${incidente.codigo}`}
+          >
+            <ShieldCheck size={14} style={{ marginRight: '5px' }} />
+            <span>Asignar Patrulla</span>
+          </Button>
+        </div>
+      )}
     </div>
   );
 };

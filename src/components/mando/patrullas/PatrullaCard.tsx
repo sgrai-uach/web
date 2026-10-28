@@ -13,14 +13,22 @@ import {
   Users,
   ExternalLink,
   AlertTriangle,
+  Edit,
+  Eye,
+  Trash2,
 } from 'lucide-react';
 import type { PatrullaVerificadoraDTO, EstadoPatrullaEnum } from '@/types/patrullas';
 import styles from './PanelPatrullas.module.css';
 
-interface PatrullaCardProps {
+export interface PatrullaCardProps {
   patrulla: PatrullaVerificadoraDTO;
   onSelectMision?: (misionId: string) => void;
   onSelectIncidente?: (incidenteId: string) => void;
+  onVerDetalle?: (patrulla: PatrullaVerificadoraDTO) => void;
+  onEditar?: (patrulla: PatrullaVerificadoraDTO) => void;
+  puedeEditar?: boolean;
+  onDesactivar?: (patrulla: PatrullaVerificadoraDTO) => void;
+  puedeDesactivar?: boolean;
 }
 
 const CONFIG_ESTADOS: Record<
@@ -67,12 +75,20 @@ export const PatrullaCard: React.FC<PatrullaCardProps> = ({
   patrulla,
   onSelectMision,
   onSelectIncidente,
+  onVerDetalle,
+  onEditar,
+  puedeEditar = true,
+  onDesactivar,
+  puedeDesactivar = false,
 }) => {
   const configEstado = CONFIG_ESTADOS[patrulla.estado] || CONFIG_ESTADOS.NO_DISPONIBLE;
   const IconoEstado = configEstado.icono;
   const misionActiva = patrulla.misionActiva;
   const tieneMision = Boolean(misionActiva && patrulla.estado !== 'DISPONIBLE');
   const cantIntegrantes = patrulla.integrantes?.length || 0;
+  const estaBloqueada = patrulla.estado === 'EN_VERIFICACION' || Boolean(patrulla.misionActiva);
+  const mensajeBloqueo = 'No es posible editar la patrulla mientras se encuentre en verificación o en misión activa';
+  const mensajeBloqueoDesactivar = 'No es posible desactivar la patrulla mientras se encuentre en verificación o en misión activa';
 
   return (
     <article
@@ -190,6 +206,62 @@ export const PatrullaCard: React.FC<PatrullaCardProps> = ({
             </span>
           )}
         </div>
+
+        {/* Acciones de la Tarjeta (Ver Detalle / Editar Patrulla / Desactivar) */}
+        {(onVerDetalle || onEditar || (onDesactivar && puedeDesactivar)) && (
+          <div className={styles.cardActionsRow} data-testid={`card-actions-${patrulla.id}`}>
+            {onVerDetalle && (
+              <button
+                type="button"
+                className={`${styles.btnCardAction} ${styles.btnCardActionSecondary}`}
+                onClick={() => onVerDetalle(patrulla)}
+                data-testid={`btn-ver-detalle-${patrulla.id}`}
+                title="Ver ficha técnica completa de la patrulla"
+              >
+                <Eye size={13} aria-hidden="true" />
+                <span>Ver Ficha</span>
+              </button>
+            )}
+
+            {onEditar && puedeEditar && (
+              <div
+                title={estaBloqueada ? mensajeBloqueo : undefined}
+                style={{ display: 'inline-block' }}
+              >
+                <button
+                  type="button"
+                  className={`${styles.btnCardAction} ${styles.btnCardActionPrimary}`}
+                  disabled={estaBloqueada}
+                  onClick={() => onEditar(patrulla)}
+                  data-testid={`btn-editar-patrulla-${patrulla.id}`}
+                  aria-label={estaBloqueada ? mensajeBloqueo : 'Editar Patrulla'}
+                >
+                  <Edit size={13} aria-hidden="true" />
+                  <span>Editar</span>
+                </button>
+              </div>
+            )}
+
+            {onDesactivar && puedeDesactivar && (
+              <div
+                title={estaBloqueada ? mensajeBloqueoDesactivar : undefined}
+                style={{ display: 'inline-block' }}
+              >
+                <button
+                  type="button"
+                  className={`${styles.btnCardAction} ${styles.btnCardActionDanger}`}
+                  disabled={estaBloqueada}
+                  onClick={() => onDesactivar(patrulla)}
+                  data-testid={`btn-desactivar-patrulla-${patrulla.id}`}
+                  aria-label={estaBloqueada ? mensajeBloqueoDesactivar : 'Desactivar Patrulla'}
+                >
+                  <Trash2 size={13} aria-hidden="true" />
+                  <span>Desactivar</span>
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </article>
   );

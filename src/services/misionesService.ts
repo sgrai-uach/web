@@ -6,11 +6,14 @@
 
 import apiClient from '@/lib/api/client';
 import { catalogosService } from '@/services/catalogosService';
+import { getAuthCookie } from '@/lib/utils/cookieUtils';
 import type {
   FiltrosMisiones,
   MisionItem,
   MisionDetalleCompleto,
   MisionDetalleResponse,
+  DespacharPatrullaPayload,
+  ResultadoDespacharPatrulla,
 } from '@/types/misiones';
 
 export const DEFAULT_ENCARGADO_ID = '00000000-0000-4000-8000-000000000003';
@@ -230,7 +233,108 @@ export const misionesService = {
       };
     }
   },
+
+  /**
+   * Crea una misión operativa de tipo VERIFICACION y despacha la patrulla seleccionada (HU-20).
+   * Ejecuta POST /api/misiones y maneja casos de éxito (201), conflicto de concurrencia (409)
+   * y control de acceso RBAC (403).
+   */
+  async despacharPatrulla(
+    payload: DespacharPatrullaPayload,
+    userId: string = DEFAULT_ENCARGADO_ID
+  ): Promise<ResultadoDespacharPatrulla> {
+    const incidenteId = payload.incidenteId?.trim();
+    const patrullaId = payload.patrullaId?.trim();
+
+    if (!incidenteId || !patrullaId) {
+      return {
+        exito: false,
+        codigoError: 400,
+        mensaje: 'Debe especificar el incidente y la patrulla verificadora para el despacho.',
+      };
+    }
+
+    try {
+      const token = typeof window !== 'undefined' ? getAuthCookie() : undefined;
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'x-user-id': userId,
+      };
+
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      const res = await fetch('/api/misiones', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          incidenteId,
+          patrullaId,
+          titulo: payload.titulo?.trim() || undefined,
+          descripcion: payload.descripcion?.trim() || undefined,
+          prioridad: payload.prioridad || undefined,
+        }),
+      });
+
+      if (res.status === 403) {
+        return {
+          exito: false,
+          esForbidden: true,
+          codigoError: 403,
+          mensaje: 'No cuenta con el permiso requerido (misiones:asignar) para despachar patrullas.',
+        };
+      }
+
+      if (res.status === 409) {
+        let mensaje =
+          'La patrulla seleccionada ya no se encuentra disponible. Por favor selecciona otra patrulla.';
+        try {
+          const json = await res.json();
+          if (json.message) mensaje = json.message;
+        } catch {
+          // ignore
+        }
+        return {
+          exito: false,
+          esConflicto: true,
+          codigoError: 409,
+          mensaje,
+        };
+      }
+
+      if (!res.ok) {
+        let detalleError = `Error HTTP ${res.status} al despachar patrulla verificadora.`;
+        try {
+          const json = await res.json();
+          if (json.message) detalleError = json.message;
+        } catch {
+          // ignore
+        }
+        return {
+          exito: false,
+          codigoError: res.status,
+          mensaje: detalleError,
+        };
+      }
+
+      const json = await res.json();
+      return {
+        exito: true,
+        data: json.data,
+        mensaje: json.message || 'Misión de verificación creada y patrulla despachada exitosamente.',
+      };
+    } catch {
+      return {
+        exito: false,
+        codigoError: 500,
+        mensaje: 'Error de conexión con el servidor municipal al despachar la patrulla.',
+      };
+    }
+  },
 };
 
 export const obtenerDetalleMision = misionesService.obtenerDetalle;
 export const listarMisiones = misionesService.listar;
+export const despacharPatrullaVerificadora = misionesService.despacharPatrulla;
+

@@ -52,14 +52,23 @@ export interface MisionActivaPatrullaDTO {
   incidenteDireccion?: string | null;
 }
 
+export interface VehiculoPatrullaDTO {
+  id: string;
+  nombre: string;
+  detalles?: Record<string, unknown>;
+  estado: string;
+}
+
 export interface PatrullaVerificadoraDTO {
   id: string;
+  codigo?: string;
   nombre: string;
   estado: EstadoPatrullaEnum;
   latitud?: number | null;
   longitud?: number | null;
   ultimaActualizacionUbicacion?: string | null;
   delegacion?: PatrullaDelegacionDTO | null;
+  vehiculo?: VehiculoPatrullaDTO | null;
   lider?: PatrullaLiderDTO | null;
   integrantes?: PatrullaIntegranteDTO[];
   misionActiva?: MisionActivaPatrullaDTO | null;
@@ -120,3 +129,95 @@ export interface MisionAsignadaSocketPayload {
   incidenteId?: string | null;
   asignadoEn: string;
 }
+
+export interface CrearPatrullaInputDTO {
+  codigo: string;
+  nombre?: string;
+  delegacionId: string;
+  vehiculoId?: string | null;
+  personalIds: string[];
+  usuarioLiderId?: string | null;
+}
+
+export interface CrearPatrullaResponseDTO {
+  message: string;
+  data: PatrullaVerificadoraDTO;
+}
+
+export interface ResultadoCrearPatrulla {
+  exito: boolean;
+  data?: PatrullaVerificadoraDTO;
+  mensaje: string;
+  codigoError?: number;
+  esForbidden?: boolean;
+  esConflicto?: boolean;
+  erroresValidacion?: Array<{ campo: string; mensaje: string }>;
+}
+
+export interface PatrullaCreadaSocketPayload {
+  patrullaId: string;
+  codigo: string;
+  nombre: string;
+  estado: EstadoPatrullaEnum;
+  delegacionId: string;
+  vehiculoId?: string | null;
+  usuarioLiderId?: string | null;
+  creadoEn: string;
+}
+
+export interface EditarPatrullaInputDTO {
+  nombre?: string;
+  delegacionId: string;
+  vehiculoId?: string | null;
+  personalIds: string[];
+  usuarioLiderId?: string | null;
+}
+
+export interface EditarPatrullaResponseDTO {
+  message: string;
+  data: PatrullaVerificadoraDTO;
+}
+
+export interface ResultadoEditarPatrulla {
+  exito: boolean;
+  data?: PatrullaVerificadoraDTO;
+  mensaje: string;
+  codigoError?: number;
+  esForbidden?: boolean;
+  esConflicto?: boolean;
+  erroresValidacion?: Array<{ campo: string; mensaje: string }>;
+}
+
+export interface DesactivarPatrullaDataDTO {
+  id: string;
+  codigo: string;
+  nombre: string;
+  estado: EstadoPatrullaEnum;
+  activo: boolean;
+  eliminadoEn: string;
+  eliminadoPorId: string;
+  vehiculoLiberadoId?: string | null;
+  personalLiberadoIds?: string[];
+}
+
+export interface DesactivarPatrullaResponseDTO {
+  message: string;
+  data: DesactivarPatrullaDataDTO;
+}
+
+export interface ResultadoDesactivarPatrulla {
+  exito: boolean;
+  data?: DesactivarPatrullaDataDTO;
+  mensaje: string;
+  codigoError?: number;
+  esForbidden?: boolean;
+  esConflicto?: boolean;
+}
+
+export interface PatrullaDesactivadaSocketPayload {
+  patrullaId: string;
+  nombre: string;
+  eliminadoPorId: string;
+  eliminadoEn: string;
+}
+

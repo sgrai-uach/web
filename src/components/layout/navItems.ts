@@ -115,6 +115,13 @@ export const NAV_GROUPS: NavGroup[] = [
         requiredPermissions: ['recursos:leer', 'recursos:crear'],
       },
       {
+        id: 'patrullas-admin',
+        label: 'Patrullas Verificadoras',
+        href: '/gestion/admin/patrullas',
+        icon: ShieldCheck,
+        requiredPermissions: ['recursos:leer', 'recursos:crear', 'misiones:leer'],
+      },
+      {
         id: 'puntos-criticos',
         label: 'Puntos Críticos',
         href: '/gestion/admin/puntos-criticos',

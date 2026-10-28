@@ -3,7 +3,7 @@
 import React from 'react';
 import Heading from '@/components/ui/Heading';
 import Button from '@/components/ui/Button';
-import { X } from 'lucide-react';
+import { X, ShieldCheck } from 'lucide-react';
 import type { IncidenteDetalle } from '@/services/incidentesService';
 import styles from '@/styles/mando.module.css';
 
