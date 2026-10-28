@@ -59,7 +59,10 @@ export function useAsistentesSociales(
   }, [pagina, limite, busqueda, delegacionId, estadoOperativo]);
 
   useEffect(() => {
-    fetchData();
+    const timer = setTimeout(() => {
+      fetchData();
+    }, 0);
+    return () => clearTimeout(timer);
   }, [fetchData]);
 
   return {

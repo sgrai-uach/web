@@ -30,7 +30,9 @@ export function useCuadrillas(filtros: FiltrosCuadrillasState): UseCuadrillasRet
   const [error, setError] = useState<string | null>(null);
 
   const filtrosRef = useRef(filtros);
-  filtrosRef.current = filtros;
+  useEffect(() => {
+    filtrosRef.current = filtros;
+  }, [filtros]);
 
   const cargarDatos = useCallback(async () => {
     try {
@@ -47,7 +49,10 @@ export function useCuadrillas(filtros: FiltrosCuadrillasState): UseCuadrillasRet
   }, []);
 
   useEffect(() => {
-    cargarDatos();
+    const timer = setTimeout(() => {
+      cargarDatos();
+    }, 0);
+    return () => clearTimeout(timer);
   }, [cargarDatos, filtros.pagina, filtros.limite, filtros.busqueda, filtros.delegacionId, filtros.estado]);
 
   const actualizarCuadrillaEnLista = useCallback((cuadrillaActualizada: CuadrillaItem) => {

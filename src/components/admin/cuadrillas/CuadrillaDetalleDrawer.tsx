@@ -6,13 +6,10 @@ import {
   HardHat,
   Users,
   Wrench,
-  Calendar,
-  ShieldCheck,
   Pencil,
   AlertCircle,
 } from 'lucide-react';
 import type { CuadrillaItem } from '@/types/cuadrilla';
-import Heading from '@/components/ui/Heading';
 import Button from '@/components/ui/Button';
 
 interface CuadrillaDetalleDrawerProps {

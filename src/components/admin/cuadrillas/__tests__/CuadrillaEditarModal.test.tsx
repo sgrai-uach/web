@@ -199,4 +199,133 @@ describe('CuadrillaEditarModal (H81)', () => {
       expect(screen.getByText('Ya existe otra cuadrilla operativa con el nombre ingresado.')).toBeDefined();
     });
   });
+
+  it('BUG-H81-WEB-02: debe limitar la cantidad de recursos al stock real disponible y agregar atributo max', async () => {
+    const cuadrillaConMaterial: CuadrillaItem = {
+      ...mockCuadrillaDisponible,
+      recursos: [
+        {
+          id: 'cr-mat',
+          recursoId: 'rec-2',
+          nombre: 'Motosierra Stihl MS-382',
+          cantidadAsignada: 2,
+          esIndividual: false,
+        },
+      ],
+    };
+
+    render(
+      <CuadrillaEditarModal
+        isOpen={true}
+        cuadrilla={cuadrillaConMaterial}
+        onCerrar={vi.fn()}
+        onGuardadoExitoso={vi.fn()}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByDisplayValue('2')).toBeDefined();
+    });
+
+    const inputCantidad = screen.getByDisplayValue('2') as HTMLInputElement;
+    expect(inputCantidad.getAttribute('max')).toBe('7'); // 5 disponible + 2 asignada = 7 max
+  });
+
+  it('BUG-H81-WEB-03: ante error 409 CUADRILLA_EN_MISION concurrente, debe bloquear el formulario y deshabilitar guardar', async () => {
+    vi.spyOn(cuadrillasService, 'actualizarCuadrilla').mockRejectedValueOnce(
+      new CuadrillaServiceError(
+        'La cuadrilla fue despachada a una misión activa en terreno.',
+        409,
+        'general',
+        'CUADRILLA_EN_MISION'
+      )
+    );
+
+    render(
+      <CuadrillaEditarModal
+        isOpen={true}
+        cuadrilla={mockCuadrillaDisponible}
+        onCerrar={vi.fn()}
+        onGuardadoExitoso={vi.fn()}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByDisplayValue('Cuadrilla Vías y Despeje Urbano')).toBeDefined();
+    });
+
+    const botonGuardar = screen.getByRole('button', { name: /guardar cambios/i });
+    expect(botonGuardar).not.toBeDisabled();
+    fireEvent.click(botonGuardar);
+
+    await waitFor(() => {
+      expect(botonGuardar).toBeDisabled();
+      expect(screen.getByText(/Modificación Bloqueada \(409 Conflict\)/i)).toBeDefined();
+    });
+  });
+
+  it('BUG-H81-WEB-04: por Norma ICS el Delegado responsable no debe aparecer disponible para agregarse como trabajador', async () => {
+    vi.spyOn(cuadrillasService, 'obtenerPersonalOperativoDisponible').mockResolvedValueOnce([
+      {
+        id: 'per-carlos',
+        usuarioId: 'del-user-1', // Mismo usuarioId que el delegado asignado
+        nombre: 'Carlos Delegado',
+        cargo: 'Brigadista Líder',
+        especialidad: 'Mando',
+        rut: '15.111.222-3',
+        disponibleTerreno: true,
+        estadoOperativo: 'disponible',
+      },
+      {
+        id: 'per-jorge',
+        usuarioId: 'u-jorge',
+        nombre: 'Jorge Almonacid',
+        cargo: 'Operario',
+        especialidad: 'Despeje',
+        rut: '17.333.444-5',
+        disponibleTerreno: true,
+        estadoOperativo: 'disponible',
+      },
+    ]);
+
+    render(
+      <CuadrillaEditarModal
+        isOpen={true}
+        cuadrilla={mockCuadrillaDisponible}
+        onCerrar={vi.fn()}
+        onGuardadoExitoso={vi.fn()}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByDisplayValue('Cuadrilla Vías y Despeje Urbano')).toBeDefined();
+    });
+
+    // En el select de operarios disponibles solo debe estar Jorge Almonacid, no Carlos Delegado
+    const selectTrabajadores = screen.getByRole('combobox', {
+      name: /seleccionar personal operativo disponible/i,
+    });
+    expect(selectTrabajadores.textContent).toContain('Jorge Almonacid');
+    expect(selectTrabajadores.textContent).not.toContain('Carlos Delegado');
+  });
+
+  it('BUG-H81-WEB-05: debe mostrar indicador de carga y deshabilitar botón Guardar mientras cargan catálogos', async () => {
+    // Simular promesa pendiente
+    vi.spyOn(cuadrillasService, 'obtenerDelegaciones').mockImplementationOnce(
+      () => new Promise(() => {}) // never resolves
+    );
+
+    render(
+      <CuadrillaEditarModal
+        isOpen={true}
+        cuadrilla={mockCuadrillaDisponible}
+        onCerrar={vi.fn()}
+        onGuardadoExitoso={vi.fn()}
+      />
+    );
+
+    expect(screen.getByText(/Cargando dotación, catálogo de personal y recursos disponibles/i)).toBeDefined();
+    const botonGuardar = screen.getByRole('button', { name: /guardar cambios/i });
+    expect(botonGuardar).toBeDisabled();
+  });
 });

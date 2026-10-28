@@ -59,6 +59,7 @@ export function useCuadrillaEditForm({
   const [guardando, setGuardando] = useState<boolean>(false);
   const [errores, setErrores] = useState<FormErrorCuadrilla>({});
   const [errorGeneral, setErrorGeneral] = useState<string | null>(null);
+  const [bloqueadoPorConflicto, setBloqueadoPorConflicto] = useState<boolean>(false);
 
   // Carga inicial y precarga de los datos de la cuadrilla a editar
   useEffect(() => {
@@ -67,6 +68,7 @@ export function useCuadrillaEditForm({
     async function cargarCatalogosYDatos() {
       if (!cuadrilla) return;
       try {
+        setBloqueadoPorConflicto(false);
         setCargandoCatalogos(true);
         setErrorGeneral(null);
 
@@ -101,15 +103,22 @@ export function useCuadrillaEditForm({
           });
         }
 
-        // Precargar recursos asignados
+        // Precargar recursos asignados resolviendo stock real
         setRecursosSeleccionados(
-          (cuadrilla.recursos || []).map((r) => ({
-            recursoId: r.recursoId,
-            nombre: r.nombre,
-            cantidad: r.cantidadAsignada,
-            esIndividual: r.esIndividual,
-            maxDisponible: r.esIndividual ? 1 : 99,
-          }))
+          (cuadrilla.recursos || []).map((r) => {
+            const stockDisponible = recursos.find((rec) => rec.id === r.recursoId)?.cantidadDisponible ?? 0;
+            const maxReal = r.esIndividual
+              ? 1
+              : Math.max(r.cantidadAsignada, stockDisponible + r.cantidadAsignada);
+
+            return {
+              recursoId: r.recursoId,
+              nombre: r.nombre,
+              cantidad: r.cantidadAsignada,
+              esIndividual: r.esIndividual,
+              maxDisponible: maxReal,
+            };
+          })
         );
 
         // Precargar trabajadores asignados
@@ -134,22 +143,44 @@ export function useCuadrillaEditForm({
       }
     }
 
-    cargarCatalogosYDatos();
+    const timer = setTimeout(() => {
+      cargarCatalogosYDatos();
+    }, 0);
 
     return () => {
       activo = false;
+      clearTimeout(timer);
     };
   }, [cuadrilla]);
 
-  // Verificar si la cuadrilla está en misión activa
+  // Verificar si la cuadrilla está en misión activa (o si se detectó concurrencia 409)
   const estaEnMision = useMemo(() => {
     if (!cuadrilla) return false;
     const estado = (cuadrilla.estado || '').toUpperCase();
     return estado === 'EN_MISION' || estado === 'EN_TRANSITO' || estado === 'EN_OPERACION';
   }, [cuadrilla]);
 
-  // Gestión de Trabajadores
+  const estaEnMisionEfectivo = estaEnMision || bloqueadoPorConflicto;
+
+  // Asignar Delegado con validación de Norma ICS (remover de operarios si ya estaba)
+  const handleSetDelegadoSeleccionado = useCallback((delegado: PersonalCandidatoDelegado | null) => {
+    setDelegadoSeleccionado(delegado);
+    if (delegado) {
+      setTrabajadoresSeleccionados((prev) => prev.filter((t) => t.usuarioId !== delegado.id));
+    }
+    setErrores((prev) => ({ ...prev, usuarioDelegadoId: undefined, trabajadores: undefined }));
+  }, []);
+
+  // Gestión de Trabajadores (con validación de Norma ICS)
   const agregarTrabajador = useCallback((trabajador: PersonalOperativoDisponible) => {
+    if (delegadoSeleccionado && trabajador.usuarioId === delegadoSeleccionado.id) {
+      setErrores((prev) => ({
+        ...prev,
+        trabajadores: 'Por principio de cadena de mando ICS, el funcionario designado como Delegado no puede asignarse como personal operativo subordinado.',
+      }));
+      return;
+    }
+
     setTrabajadoresSeleccionados((prev) => {
       if (prev.some((t) => t.personalId === trabajador.id)) return prev;
       return [
@@ -165,7 +196,7 @@ export function useCuadrillaEditForm({
       ];
     });
     setErrores((prev) => ({ ...prev, trabajadores: undefined }));
-  }, []);
+  }, [delegadoSeleccionado]);
 
   const removerTrabajador = useCallback((personalId: string) => {
     setTrabajadoresSeleccionados((prev) => prev.filter((t) => t.personalId !== personalId));
@@ -177,18 +208,21 @@ export function useCuadrillaEditForm({
       const existe = prev.find((r) => r.recursoId === recurso.id);
       if (existe) {
         if (recurso.esIndividual) return prev; // No sumar más de 1 en individuales
+        const maxPermitido = existe.maxDisponible || recurso.cantidadDisponible;
+        const nuevaCantidad = Math.min(existe.cantidad + cantidad, maxPermitido);
         return prev.map((r) =>
-          r.recursoId === recurso.id ? { ...r, cantidad: r.cantidad + cantidad } : r
+          r.recursoId === recurso.id ? { ...r, cantidad: Math.max(1, nuevaCantidad) } : r
         );
       }
+      const maxPermitido = recurso.esIndividual ? 1 : Math.max(1, recurso.cantidadDisponible);
       return [
         ...prev,
         {
           recursoId: recurso.id,
           nombre: recurso.nombre,
-          cantidad: recurso.esIndividual ? 1 : cantidad,
+          cantidad: recurso.esIndividual ? 1 : Math.min(cantidad, maxPermitido),
           esIndividual: recurso.esIndividual,
-          maxDisponible: recurso.cantidadInventario,
+          maxDisponible: maxPermitido,
         },
       ];
     });
@@ -205,7 +239,8 @@ export function useCuadrillaEditForm({
       prev.map((r) => {
         if (r.recursoId === recursoId) {
           if (r.esIndividual) return { ...r, cantidad: 1 };
-          return { ...r, cantidad };
+          const cantidadAjustada = r.maxDisponible ? Math.min(cantidad, r.maxDisponible) : cantidad;
+          return { ...r, cantidad: Math.max(1, cantidadAjustada) };
         }
         return r;
       })
@@ -218,7 +253,7 @@ export function useCuadrillaEditForm({
     if (!cuadrilla) return;
 
     // 1. Bloqueo frontal si la cuadrilla está en misión activa
-    if (estaEnMision) {
+    if (estaEnMisionEfectivo) {
       setErrorGeneral('No es posible modificar los datos ni la dotación de una cuadrilla que se encuentra actualmente en misión activa.');
       return;
     }
@@ -235,6 +270,23 @@ export function useCuadrillaEditForm({
 
     if (!delegadoSeleccionado) {
       nuevosErrores.usuarioDelegadoId = 'Debe designar un Delegado responsable de la cuadrilla.';
+    }
+
+    // Validar Norma ICS: Delegado no puede ser subordinado
+    if (
+      delegadoSeleccionado &&
+      trabajadoresSeleccionados.some((t) => t.usuarioId === delegadoSeleccionado.id)
+    ) {
+      nuevosErrores.trabajadores =
+        'Por principio de cadena de mando ICS, el delegado no puede formar parte de la dotación operativa subordinada.';
+    }
+
+    // Validar topes de stock de recursos
+    const recursoExcedido = recursosSeleccionados.find(
+      (r) => r.maxDisponible && r.cantidad > r.maxDisponible
+    );
+    if (recursoExcedido) {
+      nuevosErrores.recursos = `La cantidad asignada para "${recursoExcedido.nombre}" (${recursoExcedido.cantidad}) excede el stock disponible (${recursoExcedido.maxDisponible}).`;
     }
 
     if (Object.keys(nuevosErrores).length > 0 || !delegadoSeleccionado) {
@@ -268,6 +320,11 @@ export function useCuadrillaEditForm({
       onCerrar();
     } catch (err: unknown) {
       if (err instanceof CuadrillaServiceError) {
+        if (err.codigo === 'CUADRILLA_EN_MISION') {
+          setBloqueadoPorConflicto(true);
+          setErrorGeneral('Esta cuadrilla fue asignada a una misión activa en terreno. No es posible modificar sus datos ni su dotación.');
+          return;
+        }
         if (err.campo === 'nombre') {
           setErrores({ nombre: err.message });
         } else if (err.campo === 'recursos') {
@@ -291,7 +348,7 @@ export function useCuadrillaEditForm({
     delegacionId,
     setDelegacionId,
     delegadoSeleccionado,
-    setDelegadoSeleccionado,
+    setDelegadoSeleccionado: handleSetDelegadoSeleccionado,
     recursosSeleccionados,
     trabajadoresSeleccionados,
     delegaciones,
@@ -302,7 +359,7 @@ export function useCuadrillaEditForm({
     guardando,
     errores,
     errorGeneral,
-    estaEnMision,
+    estaEnMision: estaEnMisionEfectivo,
     agregarTrabajador,
     removerTrabajador,
     agregarRecurso,

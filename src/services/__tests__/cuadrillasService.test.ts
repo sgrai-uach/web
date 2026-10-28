@@ -2,7 +2,6 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { cuadrillasService, CuadrillaServiceError } from '../cuadrillasService';
 import apiClient from '@/lib/api/client';
 import { catalogosService } from '@/services/catalogosService';
-import { empleadosService } from '@/services/empleadosService';
 import type { CrearCuadrillaDTO } from '@/types/cuadrilla';
 
 describe('cuadrillasService (H79)', () => {

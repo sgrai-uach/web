@@ -2,7 +2,7 @@
 
 import React, { useState, useCallback, useEffect } from 'react';
 import Link from 'next/link';
-import { Plus, HardHat } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import type {
   CuadrillaItem,
   FiltrosCuadrillasState,
@@ -47,7 +47,6 @@ export default function CuadrillasAdminClient() {
     cuadrillas,
     meta,
     cargando,
-    recargar,
     actualizarCuadrillaEnLista,
   } = useCuadrillas(filtros);
 
@@ -149,11 +148,13 @@ export default function CuadrillasAdminClient() {
           </p>
         </div>
 
-        <Link href="/gestion/admin/cuadrillas/nuevo" style={{ textDecoration: 'none' }}>
-          <Button variant="primary" icon={<Plus size={16} />}>
-            Registrar Nueva Cuadrilla
-          </Button>
-        </Link>
+        {puedeCrear && (
+          <Link href="/gestion/admin/cuadrillas/nuevo" style={{ textDecoration: 'none' }}>
+            <Button variant="primary" icon={<Plus size={16} />}>
+              Registrar Nueva Cuadrilla
+            </Button>
+          </Link>
+        )}
       </div>
 
       {/* Filtros */}

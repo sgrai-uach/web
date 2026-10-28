@@ -7,10 +7,7 @@ import {
   Eye,
   Users,
   Wrench,
-  AlertTriangle,
-  CheckCircle2,
   Clock,
-  ShieldAlert,
 } from 'lucide-react';
 import type { CuadrillaItem, EstadoCuadrilla } from '@/types/cuadrilla';
 import Button from '@/components/ui/Button';

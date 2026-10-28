@@ -716,17 +716,20 @@ export const cuadrillasService = {
     const estado = filtros?.estado;
 
     try {
-      const { data, response } = await (apiClient.GET as any)('/api/cuadrillas', {
-        params: {
-          query: {
-            pagina,
-            limite,
-            q: busqueda || undefined,
-            delegacionId: delegacionId || undefined,
-            estado: estado || undefined,
-          },
-        },
-      });
+      const { data, response } = await apiClient.GET(
+        '/api/cuadrillas' as unknown as Parameters<typeof apiClient.GET>[0],
+        {
+          params: {
+            query: {
+              pagina,
+              limite,
+              q: busqueda || undefined,
+              delegacionId: delegacionId || undefined,
+              estado: estado || undefined,
+            },
+          } as unknown as Parameters<typeof apiClient.GET>[1],
+        }
+      );
 
       if (response && response.ok && data) {
         const resp = data as unknown as ListarCuadrillasApiResponse;
@@ -831,7 +834,7 @@ export const cuadrillasService = {
         return data.data
           .filter((emp) => emp.usuario_activo !== false)
           .map((emp) => ({
-            id: emp.personal_id || (emp as any).id || emp.usuario_id,
+            id: emp.personal_id || ('id' in emp && typeof (emp as { id?: unknown }).id === 'string' ? (emp as { id: string }).id : emp.usuario_id),
             usuarioId: emp.usuario_id,
             nombre: `${emp.nombres} ${emp.apellidos}`.trim(),
             rut: emp.rut,
@@ -921,17 +924,31 @@ export const cuadrillasService = {
    */
   async obtenerRecursosDisponibles(): Promise<RecursoInventarioDisponible[]> {
     try {
-      const { data, response } = await (apiClient.GET as any)('/api/recursos', {
-        params: {
-          query: {
-            estado: 'DISPONIBLE',
-            limite: 100,
-          },
-        },
-      });
+      const { data, response } = await apiClient.GET(
+        '/api/recursos' as unknown as Parameters<typeof apiClient.GET>[0],
+        {
+          params: {
+            query: {
+              estado: 'DISPONIBLE',
+              limite: 100,
+            },
+          } as unknown as Parameters<typeof apiClient.GET>[1],
+        }
+      );
 
       if (response && response.ok && data?.data && Array.isArray(data.data)) {
-        return data.data.map((r: any) => ({
+        interface RecursoRawApi {
+          id: string;
+          nombre: string;
+          tipo: string;
+          esIndividual?: boolean;
+          cantidadDisponible?: number;
+          cantidadTotal?: number;
+          unidadMedida?: string;
+          delegacionNombre?: string;
+          delegacion?: { nombre?: string };
+        }
+        return (data.data as unknown as RecursoRawApi[]).map((r) => ({
           id: r.id,
           nombre: r.nombre,
           tipo: r.tipo,
