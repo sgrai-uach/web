@@ -487,14 +487,32 @@ export const cuadrillasService = {
     try {
       const q = busqueda?.trim();
 
+      interface EmpleadoCandidatoRawApi {
+        usuario_id: string;
+        nombres: string;
+        apellidos: string;
+        rut: string;
+        email: string;
+        rol_codigo?: string | null;
+        rol_nombre?: string | null;
+        delegacion_nombre?: string | null;
+        estado_operativo?: 'disponible' | 'en_mision' | 'en_patrulla' | 'descanso' | 'licencia' | 'inactivo';
+        usuario_activo?: boolean;
+        cargo?: string | null;
+        especialidad?: string | null;
+      }
+
       // Consulta directa al backend mediante apiClient
-      const { data, response } = await apiClient.GET('/api/personal', {
-        params: {
-          query: {
-            q: q || undefined,
+      const { data, response } = await (apiClient.GET as unknown as HttpGetFn)<{ data?: EmpleadoCandidatoRawApi[] }>(
+        '/api/personal',
+        {
+          params: {
+            query: {
+              q: q || undefined,
+            },
           },
-        },
-      });
+        }
+      );
 
       const personal = response.ok && data?.data ? data.data : [];
 
@@ -522,7 +540,7 @@ export const cuadrillasService = {
             rut: emp.rut,
             email: emp.email,
             rolNombre: formatearNombreRol(emp.rol_codigo, emp.rol_nombre),
-            rolCodigo: emp.rol_codigo,
+            rolCodigo: emp.rol_codigo || '',
             delegacionNombre: emp.delegacion_nombre || undefined,
             estadoOperativo: emp.estado_operativo || undefined,
           }));
@@ -818,15 +836,33 @@ export const cuadrillasService = {
   async obtenerPersonalOperativoDisponible(busqueda?: string): Promise<PersonalOperativoDisponible[]> {
     try {
       const q = busqueda?.trim();
-      const { data, response } = await apiClient.GET('/api/personal', {
-        params: {
-          query: {
-            q: q || undefined,
-            estadoOperativo: 'disponible',
-            soloPersonal: 'true',
+      interface PersonalOperativoRawApi {
+        usuario_id: string;
+        personal_id?: string;
+        id?: string;
+        nombres: string;
+        apellidos: string;
+        rut: string;
+        cargo?: string | null;
+        especialidad?: string | null;
+        delegacion_nombre?: string | null;
+        estado_operativo?: string | null;
+        disponible_terreno?: boolean | null;
+        usuario_activo?: boolean;
+      }
+
+      const { data, response } = await (apiClient.GET as unknown as HttpGetFn)<{ data?: PersonalOperativoRawApi[] }>(
+        '/api/personal',
+        {
+          params: {
+            query: {
+              q: q || undefined,
+              estadoOperativo: 'disponible',
+              soloPersonal: true,
+            },
           },
-        },
-      });
+        }
+      );
 
       if (response && response.ok && data?.data && Array.isArray(data.data)) {
         return data.data

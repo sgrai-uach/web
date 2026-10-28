@@ -19,8 +19,17 @@ import {
   RefreshCw,
   Check,
 } from 'lucide-react';
-import type { CatalogosResponse, EmpleadoUsuario } from '@/types/empleados';
+import type { CatalogosResponse, EmpleadoUsuario, EstadoOperativo } from '@/types/empleados';
 import { useRegistrarEmpleado } from '@/hooks/useRegistrarEmpleado';
+
+const ETIQUETAS_ESTADO_OPERATIVO: Record<EstadoOperativo, string> = {
+  disponible: 'Disponible',
+  en_mision: 'En Misión',
+  en_patrulla: 'En Patrulla',
+  descanso: 'Descanso',
+  licencia: 'Licencia',
+  inactivo: 'Inactivo',
+};
 
 export interface RegistrarEmpleadoModalProps {
   isOpen: boolean;
@@ -64,6 +73,8 @@ export default function RegistrarEmpleadoModal({
     setDisponibleTerreno,
     observaciones,
     setObservaciones,
+    estadoOperativo,
+    setEstadoOperativo,
     esRolTerreno,
     guardando,
     errores,
@@ -313,6 +324,26 @@ export default function RegistrarEmpleadoModal({
                 {catalogos.delegaciones.map((d) => (
                   <option key={d.id} value={d.id}>
                     {d.nombre}
+                  </option>
+                ))}
+              </Select>
+            </div>
+
+            <div>
+              <Select
+                id="registro-estado-operativo"
+                label="Estado Operativo (Disponibilidad)"
+                value={estadoOperativo}
+                onChange={(e) => setEstadoOperativo(e.target.value as EstadoOperativo)}
+                helperText="Estado inicial de disponibilidad del funcionario."
+                disabled={guardando}
+              >
+                {(esRolTerreno
+                  ? (['disponible', 'en_mision', 'en_patrulla', 'descanso', 'licencia', 'inactivo'] as EstadoOperativo[])
+                  : (['disponible', 'descanso', 'licencia', 'inactivo'] as EstadoOperativo[])
+                ).map((estado) => (
+                  <option key={estado} value={estado}>
+                    {ETIQUETAS_ESTADO_OPERATIVO[estado]}
                   </option>
                 ))}
               </Select>

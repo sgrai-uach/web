@@ -61,6 +61,10 @@ describe('AdminEmpleadosPage', () => {
       mockCatalogos
     );
     vi.spyOn(empleadosServiceModule.empleadosService, 'getEmpleados').mockResolvedValue([]);
+    vi.spyOn(empleadosServiceModule.empleadosService, 'getEmpleadosPaginado').mockResolvedValue({
+      data: [],
+      meta: { total: 0, page: 1, limit: 10, totalPages: 1, hasNext: false, hasPrev: false },
+    });
   });
 
   it('debe renderizar el título de la página y el botón de acción institucional "+ Nuevo Funcionario"', () => {
@@ -112,7 +116,7 @@ describe('AdminEmpleadosPage', () => {
       personal_id: null,
       especialidad: null,
       cargo: null,
-      estado_operativo: null,
+      estado_operativo: 'disponible',
       disponible_terreno: null,
       observaciones: null,
     };
