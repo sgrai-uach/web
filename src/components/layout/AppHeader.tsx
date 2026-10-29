@@ -9,6 +9,8 @@ export default function AppHeader() {
   const pathname = usePathname();
 
   const getSectionTitle = () => {
+    if (pathname.includes('/admin/patrullas/nuevo')) return 'Registro de Patrulla Verificadora';
+    if (pathname.includes('/admin/patrullas')) return 'Patrullas Verificadoras';
     if (pathname.startsWith('/admin/recursos/nuevo')) return 'Registro de Nuevo Recurso';
     if (pathname.startsWith('/admin/recursos')) return 'Inventario Logístico';
     if (pathname.startsWith('/admin/roles-permisos')) return 'Roles y Permisos';

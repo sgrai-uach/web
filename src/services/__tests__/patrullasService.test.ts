@@ -164,4 +164,241 @@ describe('Servicio de Patrullas Verificadoras (HU-16: Visualizar Patrullas)', ()
     expect(resultado.exito).toBe(false);
     expect(resultado.codigoError).toBe(400);
   });
+
+  describe('patrullasService.crear (HU-83)', () => {
+    const mockPayload = {
+      codigo: 'PV-NORTE-01',
+      nombre: 'Patrulla Rápida Norte 1',
+      delegacionId: '30000000-0000-4000-8000-000000000001',
+      vehiculoId: 'e1000000-0000-4000-8000-000000000002',
+      personalIds: ['b1000000-0000-4000-8000-000000000001'],
+      usuarioLiderId: 'b1000000-0000-4000-8000-000000000001',
+    };
+
+    it('debe registrar una patrulla exitosamente (201 Created)', async () => {
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        status: 201,
+        json: async () => ({
+          message: 'Patrulla verificadora registrada exitosamente.',
+          data: {
+            ...mockPatrulla,
+            codigo: 'PV-NORTE-01',
+            nombre: 'Patrulla Rápida Norte 1',
+            estado: 'DISPONIBLE',
+          },
+        }),
+      });
+      vi.stubGlobal('fetch', mockFetch);
+
+      const res = await patrullasService.crear(mockPayload, DEFAULT_ENCARGADO_ID);
+
+      expect(res.exito).toBe(true);
+      expect(res.data?.codigo).toBe('PV-NORTE-01');
+      expect(res.data?.estado).toBe('DISPONIBLE');
+      expect(mockFetch).toHaveBeenCalledWith(
+        '/api/patrullas',
+        expect.objectContaining({
+          method: 'POST',
+          body: JSON.stringify(mockPayload),
+        })
+      );
+    });
+
+    it('debe manejar error de código duplicado (409 Conflict)', async () => {
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: false,
+        status: 409,
+        json: async () => ({
+          message: 'Ya existe una patrulla registrada con el código PV-NORTE-01.',
+        }),
+      });
+      vi.stubGlobal('fetch', mockFetch);
+
+      const res = await patrullasService.crear(mockPayload);
+
+      expect(res.exito).toBe(false);
+      expect(res.esConflicto).toBe(true);
+      expect(res.codigoError).toBe(409);
+      expect(res.mensaje).toContain('PV-NORTE-01');
+    });
+
+    it('debe manejar error de permisos insuficientes (403 Forbidden)', async () => {
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: false,
+        status: 403,
+      });
+      vi.stubGlobal('fetch', mockFetch);
+
+      const res = await patrullasService.crear(mockPayload);
+
+      expect(res.exito).toBe(false);
+      expect(res.esForbidden).toBe(true);
+      expect(res.codigoError).toBe(403);
+      expect(res.mensaje).toContain('recursos:crear');
+    });
+
+    it('debe manejar error de validación de campos (400 Bad Request)', async () => {
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: false,
+        status: 400,
+        json: async () => ({
+          message: 'Parámetros inválidos.',
+          errors: [{ campo: 'codigo', mensaje: 'El código identificador es obligatorio.' }],
+        }),
+      });
+      vi.stubGlobal('fetch', mockFetch);
+
+      const res = await patrullasService.crear({ ...mockPayload, codigo: '' });
+
+      expect(res.exito).toBe(false);
+      expect(res.codigoError).toBe(400);
+      expect(res.erroresValidacion?.length).toBe(1);
+      expect(res.erroresValidacion?.[0].campo).toBe('codigo');
+    });
+
+    it('debe capturar errores de red o excepciones (500)', async () => {
+      const mockFetch = vi.fn().mockRejectedValue(new Error('Network error'));
+      vi.stubGlobal('fetch', mockFetch);
+
+      const res = await patrullasService.crear(mockPayload);
+
+      expect(res.exito).toBe(false);
+      expect(res.codigoError).toBe(500);
+      expect(res.mensaje).toContain('Error de conexión');
+    });
+  });
+
+  describe('Edición de Patrulla Verificadora (HU-84: PUT /api/patrullas/:id)', () => {
+    const patrullaId = 'f1000000-0000-4000-8000-000000000001';
+    const mockEditPayload = {
+      nombre: 'Patrulla Costa 01 - Reforzada',
+      delegacionId: '30000000-0000-4000-8000-000000000003',
+      vehiculoId: 'e1000000-0000-4000-8000-000000000005',
+      personalIds: ['b1000000-0000-4000-8000-000000000001'],
+      usuarioLiderId: 'c1000000-0000-4000-8000-000000000001',
+    };
+
+    it('debe validar que el identificador de patrulla no esté vacío', async () => {
+      const res = await patrullasService.editar('', mockEditPayload);
+      expect(res.exito).toBe(false);
+      expect(res.codigoError).toBe(400);
+      expect(res.mensaje).toContain('no válido');
+    });
+
+    it('debe modificar exitosamente una patrulla verificadora (200 OK)', async () => {
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          message: 'Patrulla verificadora modificada exitosamente.',
+          data: {
+            ...mockPatrulla,
+            nombre: 'Patrulla Costa 01 - Reforzada',
+            actualizadoEn: '2026-10-26T12:00:00.000Z',
+          },
+        }),
+      });
+      vi.stubGlobal('fetch', mockFetch);
+
+      const res = await patrullasService.editar(patrullaId, mockEditPayload, DEFAULT_ENCARGADO_ID);
+
+      expect(res.exito).toBe(true);
+      expect(res.data?.nombre).toBe('Patrulla Costa 01 - Reforzada');
+      expect(res.mensaje).toContain('modificada exitosamente');
+
+      const urlLlamada = mockFetch.mock.calls[0][0];
+      const opciones = mockFetch.mock.calls[0][1];
+      expect(urlLlamada).toBe(`/api/patrullas/${patrullaId}`);
+      expect(opciones.method).toBe('PUT');
+      expect(opciones.headers['Content-Type']).toBe('application/json');
+      expect(opciones.headers['x-user-id']).toBe(DEFAULT_ENCARGADO_ID);
+      expect(JSON.parse(opciones.body)).toEqual(mockEditPayload);
+    });
+
+    it('debe bloquear la modificación ante estado EN_VERIFICACION o misión activa (409 Conflict)', async () => {
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: false,
+        status: 409,
+        json: async () => ({
+          message:
+            'No es posible modificar la patrulla verificadora mientras se encuentre en misión activa o en verificación.',
+        }),
+      });
+      vi.stubGlobal('fetch', mockFetch);
+
+      const res = await patrullasService.editar(patrullaId, mockEditPayload);
+
+      expect(res.exito).toBe(false);
+      expect(res.esConflicto).toBe(true);
+      expect(res.codigoError).toBe(409);
+      expect(res.mensaje).toContain('No es posible modificar');
+    });
+
+    it('debe manejar denegación por falta de permisos (403 Forbidden)', async () => {
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: false,
+        status: 403,
+        json: async () => ({
+          message: 'Forbidden',
+        }),
+      });
+      vi.stubGlobal('fetch', mockFetch);
+
+      const res = await patrullasService.editar(patrullaId, mockEditPayload);
+
+      expect(res.exito).toBe(false);
+      expect(res.esForbidden).toBe(true);
+      expect(res.codigoError).toBe(403);
+      expect(res.mensaje).toContain('recursos:editar');
+    });
+
+    it('debe manejar error 404 cuando la patrulla no existe', async () => {
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: false,
+        status: 404,
+        json: async () => ({
+          message: 'Patrulla no encontrada.',
+        }),
+      });
+      vi.stubGlobal('fetch', mockFetch);
+
+      const res = await patrullasService.editar(patrullaId, mockEditPayload);
+
+      expect(res.exito).toBe(false);
+      expect(res.codigoError).toBe(404);
+      expect(res.mensaje).toBe('Patrulla no encontrada.');
+    });
+
+    it('debe procesar errores de validación de campos (400 Bad Request)', async () => {
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: false,
+        status: 400,
+        json: async () => ({
+          message: 'Datos inválidos.',
+          errors: [{ campo: 'personalIds', mensaje: 'Debe asignar al menos un funcionario.' }],
+        }),
+      });
+      vi.stubGlobal('fetch', mockFetch);
+
+      const res = await patrullasService.editar(patrullaId, { ...mockEditPayload, personalIds: [] });
+
+      expect(res.exito).toBe(false);
+      expect(res.codigoError).toBe(400);
+      expect(res.erroresValidacion?.length).toBe(1);
+      expect(res.erroresValidacion?.[0].campo).toBe('personalIds');
+    });
+
+    it('debe capturar errores de red o excepciones (500)', async () => {
+      const mockFetch = vi.fn().mockRejectedValue(new Error('Network error'));
+      vi.stubGlobal('fetch', mockFetch);
+
+      const res = await patrullasService.editar(patrullaId, mockEditPayload);
+
+      expect(res.exito).toBe(false);
+      expect(res.codigoError).toBe(500);
+      expect(res.mensaje).toContain('Error de conexión');
+    });
+  });
 });
+
