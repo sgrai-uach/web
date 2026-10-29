@@ -44,7 +44,7 @@ describe('LoginForm', () => {
   });
 
   describe('obtenerRutaPorRol', () => {
-    it('debe mapear cualquier rol a la pantalla de Inicio de Gestión (/gestion)', () => {
+    it('debe mapear cualquier rol de oficina a la pantalla de Inicio de Gestión (/gestion)', () => {
       expect(obtenerRutaPorRol('ADMIN')).toBe('/gestion');
       expect(obtenerRutaPorRol('admin')).toBe('/gestion');
       expect(obtenerRutaPorRol('ENCARGADO')).toBe('/gestion');
@@ -53,6 +53,22 @@ describe('LoginForm', () => {
       expect(obtenerRutaPorRol('ASISTENTE_SOCIAL')).toBe('/gestion');
       expect(obtenerRutaPorRol('SUPERVISOR')).toBe('/gestion');
       expect(obtenerRutaPorRol('OTRO')).toBe('/gestion');
+    });
+
+    it('debe mapear los roles de terreno hacia sus módulos correspondientes en /terreno (PWA)', () => {
+      expect(obtenerRutaPorRol('PATRULLA_VERIFICADORA')).toBe('/terreno/patrulla/misiones');
+      expect(obtenerRutaPorRol('patrulla_verificadora')).toBe('/terreno/patrulla/misiones');
+      expect(obtenerRutaPorRol('DELEGADO_CUADRILLA')).toBe('/terreno/cuadrilla/misiones');
+      expect(obtenerRutaPorRol('delegado_cuadrilla')).toBe('/terreno/cuadrilla/misiones');
+    });
+
+    it('debe respetar returnUrl cuando pertenece a /terreno para roles de terreno', () => {
+      expect(obtenerRutaPorRol('PATRULLA_VERIFICADORA', '/terreno/patrulla/misiones/m-1')).toBe(
+        '/terreno/patrulla/misiones/m-1'
+      );
+      expect(obtenerRutaPorRol('DELEGADO_CUADRILLA', '/terreno/cuadrilla/misiones/m-2')).toBe(
+        '/terreno/cuadrilla/misiones/m-2'
+      );
     });
   });
 
@@ -251,6 +267,54 @@ describe('LoginForm', () => {
       expect(
         screen.getByText(/Su contraseña ha sido restablecida exitosamente\. Inicie sesión con su nueva credencial\./i)
       ).toBeDefined();
+    });
+  });
+
+  describe('Enrutamiento unificado para roles de terreno (PWA /terreno)', () => {
+    it('debe redirigir a /terreno/patrulla/misiones al iniciar sesión con rol PATRULLA_VERIFICADORA', async () => {
+      const mockLogin = vi.fn().mockResolvedValue({
+        id: 'usr-pat-1',
+        rolCodigo: 'PATRULLA_VERIFICADORA',
+        nombre: 'Patrulla Norte',
+      });
+
+      renderLoginForm({ login: mockLogin });
+
+      fireEvent.change(screen.getByLabelText(/Identificador/i), {
+        target: { value: 'patrulla@valdivia.cl' },
+      });
+      fireEvent.change(screen.getByLabelText(/^Contraseña/i), {
+        target: { value: 'Valdivia2026!' },
+      });
+
+      fireEvent.click(screen.getByRole('button', { name: /Ingresar al Sistema/i }));
+
+      await waitFor(() => {
+        expect(mockPush).toHaveBeenCalledWith('/terreno/patrulla/misiones');
+      });
+    });
+
+    it('debe redirigir a /terreno/cuadrilla/misiones al iniciar sesión con rol DELEGADO_CUADRILLA', async () => {
+      const mockLogin = vi.fn().mockResolvedValue({
+        id: 'usr-cuad-1',
+        rolCodigo: 'DELEGADO_CUADRILLA',
+        nombre: 'Delegado Cuadrilla 1',
+      });
+
+      renderLoginForm({ login: mockLogin });
+
+      fireEvent.change(screen.getByLabelText(/Identificador/i), {
+        target: { value: 'cuadrilla@valdivia.cl' },
+      });
+      fireEvent.change(screen.getByLabelText(/^Contraseña/i), {
+        target: { value: 'Valdivia2026!' },
+      });
+
+      fireEvent.click(screen.getByRole('button', { name: /Ingresar al Sistema/i }));
+
+      await waitFor(() => {
+        expect(mockPush).toHaveBeenCalledWith('/terreno/cuadrilla/misiones');
+      });
     });
   });
 });
