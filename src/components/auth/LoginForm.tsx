@@ -20,24 +20,23 @@ import { validarRutChileno } from '@/lib/validations/rut';
 import styles from './LoginForm.module.css';
 
 export const RUTA_INICIO_GESTION = '/gestion';
+export const RUTA_INICIO_TERRENO = '/terreno';
 export const RUTA_TERRENO_PATRULLA = '/terreno/patrulla/misiones';
 export const RUTA_TERRENO_CUADRILLA = '/terreno/cuadrilla/misiones';
 
 export function obtenerRutaPorRol(rolCodigo?: string, returnUrl?: string | null): string {
   const codigo = rolCodigo?.trim().toUpperCase() || '';
 
-  if (codigo === 'PATRULLA_VERIFICADORA' || codigo === 'PATRULLA') {
+  if (
+    codigo === 'PATRULLA_VERIFICADORA' ||
+    codigo === 'PATRULLA' ||
+    codigo === 'DELEGADO_CUADRILLA' ||
+    codigo === 'CUADRILLA'
+  ) {
     if (returnUrl && returnUrl.startsWith('/terreno')) {
       return returnUrl;
     }
-    return RUTA_TERRENO_PATRULLA;
-  }
-
-  if (codigo === 'DELEGADO_CUADRILLA' || codigo === 'CUADRILLA') {
-    if (returnUrl && returnUrl.startsWith('/terreno')) {
-      return returnUrl;
-    }
-    return RUTA_TERRENO_CUADRILLA;
+    return RUTA_INICIO_TERRENO;
   }
 
   // Roles de gestión y oficina se muestran en la pantalla de Inicio de Gestión (/gestion)

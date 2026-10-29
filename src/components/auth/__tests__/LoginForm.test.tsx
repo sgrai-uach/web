@@ -55,11 +55,11 @@ describe('LoginForm', () => {
       expect(obtenerRutaPorRol('OTRO')).toBe('/gestion');
     });
 
-    it('debe mapear los roles de terreno hacia sus módulos correspondientes en /terreno (PWA)', () => {
-      expect(obtenerRutaPorRol('PATRULLA_VERIFICADORA')).toBe('/terreno/patrulla/misiones');
-      expect(obtenerRutaPorRol('patrulla_verificadora')).toBe('/terreno/patrulla/misiones');
-      expect(obtenerRutaPorRol('DELEGADO_CUADRILLA')).toBe('/terreno/cuadrilla/misiones');
-      expect(obtenerRutaPorRol('delegado_cuadrilla')).toBe('/terreno/cuadrilla/misiones');
+    it('debe mapear los roles de terreno hacia el Hub principal en /terreno (PWA)', () => {
+      expect(obtenerRutaPorRol('PATRULLA_VERIFICADORA')).toBe('/terreno');
+      expect(obtenerRutaPorRol('patrulla_verificadora')).toBe('/terreno');
+      expect(obtenerRutaPorRol('DELEGADO_CUADRILLA')).toBe('/terreno');
+      expect(obtenerRutaPorRol('delegado_cuadrilla')).toBe('/terreno');
     });
 
     it('debe respetar returnUrl cuando pertenece a /terreno para roles de terreno', () => {
@@ -271,7 +271,7 @@ describe('LoginForm', () => {
   });
 
   describe('Enrutamiento unificado para roles de terreno (PWA /terreno)', () => {
-    it('debe redirigir a /terreno/patrulla/misiones al iniciar sesión con rol PATRULLA_VERIFICADORA', async () => {
+    it('debe redirigir al Hub principal /terreno al iniciar sesión con rol PATRULLA_VERIFICADORA', async () => {
       const mockLogin = vi.fn().mockResolvedValue({
         id: 'usr-pat-1',
         rolCodigo: 'PATRULLA_VERIFICADORA',
@@ -290,11 +290,11 @@ describe('LoginForm', () => {
       fireEvent.click(screen.getByRole('button', { name: /Ingresar al Sistema/i }));
 
       await waitFor(() => {
-        expect(mockPush).toHaveBeenCalledWith('/terreno/patrulla/misiones');
+        expect(mockPush).toHaveBeenCalledWith('/terreno');
       });
     });
 
-    it('debe redirigir a /terreno/cuadrilla/misiones al iniciar sesión con rol DELEGADO_CUADRILLA', async () => {
+    it('debe redirigir al Hub principal /terreno al iniciar sesión con rol DELEGADO_CUADRILLA', async () => {
       const mockLogin = vi.fn().mockResolvedValue({
         id: 'usr-cuad-1',
         rolCodigo: 'DELEGADO_CUADRILLA',
@@ -313,7 +313,7 @@ describe('LoginForm', () => {
       fireEvent.click(screen.getByRole('button', { name: /Ingresar al Sistema/i }));
 
       await waitFor(() => {
-        expect(mockPush).toHaveBeenCalledWith('/terreno/cuadrilla/misiones');
+        expect(mockPush).toHaveBeenCalledWith('/terreno');
       });
     });
   });
