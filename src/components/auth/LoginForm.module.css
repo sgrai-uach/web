@@ -140,6 +140,11 @@
   width: 100%;
 }
 
+.passwordInputContainer label {
+  line-height: 20px;
+  margin-bottom: 4px;
+}
+
 .passwordInputContainer input {
   padding-right: 44px;
 }
@@ -147,7 +152,7 @@
 .passwordToggleBtn {
   position: absolute;
   right: 1px;
-  top: 23px;
+  top: 24px;
   height: 36px;
   width: 40px;
   background: none;
@@ -220,11 +225,12 @@
 @media (max-width: 768px) {
   .pageContent {
     padding: 20px 12px;
-    align-items: flex-start;
+    align-items: center;
   }
 
   .card {
-    max-width: 100%;
+    max-width: 440px;
+    width: 100%;
     box-shadow: none;
   }
 
@@ -258,8 +264,8 @@
   }
 
   .passwordToggleBtn {
-    top: 23px;
-    height: 46px;
+    top: 24px;
+    height: 48px;
     width: 48px;
   }
 

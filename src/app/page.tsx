@@ -114,7 +114,7 @@ export default function Home() {
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 300px), 1fr))',
             gap: '28px',
           }}
         >
@@ -124,7 +124,7 @@ export default function Home() {
               backgroundColor: 'var(--color-white, #FFFFFF)',
               border: '1px solid var(--border-color-neutral, #DFE3E8)',
               borderTop: '5px solid var(--color-accent-mint, #4FAE9B)',
-              padding: '32px',
+              padding: 'clamp(20px, 4vw, 32px)',
               display: 'flex',
               flexDirection: 'column',
               justifyContent: 'space-between',
@@ -235,7 +235,7 @@ export default function Home() {
               backgroundColor: 'var(--color-white, #FFFFFF)',
               border: '1px solid var(--border-color-neutral, #DFE3E8)',
               borderTop: '5px solid var(--color-primary-teal-dark, #14505A)',
-              padding: '32px',
+              padding: 'clamp(20px, 4vw, 32px)',
               display: 'flex',
               flexDirection: 'column',
               justifyContent: 'space-between',
@@ -345,7 +345,7 @@ export default function Home() {
               backgroundColor: 'var(--color-white, #FFFFFF)',
               border: '1px solid var(--border-color-neutral, #DFE3E8)',
               borderTop: '5px solid var(--color-primary-teal, #1B6F7D)',
-              padding: '32px',
+              padding: 'clamp(20px, 4vw, 32px)',
               display: 'flex',
               flexDirection: 'column',
               justifyContent: 'space-between',
