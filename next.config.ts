@@ -8,7 +8,7 @@ const apiBackendUrl =
 const pwaTerrenoUrl =
   process.env.INTERNAL_PWA_URL ||
   process.env.NEXT_PUBLIC_PWA_URL ||
-  "http://localhost:3001";
+  "http://localhost:3002";
 
 const nextConfig: NextConfig = {
   output: "standalone",
