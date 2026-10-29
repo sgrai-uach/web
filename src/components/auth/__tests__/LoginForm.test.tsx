@@ -124,18 +124,23 @@ describe('LoginForm', () => {
     ).toBeDefined();
   });
 
-  it('debe alternar la visibilidad de la contraseña con el botón de ojo', () => {
+  it('debe alternar la visibilidad de la contraseña con el botón de ojo previo a ingresar', () => {
     renderLoginForm();
 
     const passInput = screen.getByLabelText(/^Contraseña/i) as HTMLInputElement;
+    fireEvent.change(passInput, { target: { value: 'ClaveSecreta123!' } });
+
     const toggleBtn = screen.getByLabelText('Ver contraseña');
 
     expect(passInput.type).toBe('password');
+    expect(passInput.value).toBe('ClaveSecreta123!');
 
+    fireEvent.mouseDown(toggleBtn);
     fireEvent.click(toggleBtn);
     expect(passInput.type).toBe('text');
+    expect(screen.getByLabelText('Ocultar contraseña')).toBeDefined();
 
-    fireEvent.click(toggleBtn);
+    fireEvent.click(screen.getByLabelText('Ocultar contraseña'));
     expect(passInput.type).toBe('password');
   });
 

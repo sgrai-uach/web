@@ -133,29 +133,12 @@
   margin-top: 16px;
 }
 
-.passwordInputContainer {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-}
-
-.passwordInputContainer label {
-  line-height: 20px;
-  margin-bottom: 4px;
-}
-
-.passwordInputContainer input {
-  padding-right: 44px;
-}
-
 .passwordToggleBtn {
-  position: absolute;
-  right: 1px;
-  top: 24px;
+  position: relative;
+  z-index: 6;
   height: 36px;
-  width: 40px;
-  background: none;
+  width: 44px;
+  background: transparent;
   border: none;
   color: var(--color-text-muted, #5F676E);
   cursor: pointer;
@@ -163,6 +146,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  pointer-events: auto;
+  touch-action: manipulation;
   transition: color 0.15s ease;
 }
 
@@ -219,36 +204,65 @@
 
 /* ==========================================================================
    Adaptación Responsiva y Ergonomía de Terreno (Móvil / PWA <= 768px)
+   En móvil el recuadro de login ocupa el 100% de la pantalla.
    Objetivos táctiles >= 48px, tipografía >= 16px en inputs (sin auto-zoom)
    ========================================================================== */
 
+.desktopChrome {
+  display: contents;
+}
+
 @media (max-width: 768px) {
+  .desktopChrome {
+    display: none;
+  }
+
+  .pageMain {
+    min-height: 100vh;
+    min-height: 100dvh;
+    background-color: var(--color-white, #FFFFFF);
+  }
+
   .pageContent {
-    padding: 20px 12px;
-    align-items: center;
+    padding: 0;
+    align-items: stretch;
+    justify-content: stretch;
+    min-height: 100vh;
+    min-height: 100dvh;
   }
 
   .card {
-    max-width: 440px;
+    max-width: 100%;
     width: 100%;
+    min-height: 100vh;
+    min-height: 100dvh;
+    margin: 0;
+    border: none;
     box-shadow: none;
+    display: flex;
+    flex-direction: column;
   }
 
   .header {
-    padding: 16px 20px;
+    padding: 18px 20px;
+    flex-shrink: 0;
   }
 
   .body {
-    padding: 20px 16px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 24px 20px;
   }
 
   .title {
-    font-size: 20px;
+    font-size: 22px;
   }
 
   .instruction {
     font-size: 14px;
-    margin-bottom: 18px;
+    margin-bottom: 20px;
   }
 
   /* Inputs táctiles de 48px y 16px de fuente para evitar zoom automático en móvil */
@@ -259,19 +273,14 @@
     padding: 10px 14px;
   }
 
-  .passwordInputContainer input {
-    padding-right: 48px;
-  }
-
   .passwordToggleBtn {
-    top: 24px;
-    height: 48px;
-    width: 48px;
+    height: 44px;
+    width: 44px;
   }
 
   .forgotPasswordWrapper {
     margin-top: 10px;
-    margin-bottom: 16px;
+    margin-bottom: 18px;
   }
 
   .forgotPasswordLink {
@@ -292,21 +301,18 @@
   }
 
   .footerNotes {
+    margin-top: 28px;
     font-size: 12px;
   }
 }
 
 @media (max-width: 380px) {
-  .pageContent {
-    padding: 12px 8px;
-  }
-
   .header {
-    padding: 14px 12px;
+    padding: 16px 16px;
   }
 
   .logoText {
-    font-size: 19px;
+    font-size: 20px;
   }
 
   .logoSubtitle {
@@ -314,6 +320,6 @@
   }
 
   .body {
-    padding: 16px 12px;
+    padding: 20px 16px;
   }
 }

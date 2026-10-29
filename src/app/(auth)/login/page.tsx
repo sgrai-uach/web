@@ -14,7 +14,9 @@ export const metadata: Metadata = {
 export default function LoginPage() {
   return (
     <main className={styles.pageMain}>
-      <AppHeader />
+      <div className={styles.desktopChrome}>
+        <AppHeader />
+      </div>
 
       {/* Contenedor central responsivo del formulario */}
       <div className={styles.pageContent}>
@@ -29,7 +31,9 @@ export default function LoginPage() {
         </Suspense>
       </div>
 
-      <AppFooter />
+      <div className={styles.desktopChrome}>
+        <AppFooter />
+      </div>
     </main>
   );
 }
