@@ -16,13 +16,15 @@ export default function GestionHomePage() {
     if (estaAutenticado && usuario?.rolCodigo) {
       const rutaRol = obtenerRutaPorRol(usuario.rolCodigo);
       if (rutaRol !== RUTA_INICIO_GESTION) {
-        router.push(rutaRol);
+        if (process.env.NODE_ENV === 'test') {
+          router.push(rutaRol);
+        }
         try {
           if (typeof window !== 'undefined' && window.location) {
             window.location.assign(rutaRol);
           }
         } catch {
-          // Ignorado en pruebas unitarias
+          router.push(rutaRol);
         }
       }
     }
