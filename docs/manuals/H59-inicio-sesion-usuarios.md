@@ -1,8 +1,8 @@
 # Manual de Usuario: H59 — Inicio de Sesión de Usuarios
 
 - **Código de Historia:** H59
-- **Rol Destinatario:** Funcionarios Municipales y Operadores del Sistema (Administrador, Encargado de Operaciones, Operador Call Center, Asistente Social y Supervisor)
-- **Repositorio:** `sgrai-web`
+- **Rol Destinatario:** Funcionarios Municipales, Operadores del Sistema (Administrador, Encargado de Operaciones, Operador Call Center, Asistente Social y Supervisor) y Personal de Terreno (Patrulla Verificadora y Delegado de Cuadrilla)
+- **Repositorio:** `sgrai-web` (Login Unificado con `sgrai-pwa`)
 - **Módulo:** Portal de Autenticación Institucional (`/login`)
 
 ---
@@ -73,10 +73,13 @@ Proporcionar a los funcionarios municipales y operadores del SGRAI una vía de a
    * Si es un RUT, verificará matemáticamente el dígito verificador bajo el algoritmo Módulo 11.
 3. Durante el envío, el botón mostrará el estado **"Ingresando..."** y los campos permanecerán deshabilitados para prevenir envíos duplicados.
 
-### Paso 4: Redirección al Hub de Gestión
-Una vez validada la identidad, el sistema configurará la credencial segura e iniciará la sesión:
-* **Acceso Estándar:** El sistema redirige automáticamente al usuario al **Portal de Gestión (`/gestion`)**, donde se despliega la cuadrícula modular de accesos rápidos (`GestionModulosGrid`) y los widgets de resumen en tiempo real adaptados dinámicamente a los permisos RBAC específicos del rol autenticado.
-* **Redirección por Enlace Previo (`returnUrl`):** Si el usuario había intentado ingresar a una ruta específica protegida (ej. `/gestion/centro-incidentes` o `/gestion/callcenter`), el sistema lo redirigirá directamente a ese recurso tras autenticarse con éxito.
+### Paso 4: Redirección Inteligente según Rol (Hub de Gestión o App de Terreno)
+Una vez validada la identidad, el sistema configurará la credencial segura (`sgrai_auth_token` con `path=/`) e iniciará la sesión redirigiendo al entorno correspondiente:
+* **Roles de Oficina y Gestión (`ADMIN`, `ENCARGADO`, `CALL_CENTER`, `ASISTENTE_SOCIAL`, `SUPERVISOR`):** El sistema redirige automáticamente al **Portal de Gestión (`/gestion`)**, donde se despliega la cuadrícula modular de accesos rápidos (`GestionModulosGrid`) y los widgets de resumen en tiempo real adaptados dinámicamente a los permisos RBAC específicos del rol autenticado.
+* **Roles de Terreno (`PATRULLA_VERIFICADORA` y `DELEGADO_CUADRILLA`):** El sistema redirige automáticamente a la **Aplicación Móvil de Terreno (`sgrai-pwa` en `/terreno`)**:
+  * **Patrulla Verificadora:** $\rightarrow$ `/terreno/patrulla/misiones`
+  * **Delegado de Cuadrilla:** $\rightarrow$ `/terreno/cuadrilla/misiones`
+* **Diseño Responsivo Móvil:** En dispositivos móviles ($\le 768\text{px}$), la pantalla `/login` adapta automáticamente sus campos y botones a una altura táctil mínima de **48px** y fuente de **16px** para facilitar su operación en terreno sin auto-zoom del navegador.
 
 ### Paso 5: Verificación de Sesión y Cierre Seguro
 1. En la esquina superior derecha del encabezado institucional observará el componente **`HeaderUserWidget`**, el cual muestra su nombre, rol y delegación.
