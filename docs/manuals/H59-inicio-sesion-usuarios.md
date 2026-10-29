@@ -57,8 +57,11 @@ Proporcionar a los funcionarios municipales y operadores del SGRAI una vía de a
 ## 3. Pasos para el Inicio de Sesión
 
 ### Paso 1: Ingreso a la Interfaz de Autenticación
-1. Abra el navegador web e ingrese a la dirección de la plataforma: `https://<dominio-sgrai>/login`.
-2. Si intenta ingresar directamente a una ruta interna (ej. `/gestion/admin/recursos` o `/gestion/callcenter`), el sistema interceptará la navegación y lo redirigirá automáticamente a la pantalla de inicio de sesión, preservando la página solicitada para después del ingreso.
+1. Abra el navegador web e ingrese a la portada principal de la plataforma (`https://<dominio-sgrai>/`), donde se presentan los tres **Portales de Acceso** institucionales:
+   * **Portal de Atención Ciudadana** (`/ciudadania`) — Canal público y abierto.
+   * **Portal de Gestión de Recursos e Incidentes** (`/gestion`) — Botón **"Acceder al Portal de Gestión"** para personal de oficina y centro de mando.
+   * **Aplicación Operativa de Terreno** (`/terreno`) — Botón **"Ingresar a App de Terreno"** para unidades móviles (**Patrulla Verificadora** y **Delegado de Cuadrilla**).
+2. Al presionar **"Acceder al Portal de Gestión"** o **"Ingresar a App de Terreno"** sin una sesión activa (o al navegar directamente a `/login` o a una ruta protegida como `/gestion/*` o `/terreno/*`), el sistema interceptará la navegación y lo redirigirá automáticamente a la pantalla de inicio de sesión unificada (`/login`), preservando la página solicitada para después del ingreso.
 
 ### Paso 2: Ingreso de Credenciales Institucionales
 1. En el campo **Identificador Institucional**, ingrese una de las siguientes opciones:
