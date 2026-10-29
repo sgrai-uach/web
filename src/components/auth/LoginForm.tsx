@@ -10,8 +10,10 @@ import {
   Eye,
   EyeOff,
   Info,
+  Lock,
   LogIn,
   ShieldAlert,
+  User,
 } from 'lucide-react';
 import Input from '@/components/ui/Input';
 import Button from '@/components/ui/Button';
@@ -152,17 +154,27 @@ export default function LoginForm() {
   return (
     <div className={styles.card}>
       <header className={styles.header}>
-        <div className={styles.logoRow}>
-          <span className={styles.logoText}>SGRAI</span>
-          <span className={styles.logoDivider}>|</span>
-          <span className={styles.logoSubtitle}>DGRD Valdivia</span>
+        <div className={styles.brandContainer}>
+          <div className={styles.emblemBox} aria-hidden="true">
+            <span>V</span>
+          </div>
+          <div className={styles.brandTextGroup}>
+            <div className={styles.logoRow}>
+              <span className={styles.logoText}>SGRAI</span>
+              <span className={styles.logoDivider}>|</span>
+              <span className={styles.logoSubtitle}>DGRD Valdivia</span>
+            </div>
+            <p className={styles.systemTagline}>
+              Sistema de Gestión de Recursos para Atención de Incidentes
+            </p>
+          </div>
         </div>
       </header>
 
       <div className={styles.body}>
         <h1 className={styles.title}>Inicio de Sesión</h1>
         <p className={styles.instruction}>
-          Ingrese sus credenciales para acceder a la plataforma.
+          Ingrese sus credenciales para continuar.
         </p>
 
         {motivo === 'sesion_expirada' && (
@@ -196,11 +208,13 @@ export default function LoginForm() {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} noValidate>
+        <form method="post" action="/login" onSubmit={handleSubmit} noValidate>
           <Input
             id="identificador"
             label="Identificador"
-            placeholder="Correo o RUT con dígito verificador"
+            placeholder="Correo o RUT"
+            helperText="Si ingresa su RUT, incluya guion y dígito verificador (ej: 11111111-1)."
+            leftIcon={<User size={18} />}
             value={identificador}
             onChange={(e) => {
               setIdentificador(e.target.value);
@@ -218,6 +232,7 @@ export default function LoginForm() {
               type={showPassword ? 'text' : 'password'}
               label="Contraseña"
               placeholder="•••••••••••••"
+              leftIcon={<Lock size={18} />}
               value={password}
               onChange={(e) => {
                 setPassword(e.target.value);
@@ -249,7 +264,7 @@ export default function LoginForm() {
               className={styles.forgotPasswordLink}
               tabIndex={cargando ? -1 : 0}
             >
-              ¿Olvidaste tu contraseña?
+              ¿Olvidó su contraseña?
             </Link>
           </div>
 
@@ -266,22 +281,26 @@ export default function LoginForm() {
               {cargando ? 'Ingresando...' : 'Ingresar al Sistema'}
             </Button>
 
-            <Button
-              type="button"
-              variant="outline"
-              size="md"
-              fullWidth
-              href="/"
-              icon={<ArrowLeft size={16} />}
-              style={{ marginTop: '12px' }}
-            >
-              Volver al Inicio de SGRAI
-            </Button>
+            <div className={styles.secondaryActionWrapper}>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                href="/"
+                icon={<ArrowLeft size={15} />}
+                disabled={cargando}
+              >
+                Volver al Inicio de SGRAI
+              </Button>
+            </div>
           </div>
         </form>
 
         <footer className={styles.footerNotes}>
-          <p>Acceso restringido a personal autorizado.</p>
+          <p>
+            <Lock size={13} className={styles.footerLockIcon} aria-hidden="true" />
+            <span>Acceso restringido a personal autorizado.</span>
+          </p>
         </footer>
       </div>
     </div>

@@ -256,10 +256,10 @@ describe('LoginForm', () => {
   });
 
   describe('Recuperación de contraseña (HU-65)', () => {
-    it('debe renderizar el enlace "¿Olvidaste tu contraseña?" apuntando a /recuperar-contrasena', () => {
+    it('debe renderizar el enlace "¿Olvidó su contraseña?" apuntando a /recuperar-contrasena', () => {
       renderLoginForm();
 
-      const recoveryLink = screen.getByRole('link', { name: /¿Olvidaste tu contraseña\?/i });
+      const recoveryLink = screen.getByRole('link', { name: /¿Olvidó su contraseña\?/i });
       expect(recoveryLink).toBeDefined();
       expect(recoveryLink.getAttribute('href')).toBe('/recuperar-contrasena');
     });

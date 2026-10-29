@@ -24,13 +24,30 @@
   width: 100%;
 }
 
+.leftIcon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-muted, #5F676E);
+  pointer-events: none;
+  z-index: 2;
+}
+
+.inputWithLeftIcon {
+  padding-left: 38px !important;
+}
+
 .input {
   width: 100%;
   height: 38px;
   padding: 8px 12px;
   background-color: var(--color-white, #FFFFFF);
   color: var(--color-text-dark, #2B2B2B);
-  border: 1px solid var(--border-color-dark, #3B3F45);
+  border: 1px solid var(--color-charcoal, #3B3F45);
   border-radius: var(--radius-none, 0);
   font-family: inherit;
   font-size: var(--font-size-base, 14px);

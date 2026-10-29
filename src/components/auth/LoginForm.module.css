@@ -13,9 +13,9 @@
 .pageContent {
   flex: 1;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
-  padding: 40px 16px;
+  padding: 40px 16px 56px;
   box-sizing: border-box;
 }
 
@@ -32,55 +32,93 @@
   width: 100%;
   max-width: 440px;
   margin: 0 auto;
-  box-shadow: var(--shadow-sm, 0 1px 3px rgba(0, 0, 0, 0.08));
+  box-shadow: none;
   box-sizing: border-box;
 }
 
 .header {
   background-color: var(--color-primary-teal-dark, #14505A);
   color: var(--color-text-light, #FFFFFF);
-  padding: 20px 24px;
-  border-bottom: 3px solid var(--color-accent-mint, #4FAE9B);
-  text-align: center;
+  padding: 20px 20px;
+  border-bottom: 4px solid var(--color-accent-mint, #4FAE9B);
+  box-sizing: border-box;
+}
+
+.brandContainer {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.emblemBox {
+  width: 44px;
+  height: 44px;
+  background-color: var(--color-accent-mint, #4FAE9B);
+  color: var(--color-charcoal-dark, #24272B);
+  font-weight: 800;
+  font-size: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-none, 0px);
+  flex-shrink: 0;
+  line-height: 1;
+  user-select: none;
+}
+
+.brandTextGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  text-align: left;
 }
 
 .logoRow {
   display: flex;
   align-items: center;
-  justify-content: center;
   gap: 8px;
   flex-wrap: wrap;
 }
 
 .logoText {
   font-weight: 800;
-  font-size: 22px;
+  font-size: 20px;
   letter-spacing: 0.5px;
   color: #FFFFFF;
+  line-height: 1.1;
 }
 
 .logoDivider {
   color: var(--color-sage, #A9CBA4);
-  font-size: 18px;
+  font-size: 16px;
 }
 
 .logoSubtitle {
-  font-size: 15px;
-  font-weight: 600;
+  font-size: 13px;
+  font-weight: 700;
   color: var(--color-sage, #A9CBA4);
   text-transform: uppercase;
   letter-spacing: 0.3px;
 }
 
+.systemTagline {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--color-bg-light, #ECEFF3);
+  font-weight: 400;
+  opacity: 0.95;
+}
+
 .body {
-  padding: 24px;
+  padding: 24px 24px 28px;
 }
 
 .title {
-  font-size: 18px;
+  font-size: 20px;
   font-weight: 700;
-  color: var(--color-charcoal-dark, #24272B);
-  margin: 0 0 8px 0;
+  color: var(--color-primary-teal-dark, #14505A);
+  margin: 0 0 6px 0;
   text-align: center;
 }
 
@@ -89,7 +127,8 @@
   color: var(--color-text-muted, #5F676E);
   margin: 0 0 20px 0;
   text-align: center;
-  line-height: 1.4;
+  line-height: 1.45;
+  text-wrap: balance;
 }
 
 .alertBox {
@@ -188,6 +227,12 @@
   margin-top: 24px;
 }
 
+.secondaryActionWrapper {
+  display: flex;
+  justify-content: center;
+  margin-top: 10px;
+}
+
 .footerNotes {
   margin-top: 20px;
   padding-top: 16px;
@@ -200,11 +245,20 @@
 
 .footerNotes p {
   margin: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.footerLockIcon {
+  flex-shrink: 0;
+  color: var(--color-text-muted, #5F676E);
 }
 
 /* ==========================================================================
    Adaptación Responsiva y Ergonomía de Terreno (Móvil / PWA <= 768px)
-   En móvil el recuadro de login ocupa el 100% de la pantalla.
+   Anclado arriba en móvil para no saltar al abrir teclado en pantalla
    Objetivos táctiles >= 48px, tipografía >= 16px en inputs (sin auto-zoom)
    ========================================================================== */
 
@@ -218,51 +272,55 @@
   }
 
   .pageMain {
-    min-height: 100vh;
-    min-height: 100dvh;
-    background-color: var(--color-white, #FFFFFF);
+    background-color: var(--color-bg-light, #ECEFF3);
   }
 
   .pageContent {
-    padding: 0;
-    align-items: stretch;
+    padding: 12px 12px 32px;
+    align-items: flex-start;
     justify-content: stretch;
-    min-height: 100vh;
-    min-height: 100dvh;
   }
 
   .card {
     max-width: 100%;
     width: 100%;
-    min-height: 100vh;
-    min-height: 100dvh;
     margin: 0;
-    border: none;
+    border: 1px solid var(--border-color-neutral, #DFE3E8);
     box-shadow: none;
     display: flex;
     flex-direction: column;
   }
 
   .header {
-    padding: 18px 20px;
+    padding: 16px 16px;
     flex-shrink: 0;
   }
 
-  .body {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    padding: 24px 20px;
-  }
-
-  .title {
+  .emblemBox {
+    width: 40px;
+    height: 40px;
     font-size: 22px;
   }
 
+  .logoText {
+    font-size: 19px;
+  }
+
+  .systemTagline {
+    font-size: 11px;
+  }
+
+  .body {
+    padding: 20px 16px 24px;
+  }
+
+  .title {
+    font-size: 20px;
+  }
+
   .instruction {
-    font-size: 14px;
-    margin-bottom: 20px;
+    font-size: 13px;
+    margin-bottom: 18px;
   }
 
   /* Inputs táctiles de 48px y 16px de fuente para evitar zoom automático en móvil */
@@ -300,26 +358,46 @@
     font-size: 15px;
   }
 
+  .secondaryActionWrapper button,
+  .secondaryActionWrapper a {
+    min-height: 38px;
+    font-size: 14px;
+  }
+
   .footerNotes {
-    margin-top: 28px;
+    margin-top: 24px;
     font-size: 12px;
   }
 }
 
 @media (max-width: 380px) {
   .header {
-    padding: 16px 16px;
+    padding: 14px 12px;
   }
 
-  .logoText {
+  .brandContainer {
+    gap: 10px;
+  }
+
+  .emblemBox {
+    width: 36px;
+    height: 36px;
     font-size: 20px;
   }
 
+  .logoText {
+    font-size: 18px;
+  }
+
   .logoSubtitle {
-    font-size: 13px;
+    font-size: 12px;
+  }
+
+  .systemTagline {
+    font-size: 10px;
   }
 
   .body {
-    padding: 20px 16px;
+    padding: 16px 12px 20px;
   }
 }

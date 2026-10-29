@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { ArrowLeft, Mail } from 'lucide-react';
+import { ArrowLeft, Lock, Mail, User } from 'lucide-react';
 import Input from '@/components/ui/Input';
 import Button from '@/components/ui/Button';
 import InlineNotice from '@/components/ui/InlineNotice';
@@ -76,10 +76,20 @@ export default function RecuperarContrasenaForm() {
   return (
     <div className={styles.card}>
       <header className={styles.header}>
-        <div className={styles.logoRow}>
-          <span className={styles.logoText}>SGRAI</span>
-          <span className={styles.logoDivider}>|</span>
-          <span className={styles.logoSubtitle}>DGRD Valdivia</span>
+        <div className={styles.brandContainer}>
+          <div className={styles.emblemBox} aria-hidden="true">
+            <span>V</span>
+          </div>
+          <div className={styles.brandTextGroup}>
+            <div className={styles.logoRow}>
+              <span className={styles.logoText}>SGRAI</span>
+              <span className={styles.logoDivider}>|</span>
+              <span className={styles.logoSubtitle}>DGRD Valdivia</span>
+            </div>
+            <p className={styles.systemTagline}>
+              Sistema de Gestión de Recursos para Atención de Incidentes
+            </p>
+          </div>
         </div>
       </header>
 
@@ -119,11 +129,13 @@ export default function RecuperarContrasenaForm() {
             </div>
           </div>
         ) : (
-          <form onSubmit={handleSubmit} noValidate>
+          <form method="post" action="/recuperar-contrasena" onSubmit={handleSubmit} noValidate>
             <Input
               id="identificador"
-              label="Correo institucional o RUT"
-              placeholder="ejemplo@valdivia.cl o 11111111-1"
+              label="Identificador"
+              placeholder="Correo o RUT"
+              helperText="Si ingresa su RUT, incluya guion y dígito verificador (ej: 11111111-1)."
+              leftIcon={<User size={18} />}
               value={identificador}
               onChange={(e) => {
                 setIdentificador(e.target.value);
@@ -148,23 +160,27 @@ export default function RecuperarContrasenaForm() {
                 {cargando ? 'Enviando solicitud...' : 'Enviar Enlace de Recuperación'}
               </Button>
 
-              <Button
-                type="button"
-                variant="outline"
-                size="md"
-                fullWidth
-                href="/login"
-                icon={<ArrowLeft size={16} />}
-                disabled={cargando}
-              >
-                Volver al Inicio de Sesión
-              </Button>
+              <div className={styles.secondaryActionWrapper}>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  href="/login"
+                  icon={<ArrowLeft size={15} />}
+                  disabled={cargando}
+                >
+                  Volver al Inicio de Sesión
+                </Button>
+              </div>
             </div>
           </form>
         )}
 
         <footer className={styles.footerNotes}>
-          <p>Dirección de Gestión del Riesgo de Desastres — I. Municipalidad de Valdivia</p>
+          <p>
+            <Lock size={13} className={styles.footerLockIcon} aria-hidden="true" />
+            <span>Acceso restringido a personal autorizado.</span>
+          </p>
         </footer>
       </div>
     </div>

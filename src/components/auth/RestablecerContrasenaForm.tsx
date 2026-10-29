@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ArrowLeft, Check, Circle, Eye, EyeOff, KeyRound, RotateCcw } from 'lucide-react';
+import { ArrowLeft, Check, Circle, Eye, EyeOff, KeyRound, Lock, RotateCcw } from 'lucide-react';
 import Input from '@/components/ui/Input';
 import Button from '@/components/ui/Button';
 import InlineNotice from '@/components/ui/InlineNotice';
@@ -124,10 +124,20 @@ export default function RestablecerContrasenaForm() {
   return (
     <div className={styles.card}>
       <header className={styles.header}>
-        <div className={styles.logoRow}>
-          <span className={styles.logoText}>SGRAI</span>
-          <span className={styles.logoDivider}>|</span>
-          <span className={styles.logoSubtitle}>DGRD Valdivia</span>
+        <div className={styles.brandContainer}>
+          <div className={styles.emblemBox} aria-hidden="true">
+            <span>V</span>
+          </div>
+          <div className={styles.brandTextGroup}>
+            <div className={styles.logoRow}>
+              <span className={styles.logoText}>SGRAI</span>
+              <span className={styles.logoDivider}>|</span>
+              <span className={styles.logoSubtitle}>DGRD Valdivia</span>
+            </div>
+            <p className={styles.systemTagline}>
+              Sistema de Gestión de Recursos para Atención de Incidentes
+            </p>
+          </div>
         </div>
       </header>
 
@@ -157,16 +167,17 @@ export default function RestablecerContrasenaForm() {
                 Solicitar nuevo enlace
               </Button>
 
-              <Button
-                type="button"
-                variant="outline"
-                size="md"
-                fullWidth
-                href="/login"
-                icon={<ArrowLeft size={16} />}
-              >
-                Volver al Inicio de Sesión
-              </Button>
+              <div className={styles.secondaryActionWrapper}>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  href="/login"
+                  icon={<ArrowLeft size={15} />}
+                >
+                  Volver al Inicio de Sesión
+                </Button>
+              </div>
             </div>
           </div>
         ) : (
@@ -179,37 +190,37 @@ export default function RestablecerContrasenaForm() {
               </div>
             )}
 
-            <form onSubmit={handleSubmit} noValidate>
-              <div className={styles.passwordWrapper}>
-                <div className={styles.passwordInputContainer}>
-                  <Input
-                    id="nuevaPassword"
-                    type={showNuevaPassword ? 'text' : 'password'}
-                    label="Nueva Contraseña"
-                    placeholder="Mínimo 8 caracteres, mayúscula y número"
-                    value={nuevaPassword}
-                    onChange={(e) => {
-                      setNuevaPassword(e.target.value);
-                      if (errorNuevaPassword) setErrorNuevaPassword(null);
-                    }}
-                    error={errorNuevaPassword || undefined}
-                    requiredIndicator
-                    disabled={cargando}
-                    autoComplete="new-password"
-                    style={{ width: '100%' }}
-                  />
-                  <button
-                    type="button"
-                    className={styles.passwordToggleBtn}
-                    onClick={() => setShowNuevaPassword(!showNuevaPassword)}
-                    title={showNuevaPassword ? 'Ocultar contraseña' : 'Ver contraseña'}
-                    aria-label={showNuevaPassword ? 'Ocultar contraseña' : 'Ver contraseña'}
-                    disabled={cargando}
-                    style={{ top: errorNuevaPassword ? '38%' : '65%' }}
-                  >
-                    {showNuevaPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                  </button>
-                </div>
+            <form method="post" action="/restablecer-contrasena" onSubmit={handleSubmit} noValidate>
+              <div className={styles.passwordFieldGroup}>
+                <Input
+                  id="nuevaPassword"
+                  type={showNuevaPassword ? 'text' : 'password'}
+                  label="Nueva Contraseña"
+                  placeholder="Mínimo 8 caracteres, mayúscula y número"
+                  leftIcon={<Lock size={18} />}
+                  value={nuevaPassword}
+                  onChange={(e) => {
+                    setNuevaPassword(e.target.value);
+                    if (errorNuevaPassword) setErrorNuevaPassword(null);
+                  }}
+                  error={errorNuevaPassword || undefined}
+                  requiredIndicator
+                  disabled={cargando}
+                  autoComplete="new-password"
+                  rightAddon={
+                    <button
+                      type="button"
+                      className={styles.passwordToggleBtn}
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => setShowNuevaPassword((prev) => !prev)}
+                      title={showNuevaPassword ? 'Ocultar contraseña' : 'Ver contraseña'}
+                      aria-label={showNuevaPassword ? 'Ocultar contraseña' : 'Ver contraseña'}
+                      disabled={cargando}
+                    >
+                      {showNuevaPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
+                  }
+                />
               </div>
 
               <div
@@ -255,36 +266,36 @@ export default function RestablecerContrasenaForm() {
                 </ul>
               </div>
 
-              <div className={styles.passwordWrapper}>
-                <div className={styles.passwordInputContainer}>
-                  <Input
-                    id="confirmacionPassword"
-                    type={showConfirmacionPassword ? 'text' : 'password'}
-                    label="Confirmar Nueva Contraseña"
-                    placeholder="Repita su nueva contraseña"
-                    value={confirmacionPassword}
-                    onChange={(e) => {
-                      setConfirmacionPassword(e.target.value);
-                      if (errorConfirmacion) setErrorConfirmacion(null);
-                    }}
-                    error={errorConfirmacion || undefined}
-                    requiredIndicator
-                    disabled={cargando}
-                    autoComplete="new-password"
-                    style={{ width: '100%' }}
-                  />
-                  <button
-                    type="button"
-                    className={styles.passwordToggleBtn}
-                    onClick={() => setShowConfirmacionPassword(!showConfirmacionPassword)}
-                    title={showConfirmacionPassword ? 'Ocultar contraseña' : 'Ver contraseña'}
-                    aria-label={showConfirmacionPassword ? 'Ocultar contraseña' : 'Ver contraseña'}
-                    disabled={cargando}
-                    style={{ top: errorConfirmacion ? '38%' : '65%' }}
-                  >
-                    {showConfirmacionPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                  </button>
-                </div>
+              <div className={styles.passwordFieldGroup}>
+                <Input
+                  id="confirmacionPassword"
+                  type={showConfirmacionPassword ? 'text' : 'password'}
+                  label="Confirmar Nueva Contraseña"
+                  placeholder="Repita su nueva contraseña"
+                  leftIcon={<Lock size={18} />}
+                  value={confirmacionPassword}
+                  onChange={(e) => {
+                    setConfirmacionPassword(e.target.value);
+                    if (errorConfirmacion) setErrorConfirmacion(null);
+                  }}
+                  error={errorConfirmacion || undefined}
+                  requiredIndicator
+                  disabled={cargando}
+                  autoComplete="new-password"
+                  rightAddon={
+                    <button
+                      type="button"
+                      className={styles.passwordToggleBtn}
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => setShowConfirmacionPassword((prev) => !prev)}
+                      title={showConfirmacionPassword ? 'Ocultar contraseña' : 'Ver contraseña'}
+                      aria-label={showConfirmacionPassword ? 'Ocultar contraseña' : 'Ver contraseña'}
+                      disabled={cargando}
+                    >
+                      {showConfirmacionPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
+                  }
+                />
               </div>
 
               <div className={styles.submitArea}>
@@ -300,24 +311,28 @@ export default function RestablecerContrasenaForm() {
                   {cargando ? 'Restableciendo contraseña...' : 'Restablecer Contraseña'}
                 </Button>
 
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="md"
-                  fullWidth
-                  href="/login"
-                  icon={<ArrowLeft size={16} />}
-                  disabled={cargando}
-                >
-                  Volver al Inicio de Sesión
-                </Button>
+                <div className={styles.secondaryActionWrapper}>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    href="/login"
+                    icon={<ArrowLeft size={15} />}
+                    disabled={cargando}
+                  >
+                    Volver al Inicio de Sesión
+                  </Button>
+                </div>
               </div>
             </form>
           </div>
         )}
 
         <footer className={styles.footerNotes}>
-          <p>Dirección de Gestión del Riesgo de Desastres — I. Municipalidad de Valdivia</p>
+          <p>
+            <Lock size={13} className={styles.footerLockIcon} aria-hidden="true" />
+            <span>Acceso restringido a personal autorizado.</span>
+          </p>
         </footer>
       </div>
     </div>

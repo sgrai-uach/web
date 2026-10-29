@@ -6,11 +6,12 @@ export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> 
   error?: string;
   helperText?: string;
   requiredIndicator?: boolean;
+  leftIcon?: React.ReactNode;
   rightAddon?: React.ReactNode;
 }
 
 export const Input = forwardRef<HTMLInputElement, InputProps>(
-  ({ label, error, helperText, requiredIndicator, rightAddon, id, className = '', style, ...props }, ref) => {
+  ({ label, error, helperText, requiredIndicator, leftIcon, rightAddon, id, className = '', style, ...props }, ref) => {
     const inputId = id || (label ? `input-${label.toLowerCase().replace(/[^a-z0-9]/g, '-')}` : undefined);
 
     return (
@@ -21,10 +22,11 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           </label>
         )}
         <div className={styles.inputControl}>
+          {leftIcon && <span className={styles.leftIcon} aria-hidden="true">{leftIcon}</span>}
           <input
             ref={ref}
             id={inputId}
-            className={`${styles.input} ${rightAddon ? styles.inputWithRightAddon : ''} ${error ? styles.inputError : ''} ${className}`.trim()}
+            className={`${styles.input} ${leftIcon ? styles.inputWithLeftIcon : ''} ${rightAddon ? styles.inputWithRightAddon : ''} ${error ? styles.inputError : ''} ${className}`.trim()}
             aria-invalid={error ? 'true' : undefined}
             aria-describedby={error && inputId ? `${inputId}-error` : undefined}
             {...props}

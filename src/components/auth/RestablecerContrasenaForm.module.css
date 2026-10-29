@@ -1,3 +1,30 @@
+/* ==========================================================================
+   RestablecerContrasenaForm & Responsive Styles — SGRAI Unificado
+   ========================================================================== */
+
+.pageMain {
+  min-height: 100vh;
+  min-height: 100dvh;
+  background-color: var(--color-bg-light, #ECEFF3);
+  display: flex;
+  flex-direction: column;
+}
+
+.pageContent {
+  flex: 1;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 40px 16px 56px;
+  box-sizing: border-box;
+}
+
+.suspenseFallback {
+  text-align: center;
+  color: var(--color-text-muted, #5F676E);
+  font-size: 14px;
+}
+
 .card {
   background-color: var(--color-white, #FFFFFF);
   border: 1px solid var(--border-color-neutral, #DFE3E8);
@@ -5,53 +32,93 @@
   width: 100%;
   max-width: 440px;
   margin: 0 auto;
-  box-shadow: var(--shadow-sm, 0 1px 3px rgba(0, 0, 0, 0.08));
+  box-shadow: none;
+  box-sizing: border-box;
 }
 
 .header {
   background-color: var(--color-primary-teal-dark, #14505A);
   color: var(--color-text-light, #FFFFFF);
-  padding: 20px 24px;
-  border-bottom: 3px solid var(--color-accent-mint, #4FAE9B);
-  text-align: center;
+  padding: 20px 20px;
+  border-bottom: 4px solid var(--color-accent-mint, #4FAE9B);
+  box-sizing: border-box;
+}
+
+.brandContainer {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.emblemBox {
+  width: 44px;
+  height: 44px;
+  background-color: var(--color-accent-mint, #4FAE9B);
+  color: var(--color-charcoal-dark, #24272B);
+  font-weight: 800;
+  font-size: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-none, 0px);
+  flex-shrink: 0;
+  line-height: 1;
+  user-select: none;
+}
+
+.brandTextGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  text-align: left;
 }
 
 .logoRow {
   display: flex;
   align-items: center;
-  justify-content: center;
   gap: 8px;
+  flex-wrap: wrap;
 }
 
 .logoText {
   font-weight: 800;
-  font-size: 22px;
+  font-size: 20px;
   letter-spacing: 0.5px;
   color: #FFFFFF;
+  line-height: 1.1;
 }
 
 .logoDivider {
   color: var(--color-sage, #A9CBA4);
-  font-size: 18px;
+  font-size: 16px;
 }
 
 .logoSubtitle {
-  font-size: 15px;
-  font-weight: 600;
+  font-size: 13px;
+  font-weight: 700;
   color: var(--color-sage, #A9CBA4);
   text-transform: uppercase;
   letter-spacing: 0.3px;
 }
 
+.systemTagline {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--color-bg-light, #ECEFF3);
+  font-weight: 400;
+  opacity: 0.95;
+}
+
 .body {
-  padding: 24px;
+  padding: 24px 24px 28px;
 }
 
 .title {
-  font-size: 18px;
+  font-size: 20px;
   font-weight: 700;
-  color: var(--color-charcoal-dark, #24272B);
-  margin: 0 0 8px 0;
+  color: var(--color-primary-teal-dark, #14505A);
+  margin: 0 0 6px 0;
   text-align: center;
 }
 
@@ -60,37 +127,33 @@
   color: var(--color-text-muted, #5F676E);
   margin: 0 0 20px 0;
   text-align: center;
+  line-height: 1.45;
+  text-wrap: balance;
 }
 
 .noticeWrapper {
   margin-bottom: 18px;
 }
 
-.passwordWrapper {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-}
-
-.passwordInputContainer {
-  position: relative;
-  display: flex;
-  align-items: center;
+.passwordFieldGroup {
+  margin-bottom: 16px;
 }
 
 .passwordToggleBtn {
-  position: absolute;
-  right: 10px;
-  top: 50%;
-  transform: translateY(-50%);
-  background: none;
+  position: relative;
+  z-index: 6;
+  height: 36px;
+  width: 44px;
+  background: transparent;
   border: none;
   color: var(--color-text-muted, #5F676E);
   cursor: pointer;
-  padding: 4px;
+  padding: 0;
   display: flex;
   align-items: center;
   justify-content: center;
+  pointer-events: auto;
+  touch-action: manipulation;
   transition: color 0.15s ease;
 }
 
@@ -98,15 +161,20 @@
   color: var(--color-primary-teal, #1B6F7D);
 }
 
+.passwordToggleBtn:focus-visible {
+  outline: 2px solid var(--color-primary-teal, #1B6F7D);
+  outline-offset: -2px;
+}
+
+/* Requisitos de seguridad */
 .requirementsBox {
   background-color: var(--color-bg-light, #ECEFF3);
-  padding: 12px 14px;
-  margin-top: 12px;
-  margin-bottom: 16px;
-  font-size: 12px;
+  border: 1px solid var(--border-color-neutral, #DFE3E8);
+  border-left: 3px solid var(--color-text-muted, #5F676E);
   border-radius: var(--radius-none, 0px);
-  border-left: 3px solid var(--color-primary-teal, #1B6F7D);
-  transition: border-color var(--transition-fast, 150ms ease-in-out), background-color var(--transition-fast, 150ms ease-in-out);
+  padding: 12px 14px;
+  margin-bottom: 18px;
+  transition: border-left-color 0.2s ease, background-color 0.2s ease;
 }
 
 .requirementsBoxAllMet {
@@ -119,35 +187,31 @@
   align-items: center;
   justify-content: space-between;
   margin-bottom: 8px;
-  gap: 8px;
+  font-size: 12px;
 }
 
 .requirementsTitle {
   font-weight: 700;
   color: var(--color-charcoal-dark, #24272B);
-  font-size: 12px;
 }
 
 .requirementsCounter {
   font-size: 11px;
   font-weight: 600;
   color: var(--color-text-muted, #5F676E);
-  letter-spacing: 0.2px;
-  transition: color var(--transition-fast, 150ms ease-in-out);
 }
 
 .requirementsCounterAllMet {
   color: var(--color-success, #2E7D32);
-  font-weight: 700;
 }
 
 .requirementsList {
-  margin: 0;
-  padding: 0;
   list-style: none;
+  padding: 0;
+  margin: 0;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 5px;
 }
 
 .requirementItem {
@@ -155,12 +219,7 @@
   align-items: center;
   gap: 8px;
   font-size: 12px;
-  line-height: 1.4;
-  transition: color var(--transition-fast, 150ms ease-in-out);
-}
-
-.requirementItemPending {
-  color: var(--color-text-muted, #5F676E);
+  line-height: 1.3;
 }
 
 .requirementItemMet {
@@ -168,21 +227,25 @@
   font-weight: 600;
 }
 
-.requirementIconWrapper {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 14px;
-  height: 14px;
-  flex-shrink: 0;
+.requirementItemPending {
+  color: var(--color-text-muted, #5F676E);
 }
 
-.requirementIconPending {
-  color: var(--color-text-muted, #5F676E);
+.requirementIconWrapper {
+  width: 14px;
+  height: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
 .requirementIconMet {
   color: var(--color-success, #2E7D32);
+}
+
+.requirementIconPending {
+  color: var(--color-text-muted, #5F676E);
 }
 
 .requirementText {
@@ -198,7 +261,7 @@
   overflow: hidden;
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
-  border: 0;
+  border-width: 0;
 }
 
 .submitArea {
@@ -206,6 +269,12 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
+
+.secondaryActionWrapper {
+  display: flex;
+  justify-content: center;
+  margin-top: 4px;
 }
 
 .footerNotes {
@@ -220,4 +289,59 @@
 
 .footerNotes p {
   margin: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.footerLockIcon {
+  color: var(--color-text-muted, #5F676E);
+  flex-shrink: 0;
+}
+
+.desktopChrome {
+  display: block;
+}
+
+@media (max-width: 640px) {
+  .desktopChrome {
+    display: none !important;
+  }
+
+  .pageMain {
+    background-color: var(--color-bg-light, #ECEFF3);
+    min-height: 100vh;
+    min-height: 100dvh;
+    justify-content: flex-start;
+  }
+
+  .pageContent {
+    padding: 0;
+    align-items: flex-start;
+    flex: 1;
+    width: 100%;
+  }
+
+  .card {
+    max-width: 100%;
+    min-height: 100vh;
+    min-height: 100dvh;
+    border: none;
+    border-radius: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .body {
+    padding: 24px 20px 32px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .submitArea {
+    margin-top: auto;
+    padding-top: 24px;
+  }
 }
