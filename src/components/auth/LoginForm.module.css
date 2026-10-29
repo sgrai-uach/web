@@ -1,3 +1,30 @@
+/* ==========================================================================
+   LoginForm & LoginPage Responsive Styles — SGRAI Unificado (Web + Terreno)
+   ========================================================================== */
+
+.pageMain {
+  min-height: 100vh;
+  min-height: 100dvh;
+  background-color: var(--color-bg-light, #ECEFF3);
+  display: flex;
+  flex-direction: column;
+}
+
+.pageContent {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 16px;
+  box-sizing: border-box;
+}
+
+.suspenseFallback {
+  text-align: center;
+  color: var(--color-text-muted, #5F676E);
+  font-size: 14px;
+}
+
 .card {
   background-color: var(--color-white, #FFFFFF);
   border: 1px solid var(--border-color-neutral, #DFE3E8);
@@ -6,6 +33,7 @@
   max-width: 440px;
   margin: 0 auto;
   box-shadow: var(--shadow-sm, 0 1px 3px rgba(0, 0, 0, 0.08));
+  box-sizing: border-box;
 }
 
 .header {
@@ -21,6 +49,7 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
+  flex-wrap: wrap;
 }
 
 .logoText {
@@ -60,6 +89,7 @@
   color: var(--color-text-muted, #5F676E);
   margin: 0 0 20px 0;
   text-align: center;
+  line-height: 1.4;
 }
 
 .alertBox {
@@ -96,6 +126,50 @@
   margin-top: 1px;
 }
 
+.passwordWrapper {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  margin-top: 16px;
+}
+
+.passwordInputContainer {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.passwordInputContainer input {
+  padding-right: 44px;
+}
+
+.passwordToggleBtn {
+  position: absolute;
+  right: 1px;
+  top: 23px;
+  height: 36px;
+  width: 40px;
+  background: none;
+  border: none;
+  color: var(--color-text-muted, #5F676E);
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.15s ease;
+}
+
+.passwordToggleBtn:hover {
+  color: var(--color-primary-teal, #1B6F7D);
+}
+
+.passwordToggleBtn:focus-visible {
+  outline: 2px solid var(--color-primary-teal, #1B6F7D);
+  outline-offset: -2px;
+}
+
 .forgotPasswordWrapper {
   display: flex;
   justify-content: flex-end;
@@ -120,38 +194,6 @@
   outline-offset: 2px;
 }
 
-.passwordWrapper {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-}
-
-.passwordInputContainer {
-  position: relative;
-  display: flex;
-  align-items: center;
-}
-
-.passwordToggleBtn {
-  position: absolute;
-  right: 10px;
-  top: 50%;
-  transform: translateY(-50%);
-  background: none;
-  border: none;
-  color: var(--color-text-muted, #5F676E);
-  cursor: pointer;
-  padding: 4px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: color 0.15s ease;
-}
-
-.passwordToggleBtn:hover {
-  color: var(--color-primary-teal, #1B6F7D);
-}
-
 .submitArea {
   margin-top: 24px;
 }
@@ -168,4 +210,104 @@
 
 .footerNotes p {
   margin: 0;
+}
+
+/* ==========================================================================
+   Adaptación Responsiva y Ergonomía de Terreno (Móvil / PWA <= 768px)
+   Objetivos táctiles >= 48px, tipografía >= 16px en inputs (sin auto-zoom)
+   ========================================================================== */
+
+@media (max-width: 768px) {
+  .pageContent {
+    padding: 20px 12px;
+    align-items: flex-start;
+  }
+
+  .card {
+    max-width: 100%;
+    box-shadow: none;
+  }
+
+  .header {
+    padding: 16px 20px;
+  }
+
+  .body {
+    padding: 20px 16px;
+  }
+
+  .title {
+    font-size: 20px;
+  }
+
+  .instruction {
+    font-size: 14px;
+    margin-bottom: 18px;
+  }
+
+  /* Inputs táctiles de 48px y 16px de fuente para evitar zoom automático en móvil */
+  .card input {
+    min-height: 48px;
+    height: 48px;
+    font-size: 16px;
+    padding: 10px 14px;
+  }
+
+  .passwordInputContainer input {
+    padding-right: 48px;
+  }
+
+  .passwordToggleBtn {
+    top: 23px;
+    height: 46px;
+    width: 48px;
+  }
+
+  .forgotPasswordWrapper {
+    margin-top: 10px;
+    margin-bottom: 16px;
+  }
+
+  .forgotPasswordLink {
+    font-size: 14px;
+    min-height: 40px;
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .submitArea {
+    margin-top: 16px;
+  }
+
+  .submitArea button,
+  .submitArea a {
+    min-height: 48px;
+    font-size: 15px;
+  }
+
+  .footerNotes {
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 380px) {
+  .pageContent {
+    padding: 12px 8px;
+  }
+
+  .header {
+    padding: 14px 12px;
+  }
+
+  .logoText {
+    font-size: 19px;
+  }
+
+  .logoSubtitle {
+    font-size: 13px;
+  }
+
+  .body {
+    padding: 16px 12px;
+  }
 }

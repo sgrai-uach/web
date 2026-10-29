@@ -214,7 +214,7 @@ export default function LoginForm() {
             autoComplete="username"
           />
 
-          <div className={styles.passwordWrapper} style={{ marginTop: '16px' }}>
+          <div className={styles.passwordWrapper}>
             <div className={styles.passwordInputContainer}>
               <Input
                 id="password"
@@ -230,7 +230,6 @@ export default function LoginForm() {
                 requiredIndicator
                 disabled={cargando}
                 autoComplete="current-password"
-                style={{ width: '100%' }}
               />
               <button
                 type="button"
@@ -239,9 +238,8 @@ export default function LoginForm() {
                 title={showPassword ? 'Ocultar contraseña' : 'Ver contraseña'}
                 aria-label={showPassword ? 'Ocultar contraseña' : 'Ver contraseña'}
                 disabled={cargando}
-                style={{ top: errorPassword ? '38%' : '65%' }}
               >
-                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
             </div>
           </div>

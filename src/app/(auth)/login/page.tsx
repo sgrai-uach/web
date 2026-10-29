@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 import LoginForm from '@/components/auth/LoginForm';
 import AppFooter from '@/components/layout/AppFooter';
 import AppHeader from '@/components/layout/AppHeader';
+import styles from '@/components/auth/LoginForm.module.css';
 
 export const metadata: Metadata = {
   title: 'Iniciar Sesión — SGRAI',
@@ -12,29 +13,14 @@ export const metadata: Metadata = {
 
 export default function LoginPage() {
   return (
-    <main
-      style={{
-        minHeight: '100vh',
-        backgroundColor: 'var(--color-bg-light, #ECEFF3)',
-        display: 'flex',
-        flexDirection: 'column',
-      }}
-    >
+    <main className={styles.pageMain}>
       <AppHeader />
 
-      {/* Contenedor central del formulario */}
-      <div
-        style={{
-          flex: 1,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: '40px 16px',
-        }}
-      >
+      {/* Contenedor central responsivo del formulario */}
+      <div className={styles.pageContent}>
         <Suspense
           fallback={
-            <div style={{ textAlign: 'center', color: 'var(--color-text-muted)' }}>
+            <div className={styles.suspenseFallback}>
               Cargando formulario de inicio de sesión...
             </div>
           }
