@@ -19,7 +19,6 @@ export default function GestionHomePage() {
         router.push(rutaRol);
         try {
           if (typeof window !== 'undefined' && window.location) {
-            // eslint-disable-next-line @next/next/no-location-assign-relative-destination
             window.location.assign(rutaRol);
           }
         } catch {

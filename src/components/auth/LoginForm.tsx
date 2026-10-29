@@ -105,7 +105,6 @@ export default function LoginForm() {
       router.refresh?.();
       try {
         if (typeof window !== 'undefined' && window.location) {
-          // eslint-disable-next-line @next/next/no-location-assign-relative-destination
           window.location.assign(destino);
         }
       } catch {
@@ -137,7 +136,6 @@ export default function LoginForm() {
       router.refresh?.();
       try {
         if (typeof window !== 'undefined' && window.location) {
-          // eslint-disable-next-line @next/next/no-location-assign-relative-destination
           window.location.assign(destino);
         }
       } catch {
