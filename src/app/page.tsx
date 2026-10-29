@@ -2,7 +2,21 @@ import React from 'react';
 import Heading from '@/components/ui/Heading';
 import Button from '@/components/ui/Button';
 import AppFooter from '@/components/layout/AppFooter';
-import { Phone, Users, ShieldCheck, Bot, Search, PhoneCall, MapPin, Boxes, ArrowRight } from 'lucide-react';
+import {
+  Phone,
+  Users,
+  ShieldCheck,
+  Bot,
+  Search,
+  PhoneCall,
+  MapPin,
+  Boxes,
+  Compass,
+  CheckSquare,
+  HardHat,
+  Navigation,
+  ArrowRight,
+} from 'lucide-react';
 import { EMERGENCY_PHONE } from '@/lib/constants/contacto';
 
 export default function Home() {
@@ -100,7 +114,7 @@ export default function Home() {
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
             gap: '28px',
           }}
         >
@@ -320,6 +334,116 @@ export default function Home() {
                 }}
               >
                 <span>Acceder al Portal de Gestión</span>
+                <ArrowRight size={18} />
+              </Button>
+            </div>
+          </div>
+
+          {/* Tarjeta 3: Aplicación Operativa de Terreno (PWA) */}
+          <div
+            style={{
+              backgroundColor: 'var(--color-white, #FFFFFF)',
+              border: '1px solid var(--border-color-neutral, #DFE3E8)',
+              borderTop: '5px solid var(--color-primary-teal, #1B6F7D)',
+              padding: '32px',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'space-between',
+              boxShadow: 'var(--shadow-sm, 0 1px 3px rgba(0,0,0,0.08))',
+            }}
+          >
+            <div>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  marginBottom: '20px',
+                }}
+              >
+                <div
+                  style={{
+                    width: '48px',
+                    height: '48px',
+                    backgroundColor: 'var(--color-primary-teal, #1B6F7D)',
+                    color: 'var(--color-white, #FFFFFF)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <Compass size={26} />
+                </div>
+                <span
+                  style={{
+                    backgroundColor: 'var(--color-info-bg, #E0F2F1)',
+                    color: 'var(--color-primary-teal-dark, #14505A)',
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    textTransform: 'uppercase',
+                    padding: '4px 10px',
+                    letterSpacing: '0.4px',
+                  }}
+                >
+                  Unidades Móviles &bull; Requiere Sesión
+                </span>
+              </div>
+
+              <Heading as="h3" variant="h3" color="teal" noMargin>
+                Aplicación Operativa de Terreno
+              </Heading>
+
+              <p
+                style={{
+                  margin: '12px 0 20px 0',
+                  fontSize: '14px',
+                  lineHeight: '1.6',
+                  color: 'var(--color-text-muted, #5F676E)',
+                }}
+              >
+                Plataforma móvil (PWA) diseñada para Patrullas Verificadoras y Delegados de
+                Cuadrilla desplegados en la comuna, con soporte de operación sin conexión.
+              </p>
+
+              <div
+                style={{
+                  backgroundColor: 'var(--color-bg-light, #ECEFF3)',
+                  padding: '16px',
+                  marginBottom: '24px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '10px',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px' }}>
+                  <CheckSquare size={16} color="var(--color-primary-teal, #1B6F7D)" />
+                  <span>Verificación y triage primario de incidentes en terreno</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px' }}>
+                  <HardHat size={16} color="var(--color-primary-teal, #1B6F7D)" />
+                  <span>Ejecución de faenas pesadas, evidencia y cierre técnico</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px' }}>
+                  <Navigation size={16} color="var(--color-primary-teal, #1B6F7D)" />
+                  <span>Posicionamiento GPS y cola de sincronización offline</span>
+                </div>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <Button
+                variant="teal"
+                size="lg"
+                href="/terreno"
+                style={{
+                  width: '100%',
+                  justifyContent: 'center',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                }}
+              >
+                <span>Ingresar a App de Terreno</span>
                 <ArrowRight size={18} />
               </Button>
             </div>
