@@ -1,11 +1,34 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/context/AuthContext';
+import { obtenerRutaPorRol, RUTA_INICIO_GESTION } from '@/components/auth/LoginForm';
 import GestionWelcomeBanner from '@/components/gestion/GestionWelcomeBanner';
 import GestionResumenEstados from '@/components/gestion/GestionResumenEstados';
 import GestionModulosGrid from '@/components/gestion/GestionModulosGrid';
 
 export default function GestionHomePage() {
+  const { usuario, estaAutenticado } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (estaAutenticado && usuario?.rolCodigo) {
+      const rutaRol = obtenerRutaPorRol(usuario.rolCodigo);
+      if (rutaRol !== RUTA_INICIO_GESTION) {
+        router.push(rutaRol);
+        try {
+          if (typeof window !== 'undefined' && window.location) {
+            // eslint-disable-next-line @next/next/no-location-assign-relative-destination
+            window.location.assign(rutaRol);
+          }
+        } catch {
+          // Ignorado en pruebas unitarias
+        }
+      }
+    }
+  }, [estaAutenticado, usuario, router]);
+
   return (
     <div
       style={{

@@ -20,10 +20,27 @@ import { validarRutChileno } from '@/lib/validations/rut';
 import styles from './LoginForm.module.css';
 
 export const RUTA_INICIO_GESTION = '/gestion';
+export const RUTA_TERRENO_PATRULLA = '/terreno/patrulla/misiones';
+export const RUTA_TERRENO_CUADRILLA = '/terreno/cuadrilla/misiones';
 
-export function obtenerRutaPorRol(rolCodigo?: string): string {
-  // Siempre al iniciar sesión se muestra la pantalla de Inicio de Gestión
-  void rolCodigo;
+export function obtenerRutaPorRol(rolCodigo?: string, returnUrl?: string | null): string {
+  const codigo = rolCodigo?.trim().toUpperCase() || '';
+
+  if (codigo === 'PATRULLA_VERIFICADORA' || codigo === 'PATRULLA') {
+    if (returnUrl && returnUrl.startsWith('/terreno')) {
+      return returnUrl;
+    }
+    return RUTA_TERRENO_PATRULLA;
+  }
+
+  if (codigo === 'DELEGADO_CUADRILLA' || codigo === 'CUADRILLA') {
+    if (returnUrl && returnUrl.startsWith('/terreno')) {
+      return returnUrl;
+    }
+    return RUTA_TERRENO_CUADRILLA;
+  }
+
+  // Roles de gestión y oficina se muestran en la pantalla de Inicio de Gestión (/gestion)
   return RUTA_INICIO_GESTION;
 }
 
@@ -33,6 +50,7 @@ export default function LoginForm() {
   const { login, estaAutenticado, usuario } = useAuth();
 
   const motivo = searchParams.get('motivo');
+  const returnUrl = searchParams.get('returnUrl');
 
   const [identificador, setIdentificador] = useState('');
   const [password, setPassword] = useState('');
@@ -78,10 +96,10 @@ export default function LoginForm() {
     return esValido;
   };
 
-  // Redirección reactiva si el usuario ya cuenta con sesión activa: siempre a la pantalla de Inicio de Gestión
+  // Redirección reactiva si el usuario ya cuenta con sesión activa según su rol operativo
   useEffect(() => {
     if (estaAutenticado && usuario) {
-      const destino = RUTA_INICIO_GESTION;
+      const destino = obtenerRutaPorRol(usuario.rolCodigo, returnUrl);
 
       router.push(destino);
       router.refresh?.();
@@ -94,7 +112,7 @@ export default function LoginForm() {
         // Ignorado en pruebas unitarias
       }
     }
-  }, [estaAutenticado, usuario, router]);
+  }, [estaAutenticado, usuario, router, returnUrl]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -107,13 +125,13 @@ export default function LoginForm() {
     setErrorServidor(null);
 
     try {
-      await login({
+      const perfil = await login({
         identificador: identificador.trim(),
         password,
       });
 
-      // Siempre al iniciar sesión se muestra la pantalla de Inicio de Gestión (/gestion)
-      const destino = RUTA_INICIO_GESTION;
+      // Redirigir a /terreno para unidades operativas o a /gestion para roles de oficina
+      const destino = obtenerRutaPorRol(perfil?.rolCodigo, returnUrl);
 
       router.push(destino);
       router.refresh?.();

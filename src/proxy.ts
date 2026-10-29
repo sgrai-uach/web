@@ -43,8 +43,14 @@ export function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL(`/ciudadania/seguimiento/${codigo}${search}`, request.url));
   }
 
-  // 2. Si ya está autenticado e intenta ingresar a /login: redirigir siempre al Inicio de Gestión
+  // 2. Si ya está autenticado e intenta ingresar a /login:
+  // Si viene redirigido desde /terreno (PWA), preservar el retorno al entorno de terreno;
+  // en caso contrario, redirigir al Inicio de Gestión (/gestion).
   if (pathname === '/login' && token) {
+    const returnUrl = request.nextUrl.searchParams.get('returnUrl');
+    if (returnUrl && returnUrl.startsWith('/terreno')) {
+      return NextResponse.redirect(new URL(returnUrl, request.url));
+    }
     const defaultUrl = new URL('/gestion', request.url);
     return NextResponse.redirect(defaultUrl);
   }
