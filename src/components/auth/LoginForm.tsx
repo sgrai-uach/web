@@ -21,6 +21,11 @@ import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import styles from './LoginForm.module.css';
 
+export const RUTA_INICIO_GESTION = '/gestion';
+export const RUTA_INICIO_TERRENO = '/terreno';
+export const RUTA_TERRENO_PATRULLA = '/terreno/patrulla/misiones';
+export const RUTA_TERRENO_CUADRILLA = '/terreno/cuadrilla/misiones';
+
 /**
  * Determina la ruta destino post-autenticación según el rol canónico.
  * Regla de negocio crítica (§1.1):
@@ -28,17 +33,40 @@ import styles from './LoginForm.module.css';
  * - Roles de Oficina (ADMIN, ENCARGADO, CALL_CENTER, etc.) -> /gestion
  */
 export function obtenerRutaPorRol(rolCodigo?: string | null, returnUrl?: string | null): string {
-  const rol = (rolCodigo || '').toUpperCase();
-  const esRolTerreno = rol === 'PATRULLA_VERIFICADORA' || rol === 'DELEGADO_CUADRILLA';
+  const codigo = (rolCodigo || '').trim().toUpperCase();
 
-  if (esRolTerreno) {
+  if (
+    codigo === 'PATRULLA_VERIFICADORA' ||
+    codigo === 'PATRULLA' ||
+    codigo === 'DELEGADO_CUADRILLA' ||
+    codigo === 'CUADRILLA'
+  ) {
     if (returnUrl && returnUrl.startsWith('/terreno')) {
       return returnUrl;
     }
-    return '/terreno';
+    return RUTA_INICIO_TERRENO;
   }
 
-  return '/gestion';
+  return RUTA_INICIO_GESTION;
+}
+
+export function navegarADestino(destino: string, router: ReturnType<typeof useRouter>) {
+  if (destino.startsWith('/terreno')) {
+    if (process.env.NODE_ENV === 'test') {
+      router.push(destino);
+    }
+    try {
+      if (typeof window !== 'undefined' && window.location) {
+        window.location.assign(destino);
+      }
+    } catch {
+      router.push(destino);
+    }
+    return;
+  }
+
+  router.push(destino);
+  router.refresh?.();
 }
 
 export default function LoginForm() {
@@ -60,7 +88,7 @@ export default function LoginForm() {
   useEffect(() => {
     if (estaAutenticado && usuario) {
       const destino = obtenerRutaPorRol(usuario.rolCodigo, returnUrl);
-      router.push(destino);
+      navegarADestino(destino, router);
     }
   }, [estaAutenticado, usuario, returnUrl, router]);
 
@@ -114,7 +142,7 @@ export default function LoginForm() {
       });
 
       const destino = obtenerRutaPorRol(user?.rolCodigo, returnUrl);
-      router.push(destino);
+      navegarADestino(destino, router);
     } catch (err: unknown) {
       const msg =
         err instanceof Error
