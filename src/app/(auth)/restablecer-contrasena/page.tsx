@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 import RestablecerContrasenaForm from '@/components/auth/RestablecerContrasenaForm';
 import AppFooter from '@/components/layout/AppFooter';
 import AppHeader from '@/components/layout/AppHeader';
+import styles from '@/components/auth/RestablecerContrasenaForm.module.css';
 
 export const metadata: Metadata = {
   title: 'Restablecer Contraseña — SGRAI',
@@ -12,28 +13,15 @@ export const metadata: Metadata = {
 
 export default function RestablecerContrasenaPage() {
   return (
-    <main
-      style={{
-        minHeight: '100vh',
-        backgroundColor: 'var(--color-bg-light, #ECEFF3)',
-        display: 'flex',
-        flexDirection: 'column',
-      }}
-    >
-      <AppHeader />
+    <main className={styles.pageMain}>
+      <div className={styles.desktopChrome}>
+        <AppHeader />
+      </div>
 
-      <div
-        style={{
-          flex: 1,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: '40px 16px',
-        }}
-      >
+      <div className={styles.pageContent}>
         <Suspense
           fallback={
-            <div style={{ textAlign: 'center', color: 'var(--color-text-muted)' }}>
+            <div className={styles.suspenseFallback}>
               Cargando formulario de restablecimiento de contraseña...
             </div>
           }
@@ -42,7 +30,9 @@ export default function RestablecerContrasenaPage() {
         </Suspense>
       </div>
 
-      <AppFooter />
+      <div className={styles.desktopChrome}>
+        <AppFooter />
+      </div>
     </main>
   );
 }

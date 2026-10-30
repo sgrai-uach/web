@@ -44,7 +44,7 @@ describe('LoginForm', () => {
   });
 
   describe('obtenerRutaPorRol', () => {
-    it('debe mapear cualquier rol a la pantalla de Inicio de Gestión (/gestion)', () => {
+    it('debe mapear cualquier rol de oficina a la pantalla de Inicio de Gestión (/gestion)', () => {
       expect(obtenerRutaPorRol('ADMIN')).toBe('/gestion');
       expect(obtenerRutaPorRol('admin')).toBe('/gestion');
       expect(obtenerRutaPorRol('ENCARGADO')).toBe('/gestion');
@@ -53,6 +53,22 @@ describe('LoginForm', () => {
       expect(obtenerRutaPorRol('ASISTENTE_SOCIAL')).toBe('/gestion');
       expect(obtenerRutaPorRol('SUPERVISOR')).toBe('/gestion');
       expect(obtenerRutaPorRol('OTRO')).toBe('/gestion');
+    });
+
+    it('debe mapear los roles de terreno hacia el Hub principal en /terreno (PWA)', () => {
+      expect(obtenerRutaPorRol('PATRULLA_VERIFICADORA')).toBe('/terreno');
+      expect(obtenerRutaPorRol('patrulla_verificadora')).toBe('/terreno');
+      expect(obtenerRutaPorRol('DELEGADO_CUADRILLA')).toBe('/terreno');
+      expect(obtenerRutaPorRol('delegado_cuadrilla')).toBe('/terreno');
+    });
+
+    it('debe respetar returnUrl cuando pertenece a /terreno para roles de terreno', () => {
+      expect(obtenerRutaPorRol('PATRULLA_VERIFICADORA', '/terreno/patrulla/misiones/m-1')).toBe(
+        '/terreno/patrulla/misiones/m-1'
+      );
+      expect(obtenerRutaPorRol('DELEGADO_CUADRILLA', '/terreno/cuadrilla/misiones/m-2')).toBe(
+        '/terreno/cuadrilla/misiones/m-2'
+      );
     });
   });
 
@@ -108,18 +124,23 @@ describe('LoginForm', () => {
     ).toBeDefined();
   });
 
-  it('debe alternar la visibilidad de la contraseña con el botón de ojo', () => {
+  it('debe alternar la visibilidad de la contraseña con el botón de ojo previo a ingresar', () => {
     renderLoginForm();
 
     const passInput = screen.getByLabelText(/^Contraseña/i) as HTMLInputElement;
+    fireEvent.change(passInput, { target: { value: 'ClaveSecreta123!' } });
+
     const toggleBtn = screen.getByLabelText('Ver contraseña');
 
     expect(passInput.type).toBe('password');
+    expect(passInput.value).toBe('ClaveSecreta123!');
 
+    fireEvent.mouseDown(toggleBtn);
     fireEvent.click(toggleBtn);
     expect(passInput.type).toBe('text');
+    expect(screen.getByLabelText('Ocultar contraseña')).toBeDefined();
 
-    fireEvent.click(toggleBtn);
+    fireEvent.click(screen.getByLabelText('Ocultar contraseña'));
     expect(passInput.type).toBe('password');
   });
 
@@ -235,10 +256,10 @@ describe('LoginForm', () => {
   });
 
   describe('Recuperación de contraseña (HU-65)', () => {
-    it('debe renderizar el enlace "¿Olvidaste tu contraseña?" apuntando a /recuperar-contrasena', () => {
+    it('debe renderizar el enlace "¿Olvidó su contraseña?" apuntando a /recuperar-contrasena', () => {
       renderLoginForm();
 
-      const recoveryLink = screen.getByRole('link', { name: /¿Olvidaste tu contraseña\?/i });
+      const recoveryLink = screen.getByRole('link', { name: /¿Olvidó su contraseña\?/i });
       expect(recoveryLink).toBeDefined();
       expect(recoveryLink.getAttribute('href')).toBe('/recuperar-contrasena');
     });
@@ -251,6 +272,54 @@ describe('LoginForm', () => {
       expect(
         screen.getByText(/Su contraseña ha sido restablecida exitosamente\. Inicie sesión con su nueva credencial\./i)
       ).toBeDefined();
+    });
+  });
+
+  describe('Enrutamiento unificado para roles de terreno (PWA /terreno)', () => {
+    it('debe redirigir al Hub principal /terreno al iniciar sesión con rol PATRULLA_VERIFICADORA', async () => {
+      const mockLogin = vi.fn().mockResolvedValue({
+        id: 'usr-pat-1',
+        rolCodigo: 'PATRULLA_VERIFICADORA',
+        nombre: 'Patrulla Norte',
+      });
+
+      renderLoginForm({ login: mockLogin });
+
+      fireEvent.change(screen.getByLabelText(/Identificador/i), {
+        target: { value: 'patrulla@valdivia.cl' },
+      });
+      fireEvent.change(screen.getByLabelText(/^Contraseña/i), {
+        target: { value: 'Valdivia2026!' },
+      });
+
+      fireEvent.click(screen.getByRole('button', { name: /Ingresar al Sistema/i }));
+
+      await waitFor(() => {
+        expect(mockPush).toHaveBeenCalledWith('/terreno');
+      });
+    });
+
+    it('debe redirigir al Hub principal /terreno al iniciar sesión con rol DELEGADO_CUADRILLA', async () => {
+      const mockLogin = vi.fn().mockResolvedValue({
+        id: 'usr-cuad-1',
+        rolCodigo: 'DELEGADO_CUADRILLA',
+        nombre: 'Delegado Cuadrilla 1',
+      });
+
+      renderLoginForm({ login: mockLogin });
+
+      fireEvent.change(screen.getByLabelText(/Identificador/i), {
+        target: { value: 'cuadrilla@valdivia.cl' },
+      });
+      fireEvent.change(screen.getByLabelText(/^Contraseña/i), {
+        target: { value: 'Valdivia2026!' },
+      });
+
+      fireEvent.click(screen.getByRole('button', { name: /Ingresar al Sistema/i }));
+
+      await waitFor(() => {
+        expect(mockPush).toHaveBeenCalledWith('/terreno');
+      });
     });
   });
 });
