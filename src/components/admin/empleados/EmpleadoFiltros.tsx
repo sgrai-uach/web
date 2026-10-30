@@ -20,6 +20,8 @@ export interface EmpleadoFiltrosProps {
   setEspecialidadFiltro?: (val: string) => void;
   cargoFiltro?: string;
   setCargoFiltro?: (val: string) => void;
+  incluirInactivos?: boolean;
+  setIncluirInactivos?: (val: boolean) => void;
   ordenarPor: string;
   setOrdenarPor: (val: string) => void;
   orden: 'asc' | 'desc';
