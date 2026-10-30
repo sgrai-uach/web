@@ -57,4 +57,14 @@ describe('proxy middleware (sgrai-web)', () => {
     expect(res.status).toBe(307);
     expect(res.headers.get('location')).toBe('http://localhost:3000/gestion');
   });
+
+  it('debe permitir acceso público sin sesión a las rutas de infraestructura PWA (/terreno/manifest.webmanifest, /terreno/sw.js)', () => {
+    const reqManifest = new NextRequest('http://localhost:3000/terreno/manifest.webmanifest');
+    const resManifest = proxy(reqManifest);
+    expect(resManifest.status).toBe(200);
+
+    const reqSw = new NextRequest('http://localhost:3000/terreno/sw.js');
+    const resSw = proxy(reqSw);
+    expect(resSw.status).toBe(200);
+  });
 });

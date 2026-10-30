@@ -24,6 +24,21 @@ function esRutaPublica(pathname: string): boolean {
   if (pathname.startsWith('/ciudadania/')) {
     return true;
   }
+  // Rutas de infraestructura pública de la PWA de terreno
+  if (
+    pathname === '/terreno/manifest.webmanifest' ||
+    pathname === '/terreno/site.webmanifest' ||
+    pathname === '/terreno/sw.js' ||
+    pathname === '/terreno/favicon.ico' ||
+    pathname.endsWith('.webmanifest') ||
+    (pathname.startsWith('/terreno/') && (
+      pathname.endsWith('.png') ||
+      pathname.endsWith('.ico') ||
+      pathname.endsWith('.json')
+    ))
+  ) {
+    return true;
+  }
   return false;
 }
 
