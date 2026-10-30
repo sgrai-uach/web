@@ -1,5 +1,6 @@
 /* ==========================================================================
    RestablecerContrasenaForm & Responsive Styles — SGRAI Unificado
+   Diseño de Tarjeta Contenida (No pantalla completa) con Franja Menta Superior
    ========================================================================== */
 
 .pageMain {
@@ -13,9 +14,9 @@
 .pageContent {
   flex: 1;
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: center;
-  padding: 40px 16px 56px;
+  padding: 40px 16px;
   box-sizing: border-box;
 }
 
@@ -25,93 +26,18 @@
   font-size: 14px;
 }
 
+/* Tarjeta principal con franja institucional superior menta */
 .card {
   background-color: var(--color-white, #FFFFFF);
   border: 1px solid var(--border-color-neutral, #DFE3E8);
+  border-top: 4px solid var(--color-accent-mint, #4FAE9B);
   border-radius: var(--radius-none, 0px);
   width: 100%;
   max-width: 440px;
   margin: 0 auto;
   box-shadow: none;
   box-sizing: border-box;
-}
-
-.header {
-  background-color: var(--color-primary-teal-dark, #14505A);
-  color: var(--color-text-light, #FFFFFF);
-  padding: 20px 20px;
-  border-bottom: 4px solid var(--color-accent-mint, #4FAE9B);
-  box-sizing: border-box;
-}
-
-.brandContainer {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-}
-
-.emblemBox {
-  width: 44px;
-  height: 44px;
-  background-color: var(--color-accent-mint, #4FAE9B);
-  color: var(--color-charcoal-dark, #24272B);
-  font-weight: 800;
-  font-size: 24px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: var(--radius-none, 0px);
-  flex-shrink: 0;
-  line-height: 1;
-  user-select: none;
-}
-
-.brandTextGroup {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  text-align: left;
-}
-
-.logoRow {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.logoText {
-  font-weight: 800;
-  font-size: 20px;
-  letter-spacing: 0.5px;
-  color: #FFFFFF;
-  line-height: 1.1;
-}
-
-.logoDivider {
-  color: var(--color-sage, #A9CBA4);
-  font-size: 16px;
-}
-
-.logoSubtitle {
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--color-sage, #A9CBA4);
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-}
-
-.systemTagline {
-  margin: 0;
-  font-size: 11px;
-  line-height: 1.35;
-  color: var(--color-bg-light, #ECEFF3);
-  font-weight: 400;
-  opacity: 0.95;
-}
-
-.body {
-  padding: 24px 24px 28px;
+  padding: 32px 28px 24px;
 }
 
 .title {
@@ -274,13 +200,16 @@
 .secondaryActionWrapper {
   display: flex;
   justify-content: center;
-  margin-top: 4px;
+  margin-top: 2px;
+}
+
+.divider {
+  border: 0;
+  border-top: 1px solid var(--border-color-neutral, #DFE3E8);
+  margin: 20px 0 16px 0;
 }
 
 .footerNotes {
-  margin-top: 20px;
-  padding-top: 16px;
-  border-top: 1px solid var(--border-color-neutral, #DFE3E8);
   font-size: 11px;
   color: var(--color-text-muted, #5F676E);
   text-align: center;
@@ -301,47 +230,71 @@
 }
 
 .desktopChrome {
-  display: block;
+  display: contents;
 }
 
-@media (max-width: 640px) {
-  .desktopChrome {
-    display: none !important;
-  }
+/* ==========================================================================
+   Adaptación Responsiva y Ergonomía Móvil (No pantalla completa)
+   Se conserva la tarjeta contenida y flotante sobre el fondo suave
+   ========================================================================== */
 
-  .pageMain {
-    background-color: var(--color-bg-light, #ECEFF3);
-    min-height: 100vh;
-    min-height: 100dvh;
-    justify-content: flex-start;
+@media (max-width: 768px) {
+  .desktopChrome {
+    display: none;
   }
 
   .pageContent {
-    padding: 0;
+    padding: 24px 16px 32px;
     align-items: flex-start;
-    flex: 1;
-    width: 100%;
   }
 
   .card {
     max-width: 100%;
-    min-height: 100vh;
-    min-height: 100dvh;
-    border: none;
-    border-radius: 0;
-    display: flex;
-    flex-direction: column;
+    padding: 24px 20px 20px;
+    border: 1px solid var(--border-color-neutral, #DFE3E8);
+    border-top: 4px solid var(--color-accent-mint, #4FAE9B);
   }
 
-  .body {
-    padding: 24px 20px 32px;
-    flex: 1;
-    display: flex;
-    flex-direction: column;
+  .card input {
+    min-height: 48px;
+    height: 48px;
+    font-size: 16px;
+  }
+
+  .passwordToggleBtn {
+    height: 44px;
+    width: 44px;
   }
 
   .submitArea {
-    margin-top: auto;
-    padding-top: 24px;
+    margin-top: 18px;
+  }
+
+  .submitArea button,
+  .submitArea a {
+    min-height: 48px;
+    font-size: 15px;
+  }
+
+  .secondaryActionWrapper {
+    margin-top: 2px;
+  }
+}
+
+@media (max-width: 380px) {
+  .pageContent {
+    padding: 16px 12px 24px;
+  }
+
+  .card {
+    padding: 20px 14px 18px;
+  }
+
+  .title {
+    font-size: 19px;
+  }
+
+  .instruction {
+    font-size: 12px;
   }
 }
