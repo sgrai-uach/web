@@ -59,6 +59,7 @@ export function useAsistentesSociales(
   }, [pagina, limite, busqueda, delegacionId, estadoOperativo]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchData();
   }, [fetchData]);
 
