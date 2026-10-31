@@ -2,12 +2,9 @@ import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import NuevoPatrullaClient from '../NuevoPatrullaClient';
-import PatrullaForm from '../PatrullaForm';
-import { SimulatedSessionContext } from '@/context/SimulatedSessionContext';
+import { SimulatedSessionContext, type SimulatedSessionContextType } from '@/context/SimulatedSessionContext';
 import * as patrullasServiceModule from '@/services/patrullasService';
 import * as catalogosServiceModule from '@/services/catalogosService';
-import * as recursosServiceModule from '@/services/recursosService';
-import * as empleadosServiceModule from '@/services/empleadosService';
 
 // Mock de useRouter
 vi.mock('next/navigation', () => ({
@@ -106,7 +103,7 @@ const renderWithSession = (permisos: string[] = ['recursos:crear']) => {
   };
 
   return render(
-    <SimulatedSessionContext.Provider value={mockContextValue as any}>
+    <SimulatedSessionContext.Provider value={mockContextValue as unknown as SimulatedSessionContextType}>
       <NuevoPatrullaClient />
     </SimulatedSessionContext.Provider>
   );

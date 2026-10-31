@@ -1,0 +1,171 @@
+/* ==========================================================================
+   RecuperarContrasenaForm & Responsive Styles — SGRAI Unificado
+   Diseño de Tarjeta Contenida (No pantalla completa) con Franja Menta Superior
+   ========================================================================== */
+
+.pageMain {
+  min-height: 100vh;
+  min-height: 100dvh;
+  background-color: var(--color-bg-light, #ECEFF3);
+  display: flex;
+  flex-direction: column;
+}
+
+.pageContent {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 16px;
+  box-sizing: border-box;
+}
+
+.suspenseFallback {
+  text-align: center;
+  color: var(--color-text-muted, #5F676E);
+  font-size: 14px;
+}
+
+/* Tarjeta principal con franja institucional superior menta */
+.card {
+  background-color: var(--color-white, #FFFFFF);
+  border: 1px solid var(--border-color-neutral, #DFE3E8);
+  border-top: 4px solid var(--color-accent-mint, #4FAE9B);
+  border-radius: var(--radius-none, 0px);
+  width: 100%;
+  max-width: 440px;
+  margin: auto;
+  box-shadow: none;
+  box-sizing: border-box;
+  padding: 32px 28px 24px;
+}
+
+.title {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--color-primary-teal-dark, #14505A);
+  margin: 0 0 6px 0;
+  text-align: center;
+}
+
+.instruction {
+  font-size: 13px;
+  color: var(--color-text-muted, #5F676E);
+  margin: 0 0 20px 0;
+  text-align: center;
+  line-height: 1.45;
+  text-wrap: balance;
+}
+
+.noticeWrapper {
+  margin-bottom: 18px;
+}
+
+.submitArea {
+  margin-top: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.secondaryActionWrapper {
+  display: flex;
+  justify-content: center;
+  margin-top: 2px;
+}
+
+.divider {
+  border: 0;
+  border-top: 1px solid var(--border-color-neutral, #DFE3E8);
+  margin: 20px 0 16px 0;
+}
+
+.footerNotes {
+  font-size: 11px;
+  color: var(--color-text-muted, #5F676E);
+  text-align: center;
+  line-height: 1.5;
+}
+
+.footerNotes p {
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.footerLockIcon {
+  color: var(--color-text-muted, #5F676E);
+  flex-shrink: 0;
+}
+
+.desktopChrome {
+  display: contents;
+}
+
+/* ==========================================================================
+   Adaptación Responsiva y Ergonomía Móvil (No pantalla completa)
+   Se conserva la tarjeta contenida y flotante sobre el fondo suave
+   ========================================================================== */
+
+@media (max-width: 768px) {
+  .desktopChrome {
+    display: none;
+  }
+
+  .pageContent {
+    padding: 24px 16px;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .card {
+    max-width: 100%;
+    margin: auto;
+    padding: 24px 20px 20px;
+    border: 1px solid var(--border-color-neutral, #DFE3E8);
+    border-top: 4px solid var(--color-accent-mint, #4FAE9B);
+  }
+
+  .card input {
+    min-height: 48px;
+    height: 48px;
+    font-size: 16px;
+  }
+
+  .submitArea {
+    margin-top: 18px;
+  }
+
+  .submitArea button,
+  .submitArea a {
+    min-height: 48px;
+    font-size: 15px;
+  }
+
+  .secondaryActionWrapper {
+    margin-top: 2px;
+  }
+}
+
+@media (max-width: 380px) {
+  .pageContent {
+    padding: 16px 12px;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .card {
+    margin: auto;
+    padding: 20px 14px 18px;
+  }
+
+  .title {
+    font-size: 19px;
+  }
+
+  .instruction {
+    font-size: 12px;
+  }
+}

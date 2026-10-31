@@ -6,6 +6,7 @@ import {
   EmpleadosServiceError,
 } from '../empleadosService';
 import type { RegistrarEmpleadoPayload } from '@/types/empleados';
+import apiClient from '@/lib/api/client';
 
 describe('empleadosService', () => {
   beforeEach(() => {
@@ -223,7 +224,7 @@ describe('empleadosService', () => {
     });
   });
 
-  describe('getEmpleados y getEmpleadosPaginado (H34 + HU-13)', () => {
+  describe('getEmpleados y getEmpleadosPaginado (H34 + HU-13 + H11)', () => {
     const mockPersonal = [
       {
         usuario_id: 'usr-1',
@@ -232,6 +233,7 @@ describe('empleadosService', () => {
         apellidos: 'Silva',
         email: 'asilva@valdivia.cl',
         usuario_activo: true,
+        estado_operativo: 'disponible' as const,
         rol_id: 'rol-1',
         rol_codigo: 'PATRULLA',
         rol_nombre: 'Patrulla Verificadora',
@@ -239,8 +241,15 @@ describe('empleadosService', () => {
         delegacion_codigo: 'DEL_NORTE',
         delegacion_nombre: 'Norte',
         es_personal: true,
+        disponible_terreno: true,
       },
     ];
+
+    const mockGet = (payload: unknown) =>
+      vi.spyOn(apiClient, 'GET').mockResolvedValue({
+        data: payload,
+        response: new Response(null, { status: 200 }),
+      } as unknown as ReturnType<typeof apiClient.GET>);
 
     it('debe procesar respuesta estandarizada con objeto meta (total, page, limit, totalPages)', async () => {
       const mockMeta = {
@@ -252,19 +261,13 @@ describe('empleadosService', () => {
         hasPrev: true,
       };
 
-      vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce({
-        ok: true,
-        status: 200,
-        json: async () => ({
-          data: mockPersonal,
-          meta: mockMeta,
-        }),
-      } as Response);
+      mockGet({ data: mockPersonal, meta: mockMeta });
 
       const res = await getEmpleadosPaginado({ page: 2, limit: 20 });
 
       expect(res.data).toHaveLength(1);
       expect(res.data[0].nombres).toBe('Ana');
+      expect(res.data[0].estado_operativo).toBe('disponible');
       expect(res.meta.total).toBe(45);
       expect(res.meta.page).toBe(2);
       expect(res.meta.limit).toBe(20);
@@ -274,18 +277,14 @@ describe('empleadosService', () => {
     });
 
     it('debe soportar fallback defensivo si la API devuelve estructura provisoria paginacion', async () => {
-      vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce({
-        ok: true,
-        status: 200,
-        json: async () => ({
-          data: mockPersonal,
-          paginacion: {
-            pagina: 1,
-            limite: 10,
-            total_retornados: 25,
-          },
-        }),
-      } as Response);
+      mockGet({
+        data: mockPersonal,
+        paginacion: {
+          pagina: 1,
+          limite: 10,
+          total_retornados: 25,
+        },
+      });
 
       const res = await getEmpleadosPaginado({ pagina: 1, limite: 10 });
 
@@ -297,21 +296,17 @@ describe('empleadosService', () => {
     });
 
     it('getEmpleados debe retornar array de funcionarios con meta adjunto', async () => {
-      vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce({
-        ok: true,
-        status: 200,
-        json: async () => ({
-          data: mockPersonal,
-          meta: {
-            total: 1,
-            page: 1,
-            limit: 10,
-            totalPages: 1,
-            hasNext: false,
-            hasPrev: false,
-          },
-        }),
-      } as Response);
+      mockGet({
+        data: mockPersonal,
+        meta: {
+          total: 1,
+          page: 1,
+          limit: 10,
+          totalPages: 1,
+          hasNext: false,
+          hasPrev: false,
+        },
+      });
 
       const res = await empleadosService.getEmpleados({ q: 'Ana' });
 
@@ -322,27 +317,60 @@ describe('empleadosService', () => {
       expect(res.meta?.page).toBe(1);
     });
 
-    it('debe mapear parámetros de consulta estándar page y limit en la URL de fetch', async () => {
-      const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce({
-        ok: true,
-        status: 200,
-        json: async () => ({
-          data: mockPersonal,
-          meta: { total: 1, page: 3, limit: 15, totalPages: 1, hasNext: false, hasPrev: true },
-        }),
-      } as Response);
+    it('H11: debe enviar paginación y filtros (estado operativo, inactivos, rol, búsqueda) a la API', async () => {
+      const spy = mockGet({ data: mockPersonal, meta: { total: 1, page: 3, limit: 15, totalPages: 1 } });
 
       await getEmpleadosPaginado({
         page: 3,
         limit: 15,
-        delegacionNombre: 'Norte',
+        busqueda: 'Ana',
+        delegacion_id: 'del-1',
         rol_id: 'rol-1',
+        estadoOperativo: 'disponible',
+        incluirInactivos: true,
+        ordenar_por: 'nombres',
+        orden: 'desc',
       });
 
-      expect(fetchSpy).toHaveBeenCalledWith(
-        expect.stringMatching(/\/api\/personal\?.*page=3.*limit=15/),
-        expect.anything()
+      const opciones = spy.mock.calls[0]?.[1] as {
+        params: { query: Record<string, unknown> };
+      };
+
+      expect(opciones.params.query).toMatchObject({
+        page: 3,
+        limit: 15,
+        busqueda: 'Ana',
+        delegacion_id: 'del-1',
+        rol_id: 'rol-1',
+        estadoOperativo: 'disponible',
+        incluirInactivos: true,
+        ordenar_por: 'nombres',
+        orden: 'desc',
+      });
+    });
+
+    it('H11: debe resolver la delegación por UUID cuando se entrega el nombre legible', async () => {
+      const spy = mockGet({ data: mockPersonal, meta: { total: 1, page: 1, limit: 10, totalPages: 1 } });
+
+      await getEmpleadosPaginado({ delegacionNombre: 'Norte' });
+
+      const opciones = spy.mock.calls[0]?.[1] as {
+        params: { query: Record<string, unknown> };
+      };
+
+      expect(opciones.params.query.delegacion_id).toBeDefined();
+      expect(String(opciones.params.query.delegacion_id)).toMatch(
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
       );
+    });
+
+    it('debe lanzar EmpleadosServiceError si la API responde con error', async () => {
+      vi.spyOn(apiClient, 'GET').mockResolvedValue({
+        error: { message: 'Acceso denegado' },
+        response: new Response(null, { status: 403 }),
+      } as unknown as ReturnType<typeof apiClient.GET>);
+
+      await expect(getEmpleadosPaginado({})).rejects.toThrow(EmpleadosServiceError);
     });
   });
 });
