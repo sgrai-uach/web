@@ -18,8 +18,8 @@ import { IncidentesKpiCards } from './IncidentesKpiCards';
 import { IncidenteDetalleDrawer } from './IncidenteDetalleDrawer';
 import { AccesoDenegado } from './AccesoDenegado';
 import { MisionesModal } from './misiones/MisionesModal';
-import { PanelPatrullasModal } from './patrullas/PanelPatrullasModal';
 import { MisionDetalleModal } from './mision/MisionDetalleModal';
+import { PanelPatrullasModal } from './patrullas/PanelPatrullasModal';
 import { ModalCrearEventoPrevencion } from './ModalCrearEventoPrevencion';
 import { ModalCrearEventoRecuperacion } from './ModalCrearEventoRecuperacion';
 import { MapaOperativoMando } from './MapaOperativoMando';
@@ -294,8 +294,13 @@ export const KanbanBoard: React.FC = () => {
             isOpen={patrullasModalAbierto}
             onClose={() => setPatrullasModalAbierto(false)}
             userId={userId}
-            onSelectMision={(mId) => setMisionSeleccionadaId(mId)}
-            onSelectIncidente={(incId) => setIncidenteSeleccionadoId(incId)}
+            onSelectMision={(misionId) => {
+              setMisionSeleccionadaId(misionId);
+              setMisionesModalAbierto(true);
+            }}
+            onSelectIncidente={(incidenteId) => {
+              setIncidenteSeleccionadoId(incidenteId);
+            }}
           />
 
           <MisionDetalleModal

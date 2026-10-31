@@ -81,21 +81,15 @@ describe('KanbanHeader (HU-30)', () => {
     expect(onOpenCrearRecuperacion).toHaveBeenCalledTimes(1);
   });
 
-  it('debe renderizar el botón de Patrullas Verificadoras si se pasa onAbrirPatrullas', () => {
-    const onAbrirPatrullas = vi.fn();
-
+  it('no debe renderizar el botón de Patrullas Verificadoras en el centro de mando', () => {
     render(
       <KanbanHeader
         totalIncidentesVisibles={5}
         conectado={true}
-        onAbrirPatrullas={onAbrirPatrullas}
       />
     );
 
-    const btnPatrullas = screen.getByRole('button', { name: /Patrullas Verificadoras/i });
-    expect(btnPatrullas).toBeInTheDocument();
-
-    fireEvent.click(btnPatrullas);
-    expect(onAbrirPatrullas).toHaveBeenCalledTimes(1);
+    const btnPatrullas = screen.queryByRole('button', { name: /Patrullas Verificadoras/i });
+    expect(btnPatrullas).not.toBeInTheDocument();
   });
 });

@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { X, ShieldCheck, Zap } from 'lucide-react';
+import ConnectionStatusBadge from '@/components/common/ConnectionStatusBadge';
 import Button from '@/components/ui/Button';
 import Heading from '@/components/ui/Heading';
 import Pagination from '@/components/common/Pagination';
@@ -77,18 +78,21 @@ export const PanelPatrullasModal: React.FC<PanelPatrullasModalProps> = ({
             >
               {meta.total} {meta.total === 1 ? 'patrulla' : 'patrullas'}
             </span>
+            <ConnectionStatusBadge connected={conectado} />
           </div>
 
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={onClose}
-            aria-label="Cerrar modal de patrullas"
-            style={{ color: '#FFFFFF', minHeight: 'auto', padding: '4px' }}
-          >
-            <X size={20} />
-          </Button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={onClose}
+              aria-label="Cerrar modal de patrullas"
+              style={{ color: '#FFFFFF', minHeight: 'auto', padding: '4px' }}
+            >
+              <X size={20} />
+            </Button>
+          </div>
         </header>
 
         {/* Notificación en vivo de Socket */}
