@@ -91,7 +91,9 @@ export function usePatrullas({
 
   // Manejo de eventos WebSocket en tiempo real
   const filtrosRef = useRef(filtros);
-  filtrosRef.current = filtros;
+  useEffect(() => {
+    filtrosRef.current = filtros;
+  }, [filtros]);
 
   useEffect(() => {
     if (!enabled) return;
