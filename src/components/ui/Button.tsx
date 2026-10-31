@@ -60,6 +60,23 @@ export default function Button({
   );
 
   if (href && !isActuallyDisabled) {
+    const isMultiZoneOrExternal = href.startsWith('/terreno') || href.startsWith('http');
+
+    if (isMultiZoneOrExternal) {
+      return (
+        <a
+          href={href}
+          target={target}
+          rel={rel}
+          className={classList}
+          aria-busy={loading}
+          {...(restProps as React.AnchorHTMLAttributes<HTMLAnchorElement>)}
+        >
+          {content}
+        </a>
+      );
+    }
+
     return (
       <Link
         href={href}

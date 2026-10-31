@@ -59,10 +59,8 @@ export function useAsistentesSociales(
   }, [pagina, limite, busqueda, delegacionId, estadoOperativo]);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      fetchData();
-    }, 0);
-    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    fetchData();
   }, [fetchData]);
 
   return {

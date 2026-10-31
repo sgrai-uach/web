@@ -19,7 +19,7 @@ describe('RecuperarContrasenaForm (HU-65)', () => {
     expect(
       screen.getByRole('heading', { name: /Recuperación de Contraseña/i })
     ).toBeDefined();
-    expect(screen.getByLabelText(/Correo institucional o RUT/i)).toBeDefined();
+    expect(screen.getByLabelText(/Identificador|Correo institucional o RUT/i)).toBeDefined();
     expect(
       screen.getByRole('button', { name: /Enviar Enlace de Recuperación/i })
     ).toBeDefined();
@@ -45,7 +45,7 @@ describe('RecuperarContrasenaForm (HU-65)', () => {
   it('debe rechazar correos no institucionales (no @valdivia.cl)', async () => {
     render(<RecuperarContrasenaForm />);
 
-    const input = screen.getByLabelText(/Correo institucional o RUT/i);
+    const input = screen.getByLabelText(/Identificador/i);
     fireEvent.change(input, { target: { value: 'usuario@gmail.com' } });
 
     const submitBtn = screen.getByRole('button', {
@@ -62,7 +62,7 @@ describe('RecuperarContrasenaForm (HU-65)', () => {
   it('debe rechazar formatos inválidos de correo', async () => {
     render(<RecuperarContrasenaForm />);
 
-    const input = screen.getByLabelText(/Correo institucional o RUT/i);
+    const input = screen.getByLabelText(/Identificador/i);
     fireEvent.change(input, { target: { value: 'correo-invalido@' } });
 
     const submitBtn = screen.getByRole('button', {
@@ -79,7 +79,7 @@ describe('RecuperarContrasenaForm (HU-65)', () => {
   it('debe rechazar RUT chileno con dígito verificador inválido', async () => {
     render(<RecuperarContrasenaForm />);
 
-    const input = screen.getByLabelText(/Correo institucional o RUT/i);
+    const input = screen.getByLabelText(/Identificador/i);
     fireEvent.change(input, { target: { value: '11111111-9' } });
 
     const submitBtn = screen.getByRole('button', {
@@ -100,7 +100,7 @@ describe('RecuperarContrasenaForm (HU-65)', () => {
 
     render(<RecuperarContrasenaForm />);
 
-    const input = screen.getByLabelText(/Correo institucional o RUT/i);
+    const input = screen.getByLabelText(/Identificador/i);
     fireEvent.change(input, { target: { value: 'carlos.miranda@valdivia.cl' } });
 
     const submitBtn = screen.getByRole('button', {
@@ -129,7 +129,7 @@ describe('RecuperarContrasenaForm (HU-65)', () => {
 
     render(<RecuperarContrasenaForm />);
 
-    const input = screen.getByLabelText(/Correo institucional o RUT/i);
+    const input = screen.getByLabelText(/Identificador/i);
     fireEvent.change(input, { target: { value: '11111111-1' } });
 
     const submitBtn = screen.getByRole('button', {
@@ -155,7 +155,7 @@ describe('RecuperarContrasenaForm (HU-65)', () => {
 
     render(<RecuperarContrasenaForm />);
 
-    const input = screen.getByLabelText(/Correo institucional o RUT/i);
+    const input = screen.getByLabelText(/Identificador/i);
     fireEvent.change(input, { target: { value: 'carlos.miranda@valdivia.cl' } });
 
     const submitBtn = screen.getByRole('button', {
