@@ -3,8 +3,6 @@ import { renderHook, act } from '@testing-library/react';
 import { useNuevaPatrullaForm } from '../useNuevaPatrullaForm';
 import * as patrullasServiceModule from '@/services/patrullasService';
 import * as catalogosServiceModule from '@/services/catalogosService';
-import * as recursosServiceModule from '@/services/recursosService';
-import * as empleadosServiceModule from '@/services/empleadosService';
 
 vi.mock('@/context/SimulatedSessionContext', () => ({
   useSimulatedSession: () => ({
@@ -90,7 +88,7 @@ describe('useNuevaPatrullaForm (HU-83: Alta de Patrullas Verificadoras)', () => 
   });
 
   async function renderNuevaPatrullaHook() {
-    let hookResult: any;
+    let hookResult!: ReturnType<typeof renderHook<ReturnType<typeof useNuevaPatrullaForm>, unknown>>;
     await act(async () => {
       hookResult = renderHook(() => useNuevaPatrullaForm());
     });

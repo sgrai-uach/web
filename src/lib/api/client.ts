@@ -27,6 +27,11 @@ export function handleUnauthorizedSession() {
   removeAuthCookie();
 
   const pathname = window.location.pathname;
+  const rutasPublicas = ['/login', '/recuperar-contrasena', '/restablecer-contrasena'];
+  if (rutasPublicas.some((r) => pathname === r || pathname.startsWith(`${r}/`)) || pathname.startsWith('/ciudadania')) {
+    return;
+  }
+
   if (!pathname.startsWith('/login')) {
     const esRutaProtegida = RUTAS_PROTEGIDAS.some(
       (ruta) => pathname === ruta || pathname.startsWith(`${ruta}/`)
@@ -45,8 +50,15 @@ export function handleUnauthorizedSession() {
   }
 }
 
+function resolveApiBaseUrl(): string {
+  if (typeof window !== 'undefined' && process.env.NODE_ENV !== 'test') {
+    return '';
+  }
+  return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4001';
+}
+
 const apiClient = createClient<paths>({
-  baseUrl: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001',
+  baseUrl: resolveApiBaseUrl(),
 });
 
 apiClient.use({

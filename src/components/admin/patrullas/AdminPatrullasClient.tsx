@@ -48,7 +48,10 @@ export default function AdminPatrullasClient() {
   // Apertura automática si query param ?nuevo=1
   useEffect(() => {
     if (searchParams?.get('nuevo') === '1' && puedeCrear) {
-      setModalCrearAbierto(true);
+      const timer = setTimeout(() => {
+        setModalCrearAbierto(true);
+      }, 0);
+      return () => clearTimeout(timer);
     }
   }, [searchParams, puedeCrear]);
 

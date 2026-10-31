@@ -30,6 +30,14 @@ describe('Middleware de Autenticación y Perímetro de Portales', () => {
     expect(middleware(reqSeguimiento).status).toBe(200);
   });
 
+  it('debe permitir acceso libre a rutas públicas de recuperación de contrasena sin cookie de sesión', () => {
+    const reqRecuperar = createMockRequest('http://localhost:3000/recuperar-contrasena');
+    expect(middleware(reqRecuperar).status).toBe(200);
+
+    const reqRestablecer = createMockRequest('http://localhost:3000/restablecer-contrasena?token=test123');
+    expect(middleware(reqRestablecer).status).toBe(200);
+  });
+
   it('debe redirigir al portal ciudadano ante solicitudes a rutas informantes heredadas', () => {
     const reqReportar = createMockRequest('http://localhost:3000/reportar');
     const resReportar = middleware(reqReportar);
@@ -90,6 +98,17 @@ describe('Middleware de Autenticación y Perímetro de Portales', () => {
     expect(res.status).toBe(307);
     const location = res.headers.get('location');
     expect(location).toBe('http://localhost:3000/gestion');
+  });
+
+  it('debe preservar el retorno hacia /terreno si un usuario autenticado accede a /login con returnUrl de terreno', () => {
+    const req = createMockRequest('http://localhost:3000/login?returnUrl=%2Fterreno%2Fpatrulla%2Fmisiones', {
+      [AUTH_COOKIE_NAME]: 'fake-jwt-token',
+    });
+    const res = middleware(req);
+
+    expect(res.status).toBe(307);
+    const location = res.headers.get('location');
+    expect(location).toBe('http://localhost:3000/terreno/patrulla/misiones');
   });
 
   it('debe redirigir rutas operativas heredadas hacia su versión canónica con prefijo /gestion/ si hay sesión', () => {

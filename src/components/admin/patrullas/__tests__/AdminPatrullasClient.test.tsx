@@ -2,11 +2,9 @@ import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import AdminPatrullasClient from '../AdminPatrullasClient';
-import { SimulatedSessionContext } from '@/context/SimulatedSessionContext';
+import { SimulatedSessionContext, type SimulatedSessionContextType } from '@/context/SimulatedSessionContext';
 import * as patrullasServiceModule from '@/services/patrullasService';
 import * as catalogosServiceModule from '@/services/catalogosService';
-import * as recursosServiceModule from '@/services/recursosService';
-import * as empleadosServiceModule from '@/services/empleadosService';
 import type { PatrullaVerificadoraDTO } from '@/types/patrullas';
 
 // Mock de next/navigation
@@ -156,7 +154,7 @@ const renderWithSession = (permisos: string[] = ['recursos:crear', 'recursos:lee
   };
 
   return render(
-    <SimulatedSessionContext.Provider value={mockContextValue as any}>
+    <SimulatedSessionContext.Provider value={mockContextValue as unknown as SimulatedSessionContextType}>
       <AdminPatrullasClient />
     </SimulatedSessionContext.Provider>
   );

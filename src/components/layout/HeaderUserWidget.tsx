@@ -19,6 +19,10 @@ export default function HeaderUserWidget() {
     () => false
   );
 
+  if (pathname === '/login' || pathname?.startsWith('/login')) {
+    return null;
+  }
+
   if (!isClient || cargando) {
     return (
       <div className={styles.userWidget} aria-busy="true">
@@ -30,11 +34,6 @@ export default function HeaderUserWidget() {
   }
 
   if (!estaAutenticado || !usuario) {
-    // Si estamos en la pantalla de login, no mostrar el botón de iniciar sesión en el header
-    if (pathname === '/login' || pathname?.startsWith('/login')) {
-      return null;
-    }
-
     return (
       <Button
         href="/login"

@@ -57,6 +57,14 @@
 }
 
 @media (max-width: 768px) {
+  .topBar {
+    padding: 0 16px;
+  }
+
+  .sectionTitle {
+    font-size: 13px;
+  }
+
   .orgBadge {
     display: none;
   }

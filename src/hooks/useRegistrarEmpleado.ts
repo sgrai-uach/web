@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import type { CatalogosResponse, EmpleadoUsuario } from '@/types/empleados';
+import type { CatalogosResponse, EmpleadoUsuario, EstadoOperativo } from '@/types/empleados';
 import { empleadosService, EmpleadosServiceError } from '@/services/empleadosService';
 import { validarRutChileno, formatearRut } from '@/lib/validations/rut';
 import { validarTelefonoChileno, normalizarTelefonoParaEnvio } from '@/lib/validations/telefono';
@@ -46,6 +46,9 @@ export function useRegistrarEmpleado({
   const [especialidad, setEspecialidad] = useState('');
   const [disponibleTerreno, setDisponibleTerreno] = useState(true);
   const [observaciones, setObservaciones] = useState('');
+
+  // H11: disponibilidad inicial (reside en `usuario.estado_operativo`)
+  const [estadoOperativo, setEstadoOperativo] = useState<EstadoOperativo>('disponible');
 
   // Estados de control y error
   const [guardando, setGuardando] = useState(false);
@@ -184,10 +187,12 @@ export function useRegistrarEmpleado({
           password,
           rol_id: rolId,
           delegacion_id: delegacionId,
+          // H11: la disponibilidad se envía siempre
+          estado_operativo: estadoOperativo,
           ...(esRolTerreno && {
             cargo: cargo.trim() || null,
             especialidad: especialidad.trim() || null,
-            estado_operativo: 'disponible' as const,
+            // La capacidad de terreno sólo aplica al perfil de terreno
             disponible_terreno: disponibleTerreno,
             observaciones: observaciones.trim() || null,
           }),
@@ -232,6 +237,7 @@ export function useRegistrarEmpleado({
       especialidad,
       disponibleTerreno,
       observaciones,
+      estadoOperativo,
       onSuccess,
     ]
   );
@@ -250,6 +256,7 @@ export function useRegistrarEmpleado({
     setEspecialidad('');
     setDisponibleTerreno(true);
     setObservaciones('');
+    setEstadoOperativo('disponible');
     setErrores({});
     setErrorGeneral(null);
   }, []);
@@ -283,6 +290,8 @@ export function useRegistrarEmpleado({
     setDisponibleTerreno,
     observaciones,
     setObservaciones,
+    estadoOperativo,
+    setEstadoOperativo,
     esRolTerreno,
     guardando,
     errores,

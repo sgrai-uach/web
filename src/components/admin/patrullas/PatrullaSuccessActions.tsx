@@ -1,12 +1,10 @@
 'use client';
 
 import React from 'react';
-import Link from 'next/link';
-import { Check, ShieldCheck, ArrowRight, Plus } from 'lucide-react';
+import { Check, ShieldCheck, Plus } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import Heading from '@/components/ui/Heading';
 import type { PatrullaVerificadoraDTO } from '@/types/patrullas';
-import styles from './PatrullaForm.module.css';
 
 interface PatrullaSuccessActionsProps {
   patrulla: PatrullaVerificadoraDTO;

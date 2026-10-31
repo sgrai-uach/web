@@ -1,7 +1,6 @@
 'use client';
 
 import React from 'react';
-import Link from 'next/link';
 import { ShieldCheck } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import InlineNotice from '@/components/ui/InlineNotice';
@@ -28,7 +27,6 @@ export default function PatrullaForm() {
     createdPatrulla,
     isSubmitting,
     showConfirmModal,
-    isValid,
     clientErrors,
     handleCodigoChange,
     handleNombreChange,
