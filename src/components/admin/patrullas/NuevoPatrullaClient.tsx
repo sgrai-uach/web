@@ -1,20 +1,26 @@
 'use client';
 
-import React from 'react';
+import React, { useContext } from 'react';
 import Link from 'next/link';
 import Heading from '@/components/ui/Heading';
 import AccesoDenegadoState from '@/components/common/AccesoDenegadoState';
-import { useSimulatedSession } from '@/context/SimulatedSessionContext';
+import { AuthContext } from '@/context/AuthContext';
+import { SimulatedSessionContext } from '@/context/SimulatedSessionContext';
 import PatrullaForm from './PatrullaForm';
 
 export default function NuevoPatrullaClient() {
-  const { hasPermission, usuarioActivo, isMounted } = useSimulatedSession();
+  const auth = useContext(AuthContext);
+  const session = useContext(SimulatedSessionContext);
 
-  const puedeCrear = isMounted === false ? false : hasPermission('recursos:crear');
+  // Control de acceso RBAC: requiere recursos:crear o perfil ADMIN
+  const puedeCrear =
+    auth?.usuario
+      ? auth.tieneAlgunPermiso(['recursos:crear']) || auth.usuario.rolCodigo === 'ADMIN'
+      : session?.usuarioActivo
+      ? Boolean(session.hasAnyPermission ? session.hasAnyPermission(['recursos:crear']) : session.hasPermission?.('recursos:crear')) || session.usuarioActivo.esAdmin
+      : true;
 
-  if (isMounted === false) {
-    return null;
-  }
+  const rolDisplay = auth?.usuario?.rolNombre || session?.usuarioActivo?.rol || 'Usuario';
 
   if (!puedeCrear) {
     return (
@@ -44,7 +50,7 @@ export default function NuevoPatrullaClient() {
           <span style={{ color: 'var(--color-charcoal, #3B3F45)' }}>Administración</span>
           <span>&rsaquo;</span>
           <Link
-            href="/gestion/centro-incidentes"
+            href="/gestion/admin/patrullas"
             style={{
               color: 'var(--color-primary-teal, #1B6F7D)',
               fontWeight: 500,
@@ -61,7 +67,7 @@ export default function NuevoPatrullaClient() {
 
         {/* Acceso Denegado por falta de permiso recursos:crear */}
         <AccesoDenegadoState
-          rolUsuario={usuarioActivo?.rol || 'Usuario'}
+          rolUsuario={rolDisplay}
           modulo="el Registro de Patrullas Verificadoras"
           permisoRequerido="recursos:crear"
           botonVolverHref="/gestion"
@@ -98,7 +104,7 @@ export default function NuevoPatrullaClient() {
         <span style={{ color: 'var(--color-charcoal, #3B3F45)' }}>Administración</span>
         <span>&rsaquo;</span>
         <Link
-          href="/gestion/centro-incidentes"
+          href="/gestion/admin/patrullas"
           style={{
             color: 'var(--color-primary-teal, #1B6F7D)',
             fontWeight: 500,

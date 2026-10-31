@@ -24,20 +24,18 @@ interface KanbanHeaderProps {
   userId?: string;
   setUserId?: (id: string) => void;
   onAbrirMisiones?: () => void;
+  onAbrirPatrullas?: () => void;
   onOpenCrearPrevencion?: () => void;
   onOpenCrearRecuperacion?: () => void;
-  vistaActiva?: 'kanban' | 'mapa';
-  onCambiarVista?: (vista: 'kanban' | 'mapa') => void;
 }
 
 export const KanbanHeader: React.FC<KanbanHeaderProps> = ({
   totalIncidentesVisibles,
   conectado,
   onAbrirMisiones,
+  onAbrirPatrullas,
   onOpenCrearPrevencion,
   onOpenCrearRecuperacion,
-  vistaActiva = 'kanban',
-  onCambiarVista,
 }) => {
   const [menuNuevoEventoAbierto, setMenuNuevoEventoAbierto] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -99,6 +97,19 @@ export const KanbanHeader: React.FC<KanbanHeaderProps> = ({
               >
                 <ClipboardList size={14} style={{ marginRight: '5px' }} />
                 <span>Misiones Operativas</span>
+              </Button>
+            )}
+
+            {onAbrirPatrullas && (
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={onAbrirPatrullas}
+                title="Abrir panel de patrullas verificadoras activas en terreno"
+              >
+                <ShieldCheck size={14} style={{ marginRight: '5px' }} />
+                <span>Patrullas</span>
               </Button>
             )}
 

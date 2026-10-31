@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useContext, useState, useEffect } from 'react';
+import React, { useContext, useState } from 'react';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { Plus, ShieldCheck, Zap } from 'lucide-react';
 import { Breadcrumbs } from '@/components/common/Breadcrumbs';
@@ -21,9 +21,9 @@ import type { PatrullaVerificadoraDTO } from '@/types/patrullas';
 import styles from './AdminPatrullas.module.css';
 
 export default function AdminPatrullasClient() {
-  const [modalCrearAbierto, setModalCrearAbierto] = useState(false);
-  const { showSuccess } = useToast();
   const searchParams = useSearchParams();
+  const [modalCrearAbierto, setModalCrearAbierto] = useState(() => searchParams?.get('nuevo') === '1');
+  const { showSuccess } = useToast();
   const router = useRouter();
   const pathname = usePathname();
 
@@ -44,16 +44,6 @@ export default function AdminPatrullasClient() {
       : session?.usuarioActivo
       ? session.hasAnyPermission(['recursos:leer', 'recursos:crear', 'misiones:leer']) || session.usuarioActivo.esAdmin
       : true;
-
-  // Apertura automática si query param ?nuevo=1
-  useEffect(() => {
-    if (searchParams?.get('nuevo') === '1' && puedeCrear) {
-      const timer = setTimeout(() => {
-        setModalCrearAbierto(true);
-      }, 0);
-      return () => clearTimeout(timer);
-    }
-  }, [searchParams, puedeCrear]);
 
   const userId = auth?.usuario?.id || session?.usuarioActivo?.id;
 

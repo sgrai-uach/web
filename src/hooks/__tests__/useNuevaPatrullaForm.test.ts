@@ -68,9 +68,19 @@ vi.mock('@/services/empleadosService', () => ({
           apellidos: 'González',
           rol_codigo: 'PATRULLA_VERIFICADORA',
           usuario_activo: true,
+          estado_operativo: 'disponible',
+        },
+        {
+          usuario_id: 'c1000000-0000-4000-8000-000000000003',
+          personal_id: 'b1000000-0000-4000-8000-000000000003',
+          nombres: 'Pedro',
+          apellidos: 'Rojas',
+          rol_codigo: 'PATRULLA_VERIFICADORA',
+          usuario_activo: true,
+          estado_operativo: 'en_patrulla',
         },
       ],
-      meta: { total: 2, page: 1, limit: 100, totalPages: 1 },
+      meta: { total: 3, page: 1, limit: 100, totalPages: 1 },
     }),
   },
 }));
@@ -268,5 +278,47 @@ describe('useNuevaPatrullaForm (HU-83: Alta de Patrullas Verificadoras)', () => 
     expect(result.current.serverFieldErrors).toEqual([
       { campo: 'codigo', mensaje: 'Ya existe una patrulla registrada con este código.' },
     ]);
+  });
+
+  it('8. valida que el nombre descriptivo tenga al menos 3 caracteres si se proporciona (BUG-H83-WEB-02)', async () => {
+    const { result } = await renderNuevaPatrullaHook();
+
+    act(() => {
+      result.current.handleNombreChange('PV'); // Menos de 3 caracteres
+    });
+
+    expect(result.current.clientErrors.nombre).toBe('El nombre debe tener al menos 3 caracteres.');
+
+    act(() => {
+      result.current.handleNombreChange('Patrulla 01'); // 3 o más caracteres
+    });
+
+    expect(result.current.clientErrors.nombre).toBeUndefined();
+  });
+
+  it('9. bloquea la incorporación de funcionarios que no tengan estado_operativo disponible (BUG-H83-WEB-03)', async () => {
+    const { result } = await renderNuevaPatrullaHook();
+
+    // Intentar seleccionar a Pedro Rojas (cuyo estado_operativo es 'en_patrulla')
+    act(() => {
+      result.current.handleTogglePersonal(
+        'b1000000-0000-4000-8000-000000000003',
+        'c1000000-0000-4000-8000-000000000003'
+      );
+    });
+
+    // La dotación no debe incluir a Pedro Rojas
+    expect(result.current.formData.personalIds).not.toContain('b1000000-0000-4000-8000-000000000003');
+
+    // Seleccionar a María González (cuyo estado_operativo es 'disponible')
+    act(() => {
+      result.current.handleTogglePersonal(
+        'b1000000-0000-4000-8000-000000000002',
+        'c1000000-0000-4000-8000-000000000002'
+      );
+    });
+
+    // La dotación sí debe incluir a María González
+    expect(result.current.formData.personalIds).toContain('b1000000-0000-4000-8000-000000000002');
   });
 });

@@ -26,6 +26,9 @@ export const nuevaPatrullaSchema = z.object({
     .string()
     .trim()
     .max(100, 'El nombre no puede exceder 100 caracteres.')
+    .refine((val) => !val || val.length >= 3, {
+      message: 'El nombre debe tener al menos 3 caracteres.',
+    })
     .optional(),
   delegacionId: z
     .string({ message: 'Debe seleccionar una delegación municipal base.' })
@@ -195,36 +198,47 @@ export function useNuevaPatrullaForm() {
     setServerError(null);
   }, []);
 
-  const handleTogglePersonal = useCallback((personalId: string, usuarioId: string) => {
-    setFormData((prev) => {
-      const yaSeleccionado = prev.personalIds.includes(personalId);
-      let nuevosIds: string[];
-      let nuevoLider = prev.usuarioLiderId;
+  const handleTogglePersonal = useCallback(
+    (personalId: string, usuarioId: string) => {
+      const empleado = personalElegible.find((p) => p.personal_id === personalId);
 
-      if (yaSeleccionado) {
-        nuevosIds = prev.personalIds.filter((id) => id !== personalId);
-        // Si quitamos al que era líder, reasignar líder al primero restante
-        if (nuevoLider === usuarioId) {
-          nuevoLider = '';
+      setFormData((prev) => {
+        const yaSeleccionado = prev.personalIds.includes(personalId);
+
+        // ICS Operativo: Solo funcionarios con estado_operativo === 'disponible' pueden ser incorporados
+        if (!yaSeleccionado && empleado && empleado.estado_operativo && empleado.estado_operativo !== 'disponible') {
+          return prev;
         }
-      } else {
-        nuevosIds = [...prev.personalIds, personalId];
-        // Si no hay líder seleccionado aún, asignar al primero
-        if (!nuevoLider) {
-          nuevoLider = usuarioId;
+
+        let nuevosIds: string[];
+        let nuevoLider = prev.usuarioLiderId;
+
+        if (yaSeleccionado) {
+          nuevosIds = prev.personalIds.filter((id) => id !== personalId);
+          // Si quitamos al que era líder, reasignar líder al primero restante
+          if (nuevoLider === usuarioId) {
+            nuevoLider = '';
+          }
+        } else {
+          nuevosIds = [...prev.personalIds, personalId];
+          // Si no hay líder seleccionado aún, asignar al primero
+          if (!nuevoLider) {
+            nuevoLider = usuarioId;
+          }
         }
-      }
 
-      return {
-        ...prev,
-        personalIds: nuevosIds,
-        usuarioLiderId: nuevoLider,
-      };
-    });
+        return {
+          ...prev,
+          personalIds: nuevosIds,
+          usuarioLiderId: nuevoLider,
+        };
+      });
 
-    setTouched((prev) => ({ ...prev, personalIds: true }));
-    setServerError(null);
-  }, []);
+      setTouched((prev) => ({ ...prev, personalIds: true }));
+      setServerError(null);
+    },
+    [personalElegible]
+  );
 
   const handleLiderChange = useCallback((usuarioId: string) => {
     setFormData((prev) => ({ ...prev, usuarioLiderId: usuarioId }));

@@ -78,17 +78,37 @@ export const PatrullaDotacionSection: React.FC<PatrullaDotacionSectionProps> = (
               const personalId = p.personal_id!;
               const isSelected = personalSeleccionadoIds.includes(personalId);
               const isLider = usuarioLiderId === p.usuario_id;
+              const isDisponible = !p.estado_operativo || p.estado_operativo === 'disponible';
+              const estadoTexto =
+                p.estado_operativo === 'en_patrulla'
+                  ? 'En patrulla'
+                  : p.estado_operativo === 'en_mision'
+                  ? 'En misión'
+                  : p.estado_operativo === 'descanso'
+                  ? 'En descanso'
+                  : p.estado_operativo === 'licencia'
+                  ? 'Licencia'
+                  : p.estado_operativo === 'inactivo'
+                  ? 'Inactivo'
+                  : 'Disponible';
 
               return (
                 <div
                   key={personalId}
                   role="checkbox"
                   aria-checked={isSelected}
-                  tabIndex={0}
-                  className={`${styles.personalCard} ${isSelected ? styles.personalCardSelected : ''}`}
-                  onClick={() => onTogglePersonal(personalId, p.usuario_id)}
+                  aria-disabled={!isDisponible}
+                  tabIndex={isDisponible ? 0 : -1}
+                  className={`${styles.personalCard} ${isSelected ? styles.personalCardSelected : ''} ${
+                    !isDisponible ? styles.personalCardDisabled : ''
+                  }`}
+                  onClick={() => {
+                    if (isDisponible) {
+                      onTogglePersonal(personalId, p.usuario_id);
+                    }
+                  }}
                   onKeyDown={(e) => {
-                    if (e.key === ' ' || e.key === 'Enter') {
+                    if ((e.key === ' ' || e.key === 'Enter') && isDisponible) {
                       e.preventDefault();
                       onTogglePersonal(personalId, p.usuario_id);
                     }
@@ -98,10 +118,11 @@ export const PatrullaDotacionSection: React.FC<PatrullaDotacionSectionProps> = (
                     <input
                       type="checkbox"
                       checked={isSelected}
+                      disabled={!isDisponible}
                       readOnly
                       tabIndex={-1}
                       aria-hidden="true"
-                      style={{ cursor: 'pointer' }}
+                      style={{ cursor: isDisponible ? 'pointer' : 'not-allowed' }}
                     />
                     <div className={styles.personalDetails}>
                       <span className={styles.personalName}>
@@ -110,7 +131,16 @@ export const PatrullaDotacionSection: React.FC<PatrullaDotacionSectionProps> = (
                       <span className={styles.personalMeta}>
                         {p.cargo || 'Evaluador de Terreno'} &bull; Delegación:{' '}
                         {p.delegacion_nombre || 'Sin delegación'} &bull; Estado:{' '}
-                        {p.estado_operativo === 'en_patrulla' ? 'En patrulla' : 'Disponible'}
+                        <span
+                          style={{
+                            fontWeight: 600,
+                            color: isDisponible
+                              ? 'var(--color-success, #2E7D32)'
+                              : 'var(--color-warning, #E65100)',
+                          }}
+                        >
+                          {estadoTexto}
+                        </span>
                       </span>
                     </div>
                   </div>

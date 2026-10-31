@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { redirect } from 'next/navigation';
+import NuevoPatrullaClient from '@/components/admin/patrullas/NuevoPatrullaClient';
 
 export const metadata: Metadata = {
   title: 'Nueva Patrulla Verificadora — Administración | SGRAI',
@@ -8,5 +8,5 @@ export const metadata: Metadata = {
 };
 
 export default function NuevoPatrullaPage() {
-  redirect('/gestion/admin/patrullas?nuevo=1');
+  return <NuevoPatrullaClient />;
 }
