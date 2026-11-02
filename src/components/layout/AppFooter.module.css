@@ -20,3 +20,16 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+@media (max-width: 768px) {
+  .footer {
+    height: auto;
+    min-height: 42px;
+    padding: 10px 16px;
+  }
+
+  .footerInner {
+    white-space: normal;
+    line-height: 1.4;
+  }
+}

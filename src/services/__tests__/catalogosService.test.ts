@@ -70,5 +70,17 @@ describe('catalogosService', () => {
       const nombre = catalogosService.resolverDelegacionNombre('30000000-0000-4000-8000-000000000001');
       expect(nombre).toBe('Norte');
     });
+
+    it('debe obtener el objeto delegación completo por UUID o código usando obtenerDelegacionPorId', () => {
+      const delegacion = catalogosService.obtenerDelegacionPorId('30000000-0000-4000-8000-000000000003');
+      expect(delegacion).toBeDefined();
+      expect(delegacion?.nombre).toBe('Costa');
+      expect(delegacion?.codigo).toBe('DEL_COSTA');
+
+      const delegacionPorCodigo = catalogosService.obtenerDelegacionPorId('DEL_SUR');
+      expect(delegacionPorCodigo?.nombre).toBe('Sur');
+
+      expect(catalogosService.obtenerDelegacionPorId(undefined)).toBeUndefined();
+    });
   });
 });
