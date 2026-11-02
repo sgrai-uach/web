@@ -4,34 +4,43 @@
 > **Proyecto:** Sistema de Gestión de Recursos para Atención de Incidentes (SGRAI) — Dirección de Gestión de Riesgos de Desastres, Municipalidad de Valdivia.  
 > **Módulo:** Recursos y Personal (Operaciones ICS / Centro de Mando y Despliegue de Terreno).  
 > **Historia de Usuario:** HU-84 — *"Como Administrador Quiero modificar la delegación base, vehículo o personal asignado a una patrulla verificadora registrada Para adecuar la composición del equipo verificador ante rotaciones o mantenimiento vehicular."*  
-> **Desarrollador Asignado:** Cristóbal Veas.  
+> **Desarrollador Asignado:** Cristóbal Veas (@zetastormy).  
 > **Aplicación Cliente:** `sgrai-web` (Next.js 16 App Router + React 19 + TypeScript + Vanilla CSS Modules + Vitest + Testing Library + Socket.io Client).  
-> **Rama Git Evaluada:** `feature/h84-editar-patrulla` (con head en commit `ab098b6`).  
+> **Rama Git Evaluada:** `feature/h84-editar-patrulla` (con head en commit `e6cc214`).  
 > **QA Lead Responsable:** Antigravity QA Lead / Equipo de Aseguramiento de Calidad SGRAI.  
 > **Commits Clave Evaluados (Conventional Commits):**
+> * `merge: rama 'feature/h84-editar-patrulla' de github.com:sgrai-uach/web hacia feature/h84-editar-patrulla`
+> * `merge: sincronizar con develop y resolver conflictos en navItems`
 > * `feat(patrullas): implementar modificacion de delegacion, vehiculo y personal (HU-84)`
 > * `style(patrullas): mejorar diseno institucional de ventana de confirmacion de edicion`
 > * `style(patrullas): remover aviso de auditoria en confirmacion de edicion`
 > * `style(patrullas): remover banner de actualizacion en tiempo real`
 > 
-> **Fecha de Auditoría QA:** 29 de Octubre de 2026.  
-> **Estado de Certificación QA:** 🔴 **RECHAZADO TEMPORALMENTE (CHANGES REQUESTED — 5 DEFECTOS FORMALIZADOS)**.
+> **Fecha de Auditoría Inicial:** 29 de Octubre de 2026.  
+> **Fecha de Ejecución de Re-Test:** 02 de Noviembre de 2026 13:05.  
+> **Estado de Certificación QA:** 🔴 **RE-TEST FALLIDO / CAMBIOS AÚN REQUERIDOS (CHANGES STILL REQUESTED — 5 DEFECTOS PERSISTEN TRAS MERGE CON DEVELOP)**.
 
 ---
 
-## 1. Resumen Ejecutivo de la Auditoría Forense de QA
+## 1. Resumen Ejecutivo de la Auditoría Forense de QA y Re-Test
 
 Durante la auditoría técnica de código, análisis de integración cliente-servidor con `sgrai-api`, validación de esquemas Zod en formularios, inspección de estados en React y evaluación de conformidad frente a los Criterios de Aceptación (CA) de la HU-84 en `sgrai-web`, se detectaron **5 defectos reales** que comprometen la consistencia contractual con el backend, la usabilidad de dotaciones operativas según el Sistema de Comando de Incidentes (ICS) y la integridad de estado en componentes visuales.
 
-| Métrica de Calidad Frontend | Resultado de Auditoría |
-|---|:---:|
-| **Total de Casos de Prueba Diseñados y Evaluados** | **25** (20 Casos Funcionales/Integración + 5 Defectos Formalizados) |
-| **Casos Aprobados (Passed)** | **20** |
-| **Casos Fallidos / Defectos Abiertos (Failed)** | **5** (1 Crítico, 3 Altos, 1 Medio) |
-| **Dictamen de Code Review para Pull Request** | 🔴 **CHANGES REQUESTED (Rechazo Formal hasta subsanar fixes)** |
-| **Suite Automatizada de Patrullas en Vitest** | **52/52 tests exitosos en componentes, hooks y servicios** |
-| **Conformidad de Contrato Zod (Cliente vs API)** | ❌ **FALLIDO (Discrepancia en longitud mínima de nombre)** |
-| **Cumplimiento de Regla de Oro de QA** | **100% (Código en `src/` estrictamente preservado sin modificaciones)** |
+### Resultado de la Re-Evaluación Técnica (Re-Test — 02/11/2026):
+Ante el reporte del desarrollador indicando la realización de cambios para subsanar las observaciones, el equipo de QA auditó exhaustivamente el árbol de trabajo. Se constató que los commits recientes (`6d20cb7` y `e6cc214`) corresponden **exclusivamente a una sincronización con la rama `develop` (resolución de conflictos en `navItems` por la incorporación de HU-81)**, sin haberse realizado ninguna corrección de código fuente en `src/` para los 5 defectos formalizados.
+
+Por tanto, los **5 defectos continúan abiertos y reproducibles** en el código cliente de la rama.
+
+| Métrica de Calidad Frontend | Evaluación Inicial (29/10) | Re-Test Formal (02/11) | Estado Actual |
+|---|:---:|:---:|:---:|
+| **Total de Casos Evaluados en Matriz** | 25 Casos | 25 Casos | 25 Casos |
+| **Casos Aprobados (Passed)** | 20 | 20 | 20 Casos |
+| **Defectos Abiertos / Re-Test Fallido** | 5 (`BUG-H84-WEB-01` a `05`) | 5 (`BUG-H84-WEB-01` a `05`) | 🔴 **5 Defectos Persistentes** |
+| **Dictamen de Code Review para Pull Request** | 🔴 CHANGES REQUESTED | 🔴 **RE-TEST FALLIDO** | **Changes Still Requested** |
+| **Suite Automatizada de Patrullas en Vitest** | 52/52 tests pasados | 52/52 tests pasados | Verde (Mocks de Servicio) |
+| **Conformidad Contractual Zod (Cliente vs API)** | ❌ FALLIDO | ❌ FALLIDO | **Discrepancia en `nombre`** |
+| **Integridad de Estado React (`usuarioLiderId`)** | ❌ FALLIDO | ❌ FALLIDO | **Fallback erróneo a `personal_id`** |
+| **Cumplimiento de Regla de Oro de QA** | 100% | 100% | **`src/` estrictamente intacto** |
 
 ---
 
@@ -39,6 +48,7 @@ Durante la auditoría técnica de código, análisis de integración cliente-ser
 
 ### `BUG-H84-WEB-01`: Discrepancia Contractual en Validación Zod de `nombre` (Mínimo 3 Caracteres en API Omitido en Frontend)
 * **Severidad:** ALTA
+* **Estado Post Re-Test (02/11/2026):** 🔴 **RE-TEST FALLIDO — Persiste en Código (`useEditarPatrullaForm.ts` L. 16-20 sin `.min(3)`).**
 * **Módulo / Archivo Afectado:** `src/hooks/useEditarPatrullaForm.ts` (líneas 16-20) frente a `api/src/modules/recursos-y-personal/patrulla.schema.ts` (línea 296).
 * **Descripción:** En el esquema Zod del formulario de edición en el cliente (`editarPatrullaSchema`), el campo opcional `nombre` únicamente valida longitud máxima:
   ```typescript
@@ -66,6 +76,7 @@ Durante la auditoría técnica de código, análisis de integración cliente-ser
 
 ### `BUG-H84-WEB-02`: Corrupción y Asignación Indebida de `personal_id` en `usuarioLiderId` tras Alternar Integrantes
 * **Severidad:** CRÍTICA
+* **Estado Post Re-Test (02/11/2026):** 🔴 **RE-TEST FALLIDO — Persiste en Código (`useEditarPatrullaForm.ts` L. 270 y 275).**
 * **Módulo / Archivo Afectado:** `src/hooks/useEditarPatrullaForm.ts` (líneas 140-160 y 275-288) y `src/components/admin/patrullas/PatrullaEditarModal.tsx`.
 * **Descripción:** En `useEditarPatrullaForm.ts`, al inicializar la lista de personal elegible con los integrantes ya asignados a la patrulla, si el objeto `integrante` no tiene poblada la propiedad `usuarioId`, se realiza un fallback asignando `usuario_id = integrante.id` (el cual corresponde a la clave primaria `personal_id` de la tabla `personal`). Posteriormente, en `handleTogglePersonal`:
   ```typescript
@@ -87,6 +98,7 @@ Durante la auditoría técnica de código, análisis de integración cliente-ser
 
 ### `BUG-H84-WEB-03`: Ausencia de Bloqueo Preventivo en UI para Estados Activos de Misión `EN_MISION`, `EN_PREVENCION` y `EN_RECUPERACION`
 * **Severidad:** ALTA
+* **Estado Post Re-Test (02/11/2026):** 🔴 **RE-TEST FALLIDO — Persiste en Código (`useEditarPatrullaForm.ts` L. 82).**
 * **Módulo / Archivo Afectado:** `src/hooks/useEditarPatrullaForm.ts` (línea 86) y `src/components/mando/patrullas/PatrullaCard.tsx` (línea 84).
 * **Descripción:** La condición de bloqueo operativo en el cliente se limitó a:
   ```typescript
@@ -109,6 +121,7 @@ Durante la auditoría técnica de código, análisis de integración cliente-ser
 
 ### `BUG-H84-WEB-04`: Exposición y Selección Permitida de Personal No Disponible (`En patrulla` en Otra Unidad o de Licencia)
 * **Severidad:** ALTA
+* **Estado Post Re-Test (02/11/2026):** 🔴 **RE-TEST FALLIDO — Persiste en Código (`useEditarPatrullaForm.ts` L. 156-162).**
 * **Módulo / Archivo Afectado:** `src/hooks/useEditarPatrullaForm.ts` (líneas 128-136) y `src/components/admin/patrullas/PatrullaDotacionSection.tsx`.
 * **Descripción:** Al cargar la lista de personal elegible desde `empleadosService.getEmpleadosPaginado`, el hook solo filtra por `p.rol_codigo === 'PATRULLA_VERIFICADORA'`, `p.personal_id !== null` y `p.usuario_activo !== false`. **No se valida ni filtra el campo `p.estado_operativo`**.  
   En consecuencia, los funcionarios que ya pertenecen a otra patrulla activa (`estado_operativo === 'en_patrulla'`), o están en una cuadrilla (`en_cuadrilla`), o con licencia médica (`licencia` / `no_disponible`) aparecen listados con casillas de verificación interactivas en `PatrullaDotacionSection`. El usuario puede marcarlos e intentar asignarlos, provocando solapamiento de funciones y colisiones operativas en terreno.
@@ -127,6 +140,7 @@ Durante la auditoría técnica de código, análisis de integración cliente-ser
 
 ### `BUG-H84-WEB-05`: Desincronización y Cierre Inesperado del Drawer de Detalle tras Guardar Cambios
 * **Severidad:** MEDIA
+* **Estado Post Re-Test (02/11/2026):** 🔴 **RE-TEST FALLIDO — Persiste en Código (`AdminPatrullasClient.tsx` L. 305).**
 * **Módulo / Archivo Afectado:** `src/components/admin/patrullas/AdminPatrullasClient.tsx` (líneas 300-305 y 97-104) y `src/components/admin/patrullas/__tests__/PatrullaEditarModal.test.tsx`.
 * **Descripción:** En `AdminPatrullasClient.tsx`, cuando el usuario presiona "Editar Patrulla" desde la ficha técnica (`PatrullaDetalleDrawer`), la prop `onEditar` ejecuta `setPatrullaADetalle(null); setPatrullaAEditar(p);`. Esto borra el estado de la patrulla en inspección. Cuando el modal finaliza y se invoca `handlePatrullaActualizada`, la condición `if (patrullaADetalle?.id === patrullaActualizada.id)` resulta falsa y la ficha técnica no se actualiza ni se reabre, expulsando al usuario abruptamente a la vista de grilla sin mantener el contexto de la ficha técnica.  
   Asimismo, en la suite `PatrullaEditarModal.test.tsx`, la resolución asíncrona de promesas en `useEffect` gatilla advertencias de `act(...)` no controladas en el test 3.
@@ -141,62 +155,45 @@ Durante la auditoría técnica de código, análisis de integración cliente-ser
 
 ---
 
-## 3. Mensaje Formal de Code Review para Rechazar el PR (GitHub Markdown)
+## 3. Mensaje Formal de Code Review para Mantener Rechazado el PR (GitHub Markdown — Re-Test Fallido)
 
 ```markdown
-## ❌ Code Review QA: Changes Requested — HU-84 (Modificar Patrulla Verificadora - Frontend Web)
+## ❌ Code Review QA: Changes Still Requested (Re-Test Fallido) — HU-84 (Modificar Patrulla Verificadora - Frontend Web)
 
-Estimado @CristobalVeas,
+Estimado @zetastormy,
 
-He completado la auditoría técnica y ejecución de pruebas de integración para los componentes y hooks de la **HU-84** (*Modificar Patrulla Verificadora*) en el repositorio `sgrai-web`.
+He completado la auditoría técnica de Re-Test sobre la rama `feature/h84-editar-patrulla` en el repositorio `sgrai-web`.
 
-Se valora enormemente la completitud de la interfaz, el diseño institucional con Vanilla CSS Modules, la incorporación del Drawer de Detalle (`PatrullaDetalleDrawer`) y el modal de confirmación con datos consolidados. Sin embargo, se han formalizado **5 defectos técnicos reales** que impiden certificar la rama para su integración en `develop`:
+Al inspeccionar los últimos commits incorporados a la rama (`6d20cb7` y `e6cc214`):
+* Se observa que corresponden **únicamente a una sincronización con la rama `develop`** (`merge: sincronizar con develop y resolver conflictos en navItems`) para integrar los cambios de la HU-81.
+* **No contienen código de solución en `src/` para ninguno de los 5 defectos de frontend reportados en la auditoría inicial de QA.**
 
----
+Tras ejecutar nuevamente las suites de prueba en Vitest y auditar el código fuente en `src/hooks/` y `src/components/`, se confirma que **los 5 defectos persisten abiertos y reproducibles en el cliente**:
 
-### 🚨 Hallazgos Críticos a Subsanar:
+1. **`BUG-H84-WEB-01` (Alta):** En `useEditarPatrullaForm.ts` (L. 16-20), `editarPatrullaSchema` sigue sin `.min(3)` en `nombre`. Nombres como "PV" pasan en UI y rompen con 400 Bad Request en la API.
+2. **`BUG-H84-WEB-02` (Crítica):** En `useEditarPatrullaForm.ts` (L. 270 y 275), el fallback sigue asignando `personalId` en lugar de `usuarioId` a la variable `usuarioLiderId`, rompiendo la referencia con el backend.
+3. **`BUG-H84-WEB-03` (Alta):** En `useEditarPatrullaForm.ts` (L. 82) y `PatrullaCard.tsx` (L. 84), `estaBloqueada` ignora los estados activos `EN_MISION`, `EN_PREVENCION` y `EN_RECUPERACION` cuando `misionActiva` es null.
+4. **`BUG-H84-WEB-04` (Alta):** En `useEditarPatrullaForm.ts` (L. 156-162), no se filtra el personal elegible por `p.estado_operativo === 'disponible'`, exponiendo funcionarios ocupados para selección.
+5. **`BUG-H84-WEB-05` (Media):** En `AdminPatrullasClient.tsx` (L. 305), al hacer click en editar desde el Drawer se ejecuta `setPatrullaADetalle(null)`, perdiendo el contexto de la ficha técnica tras guardar.
 
-1. **`BUG-H84-WEB-01` — Discrepancia de Contrato Zod en `nombre`:**
-   * **Archivo:** `src/hooks/useEditarPatrullaForm.ts` (L. 16-20)
-   * **Problema:** En el cliente `editarPatrullaSchema` no valida el mínimo de 3 caracteres que la API exige estrictamente (`min(3)`). Nombres cortos como "PV" pasan en el cliente pero rompen con error 400 del servidor.
-   * **Fix sugerido:** Agregar `.min(3, "El nombre de la patrulla debe tener al menos 3 caracteres.")` en el esquema Zod del formulario.
-
-2. **`BUG-H84-WEB-02` — Corrupción de `usuarioLiderId` con UUID de `personal`:**
-   * **Archivo:** `src/hooks/useEditarPatrullaForm.ts` (L. 140-160 y L. 275-288)
-   * **Problema:** El fallback `usuarioId || personalId` puede asignar un UUID de la tabla `personal` a la variable `usuarioLiderId`. El backend espera estrictamente un ID de `usuario`, lo que genera un error 400 inmediato al intentar guardar. Adicionalmente, deseleccionar al líder deja el campo en blanco y muestra "Líder: No asignado" en el modal de confirmación.
-   * **Fix sugerido:** Mapear fidedignamente `usuario_id` y reasignar automáticamente el líder al primer integrante restante si el líder es desmarcado.
-
-3. **`BUG-H84-WEB-03` — Falta de Bloqueo en Estados `EN_MISION`, `EN_PREVENCION` y `EN_RECUPERACION`:**
-   * **Archivo:** `src/hooks/useEditarPatrullaForm.ts` (L. 86) y `src/components/mando/patrullas/PatrullaCard.tsx` (L. 84)
-   * **Problema:** Solo se bloquea si el estado es `EN_VERIFICACION` o si existe `misionActiva`. Si una patrulla está en `EN_MISION` o `EN_PREVENCION` sin misión enlazada, la UI permite editarla indebidamente.
-   * **Fix sugerido:** Bloquear la edición ante cualquier estado operativo activo (`EN_VERIFICACION`, `EN_MISION`, `EN_PREVENCION`, `EN_RECUPERACION`).
-
-4. **`BUG-H84-WEB-04` — Exposición de Personal No Disponible en Selección de Integrantes:**
-   * **Archivo:** `src/hooks/useEditarPatrullaForm.ts` (L. 128-136) y `PatrullaDotacionSection.tsx`
-   * **Problema:** No se valida `p.estado_operativo === 'disponible'`. Funcionarios que ya están en otra patrulla (`en_patrulla`) o de licencia médica pueden ser seleccionados con checkbox, provocando doble asignación de personal.
-   * **Fix sugerido:** Deshabilitar en la lista a funcionarios ocupados cuyo estado no sea disponible.
-
-5. **`BUG-H84-WEB-05` — Desincronización y Cierre del Drawer al Editar:**
-   * **Archivo:** `src/components/admin/patrullas/AdminPatrullasClient.tsx` (L. 300-305) y `PatrullaEditarModal.test.tsx`
-   * **Problema:** Al editar desde el Drawer, `setPatrullaADetalle(null)` destruye la vista de ficha técnica impidiendo que vuelva a abrirse actualizada tras guardar. Además, existen advertencias de `act(...)` en las pruebas unitarias del modal.
-   * **Fix sugerido:** Mantener abierta la ficha técnica actualizada tras guardar y envolver las resoluciones asíncronas de test en `act(...)`.
-
----
-
-Por favor notificar cuando los fixes estén commiteados para realizar el re-test formal y proceder con el merge. ¡Excelente trabajo en los aspectos visuales y de accesibilidad!
+### 🛠️ Acciones Requeridas para Aprobar el Pull Request:
+Por favor aplica los fixes directamente en `src/hooks/useEditarPatrullaForm.ts`, `PatrullaCard.tsx`, `PatrullaDotacionSection.tsx` y `AdminPatrullasClient.tsx` utilizando Conventional Commits descriptivos (ej. `fix(patrullas): ...`) y avísame cuando estén disponibles en la rama para ejecutar la verificación definitiva.
+```
 ```
 
 ---
 
 ## 4. Matriz Consolidada de 13 Columnas (Google Sheets / Docs)
 
+A continuación se presenta la matriz oficial en el formato tabular institucional de 13 columnas. Los defectos detectados se listan al inicio con estado `RE-TEST FALLIDO (ABIERTO)`, documentando la persistencia de las no conformidades tras la auditoría técnica de Re-Test:
+
 | ID Caso | Título del Caso de Prueba | Tipo de Prueba | Nivel | Prioridad | Precondición | Datos de Prueba (Payload / Headers / Query) | Resultado Esperado | Resultado Obtenido | Estado | Fecha / Hora Ejecución | Fecha / Hora Re-Test | Solución / Commit |
 |---|---|---|---|---|---|---|---|---|:---:|:---:|:---:|---|
-| `BUG-H84-WEB-01` | Discrepancia contractual en validación Zod de nombre omitiendo mínimo de 3 caracteres en cliente | Validación (Zod) / Contrato | UI / Hook | Alta | Modal de edición abierto en patrulla disponible | Modificar nombre a "PV" (2 caracteres) y enviar formulario | Error de validación cliente impidiendo avanzar al modal de confirmación | El cliente valida como correcto, abre confirmación y la API responde 400 Bad Request | ABIERTO | 29/10/2026 22:50 | (Pendiente) | Pendiente (Rechazado en Code Review) |
-| `BUG-H84-WEB-02` | Corrupción de usuarioLiderId con UUID de personal al deseleccionar integrantes y líder no asignado | Integridad / Estado React | Hook / UI | Crítica | Patrulla con 2 o más integrantes cargados | Deseleccionar al líder actual y seleccionar un nuevo funcionario | usuarioLiderId debe reasignarse automáticamente a un usuario_id válido de la dotación | Fallback asigna personal_id provocando error 400 en API o muestra "Líder: No asignado" | ABIERTO | 29/10/2026 22:52 | (Pendiente) | Pendiente (Rechazado en Code Review) |
-| `BUG-H84-WEB-03` | Ausencia de bloqueo preventivo de edición ante estados activos EN_MISION, EN_PREVENCION y EN_RECUPERACION | Regla de Negocio ICS | UI / Lógica | Alta | Patrulla en estado EN_MISION con misionActiva null | Inspeccionar botón "Editar Patrulla" en PatrullaCard y Drawer | Botón "Editar Patrulla" deshabilitado con tooltip explicativo de bloqueo | Botón habilitado permitiendo abrir el modal de edición a mitad de turno | ABIERTO | 29/10/2026 22:54 | (Pendiente) | Pendiente (Rechazado en Code Review) |
-| `BUG-H84-WEB-04` | Exposición y selección permitida de personal no disponible (en otra patrulla o de licencia médica) | Validación / Negocio ICS | UI / Componente | Alta | Empleados con estado_operativo = 'en_patrulla' o 'licencia' | Abrir selector de dotación en PatrullaEditarModal | Funcionarios ocupados deshabilitados con etiqueta de no disponibilidad | Checkbox activo y seleccionable permitiendo doble asignación en terreno | ABIERTO | 29/10/2026 22:56 | (Pendiente) | Pendiente (Rechazado en Code Review) |
-| `BUG-H84-WEB-05` | Desincronización y cierre forzado del Drawer de Detalle tras edición y warnings de act en tests | Estado React / QA | Integración UI | Media | Patrulla abierta en PatrullaDetalleDrawer | Presionar "Editar Patrulla", modificar datos y confirmar guardado | Drawer permanece abierto mostrando la ficha técnica actualizada fidedignamente | Drawer se destruye y el usuario es expulsado a la grilla general de patrullas | ABIERTO | 29/10/2026 22:58 | (Pendiente) | Pendiente (Rechazado en Code Review) |
+| `BUG-H84-WEB-01` | Discrepancia contractual en validación Zod de nombre omitiendo mínimo de 3 caracteres en cliente | Validación (Zod) / Contrato | UI / Hook | Alta | Modal de edición abierto en patrulla disponible | Modificar nombre a "PV" (2 caracteres) y enviar formulario | Error de validación cliente impidiendo avanzar al modal de confirmación | El cliente valida como correcto, abre confirmación y la API responde 400 Bad Request; persiste en L. 16-20 | RE-TEST FALLIDO (ABIERTO) | 29/10/2026 22:50 | 02/11/2026 13:05 | Pendiente (Re-Test Fallido - Solo sincronizó develop) |
+| `BUG-H84-WEB-02` | Corrupción de usuarioLiderId con UUID de personal al deseleccionar integrantes y líder no asignado | Integridad / Estado React | Hook / UI | Crítica | Patrulla con 2 o más integrantes cargados | Deseleccionar al líder actual y seleccionar un nuevo funcionario | usuarioLiderId debe reasignarse automáticamente a un usuario_id válido de la dotación | Fallback asigna personal_id provocando error 400 en API o muestra "Líder: No asignado"; persiste en L. 270 | RE-TEST FALLIDO (ABIERTO) | 29/10/2026 22:52 | 02/11/2026 13:05 | Pendiente (Re-Test Fallido - Solo sincronizó develop) |
+| `BUG-H84-WEB-03` | Ausencia de bloqueo preventivo de edición ante estados activos EN_MISION, EN_PREVENCION y EN_RECUPERACION | Regla de Negocio ICS | UI / Lógica | Alta | Patrulla en estado EN_MISION con misionActiva null | Inspeccionar botón "Editar Patrulla" en PatrullaCard y Drawer | Botón "Editar Patrulla" deshabilitado con tooltip explicativo de bloqueo | Botón habilitado permitiendo abrir el modal de edición a mitad de turno; persiste en L. 82 | RE-TEST FALLIDO (ABIERTO) | 29/10/2026 22:54 | 02/11/2026 13:05 | Pendiente (Re-Test Fallido - Solo sincronizó develop) |
+| `BUG-H84-WEB-04` | Exposición y selección permitida de personal no disponible (en otra patrulla o de licencia médica) | Validación / Negocio ICS | UI / Componente | Alta | Empleados con estado_operativo = 'en_patrulla' o 'licencia' | Abrir selector de dotación en PatrullaEditarModal | Funcionarios ocupados deshabilitados con etiqueta de no disponibilidad | Checkbox activo y seleccionable permitiendo doble asignación en terreno; persiste en L. 156 | RE-TEST FALLIDO (ABIERTO) | 29/10/2026 22:56 | 02/11/2026 13:05 | Pendiente (Re-Test Fallido - Solo sincronizó develop) |
+| `BUG-H84-WEB-05` | Desincronización y cierre forzado del Drawer de Detalle tras edición y warnings de act en tests | Estado React / QA | Integración UI | Media | Patrulla abierta en PatrullaDetalleDrawer | Presionar "Editar Patrulla", modificar datos y confirmar guardado | Drawer permanece abierto mostrando la ficha técnica actualizada fidedignamente | Drawer se destruye y el usuario es expulsado a la grilla general de patrullas; persiste en L. 305 | RE-TEST FALLIDO (ABIERTO) | 29/10/2026 22:58 | 02/11/2026 13:05 | Pendiente (Re-Test Fallido - Solo sincronizó develop) |
 | `CP-H84-WEB-01` | Despliegue de acción Editar Patrulla en tarjeta de Centro de Mando para patrulla DISPONIBLE | Funcional / UI | Componente | Alta | Patrulla en estado DISPONIBLE y usuario con permiso recursos:editar | Renderizado de PatrullaCard en AdminPatrullasClient | Botón "Editar Patrulla" visible y habilitado en la fila de acciones | Botón visible con icono Edit y estilo institucional habilitado | APROBADO | 29/10/2026 23:00 | - | feat(patrullas): implementar modificacion de delegacion, vehiculo y personal (HU-84) |
 | `CP-H84-WEB-02` | Despliegue de acción Editar Patrulla en el pie del Drawer de Detalle (PatrullaDetalleDrawer) | Funcional / UI | Componente | Alta | Patrulla seleccionada en inspección unitaria | Clic en "Ver Ficha" abriendo PatrullaDetalleDrawer | Botón "Editar Patrulla" presente en el footer del Drawer con icono | Botón interactivo renderizado con icono Edit y prop puedeEditar | APROBADO | 29/10/2026 23:02 | - | feat(patrullas): implementar modificacion de delegacion, vehiculo y personal (HU-84) |
 | `CP-H84-WEB-03` | Precarga íntegra de atributos actuales en formulario de edición (PatrullaEditarModal) | Funcional | Formulario / Hook | Alta | Patrulla con delegación, vehículo y dotación asignados | Apertura de PatrullaEditarModal | Campos precargados: nombre, delegación seleccionada, vehículo y dotación | Todos los campos precargados fielmente desde la entidad suministrada | APROBADO | 29/10/2026 23:04 | - | feat(patrullas): implementar modificacion de delegacion, vehiculo y personal (HU-84) |
@@ -224,11 +221,11 @@ Por favor notificar cuando los fixes estén commiteados para realizar el re-test
 
 ```tsv
 ID Caso	Título del Caso de Prueba	Tipo de Prueba	Nivel	Prioridad	Precondición	Datos de Prueba (Payload / Headers / Query)	Resultado Esperado	Resultado Obtenido	Estado	Fecha / Hora Ejecución	Fecha / Hora Re-Test	Solución / Commit
-BUG-H84-WEB-01	Discrepancia contractual en validación Zod de nombre omitiendo mínimo de 3 caracteres en cliente	Validación (Zod) / Contrato	UI / Hook	Alta	Modal de edición abierto en patrulla disponible	Modificar nombre a "PV" (2 caracteres) y enviar formulario	Error de validación cliente impidiendo avanzar al modal de confirmación	El cliente valida como correcto, abre confirmación y la API responde 400 Bad Request	ABIERTO	29/10/2026 22:50	(Pendiente)	Pendiente (Rechazado en Code Review)
-BUG-H84-WEB-02	Corrupción de usuarioLiderId con UUID de personal al deseleccionar integrantes y líder no asignado	Integridad / Estado React	Hook / UI	Crítica	Patrulla con 2 o más integrantes cargados	Deseleccionar al líder actual y seleccionar un nuevo funcionario	usuarioLiderId debe reasignarse automáticamente a un usuario_id válido de la dotación	Fallback asigna personal_id provocando error 400 en API o muestra "Líder: No asignado"	ABIERTO	29/10/2026 22:52	(Pendiente)	Pendiente (Rechazado en Code Review)
-BUG-H84-WEB-03	Ausencia de bloqueo preventivo de edición ante estados activos EN_MISION, EN_PREVENCION y EN_RECUPERACION	Regla de Negocio ICS	UI / Lógica	Alta	Patrulla en estado EN_MISION con misionActiva null	Inspeccionar botón "Editar Patrulla" en PatrullaCard y Drawer	Botón "Editar Patrulla" deshabilitado con tooltip explicativo de bloqueo	Botón habilitado permitiendo abrir el modal de edición a mitad de turno	ABIERTO	29/10/2026 22:54	(Pendiente)	Pendiente (Rechazado en Code Review)
-BUG-H84-WEB-04	Exposición y selección permitida de personal no disponible (en otra patrulla o de licencia médica)	Validación / Negocio ICS	UI / Componente	Alta	Empleados con estado_operativo = 'en_patrulla' o 'licencia'	Abrir selector de dotación en PatrullaEditarModal	Funcionarios ocupados deshabilitados con etiqueta de no disponibilidad	Checkbox activo y seleccionable permitiendo doble asignación en terreno	ABIERTO	29/10/2026 22:56	(Pendiente)	Pendiente (Rechazado en Code Review)
-BUG-H84-WEB-05	Desincronización y cierre forzado del Drawer de Detalle tras edición y warnings de act en tests	Estado React / QA	Integración UI	Media	Patrulla abierta en PatrullaDetalleDrawer	Presionar "Editar Patrulla", modificar datos y confirmar guardado	Drawer permanece abierto mostrando la ficha técnica actualizada fidedignamente	Drawer se destruye y el usuario es expulsado a la grilla general de patrullas	ABIERTO	29/10/2026 22:58	(Pendiente)	Pendiente (Rechazado en Code Review)
+BUG-H84-WEB-01	Discrepancia contractual en validación Zod de nombre omitiendo mínimo de 3 caracteres en cliente	Validación (Zod) / Contrato	UI / Hook	Alta	Modal de edición abierto en patrulla disponible	Modificar nombre a "PV" (2 caracteres) y enviar formulario	Error de validación cliente impidiendo avanzar al modal de confirmación	El cliente valida como correcto, abre confirmación y la API responde 400 Bad Request; persiste en L. 16-20	RE-TEST FALLIDO (ABIERTO)	29/10/2026 22:50	02/11/2026 13:05	Pendiente (Re-Test Fallido - Solo sincronizó develop)
+BUG-H84-WEB-02	Corrupción de usuarioLiderId con UUID de personal al deseleccionar integrantes y líder no asignado	Integridad / Estado React	Hook / UI	Crítica	Patrulla con 2 o más integrantes cargados	Deseleccionar al líder actual y seleccionar un nuevo funcionario	usuarioLiderId debe reasignarse automáticamente a un usuario_id válido de la dotación	Fallback asigna personal_id provocando error 400 en API o muestra "Líder: No asignado"; persiste en L. 270	RE-TEST FALLIDO (ABIERTO)	29/10/2026 22:52	02/11/2026 13:05	Pendiente (Re-Test Fallido - Solo sincronizó develop)
+BUG-H84-WEB-03	Ausencia de bloqueo preventivo de edición ante estados activos EN_MISION, EN_PREVENCION y EN_RECUPERACION	Regla de Negocio ICS	UI / Lógica	Alta	Patrulla en estado EN_MISION con misionActiva null	Inspeccionar botón "Editar Patrulla" en PatrullaCard y Drawer	Botón "Editar Patrulla" deshabilitado con tooltip explicativo de bloqueo	Botón habilitado permitiendo abrir el modal de edición a mitad de turno; persiste en L. 82	RE-TEST FALLIDO (ABIERTO)	29/10/2026 22:54	02/11/2026 13:05	Pendiente (Re-Test Fallido - Solo sincronizó develop)
+BUG-H84-WEB-04	Exposición y selección permitida de personal no disponible (en otra patrulla o de licencia médica)	Validación / Negocio ICS	UI / Componente	Alta	Empleados con estado_operativo = 'en_patrulla' o 'licencia'	Abrir selector de dotación en PatrullaEditarModal	Funcionarios ocupados deshabilitados con etiqueta de no disponibilidad	Checkbox activo y seleccionable permitiendo doble asignación en terreno; persiste en L. 156	RE-TEST FALLIDO (ABIERTO)	29/10/2026 22:56	02/11/2026 13:05	Pendiente (Re-Test Fallido - Solo sincronizó develop)
+BUG-H84-WEB-05	Desincronización y cierre forzado del Drawer de Detalle tras edición y warnings de act en tests	Estado React / QA	Integración UI	Media	Patrulla abierta en PatrullaDetalleDrawer	Presionar "Editar Patrulla", modificar datos y confirmar guardado	Drawer permanece abierto mostrando la ficha técnica actualizada fidedignamente	Drawer se destruye y el usuario es expulsado a la grilla general de patrullas; persiste en L. 305	RE-TEST FALLIDO (ABIERTO)	29/10/2026 22:58	02/11/2026 13:05	Pendiente (Re-Test Fallido - Solo sincronizó develop)
 CP-H84-WEB-01	Despliegue de acción Editar Patrulla en tarjeta de Centro de Mando para patrulla DISPONIBLE	Funcional / UI	Componente	Alta	Patrulla en estado DISPONIBLE y usuario con permiso recursos:editar	Renderizado de PatrullaCard en AdminPatrullasClient	Botón "Editar Patrulla" visible y habilitado en la fila de acciones	Botón visible con icono Edit y estilo institucional habilitado	APROBADO	29/10/2026 23:00	-	feat(patrullas): implementar modificacion de delegacion, vehiculo y personal (HU-84)
 CP-H84-WEB-02	Despliegue de acción Editar Patrulla en el pie del Drawer de Detalle (PatrullaDetalleDrawer)	Funcional / UI	Componente	Alta	Patrulla seleccionada en inspección unitaria	Clic en "Ver Ficha" abriendo PatrullaDetalleDrawer	Botón "Editar Patrulla" presente en el footer del Drawer con icono	Botón interactivo renderizado con icono Edit y prop puedeEditar	APROBADO	29/10/2026 23:02	-	feat(patrullas): implementar modificacion de delegacion, vehiculo y personal (HU-84)
 CP-H84-WEB-03	Precarga íntegra de atributos actuales en formulario de edición (PatrullaEditarModal)	Funcional	Formulario / Hook	Alta	Patrulla con delegación, vehículo y dotación asignados	Apertura de PatrullaEditarModal	Campos precargados: nombre, delegación seleccionada, vehículo y dotación	Todos los campos precargados fielmente desde la entidad suministrada	APROBADO	29/10/2026 23:04	-	feat(patrullas): implementar modificacion de delegacion, vehiculo y personal (HU-84)
@@ -374,11 +371,12 @@ curl -X PUT "http://localhost:3000/api/patrullas/f1000000-0000-4000-8000-0000000
 
 ## 8. Conclusión y Próximos Pasos
 
-1. **Estado del Pull Request:** **CHANGES REQUESTED**.
-2. **Acción Requerida del Desarrollador (@CristobalVeas):**
+1. **Estado del Pull Request:** 🔴 **CHANGES STILL REQUESTED (RE-TEST FALLIDO — 02/11/2026)**.
+2. **Dictamen de QA:** La auditoría técnica constató que los commits recientes (`6d20cb7`, `e6cc214`) solo sincronizaron la rama con `develop` (resolución de merge de HU-81). Los 5 defectos de frontend continúan abiertos en el código fuente. La historia de usuario **HU-84 NO se encuentra certificada** para merge a `develop`.
+3. **Acción Requerida del Desarrollador (@zetastormy):**
    * Sincronizar `editarPatrullaSchema` con el backend agregando `.min(3)` en `nombre`.
    * Corregir el fallback de `usuarioLiderId` en `useEditarPatrullaForm.ts` para que nunca tome un `personal_id` y reasigne al líder si es desmarcado.
    * Extender `estaBloqueada` para incluir los estados `EN_MISION`, `EN_PREVENCION` y `EN_RECUPERACION`.
    * Deshabilitar en la lista de dotación a funcionarios que no tengan `estado_operativo === 'disponible'`.
    * Mantener abierta la ficha técnica actualizada en el Drawer tras completar la edición.
-3. **Ciclo de Re-Test:** Una vez aplicados los commits de fix en Conventional Commits, QA ejecutará el re-test formal en `sgrai-web` para otorgar la certificación definitiva.
+4. **Ciclo de Re-Test Definitivo:** Una vez aplicados los commits de fix en Conventional Commits (ej. `fix(patrullas): ...`), QA ejecutará el re-test definitivo en `sgrai-web` para otorgar la certificación verde.
