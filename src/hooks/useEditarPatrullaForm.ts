@@ -10,12 +10,20 @@ import { useSimulatedSession } from '@/context/SimulatedSessionContext';
 import type { CatalogoItem } from '@/types/catalogos';
 import type { RecursoItem } from '@/types/recurso';
 import type { EmpleadoUsuario } from '@/types/empleados';
-import type { PatrullaVerificadoraDTO, EditarPatrullaInputDTO } from '@/types/patrullas';
+import type { PatrullaVerificadoraDTO, EditarPatrullaInputDTO, EstadoPatrullaEnum } from '@/types/patrullas';
+
+export const ESTADOS_PATRULLA_BLOQUEADOS: EstadoPatrullaEnum[] = [
+  'EN_VERIFICACION',
+  'EN_MISION',
+  'EN_PREVENCION',
+  'EN_RECUPERACION',
+];
 
 export const editarPatrullaSchema = z.object({
   nombre: z
     .string()
     .trim()
+    .min(3, 'El nombre de la patrulla debe tener al menos 3 caracteres.')
     .max(100, 'El nombre no puede exceder 100 caracteres.')
     .optional(),
   delegacionId: z
@@ -79,11 +87,14 @@ export function useEditarPatrullaForm(
 
   // Comprobar bloqueo operativo por estado o misión activa
   const estaBloqueada = useMemo(() => {
-    return patrulla.estado === 'EN_VERIFICACION' || Boolean(patrulla.misionActiva);
+    return (
+      ESTADOS_PATRULLA_BLOQUEADOS.includes(patrulla.estado) ||
+      Boolean(patrulla.misionActiva)
+    );
   }, [patrulla.estado, patrulla.misionActiva]);
 
   const mensajeBloqueo = estaBloqueada
-    ? 'No es posible editar la patrulla mientras se encuentre en verificación o en misión activa.'
+    ? 'No es posible editar la patrulla mientras se encuentre en misión activa o en un estado operativo activo (verificación, prevención o recuperación).'
     : null;
 
   // Carga inicial y combinación de recursos
@@ -152,8 +163,13 @@ export function useEditarPatrullaForm(
 
         // 3. Personal elegible
         const personalLista: EmpleadoUsuario[] = [];
-        if (personalRes.status === 'fulfilled' && personalRes.value.data) {
-          const candidatos = personalRes.value.data.filter(
+        const rawPersonal =
+          personalRes.status === 'fulfilled' && personalRes.value.data
+            ? personalRes.value.data
+            : [];
+
+        if (rawPersonal.length > 0) {
+          const candidatos = rawPersonal.filter(
             (p) =>
               p.rol_codigo === 'PATRULLA_VERIFICADORA' &&
               p.personal_id !== null &&
@@ -167,8 +183,11 @@ export function useEditarPatrullaForm(
           for (const integrante of patrulla.integrantes) {
             const yaEsta = personalLista.some((p) => p.personal_id === integrante.id);
             if (!yaEsta) {
+              const matchingEmpleado = rawPersonal.find((p) => p.personal_id === integrante.id);
+              const realUsuarioId = integrante.usuarioId || matchingEmpleado?.usuario_id || '';
+
               personalLista.unshift({
-                usuario_id: integrante.usuarioId || integrante.id,
+                usuario_id: realUsuarioId,
                 nombres: integrante.nombre,
                 apellidos: '',
                 email: integrante.email || '',
@@ -257,35 +276,57 @@ export function useEditarPatrullaForm(
     setServerError(null);
   }, []);
 
-  const handleTogglePersonal = useCallback((personalId: string, usuarioId: string) => {
-    setFormData((prev) => {
-      const yaSeleccionado = prev.personalIds.includes(personalId);
-      let nuevosIds: string[];
-      let nuevoLider = prev.usuarioLiderId;
+  const handleTogglePersonal = useCallback(
+    (personalId: string, usuarioId: string) => {
+      setFormData((prev) => {
+        const yaSeleccionado = prev.personalIds.includes(personalId);
+        const funcionario = personalElegible.find((p) => p.personal_id === personalId);
+        const esIntegranteActual = patrulla.integrantes?.some((i) => i.id === personalId);
 
-      if (yaSeleccionado) {
-        nuevosIds = prev.personalIds.filter((id) => id !== personalId);
-        // Si removemos al líder, reasignar al primero restante
-        if (nuevoLider === usuarioId || nuevoLider === personalId) {
-          nuevoLider = '';
+        // BUG-H84-WEB-04: Si se intenta incorporar y el personal no está disponible
+        if (!yaSeleccionado && funcionario && funcionario.estado_operativo !== 'disponible' && !esIntegranteActual) {
+          return prev;
         }
-      } else {
-        nuevosIds = [...prev.personalIds, personalId];
-        if (!nuevoLider) {
-          nuevoLider = usuarioId || personalId;
+
+        let nuevosIds: string[];
+        let nuevoLider = prev.usuarioLiderId;
+
+        // BUG-H84-WEB-02: Resolver el usuario_id fidedigno del funcionario
+        const resolvedUsuarioId = usuarioId || funcionario?.usuario_id || '';
+
+        if (yaSeleccionado) {
+          nuevosIds = prev.personalIds.filter((id) => id !== personalId);
+          // Si removemos al líder, reasignar automáticamente al primer integrante restante
+          const eraLider = nuevoLider === resolvedUsuarioId;
+          if (eraLider) {
+            if (nuevosIds.length > 0) {
+              const primerRestanteId = nuevosIds[0];
+              const primerRestante = personalElegible.find((p) => p.personal_id === primerRestanteId);
+              nuevoLider = primerRestante?.usuario_id || '';
+            } else {
+              nuevoLider = '';
+            }
+          }
+        } else {
+          nuevosIds = [...prev.personalIds, personalId];
+          // Si no había líder, asignar estrictamente el usuario_id (nunca el personal_id)
+          if (!nuevoLider) {
+            nuevoLider = resolvedUsuarioId;
+          }
         }
-      }
 
-      return {
-        ...prev,
-        personalIds: nuevosIds,
-        usuarioLiderId: nuevoLider,
-      };
-    });
+        return {
+          ...prev,
+          personalIds: nuevosIds,
+          usuarioLiderId: nuevoLider,
+        };
+      });
 
-    setTouched((prev) => ({ ...prev, personalIds: true }));
-    setServerError(null);
-  }, []);
+      setTouched((prev) => ({ ...prev, personalIds: true }));
+      setServerError(null);
+    },
+    [personalElegible, patrulla.integrantes]
+  );
 
   const handleLiderChange = useCallback((usuarioId: string) => {
     setFormData((prev) => ({ ...prev, usuarioLiderId: usuarioId }));
