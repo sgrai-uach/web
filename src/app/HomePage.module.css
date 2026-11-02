@@ -1,0 +1,302 @@
+/* ==========================================================================
+   HomePage.module.css — Portada Principal del Sistema SGRAI (Mobile-First)
+   Diseño Plano Institucional (Flat UI, --radius-none: 0px)
+   ========================================================================== */
+
+.pageMain {
+  min-height: 100vh;
+  min-height: 100dvh;
+  background-color: var(--color-bg-light, #ECEFF3);
+  display: flex;
+  flex-direction: column;
+}
+
+/* Franja utilitaria institucional superior (Sage) */
+.utilityBar {
+  background-color: var(--color-sage, #A9CBA4);
+  color: var(--color-charcoal-dark, #24272B);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 8px 16px;
+  letter-spacing: 0.3px;
+  line-height: 1.4;
+}
+
+.utilityBarInner {
+  max-width: var(--container-max-width, 1400px);
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.utilityDeptText {
+  display: block;
+}
+
+.utilityPhone {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.utilityPhoneIcon {
+  flex-shrink: 0;
+}
+
+/* Header Institucional */
+.heroHeader {
+  background-color: var(--color-primary-teal-dark, #14505A);
+  color: var(--color-text-light, #FFFFFF);
+  padding: 20px 16px;
+  border-bottom: 4px solid var(--color-accent-mint, #4FAE9B);
+}
+
+.heroInner {
+  max-width: var(--container-max-width, 1400px);
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.heroTitle {
+  font-size: clamp(1.5rem, 5vw, 2.25rem) !important;
+  line-height: 1.2 !important;
+}
+
+.heroDescription {
+  margin: 2px 0 0 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--color-bg-light, #ECEFF3);
+  max-width: 800px;
+}
+
+/* Contenedor principal de selección de portales */
+.portalsContainer {
+  max-width: var(--container-max-width, 1400px);
+  width: 100%;
+  margin: 20px auto 32px;
+  padding: 0 16px;
+  flex: 1;
+  box-sizing: border-box;
+}
+
+.sectionHeadingWrapper {
+  margin-bottom: 16px;
+}
+
+.sectionTitle {
+  font-size: clamp(1.15rem, 3.8vw, 1.5rem) !important;
+}
+
+/* Grilla responsiva de tarjetas (Mobile-First: 1 columna en móvil) */
+.portalsGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+
+/* Tarjeta de Portal */
+.portalCard {
+  background-color: var(--color-white, #FFFFFF);
+  border: 1px solid var(--border-color-neutral, #DFE3E8);
+  border-radius: var(--radius-none, 0px);
+  padding: 20px 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  box-sizing: border-box;
+}
+
+.cardCitizen {
+  border-top: 5px solid var(--color-accent-mint, #4FAE9B);
+}
+
+.cardManagement {
+  border-top: 5px solid var(--color-primary-teal-dark, #14505A);
+}
+
+.cardTerreno {
+  border-top: 5px solid var(--color-primary-teal, #1B6F7D);
+}
+
+.cardTopRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.cardIconBox {
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-none, 0px);
+}
+
+.iconCitizen {
+  background-color: var(--color-accent-mint, #4FAE9B);
+  color: var(--color-charcoal-dark, #24272B);
+}
+
+.iconManagement {
+  background-color: var(--color-primary-teal-dark, #14505A);
+  color: var(--color-white, #FFFFFF);
+}
+
+.iconTerreno {
+  background-color: var(--color-primary-teal, #1B6F7D);
+  color: var(--color-white, #FFFFFF);
+}
+
+.cardBadge {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 5px 10px;
+  letter-spacing: 0.3px;
+  line-height: 1.3;
+  text-align: right;
+  border-radius: var(--radius-none, 0px);
+}
+
+.badgeCitizen {
+  background-color: var(--color-bg-light, #ECEFF3);
+  color: var(--color-primary-teal, #1B6F7D);
+}
+
+.badgeManagement {
+  background-color: var(--color-warning-bg, #FFF3E0);
+  color: var(--color-warning, #E65100);
+}
+
+.badgeTerreno {
+  background-color: var(--color-info-bg, #E0F2F1);
+  color: var(--color-primary-teal-dark, #14505A);
+}
+
+.cardTitle {
+  font-size: clamp(1.05rem, 3.5vw, 1.25rem) !important;
+  line-height: 1.3 !important;
+}
+
+.cardDescription {
+  margin: 10px 0 16px 0;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--color-text-muted, #5F676E);
+}
+
+.featureList {
+  background-color: var(--color-bg-light, #ECEFF3);
+  padding: 14px;
+  margin-bottom: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border-radius: var(--radius-none, 0px);
+}
+
+.featureItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--color-text-dark, #2B2B2B);
+}
+
+.featureIcon {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.cardActions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ctaButton {
+  width: 100%;
+  min-height: 48px;
+  justify-content: center;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ==========================================================================
+   Breakpoints para Tablet (>= 640px) y Escritorio (>= 1024px)
+   ========================================================================== */
+
+@media (min-width: 640px) {
+  .utilityBar {
+    font-size: 12px;
+    padding: 8px 24px;
+    letter-spacing: 0.4px;
+  }
+
+  .utilityBarInner {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .heroHeader {
+    padding: 32px 24px;
+    border-bottom-width: 5px;
+  }
+
+  .heroDescription {
+    font-size: 16px;
+  }
+
+  .portalsContainer {
+    margin: 36px auto 40px;
+    padding: 0 24px;
+  }
+
+  .sectionHeadingWrapper {
+    margin-bottom: 24px;
+  }
+
+  .portalsGrid {
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 24px;
+  }
+
+  .portalCard {
+    padding: 28px;
+  }
+
+  .cardIconBox {
+    width: 48px;
+    height: 48px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .heroHeader {
+    padding: 36px 24px;
+  }
+
+  .portalsGrid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 28px;
+  }
+
+  .portalCard {
+    padding: 32px;
+  }
+}

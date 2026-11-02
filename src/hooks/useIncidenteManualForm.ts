@@ -20,7 +20,7 @@ import {
   geocodificarDireccionEnValdivia,
   geocodificacionInversaEnValdivia,
 } from '@/lib/maps/geocoding';
-import { useToast } from '@/components/ui/Toast';
+import { useOptionalToast } from '@/components/ui/Toast';
 
 interface UseIncidenteManualFormOptions {
   operadorId: string;
@@ -31,12 +31,7 @@ export function useIncidenteManualForm({
   operadorId,
   onExito,
 }: UseIncidenteManualFormOptions) {
-  let toast: ReturnType<typeof useToast> | null = null;
-  try {
-    toast = useToast();
-  } catch {
-    // Modo aislado sin ToastProvider (ej. pruebas unitarias)
-  }
+  const toast = useOptionalToast();
 
   const [tiposAfectacion, setTiposAfectacion] = useState<string[]>(TIPOS_AFECTACION_FALLBACK);
   const [cargandoTipos, setCargandoTipos] = useState(true);

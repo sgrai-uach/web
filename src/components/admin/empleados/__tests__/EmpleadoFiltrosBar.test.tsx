@@ -42,7 +42,7 @@ describe('EmpleadoFiltrosBar', () => {
     expect(handleSetRol).toHaveBeenCalledWith('rol-1');
   });
 
-  it('debe emitir delegación por nombre legible al cambiar el selector', () => {
+  it('debe emitir la delegación por UUID al cambiar el selector (H11)', () => {
     const handleSetDelegacion = vi.fn();
 
     render(
@@ -61,9 +61,41 @@ describe('EmpleadoFiltrosBar', () => {
     );
 
     const selectDelegacion = screen.getByLabelText(/Filtrar por Delegación/i);
-    fireEvent.change(selectDelegacion, { target: { value: 'Norte' } });
+    fireEvent.change(selectDelegacion, { target: { value: 'del-1' } });
 
-    expect(handleSetDelegacion).toHaveBeenCalledWith('Norte');
+    expect(handleSetDelegacion).toHaveBeenCalledWith('del-1');
+  });
+
+  it('H11: debe ofrecer el filtro de estado operativo y el toggle de inactivos', () => {
+    const handleEstadoOperativo = vi.fn();
+    const handleIncluirInactivos = vi.fn();
+
+    render(
+      <EmpleadoFiltrosBar
+        delegacionFiltro=""
+        setDelegacionFiltro={vi.fn()}
+        rolFiltro=""
+        setRolFiltro={vi.fn()}
+        estadoOperativoFiltro=""
+        setEstadoOperativoFiltro={handleEstadoOperativo}
+        incluirInactivos={false}
+        setIncluirInactivos={handleIncluirInactivos}
+        ordenarPor="apellidos"
+        setOrdenarPor={vi.fn()}
+        orden="asc"
+        setOrden={vi.fn()}
+        delegaciones={delegaciones}
+        roles={roles}
+      />
+    );
+
+    const selectEstado = screen.getByLabelText(/Estado Operativo/i);
+    fireEvent.change(selectEstado, { target: { value: 'en_mision' } });
+    expect(handleEstadoOperativo).toHaveBeenCalledWith('en_mision');
+
+    const toggleInactivos = screen.getByLabelText(/Incluir funcionarios inactivos/i);
+    fireEvent.click(toggleInactivos);
+    expect(handleIncluirInactivos).toHaveBeenCalledWith(true);
   });
 
   it('debe mostrar el botón limpiar y llamarlo al hacer clic si hay filtros activos', () => {

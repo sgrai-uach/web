@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import type { EmpleadoUsuario, PaginationMeta } from '@/types/empleados';
 import { useCatalogos } from '@/hooks/useCatalogos';
 import { empleadosService } from '@/services/empleadosService';
@@ -12,20 +12,41 @@ interface UseEmpleadosProps {
 
 export type EstadoFiltro = 'todos' | 'activo' | 'inactivo';
 
+const FILTROS_INICIALES = {
+  termino: '',
+  delegacionFiltro: '',
+  rolFiltro: '',
+  estadoFiltro: 'todos' as EstadoFiltro,
+  estadoOperativoFiltro: '',
+  especialidadFiltro: '',
+  cargoFiltro: '',
+  ordenarPor: 'apellidos',
+  orden: 'asc' as 'asc' | 'desc',
+  incluirInactivos: false,
+};
+
 /**
- * Custom Hook para gestionar el listado, filtros, paginación, orden y debounce del personal.
- * Conforme a docs/ARCHITECTURE.md y ADR-004.
+ * Custom Hook para gestionar el listado, filtros, paginación y orden del personal.
+ *
+ * H11: la paginación y los filtros se resuelven en el servidor (GET /api/personal);
+ * la disponibilidad se filtra por `estadoOperativo` y se puede incluir el personal
+ * dado de baja con el toggle `incluirInactivos`.
  */
 export function useEmpleados({ versionActualizacion = 0 }: UseEmpleadosProps = {}) {
-  const [termino, setTermino] = useState('');
-  const [delegacionFiltro, setDelegacionFiltro] = useState('');
-  const [rolFiltro, setRolFiltro] = useState('');
-  const [estadoFiltro, setEstadoFiltro] = useState<EstadoFiltro>('todos');
-  const [estadoOperativoFiltro, setEstadoOperativoFiltro] = useState('');
-  const [especialidadFiltro, setEspecialidadFiltro] = useState('');
-  const [cargoFiltro, setCargoFiltro] = useState('');
-  const [ordenarPor, setOrdenarPor] = useState('apellidos');
-  const [orden, setOrden] = useState<'asc' | 'desc'>('asc');
+  const [termino, setTermino] = useState(FILTROS_INICIALES.termino);
+  const [delegacionFiltro, setDelegacionFiltro] = useState(FILTROS_INICIALES.delegacionFiltro);
+  const [rolFiltro, setRolFiltro] = useState(FILTROS_INICIALES.rolFiltro);
+  const [estadoFiltro, setEstadoFiltro] = useState<EstadoFiltro>(FILTROS_INICIALES.estadoFiltro);
+  const [estadoOperativoFiltro, setEstadoOperativoFiltro] = useState(
+    FILTROS_INICIALES.estadoOperativoFiltro
+  );
+  const [especialidadFiltro, setEspecialidadFiltro] = useState(
+    FILTROS_INICIALES.especialidadFiltro
+  );
+  const [cargoFiltro, setCargoFiltro] = useState(FILTROS_INICIALES.cargoFiltro);
+  const [ordenarPor, setOrdenarPor] = useState(FILTROS_INICIALES.ordenarPor);
+  const [orden, setOrden] = useState<'asc' | 'desc'>(FILTROS_INICIALES.orden);
+  const [incluirInactivos, setIncluirInactivos] = useState(FILTROS_INICIALES.incluirInactivos);
   const [paginaActual, setPaginaActual] = useState(1);
   const [limite, setLimite] = useState(10);
 
@@ -35,6 +56,8 @@ export function useEmpleados({ versionActualizacion = 0 }: UseEmpleadosProps = {
   const [meta, setMeta] = useState<PaginationMeta | null>(null);
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   // Handlers para filtros que resetean la página a 1 (estándar transversal de paginación)
   const handleSetTermino = useCallback((val: string | ((prev: string) => string)) => {
@@ -82,109 +105,144 @@ export function useEmpleados({ versionActualizacion = 0 }: UseEmpleadosProps = {
     setPaginaActual(1);
   }, []);
 
+  const handleSetIncluirInactivos = useCallback((val: boolean | ((prev: boolean) => boolean)) => {
+    setIncluirInactivos(val);
+    setPaginaActual(1);
+  }, []);
+
   const handleSetLimite = useCallback((val: number | ((prev: number) => number)) => {
     setLimite(val);
     setPaginaActual(1);
   }, []);
 
-  // Consulta con debounce
+  // Consulta al servidor con paginación y filtros (H11)
   useEffect(() => {
-    let cancelado = false;
+    const controller = new AbortController();
+    abortControllerRef.current?.abort();
+    abortControllerRef.current = controller;
+
     const timer = setTimeout(async () => {
       setCargando(true);
       setError(null);
       try {
-        const data = await empleadosService.getEmpleados({
-          q: termino,
-          delegacion_id: delegacionFiltro || undefined,
-          delegacionNombre: delegacionFiltro || undefined,
-          rol_id: rolFiltro || undefined,
-          estadoOperativo: estadoOperativoFiltro || undefined,
-          especialidad: especialidadFiltro || undefined,
-          cargo: cargoFiltro || undefined,
-          ordenar_por: ordenarPor,
-          orden,
-          incluir_inactivos: true,
-          limite: 100,
-        });
-        if (!cancelado) {
-          setResultados(data);
-          if (data && 'meta' in data && (data as { meta?: PaginationMeta }).meta) {
-            setMeta((data as { meta?: PaginationMeta }).meta || null);
-          }
-        }
+        const respuesta = await empleadosService.getEmpleadosPaginado(
+          {
+            busqueda: termino || undefined,
+            delegacion_id: delegacionFiltro || undefined,
+            rol_id: rolFiltro || undefined,
+            estadoOperativo: estadoOperativoFiltro || undefined,
+            especialidad: especialidadFiltro || undefined,
+            cargo: cargoFiltro || undefined,
+            ordenar_por: ordenarPor,
+            orden,
+            incluirInactivos,
+            estado: estadoFiltro === 'todos' ? undefined : estadoFiltro,
+            page: paginaActual,
+            limit: limite,
+          },
+          undefined,
+          controller.signal
+        );
+
+        if (controller.signal.aborted) return;
+
+        setResultados(respuesta.data);
+        setMeta(respuesta.meta);
       } catch (err: unknown) {
-        if (!cancelado) {
-          setError(getErrorMessage(err, 'Error al buscar empleados'));
-        }
+        if (controller.signal.aborted) return;
+        if (err instanceof Error && err.name === 'AbortError') return;
+        setError(getErrorMessage(err, 'Error al buscar empleados'));
       } finally {
-        if (!cancelado) {
+        if (!controller.signal.aborted) {
           setCargando(false);
         }
       }
     }, 250);
 
     return () => {
-      cancelado = true;
+      controller.abort();
       clearTimeout(timer);
     };
   }, [
     termino,
     delegacionFiltro,
     rolFiltro,
+    estadoFiltro,
     estadoOperativoFiltro,
     especialidadFiltro,
     cargoFiltro,
     ordenarPor,
     orden,
+    incluirInactivos,
+    paginaActual,
+    limite,
     versionActualizacion,
   ]);
 
+  // Sincronización de filtros con la URL (estado compartible por enlace)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const params = new URLSearchParams();
+    if (termino.trim()) params.set('busqueda', termino.trim());
+    if (delegacionFiltro) params.set('delegacion_id', delegacionFiltro);
+    if (rolFiltro) params.set('rol_id', rolFiltro);
+    if (estadoFiltro !== 'todos') params.set('estado', estadoFiltro);
+    if (estadoOperativoFiltro) params.set('estadoOperativo', estadoOperativoFiltro);
+    if (especialidadFiltro) params.set('especialidad', especialidadFiltro);
+    if (cargoFiltro) params.set('cargo', cargoFiltro);
+    if (ordenarPor !== 'apellidos') params.set('ordenar_por', ordenarPor);
+    if (orden !== 'asc') params.set('orden', orden);
+    if (incluirInactivos) params.set('incluirInactivos', 'true');
+    if (paginaActual > 1) params.set('page', String(paginaActual));
+    if (limite !== 10) params.set('limit', String(limite));
+
+    const query = params.toString();
+    const url = query ? `${window.location.pathname}?${query}` : window.location.pathname;
+    window.history.replaceState(null, '', url);
+  }, [
+    termino,
+    delegacionFiltro,
+    rolFiltro,
+    estadoFiltro,
+    estadoOperativoFiltro,
+    especialidadFiltro,
+    cargoFiltro,
+    ordenarPor,
+    orden,
+    incluirInactivos,
+    paginaActual,
+    limite,
+  ]);
+
   const limpiarFiltros = useCallback(() => {
-    setTermino('');
-    setDelegacionFiltro('');
-    setRolFiltro('');
-    setEstadoFiltro('todos');
-    setEstadoOperativoFiltro('');
-    setEspecialidadFiltro('');
-    setCargoFiltro('');
-    setOrdenarPor('apellidos');
-    setOrden('asc');
+    setTermino(FILTROS_INICIALES.termino);
+    setDelegacionFiltro(FILTROS_INICIALES.delegacionFiltro);
+    setRolFiltro(FILTROS_INICIALES.rolFiltro);
+    setEstadoFiltro(FILTROS_INICIALES.estadoFiltro);
+    setEstadoOperativoFiltro(FILTROS_INICIALES.estadoOperativoFiltro);
+    setEspecialidadFiltro(FILTROS_INICIALES.especialidadFiltro);
+    setCargoFiltro(FILTROS_INICIALES.cargoFiltro);
+    setOrdenarPor(FILTROS_INICIALES.ordenarPor);
+    setOrden(FILTROS_INICIALES.orden);
+    setIncluirInactivos(FILTROS_INICIALES.incluirInactivos);
     setPaginaActual(1);
   }, []);
 
-  // Filtrado en memoria por estado (Activos / Inactivos / Todos)
-  const resultadosFiltrados = useMemo(() => {
-    if (estadoFiltro === 'activo') {
-      return resultados.filter((u) => u.usuario_activo);
-    }
-    if (estadoFiltro === 'inactivo') {
-      return resultados.filter((u) => !u.usuario_activo);
-    }
-    return resultados;
-  }, [resultados, estadoFiltro]);
-
-  const totalItems = resultadosFiltrados.length;
-  const totalPaginas = Math.ceil(totalItems / limite) || 1;
-
-  // Elementos paginados para la tabla actual
-  const empleadosPaginados = useMemo(() => {
-    const inicio = (paginaActual - 1) * limite;
-    return resultadosFiltrados.slice(inicio, inicio + limite);
-  }, [resultadosFiltrados, paginaActual, limite]);
+  // La paginación se resuelve en el servidor: la página actual es el resultado consultado
+  const totalItems = meta?.total ?? resultados.length;
+  const totalPaginas = meta?.totalPages ?? 1;
 
   const currentMeta: PaginationMeta = useMemo(() => {
-    const total =
-      estadoFiltro === 'todos' && meta?.total != null ? Math.max(meta.total, totalItems) : totalItems;
     return {
-      total,
+      total: totalItems,
       page: paginaActual,
       limit: limite,
       totalPages: totalPaginas,
-      hasNext: paginaActual < totalPaginas,
-      hasPrev: paginaActual > 1,
+      hasNext: Boolean(meta?.hasNext) || paginaActual < totalPaginas,
+      hasPrev: Boolean(meta?.hasPrev) || paginaActual > 1,
     };
-  }, [meta, estadoFiltro, totalItems, paginaActual, limite, totalPaginas]);
+  }, [meta, totalItems, paginaActual, limite, totalPaginas]);
 
   return {
     termino,
@@ -205,6 +263,8 @@ export function useEmpleados({ versionActualizacion = 0 }: UseEmpleadosProps = {
     setOrdenarPor: handleSetOrdenarPor,
     orden,
     setOrden: handleSetOrden,
+    incluirInactivos,
+    setIncluirInactivos: handleSetIncluirInactivos,
     paginaActual,
     setPaginaActual,
     limite,
@@ -213,8 +273,8 @@ export function useEmpleados({ versionActualizacion = 0 }: UseEmpleadosProps = {
     totalPaginas,
     meta: currentMeta,
     catalogos,
-    resultados: resultadosFiltrados,
-    empleadosPaginados,
+    resultados,
+    empleadosPaginados: resultados,
     cargando,
     error,
     limpiarFiltros,

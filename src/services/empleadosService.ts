@@ -16,8 +16,12 @@ import type {
 } from '@/types/empleados';
 import { getErrorMessage } from '@/lib/utils/errorUtils';
 import { catalogosService } from '@/services/catalogosService';
-import { DEFAULT_ADMIN_USER_ID } from '@/lib/api/client';
+import apiClient, { DEFAULT_ADMIN_USER_ID } from '@/lib/api/client';
+import type { paths } from '@/types/api-generated';
 import { getAuthCookie } from '@/lib/utils/cookieUtils';
+
+/** Parámetros de consulta tipados de GET /api/personal (H11). */
+type ListarPersonalQuery = NonNullable<paths['/api/personal']['get']['parameters']['query']>;
 
 function getActiveUserId(userId?: string): string {
   if (userId) return userId;
@@ -112,70 +116,73 @@ export const empleadosService = {
   },
 
   /**
-   * Consulta el personal retornando data y meta estandarizado (ADR-004 / H34).
-   * Procesa la estructura estandarizada { data, meta } y mantiene fallback resiliente a { data, paginacion }.
+   * Consulta el personal retornando data y meta estandarizado (ADR-004 / H34 / H11).
+   * La paginación y los filtros se resuelven en el servidor (GET /api/personal).
    */
   async getEmpleadosPaginado(
     params: EmpleadosQueryParams = {},
-    token?: string
+    token?: string,
+    signal?: AbortSignal
   ): Promise<ListarEmpleadosResponse> {
     try {
-      const search = new URLSearchParams();
       const q = params.busqueda || params.q;
-      if (q?.trim()) search.set('q', q.trim());
-
       const page = params.page ?? params.pagina;
-      if (page) search.set('page', String(page));
-
       const limit = params.limit ?? params.limite;
-      if (limit) search.set('limit', String(limit));
 
       let delId = params.delegacion_id;
       if (!delId && params.delegacionNombre && params.delegacionNombre !== 'TODAS') {
         delId = catalogosService.resolverDelegacionId(params.delegacionNombre);
       }
-      if (delId) search.set('delegacion_id', delId);
 
-      if (params.rol_id) search.set('rol_id', params.rol_id);
-      const estOp = params.estadoOperativo || params.estado_operativo;
-      if (estOp && estOp !== 'TODOS') search.set('estadoOperativo', estOp);
-      if (params.cargo) search.set('cargo', params.cargo);
-      if (params.especialidad) search.set('especialidad', params.especialidad);
+      const estOp = (params.estadoOperativo || params.estado_operativo) as string | undefined;
+      const incluirInactivos = params.incluirInactivos ?? params.incluir_inactivos;
 
-      if (params.ordenar_por) search.set('ordenar_por', params.ordenar_por);
-      if (params.orden) search.set('orden', params.orden);
-      if (params.incluir_inactivos) search.set('incluir_inactivos', 'true');
-      if (params.estado) search.set('estado', params.estado);
-      if (params.limite && !params.limit) search.set('limite', params.limite.toString());
-      if (params.pagina && !params.page) search.set('pagina', params.pagina.toString());
+      const query: ListarPersonalQuery = {
+        ...(q?.trim() ? { busqueda: q.trim() } : {}),
+        ...(page ? { page } : {}),
+        ...(limit ? { limit } : {}),
+        ...(delId ? { delegacion_id: delId } : {}),
+        ...(params.rol_id ? { rol_id: params.rol_id } : {}),
+        ...(estOp && estOp !== 'TODOS'
+          ? { estadoOperativo: estOp as ListarPersonalQuery['estadoOperativo'] }
+          : {}),
+        ...(params.cargo ? { cargo: params.cargo } : {}),
+        ...(params.especialidad ? { especialidad: params.especialidad } : {}),
+        ...(params.ordenar_por
+          ? { ordenar_por: params.ordenar_por as ListarPersonalQuery['ordenar_por'] }
+          : {}),
+        ...(params.orden ? { orden: params.orden } : {}),
+        ...(incluirInactivos ? { incluirInactivos: true } : {}),
+        ...(params.estado ? { estado: params.estado as ListarPersonalQuery['estado'] } : {}),
+      };
 
-      const query = search.toString();
-      const url = query ? `/api/personal?${query}` : '/api/personal';
-
-      const headers: Record<string, string> = {};
       const authHeader = getAuthorizationHeader(token);
-      if (authHeader) {
-        headers['Authorization'] = authHeader;
-      }
-      headers['X-User-Id'] = DEFAULT_ADMIN_USER_ID;
 
-      const res = await fetch(url, { headers });
-      if (!res.ok) {
+      const { data, error, response } = await apiClient.GET('/api/personal', {
+        params: {
+          query,
+          header: { authorization: authHeader ?? '' },
+        },
+        signal,
+      });
+
+      if (error || !data) {
         throw new EmpleadosServiceError(
           'Error al consultar el listado de empleados.',
-          res.status
+          response?.status
         );
       }
-      const json = await res.json();
-      const data: EmpleadoUsuario[] = json.data || [];
+
+      const lista = (data as { data?: EmpleadoUsuario[]; meta?: Record<string, unknown> }) ?? {};
+      const empleados: EmpleadoUsuario[] = lista.data ?? [];
 
       // Estandarización de meta (H34) con fallback defensivo a paginacion (HU-13)
-      const metaRaw = json.meta;
-      const paginacionRaw = json.paginacion;
+      const metaRaw = lista.meta as PaginationMeta | undefined;
+      const paginacionRaw = (data as { paginacion?: Record<string, unknown> }).paginacion;
 
       const meta: PaginationMeta = metaRaw
         ? {
-            total: Number(metaRaw.total ?? data.length),
+            total: Number(metaRaw.total ?? empleados.length),
             page: Number(metaRaw.page ?? 1),
             limit: Number(metaRaw.limit ?? 20),
             totalPages: Number(metaRaw.totalPages ?? 1),
@@ -184,28 +191,28 @@ export const empleadosService = {
           }
         : paginacionRaw
         ? {
-            total: Number(paginacionRaw.total ?? paginacionRaw.total_retornados ?? data.length),
+            total: Number(paginacionRaw.total ?? paginacionRaw.total_retornados ?? empleados.length),
             page: Number(paginacionRaw.pagina ?? paginacionRaw.page ?? 1),
             limit: Number(paginacionRaw.limite ?? paginacionRaw.limit ?? 20),
             totalPages:
               Math.ceil(
-                Number(paginacionRaw.total ?? paginacionRaw.total_retornados ?? data.length) /
+                Number(paginacionRaw.total ?? paginacionRaw.total_retornados ?? empleados.length) /
                   Number(paginacionRaw.limite ?? paginacionRaw.limit ?? 20)
               ) || 1,
             hasNext: Boolean(paginacionRaw.hasNext ?? false),
             hasPrev: Boolean(paginacionRaw.hasPrev ?? false),
           }
         : {
-            total: data.length,
+            total: empleados.length,
             page: Number(page || 1),
             limit: Number(limit || 20),
-            totalPages: Math.ceil(data.length / Number(limit || 20)) || 1,
+            totalPages: Math.ceil(empleados.length / Number(limit || 20)) || 1,
             hasNext: false,
             hasPrev: false,
           };
 
       return {
-        data,
+        data: empleados,
         meta,
       };
     } catch (err) {

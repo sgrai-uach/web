@@ -62,6 +62,8 @@ graph DER {
   a_emp_pass [label="password_hash"];
   a_emp_cargo [label="cargo"];
   a_emp_act [label="activo"];
+  // H11: la disponibilidad (estado operativo) vive en el usuario/cuenta
+  a_emp_est [label="estado_operativo"];
 
   // Rol
   a_rol_nom [label="nombre"];
@@ -127,6 +129,7 @@ graph DER {
   a_emp_pass -- Empleado;
   a_emp_cargo -- Empleado;
   a_emp_act -- Empleado;
+  a_emp_est -- Empleado;
 
   // Atributos de Cuadrilla
   pk_cuad -- Cuadrilla;

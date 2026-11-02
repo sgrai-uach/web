@@ -28,6 +28,8 @@ export interface EmpleadoFiltrosBarProps {
   setEspecialidadFiltro?: (val: string) => void;
   cargoFiltro?: string;
   setCargoFiltro?: (val: string) => void;
+  incluirInactivos?: boolean;
+  setIncluirInactivos?: (val: boolean) => void;
   ordenarPor: string;
   setOrdenarPor: (val: string) => void;
   orden: 'asc' | 'desc';
@@ -65,6 +67,8 @@ export default function EmpleadoFiltrosBar({
   setEspecialidadFiltro,
   cargoFiltro = '',
   setCargoFiltro,
+  incluirInactivos = false,
+  setIncluirInactivos,
   ordenarPor,
   setOrdenarPor,
   orden,
@@ -154,6 +158,15 @@ export default function EmpleadoFiltrosBar({
     });
   }
 
+  if (incluirInactivos && setIncluirInactivos) {
+    chipsActivos.push({
+      id: 'incluirInactivos',
+      etiqueta: 'Inactivos',
+      valorVisible: 'Incluidos',
+      onRemove: () => setIncluirInactivos(false),
+    });
+  }
+
   return (
     <FilterBar
       titulo="Filtros de Personal y Cuadrillas"
@@ -219,7 +232,7 @@ export default function EmpleadoFiltrosBar({
           >
             <option value="">Todas las delegaciones</option>
             {delegaciones.map((d) => (
-              <option key={d.id} value={d.nombre}>
+              <option key={d.id} value={d.id}>
                 {d.nombre}
               </option>
             ))}
@@ -299,6 +312,31 @@ export default function EmpleadoFiltrosBar({
               placeholder="Filtrar por cargo..."
               style={selectStyle}
             />
+          </div>
+        )}
+
+        {setIncluirInactivos && (
+          <div>
+            <span style={labelStyle}>Funcionarios dados de baja</span>
+            <label
+              htmlFor="filtro-incluir-inactivos"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+                fontSize: '0.8125rem',
+                color: 'var(--color-text-dark, #2B2B2B)',
+                cursor: 'pointer',
+              }}
+            >
+              <input
+                id="filtro-incluir-inactivos"
+                type="checkbox"
+                checked={incluirInactivos}
+                onChange={(e) => setIncluirInactivos(e.target.checked)}
+              />
+              <span>Incluir funcionarios inactivos</span>
+            </label>
           </div>
         )}
 

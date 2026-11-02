@@ -271,20 +271,32 @@ export async function crearPuntoCritico(
   payload: CrearPuntoCriticoInput,
   userId: string = DEFAULT_ADMIN_USER_ID
 ): Promise<PuntoCriticoDetalle> {
-  try {
-    const numLat = typeof (payload as { latitud?: number; lat?: number }).latitud === 'number'
-      ? (payload as { latitud?: number }).latitud!
-      : (payload as { lat?: number }).lat;
-    const numLng = typeof (payload as { longitud?: number; lng?: number }).longitud === 'number'
-      ? (payload as { longitud?: number }).longitud!
-      : (payload as { lng?: number }).lng;
-    const tipoRiesgo = (payload as { tipoRiesgo?: string; tipo_riesgo?: string }).tipoRiesgo || payload.tipo_riesgo;
-    const prioridad = (payload as { prioridad?: "BAJA" | "MEDIA" | "ALTA" | "CRITICA"; nivel_prioridad?: "BAJA" | "MEDIA" | "ALTA" | "CRITICA" }).prioridad || payload.nivel_prioridad;
-    const delegacionId = (payload as { delegacionId?: string | null; delegacion_id?: string | null }).delegacionId !== undefined
-      ? (payload as { delegacionId?: string | null }).delegacionId
-      : payload.delegacion_id ?? null;
-    const radioMetros = payload.radio_afectacion_metros ?? (payload as { radioMetros?: number }).radioMetros ?? 50;
+  const payloadCompat = payload as CrearPuntoCriticoInput & {
+    tipo_riesgo?: string;
+    nivel_prioridad?: 'BAJA' | 'MEDIA' | 'ALTA' | 'CRITICA';
+    delegacion_id?: string | null;
+    radio_afectacion_metros?: number;
+    radioMetros?: number;
+    lat?: number;
+    lng?: number;
+    activo?: boolean;
+  };
+  const numLat =
+    typeof payload.latitud === 'number' ? payload.latitud : payloadCompat.lat;
+  const numLng =
+    typeof payload.longitud === 'number' ? payload.longitud : payloadCompat.lng;
+  const tipoRiesgo = payload.tipoRiesgo || payloadCompat.tipo_riesgo;
+  const prioridad =
+    (payload.prioridad as 'BAJA' | 'MEDIA' | 'ALTA' | 'CRITICA' | undefined) ||
+    payloadCompat.nivel_prioridad;
+  const delegacionId =
+    payload.delegacionId !== undefined
+      ? payload.delegacionId
+      : payloadCompat.delegacion_id ?? null;
+  const radioMetros =
+    payloadCompat.radio_afectacion_metros ?? payloadCompat.radioMetros ?? 50;
 
+  try {
     const requestBody = {
       ...payload,
       nombre: payload.nombre,
@@ -300,7 +312,7 @@ export async function crearPuntoCritico(
       delegacion_id: delegacionId,
       delegacionId: delegacionId,
       radio_afectacion_metros: radioMetros,
-      activo: payload.activo ?? true,
+      activo: payloadCompat.activo ?? true,
     };
 
     const { data, error, response } = await apiClient.POST('/api/puntos-criticos', {
@@ -351,18 +363,16 @@ export async function crearPuntoCritico(
         codigo: `PC-SUR-${Math.floor(100 + Math.random() * 900)}`,
         nombre: payload.nombre,
         descripcion: payload.descripcion ?? null,
-        tipo_riesgo: payload.tipo_riesgo,
-        nivel_prioridad: payload.nivel_prioridad,
-        latitud: payload.lat,
-        longitud: payload.lng,
-        radio_afectacion_metros: payload.radio_afectacion_metros ?? 50,
-        delegacion_id: payload.delegacion_id ?? null,
-        delegacion_nombre: payload.delegacion_id ? 'Delegación Municipal' : null,
-        activo: payload.activo ?? true,
-        creado_por_id: userId,
-        creado_por_nombre: 'Administrador General',
-        creado_en: new Date().toISOString(),
-        actualizado_en: new Date().toISOString(),
+        tipoRiesgo: tipoRiesgo ?? null,
+        prioridad: prioridad ?? 'MEDIA',
+        activo: (payload as { activo?: boolean }).activo ?? true,
+        estadoTexto: ((payload as { activo?: boolean }).activo ?? true) ? 'Activo' : 'Inactivo',
+        latitud: numLat as number,
+        longitud: numLng as number,
+        delegacion: delegacionId
+          ? { id: delegacionId, codigo: 'DEL-MUN', nombre: 'Delegación Municipal' }
+          : null,
+        creadoEn: new Date().toISOString(),
       };
       return nuevoMock;
     }

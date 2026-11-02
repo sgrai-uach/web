@@ -1,0 +1,76 @@
+@startuml
+title H11 - Visualizar Disponibilidad del Personal
+skinparam maxMessageSize 250
+
+box "Frontend (sgrai-web)" #White
+actor "Administrador" as user
+participant "AdminEmpleadosPage" as page
+participant "EmpleadoFiltrosBar" as filters
+participant "EmpleadoTabla" as table
+participant "BadgeEstadoOperativo" as badge
+participant "Hook\n(useEmpleados)" as hook
+participant "Servicio UI\n(empleadosService)" as service
+end box
+
+box "Backend (sgrai-api)" #LightGoldenRodYellow
+participant "PersonalController\nGET /api/personal" as controller
+participant "AuthGuard\n(verificarAccesoPersonal)" as guard
+end box
+
+box "Capa de Datos" #F0F8FF
+participant "PersonalListadoService" as appService
+participant "PersonalListadoRepository" as repository
+database "PostgreSQL" as db
+end box
+
+== 1. Ingreso al Directorio ==
+user -> page ++: Abre "Administración > Gestión de Personal"
+page -> hook ++: useEmpleados({ versionActualizacion })
+hook -> service ++: getEmpleadosPaginado({ page, limit, incluirInactivos: false })
+
+== 2. Control de Acceso (RBAC H11) ==
+service -> controller ++: GET /api/personal?page=1&limit=10
+controller -> guard ++: verificarAccesoPersonal(request)
+guard -> db: SELECT permisos del rol (personal:leer | personal:gestionar | personal:crear)
+
+alt Sin token o token inválido
+    guard --> controller: UnauthorizedError
+    controller --> service: HTTP 401 Unauthorized
+    service --> hook: EmpleadosServiceError
+    hook --> page: Mensaje de sesión expirada
+else Rol sin permisos de personal
+    guard --> controller: ForbiddenError
+    controller --> service: HTTP 403 Forbidden
+    service --> hook: EmpleadosServiceError
+    hook --> page: Acceso denegado (personal:leer)
+else Permiso válido
+    guard --> controller: UsuarioAutenticado
+    controller -> appService ++: listarPersonalService(filtros)
+
+    == 3. Consulta de Disponibilidad ==
+    appService -> repository ++: listarPersonalPaginadoRepo(filtros)
+    repository -> db ++: SELECT usuario.estado_operativo, personal.disponible_terreno\nFROM usuario\nLEFT JOIN rol / delegacion / personal
+    db --> repository: filas + total
+    repository --> appService: { filas, total }
+    appService -> appService: estado_operativo ?? 'disponible'\ndisponible_terreno = null si no hay ficha
+    appService --> controller: { data, meta }
+    controller --> service: HTTP 200 OK
+    service --> hook: ListarEmpleadosResponse
+    hook --> page: resultados + meta (paginación de servidor)
+end
+
+== 4. Renderizado del Directorio ==
+page -> table: empleados (página del servidor)
+table -> badge ++: estado_operativo (siempre presente)
+badge --> table: Badge institucional (Disponible / En Misión / ...)
+table --> user: Tabla con RUT, Nombre, Correo, Teléfono, Rol/Cargo,\nDelegación, Estado Operativo y Acciones
+
+== 5. Filtros (opcional) ==
+user -> filters ++: Selecciona "Estado Operativo" o activa "Incluir inactivos"
+filters -> hook: setEstadoOperativoFiltro(...) / setIncluirInactivos(...)
+hook -> hook: setPaginaActual(1) + sincronización con URLSearchParams
+hook -> service: Nueva consulta al backend con los filtros aplicados
+service --> hook: Resultados actualizados
+hook --> page: Re-render con la página filtrada
+
+@enduml

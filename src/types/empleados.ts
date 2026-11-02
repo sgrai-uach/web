@@ -8,6 +8,18 @@ import type { PaginationMeta } from './common';
 
 export type { CatalogoItem, CatalogosResponse, PaginationMeta };
 
+/**
+ * Estado operativo (disponibilidad actual) del funcionario.
+ * H11: reside en `usuario.estado_operativo` y siempre está presente.
+ */
+export type EstadoOperativo =
+  | 'disponible'
+  | 'en_mision'
+  | 'en_patrulla'
+  | 'descanso'
+  | 'licencia'
+  | 'inactivo';
+
 export interface ListarEmpleadosResponse {
   data: EmpleadoUsuario[];
   meta: PaginationMeta;
@@ -33,14 +45,9 @@ export interface EmpleadoUsuario {
   personal_id: string | null;
   especialidad: string | null;
   cargo: string | null;
-  estado_operativo:
-    | 'disponible'
-    | 'en_mision'
-    | 'en_patrulla'
-    | 'descanso'
-    | 'licencia'
-    | 'inactivo'
-    | null;
+  /** Disponibilidad actual. Siempre presente (H11). */
+  estado_operativo: EstadoOperativo;
+  /** Capacidad para salir a terreno. `null` cuando el usuario no tiene ficha de terreno. */
   disponible_terreno: boolean | null;
   observaciones: string | null;
 }
@@ -75,8 +82,8 @@ export interface EmpleadosQueryParams {
   delegacionNombre?: string;
   rol_id?: string;
   rolNombre?: string;
-  estado_operativo?: string;
-  estadoOperativo?: string;
+  estado_operativo?: EstadoOperativo | string;
+  estadoOperativo?: EstadoOperativo | string;
   cargo?: string;
   especialidad?: string;
   ordenar_por?: string;
@@ -84,6 +91,8 @@ export interface EmpleadosQueryParams {
   page?: number;
   limit?: number;
   incluir_inactivos?: boolean;
+  /** Alias camelCase de `incluir_inactivos` (H11). */
+  incluirInactivos?: boolean;
   estado?: 'todos' | 'activo' | 'inactivo' | string;
   limite?: number;
   pagina?: number;
@@ -102,6 +111,10 @@ export interface ActualizarEmpleadoPayload {
   fecha_salida: string | null;
   especialidad?: string | null;
   cargo?: string | null;
+  /** Disponibilidad actual (H11): se persiste en `usuario.estado_operativo`. */
+  estado_operativo?: EstadoOperativo;
+  /** Capacidad para terreno: sólo se envía para roles de terreno. */
+  disponible_terreno?: boolean;
 }
 
 export interface RegistrarEmpleadoPayload {
@@ -115,13 +128,7 @@ export interface RegistrarEmpleadoPayload {
   delegacion_id: string;
   cargo?: string | null;
   especialidad?: string | null;
-  estado_operativo?:
-    | 'disponible'
-    | 'en_mision'
-    | 'en_patrulla'
-    | 'descanso'
-    | 'licencia'
-    | 'inactivo';
+  estado_operativo?: EstadoOperativo;
   disponible_terreno?: boolean;
   observaciones?: string | null;
 }

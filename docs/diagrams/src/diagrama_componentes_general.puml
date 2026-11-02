@@ -21,7 +21,7 @@ package "sgrai-web (Cliente Frontend Next.js)" as pkg_web #F9FAFB {
     [Call Center\n(BandejaAvisos, IncidenteManual)] as ui_cc
     [Centro de Mando\n(KanbanBoard, MisionDetalle)] as ui_mando
     [Dashboard Estadístico\n(DashboardView, KpiCards)] as ui_kpi
-    [Administración\n(Empleados, Roles, Recursos)] as ui_admin
+    [Administración\n(Empleados, Roles, Recursos)\nH11: Directorio de Personal\ncon Estado Operativo] as ui_admin
   }
 
   package "2. Capa de Estado y Lógica (src/hooks)" as pkg_hooks #FFFFFF {

@@ -129,6 +129,27 @@ export const catalogosService = {
     return encontrada ? normalizarNombreDelegacion(encontrada.nombre) : undefined;
   },
 
+  /**
+   * Obtiene el objeto de delegación por su UUID o código.
+   */
+  obtenerDelegacionPorId(id?: string, listaDelegaciones?: CatalogoItem[]): CatalogoItem | undefined {
+    if (!id) return undefined;
+    const items = listaDelegaciones || catalogosCache?.delegaciones || DELEGACIONES_FALLBACK;
+    const encontrada = items.find(
+      (d) =>
+        d.id === id ||
+        d.codigo.toLowerCase() === id.toLowerCase() ||
+        normalizarNombreDelegacion(d.nombre).toLowerCase() === normalizarNombreDelegacion(id).toLowerCase()
+    );
+    if (encontrada) {
+      return {
+        ...encontrada,
+        nombre: normalizarNombreDelegacion(encontrada.nombre),
+      };
+    }
+    return undefined;
+  },
+
   limpiarCacheParaPruebas(): void {
     catalogosCache = null;
     promiseEnCurso = null;
@@ -141,3 +162,11 @@ export const catalogosService = {
 export async function getCatalogos(forzarRecarga: boolean = false): Promise<CatalogosResponse> {
   return catalogosService.getCatalogos(forzarRecarga);
 }
+
+/**
+ * Función exportada para obtener la delegación por ID o código.
+ */
+export function obtenerDelegacionPorId(id?: string, listaDelegaciones?: CatalogoItem[]): CatalogoItem | undefined {
+  return catalogosService.obtenerDelegacionPorId(id, listaDelegaciones);
+}
+

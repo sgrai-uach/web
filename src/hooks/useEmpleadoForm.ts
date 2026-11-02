@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import type { EmpleadoUsuario } from '@/types/empleados';
+import type { EmpleadoUsuario, EstadoOperativo } from '@/types/empleados';
 import { useCatalogos } from '@/hooks/useCatalogos';
 import { empleadosService } from '@/services/empleadosService';
 import { getErrorMessage } from '@/lib/utils/errorUtils';
@@ -24,6 +24,8 @@ export interface EmpleadoFormData {
   fechaSalida: string;
   especialidad: string;
   cargo: string;
+  estadoOperativo: EstadoOperativo;
+  disponibleTerreno: boolean;
 }
 
 /**
@@ -45,6 +47,11 @@ export function useEmpleadoForm({ usuario, onEmpleadoActualizado }: UseEmpleadoF
   const [fechaSalida, setFechaSalida] = useState(usuario.fecha_salida ? usuario.fecha_salida.slice(0, 10) : '');
   const [especialidad, setEspecialidad] = useState(usuario.especialidad || '');
   const [cargo, setCargo] = useState(usuario.cargo || '');
+  // H11: la disponibilidad vive en `usuario.estado_operativo` y siempre está presente
+  const [estadoOperativo, setEstadoOperativo] = useState<EstadoOperativo>(
+    usuario.estado_operativo || 'disponible'
+  );
+  const [disponibleTerreno, setDisponibleTerreno] = useState(usuario.disponible_terreno ?? true);
 
   const [guardando, setGuardando] = useState(false);
   const [mensajeExito, setMensajeExito] = useState('');
@@ -66,6 +73,8 @@ export function useEmpleadoForm({ usuario, onEmpleadoActualizado }: UseEmpleadoF
     setFechaSalida(usuario.fecha_salida ? usuario.fecha_salida.slice(0, 10) : '');
     setEspecialidad(usuario.especialidad || '');
     setCargo(usuario.cargo || '');
+    setEstadoOperativo(usuario.estado_operativo || 'disponible');
+    setDisponibleTerreno(usuario.disponible_terreno ?? true);
     setMensajeExito('');
     setErrorMsg('');
   }
@@ -90,6 +99,8 @@ export function useEmpleadoForm({ usuario, onEmpleadoActualizado }: UseEmpleadoF
     fechaSalida,
     especialidad,
     cargo,
+    estadoOperativo,
+    disponibleTerreno,
   };
 
   const updateField = <K extends keyof EmpleadoFormData>(field: K, value: EmpleadoFormData[K]) => {
@@ -106,6 +117,8 @@ export function useEmpleadoForm({ usuario, onEmpleadoActualizado }: UseEmpleadoF
       case 'fechaSalida': setFechaSalida(value as string); break;
       case 'especialidad': setEspecialidad(value as string); break;
       case 'cargo': setCargo(value as string); break;
+      case 'estadoOperativo': setEstadoOperativo(value as EstadoOperativo); break;
+      case 'disponibleTerreno': setDisponibleTerreno(value as boolean); break;
     }
   };
 
@@ -127,9 +140,13 @@ export function useEmpleadoForm({ usuario, onEmpleadoActualizado }: UseEmpleadoF
         activo,
         fecha_ingreso: fechaIngreso || null,
         fecha_salida: fechaSalida || null,
+        // H11: la disponibilidad se envía siempre (reside en `usuario.estado_operativo`)
+        estado_operativo: activo ? estadoOperativo : ('inactivo' as EstadoOperativo),
         ...(esRolTerreno && {
           especialidad: especialidad.trim() || null,
           cargo: cargo.trim() || null,
+          // La capacidad de terreno sólo aplica al perfil de terreno
+          disponible_terreno: disponibleTerreno,
         }),
       };
 
@@ -175,6 +192,10 @@ export function useEmpleadoForm({ usuario, onEmpleadoActualizado }: UseEmpleadoF
     setEspecialidad,
     cargo,
     setCargo,
+    estadoOperativo,
+    setEstadoOperativo,
+    disponibleTerreno,
+    setDisponibleTerreno,
     formData,
     updateField,
     esRolTerreno,

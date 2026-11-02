@@ -1,0 +1,229 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4, 16px);
+}
+
+.tableWrapper {
+  background-color: var(--color-white, #FFFFFF);
+  border: 1px solid var(--border-color-neutral, #DFE3E8);
+  border-radius: var(--radius-none, 0px);
+  overflow-x: auto;
+  box-shadow: var(--shadow-none, none);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-family: var(--font-family-base);
+}
+
+.thead {
+  background-color: var(--color-bg-light, #ECEFF3);
+  border-bottom: 2px solid var(--border-color-neutral-dark, #CCD2D9);
+}
+
+.th {
+  padding: var(--space-3, 12px) var(--space-4, 16px);
+  font-size: var(--font-size-xs, 0.75rem);
+  font-weight: var(--font-weight-bold, 700);
+  color: var(--color-charcoal, #3B3F45);
+  text-transform: uppercase;
+  letter-spacing: var(--letter-spacing-wide, 0.5px);
+  white-space: nowrap;
+}
+
+.thCenter {
+  composes: th;
+  text-align: center;
+}
+
+.tr {
+  border-bottom: 1px solid var(--border-color-neutral, #DFE3E8);
+  transition: background-color var(--transition-fast, 150ms ease-in-out);
+}
+
+.tr:hover {
+  background-color: #F8FAFC;
+}
+
+.td {
+  padding: var(--space-4, 16px);
+  font-size: var(--font-size-sm, 0.8125rem);
+  color: var(--color-text-dark, #2B2B2B);
+  vertical-align: middle;
+}
+
+.tdCenter {
+  composes: td;
+  text-align: center;
+}
+
+.personalInfo {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3, 12px);
+}
+
+.personalIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  background-color: var(--color-info-bg, #E0F2F1);
+  color: var(--color-primary-teal, #1B6F7D);
+  border: 1px solid var(--color-info-border, #B2DFDB);
+  flex-shrink: 0;
+}
+
+.personalDetails {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.personalNombre {
+  font-weight: var(--font-weight-bold, 700);
+  color: var(--color-primary-teal-dark, #14505A);
+  font-size: var(--font-size-base, 0.875rem);
+}
+
+.personalMeta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2, 8px);
+  font-size: var(--font-size-xs, 0.75rem);
+  color: var(--color-text-muted, #5F676E);
+}
+
+.delegacionCell {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2, 8px);
+  font-weight: var(--font-weight-medium, 500);
+  color: var(--color-charcoal, #3B3F45);
+}
+
+.telefonoLink {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2, 8px);
+  color: var(--color-primary-teal, #1B6F7D);
+  text-decoration: none;
+  font-weight: var(--font-weight-semibold, 600);
+  font-size: var(--font-size-sm, 0.8125rem);
+}
+
+.telefonoLink:hover {
+  text-decoration: underline;
+  color: var(--color-primary-teal-dark, #14505A);
+}
+
+.telefonoVacio {
+  color: var(--color-text-muted, #5F676E);
+  font-style: italic;
+}
+
+/* Badges de Estado Operativo */
+.badgeEstado {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  font-size: var(--font-size-xs, 0.75rem);
+  font-weight: var(--font-weight-bold, 700);
+  border-radius: var(--radius-none, 0px);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  line-height: 1.2;
+}
+
+.dot {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--radius-round, 9999px);
+  flex-shrink: 0;
+}
+
+.badge_disponible {
+  background-color: var(--color-success-bg, #E8F5E9);
+  color: var(--color-success, #2E7D32);
+  border: 1px solid var(--color-success-border, #A5D6A7);
+}
+
+.badge_disponible .dot {
+  background-color: var(--color-success, #2E7D32);
+}
+
+.badge_en_mision {
+  background-color: var(--color-warning-bg, #FFF3E0);
+  color: var(--color-warning, #E65100);
+  border: 1px solid var(--color-warning-border, #FFE0B2);
+}
+
+.badge_en_mision .dot {
+  background-color: var(--color-warning, #E65100);
+}
+
+.badge_descanso {
+  background-color: var(--color-bg-light, #ECEFF3);
+  color: var(--color-charcoal, #3B3F45);
+  border: 1px solid var(--border-color-neutral, #DFE3E8);
+}
+
+.badge_descanso .dot {
+  background-color: var(--color-charcoal, #3B3F45);
+}
+
+.badge_licencia {
+  background-color: var(--color-bg-light, #ECEFF3);
+  color: var(--color-text-muted, #5F676E);
+  border: 1px solid var(--border-color-neutral-dark, #CCD2D9);
+}
+
+.badge_licencia .dot {
+  background-color: var(--color-text-muted, #5F676E);
+}
+
+.badge_inactivo {
+  background-color: #F5F5F5;
+  color: #9E9E9E;
+  border: 1px solid #E0E0E0;
+}
+
+.badge_inactivo .dot {
+  background-color: #9E9E9E;
+}
+
+/* Badge de Casos FIBE Asignados */
+.badgeCasosActivos {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  height: 26px;
+  padding: 2px 10px;
+  font-size: var(--font-size-sm, 0.8125rem);
+  font-weight: var(--font-weight-extrabold, 800);
+  background-color: var(--color-info-bg, #E0F2F1);
+  color: var(--color-primary-teal, #1B6F7D);
+  border: 1px solid var(--color-accent-mint, #4FAE9B);
+  border-radius: var(--radius-none, 0px);
+}
+
+.badgeCasosCero {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  height: 26px;
+  padding: 2px 10px;
+  font-size: var(--font-size-sm, 0.8125rem);
+  font-weight: var(--font-weight-semibold, 600);
+  background-color: var(--color-bg-light, #ECEFF3);
+  color: var(--color-text-muted, #5F676E);
+  border: 1px solid var(--border-color-neutral, #DFE3E8);
+  border-radius: var(--radius-none, 0px);
+}

@@ -8,6 +8,8 @@ import {
   agruparCatalogoPorModulo,
   loginUsuario,
   obtenerUsuarioActivo,
+  solicitarRecuperacionContrasena,
+  restablecerContrasena,
   SeguridadServiceError,
 } from '../seguridadService';
 import apiClient from '@/lib/api/client';
@@ -368,6 +370,96 @@ describe('Servicio de Seguridad (Roles y Permisos)', () => {
       expect(res.id).toBe('usr-1');
       expect(res.nombre).toBe('Administrador General');
       expect(res.permisos).toContain('seguridad:roles:leer');
+    });
+  });
+
+  describe('solicitarRecuperacionContrasena (HU-65)', () => {
+    it('debe llamar a POST /api/seguridad/recuperar-contrasena con el identificador saneado y retornar mensaje', async () => {
+      const mockResponse = {
+        message: 'Si el identificador corresponde a una cuenta registrada, se enviará un enlace de recuperación.',
+      };
+
+      vi.mocked(apiClient.POST as unknown as () => Promise<unknown>).mockResolvedValueOnce({
+        data: mockResponse,
+        error: undefined,
+        response: { ok: true, status: 200 } as Response,
+      });
+
+      const res = await solicitarRecuperacionContrasena('  carlos.miranda@valdivia.cl  ');
+
+      expect(apiClient.POST).toHaveBeenCalledWith('/api/seguridad/recuperar-contrasena', {
+        body: { identificador: 'carlos.miranda@valdivia.cl' },
+      });
+      expect(res.message).toBe(mockResponse.message);
+    });
+
+    it('debe lanzar SeguridadServiceError con status 400 ante error del servidor', async () => {
+      vi.mocked(apiClient.POST as unknown as () => Promise<unknown>).mockResolvedValueOnce({
+        data: undefined,
+        error: { error: 'Identificador inválido' },
+        response: { ok: false, status: 400 } as Response,
+      });
+
+      await expect(solicitarRecuperacionContrasena('invalido')).rejects.toThrow(
+        'Identificador inválido'
+      );
+    });
+
+    it('debe lanzar SeguridadServiceError con status 500 ante fallo inesperado', async () => {
+      vi.mocked(apiClient.POST as unknown as () => Promise<unknown>).mockRejectedValueOnce(
+        new Error('Fallo de red')
+      );
+
+      await expect(solicitarRecuperacionContrasena('test@valdivia.cl')).rejects.toThrow(
+        'Fallo de red'
+      );
+    });
+  });
+
+  describe('restablecerContrasena (HU-65)', () => {
+    const payload = {
+      token: 'token-valido-123',
+      nuevaPassword: 'NuevaPassword2026!',
+      confirmacionPassword: 'NuevaPassword2026!',
+    };
+
+    it('debe llamar a POST /api/seguridad/restablecer-contrasena con payload y retornar confirmación', async () => {
+      const mockResponse = {
+        message: 'Contraseña restablecida correctamente. Ya puede iniciar sesión.',
+      };
+
+      vi.mocked(apiClient.POST as unknown as () => Promise<unknown>).mockResolvedValueOnce({
+        data: mockResponse,
+        error: undefined,
+        response: { ok: true, status: 200 } as Response,
+      });
+
+      const res = await restablecerContrasena(payload);
+
+      expect(apiClient.POST).toHaveBeenCalledWith('/api/seguridad/restablecer-contrasena', {
+        body: payload,
+      });
+      expect(res.message).toBe(mockResponse.message);
+    });
+
+    it('debe lanzar SeguridadServiceError con status 400 ante token inválido o expirado', async () => {
+      vi.mocked(apiClient.POST as unknown as () => Promise<unknown>).mockResolvedValueOnce({
+        data: undefined,
+        error: { error: 'El enlace de recuperación es inválido o ha expirado.' },
+        response: { ok: false, status: 400 } as Response,
+      });
+
+      await expect(restablecerContrasena(payload)).rejects.toThrow(
+        'El enlace de recuperación es inválido o ha expirado.'
+      );
+    });
+
+    it('debe lanzar SeguridadServiceError con status 500 ante error de conexión', async () => {
+      vi.mocked(apiClient.POST as unknown as () => Promise<unknown>).mockRejectedValueOnce(
+        new Error('Network error')
+      );
+
+      await expect(restablecerContrasena(payload)).rejects.toThrow('Network error');
     });
   });
 });

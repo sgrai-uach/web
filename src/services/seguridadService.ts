@@ -3,10 +3,12 @@ import { formatApiError } from '@/lib/utils/errorUtils';
 import type {
   ActualizarPermisosRolResponse,
   ListarRolesResponse,
+  MensajeGenericoResponse,
   PermisoAsignado,
   PermisoCatalogoItem,
   PermisosCatalogoPorModulo,
   PermisosPorModulo,
+  RestablecerContrasenaRequest,
   RolDetalleResponse,
   RolItem,
   UsuarioActivoDetalle,
@@ -415,4 +417,74 @@ export async function obtenerUsuarioActivo(
     throw new SeguridadServiceError(500, formatted.message, formatted);
   }
 }
+
+/**
+ * Solicita el enlace de recuperación de contraseña mediante correo o RUT.
+ * Aplica protección anti-enumeración de cuentas retornando mensaje genérico.
+ */
+export async function solicitarRecuperacionContrasena(
+  identificador: string
+): Promise<MensajeGenericoResponse> {
+  try {
+    const { data, error, response } = await apiClient.POST(
+      '/api/seguridad/recuperar-contrasena',
+      {
+        body: { identificador: identificador.trim() },
+      }
+    );
+
+    if (error || !response.ok || !data) {
+      const errObj = error as { error?: string; message?: string } | undefined;
+      const status = response?.status || 400;
+      const mensaje = errObj?.error || errObj?.message || 'Error al solicitar recuperación de contraseña';
+      const formatted = formatApiError({
+        ...(typeof error === 'object' && error !== null ? error : {}),
+        status,
+        message: mensaje,
+      });
+      throw new SeguridadServiceError(status, formatted.message, formatted);
+    }
+
+    return data;
+  } catch (err: unknown) {
+    if (err instanceof SeguridadServiceError) throw err;
+    const formatted = formatApiError(err);
+    throw new SeguridadServiceError(500, formatted.message, formatted);
+  }
+}
+
+/**
+ * Restablece la contraseña institucional validando el token de recuperación.
+ */
+export async function restablecerContrasena(
+  datos: RestablecerContrasenaRequest
+): Promise<MensajeGenericoResponse> {
+  try {
+    const { data, error, response } = await apiClient.POST(
+      '/api/seguridad/restablecer-contrasena',
+      {
+        body: datos,
+      }
+    );
+
+    if (error || !response.ok || !data) {
+      const errObj = error as { error?: string; message?: string } | undefined;
+      const status = response?.status || 400;
+      const mensaje = errObj?.error || errObj?.message || 'Error al restablecer la contraseña';
+      const formatted = formatApiError({
+        ...(typeof error === 'object' && error !== null ? error : {}),
+        status,
+        message: mensaje,
+      });
+      throw new SeguridadServiceError(status, formatted.message, formatted);
+    }
+
+    return data;
+  } catch (err: unknown) {
+    if (err instanceof SeguridadServiceError) throw err;
+    const formatted = formatApiError(err);
+    throw new SeguridadServiceError(500, formatted.message, formatted);
+  }
+}
+
 
