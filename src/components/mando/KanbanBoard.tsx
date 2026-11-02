@@ -282,6 +282,7 @@ export const KanbanBoard: React.FC = () => {
             incidenteId={incidenteSeleccionadoId}
             userId={userId}
             onCerrar={() => setIncidenteSeleccionadoId(null)}
+            onIncidenteActualizado={recargar}
           />
 
           <MisionesModal
