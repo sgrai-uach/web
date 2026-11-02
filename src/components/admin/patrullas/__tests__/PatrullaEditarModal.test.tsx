@@ -142,7 +142,7 @@ describe('PatrullaEditarModal (HU-84: Modal de Edición)', () => {
     });
   });
 
-  it('3. muestra aviso de bloqueo y deshabilita el botón de guardado si la patrulla está EN_VERIFICACION', async () => {
+  it('3. muestra aviso de bloqueo y deshabilita el botón de guardado si la patrulla está EN_VERIFICACION o en estado operativo activo', async () => {
     const patrullaEnVerificacion: PatrullaVerificadoraDTO = {
       ...mockPatrulla,
       estado: 'EN_VERIFICACION',
@@ -160,12 +160,12 @@ describe('PatrullaEditarModal (HU-84: Modal de Edición)', () => {
       <PatrullaEditarModal isOpen={true} patrulla={patrullaEnVerificacion} onClose={vi.fn()} />
     );
 
-    expect(screen.getByTestId('bloqueo-aviso-edicion')).toHaveTextContent(
-      /No es posible editar la patrulla mientras se encuentre en verificación o en misión activa/i
-    );
-
-    const btnGuardar = screen.getByTestId('btn-guardar-cambios-patrulla');
-    expect(btnGuardar).toBeDisabled();
+    await waitFor(() => {
+      expect(screen.getByTestId('bloqueo-aviso-edicion')).toHaveTextContent(
+        /No es posible editar la patrulla mientras se encuentre en misión activa o en un estado operativo activo/i
+      );
+      expect(screen.getByTestId('btn-guardar-cambios-patrulla')).toBeDisabled();
+    });
   });
 
   it('4. permite abrir el modal de confirmación y guardar cambios exitosamente (200 OK)', async () => {

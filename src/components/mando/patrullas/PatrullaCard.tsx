@@ -81,7 +81,9 @@ export const PatrullaCard: React.FC<PatrullaCardProps> = ({
   const misionActiva = patrulla.misionActiva;
   const tieneMision = Boolean(misionActiva && patrulla.estado !== 'DISPONIBLE');
   const cantIntegrantes = patrulla.integrantes?.length || 0;
-  const estaBloqueada = patrulla.estado === 'EN_VERIFICACION' || Boolean(patrulla.misionActiva);
+  const estaBloqueada =
+    ['EN_VERIFICACION', 'EN_MISION', 'EN_PREVENCION', 'EN_RECUPERACION'].includes(patrulla.estado) ||
+    Boolean(patrulla.misionActiva);
   const mensajeBloqueo = 'No es posible editar la patrulla mientras se encuentre en verificación o en misión activa';
 
   return (

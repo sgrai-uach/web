@@ -184,6 +184,22 @@
   color: #2E7D32;
 }
 
+.personalCardDisabled {
+  background-color: var(--color-bg-light, #ECEFF3);
+  opacity: 0.65;
+  cursor: not-allowed;
+  border-color: var(--border-color-neutral, #DFE3E8);
+}
+
+.personalCardDisabled:hover {
+  border-color: var(--border-color-neutral, #DFE3E8);
+}
+
+.badgeNoDisponible {
+  background-color: var(--color-warning-bg, #FFF3E0);
+  color: var(--color-warning, #E65100);
+}
+
 /* Modal de confirmación */
 .modalBackdrop {
   position: fixed;

@@ -302,7 +302,6 @@ export default function AdminPatrullasClient() {
         patrulla={patrullaADetalle}
         onClose={() => setPatrullaADetalle(null)}
         onEditar={(p) => {
-          setPatrullaADetalle(null);
           setPatrullaAEditar(p);
         }}
         puedeEditar={puedeEditar}

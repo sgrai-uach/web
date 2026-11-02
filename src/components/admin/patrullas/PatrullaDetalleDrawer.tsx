@@ -96,7 +96,9 @@ export const PatrullaDetalleDrawer: React.FC<PatrullaDetalleDrawerProps> = ({
 
   const configEstado = CONFIG_ESTADOS[patrulla.estado] || CONFIG_ESTADOS.NO_DISPONIBLE;
   const IconoEstado = configEstado.icono;
-  const estaBloqueada = patrulla.estado === 'EN_VERIFICACION' || Boolean(patrulla.misionActiva);
+  const estaBloqueada =
+    ['EN_VERIFICACION', 'EN_MISION', 'EN_PREVENCION', 'EN_RECUPERACION'].includes(patrulla.estado) ||
+    Boolean(patrulla.misionActiva);
   const misionActiva = patrulla.misionActiva;
 
   return (
