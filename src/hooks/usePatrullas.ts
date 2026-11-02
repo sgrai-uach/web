@@ -201,12 +201,14 @@ export function usePatrullas({
     socket.on('connect', onConnect);
     socket.on('disconnect', onDisconnect);
     socket.on('patrulla:actualizada', handlePatrullaActualizada);
+    socket.on('patrulla:liberada', handlePatrullaActualizada);
     socket.on('mision:asignada', handleMisionAsignada);
 
     return () => {
       socket.off('connect', onConnect);
       socket.off('disconnect', onDisconnect);
       socket.off('patrulla:actualizada', handlePatrullaActualizada);
+      socket.off('patrulla:liberada', handlePatrullaActualizada);
       socket.off('mision:asignada', handleMisionAsignada);
       socket.emit('leave', 'encargado');
       socket.emit('salir', 'sala:encargados');

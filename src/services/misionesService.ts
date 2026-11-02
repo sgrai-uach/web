@@ -297,9 +297,14 @@ export const misionesService = {
         let mensaje = data?.message || data?.error || 'Error al despachar la cuadrilla operativa.';
         if (response.status === 409) {
           if (data?.codigo === 'VERIFICACION_EN_CURSO') {
-            mensaje =
-              data?.message ||
-              'No es posible despachar la cuadrilla: la patrulla verificadora aún se encuentra en terreno evaluando el incidente.';
+            const patrullaNombre = (data?.detalles as Record<string, unknown> | undefined)?.patrullaNombre;
+            if (data?.message) {
+              mensaje = data.message;
+            } else if (patrullaNombre) {
+              mensaje = `No es posible despachar una cuadrilla operativa: la patrulla verificadora asignada ('${String(patrullaNombre)}') aún no ha finalizado la evaluación técnica en terreno.`;
+            } else {
+              mensaje = 'No es posible despachar una cuadrilla operativa: la patrulla verificadora aún no ha finalizado la evaluación técnica en terreno.';
+            }
           } else {
             mensaje =
               data?.message ||
