@@ -34,7 +34,7 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
   onCerrar,
   onIncidenteActualizado,
 }) => {
-  let showSuccess = (_msg: string, _title?: string) => {};
+  let showSuccess = (_msg: string, _title?: string) => { };
   try {
     // eslint-disable-next-line react-hooks/rules-of-hooks
     const toast = useToast();
