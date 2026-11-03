@@ -18,7 +18,7 @@ import { useToast } from '@/components/ui/Toast';
 import Button from '@/components/ui/Button';
 import InlineNotice from '@/components/ui/InlineNotice';
 import type { DespacharCuadrillaResponse } from '@/types/misiones';
-import { HardHat, AlertTriangle, ShieldAlert } from 'lucide-react';
+import { HardHat, AlertTriangle } from 'lucide-react';
 import styles from '@/styles/mando.module.css';
 
 export interface IncidenteDetalleDrawerProps {
@@ -34,7 +34,7 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
   onCerrar,
   onIncidenteActualizado,
 }) => {
-  let showSuccess = (_msg: string, _title?: string) => { };
+  let showSuccess = (_msg: string, _title?: string) => {};
   try {
     // eslint-disable-next-line react-hooks/rules-of-hooks
     const toast = useToast();
@@ -93,8 +93,8 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
     };
   }, [incidenteId, cargarDetalle]);
 
-  // Reglas de negocio para despacho de cuadrilla (Opción 1 - Estricta ICS):
-  // Solo se permite despachar cuadrilla cuando el incidente ya se encuentra en VERIFICANDO
+  // Reglas de negocio para despacho de cuadrilla (HU-21 / Regla ICS §3.2):
+  // El despacho de cuadrillas opera en incidentes en estado VERIFICANDO
   const esEstadoElegibleCuadrilla = useMemo(() => {
     if (!detalle) return false;
     return detalle.estado === 'VERIFICANDO';
@@ -113,7 +113,7 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
     );
   }, [detalle]);
 
-  // Verificación en terreno en curso (bloqueo preventivo de despacho)
+  // Verificación en terreno en curso (bloqueo preventivo de despacho de cuadrilla)
   const verificacionPendiente = useMemo(() => {
     if (!misionVerificacion) return false;
     const estadosEnCurso = [
@@ -155,48 +155,7 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
         <div className={styles.drawerContent} onClick={(e) => e.stopPropagation()}>
           <IncidenteDetalleHeader detalle={detalle} onCerrar={onCerrar} />
 
-          {/* Caso A: Incidente REPORTADO -> Requiere verificación previa (Opción 1 ICS) */}
-          {detalle && detalle.estado === 'REPORTADO' && tienePermisoAsignar && (
-            <div
-              style={{
-                padding: '0.85rem 1.5rem',
-                backgroundColor: '#F8FAFC',
-                borderBottom: '1px solid #E2E8F0',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                flexWrap: 'wrap',
-                gap: '0.5rem',
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
-                <ShieldAlert size={18} style={{ color: 'var(--color-primary-teal, #1B6F7D)', marginTop: '2px', flexShrink: 0 }} />
-                <div>
-                  <strong style={{ fontSize: '0.875rem', color: 'var(--color-primary-teal-dark, #14505A)' }}>
-                    Diagnóstico Técnico en Terreno Requerido
-                  </strong>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted, #5F676E)', marginTop: '2px' }}>
-                    Este incidente debe ser verificado en terreno antes de desplegar una cuadrilla operativa.
-                  </div>
-                </div>
-              </div>
-
-              <span
-                style={{
-                  fontSize: '0.75rem',
-                  fontWeight: 700,
-                  color: 'var(--color-primary-teal-dark, #14505A)',
-                  backgroundColor: '#E0F2F1',
-                  padding: '4px 8px',
-                  letterSpacing: '0.3px',
-                }}
-              >
-                Paso 1: Verificación
-              </span>
-            </div>
-          )}
-
-          {/* Caso B: Incidente VERIFICANDO -> Despacho de Cuadrilla Operativa y Liberación de Patrulla (HU-21) */}
+          {/* Barra de Acciones Tácticas: Despacho de Cuadrilla Operativa (HU-21 - Estado VERIFICANDO) */}
           {detalle && esEstadoElegibleCuadrilla && tienePermisoAsignar && (
             <div
               style={{
