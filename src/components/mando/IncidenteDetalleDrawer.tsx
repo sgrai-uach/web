@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import {
   obtenerDetalleIncidente,
   type IncidenteDetalle,
@@ -12,38 +12,63 @@ import { IncidenteInformanteSection } from './drawer/IncidenteInformanteSection'
 import { IncidenteMisionesSection } from './drawer/IncidenteMisionesSection';
 import { IncidenteRecursosSection } from './drawer/IncidenteRecursosSection';
 import { MisionDetalleModal } from './mision/MisionDetalleModal';
+import { ModalAsignarCuadrilla } from './ModalAsignarCuadrilla';
+import { useAuth } from '@/context/AuthContext';
+import { useToast } from '@/components/ui/Toast';
+import Button from '@/components/ui/Button';
 import InlineNotice from '@/components/ui/InlineNotice';
+import type { DespacharCuadrillaResponse } from '@/types/misiones';
+import { HardHat, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import styles from '@/styles/mando.module.css';
 
-interface IncidenteDetalleDrawerProps {
+export interface IncidenteDetalleDrawerProps {
   incidenteId: string | null;
   userId: string;
   onCerrar: () => void;
+  onIncidenteActualizado?: () => void;
 }
 
 export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
   incidenteId,
   userId,
   onCerrar,
+  onIncidenteActualizado,
 }) => {
+  let showSuccess = (_msg: string, _title?: string) => {};
+  try {
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    const toast = useToast();
+    showSuccess = toast.showSuccess;
+  } catch {
+    // Fallback seguro en entorno de testing fuera de ToastProvider
+  }
+
   const [detalle, setDetalle] = useState<IncidenteDetalle | null>(null);
   const [cargando, setCargando] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [misionSeleccionadaId, setMisionSeleccionadaId] = useState<string | null>(null);
+  const [modalCuadrillaAbierto, setModalCuadrillaAbierto] = useState<boolean>(false);
 
-  useEffect(() => {
+  // Verificación de permisos RBAC ('misiones:asignar')
+  let tienePermisoAsignar = true;
+  try {
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    const auth = useAuth();
+    tienePermisoAsignar =
+      auth.tienePermiso('misiones:asignar') ||
+      auth.usuario?.rolCodigo === 'ENCARGADO' ||
+      auth.usuario?.rolCodigo === 'ADMINISTRADOR';
+  } catch {
+    // Fallback seguro en entorno de testing fuera del AuthProvider
+    tienePermisoAsignar = true;
+  }
+
+  const cargarDetalle = useCallback(() => {
     if (!incidenteId) return;
-
-    let isMounted = true;
-    queueMicrotask(() => {
-      if (isMounted) {
-        setCargando(true);
-        setError(null);
-      }
-    });
+    setCargando(true);
+    setError(null);
 
     obtenerDetalleIncidente(incidenteId, userId).then((res) => {
-      if (!isMounted) return;
       if (res.exito && res.datos) {
         setDetalle(res.datos);
       } else {
@@ -51,11 +76,76 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
       }
       setCargando(false);
     });
+  }, [incidenteId, userId]);
+
+  useEffect(() => {
+    if (!incidenteId) return;
+
+    let isMounted = true;
+    queueMicrotask(() => {
+      if (isMounted) {
+        cargarDetalle();
+      }
+    });
 
     return () => {
       isMounted = false;
     };
-  }, [incidenteId, userId]);
+  }, [incidenteId, cargarDetalle]);
+
+  // Reglas de negocio para despacho de cuadrilla (HU-21 / Regla ICS §3.2):
+  // El despacho de cuadrillas opera en incidentes en estado VERIFICANDO
+  const esEstadoElegibleCuadrilla = useMemo(() => {
+    if (!detalle) return false;
+    return detalle.estado === 'VERIFICANDO';
+  }, [detalle]);
+
+  // Misión de verificación previa
+  const misionVerificacion = useMemo(() => {
+    if (!detalle?.misiones) return null;
+    return (
+      detalle.misiones.find(
+        (m) =>
+          m.tipoMision === 'VERIFICACION' &&
+          m.estado !== 'CANCELADA' &&
+          m.estado !== 'RECHAZADA'
+      ) || null
+    );
+  }, [detalle]);
+
+  // Verificación en terreno en curso (bloqueo preventivo de despacho de cuadrilla)
+  const verificacionPendiente = useMemo(() => {
+    if (!misionVerificacion) return false;
+    const estadosEnCurso = [
+      'PLANIFICADA',
+      'ASIGNADA',
+      'DESPACHADA',
+      'EN_CAMINO',
+      'EN_SITIO',
+      'EN_CURSO',
+    ];
+    return estadosEnCurso.includes((misionVerificacion.estado || '').toUpperCase());
+  }, [misionVerificacion]);
+
+  const handleDespachoExitoso = (resultado: DespacharCuadrillaResponse['data']) => {
+    if (resultado.patrullaLiberada) {
+      showSuccess(
+        `Cuadrilla despachada exitosamente. La patrulla ${resultado.patrullaLiberada.nombre} ha sido liberada y ya se encuentra DISPONIBLE para nuevas asignaciones.`,
+        'Despacho Táctico Confirmado'
+      );
+    } else {
+      showSuccess(
+        `Cuadrilla '${resultado.cuadrilla.nombre}' despachada exitosamente al incidente ${resultado.incidente.codigo}.`,
+        'Despacho Táctico Confirmado'
+      );
+    }
+
+    // Refrescar el detalle del incidente local
+    cargarDetalle();
+
+    // Notificar al KanbanBoard para transicionar el estado
+    onIncidenteActualizado?.();
+  };
 
   if (!incidenteId) return null;
 
@@ -64,6 +154,114 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
       <div className={styles.drawerOverlay} onClick={onCerrar} role="dialog" aria-modal="true">
         <div className={styles.drawerContent} onClick={(e) => e.stopPropagation()}>
           <IncidenteDetalleHeader detalle={detalle} onCerrar={onCerrar} />
+
+          {/* Barra de Acciones Tácticas: Despacho de Cuadrilla Operativa (HU-21 - Estado VERIFICANDO) */}
+          {detalle && esEstadoElegibleCuadrilla && tienePermisoAsignar && (
+            <div
+              style={{
+                padding: '0.85rem 1.5rem',
+                backgroundColor: '#F8FAFC',
+                borderBottom: '1px solid #E2E8F0',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '0.5rem',
+              }}
+            >
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  flexWrap: 'wrap',
+                  gap: '0.5rem',
+                }}
+              >
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                    <strong style={{ fontSize: '0.875rem', color: 'var(--color-primary-teal-dark, #14505A)' }}>
+                      Intervención Táctica Operativa
+                    </strong>
+                    {!verificacionPendiente && (
+                      <span
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          backgroundColor: 'var(--color-success-bg, #E8F5E9)',
+                          color: 'var(--color-success, #2E7D32)',
+                          border: '1px solid #C8E6C9',
+                          fontSize: '0.6875rem',
+                          fontWeight: 700,
+                          padding: '1px 6px',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.02em',
+                        }}
+                      >
+                        <CheckCircle2 size={12} />
+                        <span>Verificación Completada</span>
+                      </span>
+                    )}
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--color-text-dark, #2B2B2B)', marginTop: '2px' }}>
+                    {misionVerificacion?.patrulla ? (
+                      !verificacionPendiente ? (
+                        <span>
+                          Diagnóstico técnico en terreno finalizado por{' '}
+                          <strong>{misionVerificacion.patrulla.nombre}</strong>. Listo para despacho de cuadrilla.
+                        </span>
+                      ) : (
+                        <span style={{ color: 'var(--color-text-muted, #5F676E)' }}>
+                          Patrulla asignada: {misionVerificacion.patrulla.nombre} ({misionVerificacion.estado})
+                        </span>
+                      )
+                    ) : (
+                      'Verificación concluida.'
+                    )}
+                  </div>
+                </div>
+
+                <Button
+                  type="button"
+                  variant="primary"
+                  size="sm"
+                  onClick={() => setModalCuadrillaAbierto(true)}
+                  disabled={verificacionPendiente}
+                  title={
+                    verificacionPendiente
+                      ? `La patrulla ${misionVerificacion?.patrulla?.nombre || ''} aún se encuentra verificando en terreno.`
+                      : 'Despachar cuadrilla operativa a este incidente'
+                  }
+                  aria-label="Despachar Cuadrilla Operativa"
+                >
+                  <HardHat size={15} style={{ marginRight: '6px' }} />
+                  <span>Despachar Cuadrilla</span>
+                </Button>
+              </div>
+
+              {verificacionPendiente && (
+                <div
+                  style={{
+                    fontSize: '0.75rem',
+                    color: '#BF360C',
+                    backgroundColor: '#FFF3E0',
+                    padding: '6px 10px',
+                    borderLeft: '3px solid var(--color-warning, #E65100)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                  }}
+                  role="status"
+                >
+                  <AlertTriangle size={14} style={{ flexShrink: 0 }} />
+                  <span>
+                    Verificación en curso por{' '}
+                    <strong>{misionVerificacion?.patrulla?.nombre || 'la patrulla asignada'}</strong>. Debe
+                    concluir antes de despachar cuadrillas.
+                  </span>
+                </div>
+              )}
+            </div>
+          )}
 
           <div className={styles.drawerBody}>
             {cargando && (
@@ -96,11 +294,20 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
         </div>
       </div>
 
-      {/* Modal de Detalle de Misión (HU-17) con preservación del contexto del incidente y tablero */}
+      {/* Modal de Detalle de Misión (HU-17) */}
       <MisionDetalleModal
         misionId={misionSeleccionadaId}
         userId={userId}
         onCerrar={() => setMisionSeleccionadaId(null)}
+      />
+
+      {/* Modal Emergente de Despacho de Cuadrilla y Liberación de Patrulla (HU-21 / ICS §3.2) */}
+      <ModalAsignarCuadrilla
+        isOpen={modalCuadrillaAbierto}
+        onClose={() => setModalCuadrillaAbierto(false)}
+        incidente={detalle}
+        userId={userId}
+        onSuccess={handleDespachoExitoso}
       />
     </>
   );

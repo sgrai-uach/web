@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { MapPin } from 'lucide-react';
+import { MapPin, CheckCircle2 } from 'lucide-react';
 import type { IncidenteResumen } from '@/services/incidentesService';
 import { obtenerNombreDelegacion } from '@/lib/utils/delegacionUtils';
 import styles from '@/styles/mando.module.css';
@@ -13,6 +13,7 @@ interface IncidenteCardProps {
 }
 
 export const IncidenteCard: React.FC<IncidenteCardProps> = ({ incidente, onClick }) => {
+  const estaVerificado = Boolean(incidente.verificado);
   const getPrioridadClass = (prioridad: string) => {
     switch (prioridad) {
       case 'CRITICA':
@@ -36,7 +37,7 @@ export const IncidenteCard: React.FC<IncidenteCardProps> = ({ incidente, onClick
 
   return (
     <div
-      className={styles.incidenteCard}
+      className={`${styles.incidenteCard} ${estaVerificado ? styles.incidenteVerificado : ''}`}
       onClick={() => onClick(incidente)}
       onKeyDown={handleKeyDown}
       role="button"
@@ -44,7 +45,19 @@ export const IncidenteCard: React.FC<IncidenteCardProps> = ({ incidente, onClick
       aria-label={`Ver detalles del incidente ${incidente.codigo} tipo ${incidente.tipoAfectacion}`}
     >
       <div className={styles.cardTopRow}>
-        <span className={styles.cardCodigo}>{incidente.codigo}</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', flexWrap: 'wrap' }}>
+          <span className={styles.cardCodigo}>{incidente.codigo}</span>
+          {estaVerificado && (
+            <span
+              className={styles.badgeVerificado}
+              title="Diagnóstico técnico en terreno finalizado por patrulla"
+              data-testid="badge-verificado"
+            >
+              <CheckCircle2 size={11} aria-hidden="true" />
+              <span>Verificado</span>
+            </span>
+          )}
+        </div>
         <span
           className={`${styles.badgePrioridad} ${getPrioridadClass(incidente.prioridad)}`}
           title={`Prioridad: ${incidente.prioridad}`}
