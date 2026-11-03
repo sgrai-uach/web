@@ -247,5 +247,30 @@ describe('ModalAsignarCuadrilla (HU-21 / Regla ICS §3.2)', () => {
     await waitFor(() => {
       expect(screen.getByText(/Conflicto: la patrulla aún está evaluando el sitio/i)).toBeDefined();
     });
+    await waitFor(() => {
+      expect(screen.getByText(/Conflicto: la patrulla aún está evaluando el sitio/i)).toBeDefined();
+    });
+  });
+
+  it('muestra el aviso de advertencia cuando no hay cuadrillas operativas disponibles', async () => {
+    vi.spyOn(cuadrillasService, 'obtenerCuadrillas').mockResolvedValueOnce({
+      cuadrillas: [],
+      meta: { total: 0, pagina: 1, limite: 10, paginasTotales: 0 },
+    });
+
+    render(
+      <ModalAsignarCuadrilla
+        isOpen={true}
+        onClose={vi.fn()}
+        incidente={mockIncidenteVerificacionConcluida}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('No hay cuadrillas operativas disponibles en este momento.')).toBeDefined();
+    });
+
+    // No debe haber texto de ayuda debajo
+    expect(screen.queryByText(/Únicamente se listan dotaciones/i)).toBeNull();
   });
 });

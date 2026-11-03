@@ -247,7 +247,7 @@ export const ModalAsignarCuadrilla: React.FC<ModalAsignarCuadrillaProps> = ({
               </div>
             ) : cuadrillasDisponibles.length === 0 ? (
               <InlineNotice variant="warning">
-                No hay cuadrillas operativas en estado DISPONIBLE en este momento.
+                No hay cuadrillas operativas disponibles en este momento.
               </InlineNotice>
             ) : (
               <Select
@@ -267,9 +267,7 @@ export const ModalAsignarCuadrilla: React.FC<ModalAsignarCuadrillaProps> = ({
                 ))}
               </Select>
             )}
-            <span className={styles.helperText}>
-              Únicamente se listan dotaciones en estado DISPONIBLE para despliegue.
-            </span>
+            
           </div>
 
           {/* Selector de Prioridad */}
