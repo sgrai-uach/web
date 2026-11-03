@@ -366,6 +366,12 @@ export default function CuadrillaDetalleDrawer({
                 {new Date(cuadrilla.actualizadoEn).toLocaleString('es-CL')}
               </span>
             )}
+            {cuadrilla.eliminadoEn && (
+              <span style={{ color: 'var(--color-danger, #D32F2F)' }}>
+                <strong>Eliminado / Dado de baja:</strong>{' '}
+                {new Date(cuadrilla.eliminadoEn).toLocaleString('es-CL')}
+              </span>
+            )}
           </div>
         </div>
 

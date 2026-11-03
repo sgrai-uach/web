@@ -20,19 +20,25 @@ import CuadrillasTabla from '@/components/admin/cuadrillas/CuadrillasTabla';
 import CuadrillaDetalleDrawer from '@/components/admin/cuadrillas/CuadrillaDetalleDrawer';
 import CuadrillaEditarModal from '@/components/admin/cuadrillas/CuadrillaEditarModal';
 import CuadrillaDesactivarModal from '@/components/admin/cuadrillas/CuadrillaDesactivarModal';
+import AccesoDenegadoState from '@/components/common/AccesoDenegadoState';
 
 export default function CuadrillasAdminClient() {
   const { showSuccess, showError } = useToast();
   const { hasPermission, usuarioActivo, isMounted } = useSimulatedSession();
 
-  const puedeCrear = Boolean(isMounted && hasPermission('recursos:crear'));
-  const puedeEditar = Boolean(isMounted && hasPermission('recursos:editar'));
+  const esAdmin = Boolean(
+    usuarioActivo?.rol === 'Administrador' ||
+      usuarioActivo?.esAdmin
+  );
+
+  const tienePermisoLectura = Boolean(
+    isMounted && (hasPermission('recursos:leer') || esAdmin)
+  );
+
+  const puedeCrear = Boolean(isMounted && (hasPermission('recursos:crear') || esAdmin));
+  const puedeEditar = Boolean(isMounted && (hasPermission('recursos:editar') || esAdmin));
   const puedeEliminar = Boolean(
-    isMounted &&
-      (hasPermission('cuadrillas:eliminar') ||
-        hasPermission('recursos:eliminar') ||
-        usuarioActivo?.rol === 'Administrador' ||
-        usuarioActivo?.esAdmin)
+    isMounted && (hasPermission('cuadrillas:eliminar') || esAdmin)
   );
 
   // Estados de modales
@@ -122,7 +128,12 @@ export default function CuadrillasAdminClient() {
           ...cuadrillaADesactivar,
           activo: false,
           estado: 'NO_DISPONIBLE',
-          eliminadoEn: res.eliminadoEn,
+          recursos: [],
+          trabajadores: [],
+          totalRecursos: 0,
+          totalTrabajadores: 0,
+          eliminadoEn: res.eliminadoEn || new Date().toISOString(),
+          eliminadoPorId: res.eliminadoPorId,
         });
       }
 
@@ -150,6 +161,38 @@ export default function CuadrillasAdminClient() {
     showSuccess,
     showError,
   ]);
+
+  if (isMounted && !tienePermisoLectura) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        <nav
+          aria-label="Breadcrumb"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            fontSize: '13px',
+            color: 'var(--color-charcoal)',
+          }}
+        >
+          <Link href="/gestion" style={{ color: 'var(--color-primary-teal)', fontWeight: 500, textDecoration: 'none' }}>
+            Inicio
+          </Link>
+          <span>&rsaquo;</span>
+          <span style={{ color: 'var(--color-charcoal)' }}>Administración</span>
+          <span>&rsaquo;</span>
+          <span style={{ fontWeight: 600, color: 'var(--color-primary-teal-dark)' }}>Cuadrillas Operativas</span>
+        </nav>
+        <AccesoDenegadoState
+          rolUsuario={usuarioActivo?.rol}
+          modulo="Gestión de Cuadrillas Operativas"
+          permisoRequerido="recursos:leer"
+          botonVolverHref="/gestion"
+          botonVolverTexto="Volver al Portal"
+        />
+      </div>
+    );
+  }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
