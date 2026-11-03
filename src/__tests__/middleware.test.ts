@@ -100,6 +100,17 @@ describe('Middleware de Autenticación y Perímetro de Portales', () => {
     expect(location).toBe('http://localhost:3000/gestion');
   });
 
+  it('debe preservar el retorno hacia /terreno si un usuario autenticado accede a /login con returnUrl de terreno', () => {
+    const req = createMockRequest('http://localhost:3000/login?returnUrl=%2Fterreno%2Fpatrulla%2Fmisiones', {
+      [AUTH_COOKIE_NAME]: 'fake-jwt-token',
+    });
+    const res = middleware(req);
+
+    expect(res.status).toBe(307);
+    const location = res.headers.get('location');
+    expect(location).toBe('http://localhost:3000/terreno/patrulla/misiones');
+  });
+
   it('debe redirigir rutas operativas heredadas hacia su versión canónica con prefijo /gestion/ si hay sesión', () => {
     const req = createMockRequest('http://localhost:3000/admin/recursos', {
       [AUTH_COOKIE_NAME]: 'fake-jwt-token',

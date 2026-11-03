@@ -28,6 +28,8 @@ import type {
   DesactivarCuadrillaApiResponse,
 } from '@/types/cuadrilla';
 
+type HttpGetFn = <T>(url: string, init?: unknown) => Promise<{ data?: T; error?: unknown; response: Response }>;
+
 export class CuadrillaServiceError extends Error {
   public status?: number;
   public codigo?: string;
@@ -503,17 +505,35 @@ export const cuadrillasService = {
       const q = busqueda?.trim();
 
       const authHeader = getAuthorizationHeader();
+      interface EmpleadoCandidatoRawApi {
+        usuario_id: string;
+        nombres: string;
+        apellidos: string;
+        rut: string;
+        email: string;
+        rol_codigo?: string | null;
+        rol_nombre?: string | null;
+        delegacion_nombre?: string | null;
+        estado_operativo?: 'disponible' | 'en_mision' | 'en_patrulla' | 'descanso' | 'licencia' | 'inactivo';
+        usuario_activo?: boolean;
+        cargo?: string | null;
+        especialidad?: string | null;
+      }
+
       // Consulta directa al backend mediante apiClient
-      const { data, response } = await apiClient.GET('/api/personal', {
-        params: {
-          query: {
-            q: q || undefined,
+      const { data, response } = await (apiClient.GET as unknown as HttpGetFn)<{ data?: EmpleadoCandidatoRawApi[] }>(
+        '/api/personal',
+        {
+          params: {
+            query: {
+              q: q || undefined,
+            },
+            header: {
+              authorization: authHeader,
+            },
           },
-          header: {
-            authorization: authHeader,
-          },
-        },
-      });
+        }
+      );
 
       const personal = response.ok && data?.data ? data.data : [];
 
@@ -772,6 +792,9 @@ export const cuadrillasService = {
               total: resp.data.length,
               pagina,
               limite,
+              q: busqueda || undefined,
+              delegacionId: delegacionId || undefined,
+              estado: estado || undefined,
               paginasTotales: Math.ceil(resp.data.length / limite) || 1,
             },
           };
@@ -864,27 +887,43 @@ export const cuadrillasService = {
   async obtenerPersonalOperativoDisponible(busqueda?: string): Promise<PersonalOperativoDisponible[]> {
     try {
       const q = busqueda?.trim();
+      interface PersonalOperativoRawApi {
+        usuario_id: string;
+        personal_id?: string;
+        id?: string;
+        nombres: string;
+        apellidos: string;
+        rut: string;
+        cargo?: string | null;
+        especialidad?: string | null;
+        delegacion_nombre?: string | null;
+        estado_operativo?: string | null;
+        disponible_terreno?: boolean | null;
+        usuario_activo?: boolean;
+      }
+
       const authHeader = getAuthorizationHeader();
-      const { data, response } = await apiClient.GET('/api/personal', {
-        params: {
-          query: {
-            q: q || undefined,
-            estadoOperativo: 'disponible',
-            soloPersonal: true,
+      const { data, response } = await (apiClient.GET as unknown as HttpGetFn)<{ data?: PersonalOperativoRawApi[] }>(
+        '/api/personal',
+        {
+          params: {
+            query: {
+              q: q || undefined,
+              estadoOperativo: 'disponible',
+              soloPersonal: true,
+            },
+            header: {
+              authorization: authHeader,
+            },
           },
-          header: {
-            authorization: authHeader,
-          },
-        },
-      });
+        }
+      );
 
       if (response && response.ok && data?.data && Array.isArray(data.data)) {
         return data.data
           .filter((emp) => emp.usuario_activo !== false)
           .map((emp) => ({
-            id:
-              emp.personal_id ||
-              ('id' in emp ? String((emp as Record<string, unknown>).id) : emp.usuario_id),
+            id: emp.personal_id || ('id' in emp && typeof (emp as { id?: unknown }).id === 'string' ? (emp as { id: string }).id : emp.usuario_id),
             usuarioId: emp.usuario_id,
             nombre: `${emp.nombres} ${emp.apellidos}`.trim(),
             rut: emp.rut,
@@ -974,25 +1013,35 @@ export const cuadrillasService = {
    */
   async obtenerRecursosDisponibles(): Promise<RecursoInventarioDisponible[]> {
     try {
-      const { data, response } = await (
-        apiClient.GET as unknown as (
-          url: string,
-          opts?: unknown
-        ) => Promise<{ data?: { data?: Record<string, unknown>[] }; response?: Response }>
-      )('/api/recursos', {
-        params: {
-          query: {
-            estado: 'DISPONIBLE',
-            limite: 100,
+      interface RecursoRawApi {
+        id: string;
+        nombre: string;
+        tipo: string;
+        esIndividual?: boolean;
+        cantidadDisponible?: number;
+        cantidadTotal?: number;
+        unidadMedida?: string;
+        delegacionNombre?: string;
+        delegacion?: { nombre?: string };
+      }
+
+      const { data, response } = await (apiClient.GET as unknown as HttpGetFn)<{ data?: RecursoRawApi[] }>(
+        '/api/recursos',
+        {
+          params: {
+            query: {
+              estado: 'DISPONIBLE',
+              limite: 100,
+            },
           },
-        },
-      });
+        }
+      );
 
       if (response && response.ok && data?.data && Array.isArray(data.data)) {
-        return data.data.map((r: Record<string, unknown>) => ({
-          id: String(r.id),
-          nombre: String(r.nombre),
-          tipo: r.tipo ? String(r.tipo) : undefined,
+        return (data.data as unknown as RecursoRawApi[]).map((r) => ({
+          id: r.id,
+          nombre: r.nombre,
+          tipo: r.tipo,
           esIndividual: Boolean(r.esIndividual),
           cantidadInventario: Number(r.cantidadDisponible ?? r.cantidadTotal ?? 1),
           cantidadDisponible: Number(r.cantidadDisponible ?? 1),

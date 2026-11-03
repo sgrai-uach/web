@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ArrowLeft, Check, Circle, Eye, EyeOff, KeyRound, RotateCcw } from 'lucide-react';
+import { ArrowLeft, Check, Circle, Eye, EyeOff, KeyRound, Lock, RotateCcw } from 'lucide-react';
 import Input from '@/components/ui/Input';
 import Button from '@/components/ui/Button';
 import InlineNotice from '@/components/ui/InlineNotice';
@@ -123,203 +123,200 @@ export default function RestablecerContrasenaForm() {
 
   return (
     <div className={styles.card}>
-      <header className={styles.header}>
-        <div className={styles.logoRow}>
-          <span className={styles.logoText}>SGRAI</span>
-          <span className={styles.logoDivider}>|</span>
-          <span className={styles.logoSubtitle}>DGRD Valdivia</span>
-        </div>
-      </header>
+      <h1 className={styles.title}>Restablecer Contraseña</h1>
+      <p className={styles.instruction}>
+        Defina una nueva contraseña segura para su cuenta institucional.
+      </p>
 
-      <div className={styles.body}>
-        <h1 className={styles.title}>Restablecer Contraseña</h1>
-        <p className={styles.instruction}>
-          Defina una nueva contraseña segura para su cuenta institucional.
-        </p>
+      {!token ? (
+        <div>
+          <div className={styles.noticeWrapper}>
+            <InlineNotice variant="error" title="Enlace no válido">
+              El enlace para restablecer contraseña no contiene un token válido o está incompleto. Por favor solicite un nuevo enlace de recuperación.
+            </InlineNotice>
+          </div>
 
-        {!token ? (
-          <div>
-            <div className={styles.noticeWrapper}>
-              <InlineNotice variant="error" title="Enlace no válido">
-                El enlace para restablecer contraseña no contiene un token válido o está incompleto. Por favor solicite un nuevo enlace de recuperación.
-              </InlineNotice>
-            </div>
+          <div className={styles.submitArea}>
+            <Button
+              type="button"
+              variant="primary"
+              size="lg"
+              fullWidth
+              href="/recuperar-contrasena"
+              icon={<RotateCcw size={18} />}
+            >
+              Solicitar nuevo enlace
+            </Button>
 
-            <div className={styles.submitArea}>
+            <div className={styles.secondaryActionWrapper}>
               <Button
                 type="button"
-                variant="primary"
-                size="lg"
-                fullWidth
-                href="/recuperar-contrasena"
-                icon={<RotateCcw size={18} />}
-              >
-                Solicitar nuevo enlace
-              </Button>
-
-              <Button
-                type="button"
-                variant="outline"
-                size="md"
-                fullWidth
+                variant="ghost"
+                size="sm"
                 href="/login"
-                icon={<ArrowLeft size={16} />}
+                icon={<ArrowLeft size={15} />}
               >
                 Volver al Inicio de Sesión
               </Button>
             </div>
           </div>
-        ) : (
-          <div>
-            {errorServidor && (
-              <div className={styles.noticeWrapper}>
-                <InlineNotice variant="error" title="Error al restablecer contraseña">
-                  {errorServidor}
-                </InlineNotice>
-              </div>
-            )}
+        </div>
+      ) : (
+        <div>
+          {errorServidor && (
+            <div className={styles.noticeWrapper}>
+              <InlineNotice variant="error" title="Error al restablecer contraseña">
+                {errorServidor}
+              </InlineNotice>
+            </div>
+          )}
 
-            <form onSubmit={handleSubmit} noValidate>
-              <div className={styles.passwordWrapper}>
-                <div className={styles.passwordInputContainer}>
-                  <Input
-                    id="nuevaPassword"
-                    type={showNuevaPassword ? 'text' : 'password'}
-                    label="Nueva Contraseña"
-                    placeholder="Mínimo 8 caracteres, mayúscula y número"
-                    value={nuevaPassword}
-                    onChange={(e) => {
-                      setNuevaPassword(e.target.value);
-                      if (errorNuevaPassword) setErrorNuevaPassword(null);
-                    }}
-                    error={errorNuevaPassword || undefined}
-                    requiredIndicator
-                    disabled={cargando}
-                    autoComplete="new-password"
-                    style={{ width: '100%' }}
-                  />
+          <form method="post" action="/restablecer-contrasena" onSubmit={handleSubmit} noValidate>
+            <div className={styles.passwordFieldGroup}>
+              <Input
+                id="nuevaPassword"
+                type={showNuevaPassword ? 'text' : 'password'}
+                label="Nueva Contraseña"
+                placeholder="Mínimo 8 caracteres, mayúscula y número"
+                leftIcon={<Lock size={18} />}
+                value={nuevaPassword}
+                onChange={(e) => {
+                  setNuevaPassword(e.target.value);
+                  if (errorNuevaPassword) setErrorNuevaPassword(null);
+                }}
+                error={errorNuevaPassword || undefined}
+                requiredIndicator
+                disabled={cargando}
+                autoComplete="new-password"
+                rightAddon={
                   <button
                     type="button"
                     className={styles.passwordToggleBtn}
-                    onClick={() => setShowNuevaPassword(!showNuevaPassword)}
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => setShowNuevaPassword((prev) => !prev)}
                     title={showNuevaPassword ? 'Ocultar contraseña' : 'Ver contraseña'}
                     aria-label={showNuevaPassword ? 'Ocultar contraseña' : 'Ver contraseña'}
                     disabled={cargando}
-                    style={{ top: errorNuevaPassword ? '38%' : '65%' }}
                   >
-                    {showNuevaPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    {showNuevaPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                   </button>
-                </div>
-              </div>
+                }
+              />
+            </div>
 
-              <div
-                className={`${styles.requirementsBox} ${todosCumplidos ? styles.requirementsBoxAllMet : ''}`}
-                aria-live="polite"
-                aria-atomic="true"
-              >
-                <div className={styles.requirementsHeader}>
-                  <span className={styles.requirementsTitle}>Requisitos de seguridad:</span>
-                  <span
-                    className={`${styles.requirementsCounter} ${todosCumplidos ? styles.requirementsCounterAllMet : ''}`}
-                    data-testid="requirements-counter"
+            <div
+              className={`${styles.requirementsBox} ${todosCumplidos ? styles.requirementsBoxAllMet : ''}`}
+              aria-live="polite"
+              aria-atomic="true"
+            >
+              <div className={styles.requirementsHeader}>
+                <span className={styles.requirementsTitle}>Requisitos de seguridad:</span>
+                <span
+                  className={`${styles.requirementsCounter} ${todosCumplidos ? styles.requirementsCounterAllMet : ''}`}
+                  data-testid="requirements-counter"
+                >
+                  {totalCumplidos} de {requisitos.length} cumplidos
+                </span>
+              </div>
+              <ul className={styles.requirementsList} aria-label="Lista de requisitos de seguridad de la contraseña">
+                {requisitos.map((req) => (
+                  <li
+                    key={req.id}
+                    className={`${styles.requirementItem} ${req.cumplido ? styles.requirementItemMet : styles.requirementItemPending}`}
+                    data-testid={`req-${req.id}`}
+                    data-cumplido={req.cumplido}
                   >
-                    {totalCumplidos} de {requisitos.length} cumplidos
-                  </span>
-                </div>
-                <ul className={styles.requirementsList} aria-label="Lista de requisitos de seguridad de la contraseña">
-                  {requisitos.map((req) => (
-                    <li
-                      key={req.id}
-                      className={`${styles.requirementItem} ${req.cumplido ? styles.requirementItemMet : styles.requirementItemPending}`}
-                      data-testid={`req-${req.id}`}
-                      data-cumplido={req.cumplido}
+                    <span
+                      className={`${styles.requirementIconWrapper} ${req.cumplido ? styles.requirementIconMet : styles.requirementIconPending}`}
+                      aria-hidden="true"
                     >
-                      <span
-                        className={`${styles.requirementIconWrapper} ${req.cumplido ? styles.requirementIconMet : styles.requirementIconPending}`}
-                        aria-hidden="true"
-                      >
-                        {req.cumplido ? (
-                          <Check size={13} strokeWidth={2.8} />
-                        ) : (
-                          <Circle size={6} fill="currentColor" strokeWidth={0} />
-                        )}
+                      {req.cumplido ? (
+                        <Check size={13} strokeWidth={2.8} />
+                      ) : (
+                        <Circle size={6} fill="currentColor" strokeWidth={0} />
+                      )}
+                    </span>
+                    <span className={styles.requirementText}>
+                      {req.label}
+                      <span className={styles.srOnly}>
+                        {req.cumplido ? ' (cumplido)' : ' (pendiente)'}
                       </span>
-                      <span className={styles.requirementText}>
-                        {req.label}
-                        <span className={styles.srOnly}>
-                          {req.cumplido ? ' (cumplido)' : ' (pendiente)'}
-                        </span>
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
 
-              <div className={styles.passwordWrapper}>
-                <div className={styles.passwordInputContainer}>
-                  <Input
-                    id="confirmacionPassword"
-                    type={showConfirmacionPassword ? 'text' : 'password'}
-                    label="Confirmar Nueva Contraseña"
-                    placeholder="Repita su nueva contraseña"
-                    value={confirmacionPassword}
-                    onChange={(e) => {
-                      setConfirmacionPassword(e.target.value);
-                      if (errorConfirmacion) setErrorConfirmacion(null);
-                    }}
-                    error={errorConfirmacion || undefined}
-                    requiredIndicator
-                    disabled={cargando}
-                    autoComplete="new-password"
-                    style={{ width: '100%' }}
-                  />
+            <div className={styles.passwordFieldGroup}>
+              <Input
+                id="confirmacionPassword"
+                type={showConfirmacionPassword ? 'text' : 'password'}
+                label="Confirmar Nueva Contraseña"
+                placeholder="Repita su nueva contraseña"
+                leftIcon={<Lock size={18} />}
+                value={confirmacionPassword}
+                onChange={(e) => {
+                  setConfirmacionPassword(e.target.value);
+                  if (errorConfirmacion) setErrorConfirmacion(null);
+                }}
+                error={errorConfirmacion || undefined}
+                requiredIndicator
+                disabled={cargando}
+                autoComplete="new-password"
+                rightAddon={
                   <button
                     type="button"
                     className={styles.passwordToggleBtn}
-                    onClick={() => setShowConfirmacionPassword(!showConfirmacionPassword)}
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => setShowConfirmacionPassword((prev) => !prev)}
                     title={showConfirmacionPassword ? 'Ocultar contraseña' : 'Ver contraseña'}
                     aria-label={showConfirmacionPassword ? 'Ocultar contraseña' : 'Ver contraseña'}
                     disabled={cargando}
-                    style={{ top: errorConfirmacion ? '38%' : '65%' }}
                   >
-                    {showConfirmacionPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    {showConfirmacionPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                   </button>
-                </div>
-              </div>
+                }
+              />
+            </div>
 
-              <div className={styles.submitArea}>
-                <Button
-                  type="submit"
-                  variant="primary"
-                  size="lg"
-                  fullWidth
-                  loading={cargando}
-                  disabled={cargando}
-                  icon={<KeyRound size={18} />}
-                >
-                  {cargando ? 'Restableciendo contraseña...' : 'Restablecer Contraseña'}
-                </Button>
+            <div className={styles.submitArea}>
+              <Button
+                type="submit"
+                variant="primary"
+                size="lg"
+                fullWidth
+                loading={cargando}
+                disabled={cargando}
+                icon={<KeyRound size={18} />}
+              >
+                {cargando ? 'Restableciendo contraseña...' : 'Restablecer Contraseña'}
+              </Button>
 
+              <div className={styles.secondaryActionWrapper}>
                 <Button
                   type="button"
-                  variant="outline"
-                  size="md"
-                  fullWidth
+                  variant="ghost"
+                  size="sm"
                   href="/login"
-                  icon={<ArrowLeft size={16} />}
+                  icon={<ArrowLeft size={15} />}
                   disabled={cargando}
                 >
                   Volver al Inicio de Sesión
                 </Button>
               </div>
-            </form>
-          </div>
-        )}
+            </div>
+          </form>
+        </div>
+      )}
 
-        <footer className={styles.footerNotes}>
-          <p>Dirección de Gestión del Riesgo de Desastres — I. Municipalidad de Valdivia</p>
-        </footer>
-      </div>
+      <hr className={styles.divider} />
+
+      <footer className={styles.footerNotes}>
+        <p>
+          <Lock size={13} className={styles.footerLockIcon} aria-hidden="true" />
+          <span>Acceso restringido a personal autorizado.</span>
+        </p>
+      </footer>
     </div>
   );
 }

@@ -24,7 +24,48 @@ function esRutaPublica(pathname: string): boolean {
   if (pathname.startsWith('/ciudadania/')) {
     return true;
   }
+  // Rutas de infraestructura pública de la PWA de terreno
+  if (
+    pathname === '/terreno/manifest.webmanifest' ||
+    pathname === '/terreno/site.webmanifest' ||
+    pathname === '/terreno/sw.js' ||
+    pathname === '/terreno/favicon.ico' ||
+    pathname.endsWith('.webmanifest') ||
+    (pathname.startsWith('/terreno/') && (
+      pathname.endsWith('.png') ||
+      pathname.endsWith('.ico') ||
+      pathname.endsWith('.json')
+    ))
+  ) {
+    return true;
+  }
   return false;
+}
+
+export function obtenerRolDesdeToken(token?: string): string | null {
+  if (!token) return null;
+  try {
+    const partes = token.split('.');
+    if (partes.length < 2) return null;
+    const base64Url = partes[1];
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const padded = base64.padEnd(base64.length + ((4 - (base64.length % 4)) % 4), '=');
+    const jsonPayload = atob(padded);
+    const parsed = JSON.parse(jsonPayload) as { rolCodigo?: unknown };
+    return typeof parsed.rolCodigo === 'string' ? parsed.rolCodigo.trim().toUpperCase() : null;
+  } catch {
+    return null;
+  }
+}
+
+export function esRolDeTerreno(rolCodigo: string | null): boolean {
+  if (!rolCodigo) return false;
+  return (
+    rolCodigo === 'PATRULLA_VERIFICADORA' ||
+    rolCodigo === 'PATRULLA' ||
+    rolCodigo === 'DELEGADO_CUADRILLA' ||
+    rolCodigo === 'CUADRILLA'
+  );
 }
 
 export function proxy(request: NextRequest) {
@@ -43,8 +84,23 @@ export function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL(`/ciudadania/seguimiento/${codigo}${search}`, request.url));
   }
 
-  // 2. Si ya está autenticado e intenta ingresar a /login: redirigir siempre al Inicio de Gestión
+  // 2. Si ya está autenticado e intenta ingresar a /login:
+  // Si su rol pertenece a Terreno (Patrulla o Cuadrilla) o viene con returnUrl=/terreno,
+  // redirigir al entorno de terreno (/terreno); en caso contrario, redirigir a /gestion.
   if (pathname === '/login' && token) {
+    const returnUrl = request.nextUrl.searchParams.get('returnUrl');
+    const rolCodigo = obtenerRolDesdeToken(token);
+
+    if (esRolDeTerreno(rolCodigo)) {
+      if (returnUrl && returnUrl.startsWith('/terreno')) {
+        return NextResponse.redirect(new URL(returnUrl, request.url));
+      }
+      return NextResponse.redirect(new URL('/terreno', request.url));
+    }
+
+    if (returnUrl && returnUrl.startsWith('/terreno')) {
+      return NextResponse.redirect(new URL(returnUrl, request.url));
+    }
     const defaultUrl = new URL('/gestion', request.url);
     return NextResponse.redirect(defaultUrl);
   }
@@ -59,6 +115,14 @@ export function proxy(request: NextRequest) {
     const returnUrl = encodeURIComponent(pathname + search);
     const loginUrl = new URL(`/login?returnUrl=${returnUrl}`, request.url);
     return NextResponse.redirect(loginUrl);
+  }
+
+  // 5. Si el usuario autenticado tiene un rol exclusivo de terreno e intenta ingresar a /gestion, redirigir a /terreno
+  if (pathname === '/gestion' || pathname.startsWith('/gestion/')) {
+    const rolCodigo = obtenerRolDesdeToken(token);
+    if (esRolDeTerreno(rolCodigo)) {
+      return NextResponse.redirect(new URL('/terreno', request.url));
+    }
   }
 
   // 5. Si está autenticado pero accede a una ruta operativa heredada sin prefijo /gestion, redirigir al canónico

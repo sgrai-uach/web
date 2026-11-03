@@ -13,11 +13,9 @@ import {
   Plus,
   AlertTriangle,
   AlertCircle,
-  Building,
 } from 'lucide-react';
 import type { CuadrillaItem } from '@/types/cuadrilla';
 import { useCuadrillaEditForm } from '@/hooks/useCuadrillaEditForm';
-import Heading from '@/components/ui/Heading';
 import Button from '@/components/ui/Button';
 
 interface CuadrillaEditarModalProps {
@@ -110,10 +108,10 @@ export default function CuadrillaEditarModal({
     );
   });
 
-  // Filtrar trabajadores disponibles no seleccionados aún
+  // Filtrar trabajadores disponibles no seleccionados aún y que no sean el delegado (Norma ICS)
   const idsTrabajadoresAsignados = new Set(trabajadoresSeleccionados.map((t) => t.personalId));
   const personalAptoParaAgregar = personalDisponible.filter(
-    (p) => !idsTrabajadoresAsignados.has(p.id)
+    (p) => !idsTrabajadoresAsignados.has(p.id) && p.usuarioId !== delegadoSeleccionado?.id
   );
 
   // Recurso actualmente seleccionado en el dropdown
@@ -239,7 +237,37 @@ export default function CuadrillaEditarModal({
             gap: '24px',
           }}
         >
-          {/* Bloqueo si está en misión */}
+          {cargandoCatalogos ? (
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '64px 24px',
+                gap: '16px',
+              }}
+            >
+              <div
+                style={{
+                  width: '36px',
+                  height: '36px',
+                  border: '3px solid var(--color-bg-light)',
+                  borderTop: '3px solid var(--color-primary-teal)',
+                  borderRadius: '50%',
+                  animation: 'spin 0.8s linear infinite',
+                }}
+              />
+              <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--color-text-dark)' }}>
+                Cargando dotación, catálogo de personal y recursos disponibles...
+              </span>
+              <span style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
+                Por favor espere un momento mientras se obtienen los datos.
+              </span>
+            </div>
+          ) : (
+            <>
+              {/* Bloqueo si está en misión */}
           {estaEnMision && (
             <div
               style={{
@@ -803,19 +831,22 @@ export default function CuadrillaEditarModal({
                             1 unidad
                           </span>
                         ) : (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                             <span style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>Cant:</span>
                             <input
                               type="number"
                               min={1}
+                              max={r.maxDisponible || undefined}
                               disabled={estaEnMision}
                               value={r.cantidad}
-                              onChange={(e) =>
+                              onChange={(e) => {
+                                const val = parseInt(e.target.value, 10) || 1;
+                                const finalVal = r.maxDisponible ? Math.min(val, r.maxDisponible) : val;
                                 cambiarCantidadRecurso(
                                   r.recursoId,
-                                  Math.max(1, parseInt(e.target.value, 10) || 1)
-                                )
-                              }
+                                  Math.max(1, finalVal)
+                                );
+                              }}
                               style={{
                                 width: '60px',
                                 height: '28px',
@@ -825,6 +856,11 @@ export default function CuadrillaEditarModal({
                                 borderRadius: '0px',
                               }}
                             />
+                            {r.maxDisponible !== undefined && (
+                              <span style={{ fontSize: '11px', color: 'var(--color-text-muted)', whiteSpace: 'nowrap' }}>
+                                / {r.maxDisponible}
+                              </span>
+                            )}
                           </div>
                         )}
 
@@ -861,6 +897,8 @@ export default function CuadrillaEditarModal({
               </span>
             )}
           </div>
+            </>
+          )}
         </div>
 
         {/* Pie del Modal con Acciones */}
@@ -889,11 +927,11 @@ export default function CuadrillaEditarModal({
             variant="primary"
             size="md"
             onClick={handleSubmit}
-            disabled={guardando || estaEnMision}
+            disabled={guardando || estaEnMision || cargandoCatalogos}
             icon={<Save size={16} />}
             style={{
-              opacity: estaEnMision ? 0.6 : 1,
-              cursor: estaEnMision ? 'not-allowed' : 'pointer',
+              opacity: (estaEnMision || cargandoCatalogos) ? 0.6 : 1,
+              cursor: (estaEnMision || cargandoCatalogos) ? 'not-allowed' : 'pointer',
             }}
           >
             {guardando ? 'Guardando Cambios...' : 'Guardar Cambios'}
