@@ -18,7 +18,7 @@ import { useToast } from '@/components/ui/Toast';
 import Button from '@/components/ui/Button';
 import InlineNotice from '@/components/ui/InlineNotice';
 import type { DespacharCuadrillaResponse } from '@/types/misiones';
-import { HardHat, AlertTriangle } from 'lucide-react';
+import { HardHat, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import styles from '@/styles/mando.module.css';
 
 export interface IncidenteDetalleDrawerProps {
@@ -177,13 +177,46 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
                 }}
               >
                 <div>
-                  <strong style={{ fontSize: '0.875rem', color: 'var(--color-primary-teal-dark, #14505A)' }}>
-                    Intervención Táctica Operativa
-                  </strong>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted, #5F676E)' }}>
-                    {misionVerificacion?.patrulla
-                      ? `Patrulla asignada: ${misionVerificacion.patrulla.nombre} (${misionVerificacion.estado})`
-                      : 'Verificación concluida.'}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                    <strong style={{ fontSize: '0.875rem', color: 'var(--color-primary-teal-dark, #14505A)' }}>
+                      Intervención Táctica Operativa
+                    </strong>
+                    {!verificacionPendiente && (
+                      <span
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          backgroundColor: 'var(--color-success-bg, #E8F5E9)',
+                          color: 'var(--color-success, #2E7D32)',
+                          border: '1px solid #C8E6C9',
+                          fontSize: '0.6875rem',
+                          fontWeight: 700,
+                          padding: '1px 6px',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.02em',
+                        }}
+                      >
+                        <CheckCircle2 size={12} />
+                        <span>Verificación Completada</span>
+                      </span>
+                    )}
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--color-text-dark, #2B2B2B)', marginTop: '2px' }}>
+                    {misionVerificacion?.patrulla ? (
+                      !verificacionPendiente ? (
+                        <span>
+                          Diagnóstico técnico en terreno finalizado por{' '}
+                          <strong>{misionVerificacion.patrulla.nombre}</strong>. Listo para despacho de cuadrilla.
+                        </span>
+                      ) : (
+                        <span style={{ color: 'var(--color-text-muted, #5F676E)' }}>
+                          Patrulla asignada: {misionVerificacion.patrulla.nombre} ({misionVerificacion.estado})
+                        </span>
+                      )
+                    ) : (
+                      'Verificación concluida.'
+                    )}
                   </div>
                 </div>
 
