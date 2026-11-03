@@ -12,7 +12,7 @@ import { misionesService } from '@/services/misionesService';
 import type { IncidenteDetalle } from '@/services/incidentesService';
 import type { CuadrillaItem } from '@/types/cuadrilla';
 import type { PrioridadMision, DespacharCuadrillaResponse } from '@/types/misiones';
-import { HardHat, ShieldCheck, AlertTriangle, Truck } from 'lucide-react';
+import { HardHat, AlertTriangle, Truck } from 'lucide-react';
 import styles from './ModalAsignarCuadrilla.module.css';
 
 export interface ModalAsignarCuadrillaProps {
@@ -198,21 +198,6 @@ export const ModalAsignarCuadrilla: React.FC<ModalAsignarCuadrillaProps> = ({
               <div style={{ marginTop: '4px', fontWeight: 600 }}>
                 Según el protocolo ICS, debe esperar a que la patrulla concluya la verificación técnica antes
                 de despachar cuadrillas pesadas.
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Notificación Regla ICS §3.2: Relevo automático si la verificación ya concluyó */}
-        {!verificacionPendiente && patrullaAsignada && (
-          <div className={styles.patrullaRelevoCard} role="status">
-            <ShieldCheck size={18} aria-hidden="true" style={{ flexShrink: 0 }} />
-            <div>
-              <strong>Regla de Negocio ICS §3.2 (Relevo Táctico)</strong>
-              <div>
-                Al confirmar el despacho de la cuadrilla, la patrulla verificadora{' '}
-                <strong>{patrullaAsignada.nombre}</strong> será automáticamente relevada a estado{' '}
-                <strong>DISPONIBLE</strong> y su misión previa se marcará como <strong>COMPLETADA</strong>.
               </div>
             </div>
           </div>

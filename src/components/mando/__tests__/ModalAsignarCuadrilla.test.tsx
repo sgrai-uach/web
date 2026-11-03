@@ -177,12 +177,6 @@ describe('ModalAsignarCuadrilla (HU-21 / Regla ICS §3.2)', () => {
       />
     );
 
-    // Debe mostrar la tarjeta informativa de la regla ICS §3.2
-    expect(screen.getByText(/Regla de Negocio ICS §3.2 \(Relevo Táctico\)/i)).toBeDefined();
-    expect(
-      screen.getByText(/será automáticamente relevada a estado/i)
-    ).toBeDefined();
-
     // Esperar a que se listen las cuadrillas disponibles en el selector
     await waitFor(() => {
       expect(screen.getByText(/Cuadrilla Vías y Canales 1/i)).toBeDefined();
