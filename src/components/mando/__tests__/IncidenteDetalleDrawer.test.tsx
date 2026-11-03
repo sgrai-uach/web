@@ -268,6 +268,31 @@ describe('Componente IncidenteDetalleDrawer e integración HU-17', () => {
 
     await waitFor(() => {
       expect(screen.getByText('INC-2026-0042')).toBeDefined();
+    });    expect(screen.queryByRole('button', { name: /Despachar Cuadrilla Operativa/i })).toBeNull();
+  });
+
+  it('en incidentes REPORTADO muestra que se requiere verificación preliminar y no permite despachar cuadrilla (Opción 1 ICS)', async () => {
+    vi.spyOn(incidentesService, 'obtenerDetalleIncidente').mockResolvedValueOnce({
+      exito: true,
+      datos: {
+        ...mockDetalleIncidente,
+        estado: 'REPORTADO',
+        misiones: [],
+      },
+      mensaje: 'OK',
+    });
+
+    render(
+      <IncidenteDetalleDrawer
+        incidenteId="i1000000-0000-4000-8000-000000000001"
+        userId="user-test"
+        onCerrar={vi.fn()}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText(/Diagnóstico Técnico en Terreno Requerido/i)).toBeDefined();
+      expect(screen.getByText(/Paso 1: Verificación/i)).toBeDefined();
     });
 
     expect(screen.queryByRole('button', { name: /Despachar Cuadrilla Operativa/i })).toBeNull();
