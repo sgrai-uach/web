@@ -116,18 +116,18 @@ export const NAV_GROUPS: NavGroup[] = [
         requiredPermissions: ['recursos:leer', 'recursos:crear'],
       },
       {
-        id: 'patrullas-admin',
-        label: 'Patrullas Verificadoras',
-        href: '/gestion/admin/patrullas',
-        icon: ShieldCheck,
-        requiredPermissions: ['recursos:leer', 'recursos:crear', 'misiones:leer'],
-      },
-      {
         id: 'cuadrillas',
         label: 'Cuadrillas',
         href: '/gestion/admin/cuadrillas',
         icon: HardHat,
         requiredPermissions: ['recursos:crear', 'recursos:leer'],
+      },
+      {
+        id: 'patrullas-admin',
+        label: 'Patrullas Verificadoras',
+        href: '/gestion/admin/patrullas',
+        icon: ShieldCheck,
+        requiredPermissions: ['recursos:leer', 'recursos:crear', 'misiones:leer'],
       },
       {
         id: 'puntos-criticos',

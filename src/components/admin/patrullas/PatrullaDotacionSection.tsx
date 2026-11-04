@@ -1,14 +1,24 @@
 'use client';
 
 import React from 'react';
-import { Users, UserCheck, Shield } from 'lucide-react';
+import { Users, UserCheck, Shield, AlertTriangle } from 'lucide-react';
 import type { EmpleadoUsuario } from '@/types/empleados';
+import { obtenerNombreDelegacion } from '@/lib/utils/delegacionUtils';
+import InlineNotice from '@/components/ui/InlineNotice';
 import styles from './PatrullaForm.module.css';
 
-interface PatrullaDotacionSectionProps {
+export interface PatrullaResumenAsignacion {
+  id: string;
+  codigo?: string;
+  nombre: string;
+}
+
+export interface PatrullaDotacionSectionProps {
   personalElegible: EmpleadoUsuario[];
   personalSeleccionadoIds: string[];
   usuarioLiderId: string;
+  mapaPatrullasPorPersonal?: Record<string, PatrullaResumenAsignacion[]>;
+  patrullaActualId?: string;
   errorPersonal?: string;
   cargando?: boolean;
   onTogglePersonal: (personalId: string, usuarioId: string) => void;
@@ -19,6 +29,8 @@ export const PatrullaDotacionSection: React.FC<PatrullaDotacionSectionProps> = (
   personalElegible,
   personalSeleccionadoIds,
   usuarioLiderId,
+  mapaPatrullasPorPersonal = {},
+  patrullaActualId,
   errorPersonal,
   cargando = false,
   onTogglePersonal,
@@ -28,6 +40,16 @@ export const PatrullaDotacionSection: React.FC<PatrullaDotacionSectionProps> = (
   const integrantesSeleccionados = personalElegible.filter(
     (p) => p.personal_id && personalSeleccionadoIds.includes(p.personal_id)
   );
+
+  // Identificar integrantes seleccionados que ya forman parte de otras patrullas
+  const seleccionadosConOtrasPatrullas = integrantesSeleccionados
+    .map((p) => {
+      const patrullas = (mapaPatrullasPorPersonal[p.personal_id!] || []).filter(
+        (pat) => pat.id !== patrullaActualId
+      );
+      return { empleado: p, patrullas };
+    })
+    .filter((item) => item.patrullas.length > 0);
 
   return (
     <section className={styles.section} aria-labelledby="seccion-dotacion">
@@ -40,6 +62,7 @@ export const PatrullaDotacionSection: React.FC<PatrullaDotacionSectionProps> = (
       <p className={styles.sectionDescription}>
         Seleccione los funcionarios que integrarán la patrulla verificadora. Solo se habilitan
         usuarios activos con ficha operativa habilitados para funciones de <strong>Patrulla Verificadora</strong>.
+        Los funcionarios ya asignados a otra patrulla pueden ser incorporados para labores compartidas.
       </p>
 
       {/* Lista interactiva de funcionarios */}
@@ -88,20 +111,55 @@ export const PatrullaDotacionSection: React.FC<PatrullaDotacionSectionProps> = (
               else if (p.estado_operativo === 'descanso') etiquetaEstado = 'Descanso';
               else if (p.estado_operativo === 'inactivo') etiquetaEstado = 'Inactivo';
 
+              // Patrullas previas en las que participa (excluyendo la actual)
+              const otrasPatrullas = (mapaPatrullasPorPersonal[personalId] || []).filter(
+                (pat) => pat.id !== patrullaActualId
+              );
+
+              // Solo se bloquea si el funcionario se encuentra inactivo, con licencia o descanso
+              const isInoperativo =
+                p.estado_operativo === 'descanso' ||
+                p.estado_operativo === 'licencia' ||
+                p.estado_operativo === 'inactivo' ||
+                p.usuario_activo === false;
+
+              const isSeleccionable = !isInoperativo;
+
+              const estadoTexto =
+                p.estado_operativo === 'descanso'
+                  ? 'En descanso'
+                  : p.estado_operativo === 'licencia'
+                  ? 'Licencia'
+                  : p.estado_operativo === 'inactivo'
+                  ? 'Inactivo'
+                  : otrasPatrullas.length > 0 || p.estado_operativo === 'en_patrulla'
+                  ? 'En patrulla'
+                  : p.estado_operativo === 'en_mision'
+                  ? 'En misión'
+                  : 'Disponible';
+
+              const delegacionLimpia = obtenerNombreDelegacion(
+                p.delegacion_nombre || p.delegacion_codigo,
+                'Sin delegación'
+              );
+
               return (
                 <div
                   key={personalId}
                   role="checkbox"
                   aria-checked={isSelected}
-                  aria-disabled={isDisabled}
-                  tabIndex={isDisabled ? -1 : 0}
+                  aria-disabled={!isSeleccionable}
+                  tabIndex={isSeleccionable ? 0 : -1}
                   className={`${styles.personalCard} ${isSelected ? styles.personalCardSelected : ''} ${
-                    isDisabled ? styles.personalCardDisabled : ''
+                    !isSeleccionable ? styles.personalCardDisabled : ''
                   }`}
-                  onClick={isDisabled ? undefined : () => onTogglePersonal(personalId, p.usuario_id)}
+                  onClick={() => {
+                    if (isSeleccionable) {
+                      onTogglePersonal(personalId, p.usuario_id);
+                    }
+                  }}
                   onKeyDown={(e) => {
-                    if (isDisabled) return;
-                    if (e.key === ' ' || e.key === 'Enter') {
+                    if ((e.key === ' ' || e.key === 'Enter') && isSeleccionable) {
                       e.preventDefault();
                       onTogglePersonal(personalId, p.usuario_id);
                     }
@@ -111,28 +169,42 @@ export const PatrullaDotacionSection: React.FC<PatrullaDotacionSectionProps> = (
                     <input
                       type="checkbox"
                       checked={isSelected}
-                      disabled={isDisabled}
+                      disabled={!isSeleccionable}
                       readOnly
                       tabIndex={-1}
                       aria-hidden="true"
-                      style={{ cursor: isDisabled ? 'not-allowed' : 'pointer' }}
+                      style={{ cursor: isSeleccionable ? 'pointer' : 'not-allowed' }}
                     />
                     <div className={styles.personalDetails}>
                       <span className={styles.personalName}>
                         {p.nombres} {p.apellidos} {p.rut ? `(${p.rut})` : ''}
                       </span>
                       <span className={styles.personalMeta}>
-                        {p.cargo || 'Evaluador de Terreno'} &bull; Delegación:{' '}
-                        {p.delegacion_nombre || 'Sin delegación'} &bull; Estado:{' '}
-                        {etiquetaEstado}
+                        {p.cargo || 'Evaluador de Terreno'} &bull; Delegación: {delegacionLimpia} &bull; Estado:{' '}
+                        <span
+                          style={{
+                            fontWeight: 600,
+                            color: isSeleccionable
+                              ? otrasPatrullas.length > 0 || p.estado_operativo === 'en_patrulla'
+                                ? 'var(--color-warning, #E65100)'
+                                : 'var(--color-success, #2E7D32)'
+                              : 'var(--color-danger, #D32F2F)',
+                          }}
+                        >
+                          {estadoTexto}
+                        </span>
                       </span>
                     </div>
                   </div>
 
-                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                    {isDisabled && (
-                      <span className={`${styles.personalBadge} ${styles.badgeNoDisponible}`}>
-                        No disponible ({etiquetaEstado})
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                    {otrasPatrullas.length > 0 && (
+                      <span
+                        className={`${styles.personalBadge} ${styles.badgeAdvertencia}`}
+                        title={`Asignado a: ${otrasPatrullas.map((pat) => pat.nombre).join(', ')}`}
+                      >
+                        <AlertTriangle size={12} style={{ marginRight: '4px' }} />
+                        En: {otrasPatrullas.map((pat) => pat.codigo || pat.nombre).join(', ')}
                       </span>
                     )}
                     {isSelected && isLider && (
@@ -156,6 +228,20 @@ export const PatrullaDotacionSection: React.FC<PatrullaDotacionSectionProps> = (
           <span className={styles.errorText} role="alert">
             {errorPersonal}
           </span>
+        )}
+
+        {/* Advertencia si hay funcionarios seleccionados que ya pertenecen a otras patrullas */}
+        {seleccionadosConOtrasPatrullas.length > 0 && (
+          <div style={{ marginTop: '10px' }}>
+            <InlineNotice variant="warning" title="Personal asignado a múltiples patrullas">
+              {seleccionadosConOtrasPatrullas.map((item, idx) => (
+                <div key={item.empleado.personal_id || idx} style={{ marginTop: idx > 0 ? '4px' : '0' }}>
+                  <strong>{item.empleado.nombres} {item.empleado.apellidos}</strong> ya se encuentra asignado a la(s) patrulla(s):{' '}
+                  <strong>{item.patrullas.map((pat) => `${pat.nombre}${pat.codigo ? ` (${pat.codigo})` : ''}`).join(', ')}</strong>.
+                </div>
+              ))}
+            </InlineNotice>
+          </div>
         )}
       </div>
 

@@ -17,19 +17,24 @@ vi.mock('@/context/SimulatedSessionContext', () => ({
   }),
 }));
 
-vi.mock('@/services/catalogosService', () => ({
-  catalogosService: {
-    getCatalogos: vi.fn().mockResolvedValue({
-      roles: [],
-      delegaciones: [
-        { id: '30000000-0000-4000-8000-000000000001', nombre: 'Norte', codigo: 'DEL_NORTE' },
-        { id: '30000000-0000-4000-8000-000000000003', nombre: 'Costa', codigo: 'DEL_COSTA' },
-      ],
-      especialidades: [],
-      cargos: [],
-    }),
-  },
-}));
+vi.mock('@/services/catalogosService', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/services/catalogosService')>();
+  return {
+    ...actual,
+    catalogosService: {
+      ...actual.catalogosService,
+      getCatalogos: vi.fn().mockResolvedValue({
+        roles: [],
+        delegaciones: [
+          { id: '30000000-0000-4000-8000-000000000001', nombre: 'Norte', codigo: 'DEL_NORTE' },
+          { id: '30000000-0000-4000-8000-000000000003', nombre: 'Costa', codigo: 'DEL_COSTA' },
+        ],
+        especialidades: [],
+        cargos: [],
+      }),
+    },
+  };
+});
 
 vi.mock('@/services/recursosService', () => ({
   getRecursos: vi.fn().mockResolvedValue({
@@ -240,8 +245,8 @@ describe('PatrullaEditarModal (HU-84: Modal de Edición)', () => {
         screen.getByText(/Bloqueo Operativo: Conflicto al Modificar/i)
       ).toBeInTheDocument();
       expect(
-        screen.getByText(/La patrulla se encuentra en verificación o el vehículo ya está asignado/i)
-      ).toBeInTheDocument();
+        screen.getAllByText(/La patrulla se encuentra en verificación o el vehículo ya está asignado/i).length
+      ).toBeGreaterThan(0);
     });
   });
 });

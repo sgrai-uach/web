@@ -76,8 +76,17 @@ vi.mock('@/services/empleadosService', () => ({
           usuario_activo: true,
           estado_operativo: 'en_patrulla',
         },
+        {
+          usuario_id: 'c1000000-0000-4000-8000-000000000004',
+          personal_id: 'b1000000-0000-4000-8000-000000000004',
+          nombres: 'Carlos',
+          apellidos: 'Reyes',
+          rol_codigo: 'PATRULLA_VERIFICADORA',
+          usuario_activo: true,
+          estado_operativo: 'licencia',
+        },
       ],
-      meta: { total: 3, page: 1, limit: 100, totalPages: 1 },
+      meta: { total: 4, page: 1, limit: 100, totalPages: 1 },
     }),
   },
 }));
@@ -319,7 +328,7 @@ describe('useEditarPatrullaForm (HU-84: Edición de Patrulla Verificadora)', () 
     }
   });
 
-  it('8. BUG-H84-WEB-04: no permite seleccionar a un funcionario con estado_operativo distinto de disponible', async () => {
+  it('8. permite seleccionar a un funcionario en_patrulla (duplicación controlada) y bloquea funcionarios inoperativos (licencia/descanso/inactivo)', async () => {
     let hookResult!: HookResultType;
     await act(async () => {
       hookResult = renderHook(() => useEditarPatrullaForm(mockPatrullaDisponible));
@@ -335,7 +344,18 @@ describe('useEditarPatrullaForm (HU-84: Edición de Patrulla Verificadora)', () 
       );
     });
 
-    // No debe haberse agregado a personalIds
-    expect(result.current.formData.personalIds).not.toContain('b1000000-0000-4000-8000-000000000003');
+    // SÍ debe haberse agregado a personalIds (duplicación permitida con advertencia)
+    expect(result.current.formData.personalIds).toContain('b1000000-0000-4000-8000-000000000003');
+
+    // Intentar agregar a Carlos Reyes (personal_id: b1000000-...-0004), quien está con licencia médica
+    act(() => {
+      result.current.handleTogglePersonal(
+        'b1000000-0000-4000-8000-000000000004',
+        'c1000000-0000-4000-8000-000000000004'
+      );
+    });
+
+    // NO debe haberse agregado a personalIds por encontrarse inoperativo
+    expect(result.current.formData.personalIds).not.toContain('b1000000-0000-4000-8000-000000000004');
   });
 });

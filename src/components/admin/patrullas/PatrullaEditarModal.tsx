@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import {
+  AlertTriangle,
   ShieldCheck,
   Shield,
   X,
@@ -15,6 +16,7 @@ import {
 import Button from '@/components/ui/Button';
 import Heading from '@/components/ui/Heading';
 import InlineNotice from '@/components/ui/InlineNotice';
+import { obtenerNombreDelegacion } from '@/lib/utils/delegacionUtils';
 import { useEditarPatrullaForm } from '@/hooks/useEditarPatrullaForm';
 import PatrullaDelegacionSection from './PatrullaDelegacionSection';
 import PatrullaVehiculoSection from './PatrullaVehiculoSection';
@@ -65,6 +67,8 @@ const PatrullaEditarModalInner: React.FC<PatrullaEditarModalInnerProps> = ({
     delegaciones,
     vehiculosDisponibles,
     personalElegible,
+    mapaPatrullasPorPersonal,
+    mapaPatrullasPorVehiculo,
     cargandoCatalogos,
     errorCatalogos,
     serverError,
@@ -75,6 +79,7 @@ const PatrullaEditarModalInner: React.FC<PatrullaEditarModalInnerProps> = ({
     clientErrors,
     estaBloqueada,
     mensajeBloqueo,
+    recargarDatos,
     handleNombreChange,
     handleDelegacionChange,
     handleVehiculoChange,
@@ -87,6 +92,28 @@ const PatrullaEditarModalInner: React.FC<PatrullaEditarModalInnerProps> = ({
     setModalConfirmarAbierto(false);
     onClose();
   });
+
+  // Recargar datos actualizados al abrir el modal
+  useEffect(() => {
+    recargarDatos();
+  }, [recargarDatos]);
+
+  // Detección de asignaciones compartidas
+  const otrasPatrullasVehiculo = formData.vehiculoId
+    ? (mapaPatrullasPorVehiculo[formData.vehiculoId] || []).filter((p) => p.id !== patrulla.id)
+    : [];
+
+  const integrantesConOtrasPatrullas = formData.personalIds
+    .map((id) => {
+      const funcionario = personalElegible.find((p) => p.personal_id === id);
+      const asignaciones = (mapaPatrullasPorPersonal[id] || []).filter((p) => p.id !== patrulla.id);
+      return {
+        id,
+        nombre: funcionario ? `${funcionario.nombres} ${funcionario.apellidos}` : id,
+        patrullas: asignaciones,
+      };
+    })
+    .filter((item) => item.patrullas.length > 0);
 
   // Manejo de tecla Escape
   useEffect(() => {
@@ -283,6 +310,9 @@ const PatrullaEditarModalInner: React.FC<PatrullaEditarModalInnerProps> = ({
               vehiculoId={formData.vehiculoId}
               vehiculos={vehiculosDisponibles}
               cargando={cargandoCatalogos || estaBloqueada}
+              mapaPatrullasPorVehiculo={mapaPatrullasPorVehiculo}
+              patrullaActualId={patrulla.id}
+              errorVehiculo={serverFieldErrors.find((e) => e.campo === 'vehiculoId')?.mensaje}
               onChangeVehiculo={handleVehiculoChange}
             />
 
@@ -292,7 +322,12 @@ const PatrullaEditarModalInner: React.FC<PatrullaEditarModalInnerProps> = ({
               personalSeleccionadoIds={formData.personalIds}
               usuarioLiderId={formData.usuarioLiderId}
               cargando={cargandoCatalogos || estaBloqueada}
-              errorPersonal={touched.personalIds ? clientErrors.personalIds : undefined}
+              mapaPatrullasPorPersonal={mapaPatrullasPorPersonal}
+              patrullaActualId={patrulla.id}
+              errorPersonal={
+                (touched.personalIds && clientErrors.personalIds) ||
+                serverFieldErrors.find((e) => e.campo === 'personalIds')?.mensaje
+              }
               onTogglePersonal={estaBloqueada ? () => {} : handleTogglePersonal}
               onChangeLider={estaBloqueada ? () => {} : handleLiderChange}
             />
@@ -378,8 +413,12 @@ const PatrullaEditarModalInner: React.FC<PatrullaEditarModalInnerProps> = ({
                       Delegación Base:
                     </span>
                     <span className={styles.confirmRowValue}>
-                      {delegacionSeleccionada?.nombre || 'Delegación no seleccionada'}
-                      {delegacionSeleccionada?.codigo ? ` (${delegacionSeleccionada.codigo})` : ''}
+                      {delegacionSeleccionada
+                        ? obtenerNombreDelegacion(
+                            delegacionSeleccionada.nombre || delegacionSeleccionada.id,
+                            delegacionSeleccionada.nombre
+                          )
+                        : 'Delegación no seleccionada'}
                     </span>
                   </div>
 
@@ -422,6 +461,44 @@ const PatrullaEditarModalInner: React.FC<PatrullaEditarModalInnerProps> = ({
                     </span>
                   </div>
                 </div>
+
+                {/* Avisos si hay vehículo o personal compartido */}
+                {(otrasPatrullasVehiculo.length > 0 || integrantesConOtrasPatrullas.length > 0) && (
+                  <div
+                    style={{
+                      marginTop: '12px',
+                      padding: '10px 14px',
+                      backgroundColor: 'var(--color-warning-bg, #FFF3E0)',
+                      border: '1px solid rgba(230, 81, 0, 0.3)',
+                      fontSize: '13px',
+                      color: 'var(--color-charcoal, #3B3F45)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '6px',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 600, color: 'var(--color-warning, #E65100)' }}>
+                      <AlertTriangle size={15} />
+                      <span>Asignaciones compartidas detectadas:</span>
+                    </div>
+                    {otrasPatrullasVehiculo.length > 0 && (
+                      <div>
+                        • <strong>Vehículo:</strong> asignado también en {otrasPatrullasVehiculo.map((p) => p.nombre).join(', ')}.
+                      </div>
+                    )}
+                    {integrantesConOtrasPatrullas.length > 0 && (
+                      <div>
+                        • <strong>Personal:</strong>{' '}
+                        {integrantesConOtrasPatrullas.map((item, idx) => (
+                          <span key={item.id}>
+                            {idx > 0 ? '; ' : ''}
+                            <strong>{item.nombre}</strong> está en {item.patrullas.map((p) => p.nombre).join(', ')}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               <div className={styles.modalFooter}>

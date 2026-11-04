@@ -1,7 +1,6 @@
 'use client';
 
 import React from 'react';
-import Link from 'next/link';
 import { ShieldCheck } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import InlineNotice from '@/components/ui/InlineNotice';
@@ -21,14 +20,16 @@ export default function PatrullaForm() {
     delegaciones,
     vehiculosDisponibles,
     personalElegible,
+    mapaPatrullasPorPersonal,
+    mapaPatrullasPorVehiculo,
     cargandoCatalogos,
     errorCatalogos,
     serverError,
+    clientFormError,
     serverFieldErrors,
     createdPatrulla,
     isSubmitting,
     showConfirmModal,
-    isValid,
     clientErrors,
     handleCodigoChange,
     handleNombreChange,
@@ -64,6 +65,13 @@ export default function PatrullaForm() {
       {errorCatalogos && (
         <InlineNotice variant="warning" title="Advertencia de Catálogos">
           {errorCatalogos}
+        </InlineNotice>
+      )}
+
+      {/* Aviso de Error General de Formulario */}
+      {clientFormError && (
+        <InlineNotice variant="error" title="Formulario incompleto">
+          {clientFormError}
         </InlineNotice>
       )}
 
@@ -106,7 +114,10 @@ export default function PatrullaForm() {
         delegacionId={formData.delegacionId}
         delegaciones={delegaciones}
         cargando={cargandoCatalogos}
-        errorDelegacion={touched.delegacionId ? clientErrors.delegacionId : undefined}
+        errorDelegacion={
+          (touched.delegacionId ? clientErrors.delegacionId : undefined) ||
+          serverFieldErrors.find((e) => e.campo === 'delegacionId')?.mensaje
+        }
         onChangeDelegacion={handleDelegacionChange}
         onBlurDelegacion={() => handleBlur('delegacionId')}
       />
@@ -116,6 +127,8 @@ export default function PatrullaForm() {
         vehiculoId={formData.vehiculoId}
         vehiculos={vehiculosDisponibles}
         cargando={cargandoCatalogos}
+        mapaPatrullasPorVehiculo={mapaPatrullasPorVehiculo}
+        errorVehiculo={serverFieldErrors.find((e) => e.campo === 'vehiculoId')?.mensaje}
         onChangeVehiculo={handleVehiculoChange}
       />
 
@@ -125,7 +138,11 @@ export default function PatrullaForm() {
         personalSeleccionadoIds={formData.personalIds}
         usuarioLiderId={formData.usuarioLiderId}
         cargando={cargandoCatalogos}
-        errorPersonal={touched.personalIds ? clientErrors.personalIds : undefined}
+        mapaPatrullasPorPersonal={mapaPatrullasPorPersonal}
+        errorPersonal={
+          (touched.personalIds ? clientErrors.personalIds : undefined) ||
+          serverFieldErrors.find((e) => e.campo === 'personalIds')?.mensaje
+        }
         onTogglePersonal={handleTogglePersonal}
         onChangeLider={handleLiderChange}
       />
@@ -178,6 +195,8 @@ export default function PatrullaForm() {
         delegaciones={delegaciones}
         vehiculos={vehiculosDisponibles}
         personal={personalElegible}
+        mapaPatrullasPorVehiculo={mapaPatrullasPorVehiculo}
+        mapaPatrullasPorPersonal={mapaPatrullasPorPersonal}
         onClose={handleCloseConfirmModal}
         onConfirm={handleConfirmSave}
       />

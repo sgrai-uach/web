@@ -3,12 +3,22 @@
 import React from 'react';
 import { Truck } from 'lucide-react';
 import type { RecursoItem } from '@/types/recurso';
+import InlineNotice from '@/components/ui/InlineNotice';
 import styles from './PatrullaForm.module.css';
 
-interface PatrullaVehiculoSectionProps {
+export interface PatrullaResumenAsignacion {
+  id: string;
+  codigo?: string;
+  nombre: string;
+}
+
+export interface PatrullaVehiculoSectionProps {
   vehiculoId: string;
   vehiculos: RecursoItem[];
   cargando?: boolean;
+  mapaPatrullasPorVehiculo?: Record<string, PatrullaResumenAsignacion[]>;
+  patrullaActualId?: string;
+  errorVehiculo?: string;
   onChangeVehiculo: (val: string) => void;
 }
 
@@ -16,8 +26,16 @@ export const PatrullaVehiculoSection: React.FC<PatrullaVehiculoSectionProps> = (
   vehiculoId,
   vehiculos,
   cargando = false,
+  mapaPatrullasPorVehiculo = {},
+  patrullaActualId,
+  errorVehiculo,
   onChangeVehiculo,
 }) => {
+  // Patrullas que ya ocupan el vehículo actualmente seleccionado
+  const patrullasAsignadasActual = (mapaPatrullasPorVehiculo[vehiculoId] || []).filter(
+    (p) => p.id !== patrullaActualId
+  );
+
   return (
     <section className={styles.section} aria-labelledby="seccion-vehiculo">
       <div className={styles.sectionHeader}>
@@ -27,8 +45,8 @@ export const PatrullaVehiculoSection: React.FC<PatrullaVehiculoSectionProps> = (
         </h2>
       </div>
       <p className={styles.sectionDescription}>
-        Asigne un vehículo institucional del inventario municipal que se encuentre disponible. Al
-        registrar la patrulla, el vehículo quedará formalmente asignado a esta unidad.
+        Asigne un vehículo institucional del inventario municipal. Se permite seleccionar un vehículo
+        previamente asignado a otra patrulla para uso compartido entre unidades.
       </p>
 
       <div className={styles.fieldGrid}>
@@ -41,8 +59,9 @@ export const PatrullaVehiculoSection: React.FC<PatrullaVehiculoSectionProps> = (
             value={vehiculoId}
             disabled={cargando}
             onChange={(e) => onChangeVehiculo(e.target.value)}
-            className={styles.selectField}
+            className={`${styles.selectField} ${errorVehiculo ? styles.inputError : ''}`}
             aria-describedby="help-patrulla-vehiculo"
+            aria-invalid={Boolean(errorVehiculo)}
           >
             <option value="">
               {cargando
@@ -52,16 +71,48 @@ export const PatrullaVehiculoSection: React.FC<PatrullaVehiculoSectionProps> = (
             {vehiculos.map((v) => {
               const patente = v.detalles?.patente ? `[Patente: ${v.detalles.patente}]` : '';
               const modelo = v.detalles?.modelo ? `- ${v.detalles.modelo}` : '';
+              const patrullasDelVehiculo = (mapaPatrullasPorVehiculo[v.id] || []).filter(
+                (p) => p.id !== patrullaActualId
+              );
+              const avisoUso =
+                patrullasDelVehiculo.length > 0
+                  ? ` — ⚠️ Asignado en: ${patrullasDelVehiculo
+                      .map((p) => p.codigo || p.nombre)
+                      .join(', ')}`
+                  : '';
+
               return (
                 <option key={v.id} value={v.id}>
                   {v.nombre} {modelo} {patente}
+                  {avisoUso}
                 </option>
               );
             })}
           </select>
-          <span id="help-patrulla-vehiculo" className={styles.helperText}>
-            Solo se muestran vehículos institucionales activos y disponibles para asignación inmediata.
-          </span>
+
+          {errorVehiculo ? (
+            <span id="error-patrulla-vehiculo" className={styles.errorText} role="alert">
+              {errorVehiculo}
+            </span>
+          ) : (
+            <span id="help-patrulla-vehiculo" className={styles.helperText}>
+              Vehículos institucionales del inventario municipal. Si un vehículo ya está asignado a otra patrulla, puede seleccionarse para uso compartido.
+            </span>
+          )}
+
+          {patrullasAsignadasActual.length > 0 && (
+            <div style={{ marginTop: '10px' }}>
+              <InlineNotice variant="warning" title="Vehículo asignado a otras patrullas">
+                Este vehículo ya se encuentra asignado a:{' '}
+                <strong>
+                  {patrullasAsignadasActual
+                    .map((p) => `${p.nombre}${p.codigo ? ` (${p.codigo})` : ''}`)
+                    .join(', ')}
+                </strong>
+                . Si continúa, quedará compartido entre las patrullas.
+              </InlineNotice>
+            </div>
+          )}
         </div>
       </div>
     </section>
