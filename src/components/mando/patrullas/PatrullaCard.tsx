@@ -15,6 +15,7 @@ import {
   AlertTriangle,
 } from 'lucide-react';
 import type { PatrullaVerificadoraDTO, EstadoPatrullaEnum } from '@/types/patrullas';
+import { obtenerNombreDelegacion } from '@/lib/utils/delegacionUtils';
 import styles from './PanelPatrullas.module.css';
 
 interface PatrullaCardProps {
@@ -102,10 +103,13 @@ export const PatrullaCard: React.FC<PatrullaCardProps> = ({
           <MapPin size={15} className={styles.metaIcon} aria-hidden="true" />
           <div>
             <span className={styles.metaLabel}>Delegación:</span>
-            <span>{patrulla.delegacion?.nombre || 'Sin delegación asignada'}</span>
-            {patrulla.delegacion?.codigo && (
-              <span className={styles.metaSubtext}> ({patrulla.delegacion.codigo})</span>
-            )}
+            <span>
+              {patrulla.delegacion?.nombre
+                ? patrulla.delegacion.nombre.startsWith('DEL_')
+                  ? obtenerNombreDelegacion(patrulla.delegacion.nombre)
+                  : patrulla.delegacion.nombre
+                : 'Sin delegación asignada'}
+            </span>
           </div>
         </div>
 

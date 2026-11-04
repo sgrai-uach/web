@@ -32,6 +32,7 @@ export const nuevaPatrullaSchema = z.object({
     .optional(),
   delegacionId: z
     .string({ message: 'Debe seleccionar una delegación municipal base.' })
+    .trim()
     .min(1, 'Debe seleccionar una delegación municipal base.')
     .uuid('Debe seleccionar una delegación municipal válida.'),
   vehiculoId: z
@@ -76,74 +77,112 @@ export function useNuevaPatrullaForm() {
   const [delegaciones, setDelegaciones] = useState<CatalogoItem[]>([]);
   const [vehiculosDisponibles, setVehiculosDisponibles] = useState<RecursoItem[]>([]);
   const [personalElegible, setPersonalElegible] = useState<EmpleadoUsuario[]>([]);
+  const [patrullasRegistradas, setPatrullasRegistradas] = useState<PatrullaVerificadoraDTO[]>([]);
   const [cargandoCatalogos, setCargandoCatalogos] = useState<boolean>(true);
   const [errorCatalogos, setErrorCatalogos] = useState<string | null>(null);
 
   // Estados de retroalimentación de envío
   const [serverError, setServerError] = useState<string | null>(null);
+  const [clientFormError, setClientFormError] = useState<string | null>(null);
   const [serverFieldErrors, setServerFieldErrors] = useState<Array<{ campo: string; mensaje: string }>>([]);
   const [createdPatrulla, setCreatedPatrulla] = useState<PatrullaVerificadoraDTO | null>(null);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [showConfirmModal, setShowConfirmModal] = useState<boolean>(false);
 
-  // Carga inicial de dependencias del formulario
-  useEffect(() => {
-    let activo = true;
-
-    async function cargarDatos() {
-      setCargandoCatalogos(true);
-      setErrorCatalogos(null);
-
-      try {
-        const [catRes, recursosRes, personalRes] = await Promise.allSettled([
-          catalogosService.getCatalogos(),
-          getRecursos({ pagina: 1, limite: 100, esIndividual: true, estado: 'DISPONIBLE' }),
-          empleadosService.getEmpleadosPaginado({ limite: 100 }),
-        ]);
-
-        if (!activo) return;
-
-        // 1. Delegaciones
-        if (catRes.status === 'fulfilled' && catRes.value.delegaciones) {
-          setDelegaciones(catRes.value.delegaciones);
-        }
-
-        // 2. Vehículos disponibles
-        if (recursosRes.status === 'fulfilled' && recursosRes.value.data) {
-          // Filtrar recursos que sean individuales y de tipo vehículo o maquinaria
-          const vehiculos = recursosRes.value.data.filter(
-            (r) => r.esIndividual && r.estado === 'DISPONIBLE'
-          );
-          setVehiculosDisponibles(vehiculos);
-        }
-
-        // 3. Personal elegible (con rol PATRULLA_VERIFICADORA y ficha operativa en 'personal')
-        if (personalRes.status === 'fulfilled' && personalRes.value.data) {
-          const personal = personalRes.value.data.filter(
-            (p) =>
-              p.rol_codigo === 'PATRULLA_VERIFICADORA' &&
-              p.personal_id !== null &&
-              p.usuario_activo !== false
-          );
-          setPersonalElegible(personal);
-        }
-      } catch {
-        if (activo) {
-          setErrorCatalogos('Error al cargar datos auxiliares (delegaciones, vehículos o personal).');
-        }
-      } finally {
-        if (activo) {
-          setCargandoCatalogos(false);
+  // Mapas reactivos de asignaciones previas
+  const mapaPatrullasPorPersonal = useMemo(() => {
+    const mapa: Record<string, Array<{ id: string; codigo?: string; nombre: string }>> = {};
+    for (const pat of patrullasRegistradas) {
+      if (pat.integrantes) {
+        for (const i of pat.integrantes) {
+          const key = i.id;
+          if (!mapa[key]) mapa[key] = [];
+          mapa[key].push({ id: pat.id, codigo: pat.codigo, nombre: pat.nombre });
         }
       }
     }
+    return mapa;
+  }, [patrullasRegistradas]);
 
-    cargarDatos();
+  const mapaPatrullasPorVehiculo = useMemo(() => {
+    const mapa: Record<string, Array<{ id: string; codigo?: string; nombre: string }>> = {};
+    for (const pat of patrullasRegistradas) {
+      if (pat.vehiculo?.id) {
+        const vId = pat.vehiculo.id;
+        if (!mapa[vId]) mapa[vId] = [];
+        mapa[vId].push({ id: pat.id, codigo: pat.codigo, nombre: pat.nombre });
+      }
+    }
+    return mapa;
+  }, [patrullasRegistradas]);
+
+  // Carga de dependencias del formulario
+  const cargarDatos = useCallback(async () => {
+    setCargandoCatalogos(true);
+    setErrorCatalogos(null);
+
+    try {
+      const promesas = [
+        catalogosService.getCatalogos(),
+        getRecursos({ pagina: 1, limite: 100, esIndividual: true }),
+        empleadosService.getEmpleadosPaginado({ limite: 100 }),
+        typeof patrullasService?.listar === 'function'
+          ? patrullasService.listar({ limit: 100 }).catch(() => ({ exito: false, data: [] }))
+          : Promise.resolve({ exito: false, data: [] }),
+      ];
+
+      const [catRes, recursosRes, personalRes, patrullasRes] = await Promise.allSettled(promesas);
+
+      // 1. Delegaciones
+      if (catRes.status === 'fulfilled' && catRes.value?.delegaciones) {
+        setDelegaciones(catRes.value.delegaciones);
+      }
+
+      // 2. Vehículos institucionales (disponibles o asignados para posibilitar uso compartido)
+      if (recursosRes.status === 'fulfilled' && recursosRes.value?.data) {
+        const vehiculos = recursosRes.value.data.filter(
+          (r: RecursoItem) => r.esIndividual && r.estado !== 'NO_DISPONIBLE' && r.estado !== 'EN_MANTENCION'
+        );
+        setVehiculosDisponibles(vehiculos);
+      }
+
+      // 3. Personal elegible (con rol PATRULLA_VERIFICADORA y ficha operativa)
+      if (personalRes.status === 'fulfilled' && personalRes.value?.data) {
+        const personal = personalRes.value.data.filter(
+          (p: EmpleadoUsuario) =>
+            p.rol_codigo === 'PATRULLA_VERIFICADORA' &&
+            p.personal_id !== null &&
+            p.usuario_activo !== false
+        );
+        setPersonalElegible(personal);
+      }
+
+      // 4. Patrullas registradas para mapeo de dotación y vehículos compartidos
+      if (patrullasRes.status === 'fulfilled' && (patrullasRes.value as { data?: PatrullaVerificadoraDTO[] })?.data) {
+        setPatrullasRegistradas((patrullasRes.value as { data: PatrullaVerificadoraDTO[] }).data);
+      }
+    } catch {
+      setErrorCatalogos('Error al cargar datos auxiliares (delegaciones, vehículos o personal).');
+    } finally {
+      setCargandoCatalogos(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    let activo = true;
+
+    async function inicializar() {
+      if (activo) {
+        await cargarDatos();
+      }
+    }
+
+    inicializar();
 
     return () => {
       activo = false;
     };
-  }, []);
+  }, [cargarDatos]);
 
   // Validación reactiva continua con Zod
   const validationResult = useMemo(() => {
@@ -175,27 +214,30 @@ export function useNuevaPatrullaForm() {
 
   // Manejo de cambios en campos
   const handleCodigoChange = useCallback((val: string) => {
-    // Sanitizar a mayúsculas y caracteres válidos
     const sanitizado = val.toUpperCase().replace(/\s+/g, '-');
     setFormData((prev) => ({ ...prev, codigo: sanitizado }));
     setServerError(null);
+    setClientFormError(null);
     setServerFieldErrors([]);
   }, []);
 
   const handleNombreChange = useCallback((val: string) => {
     setFormData((prev) => ({ ...prev, nombre: val }));
     setServerError(null);
+    setClientFormError(null);
   }, []);
 
   const handleDelegacionChange = useCallback((val: string) => {
     setFormData((prev) => ({ ...prev, delegacionId: val }));
     setTouched((prev) => ({ ...prev, delegacionId: true }));
     setServerError(null);
+    setClientFormError(null);
   }, []);
 
   const handleVehiculoChange = useCallback((val: string) => {
     setFormData((prev) => ({ ...prev, vehiculoId: val }));
     setServerError(null);
+    setClientFormError(null);
   }, []);
 
   const handleTogglePersonal = useCallback(
@@ -205,8 +247,15 @@ export function useNuevaPatrullaForm() {
       setFormData((prev) => {
         const yaSeleccionado = prev.personalIds.includes(personalId);
 
-        // ICS Operativo: Solo funcionarios con estado_operativo === 'disponible' pueden ser incorporados
-        if (!yaSeleccionado && empleado && empleado.estado_operativo && empleado.estado_operativo !== 'disponible') {
+        // Solo deshabilitar incorporación si el funcionario se encuentra inoperativo (descanso, licencia, inactivo)
+        if (
+          !yaSeleccionado &&
+          empleado &&
+          empleado.estado_operativo &&
+          (empleado.estado_operativo === 'descanso' ||
+            empleado.estado_operativo === 'licencia' ||
+            empleado.estado_operativo === 'inactivo')
+        ) {
           return prev;
         }
 
@@ -215,13 +264,11 @@ export function useNuevaPatrullaForm() {
 
         if (yaSeleccionado) {
           nuevosIds = prev.personalIds.filter((id) => id !== personalId);
-          // Si quitamos al que era líder, reasignar líder al primero restante
           if (nuevoLider === usuarioId) {
             nuevoLider = '';
           }
         } else {
           nuevosIds = [...prev.personalIds, personalId];
-          // Si no hay líder seleccionado aún, asignar al primero
           if (!nuevoLider) {
             nuevoLider = usuarioId;
           }
@@ -236,6 +283,7 @@ export function useNuevaPatrullaForm() {
 
       setTouched((prev) => ({ ...prev, personalIds: true }));
       setServerError(null);
+      setClientFormError(null);
     },
     [personalElegible]
   );
@@ -243,6 +291,7 @@ export function useNuevaPatrullaForm() {
   const handleLiderChange = useCallback((usuarioId: string) => {
     setFormData((prev) => ({ ...prev, usuarioLiderId: usuarioId }));
     setServerError(null);
+    setClientFormError(null);
   }, []);
 
   const handleBlur = useCallback((field: string) => {
@@ -256,12 +305,18 @@ export function useNuevaPatrullaForm() {
     // Marcar todos los campos como tocados para revelar errores si los hay
     setTouched({
       codigo: true,
+      nombre: true,
       delegacionId: true,
+      vehiculoId: true,
       personalIds: true,
+      usuarioLiderId: true,
     });
 
     if (validationResult.success) {
+      setClientFormError(null);
       setShowConfirmModal(true);
+    } else {
+      setClientFormError('Por favor complete todos los campos obligatorios requeridos antes de continuar.');
     }
   }, [validationResult]);
 
@@ -278,6 +333,7 @@ export function useNuevaPatrullaForm() {
 
     setIsSubmitting(true);
     setServerError(null);
+    setClientFormError(null);
     setServerFieldErrors([]);
 
     const payload: CrearPatrullaInputDTO = {
@@ -296,14 +352,27 @@ export function useNuevaPatrullaForm() {
       if (res.exito && res.data) {
         setCreatedPatrulla(res.data);
         setShowConfirmModal(false);
+        // Actualizar datos de inmediato en memoria para que no requiera recarga
+        await cargarDatos();
       } else {
         setShowConfirmModal(false);
         setServerError(res.mensaje);
 
         if (res.esConflicto) {
-          setServerFieldErrors([
-            { campo: 'codigo', mensaje: 'Ya existe una patrulla registrada con este código.' },
-          ]);
+          const mensajeLower = (res.mensaje || '').toLowerCase();
+          if (mensajeLower.includes('vehículo') || mensajeLower.includes('vehiculo')) {
+            setServerFieldErrors([
+              { campo: 'vehiculoId', mensaje: res.mensaje },
+            ]);
+          } else if (mensajeLower.includes('funcionario') || mensajeLower.includes('personal')) {
+            setServerFieldErrors([
+              { campo: 'personalIds', mensaje: res.mensaje },
+            ]);
+          } else {
+            setServerFieldErrors([
+              { campo: 'codigo', mensaje: 'Ya existe una patrulla registrada con este código.' },
+            ]);
+          }
         } else if (res.erroresValidacion) {
           setServerFieldErrors(res.erroresValidacion);
         }
@@ -314,12 +383,13 @@ export function useNuevaPatrullaForm() {
     } finally {
       setIsSubmitting(false);
     }
-  }, [formData, validationResult, usuarioActivo]);
+  }, [formData, validationResult, usuarioActivo, cargarDatos]);
 
   const handleReset = useCallback(() => {
     setFormData(initialPatrullaFormState);
     setTouched({});
     setServerError(null);
+    setClientFormError(null);
     setServerFieldErrors([]);
     setCreatedPatrulla(null);
     setShowConfirmModal(false);
@@ -331,15 +401,20 @@ export function useNuevaPatrullaForm() {
     delegaciones,
     vehiculosDisponibles,
     personalElegible,
+    patrullasRegistradas,
+    mapaPatrullasPorPersonal,
+    mapaPatrullasPorVehiculo,
     cargandoCatalogos,
     errorCatalogos,
     serverError,
+    clientFormError,
     serverFieldErrors,
     createdPatrulla,
     isSubmitting,
     showConfirmModal,
     isValid,
     clientErrors,
+    recargarDatos: cargarDatos,
     handleCodigoChange,
     handleNombreChange,
     handleDelegacionChange,

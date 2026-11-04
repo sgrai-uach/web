@@ -31,14 +31,18 @@ export const PatrullaCrearModal: React.FC<PatrullaCrearModalProps> = ({
     delegaciones,
     vehiculosDisponibles,
     personalElegible,
+    mapaPatrullasPorPersonal,
+    mapaPatrullasPorVehiculo,
     cargandoCatalogos,
     errorCatalogos,
     serverError,
+    clientFormError,
     serverFieldErrors,
     createdPatrulla,
     isSubmitting,
     showConfirmModal,
     clientErrors,
+    recargarDatos,
     handleCodigoChange,
     handleNombreChange,
     handleDelegacionChange,
@@ -51,6 +55,13 @@ export const PatrullaCrearModal: React.FC<PatrullaCrearModalProps> = ({
     handleConfirmSave,
     handleReset,
   } = useNuevaPatrullaForm();
+
+  // Si se abre el modal, recargar datos frescos para asegurar dotación y vehículos al día
+  useEffect(() => {
+    if (isOpen) {
+      recargarDatos();
+    }
+  }, [isOpen, recargarDatos]);
 
   // Si la patrulla fue creada con éxito, notificar al callback y cerrar el modal
   useEffect(() => {
@@ -134,6 +145,13 @@ export const PatrullaCrearModal: React.FC<PatrullaCrearModalProps> = ({
               </InlineNotice>
             )}
 
+            {/* Aviso de Error General de Formulario */}
+            {clientFormError && (
+              <InlineNotice variant="error" title="Formulario incompleto">
+                {clientFormError}
+              </InlineNotice>
+            )}
+
             {/* Alerta de Error de Servidor o Conflicto (409) */}
             {serverError && (
               <InlineNotice
@@ -173,7 +191,10 @@ export const PatrullaCrearModal: React.FC<PatrullaCrearModalProps> = ({
               delegacionId={formData.delegacionId}
               delegaciones={delegaciones}
               cargando={cargandoCatalogos}
-              errorDelegacion={touched.delegacionId ? clientErrors.delegacionId : undefined}
+              errorDelegacion={
+                (touched.delegacionId ? clientErrors.delegacionId : undefined) ||
+                serverFieldErrors.find((e) => e.campo === 'delegacionId')?.mensaje
+              }
               onChangeDelegacion={handleDelegacionChange}
               onBlurDelegacion={() => handleBlur('delegacionId')}
             />
@@ -183,6 +204,8 @@ export const PatrullaCrearModal: React.FC<PatrullaCrearModalProps> = ({
               vehiculoId={formData.vehiculoId}
               vehiculos={vehiculosDisponibles}
               cargando={cargandoCatalogos}
+              mapaPatrullasPorVehiculo={mapaPatrullasPorVehiculo}
+              errorVehiculo={serverFieldErrors.find((e) => e.campo === 'vehiculoId')?.mensaje}
               onChangeVehiculo={handleVehiculoChange}
             />
 
@@ -192,7 +215,11 @@ export const PatrullaCrearModal: React.FC<PatrullaCrearModalProps> = ({
               personalSeleccionadoIds={formData.personalIds}
               usuarioLiderId={formData.usuarioLiderId}
               cargando={cargandoCatalogos}
-              errorPersonal={touched.personalIds ? clientErrors.personalIds : undefined}
+              mapaPatrullasPorPersonal={mapaPatrullasPorPersonal}
+              errorPersonal={
+                (touched.personalIds ? clientErrors.personalIds : undefined) ||
+                serverFieldErrors.find((e) => e.campo === 'personalIds')?.mensaje
+              }
               onTogglePersonal={handleTogglePersonal}
               onChangeLider={handleLiderChange}
             />
@@ -228,6 +255,8 @@ export const PatrullaCrearModal: React.FC<PatrullaCrearModalProps> = ({
           delegaciones={delegaciones}
           vehiculos={vehiculosDisponibles}
           personal={personalElegible}
+          mapaPatrullasPorVehiculo={mapaPatrullasPorVehiculo}
+          mapaPatrullasPorPersonal={mapaPatrullasPorPersonal}
           onClose={handleCloseConfirmModal}
           onConfirm={handleConfirmSave}
         />

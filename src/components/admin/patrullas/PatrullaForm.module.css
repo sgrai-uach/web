@@ -194,6 +194,12 @@
   color: #2E7D32;
 }
 
+.badgeAdvertencia {
+  background-color: var(--color-warning-bg, #FFF3E0);
+  color: var(--color-warning, #E65100);
+  border: 1px solid rgba(230, 81, 0, 0.3);
+}
+
 /* Modal de confirmación */
 .modalBackdrop {
   position: fixed;

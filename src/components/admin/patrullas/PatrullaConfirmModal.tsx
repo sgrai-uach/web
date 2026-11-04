@@ -1,13 +1,15 @@
 'use client';
 
 import React from 'react';
-import { ShieldCheck, X } from 'lucide-react';
+import { ShieldCheck, X, AlertTriangle } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import Heading from '@/components/ui/Heading';
+import { obtenerNombreDelegacion } from '@/lib/utils/delegacionUtils';
 import type { CatalogoItem } from '@/types/catalogos';
 import type { RecursoItem } from '@/types/recurso';
 import type { EmpleadoUsuario } from '@/types/empleados';
 import type { NuevaPatrullaFormState } from '@/hooks/useNuevaPatrullaForm';
+import type { PatrullaResumenAsignacion } from './PatrullaVehiculoSection';
 import styles from './PatrullaForm.module.css';
 
 interface PatrullaConfirmModalProps {
@@ -17,6 +19,8 @@ interface PatrullaConfirmModalProps {
   delegaciones: CatalogoItem[];
   vehiculos: RecursoItem[];
   personal: EmpleadoUsuario[];
+  mapaPatrullasPorVehiculo?: Record<string, PatrullaResumenAsignacion[]>;
+  mapaPatrullasPorPersonal?: Record<string, PatrullaResumenAsignacion[]>;
   onClose: () => void;
   onConfirm: () => void;
 }
@@ -28,6 +32,8 @@ export const PatrullaConfirmModal: React.FC<PatrullaConfirmModalProps> = ({
   delegaciones,
   vehiculos,
   personal,
+  mapaPatrullasPorVehiculo = {},
+  mapaPatrullasPorPersonal = {},
   onClose,
   onConfirm,
 }) => {
@@ -37,6 +43,19 @@ export const PatrullaConfirmModal: React.FC<PatrullaConfirmModalProps> = ({
   const vehiculoSeleccionado = vehiculos.find((v) => v.id === formData.vehiculoId);
   const liderSeleccionado = personal.find((p) => p.usuario_id === formData.usuarioLiderId);
   const nombreDisplay = formData.nombre.trim() || formData.codigo.trim().toUpperCase();
+
+  // Advertencias de recursos y personal compartido
+  const otrasPatrullasVehiculo = formData.vehiculoId
+    ? mapaPatrullasPorVehiculo[formData.vehiculoId] || []
+    : [];
+
+  const integrantesConOtrasPatrullas = formData.personalIds
+    .map((pId) => {
+      const funcionario = personal.find((p) => p.personal_id === pId);
+      const otrasPat = mapaPatrullasPorPersonal[pId] || [];
+      return { funcionario, otrasPat };
+    })
+    .filter((item) => item.otrasPat.length > 0);
 
   return (
     <div
@@ -95,7 +114,12 @@ export const PatrullaConfirmModal: React.FC<PatrullaConfirmModalProps> = ({
             <div className={styles.resumenItem}>
               <span className={styles.resumenLabel}>Delegación Territorial:</span>
               <span className={styles.resumenValue}>
-                {delegacionSeleccionada?.nombre || 'No especificada'}
+                {delegacionSeleccionada
+                  ? obtenerNombreDelegacion(
+                      delegacionSeleccionada.nombre || delegacionSeleccionada.id,
+                      delegacionSeleccionada.nombre
+                    )
+                  : 'No especificada'}
               </span>
             </div>
 
@@ -139,6 +163,38 @@ export const PatrullaConfirmModal: React.FC<PatrullaConfirmModalProps> = ({
               </span>
             </div>
           </div>
+
+          {/* Avisos si hay vehículo o personal compartido */}
+          {(otrasPatrullasVehiculo.length > 0 || integrantesConOtrasPatrullas.length > 0) && (
+            <div
+              style={{
+                marginTop: '12px',
+                padding: '10px 14px',
+                backgroundColor: 'var(--color-warning-bg, #FFF3E0)',
+                border: '1px solid rgba(230, 81, 0, 0.3)',
+                fontSize: '13px',
+                color: 'var(--color-charcoal, #3B3F45)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '6px',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 600, color: 'var(--color-warning, #E65100)' }}>
+                <AlertTriangle size={15} />
+                <span>Asignaciones compartidas detectadas:</span>
+              </div>
+              {otrasPatrullasVehiculo.length > 0 && (
+                <div>
+                  • <strong>Vehículo:</strong> asignado también en {otrasPatrullasVehiculo.map((p) => p.nombre).join(', ')}.
+                </div>
+              )}
+              {integrantesConOtrasPatrullas.length > 0 && (
+                <div>
+                  • <strong>Dotación:</strong> {integrantesConOtrasPatrullas.map((item) => `${item.funcionario?.nombres || 'Funcionario'} (en ${item.otrasPat.map((p) => p.nombre).join(', ')})`).join('; ')}.
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         <div className={styles.modalFooter}>

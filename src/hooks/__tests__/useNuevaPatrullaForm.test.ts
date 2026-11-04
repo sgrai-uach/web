@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { renderHook, act } from '@testing-library/react';
+import { renderHook, act, waitFor } from '@testing-library/react';
 import { useNuevaPatrullaForm } from '../useNuevaPatrullaForm';
 import * as patrullasServiceModule from '@/services/patrullasService';
 import * as catalogosServiceModule from '@/services/catalogosService';
@@ -79,8 +79,17 @@ vi.mock('@/services/empleadosService', () => ({
           usuario_activo: true,
           estado_operativo: 'en_patrulla',
         },
+        {
+          usuario_id: 'c1000000-0000-4000-8000-000000000004',
+          personal_id: 'b1000000-0000-4000-8000-000000000004',
+          nombres: 'Carlos',
+          apellidos: 'Licencia',
+          rol_codigo: 'PATRULLA_VERIFICADORA',
+          usuario_activo: true,
+          estado_operativo: 'licencia',
+        },
       ],
-      meta: { total: 3, page: 1, limit: 100, totalPages: 1 },
+      meta: { total: 4, page: 1, limit: 100, totalPages: 1 },
     }),
   },
 }));
@@ -89,6 +98,7 @@ vi.mock('@/services/patrullasService', () => ({
   DEFAULT_ENCARGADO_ID: '00000000-0000-4000-8000-000000000003',
   patrullasService: {
     crear: vi.fn(),
+    listar: vi.fn().mockResolvedValue({ data: [] }),
   },
 }));
 
@@ -296,10 +306,21 @@ describe('useNuevaPatrullaForm (HU-83: Alta de Patrullas Verificadoras)', () => 
     expect(result.current.clientErrors.nombre).toBeUndefined();
   });
 
-  it('9. bloquea la incorporación de funcionarios que no tengan estado_operativo disponible (BUG-H83-WEB-03)', async () => {
+  it('9. permite la incorporación de funcionarios en patrulla pero bloquea los que están en licencia o descanso', async () => {
     const { result } = await renderNuevaPatrullaHook();
 
-    // Intentar seleccionar a Pedro Rojas (cuyo estado_operativo es 'en_patrulla')
+    // Intentar seleccionar a Carlos Licencia (cuyo estado_operativo es 'licencia')
+    act(() => {
+      result.current.handleTogglePersonal(
+        'b1000000-0000-4000-8000-000000000004',
+        'c1000000-0000-4000-8000-000000000004'
+      );
+    });
+
+    // La dotación no debe incluir a Carlos Licencia
+    expect(result.current.formData.personalIds).not.toContain('b1000000-0000-4000-8000-000000000004');
+
+    // Seleccionar a Pedro Rojas (cuyo estado_operativo es 'en_patrulla' - permitido para compartir)
     act(() => {
       result.current.handleTogglePersonal(
         'b1000000-0000-4000-8000-000000000003',
@@ -307,8 +328,8 @@ describe('useNuevaPatrullaForm (HU-83: Alta de Patrullas Verificadoras)', () => 
       );
     });
 
-    // La dotación no debe incluir a Pedro Rojas
-    expect(result.current.formData.personalIds).not.toContain('b1000000-0000-4000-8000-000000000003');
+    // La dotación sí debe incluir a Pedro Rojas
+    expect(result.current.formData.personalIds).toContain('b1000000-0000-4000-8000-000000000003');
 
     // Seleccionar a María González (cuyo estado_operativo es 'disponible')
     act(() => {
@@ -320,5 +341,62 @@ describe('useNuevaPatrullaForm (HU-83: Alta de Patrullas Verificadoras)', () => 
 
     // La dotación sí debe incluir a María González
     expect(result.current.formData.personalIds).toContain('b1000000-0000-4000-8000-000000000002');
+  });
+
+  it('10. construye mapas de asignación previa de vehículos y personal para emitir advertencias', async () => {
+    vi.mocked(patrullasServiceModule.patrullasService.listar).mockResolvedValueOnce({
+      exito: true,
+      mensaje: 'OK',
+      data: [
+        {
+          id: 'pat-1',
+          codigo: 'PV-SUR-01',
+          nombre: 'Patrulla Sur',
+          estado: 'DISPONIBLE',
+          vehiculo: {
+            id: 'e1000000-0000-4000-8000-000000000002',
+            nombre: 'Camioneta 4x4',
+            estado: 'ASIGNADO',
+          },
+          integrantes: [
+            {
+              id: 'b1000000-0000-4000-8000-000000000003',
+              nombre: 'Pedro Rojas',
+            },
+          ],
+        },
+      ],
+      meta: { total: 1, page: 1, limit: 100, totalPages: 1, hasNext: false, hasPrev: false },
+    });
+
+    const { result } = await renderNuevaPatrullaHook();
+
+    await waitFor(() => {
+      expect(result.current.patrullasRegistradas.length).toBe(1);
+    });
+
+    // Mapeo por vehículo
+    expect(result.current.mapaPatrullasPorVehiculo['e1000000-0000-4000-8000-000000000002']).toEqual([
+      { id: 'pat-1', codigo: 'PV-SUR-01', nombre: 'Patrulla Sur' },
+    ]);
+
+    // Mapeo por personal
+    expect(result.current.mapaPatrullasPorPersonal['b1000000-0000-4000-8000-000000000003']).toEqual([
+      { id: 'pat-1', codigo: 'PV-SUR-01', nombre: 'Patrulla Sur' },
+    ]);
+  });
+
+  it('11. activa clientFormError y toca todos los campos al intentar confirmar con datos incompletos', async () => {
+    const { result } = await renderNuevaPatrullaHook();
+
+    act(() => {
+      result.current.handleOpenConfirmModal();
+    });
+
+    expect(result.current.showConfirmModal).toBe(false);
+    expect(result.current.clientFormError).toContain('campos obligatorios');
+    expect(result.current.touched.codigo).toBe(true);
+    expect(result.current.touched.delegacionId).toBe(true);
+    expect(result.current.touched.personalIds).toBe(true);
   });
 });
