@@ -159,3 +159,4 @@ describe('CuadrillasFiltros (H80)', () => {
     expect(onDelegacionChange).toHaveBeenCalledWith(undefined);
   });
 });
+

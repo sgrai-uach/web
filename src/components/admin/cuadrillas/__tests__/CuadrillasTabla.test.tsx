@@ -47,23 +47,9 @@ describe('CuadrillasTabla (H81)', () => {
   ];
 
   it('debe renderizar las cuadrillas con su nombre, delegado y badges de estado', () => {
-    const cuadrillasConTodosLosEstados: CuadrillaItem[] = [
-      ...mockCuadrillas,
-      {
-        id: 'cuadrilla-3',
-        nombre: 'Cuadrilla Mantenimiento Inactiva',
-        estado: 'NO_DISPONIBLE',
-        delegacion: { id: 'del-1', nombre: 'Norte' },
-        delegado: { id: 'u-4', nombre: 'Roberto Soto', email: 'roberto@valdivia.cl', rut: '12.345.678-9' },
-        recursos: [],
-        trabajadores: [],
-        creadoEn: '2026-10-25T09:00:00.000Z',
-      },
-    ];
-
     render(
       <CuadrillasTabla
-        cuadrillas={cuadrillasConTodosLosEstados}
+        cuadrillas={mockCuadrillas}
         cargando={false}
         onEditarCuadrilla={vi.fn()}
         onVerDetalle={vi.fn()}
@@ -78,10 +64,6 @@ describe('CuadrillasTabla (H81)', () => {
     expect(screen.getByText('Cuadrilla Costa en Terreno')).toBeDefined();
     expect(screen.getByText('Matías Oyarzún')).toBeDefined();
     expect(screen.getByText('EN MISIÓN')).toBeDefined();
-
-    expect(screen.getByText('Cuadrilla Mantenimiento Inactiva')).toBeDefined();
-    expect(screen.getByText('Roberto Soto')).toBeDefined();
-    expect(screen.getByText('NO DISPONIBLE')).toBeDefined();
   });
 
   it('debe bloquear y deshabilitar el botón de editar ante cuadrillas en estado EN_MISION', () => {

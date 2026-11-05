@@ -172,3 +172,4 @@ describe('useCuadrillas hook (H80)', () => {
     expect(result.current.cuadrillas).toEqual([]);
   });
 });
+
