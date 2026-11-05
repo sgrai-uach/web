@@ -5480,10 +5480,307 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/cuadrillas": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    pagina?: number;
+                    limite?: number;
+                    q?: string;
+                    delegacionId?: string;
+                    estado?: "DISPONIBLE" | "EN_MISION" | "NO_DISPONIBLE";
+                    incluirInactivas?: boolean;
+                };
+                header?: {
+                    authorization?: string;
+                    "x-user-id"?: string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data: components["schemas"]["CuadrillaItemSchema"][];
+                            meta: {
+                                total: number;
+                                pagina: number;
+                                limite: number;
+                                paginasTotales: number;
+                            };
+                        };
+                    };
+                };
+            };
+        };
+        post: {
+            parameters: {
+                query?: never;
+                header?: {
+                    authorization?: string;
+                    "x-user-id"?: string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["CrearCuadrillaInput"];
+                };
+            };
+            responses: {
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data: components["schemas"]["CuadrillaItemSchema"];
+                        };
+                    };
+                };
+            };
+        };
+    };
+    "/api/cuadrillas/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: {
+                    authorization?: string;
+                    "x-user-id"?: string;
+                };
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data: components["schemas"]["CuadrillaItemSchema"];
+                        };
+                    };
+                };
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            message: string;
+                        };
+                    };
+                };
+            };
+        };
+        put: {
+            parameters: {
+                query?: never;
+                header?: {
+                    authorization?: string;
+                    "x-user-id"?: string;
+                };
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["EditarCuadrillaInput"];
+                };
+            };
+            responses: {
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data: components["schemas"]["CuadrillaItemSchema"];
+                        };
+                    };
+                };
+            };
+        };
+        delete: {
+            parameters: {
+                query?: never;
+                header?: {
+                    authorization?: string;
+                    "x-user-id"?: string;
+                };
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            message: string;
+                            data: components["schemas"]["DesactivarCuadrillaResponseData"];
+                        };
+                    };
+                };
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            message: string;
+                        };
+                    };
+                };
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            message: string;
+                        };
+                    };
+                };
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            message: string;
+                        };
+                    };
+                };
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            message: string;
+                        };
+                    };
+                };
+            };
+        };
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        DesactivarCuadrillaResponseData: {
+            id: string;
+            nombre: string;
+            activo: boolean;
+            estado: string;
+            recursosDesvinculados: number;
+            trabajadoresDesvinculados: number;
+            delegadoRevertido: boolean;
+            eliminadoEn?: string | null;
+            eliminadoPorId?: string | null;
+        };
+        CuadrillaItemSchema: {
+            id: string;
+            nombre: string;
+            estado: "DISPONIBLE" | "EN_MISION" | "NO_DISPONIBLE";
+            delegacion: {
+                id: string;
+                nombre: string;
+                codigo?: string;
+            };
+            delegado: {
+                id: string;
+                nombre: string;
+                email: string;
+                rut?: string | null;
+                telefono?: string | null;
+                rolActual?: string;
+            };
+            recursos: {
+                id: string;
+                recursoId: string;
+                nombre: string;
+                cantidadAsignada: number;
+                esIndividual: boolean;
+            }[];
+            trabajadores: {
+                id: string;
+                personalId: string;
+                usuarioId: string;
+                nombre: string;
+                rut?: string | null;
+                cargo?: string | null;
+                especialidad?: string | null;
+                asignadoEn: string;
+            }[];
+            totalRecursos?: number;
+            totalTrabajadores?: number;
+            activo?: boolean;
+            eliminadoEn?: string | null;
+            eliminadoPorId?: string | null;
+            creadoEn: string;
+            actualizadoEn?: string | null;
+            actualizadoPorId?: string | null;
+            creadoPorId?: string | null;
+        };
+        CrearCuadrillaInput: {
+            nombre: string;
+            delegacionId: string;
+            usuarioDelegadoId: string;
+            recursos?: {
+                recursoId: string;
+                cantidad: number;
+            }[];
+            trabajadores?: {
+                usuarioId: string;
+                cargo?: string;
+                especialidad?: string;
+            }[];
+        };
+        EditarCuadrillaInput: {
+            nombre?: string;
+            delegacionId?: string;
+            usuarioDelegadoId?: string;
+            recursos?: {
+                recursoId: string;
+                cantidad: number;
+            }[];
+            trabajadores?: {
+                usuarioId: string;
+                cargo?: string;
+                especialidad?: string;
+            }[];
+        };
         CrearRecursoInput: {
             nombre: string;
             /** @default false */
