@@ -26,6 +26,13 @@ export const NOMBRES_CAMPOS: Record<string, string> = {
   radio_afectacion_metros: 'Radio de Afectación',
   radioMetros: 'Radio de Afectación',
   activo: 'Estado Operativo',
+  codigo: 'Código Identificador',
+  vehiculoId: 'Vehículo Institucional',
+  vehiculo_id: 'Vehículo Institucional',
+  personalIds: 'Dotación de Personal',
+  personal_ids: 'Dotación de Personal',
+  usuarioLiderId: 'Líder de Patrulla',
+  usuario_lider_id: 'Líder de Patrulla',
 };
 
 /**

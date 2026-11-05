@@ -11,6 +11,17 @@ import type { CatalogoItem } from '@/types/catalogos';
 import type { RecursoItem } from '@/types/recurso';
 import type { EmpleadoUsuario } from '@/types/empleados';
 import type { PatrullaVerificadoraDTO, CrearPatrullaInputDTO } from '@/types/patrullas';
+import { formatearEstado, MAPA_ESTADOS_LEGIBLES } from '@/lib/utils/estadoUtils';
+
+function sanitizarMensajeServidor(mensaje?: string | null): string {
+  if (!mensaje) return 'Ha ocurrido un error al procesar la solicitud.';
+  let resultado = mensaje;
+  for (const [key, label] of Object.entries(MAPA_ESTADOS_LEGIBLES)) {
+    const regex = new RegExp(`\\b${key}\\b`, 'g');
+    resultado = resultado.replace(regex, label);
+  }
+  return resultado;
+}
 
 export const nuevaPatrullaSchema = z.object({
   codigo: z
@@ -89,7 +100,7 @@ export function useNuevaPatrullaForm() {
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [showConfirmModal, setShowConfirmModal] = useState<boolean>(false);
 
-  // Mapas reactivos de asignaciones previas
+  // Mapas reactivos de asignaciones previas (estrictamente deduplicados por ID de patrulla)
   const mapaPatrullasPorPersonal = useMemo(() => {
     const mapa: Record<string, Array<{ id: string; codigo?: string; nombre: string }>> = {};
     for (const pat of patrullasRegistradas) {
@@ -97,7 +108,9 @@ export function useNuevaPatrullaForm() {
         for (const i of pat.integrantes) {
           const key = i.id;
           if (!mapa[key]) mapa[key] = [];
-          mapa[key].push({ id: pat.id, codigo: pat.codigo, nombre: pat.nombre });
+          if (!mapa[key].some((p) => p.id === pat.id)) {
+            mapa[key].push({ id: pat.id, codigo: pat.codigo, nombre: pat.nombre });
+          }
         }
       }
     }
@@ -110,7 +123,9 @@ export function useNuevaPatrullaForm() {
       if (pat.vehiculo?.id) {
         const vId = pat.vehiculo.id;
         if (!mapa[vId]) mapa[vId] = [];
-        mapa[vId].push({ id: pat.id, codigo: pat.codigo, nombre: pat.nombre });
+        if (!mapa[vId].some((p) => p.id === pat.id)) {
+          mapa[vId].push({ id: pat.id, codigo: pat.codigo, nombre: pat.nombre });
+        }
       }
     }
     return mapa;
@@ -356,17 +371,18 @@ export function useNuevaPatrullaForm() {
         await cargarDatos();
       } else {
         setShowConfirmModal(false);
-        setServerError(res.mensaje);
+        const mensajeLimpio = sanitizarMensajeServidor(res.mensaje);
+        setServerError(mensajeLimpio);
 
         if (res.esConflicto) {
-          const mensajeLower = (res.mensaje || '').toLowerCase();
+          const mensajeLower = mensajeLimpio.toLowerCase();
           if (mensajeLower.includes('vehículo') || mensajeLower.includes('vehiculo')) {
             setServerFieldErrors([
-              { campo: 'vehiculoId', mensaje: res.mensaje },
+              { campo: 'vehiculoId', mensaje: mensajeLimpio },
             ]);
           } else if (mensajeLower.includes('funcionario') || mensajeLower.includes('personal')) {
             setServerFieldErrors([
-              { campo: 'personalIds', mensaje: res.mensaje },
+              { campo: 'personalIds', mensaje: mensajeLimpio },
             ]);
           } else {
             setServerFieldErrors([
@@ -374,7 +390,12 @@ export function useNuevaPatrullaForm() {
             ]);
           }
         } else if (res.erroresValidacion) {
-          setServerFieldErrors(res.erroresValidacion);
+          setServerFieldErrors(
+            res.erroresValidacion.map((err) => ({
+              ...err,
+              mensaje: sanitizarMensajeServidor(err.mensaje),
+            }))
+          );
         }
       }
     } catch {

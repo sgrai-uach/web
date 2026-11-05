@@ -4,6 +4,7 @@ import React from 'react';
 import { ShieldCheck } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import InlineNotice from '@/components/ui/InlineNotice';
+import { traducirNombreCampo } from '@/lib/utils/errorUtils';
 import { useNuevaPatrullaForm } from '@/hooks/useNuevaPatrullaForm';
 import PatrullaIdentificacionSection from './PatrullaIdentificacionSection';
 import PatrullaDelegacionSection from './PatrullaDelegacionSection';
@@ -81,17 +82,25 @@ export default function PatrullaForm() {
           variant="error"
           title="No fue posible dar de alta la patrulla verificadora"
         >
-          <div>{serverError}</div>
-          {serverFieldErrors && serverFieldErrors.length > 0 && (
-            <ul style={{ margin: '6px 0 0 0', paddingLeft: '18px' }}>
-              {serverFieldErrors.map((err, index) => (
-                <li key={index}>
-                  {err.campo ? <strong>{err.campo}: </strong> : null}
-                  {err.mensaje}
-                </li>
-              ))}
-            </ul>
-          )}
+          <div>
+            {serverFieldErrors && serverFieldErrors.length > 0 ? (
+              <span>
+                Se detectaron inconsistencias en la sección:{' '}
+                <strong>
+                  {Array.from(
+                    new Set(
+                      serverFieldErrors
+                        .map((err) => traducirNombreCampo(err.campo))
+                        .filter(Boolean)
+                    )
+                  ).join(', ')}
+                </strong>
+                . Por favor revise el campo señalado a continuación.
+              </span>
+            ) : (
+              <span>{serverError}</span>
+            )}
+          </div>
         </InlineNotice>
       )}
 
