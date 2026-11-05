@@ -11,17 +11,8 @@ import type { CatalogoItem } from '@/types/catalogos';
 import type { RecursoItem } from '@/types/recurso';
 import type { EmpleadoUsuario } from '@/types/empleados';
 import type { PatrullaVerificadoraDTO, CrearPatrullaInputDTO } from '@/types/patrullas';
-import { formatearEstado, MAPA_ESTADOS_LEGIBLES } from '@/lib/utils/estadoUtils';
-
-function sanitizarMensajeServidor(mensaje?: string | null): string {
-  if (!mensaje) return 'Ha ocurrido un error al procesar la solicitud.';
-  let resultado = mensaje;
-  for (const [key, label] of Object.entries(MAPA_ESTADOS_LEGIBLES)) {
-    const regex = new RegExp(`\\b${key}\\b`, 'g');
-    resultado = resultado.replace(regex, label);
-  }
-  return resultado;
-}
+import { formatearEstado } from '@/lib/utils/estadoUtils';
+import { sanitizarMensajeServidor } from '@/lib/utils/errorUtils';
 
 export const nuevaPatrullaSchema = z.object({
   codigo: z
