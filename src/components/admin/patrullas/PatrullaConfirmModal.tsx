@@ -1,10 +1,11 @@
 'use client';
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { ShieldCheck, X, AlertTriangle } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import Heading from '@/components/ui/Heading';
 import { obtenerNombreDelegacion } from '@/lib/utils/delegacionUtils';
+import { formatearEstado } from '@/lib/utils/estadoUtils';
 import type { CatalogoItem } from '@/types/catalogos';
 import type { RecursoItem } from '@/types/recurso';
 import type { EmpleadoUsuario } from '@/types/empleados';
@@ -44,18 +45,33 @@ export const PatrullaConfirmModal: React.FC<PatrullaConfirmModalProps> = ({
   const liderSeleccionado = personal.find((p) => p.usuario_id === formData.usuarioLiderId);
   const nombreDisplay = formData.nombre.trim() || formData.codigo.trim().toUpperCase();
 
-  // Advertencias de recursos y personal compartido
-  const otrasPatrullasVehiculo = formData.vehiculoId
-    ? mapaPatrullasPorVehiculo[formData.vehiculoId] || []
-    : [];
+  // Advertencias de recursos y personal compartido (deduplicadas por ID)
+  const otrasPatrullasVehiculo = useMemo(() => {
+    if (!formData.vehiculoId) return [];
+    const list = mapaPatrullasPorVehiculo[formData.vehiculoId] || [];
+    const seen = new Set<string>();
+    return list.filter((p) => {
+      if (seen.has(p.id)) return false;
+      seen.add(p.id);
+      return true;
+    });
+  }, [formData.vehiculoId, mapaPatrullasPorVehiculo]);
 
-  const integrantesConOtrasPatrullas = formData.personalIds
-    .map((pId) => {
-      const funcionario = personal.find((p) => p.personal_id === pId);
-      const otrasPat = mapaPatrullasPorPersonal[pId] || [];
-      return { funcionario, otrasPat };
-    })
-    .filter((item) => item.otrasPat.length > 0);
+  const integrantesConOtrasPatrullas = useMemo(() => {
+    return formData.personalIds
+      .map((pId) => {
+        const funcionario = personal.find((p) => p.personal_id === pId);
+        const list = mapaPatrullasPorPersonal[pId] || [];
+        const seen = new Set<string>();
+        const otrasPat = list.filter((p) => {
+          if (seen.has(p.id)) return false;
+          seen.add(p.id);
+          return true;
+        });
+        return { funcionario, otrasPat };
+      })
+      .filter((item) => item.otrasPat.length > 0);
+  }, [formData.personalIds, personal, mapaPatrullasPorPersonal]);
 
   return (
     <div

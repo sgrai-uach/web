@@ -1,9 +1,10 @@
 'use client';
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Truck } from 'lucide-react';
 import type { RecursoItem } from '@/types/recurso';
 import InlineNotice from '@/components/ui/InlineNotice';
+import { formatearEstado } from '@/lib/utils/estadoUtils';
 import styles from './PatrullaForm.module.css';
 
 export interface PatrullaResumenAsignacion {
@@ -31,10 +32,19 @@ export const PatrullaVehiculoSection: React.FC<PatrullaVehiculoSectionProps> = (
   errorVehiculo,
   onChangeVehiculo,
 }) => {
-  // Patrullas que ya ocupan el vehículo actualmente seleccionado
-  const patrullasAsignadasActual = (mapaPatrullasPorVehiculo[vehiculoId] || []).filter(
-    (p) => p.id !== patrullaActualId
-  );
+  // Patrullas que ya ocupan el vehículo actualmente seleccionado (deduplicadas por ID)
+  const patrullasAsignadasActual = useMemo(() => {
+    if (!vehiculoId) return [];
+    const raw = (mapaPatrullasPorVehiculo[vehiculoId] || []).filter(
+      (p) => p.id !== patrullaActualId
+    );
+    const seen = new Set<string>();
+    return raw.filter((p) => {
+      if (seen.has(p.id)) return false;
+      seen.add(p.id);
+      return true;
+    });
+  }, [mapaPatrullasPorVehiculo, vehiculoId, patrullaActualId]);
 
   return (
     <section className={styles.section} aria-labelledby="seccion-vehiculo">
@@ -71,14 +81,21 @@ export const PatrullaVehiculoSection: React.FC<PatrullaVehiculoSectionProps> = (
             {vehiculos.map((v) => {
               const patente = v.detalles?.patente ? `[Patente: ${v.detalles.patente}]` : '';
               const modelo = v.detalles?.modelo ? `- ${v.detalles.modelo}` : '';
-              const patrullasDelVehiculo = (mapaPatrullasPorVehiculo[v.id] || []).filter(
+              const rawDelVehiculo = (mapaPatrullasPorVehiculo[v.id] || []).filter(
                 (p) => p.id !== patrullaActualId
               );
+              const seenV = new Set<string>();
+              const patrullasDelVehiculo = rawDelVehiculo.filter((p) => {
+                if (seenV.has(p.id)) return false;
+                seenV.add(p.id);
+                return true;
+              });
+
               const avisoUso =
                 patrullasDelVehiculo.length > 0
-                  ? ` — ⚠️ Asignado en: ${patrullasDelVehiculo
+                  ? ` (Asignado en: ${patrullasDelVehiculo
                       .map((p) => p.codigo || p.nombre)
-                      .join(', ')}`
+                      .join(', ')})`
                   : '';
 
               return (
@@ -106,7 +123,7 @@ export const PatrullaVehiculoSection: React.FC<PatrullaVehiculoSectionProps> = (
                 Este vehículo ya se encuentra asignado a:{' '}
                 <strong>
                   {patrullasAsignadasActual
-                    .map((p) => `${p.nombre}${p.codigo ? ` (${p.codigo})` : ''}`)
+                    .map((p) => p.nombre)
                     .join(', ')}
                 </strong>
                 . Si continúa, quedará compartido entre las patrullas.

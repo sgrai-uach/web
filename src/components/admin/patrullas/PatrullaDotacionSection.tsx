@@ -1,9 +1,10 @@
 'use client';
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Users, UserCheck, Shield, AlertTriangle } from 'lucide-react';
 import type { EmpleadoUsuario } from '@/types/empleados';
 import { obtenerNombreDelegacion } from '@/lib/utils/delegacionUtils';
+import { formatearEstado } from '@/lib/utils/estadoUtils';
 import InlineNotice from '@/components/ui/InlineNotice';
 import styles from './PatrullaForm.module.css';
 
@@ -41,15 +42,23 @@ export const PatrullaDotacionSection: React.FC<PatrullaDotacionSectionProps> = (
     (p) => p.personal_id && personalSeleccionadoIds.includes(p.personal_id)
   );
 
-  // Identificar integrantes seleccionados que ya forman parte de otras patrullas
-  const seleccionadosConOtrasPatrullas = integrantesSeleccionados
-    .map((p) => {
-      const patrullas = (mapaPatrullasPorPersonal[p.personal_id!] || []).filter(
-        (pat) => pat.id !== patrullaActualId
-      );
-      return { empleado: p, patrullas };
-    })
-    .filter((item) => item.patrullas.length > 0);
+  // Identificar integrantes seleccionados que ya forman parte de otras patrullas (deduplicadas)
+  const seleccionadosConOtrasPatrullas = useMemo(() => {
+    return integrantesSeleccionados
+      .map((p) => {
+        const raw = (mapaPatrullasPorPersonal[p.personal_id!] || []).filter(
+          (pat) => pat.id !== patrullaActualId
+        );
+        const seen = new Set<string>();
+        const patrullas = raw.filter((pat) => {
+          if (seen.has(pat.id)) return false;
+          seen.add(pat.id);
+          return true;
+        });
+        return { empleado: p, patrullas };
+      })
+      .filter((item) => item.patrullas.length > 0);
+  }, [integrantesSeleccionados, mapaPatrullasPorPersonal, patrullaActualId]);
 
   return (
     <section className={styles.section} aria-labelledby="seccion-dotacion">
@@ -111,10 +120,16 @@ export const PatrullaDotacionSection: React.FC<PatrullaDotacionSectionProps> = (
               else if (p.estado_operativo === 'descanso') etiquetaEstado = 'Descanso';
               else if (p.estado_operativo === 'inactivo') etiquetaEstado = 'Inactivo';
 
-              // Patrullas previas en las que participa (excluyendo la actual)
-              const otrasPatrullas = (mapaPatrullasPorPersonal[personalId] || []).filter(
+              // Patrullas previas en las que participa (excluyendo la actual, deduplicadas)
+              const rawOtras = (mapaPatrullasPorPersonal[personalId] || []).filter(
                 (pat) => pat.id !== patrullaActualId
               );
+              const seenCard = new Set<string>();
+              const otrasPatrullas = rawOtras.filter((pat) => {
+                if (seenCard.has(pat.id)) return false;
+                seenCard.add(pat.id);
+                return true;
+              });
 
               // Solo se bloquea si el funcionario se encuentra inactivo, con licencia o descanso
               const isInoperativo =
@@ -126,17 +141,9 @@ export const PatrullaDotacionSection: React.FC<PatrullaDotacionSectionProps> = (
               const isSeleccionable = !isInoperativo;
 
               const estadoTexto =
-                p.estado_operativo === 'descanso'
-                  ? 'En descanso'
-                  : p.estado_operativo === 'licencia'
-                  ? 'Licencia'
-                  : p.estado_operativo === 'inactivo'
-                  ? 'Inactivo'
-                  : otrasPatrullas.length > 0 || p.estado_operativo === 'en_patrulla'
+                otrasPatrullas.length > 0 || p.estado_operativo === 'en_patrulla'
                   ? 'En patrulla'
-                  : p.estado_operativo === 'en_mision'
-                  ? 'En misión'
-                  : 'Disponible';
+                  : formatearEstado(p.estado_operativo, 'Disponible');
 
               const delegacionLimpia = obtenerNombreDelegacion(
                 p.delegacion_nombre || p.delegacion_codigo,
@@ -237,7 +244,7 @@ export const PatrullaDotacionSection: React.FC<PatrullaDotacionSectionProps> = (
               {seleccionadosConOtrasPatrullas.map((item, idx) => (
                 <div key={item.empleado.personal_id || idx} style={{ marginTop: idx > 0 ? '4px' : '0' }}>
                   <strong>{item.empleado.nombres} {item.empleado.apellidos}</strong> ya se encuentra asignado a la(s) patrulla(s):{' '}
-                  <strong>{item.patrullas.map((pat) => `${pat.nombre}${pat.codigo ? ` (${pat.codigo})` : ''}`).join(', ')}</strong>.
+                  <strong>{item.patrullas.map((pat) => pat.nombre).join(', ')}</strong>.
                 </div>
               ))}
             </InlineNotice>
