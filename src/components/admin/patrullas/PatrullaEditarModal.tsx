@@ -17,6 +17,7 @@ import Button from '@/components/ui/Button';
 import Heading from '@/components/ui/Heading';
 import InlineNotice from '@/components/ui/InlineNotice';
 import { obtenerNombreDelegacion } from '@/lib/utils/delegacionUtils';
+import { traducirNombreCampo } from '@/lib/utils/errorUtils';
 import { useEditarPatrullaForm } from '@/hooks/useEditarPatrullaForm';
 import PatrullaDelegacionSection from './PatrullaDelegacionSection';
 import PatrullaVehiculoSection from './PatrullaVehiculoSection';
@@ -98,22 +99,34 @@ const PatrullaEditarModalInner: React.FC<PatrullaEditarModalInnerProps> = ({
     recargarDatos();
   }, [recargarDatos]);
 
-  // Detección de asignaciones compartidas
-  const otrasPatrullasVehiculo = formData.vehiculoId
-    ? (mapaPatrullasPorVehiculo[formData.vehiculoId] || []).filter((p) => p.id !== patrulla.id)
-    : [];
+  // Detección de asignaciones compartidas (deduplicadas por ID)
+  const otrasPatrullasVehiculo = React.useMemo(() => {
+    if (!formData.vehiculoId) return [];
+    const lista = (mapaPatrullasPorVehiculo[formData.vehiculoId] || []).filter((p) => p.id !== patrulla.id);
+    const unicas = new Map<string, { id: string; codigo?: string; nombre: string }>();
+    for (const p of lista) {
+      if (!unicas.has(p.id)) unicas.set(p.id, p);
+    }
+    return Array.from(unicas.values());
+  }, [formData.vehiculoId, mapaPatrullasPorVehiculo, patrulla.id]);
 
-  const integrantesConOtrasPatrullas = formData.personalIds
-    .map((id) => {
-      const funcionario = personalElegible.find((p) => p.personal_id === id);
-      const asignaciones = (mapaPatrullasPorPersonal[id] || []).filter((p) => p.id !== patrulla.id);
-      return {
-        id,
-        nombre: funcionario ? `${funcionario.nombres} ${funcionario.apellidos}` : id,
-        patrullas: asignaciones,
-      };
-    })
-    .filter((item) => item.patrullas.length > 0);
+  const integrantesConOtrasPatrullas = React.useMemo(() => {
+    return formData.personalIds
+      .map((id) => {
+        const funcionario = personalElegible.find((p) => p.personal_id === id);
+        const asignaciones = (mapaPatrullasPorPersonal[id] || []).filter((p) => p.id !== patrulla.id);
+        const unicas = new Map<string, { id: string; codigo?: string; nombre: string }>();
+        for (const p of asignaciones) {
+          if (!unicas.has(p.id)) unicas.set(p.id, p);
+        }
+        return {
+          id,
+          nombre: funcionario ? `${funcionario.nombres} ${funcionario.apellidos}` : id,
+          patrullas: Array.from(unicas.values()),
+        };
+      })
+      .filter((item) => item.patrullas.length > 0);
+  }, [formData.personalIds, mapaPatrullasPorPersonal, personalElegible, patrulla.id]);
 
   // Manejo de tecla Escape
   useEffect(() => {
@@ -215,17 +228,25 @@ const PatrullaEditarModalInner: React.FC<PatrullaEditarModalInnerProps> = ({
                     : 'No fue posible guardar los cambios de la patrulla'
                 }
               >
-                <div>{serverError}</div>
-                {serverFieldErrors && serverFieldErrors.length > 0 && (
-                  <ul style={{ margin: '6px 0 0 0', paddingLeft: '18px' }}>
-                    {serverFieldErrors.map((err, index) => (
-                      <li key={index}>
-                        {err.campo ? <strong>{err.campo}: </strong> : null}
-                        {err.mensaje}
-                      </li>
-                    ))}
-                  </ul>
-                )}
+                <div>
+                  {serverFieldErrors && serverFieldErrors.length > 0 ? (
+                    <span>
+                      Se detectaron inconsistencias en la sección:{' '}
+                      <strong>
+                        {Array.from(
+                          new Set(
+                            serverFieldErrors
+                              .map((err) => traducirNombreCampo(err.campo))
+                              .filter(Boolean)
+                          )
+                        ).join(', ')}
+                      </strong>
+                      . Por favor revise el campo señalado a continuación.
+                    </span>
+                  ) : (
+                    <span>{serverError}</span>
+                  )}
+                </div>
               </InlineNotice>
             )}
 

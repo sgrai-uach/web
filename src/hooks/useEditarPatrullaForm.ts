@@ -7,6 +7,7 @@ import { getRecursos } from '@/services/recursosService';
 import { empleadosService } from '@/services/empleadosService';
 import { patrullasService, DEFAULT_ENCARGADO_ID } from '@/services/patrullasService';
 import { useSimulatedSession } from '@/context/SimulatedSessionContext';
+import { sanitizarMensajeServidor } from '@/lib/utils/errorUtils';
 import type { CatalogoItem } from '@/types/catalogos';
 import type { RecursoItem } from '@/types/recurso';
 import type { EmpleadoUsuario } from '@/types/empleados';
@@ -78,7 +79,7 @@ export function useEditarPatrullaForm(
   const [cargandoCatalogos, setCargandoCatalogos] = useState<boolean>(true);
   const [errorCatalogos, setErrorCatalogos] = useState<string | null>(null);
 
-  // Mapas reactivos de asignaciones previas
+  // Mapas reactivos de asignaciones previas (con deduplicación estricta por ID)
   const mapaPatrullasPorPersonal = useMemo(() => {
     const mapa: Record<string, Array<{ id: string; codigo?: string; nombre: string }>> = {};
     for (const pat of patrullasRegistradas) {
@@ -86,7 +87,9 @@ export function useEditarPatrullaForm(
         for (const i of pat.integrantes) {
           const key = i.id;
           if (!mapa[key]) mapa[key] = [];
-          mapa[key].push({ id: pat.id, codigo: pat.codigo, nombre: pat.nombre });
+          if (!mapa[key].some((entry) => entry.id === pat.id)) {
+            mapa[key].push({ id: pat.id, codigo: pat.codigo, nombre: pat.nombre });
+          }
         }
       }
     }
@@ -99,7 +102,9 @@ export function useEditarPatrullaForm(
       if (pat.vehiculo?.id) {
         const vId = pat.vehiculo.id;
         if (!mapa[vId]) mapa[vId] = [];
-        mapa[vId].push({ id: pat.id, codigo: pat.codigo, nombre: pat.nombre });
+        if (!mapa[vId].some((entry) => entry.id === pat.id)) {
+          mapa[vId].push({ id: pat.id, codigo: pat.codigo, nombre: pat.nombre });
+        }
       }
     }
     return mapa;
@@ -430,20 +435,26 @@ export function useEditarPatrullaForm(
         onGuardadoExitoso?.(res.data);
       } else {
         setShowConfirmModal(false);
-        setServerError(res.mensaje);
+        const mensajeSanitizado = sanitizarMensajeServidor(res.mensaje);
+        setServerError(mensajeSanitizado);
 
         if (res.esConflicto) {
           setEsConflicto(true);
           const mensajeLower = (res.mensaje || '').toLowerCase();
           if (mensajeLower.includes('vehículo') || mensajeLower.includes('vehiculo')) {
-            setServerFieldErrors([{ campo: 'vehiculoId', mensaje: res.mensaje }]);
+            setServerFieldErrors([{ campo: 'vehiculoId', mensaje: mensajeSanitizado }]);
           } else if (mensajeLower.includes('funcionario') || mensajeLower.includes('personal')) {
-            setServerFieldErrors([{ campo: 'personalIds', mensaje: res.mensaje }]);
+            setServerFieldErrors([{ campo: 'personalIds', mensaje: mensajeSanitizado }]);
           } else {
-            setServerFieldErrors([{ campo: 'nombre', mensaje: res.mensaje }]);
+            setServerFieldErrors([{ campo: 'nombre', mensaje: mensajeSanitizado }]);
           }
         } else if (res.erroresValidacion) {
-          setServerFieldErrors(res.erroresValidacion);
+          setServerFieldErrors(
+            res.erroresValidacion.map((err) => ({
+              campo: err.campo,
+              mensaje: sanitizarMensajeServidor(err.mensaje),
+            }))
+          );
         }
       }
     } catch {
