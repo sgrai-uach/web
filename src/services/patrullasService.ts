@@ -11,6 +11,8 @@ import type {
   PatrullaVerificadoraDTO,
   ResultadoListarPatrullas,
   PaginacionMeta,
+  CrearPatrullaInputDTO,
+  ResultadoCrearPatrulla,
 } from '@/types/patrullas';
 
 export const DEFAULT_ENCARGADO_ID = '00000000-0000-4000-8000-000000000003';
@@ -176,7 +178,109 @@ export const patrullasService = {
       };
     }
   },
+
+  /**
+   * Registra y da de alta una nueva patrulla verificadora (POST /api/patrullas).
+   * Requiere permiso 'recursos:crear'.
+   */
+  async crear(
+    payload: CrearPatrullaInputDTO,
+    userId: string = DEFAULT_ENCARGADO_ID
+  ): Promise<ResultadoCrearPatrulla> {
+    try {
+      const token = typeof window !== 'undefined' ? getAuthCookie() : undefined;
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'x-user-id': userId,
+      };
+
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      const res = await fetch('/api/patrullas', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(payload),
+      });
+
+      if (res.status === 201) {
+        const json = await res.json();
+        return {
+          exito: true,
+          data: json.data,
+          mensaje: json.message || 'Patrulla verificadora registrada exitosamente.',
+        };
+      }
+
+      if (res.status === 409) {
+        let mensaje = 'Ya existe una patrulla registrada con ese código identificador.';
+        try {
+          const json = await res.json();
+          if (json.message) mensaje = json.message;
+        } catch {
+          // ignore
+        }
+        return {
+          exito: false,
+          esConflicto: true,
+          codigoError: 409,
+          mensaje,
+        };
+      }
+
+      if (res.status === 403) {
+        return {
+          exito: false,
+          esForbidden: true,
+          codigoError: 403,
+          mensaje:
+            'No cuenta con el permiso requerido (recursos:crear) para dar de alta patrullas verificadoras.',
+        };
+      }
+
+      if (res.status === 400) {
+        let mensaje = 'Los datos ingresados para la patrulla verificadora no son válidos.';
+        let erroresValidacion: Array<{ campo: string; mensaje: string }> | undefined;
+        try {
+          const json = await res.json();
+          if (json.message) mensaje = json.message;
+          if (Array.isArray(json.errors)) erroresValidacion = json.errors;
+        } catch {
+          // ignore
+        }
+        return {
+          exito: false,
+          codigoError: 400,
+          mensaje,
+          erroresValidacion,
+        };
+      }
+
+      let detalleError = `Error HTTP ${res.status} al registrar patrulla verificadora.`;
+      try {
+        const json = await res.json();
+        if (json.message) detalleError = json.message;
+      } catch {
+        // ignore
+      }
+
+      return {
+        exito: false,
+        codigoError: res.status,
+        mensaje: detalleError,
+      };
+    } catch {
+      return {
+        exito: false,
+        codigoError: 500,
+        mensaje: 'Error de conexión con el servidor municipal al registrar la patrulla.',
+      };
+    }
+  },
 };
 
 export const listarPatrullas = patrullasService.listar;
 export const obtenerPatrullaPorId = patrullasService.obtenerPorId;
+export const crearPatrulla = patrullasService.crear;
+

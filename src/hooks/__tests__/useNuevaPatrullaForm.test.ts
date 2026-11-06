@@ -1,0 +1,402 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { renderHook, act, waitFor } from '@testing-library/react';
+import { useNuevaPatrullaForm } from '../useNuevaPatrullaForm';
+import * as patrullasServiceModule from '@/services/patrullasService';
+import * as catalogosServiceModule from '@/services/catalogosService';
+
+vi.mock('@/context/SimulatedSessionContext', () => ({
+  useSimulatedSession: () => ({
+    usuarioActivo: {
+      id: '00000000-0000-4000-8000-000000000001',
+      nombre: 'Administrador Municipal',
+      rol: 'Administrador',
+    },
+    hasPermission: () => true,
+    isMounted: true,
+  }),
+}));
+
+vi.mock('@/services/catalogosService', async (importOriginal) => {
+  const actual = await importOriginal<typeof catalogosServiceModule>();
+  return {
+    ...actual,
+    catalogosService: {
+      ...actual.catalogosService,
+      getCatalogos: vi.fn().mockResolvedValue({
+        roles: [],
+        delegaciones: [
+          { id: '30000000-0000-4000-8000-000000000001', nombre: 'Norte', codigo: 'DEL_NORTE' },
+        ],
+        especialidades: [],
+        cargos: [],
+      }),
+    },
+  };
+});
+
+vi.mock('@/services/recursosService', () => ({
+  getRecursos: vi.fn().mockResolvedValue({
+    data: [
+      {
+        id: 'e1000000-0000-4000-8000-000000000002',
+        nombre: 'Camioneta 4x4',
+        esIndividual: true,
+        estado: 'DISPONIBLE',
+        detalles: { patente: 'CD-FG-23' },
+      },
+    ],
+    meta: { total: 1, page: 1, limit: 100, totalPages: 1 },
+  }),
+}));
+
+vi.mock('@/services/empleadosService', () => ({
+  empleadosService: {
+    getEmpleadosPaginado: vi.fn().mockResolvedValue({
+      data: [
+        {
+          usuario_id: 'c1000000-0000-4000-8000-000000000001',
+          personal_id: 'b1000000-0000-4000-8000-000000000001',
+          nombres: 'Juan',
+          apellidos: 'Pérez',
+          rol_codigo: 'PATRULLA_VERIFICADORA',
+          usuario_activo: true,
+        },
+        {
+          usuario_id: 'c1000000-0000-4000-8000-000000000002',
+          personal_id: 'b1000000-0000-4000-8000-000000000002',
+          nombres: 'María',
+          apellidos: 'González',
+          rol_codigo: 'PATRULLA_VERIFICADORA',
+          usuario_activo: true,
+          estado_operativo: 'disponible',
+        },
+        {
+          usuario_id: 'c1000000-0000-4000-8000-000000000003',
+          personal_id: 'b1000000-0000-4000-8000-000000000003',
+          nombres: 'Pedro',
+          apellidos: 'Rojas',
+          rol_codigo: 'PATRULLA_VERIFICADORA',
+          usuario_activo: true,
+          estado_operativo: 'en_patrulla',
+        },
+        {
+          usuario_id: 'c1000000-0000-4000-8000-000000000004',
+          personal_id: 'b1000000-0000-4000-8000-000000000004',
+          nombres: 'Carlos',
+          apellidos: 'Licencia',
+          rol_codigo: 'PATRULLA_VERIFICADORA',
+          usuario_activo: true,
+          estado_operativo: 'licencia',
+        },
+      ],
+      meta: { total: 4, page: 1, limit: 100, totalPages: 1 },
+    }),
+  },
+}));
+
+vi.mock('@/services/patrullasService', () => ({
+  DEFAULT_ENCARGADO_ID: '00000000-0000-4000-8000-000000000003',
+  patrullasService: {
+    crear: vi.fn(),
+    listar: vi.fn().mockResolvedValue({ data: [] }),
+  },
+}));
+
+describe('useNuevaPatrullaForm (HU-83: Alta de Patrullas Verificadoras)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  async function renderNuevaPatrullaHook() {
+    let hookResult!: ReturnType<typeof renderHook<ReturnType<typeof useNuevaPatrullaForm>, unknown>>;
+    await act(async () => {
+      hookResult = renderHook(() => useNuevaPatrullaForm());
+    });
+    return hookResult;
+  }
+
+  it('1. inicia con valores iniciales limpios y formulario no válido (isValid: false)', async () => {
+    const { result } = await renderNuevaPatrullaHook();
+
+    expect(result.current.formData.codigo).toBe('');
+    expect(result.current.formData.delegacionId).toBe('');
+    expect(result.current.formData.personalIds).toEqual([]);
+    expect(result.current.isValid).toBe(false);
+    expect(result.current.showConfirmModal).toBe(false);
+    expect(result.current.createdPatrulla).toBeNull();
+  });
+
+  it('2. sanitiza automáticamente el código a mayúsculas y reemplaza espacios por guiones', async () => {
+    const { result } = await renderNuevaPatrullaHook();
+
+    act(() => {
+      result.current.handleCodigoChange('pv norte 01');
+    });
+
+    expect(result.current.formData.codigo).toBe('PV-NORTE-01');
+  });
+
+  it('3. valida reactivamente campos obligatorios (código, delegación, al menos un integrante)', async () => {
+    const { result } = await renderNuevaPatrullaHook();
+
+    expect(result.current.isValid).toBe(false);
+
+    act(() => {
+      result.current.handleCodigoChange('PV-NORTE-01');
+      result.current.handleDelegacionChange('30000000-0000-4000-8000-000000000001');
+    });
+
+    // Aún falta el personal
+    expect(result.current.isValid).toBe(false);
+    expect(result.current.clientErrors.personalIds).toBeDefined();
+
+    act(() => {
+      result.current.handleTogglePersonal(
+        'b1000000-0000-4000-8000-000000000001',
+        'c1000000-0000-4000-8000-000000000001'
+      );
+    });
+
+    // Con código, delegación y un integrante, el formulario es válido
+    expect(result.current.isValid).toBe(true);
+    expect(result.current.formData.usuarioLiderId).toBe('c1000000-0000-4000-8000-000000000001');
+  });
+
+  it('4. gestiona la dotación y asigna al primer integrante como líder por defecto', async () => {
+    const { result } = await renderNuevaPatrullaHook();
+
+    act(() => {
+      // Agregar integrante 1
+      result.current.handleTogglePersonal(
+        'b1000000-0000-4000-8000-000000000001',
+        'c1000000-0000-4000-8000-000000000001'
+      );
+      // Agregar integrante 2
+      result.current.handleTogglePersonal(
+        'b1000000-0000-4000-8000-000000000002',
+        'c1000000-0000-4000-8000-000000000002'
+      );
+    });
+
+    expect(result.current.formData.personalIds).toHaveLength(2);
+    expect(result.current.formData.usuarioLiderId).toBe('c1000000-0000-4000-8000-000000000001');
+
+    // Cambiar líder explícitamente
+    act(() => {
+      result.current.handleLiderChange('c1000000-0000-4000-8000-000000000002');
+    });
+
+    expect(result.current.formData.usuarioLiderId).toBe('c1000000-0000-4000-8000-000000000002');
+  });
+
+  it('5. abre el modal de confirmación solo si el formulario es válido', async () => {
+    const { result } = await renderNuevaPatrullaHook();
+
+    // Intento con formulario inválido
+    act(() => {
+      result.current.handleOpenConfirmModal();
+    });
+
+    expect(result.current.showConfirmModal).toBe(false);
+    expect(result.current.touched.codigo).toBe(true);
+
+    // Completar datos válidos
+    act(() => {
+      result.current.handleCodigoChange('PV-NORTE-01');
+      result.current.handleDelegacionChange('30000000-0000-4000-8000-000000000001');
+      result.current.handleTogglePersonal(
+        'b1000000-0000-4000-8000-000000000001',
+        'c1000000-0000-4000-8000-000000000001'
+      );
+    });
+
+    act(() => {
+      result.current.handleOpenConfirmModal();
+    });
+
+    expect(result.current.showConfirmModal).toBe(true);
+  });
+
+  it('6. persiste exitosamente la patrulla a través de patrullasService.crear', async () => {
+    vi.mocked(patrullasServiceModule.patrullasService.crear).mockResolvedValue({
+      exito: true,
+      mensaje: 'Patrulla verificadora registrada exitosamente.',
+      data: {
+        id: 'f1000000-0000-4000-8000-000000000099',
+        codigo: 'PV-NORTE-01',
+        nombre: 'Patrulla Rápida Norte 1',
+        estado: 'DISPONIBLE',
+      },
+    });
+
+    const { result } = await renderNuevaPatrullaHook();
+
+    act(() => {
+      result.current.handleCodigoChange('PV-NORTE-01');
+      result.current.handleNombreChange('Patrulla Rápida Norte 1');
+      result.current.handleDelegacionChange('30000000-0000-4000-8000-000000000001');
+      result.current.handleVehiculoChange('e1000000-0000-4000-8000-000000000002');
+      result.current.handleTogglePersonal(
+        'b1000000-0000-4000-8000-000000000001',
+        'c1000000-0000-4000-8000-000000000001'
+      );
+    });
+
+    await act(async () => {
+      await result.current.handleConfirmSave();
+    });
+
+    expect(patrullasServiceModule.patrullasService.crear).toHaveBeenCalledWith(
+      expect.objectContaining({
+        codigo: 'PV-NORTE-01',
+        nombre: 'Patrulla Rápida Norte 1',
+        delegacionId: '30000000-0000-4000-8000-000000000001',
+        vehiculoId: 'e1000000-0000-4000-8000-000000000002',
+        personalIds: ['b1000000-0000-4000-8000-000000000001'],
+      }),
+      '00000000-0000-4000-8000-000000000001'
+    );
+
+    expect(result.current.createdPatrulla?.id).toBe('f1000000-0000-4000-8000-000000000099');
+    expect(result.current.showConfirmModal).toBe(false);
+  });
+
+  it('7. maneja error 409 de código duplicado resaltando el campo y mensaje', async () => {
+    vi.mocked(patrullasServiceModule.patrullasService.crear).mockResolvedValue({
+      exito: false,
+      esConflicto: true,
+      codigoError: 409,
+      mensaje: 'Ya existe una patrulla registrada con ese código identificador.',
+    });
+
+    const { result } = await renderNuevaPatrullaHook();
+
+    act(() => {
+      result.current.handleCodigoChange('PV-NORTE-01');
+      result.current.handleDelegacionChange('30000000-0000-4000-8000-000000000001');
+      result.current.handleTogglePersonal(
+        'b1000000-0000-4000-8000-000000000001',
+        'c1000000-0000-4000-8000-000000000001'
+      );
+    });
+
+    await act(async () => {
+      await result.current.handleConfirmSave();
+    });
+
+    expect(result.current.serverError).toContain('Ya existe una patrulla');
+    expect(result.current.serverFieldErrors).toEqual([
+      { campo: 'codigo', mensaje: 'Ya existe una patrulla registrada con este código.' },
+    ]);
+  });
+
+  it('8. valida que el nombre descriptivo tenga al menos 3 caracteres si se proporciona (BUG-H83-WEB-02)', async () => {
+    const { result } = await renderNuevaPatrullaHook();
+
+    act(() => {
+      result.current.handleNombreChange('PV'); // Menos de 3 caracteres
+    });
+
+    expect(result.current.clientErrors.nombre).toBe('El nombre debe tener al menos 3 caracteres.');
+
+    act(() => {
+      result.current.handleNombreChange('Patrulla 01'); // 3 o más caracteres
+    });
+
+    expect(result.current.clientErrors.nombre).toBeUndefined();
+  });
+
+  it('9. permite la incorporación de funcionarios en patrulla pero bloquea los que están en licencia o descanso', async () => {
+    const { result } = await renderNuevaPatrullaHook();
+
+    // Intentar seleccionar a Carlos Licencia (cuyo estado_operativo es 'licencia')
+    act(() => {
+      result.current.handleTogglePersonal(
+        'b1000000-0000-4000-8000-000000000004',
+        'c1000000-0000-4000-8000-000000000004'
+      );
+    });
+
+    // La dotación no debe incluir a Carlos Licencia
+    expect(result.current.formData.personalIds).not.toContain('b1000000-0000-4000-8000-000000000004');
+
+    // Seleccionar a Pedro Rojas (cuyo estado_operativo es 'en_patrulla' - permitido para compartir)
+    act(() => {
+      result.current.handleTogglePersonal(
+        'b1000000-0000-4000-8000-000000000003',
+        'c1000000-0000-4000-8000-000000000003'
+      );
+    });
+
+    // La dotación sí debe incluir a Pedro Rojas
+    expect(result.current.formData.personalIds).toContain('b1000000-0000-4000-8000-000000000003');
+
+    // Seleccionar a María González (cuyo estado_operativo es 'disponible')
+    act(() => {
+      result.current.handleTogglePersonal(
+        'b1000000-0000-4000-8000-000000000002',
+        'c1000000-0000-4000-8000-000000000002'
+      );
+    });
+
+    // La dotación sí debe incluir a María González
+    expect(result.current.formData.personalIds).toContain('b1000000-0000-4000-8000-000000000002');
+  });
+
+  it('10. construye mapas de asignación previa de vehículos y personal para emitir advertencias', async () => {
+    vi.mocked(patrullasServiceModule.patrullasService.listar).mockResolvedValueOnce({
+      exito: true,
+      mensaje: 'OK',
+      data: [
+        {
+          id: 'pat-1',
+          codigo: 'PV-SUR-01',
+          nombre: 'Patrulla Sur',
+          estado: 'DISPONIBLE',
+          vehiculo: {
+            id: 'e1000000-0000-4000-8000-000000000002',
+            nombre: 'Camioneta 4x4',
+            estado: 'ASIGNADO',
+          },
+          integrantes: [
+            {
+              id: 'b1000000-0000-4000-8000-000000000003',
+              nombre: 'Pedro Rojas',
+            },
+          ],
+        },
+      ],
+      meta: { total: 1, page: 1, limit: 100, totalPages: 1, hasNext: false, hasPrev: false },
+    });
+
+    const { result } = await renderNuevaPatrullaHook();
+
+    await waitFor(() => {
+      expect(result.current.patrullasRegistradas.length).toBe(1);
+    });
+
+    // Mapeo por vehículo
+    expect(result.current.mapaPatrullasPorVehiculo['e1000000-0000-4000-8000-000000000002']).toEqual([
+      { id: 'pat-1', codigo: 'PV-SUR-01', nombre: 'Patrulla Sur' },
+    ]);
+
+    // Mapeo por personal
+    expect(result.current.mapaPatrullasPorPersonal['b1000000-0000-4000-8000-000000000003']).toEqual([
+      { id: 'pat-1', codigo: 'PV-SUR-01', nombre: 'Patrulla Sur' },
+    ]);
+  });
+
+  it('11. activa clientFormError y toca todos los campos al intentar confirmar con datos incompletos', async () => {
+    const { result } = await renderNuevaPatrullaHook();
+
+    act(() => {
+      result.current.handleOpenConfirmModal();
+    });
+
+    expect(result.current.showConfirmModal).toBe(false);
+    expect(result.current.clientFormError).toContain('campos obligatorios');
+    expect(result.current.touched.codigo).toBe(true);
+    expect(result.current.touched.delegacionId).toBe(true);
+    expect(result.current.touched.personalIds).toBe(true);
+  });
+});
