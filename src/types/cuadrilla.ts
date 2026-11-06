@@ -78,6 +78,9 @@ export interface CuadrillaItem {
   trabajadores: CuadrillaTrabajadorDetalle[];
   totalRecursos?: number;
   totalTrabajadores?: number;
+  activo?: boolean;
+  eliminadoEn?: string | null;
+  eliminadoPorId?: string | null;
   creadoEn: string;
   actualizadoEn?: string | null;
   actualizadoPorId?: string | null;
@@ -86,6 +89,23 @@ export interface CuadrillaItem {
 
 export type CuadrillaDetalle = CuadrillaItem;
 export type CuadrillaCreada = CuadrillaItem;
+
+export interface DesactivarCuadrillaData {
+  id: string;
+  nombre: string;
+  activo: boolean;
+  estado: EstadoCuadrilla;
+  recursosDesvinculados: number;
+  trabajadoresDesvinculados: number;
+  delegadoRevertido: boolean;
+  eliminadoEn: string;
+  eliminadoPorId: string;
+}
+
+export interface DesactivarCuadrillaApiResponse {
+  message: string;
+  data: DesactivarCuadrillaData;
+}
 
 export interface MetaPaginacionCuadrillas {
   total: number;
