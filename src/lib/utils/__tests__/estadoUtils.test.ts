@@ -39,3 +39,4 @@ describe('formatearEstado', () => {
     expect(formatearEstado('OTRO_ESTADO_NUEVO')).toBe('Otro estado nuevo');
   });
 });
+
