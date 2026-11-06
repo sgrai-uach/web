@@ -420,5 +420,16 @@ describe('AdminPatrullasClient (Pestaña dedicada de Patrullas Verificadoras)', 
         'No es posible desactivar la patrulla mientras se encuentre en verificación o en misión activa';
       expect(btnDesactivar).toHaveAttribute('aria-label', mensajeEsperado);
     });
+
+    it('12. BUG-H85-WEB-02: aplica política Fail-Closed no renderizando botón Desactivar sin permiso recursos:eliminar', async () => {
+      renderWithSession(['recursos:leer']);
+
+      await waitFor(() => {
+        expect(screen.getByText('Patrulla Rápida Costa-1')).toBeInTheDocument();
+      });
+
+      const btnDesactivar = screen.queryByTestId('btn-desactivar-patrulla-f1000000-0000-4000-8000-000000000001');
+      expect(btnDesactivar).not.toBeInTheDocument();
+    });
   });
 });

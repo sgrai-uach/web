@@ -6,6 +6,7 @@
 
 import { catalogosService } from '@/services/catalogosService';
 import { getAuthCookie } from '@/lib/utils/cookieUtils';
+import { sanitizarMensajeServidor } from '@/lib/utils/errorUtils';
 import type {
   FiltrosPatrullas,
   PatrullaVerificadoraDTO,
@@ -415,7 +416,7 @@ export const patrullasService = {
    */
   async desactivar(
     id: string,
-    userId: string = DEFAULT_ENCARGADO_ID
+    userId?: string
   ): Promise<ResultadoDesactivarPatrulla> {
     const idLimpio = id?.trim();
     if (!idLimpio) {
@@ -428,9 +429,11 @@ export const patrullasService = {
 
     try {
       const token = typeof window !== 'undefined' ? getAuthCookie() : undefined;
-      const headers: Record<string, string> = {
-        'x-user-id': userId,
-      };
+      const headers: Record<string, string> = {};
+
+      if (userId) {
+        headers['x-user-id'] = userId;
+      }
 
       if (token) {
         headers['Authorization'] = `Bearer ${token}`;
@@ -450,6 +453,22 @@ export const patrullasService = {
         };
       }
 
+      if (res.status === 401) {
+        let mensaje = 'Sesión no autorizada o expirada. Inicie sesión nuevamente.';
+        try {
+          const json = await res.json();
+          if (json.message) mensaje = json.message;
+        } catch {
+          // ignore
+        }
+        return {
+          exito: false,
+          esNoAutorizado: true,
+          codigoError: 401,
+          mensaje: sanitizarMensajeServidor(mensaje),
+        };
+      }
+
       if (res.status === 409) {
         let mensaje =
           'No es posible desactivar la patrulla mientras se encuentre en estado de verificación o posea misiones activas en curso.';
@@ -463,17 +482,24 @@ export const patrullasService = {
           exito: false,
           esConflicto: true,
           codigoError: 409,
-          mensaje,
+          mensaje: sanitizarMensajeServidor(mensaje),
         };
       }
 
       if (res.status === 403) {
+        let mensaje =
+          'No cuenta con el permiso requerido (recursos:eliminar) para desactivar patrullas verificadoras.';
+        try {
+          const json = await res.json();
+          if (json.message) mensaje = json.message;
+        } catch {
+          // ignore
+        }
         return {
           exito: false,
           esForbidden: true,
           codigoError: 403,
-          mensaje:
-            'No cuenta con el permiso requerido (recursos:eliminar) para desactivar patrullas verificadoras.',
+          mensaje: sanitizarMensajeServidor(mensaje),
         };
       }
 
@@ -488,7 +514,7 @@ export const patrullasService = {
         return {
           exito: false,
           codigoError: 404,
-          mensaje,
+          mensaje: sanitizarMensajeServidor(mensaje),
         };
       }
 
@@ -503,7 +529,7 @@ export const patrullasService = {
       return {
         exito: false,
         codigoError: res.status,
-        mensaje: detalleError,
+        mensaje: sanitizarMensajeServidor(detalleError),
       };
     } catch {
       return {

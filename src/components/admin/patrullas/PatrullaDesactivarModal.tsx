@@ -10,7 +10,7 @@ import {
 import Button from '@/components/ui/Button';
 import Heading from '@/components/ui/Heading';
 import InlineNotice from '@/components/ui/InlineNotice';
-import { patrullasService, DEFAULT_ENCARGADO_ID } from '@/services/patrullasService';
+import { patrullasService } from '@/services/patrullasService';
 import type { PatrullaVerificadoraDTO } from '@/types/patrullas';
 import styles from './PatrullaDesactivarModal.module.css';
 
@@ -25,18 +25,31 @@ export interface PatrullaDesactivarModalProps {
 export const PatrullaDesactivarModal: React.FC<PatrullaDesactivarModalProps> = ({
   isOpen,
   patrulla,
-  usuarioActivoId = DEFAULT_ENCARGADO_ID,
+  usuarioActivoId,
   onClose,
   onPatrullaDesactivada,
 }) => {
   const [desactivando, setDesactivando] = useState(false);
   const [errorMensaje, setErrorMensaje] = useState<string | null>(null);
   const [esConflicto, setEsConflicto] = useState(false);
+  const [esNotFound, setEsNotFound] = useState(false);
+
+  const patrullaIdActual = isOpen && patrulla?.id ? patrulla.id : null;
+  const [prevPatrullaId, setPrevPatrullaId] = useState<string | null>(patrullaIdActual);
+
+  // Limpieza reactiva durante el render al cambiar de patrulla o visibilidad (BUG-H85-WEB-05)
+  if (patrullaIdActual !== prevPatrullaId) {
+    setPrevPatrullaId(patrullaIdActual);
+    setErrorMensaje(null);
+    setEsConflicto(false);
+    setEsNotFound(false);
+  }
 
   const handleCerrar = useCallback(() => {
     if (desactivando) return;
     setErrorMensaje(null);
     setEsConflicto(false);
+    setEsNotFound(false);
     onClose();
   }, [desactivando, onClose]);
 
@@ -65,17 +78,18 @@ export const PatrullaDesactivarModal: React.FC<PatrullaDesactivarModalProps> = (
   }
 
   const estaBloqueadaPorOperacion =
-    patrulla.estado === 'EN_VERIFICACION' || Boolean(patrulla.misionActiva);
+    patrulla.estado !== 'DISPONIBLE' || Boolean(patrulla.misionActiva);
 
   const cantIntegrantes = patrulla.integrantes?.length || 0;
   const tieneVehiculo = Boolean(patrulla.vehiculo?.nombre);
 
   const handleConfirmarDesactivacion = async () => {
-    if (estaBloqueadaPorOperacion) return;
+    if (estaBloqueadaPorOperacion || esConflicto || esNotFound) return;
 
     setDesactivando(true);
     setErrorMensaje(null);
     setEsConflicto(false);
+    setEsNotFound(false);
 
     try {
       const res = await patrullasService.desactivar(patrulla.id, usuarioActivoId);
@@ -90,10 +104,21 @@ export const PatrullaDesactivarModal: React.FC<PatrullaDesactivarModalProps> = (
             res.mensaje ||
               'No es posible desactivar la patrulla mientras se encuentre en verificación o con misiones activas.'
           );
+        } else if (res.codigoError === 404) {
+          setEsNotFound(true);
+          setErrorMensaje(
+            res.mensaje ||
+              'La patrulla verificadora solicitada ya fue dada de baja o no existe en el registro comunal.'
+          );
         } else if (res.esForbidden) {
           setErrorMensaje(
             res.mensaje ||
               'No cuenta con los privilegios requeridos (recursos:eliminar) para desactivar patrullas.'
+          );
+        } else if (res.esNoAutorizado) {
+          setErrorMensaje(
+            res.mensaje ||
+              'Sesión no autorizada o expirada. Por favor, vuelva a iniciar sesión.'
           );
         } else {
           setErrorMensaje(res.mensaje || 'Error al procesar la baja lógica de la patrulla.');
@@ -255,7 +280,7 @@ export const PatrullaDesactivarModal: React.FC<PatrullaDesactivarModalProps> = (
             variant="destructive"
             size="md"
             onClick={handleConfirmarDesactivacion}
-            disabled={desactivando || estaBloqueadaPorOperacion}
+            disabled={desactivando || estaBloqueadaPorOperacion || esConflicto || esNotFound}
             loading={desactivando}
             icon={<Trash2 size={16} />}
             data-testid="btn-confirmar-desactivar-patrulla"

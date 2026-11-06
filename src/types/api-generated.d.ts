@@ -5694,10 +5694,330 @@ export interface paths {
             };
         };
     };
+    "/api/patrullas": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    page?: number;
+                    limit?: number;
+                    delegacionId?: string;
+                    estado?: "DISPONIBLE" | "EN_VERIFICACION" | "EN_MISION" | "EN_PREVENCION" | "EN_RECUPERACION" | "NO_DISPONIBLE";
+                    q?: string;
+                };
+                header?: {
+                    authorization?: string;
+                    "x-user-id"?: string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data: components["schemas"]["PatrullaVerificadoraItemSchema"][];
+                            meta: components["schemas"]["PaginacionMetaSchema"];
+                            message: string;
+                        };
+                    };
+                };
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            message: string;
+                        };
+                    };
+                };
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            message: string;
+                        };
+                    };
+                };
+            };
+        };
+        post: {
+            parameters: {
+                query?: never;
+                header?: {
+                    authorization?: string;
+                    "x-user-id"?: string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["CrearPatrullaInputSchema"];
+                };
+            };
+            responses: {
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            message: string;
+                            data: components["schemas"]["PatrullaVerificadoraItemSchema"];
+                        };
+                    };
+                };
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            message: string;
+                        };
+                    };
+                };
+            };
+        };
+    };
+    "/api/patrullas/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: {
+                    authorization?: string;
+                    "x-user-id"?: string;
+                };
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data: components["schemas"]["PatrullaVerificadoraItemSchema"];
+                        };
+                    };
+                };
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            message: string;
+                        };
+                    };
+                };
+            };
+        };
+        put: {
+            parameters: {
+                query?: never;
+                header?: {
+                    authorization?: string;
+                    "x-user-id"?: string;
+                };
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["EditarPatrullaInputSchema"];
+                };
+            };
+            responses: {
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            message: string;
+                            data: components["schemas"]["PatrullaVerificadoraItemSchema"];
+                        };
+                    };
+                };
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            message: string;
+                        };
+                    };
+                };
+            };
+        };
+        delete: {
+            parameters: {
+                query?: never;
+                header?: {
+                    authorization?: string;
+                    "x-user-id"?: string;
+                };
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DesactivarPatrullaResponse"];
+                    };
+                };
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            message: string;
+                        };
+                    };
+                };
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            message: string;
+                        };
+                    };
+                };
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            message: string;
+                        };
+                    };
+                };
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            message: string;
+                        };
+                    };
+                };
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            message: string;
+                        };
+                    };
+                };
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            message: string;
+                        };
+                    };
+                };
+            };
+        };
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        DesactivarPatrullaResponseData: {
+            id: string;
+            codigo?: string | null;
+            nombre: string;
+            estado: "DISPONIBLE" | "EN_VERIFICACION" | "EN_MISION" | "EN_PREVENCION" | "EN_RECUPERACION" | "NO_DISPONIBLE";
+            activo: boolean;
+            eliminadoEn: string;
+            eliminadoPorId?: string | null;
+            vehiculoLiberadoId?: string | null;
+            personalLiberadoIds?: string[];
+        };
+        DesactivarPatrullaResponse: {
+            message: string;
+            data: components["schemas"]["DesactivarPatrullaResponseData"];
+        };
+        PatrullaVerificadoraItemSchema: {
+            id: string;
+            codigo?: string | null;
+            nombre: string;
+            estado: "DISPONIBLE" | "EN_VERIFICACION" | "EN_MISION" | "EN_PREVENCION" | "EN_RECUPERACION" | "NO_DISPONIBLE";
+            delegacionId?: string | null;
+            vehiculoId?: string | null;
+            usuarioLiderId?: string | null;
+            activo: boolean;
+            creadoEn?: string;
+            actualizadoEn?: string;
+            eliminadoEn?: string | null;
+            eliminadoPorId?: string | null;
+        };
+        PaginacionMetaSchema: {
+            total: number;
+            page: number;
+            limit: number;
+            totalPages: number;
+            hasNext?: boolean;
+            hasPrev?: boolean;
+        };
+        CrearPatrullaInputSchema: {
+            codigo?: string;
+            nombre: string;
+            delegacionId: string;
+            vehiculoId?: string;
+            usuarioLiderId: string;
+            personalIds?: string[];
+        };
+        EditarPatrullaInputSchema: {
+            nombre?: string;
+            delegacionId?: string;
+            vehiculoId?: string | null;
+            usuarioLiderId?: string;
+            personalIds?: string[];
+        };
         DesactivarCuadrillaResponseData: {
             id: string;
             nombre: string;
