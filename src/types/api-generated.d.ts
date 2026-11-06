@@ -7094,6 +7094,22 @@ export interface components {
              *     ]
              */
             permisos: string[];
+            /**
+             * Format: uuid
+             * @description UUID de la unidad táctica u operativa asignada (patrulla o cuadrilla)
+             * @example 40000000-0000-4000-8000-000000000001
+             */
+            unidadId?: string | null;
+            /**
+             * @description Nombre de la unidad táctica u operativa asignada
+             * @example Patrulla Verificadora Alfa
+             */
+            unidadNombre?: string | null;
+            /**
+             * @description Indica si la unidad operativa se encuentra activa (false si fue dada de baja mediante baja lógica)
+             * @example true
+             */
+            unidadActiva?: boolean;
         };
         /** @description Información del rol institucional asignado */
         UsuarioActivoRol: {
@@ -7206,6 +7222,22 @@ export interface components {
              *     ]
              */
             permisos: string[];
+            /**
+             * Format: uuid
+             * @description UUID de la unidad táctica u operativa asignada (patrulla o cuadrilla)
+             * @example 40000000-0000-4000-8000-000000000001
+             */
+            unidadId?: string | null;
+            /**
+             * @description Nombre de la unidad táctica u operativa asignada
+             * @example Patrulla Verificadora Alfa
+             */
+            unidadNombre?: string | null;
+            /**
+             * @description Indica si la unidad operativa se encuentra activa (false si fue dada de baja mediante baja lógica)
+             * @example true
+             */
+            unidadActiva?: boolean;
         };
         AvisosPaginadosResponse: {
             /** @example Avisos obtenidos exitosamente */
