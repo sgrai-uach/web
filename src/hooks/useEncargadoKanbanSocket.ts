@@ -72,7 +72,10 @@ export function useEncargadoKanbanSocket({
 
     const onConnect = () => {
       setConectado(true);
+      socket.emit('join', 'encargado');
       socket.emit('unirse', 'sala:encargados');
+      socket.emit('join', 'mapa');
+      socket.emit('unirse', 'mapa');
     };
 
     const onDisconnect = () => {
@@ -80,7 +83,10 @@ export function useEncargadoKanbanSocket({
     };
 
     if (socket.connected) {
+      socket.emit('join', 'encargado');
       socket.emit('unirse', 'sala:encargados');
+      socket.emit('join', 'mapa');
+      socket.emit('unirse', 'mapa');
       queueMicrotask(() => {
         setConectado(true);
       });
@@ -93,12 +99,29 @@ export function useEncargadoKanbanSocket({
       }
     };
 
-    const handleActualizado = (payload: IncidenteActualizadoPayload) => {
+    const handleActualizado = (payload: any) => {
+      const rawDatos = payload?.datos || payload?.data || payload;
+      const id = rawDatos?.id || rawDatos?.incidenteId;
+      const nuevoEstado = rawDatos?.nuevoEstado || rawDatos?.estado;
+      if (!id) return;
+
+      const normalizedPayload: IncidenteActualizadoPayload = {
+        evento: 'incidente:actualizado',
+        datos: {
+          id,
+          codigo: rawDatos?.codigo || '',
+          nuevoEstado: (nuevoEstado as EstadoIncidente) || 'VERIFICANDO',
+          prioridad: rawDatos?.prioridad,
+          actualizadoEn: rawDatos?.actualizadoEn || new Date().toISOString(),
+        },
+        emitidoEn: payload?.emitidoEn || new Date().toISOString(),
+      };
+
       setUltimoEvento(
-        `Actualizado: ${payload?.datos?.codigo || ''} → ${payload?.datos?.nuevoEstado || ''}`
+        `Actualizado: ${normalizedPayload.datos.codigo || ''} → ${normalizedPayload.datos.nuevoEstado}`
       );
       if (actualizadoRef.current) {
-        actualizadoRef.current(payload);
+        actualizadoRef.current(normalizedPayload);
       }
     };
 
@@ -112,7 +135,10 @@ export function useEncargadoKanbanSocket({
       socket.off('disconnect', onDisconnect);
       socket.off('incidente:creado', handleCreado);
       socket.off('incidente:actualizado', handleActualizado);
+      socket.emit('leave', 'encargado');
       socket.emit('salir', 'sala:encargados');
+      socket.emit('leave', 'mapa');
+      socket.emit('salir', 'mapa');
     };
   }, [enabled]);
 

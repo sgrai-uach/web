@@ -358,6 +358,61 @@ export function useIncidentesKanban(initialUserId?: string) {
     []
   );
 
+  // Función para mover un incidente de columna de forma inmediata e imperativa
+  const moverIncidenteAEstado = useCallback(
+    (incidenteId: string, nuevoEstado: EstadoIncidente, prioridad?: PrioridadIncidente) => {
+      setColumnas((prev) => {
+        let incidenteEncontrado: IncidenteResumen | null = null;
+        let columnaOrigen: EstadoIncidente | null = null;
+
+        for (const est of ESTADOS_KANBAN) {
+          const idx = prev[est].findIndex((i) => i.id === incidenteId);
+          if (idx !== -1) {
+            incidenteEncontrado = {
+              ...prev[est][idx],
+              estado: nuevoEstado,
+              prioridad: prioridad || prev[est][idx].prioridad,
+              actualizadoEn: new Date().toISOString(),
+            };
+            columnaOrigen = est;
+            break;
+          }
+        }
+
+        if (!incidenteEncontrado) return prev;
+
+        if (columnaOrigen === nuevoEstado) {
+          return {
+            ...prev,
+            [columnaOrigen]: prev[columnaOrigen].map((i) =>
+              i.id === incidenteId ? incidenteEncontrado! : i
+            ),
+          };
+        }
+
+        return {
+          ...prev,
+          [columnaOrigen!]: prev[columnaOrigen!].filter((i) => i.id !== incidenteId),
+          [nuevoEstado]: [incidenteEncontrado, ...prev[nuevoEstado]],
+        };
+      });
+
+      // Actualizar contadores locales de paginación para reflejar el traslado
+      setPaginacionColumna((prev) => {
+        return {
+          ...prev,
+          REPORTADO: prev.REPORTADO
+            ? { ...prev.REPORTADO, total: Math.max(0, prev.REPORTADO.total - 1) }
+            : null,
+          VERIFICANDO: prev.VERIFICANDO
+            ? { ...prev.VERIFICANDO, total: prev.VERIFICANDO.total + 1 }
+            : null,
+        };
+      });
+    },
+    []
+  );
+
   const { conectado, ultimoEvento } = useEncargadoKanbanSocket({
     onIncidenteCreado: handleIncidenteCreado,
     onIncidenteActualizado: handleIncidenteActualizado,
@@ -384,6 +439,7 @@ export function useIncidentesKanban(initialUserId?: string) {
     limpiarFiltros,
     cargarMas,
     recargar: cargarTablero,
+    moverIncidenteAEstado,
     conectado,
     ultimoEvento,
     totalIncidentesVisibles,

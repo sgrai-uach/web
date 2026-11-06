@@ -8,7 +8,7 @@ import { useIncidentesKpis } from '@/hooks/useIncidentesKpis';
 import { usePrevencionSocket } from '@/hooks/usePrevencionSocket';
 import { useRecuperacionSocket } from '@/hooks/useRecuperacionSocket';
 import { useToast } from '@/components/ui/Toast';
-import type { EstadoIncidente } from '@/services/incidentesService';
+import type { EstadoIncidente, IncidenteResumen } from '@/services/incidentesService';
 import type { EventoPrevencionDTO } from '@/types/evento-prevencion';
 import type { EventoRecuperacionResponse } from '@/types/recuperacion';
 import { KanbanHeader } from './KanbanHeader';
@@ -19,6 +19,7 @@ import { IncidenteDetalleDrawer } from './IncidenteDetalleDrawer';
 import { AccesoDenegado } from './AccesoDenegado';
 import { MisionesModal } from './misiones/MisionesModal';
 import { MisionDetalleModal } from './mision/MisionDetalleModal';
+import { AsignarPatrullaModal } from './patrullas/AsignarPatrullaModal';
 import { PanelPatrullasModal } from './patrullas/PanelPatrullasModal';
 import { ModalCrearEventoPrevencion } from './ModalCrearEventoPrevencion';
 import { ModalCrearEventoRecuperacion } from './ModalCrearEventoRecuperacion';
@@ -46,6 +47,7 @@ export const KanbanBoard: React.FC = () => {
   const [modalRecuperacionAbierto, setModalRecuperacionAbierto] = useState(false);
   const [eventosPrevencion, setEventosPrevencion] = useState<EventoPrevencionDTO[]>([]);
   const [eventosRecuperacion, setEventosRecuperacion] = useState<EventoRecuperacionResponse[]>([]);
+  const [incidenteParaAsignar, setIncidenteParaAsignar] = useState<IncidenteResumen | null>(null);
 
   const {
     userId,
@@ -62,6 +64,7 @@ export const KanbanBoard: React.FC = () => {
     limpiarFiltros,
     cargarMas,
     recargar,
+    moverIncidenteAEstado,
     conectado,
     ultimoEvento,
     totalIncidentesVisibles,
@@ -261,6 +264,7 @@ export const KanbanBoard: React.FC = () => {
                     resaltada={estadoEnfocado === estado}
                     onCargarMas={cargarMas}
                     onSeleccionarIncidente={(inc) => setIncidenteSeleccionadoId(inc.id)}
+                    onAsignarPatrulla={(inc) => setIncidenteParaAsignar(inc)}
                   />
                 ))}
               </div>
@@ -282,6 +286,25 @@ export const KanbanBoard: React.FC = () => {
             incidenteId={incidenteSeleccionadoId}
             userId={userId}
             onCerrar={() => setIncidenteSeleccionadoId(null)}
+            onIncidenteActualizado={(incId, nuevoEstado) => {
+              moverIncidenteAEstado(incId, nuevoEstado);
+              recargar();
+              refrescarKpis();
+            }}
+          />
+
+          {/* Modal de Asignación de Patrulla desde tarjeta Kanban */}
+          <AsignarPatrullaModal
+            isOpen={!!incidenteParaAsignar}
+            onClose={() => setIncidenteParaAsignar(null)}
+            incidente={incidenteParaAsignar}
+            userId={userId}
+            onAsignacionExitosa={(data) => {
+              moverIncidenteAEstado(data.incidente.id, 'VERIFICANDO');
+              recargar();
+              refrescarKpis();
+              setIncidenteParaAsignar(null);
+            }}
           />
 
           <MisionesModal

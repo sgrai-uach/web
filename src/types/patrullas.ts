@@ -188,3 +188,36 @@ export interface ResultadoEditarPatrulla {
   erroresValidacion?: Array<{ campo: string; mensaje: string }>;
 }
 
+export interface DesactivarPatrullaDataDTO {
+  id: string;
+  codigo: string;
+  nombre: string;
+  estado: EstadoPatrullaEnum;
+  activo: boolean;
+  eliminadoEn: string;
+  eliminadoPorId: string;
+  vehiculoLiberadoId?: string | null;
+  personalLiberadoIds?: string[];
+}
+
+export interface DesactivarPatrullaResponseDTO {
+  message: string;
+  data: DesactivarPatrullaDataDTO;
+}
+
+export interface ResultadoDesactivarPatrulla {
+  exito: boolean;
+  data?: DesactivarPatrullaDataDTO;
+  mensaje: string;
+  codigoError?: number;
+  esForbidden?: boolean;
+  esConflicto?: boolean;
+}
+
+export interface PatrullaDesactivadaSocketPayload {
+  patrullaId: string;
+  nombre: string;
+  eliminadoPorId: string;
+  eliminadoEn: string;
+}
+

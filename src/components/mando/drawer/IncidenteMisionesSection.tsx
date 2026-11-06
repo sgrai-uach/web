@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Eye } from 'lucide-react';
+import { Eye, ShieldCheck } from 'lucide-react';
 import Heading from '@/components/ui/Heading';
 import Button from '@/components/ui/Button';
 import type { IncidenteDetalle } from '@/services/incidentesService';
@@ -9,12 +9,16 @@ import styles from '@/styles/mando.module.css';
 
 interface IncidenteMisionesSectionProps {
   misiones: IncidenteDetalle['misiones'];
+  incidenteEstado?: string;
   onVerDetalleMision?: (misionId: string) => void;
+  onAsignarPatrulla?: () => void;
 }
 
 export const IncidenteMisionesSection: React.FC<IncidenteMisionesSectionProps> = ({
   misiones,
+  incidenteEstado,
   onVerDetalleMision,
+  onAsignarPatrulla,
 }) => {
   return (
     <div className={styles.drawerSection}>
@@ -22,9 +26,41 @@ export const IncidenteMisionesSection: React.FC<IncidenteMisionesSectionProps> =
         Misiones y Equipos en Terreno ({misiones.length})
       </Heading>
       {misiones.length === 0 ? (
-        <p style={{ color: 'var(--color-text-muted, #5F676E)', fontSize: '0.85rem', margin: 0 }}>
-          No se han despachado misiones operativas para este caso.
-        </p>
+        incidenteEstado === 'REPORTADO' ? (
+          <div
+            style={{
+              backgroundColor: '#F8FAFB',
+              border: '1px solid var(--border-color-neutral, #DFE3E8)',
+              padding: '12px 14px',
+              borderRadius: 0,
+            }}
+          >
+            <p
+              style={{
+                color: 'var(--color-text-dark, #2B2B2B)',
+                fontSize: '0.85rem',
+                margin: '0 0 10px 0',
+              }}
+            >
+              Este incidente está pendiente de evaluación inicial. Despache una patrulla disponible para verificar en terreno las necesidades reales.
+            </p>
+            {onAsignarPatrulla && (
+              <Button
+                type="button"
+                variant="primary"
+                size="sm"
+                onClick={onAsignarPatrulla}
+              >
+                <ShieldCheck size={14} style={{ marginRight: '5px' }} />
+                <span>Despachar Patrulla Verificadora</span>
+              </Button>
+            )}
+          </div>
+        ) : (
+          <p style={{ color: 'var(--color-text-muted, #5F676E)', fontSize: '0.85rem', margin: 0 }}>
+            No se han despachado misiones operativas para este caso.
+          </p>
+        )
       ) : (
         misiones.map((mision) => (
           <div key={mision.id} className={styles.misionCard}>

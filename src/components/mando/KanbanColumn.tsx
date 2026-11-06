@@ -21,6 +21,7 @@ interface KanbanColumnProps {
   resaltada?: boolean;
   onCargarMas: (estado: EstadoIncidente) => void;
   onSeleccionarIncidente: (incidente: IncidenteResumen) => void;
+  onAsignarPatrulla?: (incidente: IncidenteResumen) => void;
 }
 
 export const KanbanColumn: React.FC<KanbanColumnProps> = ({
@@ -33,6 +34,7 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({
   resaltada = false,
   onCargarMas,
   onSeleccionarIncidente,
+  onAsignarPatrulla,
 }) => {
   const getHeaderStyle = (est: EstadoIncidente) => {
     switch (est) {
@@ -78,6 +80,7 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({
               key={incidente.id}
               incidente={incidente}
               onClick={onSeleccionarIncidente}
+              onAsignarPatrulla={onAsignarPatrulla}
             />
           ))
         )}

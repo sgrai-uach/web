@@ -383,6 +383,18 @@
   background-color: var(--color-primary-teal-dark, #14505A);
 }
 
+.btnCardActionDanger {
+  background-color: var(--color-white, #FFFFFF);
+  color: var(--color-danger, #D32F2F);
+  border-color: var(--color-danger-border, #FFCDD2);
+}
+
+.btnCardActionDanger:hover:not(:disabled) {
+  background-color: var(--color-danger-bg, #FFEBEE);
+  color: var(--color-danger, #D32F2F);
+  border-color: var(--color-danger, #D32F2F);
+}
+
 .btnCardAction:disabled {
   opacity: 0.55;
   cursor: not-allowed;
