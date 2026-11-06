@@ -18,6 +18,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import type { PatrullaVerificadoraDTO, EstadoPatrullaEnum } from '@/types/patrullas';
+import { obtenerNombreDelegacion } from '@/lib/utils/delegacionUtils';
 import styles from './PanelPatrullas.module.css';
 
 export interface PatrullaCardProps {
@@ -86,7 +87,9 @@ export const PatrullaCard: React.FC<PatrullaCardProps> = ({
   const misionActiva = patrulla.misionActiva;
   const tieneMision = Boolean(misionActiva && patrulla.estado !== 'DISPONIBLE');
   const cantIntegrantes = patrulla.integrantes?.length || 0;
-  const estaBloqueada = patrulla.estado === 'EN_VERIFICACION' || Boolean(patrulla.misionActiva);
+  const estaBloqueada =
+    ['EN_VERIFICACION', 'EN_MISION', 'EN_PREVENCION', 'EN_RECUPERACION'].includes(patrulla.estado) ||
+    Boolean(patrulla.misionActiva);
   const mensajeBloqueo = 'No es posible editar la patrulla mientras se encuentre en verificación o en misión activa';
   const mensajeBloqueoDesactivar = 'No es posible desactivar la patrulla mientras se encuentre en verificación o en misión activa';
 
@@ -118,10 +121,13 @@ export const PatrullaCard: React.FC<PatrullaCardProps> = ({
           <MapPin size={15} className={styles.metaIcon} aria-hidden="true" />
           <div>
             <span className={styles.metaLabel}>Delegación:</span>
-            <span>{patrulla.delegacion?.nombre || 'Sin delegación asignada'}</span>
-            {patrulla.delegacion?.codigo && (
-              <span className={styles.metaSubtext}> ({patrulla.delegacion.codigo})</span>
-            )}
+            <span>
+              {patrulla.delegacion?.nombre
+                ? patrulla.delegacion.nombre.startsWith('DEL_')
+                  ? obtenerNombreDelegacion(patrulla.delegacion.nombre)
+                  : patrulla.delegacion.nombre
+                : 'Sin delegación asignada'}
+            </span>
           </div>
         </div>
 

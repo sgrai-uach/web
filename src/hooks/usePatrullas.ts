@@ -93,7 +93,14 @@ export function usePatrullas({
 
   // Manejo de eventos WebSocket en tiempo real
   const filtrosRef = useRef(filtros);
-  filtrosRef.current = filtros;
+  useEffect(() => {
+    filtrosRef.current = filtros;
+  }, [filtros]);
+
+  const consultarRef = useRef(consultar);
+  useEffect(() => {
+    consultarRef.current = consultar;
+  }, [consultar]);
 
   useEffect(() => {
     if (!enabled) return;
@@ -202,7 +209,7 @@ export function usePatrullas({
       if (!payload?.patrullaId) return;
       const nombre = payload.nombre || payload.codigo || 'Nueva Patrulla';
       setUltimoEvento(`Nueva patrulla incorporada: ${nombre} (${payload.estado || 'DISPONIBLE'})`);
-      consultar(filtrosRef.current);
+      consultarRef.current(filtrosRef.current);
     };
 
     const handlePatrullaDesactivada = (payload: PatrullaDesactivadaSocketPayload) => {

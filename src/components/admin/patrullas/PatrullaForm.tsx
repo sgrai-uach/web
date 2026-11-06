@@ -1,10 +1,10 @@
 'use client';
 
 import React from 'react';
-import Link from 'next/link';
 import { ShieldCheck } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import InlineNotice from '@/components/ui/InlineNotice';
+import { traducirNombreCampo } from '@/lib/utils/errorUtils';
 import { useNuevaPatrullaForm } from '@/hooks/useNuevaPatrullaForm';
 import PatrullaIdentificacionSection from './PatrullaIdentificacionSection';
 import PatrullaDelegacionSection from './PatrullaDelegacionSection';
@@ -21,14 +21,16 @@ export default function PatrullaForm() {
     delegaciones,
     vehiculosDisponibles,
     personalElegible,
+    mapaPatrullasPorPersonal,
+    mapaPatrullasPorVehiculo,
     cargandoCatalogos,
     errorCatalogos,
     serverError,
+    clientFormError,
     serverFieldErrors,
     createdPatrulla,
     isSubmitting,
     showConfirmModal,
-    isValid,
     clientErrors,
     handleCodigoChange,
     handleNombreChange,
@@ -67,23 +69,38 @@ export default function PatrullaForm() {
         </InlineNotice>
       )}
 
+      {/* Aviso de Error General de Formulario */}
+      {clientFormError && (
+        <InlineNotice variant="error" title="Formulario incompleto">
+          {clientFormError}
+        </InlineNotice>
+      )}
+
       {/* Alerta de Error de Servidor o Conflicto (409) */}
       {serverError && (
         <InlineNotice
           variant="error"
           title="No fue posible dar de alta la patrulla verificadora"
         >
-          <div>{serverError}</div>
-          {serverFieldErrors && serverFieldErrors.length > 0 && (
-            <ul style={{ margin: '6px 0 0 0', paddingLeft: '18px' }}>
-              {serverFieldErrors.map((err, index) => (
-                <li key={index}>
-                  {err.campo ? <strong>{err.campo}: </strong> : null}
-                  {err.mensaje}
-                </li>
-              ))}
-            </ul>
-          )}
+          <div>
+            {serverFieldErrors && serverFieldErrors.length > 0 ? (
+              <span>
+                Se detectaron inconsistencias en la sección:{' '}
+                <strong>
+                  {Array.from(
+                    new Set(
+                      serverFieldErrors
+                        .map((err) => traducirNombreCampo(err.campo))
+                        .filter(Boolean)
+                    )
+                  ).join(', ')}
+                </strong>
+                . Por favor revise el campo señalado a continuación.
+              </span>
+            ) : (
+              <span>{serverError}</span>
+            )}
+          </div>
         </InlineNotice>
       )}
 
@@ -106,7 +123,10 @@ export default function PatrullaForm() {
         delegacionId={formData.delegacionId}
         delegaciones={delegaciones}
         cargando={cargandoCatalogos}
-        errorDelegacion={touched.delegacionId ? clientErrors.delegacionId : undefined}
+        errorDelegacion={
+          (touched.delegacionId ? clientErrors.delegacionId : undefined) ||
+          serverFieldErrors.find((e) => e.campo === 'delegacionId')?.mensaje
+        }
         onChangeDelegacion={handleDelegacionChange}
         onBlurDelegacion={() => handleBlur('delegacionId')}
       />
@@ -116,6 +136,8 @@ export default function PatrullaForm() {
         vehiculoId={formData.vehiculoId}
         vehiculos={vehiculosDisponibles}
         cargando={cargandoCatalogos}
+        mapaPatrullasPorVehiculo={mapaPatrullasPorVehiculo}
+        errorVehiculo={serverFieldErrors.find((e) => e.campo === 'vehiculoId')?.mensaje}
         onChangeVehiculo={handleVehiculoChange}
       />
 
@@ -125,7 +147,11 @@ export default function PatrullaForm() {
         personalSeleccionadoIds={formData.personalIds}
         usuarioLiderId={formData.usuarioLiderId}
         cargando={cargandoCatalogos}
-        errorPersonal={touched.personalIds ? clientErrors.personalIds : undefined}
+        mapaPatrullasPorPersonal={mapaPatrullasPorPersonal}
+        errorPersonal={
+          (touched.personalIds ? clientErrors.personalIds : undefined) ||
+          serverFieldErrors.find((e) => e.campo === 'personalIds')?.mensaje
+        }
         onTogglePersonal={handleTogglePersonal}
         onChangeLider={handleLiderChange}
       />
@@ -178,6 +204,8 @@ export default function PatrullaForm() {
         delegaciones={delegaciones}
         vehiculos={vehiculosDisponibles}
         personal={personalElegible}
+        mapaPatrullasPorVehiculo={mapaPatrullasPorVehiculo}
+        mapaPatrullasPorPersonal={mapaPatrullasPorPersonal}
         onClose={handleCloseConfirmModal}
         onConfirm={handleConfirmSave}
       />

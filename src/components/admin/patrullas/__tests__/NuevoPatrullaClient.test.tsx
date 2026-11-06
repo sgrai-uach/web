@@ -2,12 +2,9 @@ import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import NuevoPatrullaClient from '../NuevoPatrullaClient';
-import PatrullaForm from '../PatrullaForm';
-import { SimulatedSessionContext } from '@/context/SimulatedSessionContext';
+import { SimulatedSessionContext, type SimulatedSessionContextType } from '@/context/SimulatedSessionContext';
 import * as patrullasServiceModule from '@/services/patrullasService';
 import * as catalogosServiceModule from '@/services/catalogosService';
-import * as recursosServiceModule from '@/services/recursosService';
-import * as empleadosServiceModule from '@/services/empleadosService';
 
 // Mock de useRouter
 vi.mock('next/navigation', () => ({
@@ -69,6 +66,7 @@ vi.mock('@/services/empleadosService', () => ({
           usuario_activo: true,
           delegacion_nombre: 'Norte',
           cargo: 'Evaluador Táctico',
+          estado_operativo: 'disponible',
         },
       ],
       meta: { total: 1, page: 1, limit: 100, totalPages: 1 },
@@ -83,15 +81,15 @@ vi.mock('@/services/patrullasService', () => ({
   },
 }));
 
-const renderWithSession = (permisos: string[] = ['recursos:crear']) => {
+const renderWithSession = (permisos: string[] = ['recursos:crear'], esAdmin = false) => {
   const mockContextValue = {
     usuarioActivo: {
       id: '00000000-0000-4000-8000-000000000001',
-      nombre: 'Administrador General',
+      nombre: esAdmin ? 'Administrador General' : 'Operador',
       email: 'admin@valdivia.cl',
       rut: '11.111.111-1',
-      rol: 'Administrador',
-      esAdmin: true,
+      rol: esAdmin ? 'Administrador' : 'Operador',
+      esAdmin,
       color: '#1B6F7D',
       permisos,
     },
@@ -102,11 +100,12 @@ const renderWithSession = (permisos: string[] = ['recursos:crear']) => {
     refrescarPermisos: vi.fn(),
     tienePermiso: (p: string) => permisos.includes(p),
     hasPermission: (p: string) => permisos.includes(p),
+    hasAnyPermission: (plist: string[]) => plist.some((p) => permisos.includes(p)),
     isMounted: true,
   };
 
   return render(
-    <SimulatedSessionContext.Provider value={mockContextValue as any}>
+    <SimulatedSessionContext.Provider value={mockContextValue as unknown as SimulatedSessionContextType}>
       <NuevoPatrullaClient />
     </SimulatedSessionContext.Provider>
   );

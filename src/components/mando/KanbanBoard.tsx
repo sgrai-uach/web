@@ -20,6 +20,7 @@ import { AccesoDenegado } from './AccesoDenegado';
 import { MisionesModal } from './misiones/MisionesModal';
 import { MisionDetalleModal } from './mision/MisionDetalleModal';
 import { AsignarPatrullaModal } from './patrullas/AsignarPatrullaModal';
+import { PanelPatrullasModal } from './patrullas/PanelPatrullasModal';
 import { ModalCrearEventoPrevencion } from './ModalCrearEventoPrevencion';
 import { ModalCrearEventoRecuperacion } from './ModalCrearEventoRecuperacion';
 import { MapaOperativoMando } from './MapaOperativoMando';
@@ -40,6 +41,7 @@ export const KanbanBoard: React.FC = () => {
   const { showInfo } = useToast();
   const [vistaActiva, setVistaActiva] = useState<'kanban' | 'mapa'>('kanban');
   const [misionesModalAbierto, setMisionesModalAbierto] = useState(false);
+  const [patrullasModalAbierto, setPatrullasModalAbierto] = useState(false);
   const [misionSeleccionadaId, setMisionSeleccionadaId] = useState<string | null>(null);
   const [modalPrevencionAbierto, setModalPrevencionAbierto] = useState(false);
   const [modalRecuperacionAbierto, setModalRecuperacionAbierto] = useState(false);
@@ -184,6 +186,7 @@ export const KanbanBoard: React.FC = () => {
         userId={userId}
         setUserId={setUserId}
         onAbrirMisiones={() => setMisionesModalAbierto(true)}
+        onAbrirPatrullas={() => setPatrullasModalAbierto(true)}
         onOpenCrearPrevencion={() => setModalPrevencionAbierto(true)}
         onOpenCrearRecuperacion={() => setModalRecuperacionAbierto(true)}
       />
@@ -308,6 +311,19 @@ export const KanbanBoard: React.FC = () => {
             isOpen={misionesModalAbierto}
             onClose={() => setMisionesModalAbierto(false)}
             userId={userId}
+          />
+
+          <PanelPatrullasModal
+            isOpen={patrullasModalAbierto}
+            onClose={() => setPatrullasModalAbierto(false)}
+            userId={userId}
+            onSelectMision={(misionId) => {
+              setMisionSeleccionadaId(misionId);
+              setMisionesModalAbierto(true);
+            }}
+            onSelectIncidente={(incidenteId) => {
+              setIncidenteSeleccionadoId(incidenteId);
+            }}
           />
 
           <MisionDetalleModal
