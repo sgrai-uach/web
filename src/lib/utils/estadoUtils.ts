@@ -68,3 +68,4 @@ export function formatearEstado(
     .replace(/_/g, ' ')
     .replace(/^./, (c) => c.toUpperCase());
 }
+
