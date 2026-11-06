@@ -128,16 +128,14 @@ export function useNuevaPatrullaForm() {
     setErrorCatalogos(null);
 
     try {
-      const promesas = [
+      const [catRes, recursosRes, personalRes, patrullasRes] = await Promise.allSettled([
         catalogosService.getCatalogos(),
         getRecursos({ pagina: 1, limite: 100, esIndividual: true }),
         empleadosService.getEmpleadosPaginado({ limite: 100 }),
         typeof patrullasService?.listar === 'function'
           ? patrullasService.listar({ limit: 100 }).catch(() => ({ exito: false, data: [] }))
           : Promise.resolve({ exito: false, data: [] }),
-      ];
-
-      const [catRes, recursosRes, personalRes, patrullasRes] = await Promise.allSettled(promesas);
+      ]);
 
       // 1. Delegaciones
       if (catRes.status === 'fulfilled' && catRes.value?.delegaciones) {
