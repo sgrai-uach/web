@@ -97,6 +97,11 @@ export function usePatrullas({
     filtrosRef.current = filtros;
   }, [filtros]);
 
+  const consultarRef = useRef(consultar);
+  useEffect(() => {
+    consultarRef.current = consultar;
+  }, [consultar]);
+
   useEffect(() => {
     if (!enabled) return;
 
@@ -204,7 +209,7 @@ export function usePatrullas({
       if (!payload?.patrullaId) return;
       const nombre = payload.nombre || payload.codigo || 'Nueva Patrulla';
       setUltimoEvento(`Nueva patrulla incorporada: ${nombre} (${payload.estado || 'DISPONIBLE'})`);
-      consultar(filtrosRef.current);
+      consultarRef.current(filtrosRef.current);
     };
 
     const handlePatrullaDesactivada = (payload: PatrullaDesactivadaSocketPayload) => {

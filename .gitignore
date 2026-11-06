@@ -40,3 +40,5 @@ docker-compose.override.yml
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+certificates

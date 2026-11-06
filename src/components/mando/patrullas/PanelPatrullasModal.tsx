@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { X, ShieldCheck, Zap } from 'lucide-react';
+import ConnectionStatusBadge from '@/components/common/ConnectionStatusBadge';
 import Button from '@/components/ui/Button';
 import Heading from '@/components/ui/Heading';
 import Pagination from '@/components/common/Pagination';
@@ -77,6 +78,7 @@ export const PanelPatrullasModal: React.FC<PanelPatrullasModalProps> = ({
             >
               {meta.total} {meta.total === 1 ? 'patrulla' : 'patrullas'}
             </span>
+            <ConnectionStatusBadge connected={conectado} />
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>

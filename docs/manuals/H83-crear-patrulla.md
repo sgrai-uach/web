@@ -13,10 +13,10 @@ Este manual documenta el uso y operación de la funcionalidad de **Alta y Gesti�
   1. Menú lateral de navegación **Administración** &rarr; **Patrullas Verificadoras** (`/gestion/admin/patrullas`).
   2. Módulo **Patrullas Verificadoras** en el Portal de Gestión (`/gestion`).
   3. Botón de acción institucional **`[ + Nueva Patrulla ]`** con alto contraste en la cabecera de la vista de Patrullas Verificadoras, que despliega el modal de alta (`PatrullaCrearModal`).
-  4. Enlace directo con parámetro de consulta: `/gestion/admin/patrullas?nuevo=1` (o redirección automática desde `/gestion/admin/patrullas/nuevo`).
+  4. Enlace directo con formulario de alta de página completa en `/gestion/admin/patrullas/nuevo` (o modal reactivo mediante `/gestion/admin/patrullas?nuevo=1`).
 
 > [!NOTE]
-> **Desacoplamiento Operacional de Centro de Mando:** Conforme a los lineamientos arquitectónicos, la gestión administrativa de patrullas (alta, dotación y vehículos) no se realiza dentro del Centro de Mando, manteniéndolo como un entorno estrictamente enfocado en la supervisión táctica de incidentes y despacho en tiempo real.
+> **Supervisión Táctica en Centro de Mando:** Conforme a los lineamientos arquitectónicos, la creación y configuración administrativa de patrullas se centraliza en el módulo de Administración (`/gestion/admin/patrullas` y `/gestion/admin/patrullas/nuevo`). No obstante, el Encargado de Operaciones en el Centro de Mando (`/gestion/centro-incidentes`) dispone de un botón táctico directo **`[ Patrullas ]`** en su barra de herramientas para consultar en tiempo real el estado, dotación y disponibilidad de las patrullas activas sin salir de la consola de incidentes.
 
 ---
 

@@ -24,12 +24,12 @@ import type { PatrullaVerificadoraDTO } from '@/types/patrullas';
 import styles from './AdminPatrullas.module.css';
 
 export default function AdminPatrullasClient() {
-  const [modalCrearAbierto, setModalCrearAbierto] = useState(false);
+  const searchParams = useSearchParams();
+  const [modalCrearAbierto, setModalCrearAbierto] = useState(() => searchParams?.get('nuevo') === '1');
   const [patrullaAEditar, setPatrullaAEditar] = useState<PatrullaVerificadoraDTO | null>(null);
   const [patrullaADesactivar, setPatrullaADesactivar] = useState<PatrullaVerificadoraDTO | null>(null);
   const [patrullaADetalle, setPatrullaADetalle] = useState<PatrullaVerificadoraDTO | null>(null);
   const { showSuccess } = useToast();
-  const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
 
@@ -74,7 +74,6 @@ export default function AdminPatrullasClient() {
       return () => clearTimeout(timer);
     }
   }, [searchParams, puedeCrear]);
-
   const userId = auth?.usuario?.id || session?.usuarioActivo?.id;
 
   const {
@@ -331,7 +330,6 @@ export default function AdminPatrullasClient() {
         patrulla={patrullaADetalle}
         onClose={() => setPatrullaADetalle(null)}
         onEditar={(p) => {
-          setPatrullaADetalle(null);
           setPatrullaAEditar(p);
         }}
         puedeEditar={puedeEditar}

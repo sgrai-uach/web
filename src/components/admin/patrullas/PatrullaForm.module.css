@@ -140,6 +140,16 @@
   border-left: 4px solid var(--color-primary-teal, #1B6F7D);
 }
 
+.personalCardDisabled {
+  cursor: not-allowed !important;
+  opacity: 0.65;
+  background-color: var(--color-bg-light, #ECEFF3);
+}
+
+.personalCardDisabled:hover {
+  border-color: var(--border-color-neutral, #DFE3E8) !important;
+}
+
 .personalInfo {
   display: flex;
   align-items: center;
@@ -182,6 +192,29 @@
 .badgeOperativo {
   background-color: #E8F5E9;
   color: #2E7D32;
+}
+
+.personalCardDisabled {
+  background-color: var(--color-bg-light, #ECEFF3);
+  opacity: 0.65;
+  cursor: not-allowed;
+  border-color: var(--border-color-neutral, #DFE3E8);
+}
+
+.personalCardDisabled:hover {
+  border-color: var(--border-color-neutral, #DFE3E8);
+}
+
+.badgeAdvertencia {
+  background-color: var(--color-warning-bg, #FFF3E0);
+  color: var(--color-warning, #E65100);
+  border: 1px solid rgba(230, 81, 0, 0.3);
+}
+
+.badgeNoDisponible {
+  background-color: var(--color-danger-bg, #FFEBEE);
+  color: var(--color-danger, #D32F2F);
+  border: 1px solid rgba(211, 47, 47, 0.3);
 }
 
 /* Modal de confirmación */

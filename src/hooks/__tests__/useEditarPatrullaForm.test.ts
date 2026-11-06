@@ -56,6 +56,7 @@ vi.mock('@/services/empleadosService', () => ({
           apellidos: 'Pérez',
           rol_codigo: 'PATRULLA_VERIFICADORA',
           usuario_activo: true,
+          estado_operativo: 'disponible',
         },
         {
           usuario_id: 'c1000000-0000-4000-8000-000000000002',
@@ -64,9 +65,28 @@ vi.mock('@/services/empleadosService', () => ({
           apellidos: 'González',
           rol_codigo: 'PATRULLA_VERIFICADORA',
           usuario_activo: true,
+          estado_operativo: 'disponible',
+        },
+        {
+          usuario_id: 'c1000000-0000-4000-8000-000000000003',
+          personal_id: 'b1000000-0000-4000-8000-000000000003',
+          nombres: 'Roberto',
+          apellidos: 'Soto',
+          rol_codigo: 'PATRULLA_VERIFICADORA',
+          usuario_activo: true,
+          estado_operativo: 'en_patrulla',
+        },
+        {
+          usuario_id: 'c1000000-0000-4000-8000-000000000004',
+          personal_id: 'b1000000-0000-4000-8000-000000000004',
+          nombres: 'Carlos',
+          apellidos: 'Reyes',
+          rol_codigo: 'PATRULLA_VERIFICADORA',
+          usuario_activo: true,
+          estado_operativo: 'licencia',
         },
       ],
-      meta: { total: 2, page: 1, limit: 100, totalPages: 1 },
+      meta: { total: 4, page: 1, limit: 100, totalPages: 1 },
     }),
   },
 }));
@@ -221,5 +241,121 @@ describe('useEditarPatrullaForm (HU-84: Edición de Patrulla Verificadora)', () 
 
     expect(result.current.esConflicto).toBe(true);
     expect(result.current.serverError).toContain('misión táctica activa');
+  });
+
+  it('5. BUG-H84-WEB-01: invalida nombres de menos de 3 caracteres con mensaje de Zod', async () => {
+    let hookResult!: HookResultType;
+    await act(async () => {
+      hookResult = renderHook(() => useEditarPatrullaForm(mockPatrullaDisponible));
+    });
+
+    const { result } = hookResult;
+
+    act(() => {
+      result.current.handleNombreChange('PV');
+    });
+
+    expect(result.current.isValid).toBe(false);
+    expect(result.current.clientErrors.nombre).toBe(
+      'El nombre de la patrulla debe tener al menos 3 caracteres.'
+    );
+  });
+
+  it('6. BUG-H84-WEB-02: reasigna automáticamente el líder al primer integrante restante al desmarcar al líder', async () => {
+    const patrullaConDosIntegrantes: PatrullaVerificadoraDTO = {
+      ...mockPatrullaDisponible,
+      integrantes: [
+        {
+          id: 'b1000000-0000-4000-8000-000000000001',
+          usuarioId: 'c1000000-0000-4000-8000-000000000001',
+          nombre: 'Juan Pérez',
+          rolEnPatrulla: 'LIDER',
+        },
+        {
+          id: 'b1000000-0000-4000-8000-000000000002',
+          usuarioId: 'c1000000-0000-4000-8000-000000000002',
+          nombre: 'María González',
+          rolEnPatrulla: 'INTEGRANTE',
+        },
+      ],
+      lider: {
+        id: 'c1000000-0000-4000-8000-000000000001',
+        nombre: 'Juan Pérez',
+        email: 'juan@valdivia.cl',
+      },
+    };
+
+    let hookResult!: HookResultType;
+    await act(async () => {
+      hookResult = renderHook(() => useEditarPatrullaForm(patrullaConDosIntegrantes));
+    });
+
+    const { result } = hookResult;
+    expect(result.current.formData.usuarioLiderId).toBe('c1000000-0000-4000-8000-000000000001');
+
+    // Desmarcar al líder actual (Juan Pérez)
+    act(() => {
+      result.current.handleTogglePersonal(
+        'b1000000-0000-4000-8000-000000000001',
+        'c1000000-0000-4000-8000-000000000001'
+      );
+    });
+
+    // Ahora el líder debe haberse transferido automáticamente al usuario_id de María González
+    expect(result.current.formData.personalIds).toEqual(['b1000000-0000-4000-8000-000000000002']);
+    expect(result.current.formData.usuarioLiderId).toBe('c1000000-0000-4000-8000-000000000002');
+  });
+
+  it('7. BUG-H84-WEB-03: bloquea la edición ante cualquier estado operativo activo (EN_MISION, EN_PREVENCION, EN_RECUPERACION)', async () => {
+    const estadosActivos = ['EN_MISION', 'EN_PREVENCION', 'EN_RECUPERACION'] as const;
+
+    for (const estado of estadosActivos) {
+      const patrullaActiva: PatrullaVerificadoraDTO = {
+        ...mockPatrullaDisponible,
+        estado,
+        misionActiva: null,
+      };
+
+      let hookResult!: HookResultType;
+      await act(async () => {
+        hookResult = renderHook(() => useEditarPatrullaForm(patrullaActiva));
+      });
+
+      const { result } = hookResult;
+      expect(result.current.estaBloqueada).toBe(true);
+      expect(result.current.isValid).toBe(false);
+      expect(result.current.mensajeBloqueo).toContain('No es posible editar la patrulla');
+    }
+  });
+
+  it('8. permite seleccionar a un funcionario en_patrulla (duplicación controlada) y bloquea funcionarios inoperativos (licencia/descanso/inactivo)', async () => {
+    let hookResult!: HookResultType;
+    await act(async () => {
+      hookResult = renderHook(() => useEditarPatrullaForm(mockPatrullaDisponible));
+    });
+
+    const { result } = hookResult;
+
+    // Intentar agregar a Roberto Soto (personal_id: b1000000-...-0003), quien está en estado 'en_patrulla'
+    act(() => {
+      result.current.handleTogglePersonal(
+        'b1000000-0000-4000-8000-000000000003',
+        'c1000000-0000-4000-8000-000000000003'
+      );
+    });
+
+    // SÍ debe haberse agregado a personalIds (duplicación permitida con advertencia)
+    expect(result.current.formData.personalIds).toContain('b1000000-0000-4000-8000-000000000003');
+
+    // Intentar agregar a Carlos Reyes (personal_id: b1000000-...-0004), quien está con licencia médica
+    act(() => {
+      result.current.handleTogglePersonal(
+        'b1000000-0000-4000-8000-000000000004',
+        'c1000000-0000-4000-8000-000000000004'
+      );
+    });
+
+    // NO debe haberse agregado a personalIds por encontrarse inoperativo
+    expect(result.current.formData.personalIds).not.toContain('b1000000-0000-4000-8000-000000000004');
   });
 });

@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import Heading from '@/components/ui/Heading';
 import Button from '@/components/ui/Button';
+import { obtenerNombreDelegacion } from '@/lib/utils/delegacionUtils';
 import type { PatrullaVerificadoraDTO, EstadoPatrullaEnum } from '@/types/patrullas';
 
 export interface PatrullaDetalleDrawerProps {
@@ -101,7 +102,9 @@ export const PatrullaDetalleDrawer: React.FC<PatrullaDetalleDrawerProps> = ({
 
   const configEstado = CONFIG_ESTADOS[patrulla.estado] || CONFIG_ESTADOS.NO_DISPONIBLE;
   const IconoEstado = configEstado.icono;
-  const estaBloqueada = patrulla.estado === 'EN_VERIFICACION' || Boolean(patrulla.misionActiva);
+  const estaBloqueada =
+    ['EN_VERIFICACION', 'EN_MISION', 'EN_PREVENCION', 'EN_RECUPERACION'].includes(patrulla.estado) ||
+    Boolean(patrulla.misionActiva);
   const misionActiva = patrulla.misionActiva;
 
   return (
@@ -275,8 +278,10 @@ export const PatrullaDetalleDrawer: React.FC<PatrullaDetalleDrawerProps> = ({
                   Delegación Municipal Base
                 </div>
                 <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--color-charcoal, #3B3F45)' }}>
-                  {patrulla.delegacion?.nombre || 'Sin delegación asignada'}
-                  {patrulla.delegacion?.codigo ? ` (${patrulla.delegacion.codigo})` : ''}
+                  {obtenerNombreDelegacion(
+                    patrulla.delegacion?.nombre || patrulla.delegacion?.codigo,
+                    'Sin delegación asignada'
+                  )}
                 </div>
               </div>
             </div>

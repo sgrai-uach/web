@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { MapPin } from 'lucide-react';
+import { obtenerNombreDelegacion } from '@/lib/utils/delegacionUtils';
 import type { CatalogoItem } from '@/types/catalogos';
 import styles from './PatrullaForm.module.css';
 
@@ -57,11 +58,16 @@ export const PatrullaDelegacionSection: React.FC<PatrullaDelegacionSectionProps>
             <option value="">
               {cargando ? 'Cargando delegaciones...' : '-- Seleccione Delegación Municipal --'}
             </option>
-            {delegaciones.map((d) => (
-              <option key={d.id} value={d.id}>
-                {d.nombre} {d.codigo ? `(${d.codigo})` : ''}
-              </option>
-            ))}
+            {delegaciones.map((d) => {
+              const nombreLimpio = d.nombre.startsWith('DEL_')
+                ? obtenerNombreDelegacion(d.nombre)
+                : d.nombre;
+              return (
+                <option key={d.id} value={d.id}>
+                  {nombreLimpio}
+                </option>
+              );
+            })}
           </select>
           {errorDelegacion ? (
             <span id="error-patrulla-delegacion" className={styles.errorText} role="alert">

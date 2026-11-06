@@ -103,6 +103,7 @@ vi.mock('@/services/patrullasService', () => ({
   patrullasService: {
     listar: vi.fn(),
     crear: vi.fn(),
+    editar: vi.fn(),
   },
 }));
 
@@ -118,13 +119,21 @@ const mockPatrullas: PatrullaVerificadoraDTO[] = [
       codigo: 'DEL_COSTA',
     },
     lider: {
-      id: '00000000-0000-4000-8000-000000000003',
-      nombre: 'Encargado de Operaciones',
-      email: 'encargado@valdivia.cl',
+      id: 'c1000000-0000-4000-8000-000000000001',
+      nombre: 'Carlos Muñoz',
+      email: 'carlos@valdivia.cl',
       telefono: '+56911112222',
-      rut: '33333333-3',
+      rut: '12.345.678-9',
     },
-    integrantes: [],
+    integrantes: [
+      {
+        id: 'b1000000-0000-4000-8000-000000000001',
+        usuarioId: 'c1000000-0000-4000-8000-000000000001',
+        nombre: 'Carlos Muñoz',
+        cargo: 'Evaluador Táctico',
+        rolEnPatrulla: 'LIDER',
+      },
+    ],
     misionActiva: null,
     actualizadoEn: '2026-10-25T10:00:00.000Z',
   },
@@ -279,7 +288,7 @@ describe('AdminPatrullasClient (Pestaña dedicada de Patrullas Verificadoras)', 
     });
 
     it('7. deshabilita "Editar Patrulla" con tooltip reglamentario cuando la patrulla está EN_VERIFICACION o en misión activa', async () => {
-      vi.mocked(patrullasServiceModule.patrullasService.listar).mockResolvedValueOnce({
+      vi.mocked(patrullasServiceModule.patrullasService.listar).mockResolvedValue({
         exito: true,
         data: [patrullaActiva],
         meta: { total: 1, page: 1, limit: 20, totalPages: 1, hasNext: false, hasPrev: false },
@@ -316,7 +325,62 @@ describe('AdminPatrullasClient (Pestaña dedicada de Patrullas Verificadoras)', 
       });
     });
 
-    it('9. renderiza la acción "Desactivar" con permiso recursos:eliminar y abre PatrullaDesactivarModal', async () => {
+    it('9. BUG-H84-WEB-05: al editar desde el drawer, mantiene la ficha técnica abierta y sincronizada con los datos actualizados tras guardar', async () => {
+      const patrullaActualizada: PatrullaVerificadoraDTO = {
+        ...mockPatrullas[0],
+        nombre: 'Patrulla Rápida Costa Modificada',
+      };
+
+      vi.mocked(patrullasServiceModule.patrullasService.editar).mockResolvedValueOnce({
+        exito: true,
+        mensaje: 'Patrulla modificada exitosamente.',
+        data: patrullaActualizada,
+      });
+
+      renderWithSession(['recursos:leer', 'recursos:editar']);
+
+      await waitFor(() => {
+        expect(screen.getByText('Patrulla Rápida Costa-1')).toBeInTheDocument();
+      });
+
+      // 1. Abrir Drawer de detalle
+      const btnVerFicha = screen.getByTestId('btn-ver-detalle-f1000000-0000-4000-8000-000000000001');
+      fireEvent.click(btnVerFicha);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('patrulla-detalle-drawer')).toBeInTheDocument();
+      });
+
+      // 2. Click en "Editar Patrulla" dentro del Drawer
+      const btnDrawerEditar = screen.getByTestId('btn-drawer-editar-patrulla');
+      fireEvent.click(btnDrawerEditar);
+
+      // 3. Modal de edición se abre
+      await waitFor(() => {
+        expect(screen.getByTestId('modal-editar-patrulla')).toBeInTheDocument();
+      });
+
+      // 4. Modificar nombre y confirmar guardado
+      const inputNombre = screen.getByDisplayValue('Patrulla Rápida Costa-1');
+      fireEvent.change(inputNombre, { target: { value: 'Patrulla Rápida Costa Modificada' } });
+
+      const btnGuardarModal = screen.getByTestId('btn-guardar-cambios-patrulla');
+      fireEvent.click(btnGuardarModal);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('btn-confirmar-guardar-edicion')).toBeInTheDocument();
+      });
+      fireEvent.click(screen.getByTestId('btn-confirmar-guardar-edicion'));
+
+      // 5. El modal se cierra y el Drawer sigue abierto exhibiendo el nuevo nombre actualizado
+      await waitFor(() => {
+        expect(screen.queryByTestId('modal-editar-patrulla')).not.toBeInTheDocument();
+        expect(screen.getByTestId('patrulla-detalle-drawer')).toBeInTheDocument();
+        expect(screen.getByText('Patrulla Rápida Costa Modificada')).toBeInTheDocument();
+      });
+    });
+
+    it('10. renderiza la acción "Desactivar" con permiso recursos:eliminar y abre PatrullaDesactivarModal', async () => {
       renderWithSession(['recursos:leer', 'recursos:eliminar']);
 
       await waitFor(() => {
@@ -335,8 +399,8 @@ describe('AdminPatrullasClient (Pestaña dedicada de Patrullas Verificadoras)', 
       });
     });
 
-    it('10. deshabilita la acción "Desactivar" si la patrulla posee misiones activas o está en verificación', async () => {
-      vi.mocked(patrullasServiceModule.patrullasService.listar).mockResolvedValueOnce({
+    it('11. deshabilita la acción "Desactivar" si la patrulla posee misiones activas o no está disponible', async () => {
+      vi.mocked(patrullasServiceModule.patrullasService.listar).mockResolvedValue({
         exito: true,
         data: [patrullaActiva],
         meta: { total: 1, page: 1, limit: 20, totalPages: 1, hasNext: false, hasPrev: false },

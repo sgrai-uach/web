@@ -183,6 +183,14 @@ export const PERMISOS_DEFAULT_SISTEMA: PermisoCatalogoItem[] = [
       'Permite modificar roles, delegaciones, cargos y especialidades de funcionarios.',
     modulo: 'Gestión de Personal',
   },
+  {
+    id: 'perm-cuadrillas-eliminar',
+    codigo: 'cuadrillas:eliminar',
+    nombre: 'Desactivación de Cuadrillas Operativas',
+    descripcion:
+      'Permite dar de baja lógica y disolver cuadrillas operativas que no cuenten con misiones activas en terreno, liberando dotación y recursos.',
+    modulo: 'Cuadrillas Operativas',
+  },
 ];
 
 /**
