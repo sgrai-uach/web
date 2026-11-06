@@ -5,7 +5,6 @@ import { ShieldCheck, X, AlertTriangle } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import Heading from '@/components/ui/Heading';
 import { obtenerNombreDelegacion } from '@/lib/utils/delegacionUtils';
-import { formatearEstado } from '@/lib/utils/estadoUtils';
 import type { CatalogoItem } from '@/types/catalogos';
 import type { RecursoItem } from '@/types/recurso';
 import type { EmpleadoUsuario } from '@/types/empleados';
@@ -38,8 +37,6 @@ export const PatrullaConfirmModal: React.FC<PatrullaConfirmModalProps> = ({
   onClose,
   onConfirm,
 }) => {
-  if (!isOpen) return null;
-
   const delegacionSeleccionada = delegaciones.find((d) => d.id === formData.delegacionId);
   const vehiculoSeleccionado = vehiculos.find((v) => v.id === formData.vehiculoId);
   const liderSeleccionado = personal.find((p) => p.usuario_id === formData.usuarioLiderId);
@@ -72,6 +69,8 @@ export const PatrullaConfirmModal: React.FC<PatrullaConfirmModalProps> = ({
       })
       .filter((item) => item.otrasPat.length > 0);
   }, [formData.personalIds, personal, mapaPatrullasPorPersonal]);
+
+  if (!isOpen) return null;
 
   return (
     <div
