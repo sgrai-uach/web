@@ -165,3 +165,26 @@ export interface PatrullaCreadaSocketPayload {
   creadoEn: string;
 }
 
+export interface EditarPatrullaInputDTO {
+  nombre?: string;
+  delegacionId: string;
+  vehiculoId?: string | null;
+  personalIds: string[];
+  usuarioLiderId?: string | null;
+}
+
+export interface EditarPatrullaResponseDTO {
+  message: string;
+  data: PatrullaVerificadoraDTO;
+}
+
+export interface ResultadoEditarPatrulla {
+  exito: boolean;
+  data?: PatrullaVerificadoraDTO;
+  mensaje: string;
+  codigoError?: number;
+  esForbidden?: boolean;
+  esConflicto?: boolean;
+  erroresValidacion?: Array<{ campo: string; mensaje: string }>;
+}
+

@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useContext, useState } from 'react';
+import React, { useContext, useState, useEffect } from 'react';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
-import { Plus, ShieldCheck, Zap } from 'lucide-react';
+import { Plus, ShieldCheck } from 'lucide-react';
 import { Breadcrumbs } from '@/components/common/Breadcrumbs';
 import PageTitleCard from '@/components/common/PageTitleCard';
 import ConnectionStatusBadge from '@/components/common/ConnectionStatusBadge';
@@ -17,12 +17,16 @@ import { SimulatedSessionContext } from '@/context/SimulatedSessionContext';
 import { usePatrullas } from '@/hooks/usePatrullas';
 import { PatrullasFiltros, PatrullaCard, PatrullasSkeleton } from '@/components/mando/patrullas';
 import PatrullaCrearModal from './PatrullaCrearModal';
+import PatrullaEditarModal from './PatrullaEditarModal';
+import PatrullaDetalleDrawer from './PatrullaDetalleDrawer';
 import type { PatrullaVerificadoraDTO } from '@/types/patrullas';
 import styles from './AdminPatrullas.module.css';
 
 export default function AdminPatrullasClient() {
   const searchParams = useSearchParams();
   const [modalCrearAbierto, setModalCrearAbierto] = useState(() => searchParams?.get('nuevo') === '1');
+  const [patrullaAEditar, setPatrullaAEditar] = useState<PatrullaVerificadoraDTO | null>(null);
+  const [patrullaADetalle, setPatrullaADetalle] = useState<PatrullaVerificadoraDTO | null>(null);
   const { showSuccess } = useToast();
   const router = useRouter();
   const pathname = usePathname();
@@ -38,6 +42,13 @@ export default function AdminPatrullasClient() {
       ? session.hasAnyPermission(['recursos:crear']) || session.usuarioActivo.esAdmin
       : true;
 
+  const puedeEditar =
+    auth?.usuario
+      ? auth.tieneAlgunPermiso(['recursos:editar']) || auth.usuario.rolCodigo === 'ADMIN'
+      : session?.usuarioActivo
+      ? session.hasAnyPermission(['recursos:editar']) || session.usuarioActivo.esAdmin
+      : true;
+
   const puedeVer =
     auth?.usuario
       ? auth.tieneAlgunPermiso(['recursos:leer', 'recursos:crear', 'misiones:leer']) || auth.usuario.rolCodigo === 'ADMIN'
@@ -45,6 +56,15 @@ export default function AdminPatrullasClient() {
       ? session.hasAnyPermission(['recursos:leer', 'recursos:crear', 'misiones:leer']) || session.usuarioActivo.esAdmin
       : true;
 
+  // Apertura automática si query param ?nuevo=1
+  useEffect(() => {
+    if (searchParams?.get('nuevo') === '1' && puedeCrear) {
+      const timer = setTimeout(() => {
+        setModalCrearAbierto(true);
+      }, 0);
+      return () => clearTimeout(timer);
+    }
+  }, [searchParams, puedeCrear]);
   const userId = auth?.usuario?.id || session?.usuarioActivo?.id;
 
   const {
@@ -54,7 +74,6 @@ export default function AdminPatrullasClient() {
     error,
     esForbidden,
     conectado,
-    ultimoEvento,
     filtros,
     setFiltros,
     cambiarPagina,
@@ -71,6 +90,15 @@ export default function AdminPatrullasClient() {
     setModalCrearAbierto(false);
     if (searchParams?.get('nuevo') === '1') {
       router.replace(pathname);
+    }
+  };
+
+  const handlePatrullaActualizada = (patrullaActualizada: PatrullaVerificadoraDTO) => {
+    showSuccess(`Patrulla "${patrullaActualizada.nombre}" modificada exitosamente.`);
+    recargar();
+    setPatrullaAEditar(null);
+    if (patrullaADetalle?.id === patrullaActualizada.id) {
+      setPatrullaADetalle(patrullaActualizada);
     }
   };
 
@@ -176,25 +204,6 @@ export default function AdminPatrullasClient() {
         </div>
       </div>
 
-      {/* Notificación en vivo de Socket */}
-      {ultimoEvento && (
-        <div
-          style={{
-            backgroundColor: 'var(--color-info-bg, #E0F2F1)',
-            color: 'var(--color-primary-teal, #1B6F7D)',
-            padding: '8px 16px',
-            fontSize: '13px',
-            fontWeight: 600,
-            borderLeft: '4px solid var(--color-primary-teal, #1B6F7D)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-          }}
-        >
-          <Zap size={16} color="var(--color-primary-teal, #1B6F7D)" />
-          <span>Actualización en tiempo real: {ultimoEvento}</span>
-        </div>
-      )}
 
       {/* Contenedor Principal: Filtros + Grid de Patrullas + Paginación */}
       <div className={styles.tableContainer}>
@@ -251,6 +260,9 @@ export default function AdminPatrullasClient() {
                 onSelectIncidente={(incidenteId) => {
                   router.push(`/gestion/centro-incidentes?incidente=${incidenteId}`);
                 }}
+                onVerDetalle={(p) => setPatrullaADetalle(p)}
+                onEditar={(p) => setPatrullaAEditar(p)}
+                puedeEditar={puedeEditar}
               />
             ))}
           </div>
@@ -274,6 +286,24 @@ export default function AdminPatrullasClient() {
         isOpen={modalCrearAbierto}
         onClose={handleCerrarModal}
         onPatrullaCreada={handlePatrullaCreada}
+      />
+
+      {/* Modal Institucional de Edición de Patrulla Verificadora */}
+      <PatrullaEditarModal
+        isOpen={Boolean(patrullaAEditar)}
+        patrulla={patrullaAEditar}
+        onClose={() => setPatrullaAEditar(null)}
+        onPatrullaActualizada={handlePatrullaActualizada}
+      />
+
+      {/* Drawer de Ficha Técnica / Detalle Unitario */}
+      <PatrullaDetalleDrawer
+        patrulla={patrullaADetalle}
+        onClose={() => setPatrullaADetalle(null)}
+        onEditar={(p) => {
+          setPatrullaAEditar(p);
+        }}
+        puedeEditar={puedeEditar}
       />
     </div>
   );

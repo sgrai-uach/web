@@ -110,6 +110,15 @@ export const PatrullaDotacionSection: React.FC<PatrullaDotacionSectionProps> = (
               const personalId = p.personal_id!;
               const isSelected = personalSeleccionadoIds.includes(personalId);
               const isLider = usuarioLiderId === p.usuario_id;
+              const isNoDisponible = p.estado_operativo ? p.estado_operativo !== 'disponible' : false;
+              const isDisabled = isNoDisponible && !isSelected;
+
+              let etiquetaEstado = 'Disponible';
+              if (p.estado_operativo === 'en_patrulla') etiquetaEstado = 'En patrulla';
+              else if (p.estado_operativo === 'en_mision') etiquetaEstado = 'En misión';
+              else if (p.estado_operativo === 'licencia') etiquetaEstado = 'Licencia médica';
+              else if (p.estado_operativo === 'descanso') etiquetaEstado = 'Descanso';
+              else if (p.estado_operativo === 'inactivo') etiquetaEstado = 'Inactivo';
 
               // Patrullas previas en las que participa (excluyendo la actual, deduplicadas)
               const rawOtras = (mapaPatrullasPorPersonal[personalId] || []).filter(
