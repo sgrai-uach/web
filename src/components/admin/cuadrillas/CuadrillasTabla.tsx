@@ -237,7 +237,26 @@ export default function CuadrillasTabla({
                       <HardHat size={18} />
                     </div>
                     <div>
-                      <span style={{ fontWeight: 700, color: 'var(--color-primary-teal-dark)', display: 'block' }}>
+                      <span
+                        onClick={() => onVerDetalle(cuadrilla)}
+                        style={{
+                          fontWeight: 700,
+                          color: 'var(--color-primary-teal, #1B6F7D)',
+                          display: 'block',
+                          cursor: 'pointer',
+                          textDecoration: 'none',
+                        }}
+                        role="button"
+                        tabIndex={0}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            onVerDetalle(cuadrilla);
+                          }
+                        }}
+                        aria-label={`Ver ficha técnica de ${cuadrilla.nombre}`}
+                        title="Haga clic para consultar la ficha técnica y dotación completa"
+                      >
                         {cuadrilla.nombre}
                       </span>
                       <span style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>
