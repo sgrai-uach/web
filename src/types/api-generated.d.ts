@@ -3246,7 +3246,169 @@ export interface paths {
             };
         };
         put?: never;
-        post?: never;
+        /**
+         * Crear y despachar misión operativa
+         * @description Despacha una misión operativa (ej. patrulla verificadora para evaluación técnica ICS o cuadrilla en terreno) ejecutando la transacción atómica de asignación y actualización de estados.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: {
+                    /** @description UUID del usuario solicitante (Encargado) */
+                    "x-user-id"?: string;
+                    /** @description Token Bearer JWT de sesión */
+                    authorization?: string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /**
+                         * Format: uuid
+                         * @description UUID del incidente asociado
+                         */
+                        incidenteId: string;
+                        /**
+                         * Format: uuid
+                         * @description UUID de la patrulla verificadora asignada (requerido para tipo VERIFICACION)
+                         */
+                        patrullaId?: string;
+                        /**
+                         * Format: uuid
+                         * @description UUID de la cuadrilla asignada
+                         */
+                        cuadrillaId?: string;
+                        /**
+                         * @description Tipo táctico de misión
+                         * @enum {string}
+                         */
+                        tipoMision: "VERIFICACION" | "ATENCION_CUADRILLA" | "PREVENCION" | "RECUPERACION" | "ASISTENCIA_SOCIAL";
+                        /** @description Título descriptivo de la misión */
+                        titulo?: string;
+                        /** @description Instrucciones u observaciones técnicas */
+                        descripcion?: string;
+                        /**
+                         * @description Prioridad táctica
+                         * @enum {string}
+                         */
+                        prioridad?: "BAJA" | "MEDIA" | "ALTA" | "CRITICA";
+                    };
+                };
+            };
+            responses: {
+                /** @description Misión creada y patrulla despachada exitosamente */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            message: string;
+                            data: {
+                                mision: {
+                                    id: string;
+                                    codigo: string;
+                                    titulo: string;
+                                    descripcion?: string | null;
+                                    tipoMision: "VERIFICACION" | "ATENCION_CUADRILLA" | "PREVENCION" | "RECUPERACION" | "ASISTENCIA_SOCIAL";
+                                    estado: "PLANIFICADA" | "DESPACHADA" | "EN_CURSO" | "COMPLETADA" | "CANCELADA" | "RECHAZADA";
+                                    prioridad?: "BAJA" | "MEDIA" | "ALTA" | "CRITICA";
+                                    incidenteId?: string | null;
+                                    patrullaId?: string | null;
+                                    cuadrillaId?: string | null;
+                                    creadoEn?: string;
+                                };
+                                incidente: {
+                                    id: string;
+                                    codigo: string;
+                                    estado: "REPORTADO" | "VERIFICANDO" | "EN_ATENCION" | "NO_ABORDABLE" | "RESUELTO";
+                                };
+                                patrulla: {
+                                    id: string;
+                                    nombre: string;
+                                    estado: "DISPONIBLE" | "EN_VERIFICACION" | "EN_TRANSITO" | "EN_TERRENO" | "NO_DISPONIBLE";
+                                };
+                                hitoInicial?: {
+                                    id?: string;
+                                    tipoHito?: string;
+                                    descripcion?: string;
+                                    creadoEn?: string;
+                                };
+                            };
+                        };
+                    };
+                };
+                /** @description Parámetros o cuerpo de solicitud inválidos */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            message: string;
+                            errors?: unknown;
+                        };
+                    };
+                };
+                /** @description No autenticado */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            message: string;
+                        };
+                    };
+                };
+                /** @description Permiso insuficiente (requiere misiones:asignar) */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            message: string;
+                        };
+                    };
+                };
+                /** @description Incidente o patrulla no encontrados */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            message: string;
+                        };
+                    };
+                };
+                /** @description Conflicto: la patrulla seleccionada ya no está disponible o el incidente ya no está en REPORTADO */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            message: string;
+                        };
+                    };
+                };
+                /** @description Error interno del servidor */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            message: string;
+                        };
+                    };
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;

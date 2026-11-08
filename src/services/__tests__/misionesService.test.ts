@@ -10,6 +10,7 @@ import type { MisionDetalleCompleto } from '@/types/misiones';
 vi.mock('@/lib/api/client', () => ({
   default: {
     GET: vi.fn(),
+    POST: vi.fn(),
   },
 }));
 
@@ -212,11 +213,8 @@ describe('Servicio API Misiones (HU-17: Detalle de Misión)', () => {
 });
 
 describe('Servicio API Misiones (HU-20: Despacho de Patrulla Verificadora)', () => {
-  const mockFetch = vi.fn();
-
   beforeEach(() => {
     vi.clearAllMocks();
-    global.fetch = mockFetch;
   });
 
   it('debe rechazar la petición con código 400 si falta incidenteId o patrullaId', async () => {
@@ -227,7 +225,7 @@ describe('Servicio API Misiones (HU-20: Despacho de Patrulla Verificadora)', () 
 
     expect(res.exito).toBe(false);
     expect(res.codigoError).toBe(400);
-    expect(mockFetch).not.toHaveBeenCalled();
+    expect(apiClient.POST).not.toHaveBeenCalled();
   });
 
   it('debe despachar exitosamente la patrulla (HTTP 201)', async () => {
@@ -254,48 +252,48 @@ describe('Servicio API Misiones (HU-20: Despacho de Patrulla Verificadora)', () 
       },
     };
 
-    mockFetch.mockResolvedValueOnce({
-      ok: true,
-      status: 201,
-      json: async () => mockResponseData,
+    vi.mocked(apiClient.POST).mockResolvedValueOnce({
+      data: mockResponseData,
+      error: undefined,
+      response: { ok: true, status: 201 } as Response,
     });
 
     const res = await despacharPatrullaVerificadora({
       incidenteId: 'inc-100',
       patrullaId: 'pat-100',
+      tipoMision: 'VERIFICACION',
       titulo: 'Verificación de anegamiento',
       prioridad: 'ALTA',
     });
 
-    expect(mockFetch).toHaveBeenCalledWith(
+    expect(apiClient.POST).toHaveBeenCalledWith(
       '/api/misiones',
       expect.objectContaining({
-        method: 'POST',
-        headers: expect.objectContaining({
-          'Content-Type': 'application/json',
-          'x-user-id': DEFAULT_ENCARGADO_ID,
-        }),
-        body: JSON.stringify({
+        body: expect.objectContaining({
           incidenteId: 'inc-100',
           patrullaId: 'pat-100',
+          tipoMision: 'VERIFICACION',
           titulo: 'Verificación de anegamiento',
           prioridad: 'ALTA',
+        }),
+        params: expect.objectContaining({
+          header: expect.objectContaining({
+            'x-user-id': DEFAULT_ENCARGADO_ID,
+          }),
         }),
       })
     );
     expect(res.exito).toBe(true);
     expect(res.data?.mision.codigo).toBe('MIS-2026-8341');
     expect(res.data?.incidente.estado).toBe('VERIFICANDO');
-    expect(res.data?.patrulla.estado).toBe('EN_VERIFICACION');
+    expect(res.data?.patrulla?.estado).toBe('EN_VERIFICACION');
   });
 
   it('debe manejar error 409 Conflict si la patrulla ya fue asignada concurrentemente', async () => {
-    mockFetch.mockResolvedValueOnce({
-      ok: false,
-      status: 409,
-      json: async () => ({
-        message: 'La patrulla seleccionada ya no se encuentra disponible.',
-      }),
+    vi.mocked(apiClient.POST).mockResolvedValueOnce({
+      data: undefined,
+      error: { message: 'La patrulla seleccionada ya no se encuentra disponible.' },
+      response: { ok: false, status: 409 } as Response,
     });
 
     const res = await despacharPatrullaVerificadora({
@@ -310,10 +308,10 @@ describe('Servicio API Misiones (HU-20: Despacho de Patrulla Verificadora)', () 
   });
 
   it('debe manejar error 403 Forbidden cuando el usuario carece de permiso misiones:asignar', async () => {
-    mockFetch.mockResolvedValueOnce({
-      ok: false,
-      status: 403,
-      json: async () => ({}),
+    vi.mocked(apiClient.POST).mockResolvedValueOnce({
+      data: undefined,
+      error: { message: 'No cuenta con el permiso requerido (misiones:asignar)' },
+      response: { ok: false, status: 403 } as Response,
     });
 
     const res = await despacharPatrullaVerificadora({
@@ -328,7 +326,7 @@ describe('Servicio API Misiones (HU-20: Despacho de Patrulla Verificadora)', () 
   });
 
   it('debe capturar errores de conexión de red', async () => {
-    mockFetch.mockRejectedValueOnce(new Error('Failed to fetch'));
+    vi.mocked(apiClient.POST).mockRejectedValueOnce(new Error('Network error'));
 
     const res = await despacharPatrullaVerificadora({
       incidenteId: 'inc-100',

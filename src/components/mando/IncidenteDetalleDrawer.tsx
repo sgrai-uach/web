@@ -15,6 +15,7 @@ import { MisionDetalleModal } from './mision/MisionDetalleModal';
 import { AsignarPatrullaModal } from './patrullas/AsignarPatrullaModal';
 import type { DespacharPatrullaResponseData } from '@/types/misiones';
 import type { EstadoIncidente } from '@/services/incidentesService';
+import { usePuedeAsignarMision } from '@/hooks/usePuedeAsignarMision';
 import InlineNotice from '@/components/ui/InlineNotice';
 import styles from '@/styles/mando.module.css';
 
@@ -36,6 +37,7 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [misionSeleccionadaId, setMisionSeleccionadaId] = useState<string | null>(null);
   const [modalAsignarPatrullaAbierto, setModalAsignarPatrullaAbierto] = useState<boolean>(false);
+  const puedeAsignar = usePuedeAsignarMision();
 
   useEffect(() => {
     if (!incidenteId) return;
@@ -105,6 +107,8 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
           <IncidenteDetalleHeader
             detalle={detalle}
             onCerrar={onCerrar}
+            onAsignarPatrulla={() => setModalAsignarPatrullaAbierto(true)}
+            puedeAsignar={puedeAsignar}
           />
 
           <div className={styles.drawerBody}>
@@ -132,6 +136,7 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
                   incidenteEstado={detalle.estado}
                   onVerDetalleMision={(misionId) => setMisionSeleccionadaId(misionId)}
                   onAsignarPatrulla={() => setModalAsignarPatrullaAbierto(true)}
+                  puedeAsignar={puedeAsignar}
                 />
                 <IncidenteRecursosSection recursos={detalle.recursosAsociados} />
               </>

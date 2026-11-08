@@ -99,22 +99,40 @@ export function useEncargadoKanbanSocket({
       }
     };
 
-    const handleActualizado = (payload: any) => {
-      const rawDatos = payload?.datos || payload?.data || payload;
-      const id = rawDatos?.id || rawDatos?.incidenteId;
-      const nuevoEstado = rawDatos?.nuevoEstado || rawDatos?.estado;
+    const handleActualizado = (payload: unknown) => {
+      const p = payload as Record<string, unknown> | null | undefined;
+      const rawDatos = (p?.datos || p?.data || p) as Record<string, unknown> | null | undefined;
+      const id =
+        typeof rawDatos?.id === 'string'
+          ? rawDatos.id
+          : typeof rawDatos?.incidenteId === 'string'
+            ? rawDatos.incidenteId
+            : undefined;
+      const nuevoEstado =
+        typeof rawDatos?.nuevoEstado === 'string'
+          ? rawDatos.nuevoEstado
+          : typeof rawDatos?.estado === 'string'
+            ? rawDatos.estado
+            : undefined;
       if (!id) return;
 
       const normalizedPayload: IncidenteActualizadoPayload = {
         evento: 'incidente:actualizado',
         datos: {
           id,
-          codigo: rawDatos?.codigo || '',
+          codigo: typeof rawDatos?.codigo === 'string' ? rawDatos.codigo : '',
           nuevoEstado: (nuevoEstado as EstadoIncidente) || 'VERIFICANDO',
-          prioridad: rawDatos?.prioridad,
-          actualizadoEn: rawDatos?.actualizadoEn || new Date().toISOString(),
+          prioridad:
+            typeof rawDatos?.prioridad === 'string'
+              ? (rawDatos.prioridad as PrioridadIncidente)
+              : ('MEDIA' as PrioridadIncidente),
+          actualizadoEn:
+            typeof rawDatos?.actualizadoEn === 'string'
+              ? rawDatos.actualizadoEn
+              : new Date().toISOString(),
         },
-        emitidoEn: payload?.emitidoEn || new Date().toISOString(),
+        emitidoEn:
+          typeof p?.emitidoEn === 'string' ? p.emitidoEn : new Date().toISOString(),
       };
 
       setUltimoEvento(

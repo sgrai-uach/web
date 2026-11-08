@@ -256,73 +256,60 @@ export const misionesService = {
 
     try {
       const token = typeof window !== 'undefined' ? getAuthCookie() : undefined;
-      const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
-        'x-user-id': userId,
-      };
 
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-      }
-
-      const res = await fetch('/api/misiones', {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({
+      const { data, error, response } = await apiClient.POST('/api/misiones', {
+        params: {
+          header: {
+            'x-user-id': userId,
+            ...(token ? { authorization: `Bearer ${token}` } : {}),
+          },
+        },
+        body: {
           incidenteId,
           patrullaId,
+          tipoMision: 'VERIFICACION',
           titulo: payload.titulo?.trim() || undefined,
           descripcion: payload.descripcion?.trim() || undefined,
           prioridad: payload.prioridad || undefined,
-        }),
+        },
       });
 
-      if (res.status === 403) {
+      if (response.status === 403) {
         return {
           exito: false,
           esForbidden: true,
           codigoError: 403,
-          mensaje: 'No cuenta con el permiso requerido (misiones:asignar) para despachar patrullas.',
+          mensaje:
+            (error as { message?: string })?.message ||
+            'No cuenta con el permiso requerido (misiones:asignar) para despachar patrullas.',
         };
       }
 
-      if (res.status === 409) {
-        let mensaje =
-          'La patrulla seleccionada ya no se encuentra disponible. Por favor selecciona otra patrulla.';
-        try {
-          const json = await res.json();
-          if (json.message) mensaje = json.message;
-        } catch {
-          // ignore
-        }
+      if (response.status === 409) {
         return {
           exito: false,
           esConflicto: true,
           codigoError: 409,
-          mensaje,
+          mensaje:
+            (error as { message?: string })?.message ||
+            'La patrulla seleccionada ya no se encuentra disponible. Por favor selecciona otra patrulla.',
         };
       }
 
-      if (!res.ok) {
-        let detalleError = `Error HTTP ${res.status} al despachar patrulla verificadora.`;
-        try {
-          const json = await res.json();
-          if (json.message) detalleError = json.message;
-        } catch {
-          // ignore
-        }
+      if (!response.ok || !data) {
         return {
           exito: false,
-          codigoError: res.status,
-          mensaje: detalleError,
+          codigoError: response.status,
+          mensaje:
+            (error as { message?: string })?.message ||
+            `Error HTTP ${response.status} al despachar patrulla verificadora.`,
         };
       }
 
-      const json = await res.json();
       return {
         exito: true,
-        data: json.data,
-        mensaje: json.message || 'Misión de verificación creada y patrulla despachada exitosamente.',
+        data: data.data,
+        mensaje: data.message || 'Misión de verificación creada y patrulla despachada exitosamente.',
       };
     } catch {
       return {
