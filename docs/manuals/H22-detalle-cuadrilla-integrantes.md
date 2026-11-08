@@ -65,7 +65,7 @@ Esta herramienta proporciona visibilidad inmediata sobre:
 ![Detalle de Misiones y Cuadrilla Asignada](/docs/manuals/assets/H22-detalle-cuadrilla-integrantes/03-incidente-drawer-cuadrilla.png)
 
 1. Al abrir el drawer de un incidente en el Centro de Mando, desplácese a la sección **Misiones y Equipos en Terreno**.
-2. En la misión que cuente con cuadrilla asignada, haga clic sobre el enlace **"Ver Ficha"**.
+2. En la tarjeta de la misión que cuente con cuadrilla asignada, presione el botón institucional **"Ver Cuadrilla"** (con icono de integrantes).
 3. El sistema abrirá la ficha técnica completa de la cuadrilla.
 
 ---
