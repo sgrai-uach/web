@@ -800,7 +800,7 @@ export const cuadrillasService = {
   /**
    * Obtiene el listado de cuadrillas operativas con soporte de filtros y paginación.
    */
-  async obtenerCuadrillas(filtros?: FiltrosCuadrillasState): Promise<{ cuadrillas: CuadrillaItem[]; meta: MetaPaginacionCuadrillas }> {
+  async obtenerCuadrillas(filtros?: Partial<FiltrosCuadrillasState>): Promise<{ cuadrillas: CuadrillaItem[]; meta: MetaPaginacionCuadrillas }> {
     const pagina = filtros?.pagina || 1;
     const limite = filtros?.limite || 10;
     const busqueda = filtros?.busqueda?.trim();

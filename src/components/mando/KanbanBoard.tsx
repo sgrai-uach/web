@@ -55,7 +55,7 @@ export const KanbanBoard: React.FC = () => {
   useEffect(() => {
     let isMounted = true;
     cuadrillasService
-      .obtenerCuadrillas({ limite: 100 })
+      .obtenerCuadrillas({ pagina: 1, limite: 100 })
       .then((res) => {
         if (isMounted && res.cuadrillas) {
           setCuadrillasOperativas(res.cuadrillas);
