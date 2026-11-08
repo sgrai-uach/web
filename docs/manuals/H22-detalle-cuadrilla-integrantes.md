@@ -122,3 +122,4 @@ El panel lateral se divide en los siguientes bloques funcionales:
 
 * **`sgrai-api` (Backend):** La ficha consume el endpoint enriquecido `GET /api/cuadrillas/{id}` (versión `v0.11.0`), el cual consulta las relaciones de base de datos `cuadrilla_integrante` y `cuadrilla_recurso`, calculando dinámicamente el tiempo de despacho de la misión activa.
 * **`sgrai-pwa` (Terreno):** Cuando el Delegado de Cuadrilla o la Patrulla Verificadora actualiza el avance de la misión o su estado en terreno desde la PWA móvil, los cambios se reflejan reactivamente en este Drawer web mediante Socket.io.
+
