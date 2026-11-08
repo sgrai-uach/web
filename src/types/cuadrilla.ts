@@ -55,6 +55,8 @@ export interface CuadrillaRecursoDetalle {
   nombre: string;
   cantidadAsignada: number;
   esIndividual: boolean;
+  descripcion?: string | null;
+  especificaciones?: Record<string, unknown> | null;
 }
 
 export interface CuadrillaTrabajadorDetalle {
@@ -65,7 +67,28 @@ export interface CuadrillaTrabajadorDetalle {
   rut?: string | null;
   cargo?: string | null;
   especialidad?: string | null;
+  telefono?: string | null;
   asignadoEn: string;
+}
+
+export interface IncidenteMisionActivaResumen {
+  id: string;
+  codigo: string;
+  tipo: string | null;
+  direccion: string | null;
+  latitud: number | null;
+  longitud: number | null;
+}
+
+export interface MisionActivaCuadrilla {
+  id: string;
+  codigo: string;
+  titulo: string;
+  tipoMision: string;
+  estado: string;
+  fechaDespacho: string | null;
+  tiempoTranscurridoMinutos: number | null;
+  incidente: IncidenteMisionActivaResumen | null;
 }
 
 export interface CuadrillaItem {
@@ -79,6 +102,7 @@ export interface CuadrillaItem {
   totalRecursos?: number;
   totalTrabajadores?: number;
   activo?: boolean;
+  misionActiva?: MisionActivaCuadrilla | null;
   eliminadoEn?: string | null;
   eliminadoPorId?: string | null;
   creadoEn: string;
