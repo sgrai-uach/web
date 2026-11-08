@@ -138,7 +138,11 @@ export default function MapaOperativoMandoInner({
         });
 
         const cuadrillaAsignada =
-          cuadrillas.find((c) => c.misionActiva?.incidente?.id === inc.id) ||
+          cuadrillas.find(
+            (c) =>
+              c.misionActiva?.incidente?.id === inc.id ||
+              c.misionActiva?.incidente?.codigo === inc.codigo
+          ) ||
           (inc as unknown as { cuadrilla?: { id: string; nombre: string } }).cuadrilla;
 
         const cuadrillaHtml = cuadrillaAsignada
