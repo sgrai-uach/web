@@ -10,11 +10,13 @@ import styles from '@/styles/mando.module.css';
 interface IncidenteMisionesSectionProps {
   misiones: IncidenteDetalle['misiones'];
   onVerDetalleMision?: (misionId: string) => void;
+  onVerDetalleCuadrilla?: (cuadrillaId: string) => void;
 }
 
 export const IncidenteMisionesSection: React.FC<IncidenteMisionesSectionProps> = ({
   misiones,
   onVerDetalleMision,
+  onVerDetalleCuadrilla,
 }) => {
   return (
     <div className={styles.drawerSection}>
@@ -38,8 +40,34 @@ export const IncidenteMisionesSection: React.FC<IncidenteMisionesSectionProps> =
               <strong>Tipo:</strong> {mision.tipoMision} | <strong>Prioridad:</strong> {mision.prioridad}
             </div>
             {mision.cuadrilla && (
-              <div style={{ fontSize: '0.8125rem' }}>
-                <strong>Cuadrilla:</strong> {mision.cuadrilla.nombre} ({mision.cuadrilla.estado})
+              <div style={{ fontSize: '0.8125rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginTop: '2px' }}>
+                <span>
+                  <strong>Cuadrilla:</strong> {mision.cuadrilla.nombre} ({mision.cuadrilla.estado})
+                </span>
+                {onVerDetalleCuadrilla && (mision.cuadrilla.id || (mision as unknown as { cuadrillaId?: string }).cuadrillaId) && (
+                  <button
+                    type="button"
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: 'var(--color-primary-teal, #1B6F7D)',
+                      textDecoration: 'underline',
+                      cursor: 'pointer',
+                      fontSize: '11px',
+                      fontWeight: 700,
+                      padding: 0,
+                    }}
+                    onClick={() =>
+                      onVerDetalleCuadrilla(
+                        mision.cuadrilla?.id || (mision as unknown as { cuadrillaId: string }).cuadrillaId
+                      )
+                    }
+                    title={`Ver dotación y recursos de ${mision.cuadrilla.nombre}`}
+                    aria-label={`Ver dotación de cuadrilla ${mision.cuadrilla.nombre}`}
+                  >
+                    Ver Ficha
+                  </button>
+                )}
               </div>
             )}
             {mision.patrulla && (

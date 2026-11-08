@@ -6,13 +6,16 @@ import 'leaflet/dist/leaflet.css';
 import type { IncidenteResumen } from '@/services/incidentesService';
 import type { EventoPrevencionDTO } from '@/types/evento-prevencion';
 import type { EventoRecuperacionResponse } from '@/types/recuperacion';
+import type { CuadrillaItem } from '@/types/cuadrilla';
 
 interface MapaOperativoMandoInnerProps {
   incidentes?: IncidenteResumen[];
   eventosPrevencion?: EventoPrevencionDTO[];
   eventosRecuperacion?: EventoRecuperacionResponse[];
+  cuadrillas?: CuadrillaItem[];
 
   onSelectIncidente?: (id: string) => void;
+  onSelectCuadrilla?: (cuadrillaId: string) => void;
   mostrarIncidentes?: boolean;
   mostrarPrevenciones?: boolean;
   mostrarRecuperaciones?: boolean;
@@ -64,7 +67,9 @@ export default function MapaOperativoMandoInner({
   incidentes = [],
   eventosPrevencion = [],
   eventosRecuperacion = [],
+  cuadrillas = [],
   onSelectIncidente,
+  onSelectCuadrilla,
   mostrarIncidentes = true,
   mostrarPrevenciones = true,
   mostrarRecuperaciones = true,
@@ -132,6 +137,25 @@ export default function MapaOperativoMandoInner({
           popupAnchor: [0, -38],
         });
 
+        const cuadrillaAsignada =
+          cuadrillas.find((c) => c.misionActiva?.incidente?.id === inc.id) ||
+          (inc as unknown as { cuadrilla?: { id: string; nombre: string } }).cuadrilla;
+
+        const cuadrillaHtml = cuadrillaAsignada
+          ? `
+            <div style="background-color: #E0F2F1; border: 1px solid #B2DFDB; padding: 4px 6px; margin-bottom: 6px; font-size: 11px;">
+              <strong style="color: #14505A;">Cuadrilla en Terreno:</strong>
+              <div style="color: #1B6F7D; font-weight: 600;">${cuadrillaAsignada.nombre}</div>
+            </div>
+            <button
+              id="btn-ver-cuadrilla-${inc.id}"
+              style="width: 100%; margin-top: 4px; background-color: #14505A; color: #FFFFFF; border: none; padding: 5px 8px; font-size: 12px; font-weight: 600; cursor: pointer; text-align: center;"
+            >
+              Ficha de Cuadrilla Desplegada
+            </button>
+          `
+          : '';
+
         const popupHtml = `
           <div style="font-family: inherit; font-size: 13px; color: #2B2B2B; min-width: 200px; padding: 2px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
@@ -143,9 +167,10 @@ export default function MapaOperativoMandoInner({
             <div style="font-weight: 600; margin-bottom: 4px; color: #1B6F7D;">${inc.tipoAfectacion}</div>
             <div style="font-size: 12px; margin-bottom: 6px; color: #555;">${inc.direccion}</div>
             <div style="font-size: 11px; color: #666; margin-bottom: 8px;">Estado: <strong>${inc.estado}</strong></div>
+            ${cuadrillaHtml}
             <button
               id="btn-ver-incidente-${inc.id}"
-              style="width: 100%; background-color: #1B6F7D; color: #FFFFFF; border: none; padding: 5px 8px; font-size: 12px; font-weight: 600; cursor: pointer; text-align: center;"
+              style="width: 100%; margin-top: 4px; background-color: #1B6F7D; color: #FFFFFF; border: none; padding: 5px 8px; font-size: 12px; font-weight: 600; cursor: pointer; text-align: center;"
             >
               Ver Detalle del Incidente
             </button>
@@ -161,6 +186,15 @@ export default function MapaOperativoMandoInner({
             btn.onclick = () => {
               if (onSelectIncidente) {
                 onSelectIncidente(inc.id);
+              }
+            };
+          }
+
+          const btnCuadrilla = document.getElementById(`btn-ver-cuadrilla-${inc.id}`);
+          if (btnCuadrilla && cuadrillaAsignada?.id) {
+            btnCuadrilla.onclick = () => {
+              if (onSelectCuadrilla) {
+                onSelectCuadrilla(cuadrillaAsignada.id);
               }
             };
           }
@@ -298,7 +332,7 @@ export default function MapaOperativoMandoInner({
         marker.bindPopup(popupHtml);
       });
     }
-  }, [incidentes, eventosPrevencion, eventosRecuperacion, mostrarIncidentes, mostrarPrevenciones, mostrarRecuperaciones, onSelectIncidente]);
+  }, [incidentes, eventosPrevencion, eventosRecuperacion, cuadrillas, mostrarIncidentes, mostrarPrevenciones, mostrarRecuperaciones, onSelectIncidente, onSelectCuadrilla]);
 
   return (
     <div

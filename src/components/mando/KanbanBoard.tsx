@@ -24,6 +24,9 @@ import { ModalCrearEventoPrevencion } from './ModalCrearEventoPrevencion';
 import { ModalCrearEventoRecuperacion } from './ModalCrearEventoRecuperacion';
 import { MapaOperativoMando } from './MapaOperativoMando';
 import { KanbanViewSwitcher } from './KanbanViewSwitcher';
+import CuadrillaDetalleDrawer from '@/components/admin/cuadrillas/CuadrillaDetalleDrawer';
+import { cuadrillasService } from '@/services/cuadrillasService';
+import type { CuadrillaItem } from '@/types/cuadrilla';
 import { Zap } from 'lucide-react';
 import InlineNotice from '@/components/ui/InlineNotice';
 import styles from '@/styles/mando.module.css';
@@ -46,6 +49,23 @@ export const KanbanBoard: React.FC = () => {
   const [modalRecuperacionAbierto, setModalRecuperacionAbierto] = useState(false);
   const [eventosPrevencion, setEventosPrevencion] = useState<EventoPrevencionDTO[]>([]);
   const [eventosRecuperacion, setEventosRecuperacion] = useState<EventoRecuperacionResponse[]>([]);
+  const [cuadrillaSeleccionadaId, setCuadrillaSeleccionadaId] = useState<string | null>(null);
+  const [cuadrillasOperativas, setCuadrillasOperativas] = useState<CuadrillaItem[]>([]);
+
+  useEffect(() => {
+    let isMounted = true;
+    cuadrillasService
+      .obtenerCuadrillas({ limite: 100 })
+      .then((res) => {
+        if (isMounted && res.cuadrillas) {
+          setCuadrillasOperativas(res.cuadrillas);
+        }
+      })
+      .catch(() => {});
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const {
     userId,
@@ -271,7 +291,9 @@ export const KanbanBoard: React.FC = () => {
                 incidentes={todosLosIncidentes}
                 eventosPrevencion={eventosPrevencion}
                 eventosRecuperacion={eventosRecuperacion}
+                cuadrillas={cuadrillasOperativas}
                 onSelectIncidente={(incId) => setIncidenteSeleccionadoId(incId)}
+                onSelectCuadrilla={(cuadrillaId) => setCuadrillaSeleccionadaId(cuadrillaId)}
                 onCrearPrevencion={() => setModalPrevencionAbierto(true)}
                 onCrearRecuperacion={() => setModalRecuperacionAbierto(true)}
               />
@@ -282,6 +304,7 @@ export const KanbanBoard: React.FC = () => {
             incidenteId={incidenteSeleccionadoId}
             userId={userId}
             onCerrar={() => setIncidenteSeleccionadoId(null)}
+            onSelectCuadrilla={(cuadrillaId) => setCuadrillaSeleccionadaId(cuadrillaId)}
           />
 
           <MisionesModal
@@ -327,6 +350,19 @@ export const KanbanBoard: React.FC = () => {
               setEventosRecuperacion((prev) => [eventoCreado, ...prev]);
               handleRefrescoCompleto();
             }}
+          />
+
+          {/* Drawer de Detalle y Composición de Cuadrilla (HU-22) */}
+          <CuadrillaDetalleDrawer
+            cuadrillaId={cuadrillaSeleccionadaId}
+            isOpen={Boolean(cuadrillaSeleccionadaId)}
+            onCerrar={() => setCuadrillaSeleccionadaId(null)}
+            onSelectIncidente={(incId) => {
+              setCuadrillaSeleccionadaId(null);
+              setIncidenteSeleccionadoId(incId);
+            }}
+            puedeEditar={false}
+            puedeEliminar={false}
           />
         </>
       )}

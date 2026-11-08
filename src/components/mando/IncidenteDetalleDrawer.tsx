@@ -19,12 +19,14 @@ interface IncidenteDetalleDrawerProps {
   incidenteId: string | null;
   userId: string;
   onCerrar: () => void;
+  onSelectCuadrilla?: (cuadrillaId: string) => void;
 }
 
 export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
   incidenteId,
   userId,
   onCerrar,
+  onSelectCuadrilla,
 }) => {
   const [detalle, setDetalle] = useState<IncidenteDetalle | null>(null);
   const [cargando, setCargando] = useState<boolean>(false);
@@ -88,6 +90,7 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
                 <IncidenteMisionesSection
                   misiones={detalle.misiones}
                   onVerDetalleMision={(misionId) => setMisionSeleccionadaId(misionId)}
+                  onVerDetalleCuadrilla={onSelectCuadrilla}
                 />
                 <IncidenteRecursosSection recursos={detalle.recursosAsociados} />
               </>
