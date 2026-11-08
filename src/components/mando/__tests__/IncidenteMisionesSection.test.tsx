@@ -57,4 +57,23 @@ describe('Componente IncidenteMisionesSection', () => {
       'm1000000-0000-4000-8000-000000000001'
     );
   });
+
+  it('debe renderizar el botón "Ver Cuadrilla" y llamar a onVerDetalleCuadrilla al hacer clic', () => {
+    const handleVerCuadrilla = vi.fn();
+
+    render(
+      <IncidenteMisionesSection
+        misiones={mockMisiones}
+        onVerDetalleCuadrilla={handleVerCuadrilla}
+      />
+    );
+
+    const btnVerCuadrilla = screen.getByRole('button', {
+      name: /Ver ficha de la cuadrilla Cuadrilla Alfa 1/i,
+    });
+    expect(btnVerCuadrilla).toBeDefined();
+
+    fireEvent.click(btnVerCuadrilla);
+    expect(handleVerCuadrilla).toHaveBeenCalledWith('c1');
+  });
 });

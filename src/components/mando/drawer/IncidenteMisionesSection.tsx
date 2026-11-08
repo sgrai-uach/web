@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Eye } from 'lucide-react';
+import { Eye, Users } from 'lucide-react';
 import Heading from '@/components/ui/Heading';
 import Button from '@/components/ui/Button';
 import type { IncidenteDetalle } from '@/services/incidentesService';
@@ -40,38 +40,12 @@ export const IncidenteMisionesSection: React.FC<IncidenteMisionesSectionProps> =
               <strong>Tipo:</strong> {mision.tipoMision} | <strong>Prioridad:</strong> {mision.prioridad}
             </div>
             {mision.cuadrilla && (
-              <div style={{ fontSize: '0.8125rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginTop: '2px' }}>
-                <span>
-                  <strong>Cuadrilla:</strong> {mision.cuadrilla.nombre} ({mision.cuadrilla.estado})
-                </span>
-                {onVerDetalleCuadrilla && (mision.cuadrilla.id || (mision as unknown as { cuadrillaId?: string }).cuadrillaId) && (
-                  <button
-                    type="button"
-                    style={{
-                      background: 'none',
-                      border: 'none',
-                      color: 'var(--color-primary-teal, #1B6F7D)',
-                      textDecoration: 'underline',
-                      cursor: 'pointer',
-                      fontSize: '11px',
-                      fontWeight: 700,
-                      padding: 0,
-                    }}
-                    onClick={() =>
-                      onVerDetalleCuadrilla(
-                        mision.cuadrilla?.id || (mision as unknown as { cuadrillaId: string }).cuadrillaId
-                      )
-                    }
-                    title={`Ver dotación y recursos de ${mision.cuadrilla.nombre}`}
-                    aria-label={`Ver dotación de cuadrilla ${mision.cuadrilla.nombre}`}
-                  >
-                    Ver Ficha
-                  </button>
-                )}
+              <div style={{ fontSize: '0.8125rem', marginTop: '0.25rem' }}>
+                <strong>Cuadrilla:</strong> {mision.cuadrilla.nombre} ({mision.cuadrilla.estado})
               </div>
             )}
             {mision.patrulla && (
-              <div style={{ fontSize: '0.8125rem' }}>
+              <div style={{ fontSize: '0.8125rem', marginTop: '0.25rem' }}>
                 <strong>Patrulla:</strong> {mision.patrulla.nombre} ({mision.patrulla.estado})
               </div>
             )}
@@ -81,7 +55,24 @@ export const IncidenteMisionesSection: React.FC<IncidenteMisionesSectionProps> =
               </div>
             )}
 
-            <div style={{ marginTop: '0.6rem', display: 'flex', justifyContent: 'flex-end' }}>
+            <div style={{ marginTop: '0.75rem', display: 'flex', justifyContent: 'flex-end', gap: '8px', flexWrap: 'wrap' }}>
+              {mision.cuadrilla && onVerDetalleCuadrilla && (mision.cuadrilla.id || (mision as unknown as { cuadrillaId?: string }).cuadrillaId) && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    onVerDetalleCuadrilla(
+                      mision.cuadrilla?.id || (mision as unknown as { cuadrillaId: string }).cuadrillaId
+                    )
+                  }
+                  title={`Ver dotación, personal y equipamiento de ${mision.cuadrilla.nombre}`}
+                  aria-label={`Ver ficha de la cuadrilla ${mision.cuadrilla.nombre}`}
+                >
+                  <Users size={13} aria-hidden="true" style={{ marginRight: '5px' }} />
+                  <span>Ver Cuadrilla</span>
+                </Button>
+              )}
               <Button
                 type="button"
                 variant="secondary"
