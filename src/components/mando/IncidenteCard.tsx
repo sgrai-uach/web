@@ -104,10 +104,10 @@ export const IncidenteCard: React.FC<IncidenteCardProps> = ({
                 borderColor: 'var(--border-color-neutral-dark, #CCD2D9)',
               }}
               title="La patrulla fue asignada y está a la espera de aceptar o rechazar en terreno"
-              aria-label={`Pendiente de confirmación para el incidente ${incidente.codigo}`}
+              aria-label={`Confirmación pendiente para el incidente ${incidente.codigo}`}
             >
               <Clock size={14} style={{ marginRight: '5px' }} />
-              <span>Pendiente de Confirmación</span>
+              <span>Confirmación Pendiente</span>
             </Button>
           ) : onAsignarPatrulla ? (
             <Button

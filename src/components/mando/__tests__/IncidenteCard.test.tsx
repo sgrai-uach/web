@@ -102,7 +102,7 @@ describe('IncidenteCard', () => {
     expect(btnAsignar).toBeNull();
   });
 
-  it('debe renderizar botón inactivo "Pendiente de Confirmación" si tieneMisionDespachada es true', () => {
+  it('debe renderizar botón inactivo "Confirmación Pendiente" si tieneMisionDespachada es true', () => {
     const handleAsignar = vi.fn();
     render(
       <IncidenteCard
@@ -113,7 +113,7 @@ describe('IncidenteCard', () => {
     );
 
     const btnPendiente = screen.getByRole('button', {
-      name: /Pendiente de confirmación para el incidente INC-58291045/i,
+      name: /confirmación pendiente para el incidente INC-58291045/i,
     });
     expect(btnPendiente).toBeDefined();
     expect(btnPendiente).toBeDisabled();

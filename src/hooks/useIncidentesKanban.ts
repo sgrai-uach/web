@@ -478,6 +478,8 @@ export function useIncidentesKanban(options?: string | UseIncidentesKanbanOption
   const handleMisionRechazada = useCallback(
     (payload: MisionRechazadaPayload) => {
       if (payload.incidenteId) {
+        let columnaOrigenDetectada: EstadoIncidente | null = null;
+
         setColumnas((prev) => {
           let incidenteEncontrado: IncidenteResumen | null = null;
           let columnaOrigen: EstadoIncidente | null = null;
@@ -492,6 +494,7 @@ export function useIncidentesKanban(options?: string | UseIncidentesKanbanOption
                 actualizadoEn: payload.rechazadoEn || new Date().toISOString(),
               };
               columnaOrigen = est;
+              columnaOrigenDetectada = est;
               break;
             }
           }
@@ -514,13 +517,18 @@ export function useIncidentesKanban(options?: string | UseIncidentesKanbanOption
           };
         });
 
-        setPaginacionColumna((prev) => ({
-          ...prev,
-          REPORTADO: prev.REPORTADO ? { ...prev.REPORTADO, total: prev.REPORTADO.total + 1 } : null,
-          VERIFICANDO: prev.VERIFICANDO
-            ? { ...prev.VERIFICANDO, total: Math.max(0, prev.VERIFICANDO.total - 1) }
-            : null,
-        }));
+        if (columnaOrigenDetectada && columnaOrigenDetectada !== 'REPORTADO') {
+          setPaginacionColumna((prev) => ({
+            ...prev,
+            REPORTADO: prev.REPORTADO ? { ...prev.REPORTADO, total: prev.REPORTADO.total + 1 } : null,
+            [columnaOrigenDetectada!]: prev[columnaOrigenDetectada!]
+              ? {
+                  ...prev[columnaOrigenDetectada!]!,
+                  total: Math.max(0, prev[columnaOrigenDetectada!]!.total - 1),
+                }
+              : null,
+          }));
+        }
       }
 
       optionsObj.onMisionRechazada?.(payload);
