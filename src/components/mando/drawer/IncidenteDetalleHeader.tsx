@@ -3,18 +3,22 @@
 import React from 'react';
 import Heading from '@/components/ui/Heading';
 import Button from '@/components/ui/Button';
-import { X } from 'lucide-react';
+import { X, ShieldCheck } from 'lucide-react';
 import type { IncidenteDetalle } from '@/services/incidentesService';
 import styles from '@/styles/mando.module.css';
 
 interface IncidenteDetalleHeaderProps {
   detalle: IncidenteDetalle | null;
   onCerrar: () => void;
+  onAsignarPatrulla?: () => void;
+  puedeAsignar?: boolean;
 }
 
 export const IncidenteDetalleHeader: React.FC<IncidenteDetalleHeaderProps> = ({
   detalle,
   onCerrar,
+  onAsignarPatrulla,
+  puedeAsignar = true,
 }) => {
   return (
     <div className={styles.drawerHeader}>
@@ -39,16 +43,30 @@ export const IncidenteDetalleHeader: React.FC<IncidenteDetalleHeaderProps> = ({
         )}
       </div>
 
-      <Button
-        type="button"
-        variant="ghost"
-        size="sm"
-        className={styles.drawerCloseBtn}
-        onClick={onCerrar}
-        aria-label="Cerrar panel de detalle"
-      >
-        <X size={20} />
-      </Button>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        {detalle?.estado === 'REPORTADO' && onAsignarPatrulla && puedeAsignar && (
+          <Button
+            type="button"
+            variant="primary"
+            size="sm"
+            onClick={onAsignarPatrulla}
+            title="Asignar y despachar patrulla verificadora"
+          >
+            <ShieldCheck size={14} style={{ marginRight: '5px' }} />
+            <span>Asignar Patrulla</span>
+          </Button>
+        )}
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className={styles.drawerCloseBtn}
+          onClick={onCerrar}
+          aria-label="Cerrar panel de detalle"
+        >
+          <X size={20} />
+        </Button>
+      </div>
     </div>
   );
 };

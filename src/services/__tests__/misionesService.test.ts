@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import {
   obtenerDetalleMision,
+  despacharPatrullaVerificadora,
   DEFAULT_ENCARGADO_ID,
 } from '../misionesService';
 import apiClient from '@/lib/api/client';
@@ -9,6 +10,7 @@ import type { MisionDetalleCompleto } from '@/types/misiones';
 vi.mock('@/lib/api/client', () => ({
   default: {
     GET: vi.fn(),
+    POST: vi.fn(),
   },
 }));
 
@@ -207,5 +209,132 @@ describe('Servicio API Misiones (HU-17: Detalle de Misión)', () => {
     expect(res.exito).toBe(false);
     expect(res.codigoError).toBe(500);
     expect(res.mensaje).toContain('Error de conexión');
+  });
+});
+
+describe('Servicio API Misiones (HU-20: Despacho de Patrulla Verificadora)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('debe rechazar la petición con código 400 si falta incidenteId o patrullaId', async () => {
+    const res = await despacharPatrullaVerificadora({
+      incidenteId: '',
+      patrullaId: 'p-1',
+    });
+
+    expect(res.exito).toBe(false);
+    expect(res.codigoError).toBe(400);
+    expect(apiClient.POST).not.toHaveBeenCalled();
+  });
+
+  it('debe despachar exitosamente la patrulla (HTTP 201)', async () => {
+    const mockResponseData = {
+      message: 'Misión de verificación creada y patrulla despachada exitosamente.',
+      data: {
+        mision: {
+          id: 'mis-100',
+          codigo: 'MIS-2026-8341',
+          titulo: 'Verificación de anegamiento',
+          estado: 'DESPACHADA' as const,
+          tipoMision: 'VERIFICACION' as const,
+        },
+        incidente: {
+          id: 'inc-100',
+          codigo: 'INC-2026-1042',
+          estado: 'VERIFICANDO' as const,
+        },
+        patrulla: {
+          id: 'pat-100',
+          nombre: 'Patrulla Ánimas Norte 1',
+          estado: 'EN_VERIFICACION' as const,
+        },
+      },
+    };
+
+    vi.mocked(apiClient.POST).mockResolvedValueOnce({
+      data: mockResponseData,
+      error: undefined,
+      response: { ok: true, status: 201 } as Response,
+    });
+
+    const res = await despacharPatrullaVerificadora({
+      incidenteId: 'inc-100',
+      patrullaId: 'pat-100',
+      tipoMision: 'VERIFICACION',
+      titulo: 'Verificación de anegamiento',
+      prioridad: 'ALTA',
+    });
+
+    expect(apiClient.POST).toHaveBeenCalledWith(
+      '/api/misiones',
+      expect.objectContaining({
+        body: expect.objectContaining({
+          incidenteId: 'inc-100',
+          patrullaId: 'pat-100',
+          tipoMision: 'VERIFICACION',
+          titulo: 'Verificación de anegamiento',
+          prioridad: 'ALTA',
+        }),
+        params: expect.objectContaining({
+          header: expect.objectContaining({
+            'x-user-id': DEFAULT_ENCARGADO_ID,
+          }),
+        }),
+      })
+    );
+    expect(res.exito).toBe(true);
+    expect(res.data?.mision.codigo).toBe('MIS-2026-8341');
+    expect(res.data?.incidente.estado).toBe('VERIFICANDO');
+    expect(res.data?.patrulla?.estado).toBe('EN_VERIFICACION');
+  });
+
+  it('debe manejar error 409 Conflict si la patrulla ya fue asignada concurrentemente', async () => {
+    vi.mocked(apiClient.POST).mockResolvedValueOnce({
+      data: undefined,
+      error: { message: 'La patrulla seleccionada ya no se encuentra disponible.' },
+      response: { ok: false, status: 409 } as Response,
+    });
+
+    const res = await despacharPatrullaVerificadora({
+      incidenteId: 'inc-100',
+      patrullaId: 'pat-100',
+    });
+
+    expect(res.exito).toBe(false);
+    expect(res.esConflicto).toBe(true);
+    expect(res.codigoError).toBe(409);
+    expect(res.mensaje).toContain('no se encuentra disponible');
+  });
+
+  it('debe manejar error 403 Forbidden cuando el usuario carece de permiso misiones:asignar', async () => {
+    vi.mocked(apiClient.POST).mockResolvedValueOnce({
+      data: undefined,
+      error: { message: 'No cuenta con el permiso requerido (misiones:asignar)' },
+      response: { ok: false, status: 403 } as Response,
+    });
+
+    const res = await despacharPatrullaVerificadora({
+      incidenteId: 'inc-100',
+      patrullaId: 'pat-100',
+    });
+
+    expect(res.exito).toBe(false);
+    expect(res.esForbidden).toBe(true);
+    expect(res.codigoError).toBe(403);
+    expect(res.mensaje).toContain('misiones:asignar');
+  });
+
+  it('debe capturar errores de conexión de red', async () => {
+    vi.mocked(apiClient.POST).mockRejectedValueOnce(new Error('Network error'));
+
+    const res = await despacharPatrullaVerificadora({
+      incidenteId: 'inc-100',
+      patrullaId: 'pat-100',
+    });
+
+    expect(res.exito).toBe(false);
+    expect(res.codigoError).toBe(500);
+    expect(res.mensaje).toContain('Error de conexión con el servidor');
   });
 });

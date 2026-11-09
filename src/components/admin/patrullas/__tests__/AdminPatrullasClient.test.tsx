@@ -427,8 +427,8 @@ describe('AdminPatrullasClient (Pestaña dedicada de Patrullas Verificadoras)', 
       await waitFor(() => {
         expect(screen.getByText('Patrulla Rápida Costa-1')).toBeInTheDocument();
       });
-
       const btnDesactivar = screen.queryByTestId('btn-desactivar-patrulla-f1000000-0000-4000-8000-000000000001');
+      expect(btnDesactivar).not.toBeInTheDocument();
       expect(btnDesactivar).not.toBeInTheDocument();
     });
   });
