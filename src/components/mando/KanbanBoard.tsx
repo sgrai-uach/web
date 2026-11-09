@@ -11,6 +11,7 @@ import { useToast } from '@/components/ui/Toast';
 import type { EstadoIncidente, IncidenteResumen } from '@/services/incidentesService';
 import type { EventoPrevencionDTO } from '@/types/evento-prevencion';
 import type { EventoRecuperacionResponse } from '@/types/recuperacion';
+import type { MisionRechazadaPayload } from '@/hooks/useEncargadoKanbanSocket';
 import { KanbanHeader } from './KanbanHeader';
 import { KanbanFiltros } from './KanbanFiltros';
 import { KanbanColumn } from './KanbanColumn';
@@ -30,7 +31,7 @@ import InlineNotice from '@/components/ui/InlineNotice';
 import styles from '@/styles/mando.module.css';
 
 const TITULOS_COLUMNAS = {
-  REPORTADO: 'Pendiente / Reportado',
+  REPORTADO: 'Reportado',
   VERIFICANDO: 'En Verificación',
   EN_ATENCION: 'En Atención',
   RESUELTO: 'Resuelto',
@@ -38,7 +39,7 @@ const TITULOS_COLUMNAS = {
 } as const;
 
 export const KanbanBoard: React.FC = () => {
-  const { showInfo } = useToast();
+  const { showInfo, showWarning } = useToast();
   const [vistaActiva, setVistaActiva] = useState<'kanban' | 'mapa'>('kanban');
   const [misionesModalAbierto, setMisionesModalAbierto] = useState(false);
   const [patrullasModalAbierto, setPatrullasModalAbierto] = useState(false);
@@ -48,6 +49,49 @@ export const KanbanBoard: React.FC = () => {
   const [eventosPrevencion, setEventosPrevencion] = useState<EventoPrevencionDTO[]>([]);
   const [eventosRecuperacion, setEventosRecuperacion] = useState<EventoRecuperacionResponse[]>([]);
   const [incidenteParaAsignar, setIncidenteParaAsignar] = useState<IncidenteResumen | null>(null);
+
+  const [estadoEnfocado, setEstadoEnfocado] = useState<EstadoIncidente | null>(null);
+
+  const {
+    kpis,
+    cargando: cargandoKpis,
+    delegacionId,
+    setDelegacionId,
+    delegaciones,
+    refrescarKpis,
+    conectado: conectadoKpis,
+  } = useIncidentesKpis();
+
+  const ultimosToastsRechazoRef = React.useRef<Map<string, number>>(new Map());
+
+  const handleMisionRechazadaSocket = React.useCallback(
+    (payload: MisionRechazadaPayload) => {
+      const ahora = Date.now();
+      if (payload.misionId) {
+        const ultimaVez = ultimosToastsRechazoRef.current.get(payload.misionId);
+        if (ultimaVez && ahora - ultimaVez < 5000) {
+          return;
+        }
+        ultimosToastsRechazoRef.current.set(payload.misionId, ahora);
+      }
+
+      const patrullaTexto = payload.patrullaNombre
+        ? `La patrulla ${payload.patrullaNombre}`
+        : 'La patrulla verificadora';
+      const incidenteTexto = payload.incidenteCodigo
+        ? ` del incidente ${payload.incidenteCodigo}`
+        : '';
+      const motivoTexto = payload.motivo || payload.justificacionRechazo || 'Sin justificación';
+
+      showWarning(
+        `${patrullaTexto} rechazó la misión ${payload.codigo}${incidenteTexto}. Motivo: "${motivoTexto}". El incidente retorna a estado Reportado para su reasignación.`,
+        'Misión Rechazada por Patrulla'
+      );
+
+      refrescarKpis(false);
+    },
+    [showWarning, refrescarKpis]
+  );
 
   const {
     userId,
@@ -65,25 +109,15 @@ export const KanbanBoard: React.FC = () => {
     cargarMas,
     recargar,
     moverIncidenteAEstado,
+    marcarIncidenteMisionDespachada,
     conectado,
     ultimoEvento,
     totalIncidentesVisibles,
     incidenteSeleccionadoId,
     setIncidenteSeleccionadoId,
-  } = useIncidentesKanban();
-
-
-  const [estadoEnfocado, setEstadoEnfocado] = useState<EstadoIncidente | null>(null);
-
-  const {
-    kpis,
-    cargando: cargandoKpis,
-    delegacionId,
-    setDelegacionId,
-    delegaciones,
-    refrescarKpis,
-    conectado: conectadoKpis,
-  } = useIncidentesKpis({ userId });
+  } = useIncidentesKanban({
+    onMisionRechazada: handleMisionRechazadaSocket,
+  });
 
   // Hook de tiempo real para eventos de prevención (HU-30)
   usePrevencionSocket({
@@ -300,7 +334,7 @@ export const KanbanBoard: React.FC = () => {
             incidente={incidenteParaAsignar}
             userId={userId}
             onAsignacionExitosa={(data) => {
-              moverIncidenteAEstado(data.incidente.id, 'VERIFICANDO');
+              marcarIncidenteMisionDespachada(data.incidente.id, true);
               recargar();
               refrescarKpis();
               setIncidenteParaAsignar(null);

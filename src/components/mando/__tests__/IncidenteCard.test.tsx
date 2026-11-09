@@ -101,4 +101,28 @@ describe('IncidenteCard', () => {
     });
     expect(btnAsignar).toBeNull();
   });
+
+  it('debe renderizar botón inactivo "Pendiente de Confirmación" si tieneMisionDespachada es true', () => {
+    const handleAsignar = vi.fn();
+    render(
+      <IncidenteCard
+        incidente={{ ...mockIncidente, estado: 'REPORTADO', tieneMisionDespachada: true }}
+        onClick={vi.fn()}
+        onAsignarPatrulla={handleAsignar}
+      />
+    );
+
+    const btnPendiente = screen.getByRole('button', {
+      name: /Pendiente de confirmación para el incidente INC-58291045/i,
+    });
+    expect(btnPendiente).toBeDefined();
+    expect(btnPendiente).toBeDisabled();
+
+    // No debe renderizar el botón activo de Asignar Patrulla
+    expect(
+      screen.queryByRole('button', {
+        name: /Asignar patrulla verificadora al incidente INC-58291045/i,
+      })
+    ).toBeNull();
+  });
 });

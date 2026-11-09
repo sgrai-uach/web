@@ -1,5 +1,5 @@
 import React from 'react';
-import { MapPin, ShieldCheck } from 'lucide-react';
+import { MapPin, ShieldCheck, Clock } from 'lucide-react';
 import type { IncidenteResumen } from '@/services/incidentesService';
 import { obtenerNombreDelegacion } from '@/lib/utils/delegacionUtils';
 import styles from '@/styles/mando.module.css';
@@ -87,23 +87,45 @@ export const IncidenteCard: React.FC<IncidenteCardProps> = ({
         <span>{obtenerNombreDelegacion(incidente.delegacionNombre, 'Sin delegación')}</span>
       </div>
 
-      {incidente.estado === 'REPORTADO' && onAsignarPatrulla && (
+      {incidente.estado === 'REPORTADO' && (
         <div style={{ marginTop: '0.625rem', paddingTop: '0.5rem', borderTop: '1px solid var(--border-color-neutral, #DFE3E8)' }}>
-          <Button
-            type="button"
-            variant="primary"
-            size="sm"
-            onClick={(e) => {
-              e.stopPropagation();
-              onAsignarPatrulla(incidente);
-            }}
-            style={{ width: '100%', justifyContent: 'center' }}
-            title={`Asignar patrulla verificadora al incidente ${incidente.codigo}`}
-            aria-label={`Asignar patrulla verificadora al incidente ${incidente.codigo}`}
-          >
-            <ShieldCheck size={14} style={{ marginRight: '5px' }} />
-            <span>Asignar Patrulla</span>
-          </Button>
+          {incidente.tieneMisionDespachada ? (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled
+              style={{
+                width: '100%',
+                justifyContent: 'center',
+                backgroundColor: 'var(--color-bg-light, #ECEFF3)',
+                color: 'var(--color-charcoal, #3B3F45)',
+                cursor: 'not-allowed',
+                borderColor: 'var(--border-color-neutral-dark, #CCD2D9)',
+              }}
+              title="La patrulla fue asignada y está a la espera de aceptar o rechazar en terreno"
+              aria-label={`Pendiente de confirmación para el incidente ${incidente.codigo}`}
+            >
+              <Clock size={14} style={{ marginRight: '5px' }} />
+              <span>Pendiente de Confirmación</span>
+            </Button>
+          ) : onAsignarPatrulla ? (
+            <Button
+              type="button"
+              variant="primary"
+              size="sm"
+              onClick={(e) => {
+                e.stopPropagation();
+                onAsignarPatrulla(incidente);
+              }}
+              style={{ width: '100%', justifyContent: 'center' }}
+              title={`Asignar patrulla verificadora al incidente ${incidente.codigo}`}
+              aria-label={`Asignar patrulla verificadora al incidente ${incidente.codigo}`}
+            >
+              <ShieldCheck size={14} style={{ marginRight: '5px' }} />
+              <span>Asignar Patrulla</span>
+            </Button>
+          ) : null}
         </div>
       )}
     </div>
