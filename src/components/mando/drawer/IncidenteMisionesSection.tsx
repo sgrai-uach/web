@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Eye, ShieldCheck, AlertTriangle, Clock } from 'lucide-react';
+import { Eye, ShieldCheck, AlertTriangle, Hourglass, Clock } from 'lucide-react';
 import Heading from '@/components/ui/Heading';
 import Button from '@/components/ui/Button';
 import type { IncidenteDetalle } from '@/services/incidentesService';
@@ -120,13 +120,13 @@ export const IncidenteMisionesSection: React.FC<IncidenteMisionesSectionProps> =
         <div
           style={{
             backgroundColor: tieneMisionDespachada
-              ? '#F0F9FF'
+              ? 'var(--color-warning-bg, #FFF3E0)'
               : misionesRechazadas.length > 0
               ? '#FFF8E1'
               : '#F8FAFB',
             border: `1px solid ${
               tieneMisionDespachada
-                ? 'var(--color-primary-teal, #1B6F7D)'
+                ? 'var(--color-warning, #E65100)'
                 : misionesRechazadas.length > 0
                 ? 'var(--color-warning, #E65100)'
                 : 'var(--border-color-neutral, #DFE3E8)'
@@ -137,7 +137,7 @@ export const IncidenteMisionesSection: React.FC<IncidenteMisionesSectionProps> =
         >
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', marginBottom: '8px' }}>
             {tieneMisionDespachada ? (
-              <Clock size={18} color="var(--color-primary-teal, #1B6F7D)" style={{ flexShrink: 0, marginTop: '2px' }} />
+              <Hourglass size={18} color="var(--color-warning, #E65100)" style={{ flexShrink: 0, marginTop: '2px' }} />
             ) : misionesRechazadas.length > 0 ? (
               <AlertTriangle size={18} color="var(--color-warning, #E65100)" style={{ flexShrink: 0, marginTop: '2px' }} />
             ) : (
@@ -167,15 +167,16 @@ export const IncidenteMisionesSection: React.FC<IncidenteMisionesSectionProps> =
                 size="sm"
                 disabled
                 style={{
-                  backgroundColor: 'var(--color-bg-light, #ECEFF3)',
-                  color: 'var(--color-charcoal, #3B3F45)',
+                  backgroundColor: 'var(--color-warning-bg, #FFF3E0)',
+                  color: 'var(--color-warning, #E65100)',
                   cursor: 'not-allowed',
-                  borderColor: 'var(--border-color-neutral-dark, #CCD2D9)',
+                  borderColor: 'var(--color-warning-border, #FFE0B2)',
+                  fontWeight: 700,
                 }}
-                aria-label="Pendiente de confirmación por la patrulla verificadora"
+                aria-label="Confirmación pendiente por la patrulla verificadora"
               >
-                <Clock size={14} style={{ marginRight: '5px' }} />
-                <span>Pendiente de Confirmación</span>
+                <Hourglass size={14} style={{ marginRight: '6px' }} aria-hidden="true" />
+                <span>Confirmación Pendiente</span>
               </Button>
               <span style={{ fontSize: '0.78rem', color: 'var(--color-text-muted, #5F676E)' }}>
                 (El incidente pasará a &quot;En Verificación&quot; cuando la patrulla acepte la asignación)

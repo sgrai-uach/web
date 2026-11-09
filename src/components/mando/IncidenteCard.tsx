@@ -1,5 +1,5 @@
 import React from 'react';
-import { MapPin, ShieldCheck, Clock } from 'lucide-react';
+import { MapPin, ShieldCheck, Hourglass } from 'lucide-react';
 import type { IncidenteResumen } from '@/services/incidentesService';
 import { obtenerNombreDelegacion } from '@/lib/utils/delegacionUtils';
 import styles from '@/styles/mando.module.css';
@@ -98,15 +98,16 @@ export const IncidenteCard: React.FC<IncidenteCardProps> = ({
               style={{
                 width: '100%',
                 justifyContent: 'center',
-                backgroundColor: 'var(--color-bg-light, #ECEFF3)',
-                color: 'var(--color-charcoal, #3B3F45)',
+                backgroundColor: 'var(--color-warning-bg, #FFF3E0)',
+                color: 'var(--color-warning, #E65100)',
                 cursor: 'not-allowed',
-                borderColor: 'var(--border-color-neutral-dark, #CCD2D9)',
+                borderColor: 'var(--color-warning-border, #FFE0B2)',
+                fontWeight: 700,
               }}
               title="La patrulla fue asignada y está a la espera de aceptar o rechazar en terreno"
               aria-label={`Confirmación pendiente para el incidente ${incidente.codigo}`}
             >
-              <Clock size={14} style={{ marginRight: '5px' }} />
+              <Hourglass size={14} style={{ marginRight: '6px' }} aria-hidden="true" />
               <span>Confirmación Pendiente</span>
             </Button>
           ) : onAsignarPatrulla ? (

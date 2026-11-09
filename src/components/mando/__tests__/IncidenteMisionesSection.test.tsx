@@ -116,7 +116,7 @@ describe('Componente IncidenteMisionesSection', () => {
     expect(handleReasignar).toHaveBeenCalledTimes(1);
   });
 
-  it('debe mostrar botón inactivo "Pendiente de Confirmación" cuando hay una misión en estado DESPACHADA', () => {
+  it('debe mostrar botón inactivo "Confirmación Pendiente" cuando hay una misión en estado DESPACHADA', () => {
     const handleAsignar = vi.fn();
     const mockMisionesDespachada: IncidenteDetalle['misiones'] = [
       {
@@ -149,7 +149,7 @@ describe('Componente IncidenteMisionesSection', () => {
     );
 
     const btnPendiente = screen.getByRole('button', {
-      name: /Pendiente de confirmación por la patrulla verificadora/i,
+      name: /confirmación pendiente por la patrulla verificadora/i,
     });
     expect(btnPendiente).toBeDefined();
     expect(btnPendiente).toBeDisabled();
