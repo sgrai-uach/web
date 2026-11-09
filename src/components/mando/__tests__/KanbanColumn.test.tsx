@@ -33,7 +33,7 @@ describe('KanbanColumn', () => {
     render(
       <KanbanColumn
         estado="REPORTADO"
-        titulo="Pendiente / Reportado"
+        titulo="Reportado"
         incidentes={mockIncidentes}
         paginacion={{
           total: 10,
@@ -49,7 +49,7 @@ describe('KanbanColumn', () => {
       />
     );
 
-    expect(screen.getByText('Pendiente / Reportado')).toBeDefined();
+    expect(screen.getByText('Reportado')).toBeDefined();
     expect(screen.getByText('1 / 10')).toBeDefined();
     expect(screen.getByText('INC-00000001')).toBeDefined();
   });
@@ -101,5 +101,29 @@ describe('KanbanColumn', () => {
 
     fireEvent.click(btnCargar);
     expect(onCargarMas).toHaveBeenCalledWith('EN_ATENCION');
+  });
+
+  it('nunca debe mostrar un total menor a la cantidad de incidentes visibles (evita 1/0)', () => {
+    render(
+      <KanbanColumn
+        estado="VERIFICANDO"
+        titulo="En Verificación"
+        incidentes={mockIncidentes}
+        paginacion={{
+          total: 0,
+          pagina: 1,
+          limite: 20,
+          totalPaginas: 1,
+          tieneSiguiente: false,
+          tieneAnterior: false,
+        }}
+        cargandoMas={false}
+        onCargarMas={vi.fn()}
+        onSeleccionarIncidente={vi.fn()}
+      />
+    );
+
+    expect(screen.getByText('1 / 1')).toBeDefined();
+    expect(screen.queryByText('1 / 0')).toBeNull();
   });
 });

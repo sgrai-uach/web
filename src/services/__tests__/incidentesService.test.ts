@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import {
   listarIncidentes,
   obtenerDetalleIncidente,
+  obtenerKpisIncidentes,
   DEFAULT_ENCARGADO_ID,
 } from '../incidentesService';
 import apiClient from '@/lib/api/client';
@@ -213,6 +214,67 @@ describe('Servicio API Incidentes (Encargado)', () => {
       expect(res.exito).toBe(false);
       expect(res.codigoError).toBe(404);
       expect(res.mensaje).toContain('no existe o fue dado de baja');
+    });
+  });
+
+  describe('obtenerKpisIncidentes', () => {
+    it('debe consultar /api/incidentes/kpis vía apiClient y retornar datos exitosos', async () => {
+      const mockKpisData = {
+        message: 'Contadores obtenidos exitosamente',
+        data: {
+          fecha: '2026-10-03',
+          zonaHoraria: 'America/Santiago' as const,
+          delegacionId: null,
+          total: 10,
+          contadores: {
+            reportado: 2,
+            verificando: 3,
+            enAtencion: 4,
+            noAbordables: 0,
+            resueltos: 1,
+          },
+          actualizadoEn: '2026-10-03T12:00:00Z',
+        },
+      };
+
+      vi.mocked(apiClient.GET).mockResolvedValueOnce({
+        data: mockKpisData,
+        error: undefined,
+        response: { ok: true, status: 200 } as Response,
+      });
+
+      const res = await obtenerKpisIncidentes({ delegacionId: 'del-1' }, DEFAULT_ENCARGADO_ID);
+
+      expect(apiClient.GET).toHaveBeenCalledWith(
+        '/api/incidentes/kpis',
+        expect.objectContaining({
+          params: {
+            query: {
+              fecha: undefined,
+              delegacionId: 'del-1',
+            },
+            header: { 'x-user-id': DEFAULT_ENCARGADO_ID },
+          },
+          headers: { 'x-user-id': DEFAULT_ENCARGADO_ID },
+        })
+      );
+      expect(res.exito).toBe(true);
+      expect(res.datos?.total).toBe(10);
+      expect(res.datos?.contadores.reportado).toBe(2);
+    });
+
+    it('debe manejar error 403 de permisos insuficientes', async () => {
+      vi.mocked(apiClient.GET).mockResolvedValueOnce({
+        data: undefined,
+        error: undefined,
+        response: { ok: false, status: 403 } as Response,
+      });
+
+      const res = await obtenerKpisIncidentes({}, DEFAULT_ENCARGADO_ID);
+
+      expect(res.exito).toBe(false);
+      expect(res.codigoError).toBe(403);
+      expect(res.mensaje).toContain('No posees permisos de Encargado');
     });
   });
 });
