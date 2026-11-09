@@ -57,6 +57,7 @@ describe('useEncargadoKanbanSocket', () => {
     expect(socket.on).toHaveBeenCalledWith('disconnect', expect.any(Function));
     expect(socket.on).toHaveBeenCalledWith('incidente:creado', expect.any(Function));
     expect(socket.on).toHaveBeenCalledWith('incidente:actualizado', expect.any(Function));
+    expect(socket.on).toHaveBeenCalledWith('mision:rechazada', expect.any(Function));
 
     // Simular evento connect
     act(() => {
@@ -137,6 +138,67 @@ describe('useEncargadoKanbanSocket', () => {
     expect(onIncidenteActualizado).toHaveBeenCalledWith(payload);
   });
 
+  it('debe escuchar mision:rechazada e invocar el callback onMisionRechazada', () => {
+    const socket = getSocket();
+    const onMisionRechazada = vi.fn();
+
+    renderHook(() =>
+      useEncargadoKanbanSocket({
+        onMisionRechazada,
+      })
+    );
+
+    const payload = {
+      misionId: 'mis-100',
+      codigo: 'MIS-2026-0001',
+      tipoMision: 'VERIFICACION',
+      motivo: 'Móvil en pana mecánica en ruta',
+      justificacionRechazo: 'Móvil en pana mecánica en ruta',
+      patrullaId: 'pat-1',
+      patrullaNombre: 'Patrulla 02',
+      incidenteId: 'inc-123',
+      incidenteCodigo: 'INC-12345678',
+      rechazadoPorId: null,
+      rechazadoEn: '2026-09-22T10:45:00Z',
+    };
+
+    act(() => {
+      (socket as unknown as { _trigger: (ev: string, p: unknown) => void })._trigger(
+        'mision:rechazada',
+        payload
+      );
+    });
+
+    expect(onMisionRechazada).toHaveBeenCalledWith(payload);
+  });
+
+  it('debe deduplicar eventos de mision:rechazada recibidos repetidamente dentro de la ventana de tiempo', () => {
+    const socket = getSocket();
+    const onMisionRechazada = vi.fn();
+
+    renderHook(() =>
+      useEncargadoKanbanSocket({
+        onMisionRechazada,
+      })
+    );
+
+    const payload = {
+      misionId: 'mis-dup-1',
+      codigo: 'MIS-2026-0002',
+      tipoMision: 'VERIFICACION',
+      motivo: 'Falla mecánica',
+      patrullaNombre: 'Patrulla 01',
+    };
+
+    act(() => {
+      const helper = socket as unknown as { _trigger: (ev: string, p: unknown) => void };
+      helper._trigger('mision:rechazada', payload);
+      helper._trigger('mision:rechazada', payload);
+    });
+
+    expect(onMisionRechazada).toHaveBeenCalledTimes(1);
+  });
+
   it('debe limpiar listeners y emitir salir al desmontar', () => {
     const socket = getSocket();
 
@@ -148,6 +210,7 @@ describe('useEncargadoKanbanSocket', () => {
     expect(socket.off).toHaveBeenCalledWith('disconnect', expect.any(Function));
     expect(socket.off).toHaveBeenCalledWith('incidente:creado', expect.any(Function));
     expect(socket.off).toHaveBeenCalledWith('incidente:actualizado', expect.any(Function));
+    expect(socket.off).toHaveBeenCalledWith('mision:rechazada', expect.any(Function));
     expect(socket.emit).toHaveBeenCalledWith('leave', 'encargado');
     expect(socket.emit).toHaveBeenCalledWith('salir', 'sala:encargados');
     expect(socket.emit).toHaveBeenCalledWith('leave', 'mapa');
