@@ -166,16 +166,17 @@ export const IncidenteMisionesSection: React.FC<IncidenteMisionesSectionProps> =
                 variant="outline"
                 size="sm"
                 disabled
+                icon={<Hourglass size={15} strokeWidth={2.25} style={{ flexShrink: 0 }} aria-hidden="true" />}
                 style={{
                   backgroundColor: 'var(--color-warning-bg, #FFF3E0)',
                   color: 'var(--color-warning, #E65100)',
                   cursor: 'not-allowed',
                   borderColor: 'var(--color-warning-border, #FFE0B2)',
                   fontWeight: 700,
+                  opacity: 1,
                 }}
                 aria-label="Confirmación pendiente por la patrulla verificadora"
               >
-                <Hourglass size={14} style={{ marginRight: '6px' }} aria-hidden="true" />
                 <span>Confirmación Pendiente</span>
               </Button>
               <span style={{ fontSize: '0.78rem', color: 'var(--color-text-muted, #5F676E)' }}>

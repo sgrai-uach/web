@@ -95,6 +95,7 @@ export const IncidenteCard: React.FC<IncidenteCardProps> = ({
               variant="outline"
               size="sm"
               disabled
+              icon={<Hourglass size={15} strokeWidth={2.25} style={{ flexShrink: 0 }} aria-hidden="true" />}
               style={{
                 width: '100%',
                 justifyContent: 'center',
@@ -103,11 +104,11 @@ export const IncidenteCard: React.FC<IncidenteCardProps> = ({
                 cursor: 'not-allowed',
                 borderColor: 'var(--color-warning-border, #FFE0B2)',
                 fontWeight: 700,
+                opacity: 1,
               }}
               title="La patrulla fue asignada y está a la espera de aceptar o rechazar en terreno"
               aria-label={`Confirmación pendiente para el incidente ${incidente.codigo}`}
             >
-              <Hourglass size={14} style={{ marginRight: '6px' }} aria-hidden="true" />
               <span>Confirmación Pendiente</span>
             </Button>
           ) : onAsignarPatrulla ? (
@@ -115,6 +116,7 @@ export const IncidenteCard: React.FC<IncidenteCardProps> = ({
               type="button"
               variant="primary"
               size="sm"
+              icon={<ShieldCheck size={14} style={{ flexShrink: 0 }} />}
               onClick={(e) => {
                 e.stopPropagation();
                 onAsignarPatrulla(incidente);
@@ -123,7 +125,6 @@ export const IncidenteCard: React.FC<IncidenteCardProps> = ({
               title={`Asignar patrulla verificadora al incidente ${incidente.codigo}`}
               aria-label={`Asignar patrulla verificadora al incidente ${incidente.codigo}`}
             >
-              <ShieldCheck size={14} style={{ marginRight: '5px' }} />
               <span>Asignar Patrulla</span>
             </Button>
           ) : null}

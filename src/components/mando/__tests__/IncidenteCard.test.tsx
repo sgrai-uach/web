@@ -117,6 +117,7 @@ describe('IncidenteCard', () => {
     });
     expect(btnPendiente).toBeDefined();
     expect(btnPendiente).toBeDisabled();
+    expect(btnPendiente.querySelector('svg.lucide-hourglass')).not.toBeNull();
 
     // No debe renderizar el botón activo de Asignar Patrulla
     expect(

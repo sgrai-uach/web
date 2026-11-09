@@ -153,6 +153,7 @@ describe('Componente IncidenteMisionesSection', () => {
     });
     expect(btnPendiente).toBeDefined();
     expect(btnPendiente).toBeDisabled();
+    expect(btnPendiente.querySelector('svg.lucide-hourglass')).not.toBeNull();
 
     // No debe mostrar botón activo de asignar
     expect(
