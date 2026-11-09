@@ -6,7 +6,6 @@ import { patrullasService } from '@/services/patrullasService';
 import type { PatrullaVerificadoraDTO } from '@/types/patrullas';
 
 vi.mock('@/services/patrullasService', () => ({
-  DEFAULT_ENCARGADO_ID: '00000000-0000-4000-8000-000000000003',
   patrullasService: {
     desactivar: vi.fn(),
   },
@@ -196,6 +195,103 @@ describe('PatrullaDesactivarModal (HU-85: Desactivar Patrulla Verificadora)', ()
       expect(screen.getByText('Conflicto Operativo (HTTP 409)')).toBeInTheDocument();
       expect(screen.getByText(mensajeConflicto)).toBeInTheDocument();
     });
+
+    // BUG-H85-WEB-01: El botón de confirmación debe quedar deshabilitado ante 409
+    expect(btnConfirmar).toBeDisabled();
+  });
+
+  it('BUG-H85-WEB-01: bloquea preventivamente si la patrulla se encuentra en EN_MISION, EN_PREVENCION, EN_RECUPERACION o NO_DISPONIBLE', () => {
+    const estadosBloqueados = ['EN_MISION', 'EN_PREVENCION', 'EN_RECUPERACION', 'NO_DISPONIBLE'] as const;
+
+    for (const estado of estadosBloqueados) {
+      const patrullaBloqueada: PatrullaVerificadoraDTO = {
+        ...mockPatrullaDisponible,
+        estado,
+        misionActiva: null,
+      };
+
+      const { unmount } = render(
+        <PatrullaDesactivarModal
+          isOpen={true}
+          patrulla={patrullaBloqueada}
+          onClose={vi.fn()}
+          onPatrullaDesactivada={vi.fn()}
+        />
+      );
+
+      expect(screen.getByTestId('bloqueo-operativo-alerta')).toBeInTheDocument();
+      const btnConfirmar = screen.getByTestId('btn-confirmar-desactivar-patrulla');
+      expect(btnConfirmar).toBeDisabled();
+      unmount();
+    }
+  });
+
+  it('BUG-H85-WEB-05: maneja respuesta 404 Not Found deshabilitando el botón de confirmación', async () => {
+    vi.mocked(patrullasService.desactivar).mockResolvedValueOnce({
+      exito: false,
+      codigoError: 404,
+      mensaje: 'La patrulla verificadora solicitada ya fue dada de baja.',
+    });
+
+    render(
+      <PatrullaDesactivarModal
+        isOpen={true}
+        patrulla={mockPatrullaDisponible}
+        onClose={vi.fn()}
+        onPatrullaDesactivada={vi.fn()}
+      />
+    );
+
+    const btnConfirmar = screen.getByTestId('btn-confirmar-desactivar-patrulla');
+    fireEvent.click(btnConfirmar);
+
+    await waitFor(() => {
+      expect(screen.getByText(/ya fue dada de baja/i)).toBeInTheDocument();
+    });
+
+    expect(btnConfirmar).toBeDisabled();
+  });
+
+  it('BUG-H85-WEB-05: limpia reactivamente errores al cambiar patrulla o reabrir el modal', async () => {
+    vi.mocked(patrullasService.desactivar).mockResolvedValueOnce({
+      exito: false,
+      esConflicto: true,
+      codigoError: 409,
+      mensaje: 'Conflicto de prueba',
+    });
+
+    const { rerender } = render(
+      <PatrullaDesactivarModal
+        isOpen={true}
+        patrulla={mockPatrullaDisponible}
+        onClose={vi.fn()}
+        onPatrullaDesactivada={vi.fn()}
+      />
+    );
+
+    fireEvent.click(screen.getByTestId('btn-confirmar-desactivar-patrulla'));
+
+    await waitFor(() => {
+      expect(screen.getByText('Conflicto de prueba')).toBeInTheDocument();
+    });
+
+    // Reabrir modal con otra patrulla
+    const otraPatrulla: PatrullaVerificadoraDTO = {
+      ...mockPatrullaDisponible,
+      id: 'f1000000-0000-4000-8000-000000000099',
+      nombre: 'Otra Patrulla',
+    };
+
+    rerender(
+      <PatrullaDesactivarModal
+        isOpen={true}
+        patrulla={otraPatrulla}
+        onClose={vi.fn()}
+        onPatrullaDesactivada={vi.fn()}
+      />
+    );
+
+    expect(screen.queryByText('Conflicto de prueba')).not.toBeInTheDocument();
   });
 
   it('despliega mensaje de error si la API retorna 403 Forbidden', async () => {

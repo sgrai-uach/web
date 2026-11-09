@@ -27,6 +27,7 @@ import { ModalCrearEventoRecuperacion } from './ModalCrearEventoRecuperacion';
 import { MapaOperativoMando } from './MapaOperativoMando';
 import { KanbanViewSwitcher } from './KanbanViewSwitcher';
 import { Zap } from 'lucide-react';
+import { usePuedeAsignarMision } from '@/hooks/usePuedeAsignarMision';
 import InlineNotice from '@/components/ui/InlineNotice';
 import styles from '@/styles/mando.module.css';
 
@@ -49,6 +50,7 @@ export const KanbanBoard: React.FC = () => {
   const [eventosPrevencion, setEventosPrevencion] = useState<EventoPrevencionDTO[]>([]);
   const [eventosRecuperacion, setEventosRecuperacion] = useState<EventoRecuperacionResponse[]>([]);
   const [incidenteParaAsignar, setIncidenteParaAsignar] = useState<IncidenteResumen | null>(null);
+  const puedeAsignar = usePuedeAsignarMision();
 
   const [estadoEnfocado, setEstadoEnfocado] = useState<EstadoIncidente | null>(null);
 
@@ -299,6 +301,7 @@ export const KanbanBoard: React.FC = () => {
                     onCargarMas={cargarMas}
                     onSeleccionarIncidente={(inc) => setIncidenteSeleccionadoId(inc.id)}
                     onAsignarPatrulla={(inc) => setIncidenteParaAsignar(inc)}
+                    puedeAsignarPatrulla={puedeAsignar}
                   />
                 ))}
               </div>

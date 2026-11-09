@@ -162,4 +162,41 @@ describe('Componente IncidenteMisionesSection', () => {
       })
     ).toBeNull();
   });
+
+  it('debe mostrar el botón de despachar patrulla verificadora cuando el incidente está en REPORTADO aunque tenga misiones previas no activas (BUG-02)', () => {
+    const handleAsignarPatrulla = vi.fn();
+
+    render(
+      <IncidenteMisionesSection
+        misiones={mockMisiones}
+        incidenteEstado="REPORTADO"
+        onAsignarPatrulla={handleAsignarPatrulla}
+      />
+    );
+
+    const btnDespachar = screen.getByRole('button', {
+      name: /Despachar Patrulla Verificadora/i,
+    });
+    expect(btnDespachar).toBeDefined();
+
+    fireEvent.click(btnDespachar);
+    expect(handleAsignarPatrulla).toHaveBeenCalled();
+  });
+
+  it('no debe mostrar el botón de despacho si puedeAsignar es false (BUG-03)', () => {
+    const handleAsignarPatrulla = vi.fn();
+
+    render(
+      <IncidenteMisionesSection
+        misiones={[]}
+        incidenteEstado="REPORTADO"
+        onAsignarPatrulla={handleAsignarPatrulla}
+        puedeAsignar={false}
+      />
+    );
+
+    expect(
+      screen.queryByRole('button', { name: /Despachar Patrulla Verificadora/i })
+    ).toBeNull();
+  });
 });

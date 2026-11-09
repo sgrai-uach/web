@@ -10,12 +10,14 @@ interface IncidenteCardProps {
   incidente: IncidenteResumen;
   onClick: (incidente: IncidenteResumen) => void;
   onAsignarPatrulla?: (incidente: IncidenteResumen) => void;
+  puedeAsignarPatrulla?: boolean;
 }
 
 export const IncidenteCard: React.FC<IncidenteCardProps> = ({
   incidente,
   onClick,
   onAsignarPatrulla,
+  puedeAsignarPatrulla = true,
 }) => {
   const getPrioridadClass = (prioridad: string) => {
     switch (prioridad) {
@@ -87,7 +89,7 @@ export const IncidenteCard: React.FC<IncidenteCardProps> = ({
         <span>{obtenerNombreDelegacion(incidente.delegacionNombre, 'Sin delegación')}</span>
       </div>
 
-      {incidente.estado === 'REPORTADO' && (
+      {incidente.estado === 'REPORTADO' && (incidente.tieneMisionDespachada || (onAsignarPatrulla && puedeAsignarPatrulla)) && (
         <div style={{ marginTop: '0.625rem', paddingTop: '0.5rem', borderTop: '1px solid var(--border-color-neutral, #DFE3E8)' }}>
           {incidente.tieneMisionDespachada ? (
             <Button
@@ -111,7 +113,7 @@ export const IncidenteCard: React.FC<IncidenteCardProps> = ({
             >
               <span>Confirmación Pendiente</span>
             </Button>
-          ) : onAsignarPatrulla ? (
+          ) : onAsignarPatrulla && puedeAsignarPatrulla ? (
             <Button
               type="button"
               variant="primary"

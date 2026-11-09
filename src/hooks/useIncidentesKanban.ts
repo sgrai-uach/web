@@ -325,6 +325,8 @@ export function useIncidentesKanban(options?: string | UseIncidentesKanbanOption
       const { datos } = payload;
       if (!datos || !datos.id) return;
 
+      let columnaOrigenDetectada: EstadoIncidente | null = null;
+
       setColumnas((prev) => {
         let incidenteEncontrado: IncidenteResumen | null = null;
         let columnaOrigen: EstadoIncidente | null = null;
@@ -333,13 +335,18 @@ export function useIncidentesKanban(options?: string | UseIncidentesKanbanOption
         for (const est of ESTADOS_KANBAN) {
           const idx = prev[est].findIndex((i) => i.id === datos.id);
           if (idx !== -1) {
+            columnaOrigen = est;
+            columnaOrigenDetectada = est;
             incidenteEncontrado = {
               ...prev[est][idx],
               estado: datos.nuevoEstado,
               prioridad: datos.prioridad || prev[est][idx].prioridad,
+              totalMisiones:
+                datos.nuevoEstado === 'VERIFICANDO' && est === 'REPORTADO'
+                  ? Math.max(1, (prev[est][idx].totalMisiones || 0) + 1)
+                  : prev[est][idx].totalMisiones,
               actualizadoEn: datos.actualizadoEn || new Date().toISOString(),
             };
-            columnaOrigen = est;
             break;
           }
         }
@@ -366,39 +373,29 @@ export function useIncidentesKanban(options?: string | UseIncidentesKanbanOption
         };
       });
 
-      // Actualizar contadores de paginación para evitar inconsistencias (ej. 1/0)
-      setPaginacionColumna((prevPag) => {
-        let origenColumna: EstadoIncidente | null = null;
-        for (const est of ESTADOS_KANBAN) {
-          if (est !== datos.nuevoEstado && prevPag[est]?.total) {
-            origenColumna = est;
-            break;
-          }
-        }
-
-        const destinoMeta = prevPag[datos.nuevoEstado];
-        return {
-          ...prevPag,
-          ...(origenColumna && prevPag[origenColumna]
-            ? {
-                [origenColumna]: {
-                  ...prevPag[origenColumna]!,
-                  total: Math.max(0, prevPag[origenColumna]!.total - 1),
+      // Actualizar dinámicamente paginacionColumna si cambió de columna
+      if (columnaOrigenDetectada && columnaOrigenDetectada !== datos.nuevoEstado) {
+        setPaginacionColumna((prev) => {
+          const metaOrigen = prev[columnaOrigenDetectada!];
+          const metaDestino = prev[datos.nuevoEstado];
+          return {
+            ...prev,
+            [columnaOrigenDetectada!]: metaOrigen
+              ? { ...metaOrigen, total: Math.max(0, metaOrigen.total - 1) }
+              : null,
+            [datos.nuevoEstado]: metaDestino
+              ? { ...metaDestino, total: metaDestino.total + 1 }
+              : {
+                  total: 1,
+                  pagina: 1,
+                  limite: 20,
+                  totalPaginas: 1,
+                  tieneSiguiente: false,
+                  tieneAnterior: false,
                 },
-              }
-            : {}),
-          [datos.nuevoEstado]: destinoMeta
-            ? { ...destinoMeta, total: destinoMeta.total + 1 }
-            : {
-                total: 1,
-                pagina: 1,
-                limite: 20,
-                totalPaginas: 1,
-                tieneSiguiente: false,
-                tieneAnterior: false,
-              },
-        };
-      });
+          };
+        });
+      }
     },
     []
   );
@@ -406,7 +403,7 @@ export function useIncidentesKanban(options?: string | UseIncidentesKanbanOption
   // Función para mover un incidente de columna de forma inmediata e imperativa
   const moverIncidenteAEstado = useCallback(
     (incidenteId: string, nuevoEstado: EstadoIncidente, prioridad?: PrioridadIncidente) => {
-      let origenCol: EstadoIncidente | null = null;
+      let columnaOrigenDetectada: EstadoIncidente | null = null;
 
       setColumnas((prev) => {
         let incidenteEncontrado: IncidenteResumen | null = null;
@@ -415,14 +412,18 @@ export function useIncidentesKanban(options?: string | UseIncidentesKanbanOption
         for (const est of ESTADOS_KANBAN) {
           const idx = prev[est].findIndex((i) => i.id === incidenteId);
           if (idx !== -1) {
+            columnaOrigen = est;
+            columnaOrigenDetectada = est;
             incidenteEncontrado = {
               ...prev[est][idx],
               estado: nuevoEstado,
               prioridad: prioridad || prev[est][idx].prioridad,
+              totalMisiones:
+                nuevoEstado === 'VERIFICANDO' && est === 'REPORTADO'
+                  ? Math.max(1, (prev[est][idx].totalMisiones || 0) + 1)
+                  : prev[est][idx].totalMisiones,
               actualizadoEn: new Date().toISOString(),
             };
-            columnaOrigen = est;
-            origenCol = est;
             break;
           }
         }
@@ -445,22 +446,21 @@ export function useIncidentesKanban(options?: string | UseIncidentesKanbanOption
         };
       });
 
-      // Actualizar contadores locales de paginación para reflejar el traslado
+      // Actualizar contadores locales de paginación dinámicamente según origen y destino
       setPaginacionColumna((prev) => {
-        const origenMeta = origenCol ? prev[origenCol] : null;
-        const destinoMeta = prev[nuevoEstado];
+        const origen = columnaOrigenDetectada || ('REPORTADO' as EstadoIncidente);
+        if (origen === nuevoEstado) return prev;
+
+        const metaOrigen = prev[origen];
+        const metaDestino = prev[nuevoEstado];
 
         return {
           ...prev,
-          ...(origenCol
-            ? {
-                [origenCol]: origenMeta
-                  ? { ...origenMeta, total: Math.max(0, origenMeta.total - 1) }
-                  : null,
-              }
-            : {}),
-          [nuevoEstado]: destinoMeta
-            ? { ...destinoMeta, total: destinoMeta.total + 1 }
+          [origen]: metaOrigen
+            ? { ...metaOrigen, total: Math.max(0, metaOrigen.total - 1) }
+            : null,
+          [nuevoEstado]: metaDestino
+            ? { ...metaDestino, total: metaDestino.total + 1 }
             : {
                 total: 1,
                 pagina: 1,

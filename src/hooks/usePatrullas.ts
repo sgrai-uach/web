@@ -216,8 +216,17 @@ export function usePatrullas({
       if (!payload?.patrullaId) return;
       const nombre = payload.nombre || 'Patrulla';
       setUltimoEvento(`Patrulla dada de baja: ${nombre}`);
-      setPatrullas((prev) => prev.filter((p) => p.id !== payload.patrullaId));
-      consultar(filtrosRef.current);
+      setPatrullas((prev) => {
+        const existe = prev.some((p) => p.id === payload.patrullaId);
+        if (existe) {
+          setMeta((prevMeta) => ({
+            ...prevMeta,
+            total: Math.max(0, prevMeta.total - 1),
+          }));
+          return prev.filter((p) => p.id !== payload.patrullaId);
+        }
+        return prev;
+      });
     };
 
     socket.on('connect', onConnect);

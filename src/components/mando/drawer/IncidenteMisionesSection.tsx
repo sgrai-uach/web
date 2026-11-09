@@ -12,6 +12,7 @@ interface IncidenteMisionesSectionProps {
   incidenteEstado?: string;
   onVerDetalleMision?: (misionId: string) => void;
   onAsignarPatrulla?: () => void;
+  puedeAsignar?: boolean;
 }
 
 function traducirEstadoMision(estado: string): { label: string; color: string; bg: string; borderColor: string } {
@@ -101,6 +102,7 @@ export const IncidenteMisionesSection: React.FC<IncidenteMisionesSectionProps> =
   incidenteEstado,
   onVerDetalleMision,
   onAsignarPatrulla,
+  puedeAsignar = true,
 }) => {
   const misionesRechazadas = misiones.filter((m) => m.estado === 'RECHAZADA');
   const misionesVigentes = misiones.filter((m) => m.estado !== 'RECHAZADA');
@@ -116,7 +118,7 @@ export const IncidenteMisionesSection: React.FC<IncidenteMisionesSectionProps> =
       </Heading>
 
       {/* Bloque de Despacho o Reasignación de Patrulla cuando el incidente está en estado REPORTADO */}
-      {requiereReasignacion && onAsignarPatrulla && (
+      {requiereReasignacion && onAsignarPatrulla && (tieneMisionDespachada || puedeAsignar) && (
         <div
           style={{
             backgroundColor: tieneMisionDespachada
@@ -183,7 +185,7 @@ export const IncidenteMisionesSection: React.FC<IncidenteMisionesSectionProps> =
                 (El incidente pasará a &quot;En Verificación&quot; cuando la patrulla acepte la asignación)
               </span>
             </div>
-          ) : (
+          ) : puedeAsignar ? (
             <Button
               type="button"
               variant="primary"
@@ -194,7 +196,7 @@ export const IncidenteMisionesSection: React.FC<IncidenteMisionesSectionProps> =
               <ShieldCheck size={14} style={{ marginRight: '5px' }} />
               <span>{misionesRechazadas.length > 0 ? 'Reasignar Patrulla Verificadora' : 'Despachar Patrulla Verificadora'}</span>
             </Button>
-          )}
+          ) : null}
         </div>
       )}
 

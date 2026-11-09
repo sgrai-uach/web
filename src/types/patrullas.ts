@@ -190,12 +190,12 @@ export interface ResultadoEditarPatrulla {
 
 export interface DesactivarPatrullaDataDTO {
   id: string;
-  codigo: string;
+  codigo?: string | null;
   nombre: string;
   estado: EstadoPatrullaEnum;
   activo: boolean;
   eliminadoEn: string;
-  eliminadoPorId: string;
+  eliminadoPorId?: string | null;
   vehiculoLiberadoId?: string | null;
   personalLiberadoIds?: string[];
 }
@@ -212,6 +212,7 @@ export interface ResultadoDesactivarPatrulla {
   codigoError?: number;
   esForbidden?: boolean;
   esConflicto?: boolean;
+  esNoAutorizado?: boolean;
 }
 
 export interface PatrullaDesactivadaSocketPayload {

@@ -126,4 +126,21 @@ describe('IncidenteCard', () => {
       })
     ).toBeNull();
   });
+
+  it('NO debe renderizar botón "Asignar Patrulla" si puedeAsignarPatrulla es false por falta de permisos (BUG-03)', () => {
+    const handleAsignar = vi.fn();
+    render(
+      <IncidenteCard
+        incidente={mockIncidente} // estado: REPORTADO
+        onClick={vi.fn()}
+        onAsignarPatrulla={handleAsignar}
+        puedeAsignarPatrulla={false}
+      />
+    );
+
+    const btnAsignar = screen.queryByRole('button', {
+      name: /Asignar patrulla verificadora/i,
+    });
+    expect(btnAsignar).toBeNull();
+  });
 });

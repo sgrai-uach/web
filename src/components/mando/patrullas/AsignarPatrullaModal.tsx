@@ -44,8 +44,8 @@ export const AsignarPatrullaModal: React.FC<AsignarPatrullaModalProps> = ({
   userId,
   onAsignacionExitosa,
 }) => {
-  let showSuccess = (_msg: string, _title?: string) => {};
-  let showError = (_msg: string, _title?: string) => {};
+  let showSuccess: (msg: string, title?: string) => void = () => {};
+  let showError: (msg: string, title?: string) => void = () => {};
   try {
     const toast = useToast();
     showSuccess = toast.showSuccess;
@@ -79,12 +79,17 @@ export const AsignarPatrullaModal: React.FC<AsignarPatrullaModalProps> = ({
         );
         setPatrullas([]);
       } else if (res.exito) {
-        setPatrullas(res.data);
-        if (res.data.length > 0) {
+        const disponibles = (res.data || []).filter(
+          (p) =>
+            p.estado === 'DISPONIBLE' &&
+            (p as unknown as { activo?: boolean }).activo !== false
+        );
+        setPatrullas(disponibles);
+        if (disponibles.length > 0) {
           // Pre-seleccionar la primera patrulla disponible si no hay una seleccionada
           setPatrullaSeleccionadaId((prev) => {
-            const existe = res.data.some((p) => p.id === prev);
-            return existe ? prev : res.data[0].id;
+            const existe = disponibles.some((p) => p.id === prev);
+            return existe ? prev : disponibles[0].id;
           });
         } else {
           setPatrullaSeleccionadaId('');
@@ -103,12 +108,16 @@ export const AsignarPatrullaModal: React.FC<AsignarPatrullaModalProps> = ({
 
   useEffect(() => {
     if (isOpen && incidente) {
-      cargarPatrullasDisponibles();
+      queueMicrotask(() => {
+        cargarPatrullasDisponibles();
+      });
     } else {
-      setPatrullaSeleccionadaId('');
-      setErrorMensaje(null);
-      setEsConflicto(false);
-      setEsForbidden(false);
+      queueMicrotask(() => {
+        setPatrullaSeleccionadaId('');
+        setErrorMensaje(null);
+        setEsConflicto(false);
+        setEsForbidden(false);
+      });
     }
   }, [isOpen, incidente, cargarPatrullasDisponibles]);
 
@@ -141,6 +150,7 @@ export const AsignarPatrullaModal: React.FC<AsignarPatrullaModalProps> = ({
         {
           incidenteId: incidente.id,
           patrullaId: patrullaSeleccionadaId,
+          tipoMision: 'VERIFICACION',
           titulo: `Verificación: ${incidente.tipoAfectacion} - ${incidente.codigo}`,
           prioridad: (incidente.prioridad as 'BAJA' | 'MEDIA' | 'ALTA' | 'CRITICA') || 'MEDIA',
         },

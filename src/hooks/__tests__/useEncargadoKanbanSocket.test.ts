@@ -8,9 +8,7 @@ vi.mock('@/lib/socket/client', () => {
 
   const mockSocket = {
     connected: false,
-    connect: vi.fn(() => {
-      mockSocket.connected = true;
-    }),
+    connect: vi.fn(),
     emit: vi.fn(),
     on: vi.fn((event: string, handler: (...args: unknown[]) => void) => {
       if (!listeners[event]) listeners[event] = [];

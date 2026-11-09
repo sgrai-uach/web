@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useContext, useState, useEffect } from 'react';
+import React, { useContext, useState, useEffect, useMemo } from 'react';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { Plus, ShieldCheck } from 'lucide-react';
 import { Breadcrumbs } from '@/components/common/Breadcrumbs';
@@ -27,8 +27,8 @@ export default function AdminPatrullasClient() {
   const searchParams = useSearchParams();
   const [modalCrearAbierto, setModalCrearAbierto] = useState(() => searchParams?.get('nuevo') === '1');
   const [patrullaAEditar, setPatrullaAEditar] = useState<PatrullaVerificadoraDTO | null>(null);
-  const [patrullaADesactivar, setPatrullaADesactivar] = useState<PatrullaVerificadoraDTO | null>(null);
-  const [patrullaADetalle, setPatrullaADetalle] = useState<PatrullaVerificadoraDTO | null>(null);
+  const [patrullaADesactivarRaw, setPatrullaADesactivar] = useState<PatrullaVerificadoraDTO | null>(null);
+  const [patrullaADetalleRaw, setPatrullaADetalle] = useState<PatrullaVerificadoraDTO | null>(null);
   const { showSuccess } = useToast();
   const router = useRouter();
   const pathname = usePathname();
@@ -36,34 +36,34 @@ export default function AdminPatrullasClient() {
   const auth = useContext(AuthContext);
   const session = useContext(SimulatedSessionContext);
 
-  // Control de acceso RBAC
+  // Control de acceso RBAC con política Fail-Closed (BUG-H85-WEB-02)
   const puedeCrear =
     auth?.usuario
       ? auth.tieneAlgunPermiso(['recursos:crear']) || auth.usuario.rolCodigo === 'ADMIN'
       : session?.usuarioActivo
       ? session.hasAnyPermission(['recursos:crear']) || session.usuarioActivo.esAdmin
-      : true;
+      : false;
 
   const puedeEditar =
     auth?.usuario
       ? auth.tieneAlgunPermiso(['recursos:editar']) || auth.usuario.rolCodigo === 'ADMIN'
       : session?.usuarioActivo
       ? session.hasAnyPermission(['recursos:editar']) || session.usuarioActivo.esAdmin
-      : true;
+      : false;
 
   const puedeDesactivar =
     auth?.usuario
       ? auth.tieneAlgunPermiso(['recursos:eliminar']) || auth.usuario.rolCodigo === 'ADMIN'
       : session?.usuarioActivo
       ? session.hasAnyPermission(['recursos:eliminar']) || session.usuarioActivo.esAdmin
-      : true;
+      : false;
 
   const puedeVer =
     auth?.usuario
       ? auth.tieneAlgunPermiso(['recursos:leer', 'recursos:crear', 'misiones:leer']) || auth.usuario.rolCodigo === 'ADMIN'
       : session?.usuarioActivo
       ? session.hasAnyPermission(['recursos:leer', 'recursos:crear', 'misiones:leer']) || session.usuarioActivo.esAdmin
-      : true;
+      : false;
 
   // Apertura automática si query param ?nuevo=1
   useEffect(() => {
@@ -92,6 +92,29 @@ export default function AdminPatrullasClient() {
     hayFiltrosActivos,
     dotacionResumen,
   } = usePatrullas({ userId, enabled: puedeVer });
+
+  // Sincronización reactiva inmediata sin efectos en cascada (BUG-H85-WEB-01 y BUG-H84-WEB-05)
+  const patrullaADesactivar = useMemo(() => {
+    if (!patrullaADesactivarRaw) return null;
+    const enLista = patrullas.find((p) => p.id === patrullaADesactivarRaw.id);
+    if (!enLista) return patrullaADesactivarRaw;
+    return {
+      ...patrullaADesactivarRaw,
+      estado: enLista.estado,
+      misionActiva: enLista.misionActiva,
+    };
+  }, [patrullas, patrullaADesactivarRaw]);
+
+  const patrullaADetalle = useMemo(() => {
+    if (!patrullaADetalleRaw) return null;
+    const enLista = patrullas.find((p) => p.id === patrullaADetalleRaw.id);
+    if (!enLista) return patrullaADetalleRaw;
+    return {
+      ...patrullaADetalleRaw,
+      estado: enLista.estado,
+      misionActiva: enLista.misionActiva,
+    };
+  }, [patrullas, patrullaADetalleRaw]);
 
   const handlePatrullaCreada = (patrulla: PatrullaVerificadoraDTO) => {
     showSuccess(`Patrulla "${patrulla.nombre}" registrada exitosamente.`);
@@ -318,6 +341,7 @@ export default function AdminPatrullasClient() {
 
       {/* Modal Institucional de Desactivación de Patrulla Verificadora */}
       <PatrullaDesactivarModal
+        key={patrullaADesactivar?.id || 'patrulla-desactivar-modal'}
         isOpen={Boolean(patrullaADesactivar)}
         patrulla={patrullaADesactivar}
         usuarioActivoId={userId}
