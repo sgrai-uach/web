@@ -114,6 +114,12 @@ export const IncidentesKpiCards: React.FC<IncidentesKpiCardsProps> = ({
   onSelectEstado,
   conectado,
 }) => {
+  const [isMounted, setIsMounted] = React.useState(false);
+
+  React.useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
   const contadores = kpis?.contadores || {
     reportado: 0,
     verificando: 0,
@@ -183,12 +189,13 @@ export const IncidentesKpiCards: React.FC<IncidentesKpiCardsProps> = ({
             variant="outline"
             size="sm"
             onClick={onRefrescar}
-            disabled={cargando}
+            disabled={isMounted ? cargando : false}
+            suppressHydrationWarning
             aria-label="Actualizar contadores de incidentes"
             title="Actualizar datos"
           >
-            <RotateCw size={13} className={cargando ? styles.spinner : undefined} />
-            <span>{cargando ? 'Actualizando...' : 'Actualizar'}</span>
+            <RotateCw size={13} className={isMounted && cargando ? styles.spinner : undefined} />
+            <span>{isMounted && cargando ? 'Actualizando...' : 'Actualizar'}</span>
           </Button>
         </div>
       </div>

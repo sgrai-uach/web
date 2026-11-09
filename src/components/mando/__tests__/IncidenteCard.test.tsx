@@ -102,6 +102,31 @@ describe('IncidenteCard', () => {
     expect(btnAsignar).toBeNull();
   });
 
+  it('debe renderizar botón inactivo "Confirmación Pendiente" si tieneMisionDespachada es true', () => {
+    const handleAsignar = vi.fn();
+    render(
+      <IncidenteCard
+        incidente={{ ...mockIncidente, estado: 'REPORTADO', tieneMisionDespachada: true }}
+        onClick={vi.fn()}
+        onAsignarPatrulla={handleAsignar}
+      />
+    );
+
+    const btnPendiente = screen.getByRole('button', {
+      name: /confirmación pendiente para el incidente INC-58291045/i,
+    });
+    expect(btnPendiente).toBeDefined();
+    expect(btnPendiente).toBeDisabled();
+    expect(btnPendiente.querySelector('svg.lucide-hourglass')).not.toBeNull();
+
+    // No debe renderizar el botón activo de Asignar Patrulla
+    expect(
+      screen.queryByRole('button', {
+        name: /Asignar patrulla verificadora al incidente INC-58291045/i,
+      })
+    ).toBeNull();
+  });
+
   it('NO debe renderizar botón "Asignar Patrulla" si puedeAsignarPatrulla es false por falta de permisos (BUG-03)', () => {
     const handleAsignar = vi.fn();
     render(

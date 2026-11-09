@@ -15,7 +15,9 @@ export const DEFAULT_ENCARGADO_ID = '00000000-0000-4000-8000-000000000003';
 
 export type ListarIncidentesResponse = components['schemas']['ListarIncidentesResponse'];
 export type IncidenteDetalleResponse = components['schemas']['IncidenteDetalleResponse'];
-export type IncidenteResumen = ListarIncidentesResponse['data'][number];
+export type IncidenteResumen = ListarIncidentesResponse['data'][number] & {
+  tieneMisionDespachada?: boolean;
+};
 export type IncidenteDetalle = IncidenteDetalleResponse['data'];
 export type PaginacionMeta = ListarIncidentesResponse['paginacion'];
 export type EstadoIncidente = IncidenteResumen['estado'];
@@ -221,24 +223,18 @@ export const incidentesService = {
     userId: string = DEFAULT_ENCARGADO_ID
   ): Promise<ResultadoKpisIncidentes> {
     try {
-      const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
-      const url = new URL('/api/incidentes/kpis', baseUrl);
-      if (query.fecha && query.fecha.trim()) {
-        url.searchParams.set('fecha', query.fecha.trim());
-      }
-      if (query.delegacionId && query.delegacionId.trim()) {
-        url.searchParams.set('delegacionId', query.delegacionId.trim());
-      }
-
-      const res = await fetch(url.toString(), {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-user-id': userId,
+      const { data, response } = await apiClient.GET('/api/incidentes/kpis', {
+        params: {
+          query: {
+            fecha: query.fecha && query.fecha.trim() ? query.fecha.trim() : undefined,
+            delegacionId: query.delegacionId && query.delegacionId.trim() ? query.delegacionId.trim() : undefined,
+          },
+          header: { 'x-user-id': userId },
         },
+        headers: { 'x-user-id': userId },
       });
 
-      if (res.status === 403) {
+      if (response?.status === 403) {
         return {
           exito: false,
           codigoError: 403,
@@ -246,7 +242,7 @@ export const incidentesService = {
         };
       }
 
-      if (res.status === 401) {
+      if (response?.status === 401) {
         return {
           exito: false,
           codigoError: 401,
@@ -254,20 +250,19 @@ export const incidentesService = {
         };
       }
 
-      if (!res.ok) {
+      if (!response?.ok) {
         return {
           exito: false,
-          codigoError: res.status,
+          codigoError: response?.status || 500,
           mensaje: 'No fue posible cargar los contadores de incidentes del día.',
         };
       }
 
-      const json = await res.json();
-      if (json?.data) {
+      if (data?.data) {
         return {
           exito: true,
-          datos: json.data,
-          mensaje: json.message || 'Contadores obtenidos exitosamente.',
+          datos: data.data as unknown as IncidentesKpisData,
+          mensaje: data.message || 'Contadores obtenidos exitosamente.',
         };
       }
 

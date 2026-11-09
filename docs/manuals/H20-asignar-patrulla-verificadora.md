@@ -34,7 +34,7 @@ La asignación y despacho de patrullas requiere autorización estricta en el sis
 ### Paso 1: Localización del Incidente en el Tablero Kanban
 1. Inicie sesión con su cuenta institucional con rol Encargado o Administrador.
 2. Ingrese al **Centro de Mando** (`/gestion/centro-incidentes`).
-3. En la columna **"Pendiente / Reportado"**, identifique la tarjeta del incidente ciudadano que requiere inspección física en terreno.
+3. En la columna **"Reportado"**, identifique la tarjeta del incidente ciudadano que requiere inspección física en terreno.
 4. Haga clic sobre la tarjeta del incidente para abrir el **Drawer Lateral de Detalle**.
 
 ### Paso 2: Apertura del Modal de Asignación
@@ -51,17 +51,19 @@ La asignación y despacho de patrullas requiere autorización estricta en el sis
 
 ### Paso 4: Confirmación y Despacho
 1. Haga clic en el botón principal **"Confirmar y Despachar"** (`--color-accent-mint`).
-2. El sistema iniciará la transacción atómica con el servidor central:
-   - Se creará la orden de misión de tipo `VERIFICACION` con código oficial (ej. `MIS-2026-8341`).
-   - El estado del incidente cambiará a `VERIFICANDO`.
+2. El sistema iniciará la transacción con el servidor central:
+   - Se creará la orden de misión de tipo `VERIFICACION` con código oficial (ej. `MIS-2026-8341`) en estado `DESPACHADA`.
+   - El incidente se mantiene en la columna **"Reportado"**, pasando el botón de acción a **"Pendiente de Confirmación"** hasta que la unidad responda en terreno.
    - La patrulla seleccionada cambiará su estado a `EN_VERIFICACION`.
    - Se registrará el hito inicial de despacho en la bitácora de la misión.
 3. Una notificación Toast municipal de color verde confirmará el éxito del despacho.
 4. El drawer actualizará automáticamente la sección de misiones mostrando la patrulla asignada, y el modal se cerrará.
 
-### Paso 5: Reactividad en Tiempo Real en el Tablero Kanban
-Gracias al canal WebSocket conectado a las salas `encargado` y `mapa`:
-* La tarjeta del incidente se moverá de forma automática desde la columna **"Pendiente / Reportado"** a la columna **"En Verificación"**.
+### Paso 5: Confirmación de Terreno y Transición a "En Verificación"
+Gracias al canal WebSocket conectado a la sala `encargado`:
+* El incidente permanece en la columna **"Reportado"** con el botón inactivo **"Pendiente de Confirmación"** mientras el evaluador en terreno revisa la asignación.
+* En cuanto la patrulla **acepta** la misión en su aplicación móvil, el incidente transiciona automáticamente a la columna **"En Verificación"**.
+* Si la patrulla **rechaza** la misión ingresando su motivo justificado, el sistema emite una alerta flotante y el botón vuelve a estar disponible para **"Reasignar Patrulla Verificadora"**.
 * No se requiere presionar F5 ni recargar manualmente el navegador.
 
 ---

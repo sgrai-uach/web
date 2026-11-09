@@ -89,13 +89,13 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
       };
       return {
         ...prev,
-        estado: 'VERIFICANDO',
+        estado: 'REPORTADO',
         misiones: [nuevaMision, ...prev.misiones],
       };
     });
 
-    // Notificar al tablero Kanban para mover la tarjeta de inmediato
-    onIncidenteActualizado?.(data.incidente.id, 'VERIFICANDO');
+    // Mantener en estado REPORTADO hasta que la patrulla acepte en terreno
+    onIncidenteActualizado?.(data.incidente.id, 'REPORTADO');
   };
 
   if (!incidenteId) return null;
