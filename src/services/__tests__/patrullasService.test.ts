@@ -441,6 +441,59 @@ describe('Servicio de Patrullas Verificadoras (HU-16: Visualizar Patrullas)', ()
       expect(options.headers['x-user-id']).toBe(DEFAULT_ENCARGADO_ID);
     });
 
+    it('BUG-H85-WEB-02: si no se provee userId, no adjunta cabecera x-user-id por defecto ni usa DEFAULT_ENCARGADO_ID', async () => {
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          message: 'Patrulla desactivada.',
+          data: { id: patrullaId, activo: false, estado: 'NO_DISPONIBLE', eliminadoEn: '2026-10-26T12:00:00.000Z' },
+        }),
+      });
+      vi.stubGlobal('fetch', mockFetch);
+
+      await patrullasService.desactivar(patrullaId);
+
+      const [, options] = mockFetch.mock.calls[0];
+      expect(options.headers['x-user-id']).toBeUndefined();
+    });
+
+    it('BUG-H85-WEB-02: debe manejar 401 Unauthorized y extraer el mensaje del backend si existe', async () => {
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: false,
+        status: 401,
+        json: async () => ({
+          message: 'Token expirado o sesión inválida.',
+        }),
+      });
+      vi.stubGlobal('fetch', mockFetch);
+
+      const res = await patrullasService.desactivar(patrullaId);
+
+      expect(res.exito).toBe(false);
+      expect(res.codigoError).toBe(401);
+      expect(res.esNoAutorizado).toBe(true);
+      expect(res.mensaje).toContain('Token expirado');
+    });
+
+    it('BUG-H85-WEB-02: lee json.message personalizado retornado por el servidor ante 403 Forbidden', async () => {
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: false,
+        status: 403,
+        json: async () => ({
+          message: 'Permiso recursos:eliminar denegado para su perfil.',
+        }),
+      });
+      vi.stubGlobal('fetch', mockFetch);
+
+      const res = await patrullasService.desactivar(patrullaId);
+
+      expect(res.exito).toBe(false);
+      expect(res.esForbidden).toBe(true);
+      expect(res.codigoError).toBe(403);
+      expect(res.mensaje).toBe('Permiso recursos:eliminar denegado para su perfil.');
+    });
+
     it('debe manejar conflicto operativo (409 Conflict) si posee misiones activas o está en verificación', async () => {
       const mensajeConflicto =
         'La patrulla se encuentra en terreno ejecutando la misión MIS-2026-0001 y no puede ser dada de baja.';
