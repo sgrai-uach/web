@@ -8,6 +8,7 @@ import {
   Wrench,
   Pencil,
   AlertCircle,
+  Trash2,
 } from 'lucide-react';
 import type { CuadrillaItem } from '@/types/cuadrilla';
 import Button from '@/components/ui/Button';
@@ -17,7 +18,9 @@ interface CuadrillaDetalleDrawerProps {
   isOpen: boolean;
   onCerrar: () => void;
   onEditar?: (cuadrilla: CuadrillaItem) => void;
+  onDesactivar?: (cuadrilla: CuadrillaItem) => void;
   puedeEditar?: boolean;
+  puedeEliminar?: boolean;
 }
 
 export default function CuadrillaDetalleDrawer({
@@ -25,7 +28,9 @@ export default function CuadrillaDetalleDrawer({
   isOpen,
   onCerrar,
   onEditar,
+  onDesactivar,
   puedeEditar = true,
+  puedeEliminar = true,
 }: CuadrillaDetalleDrawerProps) {
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
@@ -40,6 +45,7 @@ export default function CuadrillaDetalleDrawer({
   if (!isOpen || !cuadrilla) return null;
 
   const estadoNorm = (cuadrilla.estado || '').toUpperCase();
+  const estaInactiva = cuadrilla.activo === false || estadoNorm === 'NO_DISPONIBLE';
   const bloqueadaPorMision =
     estadoNorm === 'EN_MISION' || estadoNorm === 'EN_TRANSITO' || estadoNorm === 'EN_OPERACION';
 
@@ -360,6 +366,12 @@ export default function CuadrillaDetalleDrawer({
                 {new Date(cuadrilla.actualizadoEn).toLocaleString('es-CL')}
               </span>
             )}
+            {cuadrilla.eliminadoEn && (
+              <span style={{ color: 'var(--color-danger, #D32F2F)' }}>
+                <strong>Eliminado / Dado de baja:</strong>{' '}
+                {new Date(cuadrilla.eliminadoEn).toLocaleString('es-CL')}
+              </span>
+            )}
           </div>
         </div>
 
@@ -378,7 +390,7 @@ export default function CuadrillaDetalleDrawer({
             Cerrar
           </Button>
 
-          {puedeEditar && onEditar && (
+          {puedeEditar && onEditar && !estaInactiva && (
             <div
               style={{ display: 'inline-block' }}
               title={
@@ -402,6 +414,34 @@ export default function CuadrillaDetalleDrawer({
                 }}
               >
                 Editar Cuadrilla
+              </Button>
+            </div>
+          )}
+
+          {puedeEliminar && onDesactivar && !estaInactiva && (
+            <div
+              style={{ display: 'inline-block' }}
+              title={
+                bloqueadaPorMision
+                  ? 'No se puede desactivar una cuadrilla que se encuentra actualmente en misión activa'
+                  : 'Desactivar y retirar de servicio operativo la cuadrilla'
+              }
+            >
+              <Button
+                variant="destructive"
+                size="md"
+                disabled={bloqueadaPorMision}
+                onClick={() => {
+                  onCerrar();
+                  onDesactivar(cuadrilla);
+                }}
+                icon={<Trash2 size={15} />}
+                style={{
+                  opacity: bloqueadaPorMision ? 0.6 : 1,
+                  cursor: bloqueadaPorMision ? 'not-allowed' : 'pointer',
+                }}
+              >
+                Desactivar Cuadrilla
               </Button>
             </div>
           )}

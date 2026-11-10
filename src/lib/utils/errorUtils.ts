@@ -1,4 +1,5 @@
 import type { ApiErrorResponse, ApiFieldError } from '@/types/common';
+import { MAPA_ESTADOS_LEGIBLES } from '@/lib/utils/estadoUtils';
 
 export const NOMBRES_CAMPOS: Record<string, string> = {
   rut: 'RUT',
@@ -26,6 +27,13 @@ export const NOMBRES_CAMPOS: Record<string, string> = {
   radio_afectacion_metros: 'Radio de Afectación',
   radioMetros: 'Radio de Afectación',
   activo: 'Estado Operativo',
+  codigo: 'Código Identificador',
+  vehiculoId: 'Vehículo Institucional',
+  vehiculo_id: 'Vehículo Institucional',
+  personalIds: 'Dotación de Personal',
+  personal_ids: 'Dotación de Personal',
+  usuarioLiderId: 'Líder de Patrulla',
+  usuario_lider_id: 'Líder de Patrulla',
 };
 
 /**
@@ -34,6 +42,20 @@ export const NOMBRES_CAMPOS: Record<string, string> = {
 export function traducirNombreCampo(campo?: string): string {
   if (!campo) return '';
   return NOMBRES_CAMPOS[campo] || NOMBRES_CAMPOS[campo.toLowerCase()] || campo;
+}
+
+/**
+ * Reemplaza enums técnicos en mayúsculas (ej. ASIGNADO, EN_MANTENCION) por sus nombres
+ * oficiales en español institucional para mensajes devueltos por el servidor.
+ */
+export function sanitizarMensajeServidor(mensaje?: string | null): string {
+  if (!mensaje) return 'Ha ocurrido un error al procesar la solicitud.';
+  let resultado = mensaje;
+  for (const [key, label] of Object.entries(MAPA_ESTADOS_LEGIBLES)) {
+    const regex = new RegExp(`\\b${key}\\b`, 'g');
+    resultado = resultado.replace(regex, label);
+  }
+  return resultado;
 }
 
 /**

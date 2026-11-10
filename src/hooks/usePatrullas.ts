@@ -9,6 +9,8 @@ import type {
   PaginacionMeta,
   PatrullaActualizadaSocketPayload,
   MisionAsignadaSocketPayload,
+  PatrullaCreadaSocketPayload,
+  PatrullaDesactivadaSocketPayload,
   EstadoPatrullaEnum,
 } from '@/types/patrullas';
 
@@ -94,6 +96,11 @@ export function usePatrullas({
   useEffect(() => {
     filtrosRef.current = filtros;
   }, [filtros]);
+
+  const consultarRef = useRef(consultar);
+  useEffect(() => {
+    consultarRef.current = consultar;
+  }, [consultar]);
 
   useEffect(() => {
     if (!enabled) return;
@@ -198,11 +205,37 @@ export function usePatrullas({
       });
     };
 
+    const handlePatrullaCreada = (payload: PatrullaCreadaSocketPayload) => {
+      if (!payload?.patrullaId) return;
+      const nombre = payload.nombre || payload.codigo || 'Nueva Patrulla';
+      setUltimoEvento(`Nueva patrulla incorporada: ${nombre} (${payload.estado || 'DISPONIBLE'})`);
+      consultarRef.current(filtrosRef.current);
+    };
+
+    const handlePatrullaDesactivada = (payload: PatrullaDesactivadaSocketPayload) => {
+      if (!payload?.patrullaId) return;
+      const nombre = payload.nombre || 'Patrulla';
+      setUltimoEvento(`Patrulla dada de baja: ${nombre}`);
+      setPatrullas((prev) => {
+        const existe = prev.some((p) => p.id === payload.patrullaId);
+        if (existe) {
+          setMeta((prevMeta) => ({
+            ...prevMeta,
+            total: Math.max(0, prevMeta.total - 1),
+          }));
+          return prev.filter((p) => p.id !== payload.patrullaId);
+        }
+        return prev;
+      });
+    };
+
     socket.on('connect', onConnect);
     socket.on('disconnect', onDisconnect);
     socket.on('patrulla:actualizada', handlePatrullaActualizada);
     socket.on('patrulla:liberada', handlePatrullaActualizada);
     socket.on('mision:asignada', handleMisionAsignada);
+    socket.on('patrulla:creada', handlePatrullaCreada);
+    socket.on('patrulla:desactivada', handlePatrullaDesactivada);
 
     return () => {
       socket.off('connect', onConnect);
@@ -210,6 +243,8 @@ export function usePatrullas({
       socket.off('patrulla:actualizada', handlePatrullaActualizada);
       socket.off('patrulla:liberada', handlePatrullaActualizada);
       socket.off('mision:asignada', handleMisionAsignada);
+      socket.off('patrulla:creada', handlePatrullaCreada);
+      socket.off('patrulla:desactivada', handlePatrullaDesactivada);
       socket.emit('leave', 'encargado');
       socket.emit('salir', 'sala:encargados');
       socket.emit('leave', 'mapa');

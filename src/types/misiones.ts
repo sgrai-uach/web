@@ -4,6 +4,7 @@
  * Conforme a docs/architecture/architecture.md y contratos OpenAPI de sgrai-api.
  */
 
+import type { paths } from './api-generated';
 import type { PaginationMeta } from './common';
 
 export interface AdjuntoEvidencia {
@@ -235,4 +236,24 @@ export interface DespacharCuadrillaResponse {
       descripcion: string;
     };
   };
+}
+
+export type CrearMisionRequestBody =
+  paths['/api/misiones']['post']['requestBody']['content']['application/json'];
+export type CrearMisionResponse201 =
+  paths['/api/misiones']['post']['responses'][201]['content']['application/json'];
+
+export type DespacharPatrullaPayload = Omit<CrearMisionRequestBody, 'tipoMision'> & {
+  tipoMision?: CrearMisionRequestBody['tipoMision'];
+};
+export type DespacharPatrullaResponseData = CrearMisionResponse201['data'];
+export type DespacharPatrullaResponse = CrearMisionResponse201;
+
+export interface ResultadoDespacharPatrulla {
+  exito: boolean;
+  data?: DespacharPatrullaResponseData;
+  mensaje: string;
+  codigoError?: number;
+  esConflicto?: boolean;
+  esForbidden?: boolean;
 }

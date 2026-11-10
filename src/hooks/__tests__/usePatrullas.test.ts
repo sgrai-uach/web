@@ -237,4 +237,39 @@ describe('Hook usePatrullas (HU-16: Patrullas en Tiempo Real)', () => {
     expect(result.current.patrullas[0].misionActiva?.codigo).toBe('MIS-2026-0500');
     expect(result.current.ultimoEvento).toContain('MIS-2026-0500');
   });
+
+  it('BUG-H85-WEB-03: debe reaccionar a evento patrulla:desactivada filtrando la patrulla y decrementando meta.total', async () => {
+    vi.mocked(patrullasService.listar).mockResolvedValueOnce({
+      exito: true,
+      data: mockPatrullas,
+      meta: { total: 2, page: 1, limit: 20, totalPages: 1, hasNext: false, hasPrev: false },
+      mensaje: 'OK',
+    });
+
+    const { result } = renderHook(() => usePatrullas());
+
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 10));
+    });
+
+    expect(result.current.patrullas.length).toBe(2);
+    expect(result.current.meta.total).toBe(2);
+
+    act(() => {
+      (getSocket() as unknown as { _trigger: (ev: string, data: unknown) => void })._trigger(
+        'patrulla:desactivada',
+        {
+          patrullaId: 'p-1',
+          nombre: 'Patrulla Rápida Costa-1',
+          eliminadoPorId: 'admin-1',
+          eliminadoEn: '2026-10-21T11:20:00.000Z',
+        }
+      );
+    });
+
+    expect(result.current.patrullas.length).toBe(1);
+    expect(result.current.patrullas[0].id).toBe('p-2');
+    expect(result.current.meta.total).toBe(1);
+    expect(result.current.ultimoEvento).toContain('Patrulla dada de baja');
+  });
 });

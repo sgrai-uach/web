@@ -13,11 +13,14 @@ import { IncidenteMisionesSection } from './drawer/IncidenteMisionesSection';
 import { IncidenteRecursosSection } from './drawer/IncidenteRecursosSection';
 import { MisionDetalleModal } from './mision/MisionDetalleModal';
 import { ModalAsignarCuadrilla } from './ModalAsignarCuadrilla';
+import { AsignarPatrullaModal } from './patrullas/AsignarPatrullaModal';
 import { useOptionalAuth } from '@/context/AuthContext';
 import { useOptionalToast } from '@/components/ui/Toast';
+import { usePuedeAsignarMision } from '@/hooks/usePuedeAsignarMision';
 import Button from '@/components/ui/Button';
 import InlineNotice from '@/components/ui/InlineNotice';
-import type { DespacharCuadrillaResponse } from '@/types/misiones';
+import type { DespacharCuadrillaResponse, DespacharPatrullaResponseData } from '@/types/misiones';
+import type { EstadoIncidente } from '@/services/incidentesService';
 import { HardHat, CheckCircle2 } from 'lucide-react';
 import styles from '@/styles/mando.module.css';
 
@@ -25,7 +28,7 @@ export interface IncidenteDetalleDrawerProps {
   incidenteId: string | null;
   userId: string;
   onCerrar: () => void;
-  onIncidenteActualizado?: () => void;
+  onIncidenteActualizado?: (incidenteId?: string, nuevoEstado?: EstadoIncidente) => void;
 }
 
 export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
@@ -42,9 +45,12 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [misionSeleccionadaId, setMisionSeleccionadaId] = useState<string | null>(null);
   const [modalCuadrillaAbierto, setModalCuadrillaAbierto] = useState<boolean>(false);
+  const [modalAsignarPatrullaAbierto, setModalAsignarPatrullaAbierto] = useState<boolean>(false);
+  const puedeAsignar = usePuedeAsignarMision();
 
   // Verificación de permisos RBAC ('misiones:asignar')
   const tienePermisoAsignar =
+    puedeAsignar ||
     !auth ||
     auth.tienePermiso('misiones:asignar') ||
     auth.usuario?.rolCodigo === 'ENCARGADO' ||
@@ -80,6 +86,7 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
         setDetalle(null);
         setError(null);
         setModalCuadrillaAbierto(false);
+        setModalAsignarPatrullaAbierto(false);
         return;
       }
       cargarDetalle();
@@ -93,13 +100,18 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
   // Cierre por tecla Escape
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && !misionSeleccionadaId && !modalCuadrillaAbierto) {
+      if (
+        e.key === 'Escape' &&
+        !misionSeleccionadaId &&
+        !modalCuadrillaAbierto &&
+        !modalAsignarPatrullaAbierto
+      ) {
         onCerrar();
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [onCerrar, misionSeleccionadaId, modalCuadrillaAbierto]);
+  }, [onCerrar, misionSeleccionadaId, modalCuadrillaAbierto, modalAsignarPatrullaAbierto]);
 
   // 1. Visibilidad: Mostrar acción táctica de despacho en estados VERIFICANDO y REPORTADO (CA-1 HU-21)
   const puedeDespacharCuadrilla = useMemo(() => {
@@ -136,25 +148,60 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
     onIncidenteActualizado?.();
   };
 
+  const handleAsignacionExitosa = (data: DespacharPatrullaResponseData) => {
+    setDetalle((prev) => {
+      if (!prev) return prev;
+      const nuevaMision = {
+        id: data.mision.id,
+        codigo: data.mision.codigo,
+        titulo: data.mision.titulo,
+        descripcion: null,
+        tipoMision: data.mision.tipoMision,
+        estado: data.mision.estado,
+        prioridad: prev.prioridad,
+        justificacionRechazo: null,
+        patrulla: {
+          id: data.patrulla.id,
+          nombre: data.patrulla.nombre,
+          estado: data.patrulla.estado,
+        },
+        cuadrilla: null,
+        fechaInicio: null,
+        fechaCierre: null,
+        creadoEn: new Date().toISOString(),
+      };
+      return {
+        ...prev,
+        estado: 'VERIFICANDO',
+        misiones: [nuevaMision, ...prev.misiones],
+      };
+    });
+
+    // Notificar al tablero Kanban para mover la tarjeta de inmediato
+    onIncidenteActualizado?.(data.incidente.id, 'VERIFICANDO');
+  };
+
   if (!incidenteId) return null;
 
   const estaVerificadoConcluido = misionVerificacion?.estado === 'COMPLETADA';
 
   return (
     <>
-      <div className={styles.drawerOverlay} onClick={onCerrar} />
       <div
-        className={styles.drawerContainer}
+        className={styles.drawerOverlay}
+        onClick={onCerrar}
         role="dialog"
         aria-modal="true"
         aria-label={`Detalle del incidente ${detalle?.codigo || ''}`}
       >
-        <IncidenteDetalleHeader
-          detalle={detalle}
-          onCerrar={onCerrar}
-        />
+        <div className={styles.drawerContent} onClick={(e) => e.stopPropagation()}>
+          <IncidenteDetalleHeader
+            detalle={detalle}
+            onCerrar={onCerrar}
+            onAsignarPatrulla={() => setModalAsignarPatrullaAbierto(true)}
+            puedeAsignar={puedeAsignar}
+          />
 
-        <div className={styles.drawerContentScroll}>
           {/* Barra táctica de despacho de cuadrilla operativa (HU-21 / Regla ICS §3.2) */}
           {puedeDespacharCuadrilla && detalle && (
             <div
@@ -263,7 +310,10 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
                 <IncidenteInformanteSection detalle={detalle} />
                 <IncidenteMisionesSection
                   misiones={detalle.misiones}
+                  incidenteEstado={detalle.estado}
                   onVerDetalleMision={(misionId) => setMisionSeleccionadaId(misionId)}
+                  onAsignarPatrulla={() => setModalAsignarPatrullaAbierto(true)}
+                  puedeAsignar={puedeAsignar}
                 />
                 <IncidenteRecursosSection recursos={detalle.recursosAsociados} />
               </>
@@ -288,6 +338,25 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
           onSuccess={handleDespachoExitoso}
         />
       )}
+
+      {/* Modal de Asignación de Patrulla Verificadora (HU-20) */}
+      <AsignarPatrullaModal
+        isOpen={modalAsignarPatrullaAbierto}
+        onClose={() => setModalAsignarPatrullaAbierto(false)}
+        incidente={
+          detalle
+            ? {
+                id: detalle.id,
+                codigo: detalle.codigo,
+                tipoAfectacion: detalle.tipoAfectacion,
+                direccion: detalle.direccion,
+                prioridad: detalle.prioridad,
+              }
+            : null
+        }
+        userId={userId}
+        onAsignacionExitosa={handleAsignacionExitosa}
+      />
     </>
   );
 };

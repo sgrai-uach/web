@@ -72,7 +72,10 @@ export function useEncargadoKanbanSocket({
 
     const onConnect = () => {
       setConectado(true);
+      socket.emit('join', 'encargado');
       socket.emit('unirse', 'sala:encargados');
+      socket.emit('join', 'mapa');
+      socket.emit('unirse', 'mapa');
     };
 
     const onDisconnect = () => {
@@ -80,7 +83,10 @@ export function useEncargadoKanbanSocket({
     };
 
     if (socket.connected) {
+      socket.emit('join', 'encargado');
       socket.emit('unirse', 'sala:encargados');
+      socket.emit('join', 'mapa');
+      socket.emit('unirse', 'mapa');
       queueMicrotask(() => {
         setConectado(true);
       });
@@ -93,12 +99,47 @@ export function useEncargadoKanbanSocket({
       }
     };
 
-    const handleActualizado = (payload: IncidenteActualizadoPayload) => {
+    const handleActualizado = (payload: unknown) => {
+      const p = payload as Record<string, unknown> | null | undefined;
+      const rawDatos = (p?.datos || p?.data || p) as Record<string, unknown> | null | undefined;
+      const id =
+        typeof rawDatos?.id === 'string'
+          ? rawDatos.id
+          : typeof rawDatos?.incidenteId === 'string'
+            ? rawDatos.incidenteId
+            : undefined;
+      const nuevoEstado =
+        typeof rawDatos?.nuevoEstado === 'string'
+          ? rawDatos.nuevoEstado
+          : typeof rawDatos?.estado === 'string'
+            ? rawDatos.estado
+            : undefined;
+      if (!id) return;
+
+      const normalizedPayload: IncidenteActualizadoPayload = {
+        evento: 'incidente:actualizado',
+        datos: {
+          id,
+          codigo: typeof rawDatos?.codigo === 'string' ? rawDatos.codigo : '',
+          nuevoEstado: (nuevoEstado as EstadoIncidente) || 'VERIFICANDO',
+          prioridad:
+            typeof rawDatos?.prioridad === 'string'
+              ? (rawDatos.prioridad as PrioridadIncidente)
+              : ('MEDIA' as PrioridadIncidente),
+          actualizadoEn:
+            typeof rawDatos?.actualizadoEn === 'string'
+              ? rawDatos.actualizadoEn
+              : new Date().toISOString(),
+        },
+        emitidoEn:
+          typeof p?.emitidoEn === 'string' ? p.emitidoEn : new Date().toISOString(),
+      };
+
       setUltimoEvento(
-        `Actualizado: ${payload?.datos?.codigo || ''} → ${payload?.datos?.nuevoEstado || ''}`
+        `Actualizado: ${normalizedPayload.datos.codigo || ''} → ${normalizedPayload.datos.nuevoEstado}`
       );
       if (actualizadoRef.current) {
-        actualizadoRef.current(payload);
+        actualizadoRef.current(normalizedPayload);
       }
     };
 
@@ -112,7 +153,10 @@ export function useEncargadoKanbanSocket({
       socket.off('disconnect', onDisconnect);
       socket.off('incidente:creado', handleCreado);
       socket.off('incidente:actualizado', handleActualizado);
+      socket.emit('leave', 'encargado');
       socket.emit('salir', 'sala:encargados');
+      socket.emit('leave', 'mapa');
+      socket.emit('salir', 'mapa');
     };
   }, [enabled]);
 

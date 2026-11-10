@@ -1,0 +1,79 @@
+/* ==========================================================================
+   Estilos CSS Modules para la Vista de Patrullas Verificadoras (Administración)
+   Referencia visual institucional: GEMINI.md § 3 y tokens.css
+   ========================================================================== */
+
+.pageContainer {
+  max-width: 1600px;
+  width: 100%;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5, 20px);
+}
+
+.tableContainer {
+  width: 100%;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4, 16px);
+}
+
+/* --- Barra de Resumen de Dotación --- */
+.dotacionBanner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background-color: var(--color-white, #FFFFFF);
+  border: 1px solid var(--border-color-neutral, #DFE3E8);
+  border-left: var(--stripe-width, 4px) solid var(--color-primary-teal, #1B6F7D);
+  padding: var(--space-3, 12px) var(--space-4, 16px);
+  flex-wrap: wrap;
+  gap: var(--space-3, 12px);
+  box-shadow: var(--shadow-sm, 0 1px 3px rgba(0, 0, 0, 0.08));
+}
+
+.dotacionItems {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4, 16px);
+  flex-wrap: wrap;
+}
+
+.dotacionStat {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2, 8px);
+  font-size: var(--font-size-sm, 13px);
+  color: var(--color-text-muted, #5F676E);
+}
+
+.dotacionValor {
+  font-weight: var(--font-weight-bold, 700);
+  font-size: var(--font-size-base, 14px);
+  padding: 2px 8px;
+  border-radius: var(--radius-none, 0px);
+}
+
+.dotacionValorDisponible {
+  background-color: var(--color-success-bg, #E8F5E9);
+  color: var(--color-success, #2E7D32);
+}
+
+.dotacionValorMision {
+  background-color: var(--color-info-bg, #E0F2F1);
+  color: var(--color-primary-teal, #1B6F7D);
+}
+
+.dotacionValorNoDisponible {
+  background-color: var(--color-danger-bg, #FFEBEE);
+  color: var(--color-danger, #D32F2F);
+}
+
+/* --- Grid de Patrullas Verificadoras --- */
+.patrullasGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: var(--space-4, 16px);
+}
