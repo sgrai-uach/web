@@ -16,6 +16,7 @@ import { AsignarPatrullaModal } from './patrullas/AsignarPatrullaModal';
 import type { DespacharPatrullaResponseData } from '@/types/misiones';
 import type { EstadoIncidente } from '@/services/incidentesService';
 import { usePuedeAsignarMision } from '@/hooks/usePuedeAsignarMision';
+import { getSocket } from '@/lib/socket/client';
 import InlineNotice from '@/components/ui/InlineNotice';
 import styles from '@/styles/mando.module.css';
 
@@ -64,6 +65,36 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
       isMounted = false;
     };
   }, [incidenteId, userId]);
+
+  useEffect(() => {
+    if (!incidenteId) return;
+
+    const socket = getSocket();
+    const handleTrazabilidad = (payload: {
+      notificacionId: string;
+      misionId: string;
+      patrullaId: string;
+      estado: 'PENDIENTE_ENVIO' | 'ENVIADA' | 'RECIBIDA' | 'LEIDA';
+    }) => {
+      setDetalle((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          misiones: prev.misiones.map((m) =>
+            m.id === payload.misionId
+              ? { ...m, trazabilidadNotificacion: payload.estado }
+              : m
+          ),
+        };
+      });
+    };
+
+    socket.on('notificacion:trazabilidad_actualizada', handleTrazabilidad);
+
+    return () => {
+      socket.off('notificacion:trazabilidad_actualizada', handleTrazabilidad);
+    };
+  }, [incidenteId]);
 
   const handleAsignacionExitosa = (data: DespacharPatrullaResponseData) => {
     setDetalle((prev) => {
