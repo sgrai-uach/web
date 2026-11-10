@@ -1,6 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import {
   crearEventoRecuperacion,
+  obtenerEventoRecuperacion,
+  asignarRecursosRecuperacion,
   RecuperacionServiceError,
 } from '../recuperacionService';
 import apiClient from '@/lib/api/client';
@@ -8,11 +10,14 @@ import { DEFAULT_ENCARGADO_ID } from '@/services/incidentesService';
 import type {
   CrearEventoRecuperacionInput,
   EventoRecuperacionResponse,
+  DetalleEventoRecuperacionResponse,
+  AsignarRecursosRecuperacionInput,
 } from '@/types/recuperacion';
 
 vi.mock('@/lib/api/client', () => ({
   default: {
     POST: vi.fn(),
+    GET: vi.fn(),
   },
 }));
 
@@ -205,5 +210,192 @@ describe('recuperacionService (HU-29)', () => {
     await expect(
       crearEventoRecuperacion(mockInput, DEFAULT_ENCARGADO_ID)
     ).rejects.toThrow('La patrulla verificadora indicada no fue encontrada.');
+  });
+
+  describe('obtenerEventoRecuperacion (HU-32)', () => {
+    const mockDetalle: DetalleEventoRecuperacionResponse = {
+      id: '7a35b120-1a2b-4c3d-8e4f-0123456789ab',
+      codigo: 'REC-2026-0001',
+      nombre: 'Entrega de planchas de zinc y frazadas',
+      descripcion: 'Familias afectadas por anegamiento',
+      sector: 'Collico',
+      direccionTexto: 'Pasaje Los Cipreses 450',
+      prioridad: 'ALTA',
+      contactoNombre: 'Sra. María González',
+      contactoTelefono: '+56987654321',
+      latitud: -39.8142,
+      longitud: -73.2459,
+      estado: 'PLANIFICADA',
+      familiasAfectadas: 3,
+      delegacion: {
+        id: '30000000-0000-4000-8000-000000000001',
+        codigo: 'DEL-SUR',
+        nombre: 'Delegación Sur',
+      },
+      misiones: [
+        {
+          id: '6b45c230-2b3c-4d5e-9f0a-1234567890bc',
+          codigo: 'MIS-2026-0001',
+          titulo: 'Primera entrega',
+          estado: 'DESPACHADA',
+          tipoMision: 'RECUPERACION',
+          creadoEn: '2026-10-04T22:30:00.000Z',
+          patrulla: {
+            id: 'f1000000-0000-4000-8000-000000000002',
+            nombre: 'Patrulla Rápida Centro-Sur',
+            estado: 'EN_RECUPERACION',
+          },
+          recursos: [
+            {
+              recursoId: 'e1000000-0000-4000-8000-000000000004',
+              nombre: 'Sacos de Arena 25kg',
+              cantidadAsignada: 10,
+            },
+          ],
+        },
+      ],
+      recursos: [
+        {
+          recursoId: 'e1000000-0000-4000-8000-000000000004',
+          nombre: 'Sacos de Arena 25kg',
+          cantidadAsignada: 10,
+        },
+      ],
+      creadoEn: '2026-10-04T22:30:00.000Z',
+      actualizadoEn: '2026-10-04T22:30:00.000Z',
+    };
+
+    it('debe consultar el detalle del evento exitosamente (200 OK)', async () => {
+      vi.mocked(apiClient.GET).mockResolvedValueOnce({
+        data: {
+          message: 'Detalle recuperado exitosamente',
+          data: mockDetalle,
+        } as unknown as never,
+        error: undefined,
+        response: { ok: true, status: 200 } as Response,
+      });
+
+      const res = await obtenerEventoRecuperacion(mockDetalle.id, DEFAULT_ENCARGADO_ID);
+      expect(apiClient.GET).toHaveBeenCalledWith('/api/eventos-atp/recuperacion/{id}', {
+        params: {
+          path: { id: mockDetalle.id },
+          header: { 'x-user-id': DEFAULT_ENCARGADO_ID },
+        },
+      });
+      expect(res.codigo).toBe('REC-2026-0001');
+      expect(res.misiones).toHaveLength(1);
+    });
+
+    it('debe arrojar 404 Not Found si el evento no existe', async () => {
+      vi.mocked(apiClient.GET).mockResolvedValueOnce({
+        data: undefined,
+        error: { message: 'Evento no encontrado' } as unknown as never,
+        response: { ok: false, status: 404 } as Response,
+      });
+
+      await expect(
+        obtenerEventoRecuperacion('no-existe-id')
+      ).rejects.toThrow('El evento de recuperación especificado no fue encontrado.');
+    });
+  });
+
+  describe('asignarRecursosRecuperacion (HU-32)', () => {
+    const payloadAsignacion: AsignarRecursosRecuperacionInput = {
+      patrullaId: 'f1000000-0000-4000-8000-000000000002',
+      recursos: [
+        { recursoId: 'e1000000-0000-4000-8000-000000000004', cantidad: 10 },
+      ],
+    };
+
+    it('debe despachar la patrulla y asignar recursos exitosamente (201 Created)', async () => {
+      vi.mocked(apiClient.POST).mockResolvedValueOnce({
+        data: {
+          message: 'Misión de recuperación despachada y recursos asignados exitosamente.',
+          data: {
+            mision: {
+              id: 'm-1',
+              codigo: 'MIS-2026-0002',
+              titulo: 'Atención Recuperación',
+              estado: 'DESPACHADA',
+              tipoMision: 'RECUPERACION',
+            },
+            patrulla: {
+              id: 'f1000000-0000-4000-8000-000000000002',
+              nombre: 'Patrulla Centro',
+              estado: 'EN_RECUPERACION',
+            },
+            recursos: [
+              {
+                recursoId: 'e1000000-0000-4000-8000-000000000004',
+                nombre: 'Sacos de Arena',
+                cantidadAsignada: 10,
+              },
+            ],
+          },
+        } as unknown as never,
+        error: undefined,
+        response: { ok: true, status: 201 } as Response,
+      });
+
+      const res = await asignarRecursosRecuperacion('evento-uuid', payloadAsignacion);
+      expect(res.data.mision.codigo).toBe('MIS-2026-0002');
+      expect(res.data.patrulla.estado).toBe('EN_RECUPERACION');
+    });
+
+    it('debe arrojar RecuperacionServiceError con tipoConflicto STOCK_INSUFICIENTE en 409 Conflict', async () => {
+      vi.mocked(apiClient.POST).mockResolvedValueOnce({
+        data: undefined,
+        error: {
+          message: 'Stock insuficiente para el recurso en bodega',
+        } as unknown as never,
+        response: { ok: false, status: 409 } as Response,
+      });
+
+      try {
+        await asignarRecursosRecuperacion('evento-uuid', payloadAsignacion);
+        expect.fail('Debería haber lanzado error');
+      } catch (err: unknown) {
+        expect(err).toBeInstanceOf(RecuperacionServiceError);
+        if (err instanceof RecuperacionServiceError) {
+          expect(err.statusCode).toBe(409);
+          expect(err.tipoConflicto).toBe('STOCK_INSUFICIENTE');
+        }
+      }
+    });
+
+    it('debe arrojar RecuperacionServiceError con tipoConflicto ACTIVO_NO_DISPONIBLE en 409 Conflict', async () => {
+      vi.mocked(apiClient.POST).mockResolvedValueOnce({
+        data: undefined,
+        error: {
+          message: 'El activo individual solicitado se encuentra en mantención o no disponible',
+        } as unknown as never,
+        response: { ok: false, status: 409 } as Response,
+      });
+
+      try {
+        await asignarRecursosRecuperacion('evento-uuid', payloadAsignacion);
+        expect.fail('Debería haber lanzado error');
+      } catch (err: unknown) {
+        expect(err).toBeInstanceOf(RecuperacionServiceError);
+        if (err instanceof RecuperacionServiceError) {
+          expect(err.statusCode).toBe(409);
+          expect(err.tipoConflicto).toBe('ACTIVO_NO_DISPONIBLE');
+        }
+      }
+    });
+
+    it('debe validar permiso misiones:asignar en 403 Forbidden', async () => {
+      vi.mocked(apiClient.POST).mockResolvedValueOnce({
+        data: undefined,
+        error: {
+          message: 'Acceso denegado',
+        } as unknown as never,
+        response: { ok: false, status: 403 } as Response,
+      });
+
+      await expect(
+        asignarRecursosRecuperacion('evento-uuid', payloadAsignacion)
+      ).rejects.toThrow('No posee el permiso requerido: misiones:asignar');
+    });
   });
 });
