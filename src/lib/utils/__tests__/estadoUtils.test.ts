@@ -3,6 +3,8 @@ import {
   formatearEstado,
   formatearPrioridad,
   formatearHitoBitacora,
+  formatearTipoMision,
+  obtenerChipEstadoMision,
 } from '../estadoUtils';
 
 describe('formatearEstado', () => {
@@ -76,6 +78,32 @@ describe('formatearHitoBitacora', () => {
   it('proporciona fallback adecuado para hitos no tabulados', () => {
     expect(formatearHitoBitacora(null)).toBe('Evento registrado');
     expect(formatearHitoBitacora('HITO_PERSONALIZADO_EXTRA')).toBe('Hito personalizado extra');
+  });
+});
+
+describe('formatearTipoMision', () => {
+  it('formatea tipos de misión a denominaciones institucionales amigables', () => {
+    expect(formatearTipoMision('VERIFICACION')).toBe('Verificación en terreno');
+    expect(formatearTipoMision('ATENCION_CUADRILLA')).toBe('Atención de cuadrilla');
+    expect(formatearTipoMision('PREVENCION')).toBe('Operación preventiva');
+    expect(formatearTipoMision('RECUPERACION')).toBe('Recuperación de infraestructura');
+    expect(formatearTipoMision('ASISTENCIA_SOCIAL')).toBe('Asistencia social (FIBE)');
+  });
+
+  it('maneja valores vacíos con fallback por defecto', () => {
+    expect(formatearTipoMision(null)).toBe('Misión operativa');
+    expect(formatearTipoMision('')).toBe('Misión operativa');
+  });
+});
+
+describe('obtenerChipEstadoMision', () => {
+  it('retorna la configuración semántica institucional para cada estado de misión', () => {
+    expect(obtenerChipEstadoMision('EN_CURSO').label).toBe('En curso');
+    expect(obtenerChipEstadoMision('DESPACHADA').label).toBe('Despachada');
+    expect(obtenerChipEstadoMision('COMPLETADA').label).toBe('Completada');
+    expect(obtenerChipEstadoMision('RECHAZADA').label).toBe('Rechazada');
+    expect(obtenerChipEstadoMision('RECHAZADA').color).toContain('danger');
+    expect(obtenerChipEstadoMision('PLANIFICADA').label).toBe('Planificada');
   });
 });
 

@@ -134,7 +134,8 @@ describe('Componente IncidenteDetalleDrawer e integración HU-17', () => {
     // Esperar a que cargue el incidente
     await waitFor(() => {
       expect(screen.getByText('INC-2026-0042')).toBeDefined();
-      expect(screen.getByText('MIS-2026-0001: Despeje de cables')).toBeDefined();
+      expect(screen.getByText('MIS-2026-0001')).toBeDefined();
+      expect(screen.getByText('Despeje de cables')).toBeDefined();
     });
 
     // Clic en el botón "Ver Detalles" de la misión
