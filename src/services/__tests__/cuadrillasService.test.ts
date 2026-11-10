@@ -212,6 +212,39 @@ describe('cuadrillasService (H79)', () => {
       expect(candidatos[1].id).toBe('u-4');
       expect(candidatos[1].nombreCompleto).toBe('Carla Delegada');
     });
+
+    it('debe solicitar al backend la exclusión de funcionarios ya asignados a una cuadrilla', async () => {
+      const spyGet = vi.spyOn(apiClient, 'GET').mockResolvedValueOnce({
+        data: { data: [] },
+        error: null,
+        response: new Response(null, { status: 200 }),
+      } as unknown as Awaited<ReturnType<typeof apiClient.GET>>);
+
+      const candidatos = await cuadrillasService.obtenerCandidatosDelegados();
+
+      expect(candidatos).toEqual([]);
+      const params = spyGet.mock.calls[0][1]?.params as {
+        query?: Record<string, unknown>;
+      };
+      expect(params?.query?.sinAsignacionCuadrilla).toBe(true);
+      expect(params?.query?.excluirCuadrillaId).toBeUndefined();
+    });
+
+    it('debe enviar la cuadrilla excluida cuando se edita una cuadrilla existente', async () => {
+      const spyGet = vi.spyOn(apiClient, 'GET').mockResolvedValueOnce({
+        data: { data: [] },
+        error: null,
+        response: new Response(null, { status: 200 }),
+      } as unknown as Awaited<ReturnType<typeof apiClient.GET>>);
+
+      await cuadrillasService.obtenerCandidatosDelegados(undefined, 'cuad-1');
+
+      const params = spyGet.mock.calls[0][1]?.params as {
+        query?: Record<string, unknown>;
+      };
+      expect(params?.query?.sinAsignacionCuadrilla).toBe(true);
+      expect(params?.query?.excluirCuadrillaId).toBe('cuad-1');
+    });
   });
 
   describe('actualizarCuadrilla (H81)', () => {

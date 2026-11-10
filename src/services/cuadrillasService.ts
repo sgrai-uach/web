@@ -300,7 +300,8 @@ async function aplicarActualizacionFallback(
   let delegadoObj = CANDIDATOS_DELEGADOS_FALLBACK.find((c) => c.id === payload.usuarioDelegadoId);
   if (!delegadoObj) {
     try {
-      const candidatos = await cuadrillasService.obtenerCandidatosDelegados();
+      // Se excluye la propia cuadrilla para que su delegado actual siga siendo resoluble
+      const candidatos = await cuadrillasService.obtenerCandidatosDelegados(undefined, item.id);
       delegadoObj = candidatos.find((c) => c.id === payload.usuarioDelegadoId);
     } catch {
       // Ignorar fallo de búsqueda
@@ -336,7 +337,7 @@ async function aplicarActualizacionFallback(
   // Mapear trabajadores asignados
   let personalDisponible: PersonalOperativoDisponible[] = [];
   try {
-    personalDisponible = await cuadrillasService.obtenerPersonalOperativoDisponible();
+    personalDisponible = await cuadrillasService.obtenerPersonalOperativoDisponible(undefined, item.id);
   } catch {
     // Ignorar fallo de personal
   }
@@ -486,9 +487,16 @@ export const cuadrillasService = {
    * - BRIGADISTA: al guardar la cuadrilla se promueve automáticamente a DELEGADO_CUADRILLA.
    * - DELEGADO_CUADRILLA: conserva su rol y asume el liderazgo de la nueva unidad.
    *
+   * Se consultan vía GET /api/personal aplicando `sinAsignacionCuadrilla`, de modo que el
+   * backend ya excluye a quienes lideran o integran otra cuadrilla operativa activa (regla ICS).
+   *
    * @param busqueda Texto de búsqueda opcional (RUT, nombres, apellidos o email).
+   * @param excluirCuadrillaId Cuadrilla que se está editando: sus integrantes no se excluyen.
    */
-  async obtenerCandidatosDelegados(busqueda?: string): Promise<PersonalCandidatoDelegado[]> {
+  async obtenerCandidatosDelegados(
+    busqueda?: string,
+    excluirCuadrillaId?: string
+  ): Promise<PersonalCandidatoDelegado[]> {
     try {
       const q = busqueda?.trim();
 
@@ -514,15 +522,17 @@ export const cuadrillasService = {
           params: {
             query: {
               q: q || undefined,
+              sinAsignacionCuadrilla: true,
+              excluirCuadrillaId: excluirCuadrillaId || undefined,
             },
           },
         }
       );
 
-      const personal = response.ok && data?.data ? data.data : [];
-
-      if (personal.length > 0) {
-        return personal
+      // Si la API responde correctamente se respeta el resultado (incluso vacío);
+      // el fallback predefinido solo aplica ante fallo de comunicación.
+      if (response.ok && Array.isArray(data?.data)) {
+        return data.data
           .filter((emp) => {
             // Excluir únicamente si está explícitamente inactivo
             if (emp.usuario_activo === false) return false;
@@ -556,7 +566,7 @@ export const cuadrillasService = {
           }));
       }
 
-      // Fallback a lista predefinida si el endpoint no tiene registros aún o falló
+      // Fallback a lista predefinida si el endpoint falló (sin conectividad o error del servidor)
       const fallbackFiltrado = CANDIDATOS_DELEGADOS_FALLBACK.filter((c) => {
         if (!q) return true;
         const termino = q.toLowerCase();
