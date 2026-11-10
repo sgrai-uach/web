@@ -27,8 +27,6 @@ interface KanbanHeaderProps {
   onAbrirPatrullas?: () => void;
   onOpenCrearPrevencion?: () => void;
   onOpenCrearRecuperacion?: () => void;
-  vistaActiva?: 'kanban' | 'mapa';
-  onCambiarVista?: (vista: 'kanban' | 'mapa') => void;
 }
 
 export const KanbanHeader: React.FC<KanbanHeaderProps> = ({
@@ -38,8 +36,6 @@ export const KanbanHeader: React.FC<KanbanHeaderProps> = ({
   onAbrirPatrullas,
   onOpenCrearPrevencion,
   onOpenCrearRecuperacion,
-  vistaActiva = 'kanban',
-  onCambiarVista,
 }) => {
   const [menuNuevoEventoAbierto, setMenuNuevoEventoAbierto] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -91,20 +87,6 @@ export const KanbanHeader: React.FC<KanbanHeaderProps> = ({
         description={`Dirección de Gestión de Riesgos de Desastres — Tablero Táctico ICS (${totalIncidentesVisibles} ${totalIncidentesVisibles === 1 ? 'incidente cargado' : 'incidentes cargados'})`}
         actionSlot={
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-            {onAbrirPatrullas && (
-              <Button
-                type="button"
-                variant="secondary"
-                size="sm"
-                onClick={onAbrirPatrullas}
-                title="Monitorear dotación de patrullas verificadoras"
-                data-testid="btn-abrir-patrullas"
-              >
-                <ShieldCheck size={14} style={{ marginRight: '5px' }} />
-                <span>Patrullas Verificadoras</span>
-              </Button>
-            )}
-
             {onAbrirMisiones && (
               <Button
                 type="button"
@@ -115,6 +97,19 @@ export const KanbanHeader: React.FC<KanbanHeaderProps> = ({
               >
                 <ClipboardList size={14} style={{ marginRight: '5px' }} />
                 <span>Misiones Operativas</span>
+              </Button>
+            )}
+
+            {onAbrirPatrullas && (
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={onAbrirPatrullas}
+                title="Abrir panel de patrullas verificadoras activas en terreno"
+              >
+                <ShieldCheck size={14} style={{ marginRight: '5px' }} />
+                <span>Patrullas</span>
               </Button>
             )}
 

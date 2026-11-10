@@ -5,6 +5,7 @@
 
 import apiClient from '@/lib/api/client';
 import { catalogosService } from '@/services/catalogosService';
+import { getAuthCookie } from '@/lib/utils/cookieUtils';
 import type {
   CrearCuadrillaDTO,
   EditarCuadrillaDTO,
@@ -23,6 +24,8 @@ import type {
   DelegacionResumen,
   FiltrosCuadrillasState,
   MetaPaginacionCuadrillas,
+  DesactivarCuadrillaData,
+  DesactivarCuadrillaApiResponse,
 } from '@/types/cuadrilla';
 
 type HttpGetFn = <T>(url: string, init?: unknown) => Promise<{ data?: T; error?: unknown; response: Response }>;
@@ -47,6 +50,17 @@ export class CuadrillaServiceError extends Error {
     this.codigo = codigo;
     this.detalles = detalles;
   }
+}
+
+function getAuthorizationHeader(explicitToken?: string): string {
+  const token =
+    explicitToken ||
+    getAuthCookie() ||
+    (typeof window !== 'undefined'
+      ? localStorage.getItem('sgrai_auth_token') || localStorage.getItem('token')
+      : null);
+
+  return token ? `Bearer ${token}` : '';
 }
 
 /**
@@ -193,6 +207,7 @@ export const CUADRILLAS_FALLBACK: CuadrillaItem[] = [
     ],
     totalRecursos: 2,
     totalTrabajadores: 2,
+    activo: true,
     creadoEn: '2026-10-24T12:00:00.000Z',
     actualizadoEn: '2026-10-26T01:30:00.000Z',
   },
@@ -233,6 +248,7 @@ export const CUADRILLAS_FALLBACK: CuadrillaItem[] = [
     ],
     totalRecursos: 1,
     totalTrabajadores: 1,
+    activo: true,
     creadoEn: '2026-10-25T08:00:00.000Z',
     actualizadoEn: null,
   },
@@ -262,6 +278,7 @@ export const CUADRILLAS_FALLBACK: CuadrillaItem[] = [
     trabajadores: [],
     totalRecursos: 1,
     totalTrabajadores: 0,
+    activo: true,
     creadoEn: '2026-10-23T10:00:00.000Z',
     actualizadoEn: null,
   },
@@ -500,6 +517,7 @@ export const cuadrillasService = {
     try {
       const q = busqueda?.trim();
 
+      const authHeader = getAuthorizationHeader();
       interface EmpleadoCandidatoRawApi {
         usuario_id: string;
         nombres: string;
@@ -524,6 +542,9 @@ export const cuadrillasService = {
               q: q || undefined,
               sinAsignacionCuadrilla: true,
               excluirCuadrillaId: excluirCuadrillaId || undefined,
+            },
+            header: {
+              authorization: authHeader,
             },
           },
         }
@@ -755,7 +776,18 @@ export const cuadrillasService = {
     const delegacionId = filtros?.delegacionId;
     const estado = filtros?.estado;
 
+    // Mapeo de estados del filtro de UI al contrato de la API (HU-82)
+    const estadoQuery: "DISPONIBLE" | "EN_MISION" | "NO_DISPONIBLE" | undefined =
+      estado === 'INACTIVAS'
+        ? 'NO_DISPONIBLE'
+        : estado === 'TODAS' || estado === 'ACTIVAS' || !estado
+        ? undefined
+        : (estado as "DISPONIBLE" | "EN_MISION" | "NO_DISPONIBLE");
+
+    const incluirInactivas = estado === 'TODAS' || estado === 'INACTIVAS' ? true : undefined;
+
     try {
+      const authHeader = getAuthorizationHeader();
       const { data, response } = await (apiClient.GET as unknown as HttpGetFn)<ListarCuadrillasApiResponse>(
         '/api/cuadrillas',
         {
@@ -765,7 +797,11 @@ export const cuadrillasService = {
               limite,
               q: busqueda || undefined,
               delegacionId: delegacionId || undefined,
-              estado: estado || undefined,
+              estado: estadoQuery,
+              incluirInactivas,
+            },
+            header: {
+              authorization: authHeader,
             },
           },
         }
@@ -861,12 +897,21 @@ export const cuadrillasService = {
    */
   async obtenerCuadrillaPorId(id: string): Promise<CuadrillaDetalle> {
     try {
-      const { data, response } = await (apiClient.GET as unknown as HttpGetFn)<DetalleCuadrillaApiResponse>(
-        `/api/cuadrillas/${id}`
-      );
+      const authHeader = getAuthorizationHeader();
+      const { data, response } = await apiClient.GET('/api/cuadrillas/{id}', {
+        params: {
+          path: { id },
+          header: {
+            authorization: authHeader,
+          },
+        },
+      });
 
-      if (response && response.ok && data?.data) {
-        return data.data;
+      if (response && response.ok && data) {
+        const resp = data as DetalleCuadrillaApiResponse;
+        if (resp && resp.data) {
+          return resp.data as CuadrillaDetalle;
+        }
       }
     } catch {
       // Continuar al fallback
@@ -905,6 +950,7 @@ export const cuadrillasService = {
         usuario_activo?: boolean;
       }
 
+      const authHeader = getAuthorizationHeader();
       const { data, response } = await (apiClient.GET as unknown as HttpGetFn)<{ data?: PersonalOperativoRawApi[] }>(
         '/api/personal',
         {
@@ -915,6 +961,9 @@ export const cuadrillasService = {
               soloPersonal: true,
               sinAsignacionCuadrilla: true,
               excluirCuadrillaId: excluirCuadrillaId || undefined,
+            },
+            header: {
+              authorization: authHeader,
             },
           },
         }
@@ -1044,10 +1093,10 @@ export const cuadrillasService = {
           nombre: r.nombre,
           tipo: r.tipo,
           esIndividual: Boolean(r.esIndividual),
-          cantidadInventario: r.cantidadDisponible ?? r.cantidadTotal ?? 1,
-          cantidadDisponible: r.cantidadDisponible ?? 1,
-          unidadMedida: r.unidadMedida || 'Unidad',
-          delegacionNombre: r.delegacionNombre || r.delegacion?.nombre,
+          cantidadInventario: Number(r.cantidadDisponible ?? r.cantidadTotal ?? 1),
+          cantidadDisponible: Number(r.cantidadDisponible ?? 1),
+          unidadMedida: r.unidadMedida ? String(r.unidadMedida) : 'Unidad',
+          delegacionNombre: r.delegacionNombre ? String(r.delegacionNombre) : (r.delegacion as { nombre?: string } | undefined)?.nombre,
         }));
       }
     } catch {
@@ -1121,6 +1170,95 @@ export const cuadrillasService = {
       }));
     } catch {
       return [];
+    }
+  },
+
+  /**
+   * Da de baja lógica a una cuadrilla operativa disuelta o retirada de servicio (HU-82).
+   * Se comunica con DELETE /api/cuadrillas/{id}.
+   * Bloquea la baja si la cuadrilla posee misiones activas (409 Conflict).
+   */
+  async desactivarCuadrilla(id: string): Promise<DesactivarCuadrillaData> {
+    try {
+      const authHeader = getAuthorizationHeader();
+      const { data, error, response } = await apiClient.DELETE('/api/cuadrillas/{id}', {
+        params: {
+          path: { id },
+          header: {
+            authorization: authHeader,
+          },
+        },
+      });
+
+      // 1. Éxito (200 OK)
+      if (response && response.status === 200) {
+        const resp = data as DesactivarCuadrillaApiResponse;
+        if (resp && resp.data) {
+          const indexFallback = CUADRILLAS_FALLBACK.findIndex((c) => c.id === id);
+          if (indexFallback !== -1) {
+            CUADRILLAS_FALLBACK[indexFallback].activo = false;
+            CUADRILLAS_FALLBACK[indexFallback].estado = 'NO_DISPONIBLE';
+            CUADRILLAS_FALLBACK[indexFallback].recursos = [];
+            CUADRILLAS_FALLBACK[indexFallback].trabajadores = [];
+            CUADRILLAS_FALLBACK[indexFallback].totalRecursos = 0;
+            CUADRILLAS_FALLBACK[indexFallback].totalTrabajadores = 0;
+            CUADRILLAS_FALLBACK[indexFallback].eliminadoEn = resp.data.eliminadoEn || new Date().toISOString();
+          }
+          return resp.data;
+        }
+      }
+
+      // 2. Sesión expirada o no autenticada (401 Unauthorized)
+      if (response && response.status === 401) {
+        throw new CuadrillaServiceError(
+          'Sesión expirada o no autenticada.',
+          401,
+          'general',
+          'NO_AUTENTICADO'
+        );
+      }
+
+      // 3. Conflicto por misiones activas (409 Conflict)
+      if (response && response.status === 409) {
+        const errObj = error as { message?: string } | null;
+        const msg =
+          errObj?.message ||
+          'No es posible desactivar la cuadrilla porque posee misiones activas en curso (PLANIFICADA, DESPACHADA o EN_CURSO).';
+        throw new CuadrillaServiceError(msg, 409, 'general', 'CUADRILLA_EN_MISION');
+      }
+
+      // 4. Permisos insuficientes (403 Forbidden)
+      if (response && response.status === 403) {
+        throw new CuadrillaServiceError(
+          'No tiene permisos suficientes para desactivar cuadrillas operativas (requiere permiso cuadrillas:eliminar o rol Administrador).',
+          403,
+          'general',
+          'PERMISOS_INSUFICIENTES'
+        );
+      }
+
+      // 5. No encontrada (404 Not Found)
+      if (response && response.status === 404) {
+        throw new CuadrillaServiceError(
+          'La cuadrilla operativa especificada no existe o ya fue desactivada.',
+          404,
+          'general',
+          'RECURSO_NO_ENCONTRADO'
+        );
+      }
+
+      const errObj = error as { message?: string } | null;
+      const mensaje =
+        errObj?.message || 'Error al intentar desactivar la cuadrilla operativa. Intente nuevamente.';
+      throw new CuadrillaServiceError(mensaje, response ? response.status : 500);
+    } catch (err: unknown) {
+      if (err instanceof CuadrillaServiceError) {
+        throw err;
+      }
+      throw new CuadrillaServiceError(
+        'Error de conexión con el servidor al intentar desactivar la cuadrilla.',
+        500
+      );
     }
   },
 };

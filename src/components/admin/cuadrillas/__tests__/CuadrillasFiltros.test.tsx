@@ -28,7 +28,9 @@ describe('CuadrillasFiltros (H80)', () => {
     expect(screen.getByText('Todas las delegaciones')).toBeDefined();
     expect(screen.getByText('Delegación Norte')).toBeDefined();
     expect(screen.getByText('Delegación Calle Calle')).toBeDefined();
-    expect(screen.getByText('Todos los estados')).toBeDefined();
+    expect(screen.getByText('Solo Activas')).toBeDefined();
+    expect(screen.getByText('Inactivas (Dadas de baja)')).toBeDefined();
+    expect(screen.getByText('Todas las cuadrillas')).toBeDefined();
   });
 
   it('caso 2: al escribir en búsqueda, llama onBusquedaChange con el valor correcto', () => {

@@ -20,34 +20,46 @@ import CuadrillasFiltros from '@/components/admin/cuadrillas/CuadrillasFiltros';
 import CuadrillasTabla from '@/components/admin/cuadrillas/CuadrillasTabla';
 import CuadrillaDetalleDrawer from '@/components/admin/cuadrillas/CuadrillaDetalleDrawer';
 import CuadrillaEditarModal from '@/components/admin/cuadrillas/CuadrillaEditarModal';
+import CuadrillaDesactivarModal from '@/components/admin/cuadrillas/CuadrillaDesactivarModal';
 import AccesoDenegadoState from '@/components/common/AccesoDenegadoState';
 
 export default function CuadrillasAdminClient() {
-  const { showSuccess } = useToast();
+  const { showSuccess, showError } = useToast();
   const { usuarioActivo, hasPermission, isMounted } = useSimulatedSession();
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  const puedeLeer = Boolean(isMounted && hasPermission('recursos:leer'));
-  const puedeCrear = Boolean(isMounted && hasPermission('recursos:crear'));
-  const puedeEditar = Boolean(isMounted && hasPermission('recursos:editar'));
+  const esAdmin = Boolean(
+    usuarioActivo?.rol === 'Administrador' ||
+      usuarioActivo?.esAdmin
+  );
+
+  // Bloqueo perimetral RBAC (H80) con bypass de administrador (HU-82)
+  const puedeLeer = Boolean(isMounted && (hasPermission('recursos:leer') || esAdmin));
+  const puedeCrear = Boolean(isMounted && (hasPermission('recursos:crear') || esAdmin));
+  const puedeEditar = Boolean(isMounted && (hasPermission('recursos:editar') || esAdmin));
+  const puedeEliminar = Boolean(
+    isMounted && (hasPermission('cuadrillas:eliminar') || esAdmin)
+  );
 
   // Estados de modales
   const [cuadrillaAEditar, setCuadrillaAEditar] = useState<CuadrillaItem | null>(null);
+  const [cuadrillaADesactivar, setCuadrillaADesactivar] = useState<CuadrillaItem | null>(null);
   const [cuadrillaDetalle, setCuadrillaDetalle] = useState<CuadrillaItem | null>(null);
+  const [desactivando, setDesactivando] = useState<boolean>(false);
 
   // Delegaciones para selector de filtro
   const [delegaciones, setDelegaciones] = useState<DelegacionResumen[]>([]);
 
   // Filtros de listado (inicializados desde la URL para respetar el contrato H34)
   const [filtros, setFiltros] = useState<FiltrosCuadrillasState>(() => {
-    const paginaUrl = parseInt(searchParams.get('page') || '1', 10);
+    const paginaUrl = parseInt(searchParams?.get('page') || '1', 10);
     return {
       pagina: Number.isNaN(paginaUrl) || paginaUrl < 1 ? 1 : paginaUrl,
       limite: 10,
-      busqueda: searchParams.get('q') || '',
-      delegacionId: searchParams.get('delegacionId') || undefined,
-      estado: searchParams.get('estado') || undefined,
+      busqueda: searchParams?.get('q') || '',
+      delegacionId: searchParams?.get('delegacionId') || undefined,
+      estado: searchParams?.get('estado') || undefined,
     };
   });
 
@@ -59,6 +71,7 @@ export default function CuadrillasAdminClient() {
     errorStatus,
     recargar,
     actualizarCuadrillaEnLista,
+    removerCuadrillaDeLista,
   } = useCuadrillas(filtros);
 
   // Sincronización de filtros con URLSearchParams sin recargar la vista
@@ -85,7 +98,8 @@ export default function CuadrillasAdminClient() {
     }
 
     const queryString = params.toString();
-    window.history.replaceState(null, '', queryString ? `${pathname}?${queryString}` : pathname);
+    const rutaActual = pathname ?? '';
+    window.history.replaceState(null, '', queryString ? `${rutaActual}?${queryString}` : rutaActual);
   }, [filtros, pathname]);
 
   // Carga de delegaciones
@@ -139,6 +153,54 @@ export default function CuadrillasAdminClient() {
   const tieneFiltrosActivos = Boolean(
     filtros.busqueda?.trim() || filtros.delegacionId || filtros.estado
   );
+
+  const handleConfirmarDesactivar = useCallback(async () => {
+    if (!cuadrillaADesactivar) return;
+    try {
+      setDesactivando(true);
+      const res = await cuadrillasService.desactivarCuadrilla(cuadrillaADesactivar.id);
+
+      // Si el filtro no incluye inactivas, remover de la lista local
+      if (!filtros.estado || filtros.estado === 'ACTIVAS' || filtros.estado === 'DISPONIBLE') {
+        removerCuadrillaDeLista(cuadrillaADesactivar.id);
+      } else {
+        actualizarCuadrillaEnLista({
+          ...cuadrillaADesactivar,
+          activo: false,
+          estado: 'NO_DISPONIBLE',
+          recursos: [],
+          trabajadores: [],
+          totalRecursos: 0,
+          totalTrabajadores: 0,
+          eliminadoEn: res.eliminadoEn || new Date().toISOString(),
+          eliminadoPorId: res.eliminadoPorId,
+        });
+      }
+
+      if (cuadrillaDetalle && cuadrillaDetalle.id === cuadrillaADesactivar.id) {
+        setCuadrillaDetalle(null);
+      }
+
+      showSuccess(
+        `La cuadrilla "${cuadrillaADesactivar.nombre}" ha sido desactivada exitosamente. Se desvincularon ${res.recursosDesvinculados} recursos y ${res.trabajadoresDesvinculados} trabajadores.`,
+        'Cuadrilla Desactivada'
+      );
+      setCuadrillaADesactivar(null);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Error al intentar desactivar la cuadrilla.';
+      showError(msg, 'No se pudo desactivar');
+    } finally {
+      setDesactivando(false);
+    }
+  }, [
+    cuadrillaADesactivar,
+    filtros.estado,
+    removerCuadrillaDeLista,
+    actualizarCuadrillaEnLista,
+    cuadrillaDetalle,
+    showSuccess,
+    showError,
+  ]);
 
   if (!isMounted) {
     return null;
@@ -265,10 +327,12 @@ export default function CuadrillasAdminClient() {
           cuadrillas={cuadrillas}
           cargando={cargando}
           puedeEditar={puedeEditar}
+          puedeEliminar={puedeEliminar}
           tieneFiltrosActivos={tieneFiltrosActivos}
           onLimpiarFiltros={handleLimpiarFiltros}
           onEditarCuadrilla={(c) => setCuadrillaAEditar(c)}
           onVerDetalle={(c) => setCuadrillaDetalle(c)}
+          onDesactivarCuadrilla={(c) => setCuadrillaADesactivar(c)}
         />
       )}
 
@@ -290,10 +354,15 @@ export default function CuadrillasAdminClient() {
         cuadrilla={cuadrillaDetalle}
         isOpen={Boolean(cuadrillaDetalle)}
         puedeEditar={puedeEditar}
+        puedeEliminar={puedeEliminar}
         onCerrar={() => setCuadrillaDetalle(null)}
         onEditar={(c) => {
           setCuadrillaDetalle(null);
           setCuadrillaAEditar(c);
+        }}
+        onDesactivar={(c) => {
+          setCuadrillaDetalle(null);
+          setCuadrillaADesactivar(c);
         }}
       />
 
@@ -303,6 +372,14 @@ export default function CuadrillasAdminClient() {
         isOpen={Boolean(cuadrillaAEditar)}
         onCerrar={() => setCuadrillaAEditar(null)}
         onGuardadoExitoso={handleGuardadoExitoso}
+      />
+
+      {/* Modal de Desactivación (HU-82) */}
+      <CuadrillaDesactivarModal
+        cuadrilla={cuadrillaADesactivar}
+        desactivando={desactivando}
+        onConfirmar={handleConfirmarDesactivar}
+        onCancelar={() => setCuadrillaADesactivar(null)}
       />
     </div>
   );

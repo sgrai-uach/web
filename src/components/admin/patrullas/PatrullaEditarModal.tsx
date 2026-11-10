@@ -1,0 +1,556 @@
+'use client';
+
+import React, { useEffect, useState } from 'react';
+import {
+  AlertTriangle,
+  ShieldCheck,
+  Shield,
+  X,
+  Save,
+  Check,
+  MapPin,
+  Truck,
+  Users,
+  UserCheck,
+} from 'lucide-react';
+import Button from '@/components/ui/Button';
+import Heading from '@/components/ui/Heading';
+import InlineNotice from '@/components/ui/InlineNotice';
+import { obtenerNombreDelegacion } from '@/lib/utils/delegacionUtils';
+import { traducirNombreCampo } from '@/lib/utils/errorUtils';
+import { useEditarPatrullaForm } from '@/hooks/useEditarPatrullaForm';
+import PatrullaDelegacionSection from './PatrullaDelegacionSection';
+import PatrullaVehiculoSection from './PatrullaVehiculoSection';
+import PatrullaDotacionSection from './PatrullaDotacionSection';
+import type { PatrullaVerificadoraDTO } from '@/types/patrullas';
+import styles from './PatrullaForm.module.css';
+
+export interface PatrullaEditarModalProps {
+  isOpen: boolean;
+  patrulla: PatrullaVerificadoraDTO | null;
+  onClose: () => void;
+  onPatrullaActualizada?: (patrulla: PatrullaVerificadoraDTO) => void;
+}
+
+export const PatrullaEditarModal: React.FC<PatrullaEditarModalProps> = ({
+  isOpen,
+  patrulla,
+  onClose,
+  onPatrullaActualizada,
+}) => {
+  if (!isOpen || !patrulla) return null;
+
+  return (
+    <PatrullaEditarModalInner
+      patrulla={patrulla}
+      onClose={onClose}
+      onPatrullaActualizada={onPatrullaActualizada}
+    />
+  );
+};
+
+interface PatrullaEditarModalInnerProps {
+  patrulla: PatrullaVerificadoraDTO;
+  onClose: () => void;
+  onPatrullaActualizada?: (patrulla: PatrullaVerificadoraDTO) => void;
+}
+
+const PatrullaEditarModalInner: React.FC<PatrullaEditarModalInnerProps> = ({
+  patrulla,
+  onClose,
+  onPatrullaActualizada,
+}) => {
+  const [modalConfirmarAbierto, setModalConfirmarAbierto] = useState(false);
+
+  const {
+    formData,
+    touched,
+    delegaciones,
+    vehiculosDisponibles,
+    personalElegible,
+    mapaPatrullasPorPersonal,
+    mapaPatrullasPorVehiculo,
+    cargandoCatalogos,
+    errorCatalogos,
+    serverError,
+    esConflicto,
+    serverFieldErrors,
+    isSubmitting,
+    isValid,
+    clientErrors,
+    estaBloqueada,
+    mensajeBloqueo,
+    recargarDatos,
+    handleNombreChange,
+    handleDelegacionChange,
+    handleVehiculoChange,
+    handleTogglePersonal,
+    handleLiderChange,
+    handleBlur,
+    handleConfirmSave,
+  } = useEditarPatrullaForm(patrulla, (actualizada) => {
+    onPatrullaActualizada?.(actualizada);
+    setModalConfirmarAbierto(false);
+    onClose();
+  });
+
+  // Recargar datos actualizados al abrir el modal
+  useEffect(() => {
+    recargarDatos();
+  }, [recargarDatos]);
+
+  // Detección de asignaciones compartidas (deduplicadas por ID)
+  const otrasPatrullasVehiculo = React.useMemo(() => {
+    if (!formData.vehiculoId) return [];
+    const lista = (mapaPatrullasPorVehiculo[formData.vehiculoId] || []).filter((p) => p.id !== patrulla.id);
+    const unicas = new Map<string, { id: string; codigo?: string; nombre: string }>();
+    for (const p of lista) {
+      if (!unicas.has(p.id)) unicas.set(p.id, p);
+    }
+    return Array.from(unicas.values());
+  }, [formData.vehiculoId, mapaPatrullasPorVehiculo, patrulla.id]);
+
+  const integrantesConOtrasPatrullas = React.useMemo(() => {
+    return formData.personalIds
+      .map((id) => {
+        const funcionario = personalElegible.find((p) => p.personal_id === id);
+        const asignaciones = (mapaPatrullasPorPersonal[id] || []).filter((p) => p.id !== patrulla.id);
+        const unicas = new Map<string, { id: string; codigo?: string; nombre: string }>();
+        for (const p of asignaciones) {
+          if (!unicas.has(p.id)) unicas.set(p.id, p);
+        }
+        return {
+          id,
+          nombre: funcionario ? `${funcionario.nombres} ${funcionario.apellidos}` : id,
+          patrullas: Array.from(unicas.values()),
+        };
+      })
+      .filter((item) => item.patrullas.length > 0);
+  }, [formData.personalIds, mapaPatrullasPorPersonal, personalElegible, patrulla.id]);
+
+  // Manejo de tecla Escape
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !modalConfirmarAbierto) {
+        onClose();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [modalConfirmarAbierto, onClose]);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!isValid || estaBloqueada) return;
+    setModalConfirmarAbierto(true);
+  };
+
+  const delegacionSeleccionada = delegaciones.find((d) => d.id === formData.delegacionId);
+  const vehiculoSeleccionado = vehiculosDisponibles.find((v) => v.id === formData.vehiculoId);
+  const liderSeleccionado = personalElegible.find((p) => p.usuario_id === formData.usuarioLiderId);
+
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="patrulla-editar-modal-title"
+      className={styles.modalBackdrop}
+      onClick={onClose}
+    >
+      <div
+        className={styles.modalBoxCrear}
+        onClick={(e) => e.stopPropagation()}
+        data-testid="modal-editar-patrulla"
+      >
+        {/* Cabecera del Modal */}
+        <header className={styles.modalHeader}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <ShieldCheck size={20} color="var(--color-accent-mint, #4FAE9B)" aria-hidden="true" />
+            <Heading as="h3" variant="h3" color="white" noMargin id="patrulla-editar-modal-title">
+              Editar Patrulla Verificadora: {patrulla.codigo || patrulla.nombre}
+            </Heading>
+          </div>
+
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Cerrar modal de edición de patrulla"
+            style={{
+              background: 'none',
+              border: 'none',
+              color: '#FFFFFF',
+              cursor: 'pointer',
+              padding: '4px',
+              display: 'flex',
+              alignItems: 'center',
+            }}
+          >
+            <X size={20} />
+          </button>
+        </header>
+
+        {/* Formulario en el Cuerpo Scrolleable */}
+        <form
+          onSubmit={handleSubmit}
+          noValidate
+          autoComplete="off"
+          style={{ display: 'flex', flexDirection: 'column', height: '100%' }}
+        >
+          <div className={styles.modalBodyScroll}>
+            {/* Bloqueo Operativo Preventivo */}
+            {estaBloqueada && (
+              <InlineNotice
+                variant="error"
+                title="Modificación Bloqueada por Estado Operativo"
+              >
+                <div data-testid="bloqueo-aviso-edicion">
+                  {mensajeBloqueo ||
+                    'No es posible editar la patrulla mientras se encuentre en verificación o en misión activa.'}
+                </div>
+              </InlineNotice>
+            )}
+
+            {/* Advertencia de Carga de Catálogos */}
+            {errorCatalogos && (
+              <InlineNotice variant="warning" title="Advertencia de Catálogos">
+                {errorCatalogos}
+              </InlineNotice>
+            )}
+
+            {/* Error de Servidor o Conflicto (409) */}
+            {serverError && (
+              <InlineNotice
+                variant="error"
+                title={
+                  esConflicto
+                    ? 'Bloqueo Operativo: Conflicto al Modificar'
+                    : 'No fue posible guardar los cambios de la patrulla'
+                }
+              >
+                <div>
+                  {serverFieldErrors && serverFieldErrors.length > 0 ? (
+                    <span>
+                      Se detectaron inconsistencias en la sección:{' '}
+                      <strong>
+                        {Array.from(
+                          new Set(
+                            serverFieldErrors
+                              .map((err) => traducirNombreCampo(err.campo))
+                              .filter(Boolean)
+                          )
+                        ).join(', ')}
+                      </strong>
+                      . Por favor revise el campo señalado a continuación.
+                    </span>
+                  ) : (
+                    <span>{serverError}</span>
+                  )}
+                </div>
+              </InlineNotice>
+            )}
+
+            {/* SECCIÓN 1: Identificación y Código Fijo */}
+            <section className={styles.section} aria-labelledby="seccion-identificacion-edit">
+              <div className={styles.sectionHeader}>
+                <ShieldCheck size={20} color="var(--color-primary-teal, #1B6F7D)" aria-hidden="true" />
+                <h2 id="seccion-identificacion-edit" className={styles.sectionTitle}>
+                  Identificación de la Patrulla
+                </h2>
+              </div>
+
+              <div className={styles.fieldGrid}>
+                {/* Código Táctico (Inmutable) */}
+                <div className={styles.fieldGroup}>
+                  <label htmlFor="patrulla-codigo-fijo" className={styles.fieldLabel}>
+                    Código Identificador (Inmutable)
+                  </label>
+                  <input
+                    id="patrulla-codigo-fijo"
+                    type="text"
+                    value={patrulla.codigo || patrulla.id.slice(0, 8).toUpperCase()}
+                    readOnly
+                    disabled
+                    className={styles.inputField}
+                    style={{
+                      backgroundColor: 'var(--color-bg-light, #ECEFF3)',
+                      color: 'var(--color-charcoal, #3B3F45)',
+                      cursor: 'not-allowed',
+                      fontWeight: 700,
+                    }}
+                    aria-describedby="help-codigo-fijo"
+                  />
+                  <span id="help-codigo-fijo" className={styles.helperText}>
+                    El código táctico es inmutable para asegurar la trazabilidad histórica de las
+                    misiones.
+                  </span>
+                </div>
+
+                {/* Nombre Descriptivo */}
+                <div className={styles.fieldGroup}>
+                  <label htmlFor="patrulla-nombre-edit" className={styles.fieldLabel}>
+                    Nombre de la Patrulla
+                  </label>
+                  <input
+                    id="patrulla-nombre-edit"
+                    type="text"
+                    value={formData.nombre}
+                    disabled={estaBloqueada}
+                    onChange={(e) => handleNombreChange(e.target.value)}
+                    onBlur={() => handleBlur('nombre')}
+                    placeholder="Ej. Patrulla Costa 01 - Reforzada"
+                    className={`${styles.inputField} ${
+                      touched.nombre && clientErrors.nombre ? styles.inputFieldError : ''
+                    }`}
+                    aria-describedby="help-nombre-edit"
+                  />
+                  {touched.nombre && clientErrors.nombre && (
+                    <span className={styles.errorText} role="alert">
+                      {clientErrors.nombre}
+                    </span>
+                  )}
+                  <span id="help-nombre-edit" className={styles.helperText}>
+                    Denominación legible de la unidad operativa (máx. 100 caracteres).
+                  </span>
+                </div>
+              </div>
+            </section>
+
+            {/* SECCIÓN 2: Delegación Municipal Base */}
+            <PatrullaDelegacionSection
+              delegacionId={formData.delegacionId}
+              delegaciones={delegaciones}
+              cargando={cargandoCatalogos || estaBloqueada}
+              errorDelegacion={touched.delegacionId ? clientErrors.delegacionId : undefined}
+              onChangeDelegacion={handleDelegacionChange}
+              onBlurDelegacion={() => handleBlur('delegacionId')}
+            />
+
+            {/* SECCIÓN 3: Vehículo Institucional Asignado */}
+            <PatrullaVehiculoSection
+              vehiculoId={formData.vehiculoId}
+              vehiculos={vehiculosDisponibles}
+              cargando={cargandoCatalogos || estaBloqueada}
+              mapaPatrullasPorVehiculo={mapaPatrullasPorVehiculo}
+              patrullaActualId={patrulla.id}
+              errorVehiculo={serverFieldErrors.find((e) => e.campo === 'vehiculoId')?.mensaje}
+              onChangeVehiculo={handleVehiculoChange}
+            />
+
+            {/* SECCIÓN 4: Dotación y Personal Asignado */}
+            <PatrullaDotacionSection
+              personalElegible={personalElegible}
+              personalSeleccionadoIds={formData.personalIds}
+              usuarioLiderId={formData.usuarioLiderId}
+              cargando={cargandoCatalogos || estaBloqueada}
+              mapaPatrullasPorPersonal={mapaPatrullasPorPersonal}
+              patrullaActualId={patrulla.id}
+              errorPersonal={
+                (touched.personalIds && clientErrors.personalIds) ||
+                serverFieldErrors.find((e) => e.campo === 'personalIds')?.mensaje
+              }
+              onTogglePersonal={estaBloqueada ? () => {} : handleTogglePersonal}
+              onChangeLider={estaBloqueada ? () => {} : handleLiderChange}
+            />
+          </div>
+
+          {/* Footer del Modal */}
+          <footer className={styles.modalFooter}>
+            <Button type="button" variant="outline" size="md" onClick={onClose}>
+              Cancelar
+            </Button>
+
+            <Button
+              type="submit"
+              variant="primary"
+              size="md"
+              disabled={!isValid || isSubmitting || estaBloqueada}
+              icon={<Save size={16} />}
+              data-testid="btn-guardar-cambios-patrulla"
+              title={
+                estaBloqueada
+                  ? 'No es posible editar la patrulla mientras se encuentre en verificación o en misión activa'
+                  : undefined
+              }
+            >
+              {isSubmitting ? 'Guardando...' : 'Guardar Cambios'}
+            </Button>
+          </footer>
+        </form>
+
+        {/* Modal de Confirmación de Edición */}
+        {modalConfirmarAbierto && (
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="confirm-editar-modal-title"
+            className={styles.modalBackdrop}
+            onClick={() => setModalConfirmarAbierto(false)}
+          >
+            <div className={styles.modalBox} onClick={(e) => e.stopPropagation()}>
+              <div className={styles.modalHeader}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <ShieldCheck size={20} color="var(--color-accent-mint, #4FAE9B)" />
+                  <Heading as="h3" variant="h3" color="white" noMargin id="confirm-editar-modal-title">
+                    Confirmar Modificación de Patrulla
+                  </Heading>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setModalConfirmarAbierto(false)}
+                  aria-label="Cerrar modal de confirmación"
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: '#FFFFFF',
+                    cursor: 'pointer',
+                    padding: '4px',
+                  }}
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              <div className={styles.modalBody}>
+                <p style={{ margin: 0, fontSize: '14px', color: 'var(--color-text-dark, #2B2B2B)' }}>
+                  ¿Está seguro de que desea aplicar las modificaciones a la patrulla{' '}
+                  <strong className={styles.codigoBadge}>{patrulla.codigo || patrulla.nombre}</strong>?
+                </p>
+
+                <div className={styles.confirmCard}>
+                  <div className={styles.confirmRow}>
+                    <span className={styles.confirmRowLabel}>
+                      <Shield size={15} color="var(--color-primary-teal, #1B6F7D)" aria-hidden="true" />
+                      Nombre de la Patrulla:
+                    </span>
+                    <span className={styles.confirmRowValue}>
+                      {formData.nombre.trim() || patrulla.codigo || patrulla.nombre}
+                    </span>
+                  </div>
+
+                  <div className={styles.confirmRow}>
+                    <span className={styles.confirmRowLabel}>
+                      <MapPin size={15} color="var(--color-primary-teal, #1B6F7D)" aria-hidden="true" />
+                      Delegación Base:
+                    </span>
+                    <span className={styles.confirmRowValue}>
+                      {delegacionSeleccionada
+                        ? obtenerNombreDelegacion(
+                            delegacionSeleccionada.nombre || delegacionSeleccionada.id,
+                            delegacionSeleccionada.nombre
+                          )
+                        : 'Delegación no seleccionada'}
+                    </span>
+                  </div>
+
+                  <div className={styles.confirmRow}>
+                    <span className={styles.confirmRowLabel}>
+                      <Truck size={15} color="var(--color-primary-teal, #1B6F7D)" aria-hidden="true" />
+                      Vehículo:
+                    </span>
+                    <span className={styles.confirmRowValue}>
+                      {vehiculoSeleccionado
+                        ? `${vehiculoSeleccionado.nombre} ${
+                            vehiculoSeleccionado.detalles?.patente
+                              ? `[Patente: ${vehiculoSeleccionado.detalles.patente}]`
+                              : ''
+                          }`
+                        : 'Sin vehículo (despliegue pedestre / a pie)'}
+                    </span>
+                  </div>
+
+                  <div className={styles.confirmRow}>
+                    <span className={styles.confirmRowLabel}>
+                      <Users size={15} color="var(--color-primary-teal, #1B6F7D)" aria-hidden="true" />
+                      Dotación:
+                    </span>
+                    <span className={styles.confirmRowValue}>
+                      {formData.personalIds.length}{' '}
+                      {formData.personalIds.length === 1 ? 'funcionario' : 'funcionarios'}
+                    </span>
+                  </div>
+
+                  <div className={styles.confirmRow}>
+                    <span className={styles.confirmRowLabel}>
+                      <UserCheck size={15} color="var(--color-primary-teal, #1B6F7D)" aria-hidden="true" />
+                      Líder Táctico:
+                    </span>
+                    <span className={styles.confirmRowValue}>
+                      {liderSeleccionado
+                        ? `${liderSeleccionado.nombres} ${liderSeleccionado.apellidos}`
+                        : 'No asignado'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Avisos si hay vehículo o personal compartido */}
+                {(otrasPatrullasVehiculo.length > 0 || integrantesConOtrasPatrullas.length > 0) && (
+                  <div
+                    style={{
+                      marginTop: '12px',
+                      padding: '10px 14px',
+                      backgroundColor: 'var(--color-warning-bg, #FFF3E0)',
+                      border: '1px solid rgba(230, 81, 0, 0.3)',
+                      fontSize: '13px',
+                      color: 'var(--color-charcoal, #3B3F45)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '6px',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 600, color: 'var(--color-warning, #E65100)' }}>
+                      <AlertTriangle size={15} />
+                      <span>Asignaciones compartidas detectadas:</span>
+                    </div>
+                    {otrasPatrullasVehiculo.length > 0 && (
+                      <div>
+                        • <strong>Vehículo:</strong> asignado también en {otrasPatrullasVehiculo.map((p) => p.nombre).join(', ')}.
+                      </div>
+                    )}
+                    {integrantesConOtrasPatrullas.length > 0 && (
+                      <div>
+                        • <strong>Personal:</strong>{' '}
+                        {integrantesConOtrasPatrullas.map((item, idx) => (
+                          <span key={item.id}>
+                            {idx > 0 ? '; ' : ''}
+                            <strong>{item.nombre}</strong> está en {item.patrullas.map((p) => p.nombre).join(', ')}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              <div className={styles.modalFooter}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="md"
+                  onClick={() => setModalConfirmarAbierto(false)}
+                  disabled={isSubmitting}
+                >
+                  Cancelar
+                </Button>
+
+                <Button
+                  type="button"
+                  variant="primary"
+                  size="md"
+                  icon={<Check size={16} />}
+                  onClick={handleConfirmSave}
+                  disabled={isSubmitting}
+                  data-testid="btn-confirmar-guardar-edicion"
+                >
+                  {isSubmitting ? 'Guardando Cambios...' : 'Confirmar y Guardar'}
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default PatrullaEditarModal;

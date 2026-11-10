@@ -17,6 +17,7 @@ export interface UseCuadrillasReturn {
   errorStatus: number | null;
   recargar: () => Promise<void>;
   actualizarCuadrillaEnLista: (cuadrillaActualizada: CuadrillaItem) => void;
+  removerCuadrillaDeLista: (id: string) => void;
 }
 
 export function useCuadrillas(filtros: FiltrosCuadrillasState): UseCuadrillasReturn {
@@ -31,6 +32,7 @@ export function useCuadrillas(filtros: FiltrosCuadrillasState): UseCuadrillasRet
   const [error, setError] = useState<string | null>(null);
   const [errorStatus, setErrorStatus] = useState<number | null>(null);
 
+  // Referencia vigente de filtros para evitar re-consultas con estado obsoleto (H80)
   const filtrosRef = useRef(filtros);
   useEffect(() => {
     filtrosRef.current = filtros;
@@ -75,7 +77,15 @@ export function useCuadrillas(filtros: FiltrosCuadrillasState): UseCuadrillasRet
     });
   }, []);
 
-  // Suscripción WebSocket para reflejar cuadrillas creadas o actualizadas en vivo
+  const removerCuadrillaDeLista = useCallback((id: string) => {
+    setCuadrillas((prev) => prev.filter((c) => c.id !== id));
+    setMeta((prev) => ({
+      ...prev,
+      total: Math.max(0, prev.total - 1),
+    }));
+  }, []);
+
+  // Suscripción WebSocket para reflejar cuadrillas creadas, actualizadas o desactivadas en vivo
   useEffect(() => {
     try {
       const socket = getSocket();
@@ -93,12 +103,20 @@ export function useCuadrillas(filtros: FiltrosCuadrillasState): UseCuadrillasRet
         }
       };
 
+      const handleCuadrillaDesactivada = (data: { id: string } | CuadrillaItem) => {
+        if (data && data.id) {
+          cargarDatos();
+        }
+      };
+
       socket.on('cuadrilla:actualizada', handleCuadrillaActualizada);
       socket.on('cuadrilla:creada', handleCuadrillaCreada);
+      socket.on('cuadrilla:desactivada', handleCuadrillaDesactivada);
 
       return () => {
         socket.off('cuadrilla:actualizada', handleCuadrillaActualizada);
         socket.off('cuadrilla:creada', handleCuadrillaCreada);
+        socket.off('cuadrilla:desactivada', handleCuadrillaDesactivada);
       };
     } catch {
       // Ignorar fallo de inicialización de socket en entornos de prueba
@@ -113,5 +131,6 @@ export function useCuadrillas(filtros: FiltrosCuadrillasState): UseCuadrillasRet
     errorStatus,
     recargar: cargarDatos,
     actualizarCuadrillaEnLista,
+    removerCuadrillaDeLista,
   };
 }
