@@ -480,8 +480,13 @@ export const cuadrillasService = {
   },
 
   /**
-   * Obtiene la nómina de funcionarios activos de terreno aptos para ser asignados como Delegado de Cuadrilla.
-   * Consulta GET /api/personal mediante apiClient y aplica filtros amplios de personal operativo.
+   * Obtiene la nómina de funcionarios aptos para ser asignados como Delegado de Cuadrilla.
+   *
+   * Candidatos admisibles:
+   * - BRIGADISTA: al guardar la cuadrilla se promueve automáticamente a DELEGADO_CUADRILLA.
+   * - DELEGADO_CUADRILLA: conserva su rol y asume el liderazgo de la nueva unidad.
+   *
+   * @param busqueda Texto de búsqueda opcional (RUT, nombres, apellidos o email).
    */
   async obtenerCandidatosDelegados(busqueda?: string): Promise<PersonalCandidatoDelegado[]> {
     try {
@@ -526,13 +531,18 @@ export const cuadrillasService = {
             const rolNombre = (emp.rol_nombre || '').toLowerCase();
             const cargo = (emp.cargo || '').toLowerCase();
 
-            // Filtrar exclusivamente personal con rol o cargo de Brigadista
+            // Admite brigadistas (se promoverán) y delegados de cuadrilla ya constituidos
             const esBrigadista =
               rolCodigo === 'BRIGADISTA' ||
               rolNombre.includes('brigad') ||
               cargo.includes('brigad');
 
-            return esBrigadista;
+            const esDelegado =
+              rolCodigo === 'DELEGADO_CUADRILLA' ||
+              rolNombre.includes('delegad') ||
+              cargo.includes('delegad');
+
+            return esBrigadista || esDelegado;
           })
           .map((emp) => ({
             id: emp.usuario_id,
@@ -864,7 +874,10 @@ export const cuadrillasService = {
    * Obtiene el personal de terreno disponible para conformar la dotación de la cuadrilla (cuadrilla_personal).
    * Consulta GET /api/personal?estadoOperativo=disponible&soloPersonal=true.
    */
-  async obtenerPersonalOperativoDisponible(busqueda?: string): Promise<PersonalOperativoDisponible[]> {
+  async obtenerPersonalOperativoDisponible(
+    busqueda?: string,
+    excluirCuadrillaId?: string
+  ): Promise<PersonalOperativoDisponible[]> {
     try {
       const q = busqueda?.trim();
       interface PersonalOperativoRawApi {
@@ -890,6 +903,8 @@ export const cuadrillasService = {
               q: q || undefined,
               estadoOperativo: 'disponible',
               soloPersonal: true,
+              sinAsignacionCuadrilla: true,
+              excluirCuadrillaId: excluirCuadrillaId || undefined,
             },
           },
         }

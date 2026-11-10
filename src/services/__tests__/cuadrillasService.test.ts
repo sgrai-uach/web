@@ -178,6 +178,27 @@ describe('cuadrillasService (H79)', () => {
               rol_codigo: 'INFORMANTE', // informante externo excluido
               rol_nombre: 'Informante',
             },
+            {
+              usuario_id: 'u-4',
+              rut: '44.444.444-4',
+              nombres: 'Carla',
+              apellidos: 'Delegada',
+              email: 'carla@valdivia.cl',
+              telefono: null,
+              usuario_activo: true,
+              rol_id: 'r-4',
+              rol_codigo: 'DELEGADO_CUADRILLA', // delegado ya constituido: admitido
+              rol_nombre: 'Delegado de Cuadrilla',
+              delegacion_id: 'd-1',
+              delegacion_codigo: 'DEL_NORTE',
+              delegacion_nombre: 'Norte',
+              es_personal: true,
+              personal_id: 'p-4',
+              especialidad: 'Mando de cuadrilla',
+              cargo: 'Delegado de Cuadrilla',
+              estado_operativo: 'disponible',
+              disponible_terreno: true,
+            },
           ],
         },
         error: null,
@@ -185,9 +206,11 @@ describe('cuadrillasService (H79)', () => {
       } as unknown as Awaited<ReturnType<typeof apiClient.GET>>);
 
       const candidatos = await cuadrillasService.obtenerCandidatosDelegados();
-      expect(candidatos).toHaveLength(1);
+      expect(candidatos).toHaveLength(2);
       expect(candidatos[0].id).toBe('u-1');
       expect(candidatos[0].nombreCompleto).toBe('Juan Pérez');
+      expect(candidatos[1].id).toBe('u-4');
+      expect(candidatos[1].nombreCompleto).toBe('Carla Delegada');
     });
   });
 
