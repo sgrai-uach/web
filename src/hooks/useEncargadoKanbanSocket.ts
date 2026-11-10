@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { getSocket } from '@/lib/socket/client';
 import type { EstadoIncidente, PrioridadIncidente } from '@/services/incidentesService';
+import { formatearEstado, formatearPrioridad } from '@/lib/utils/estadoUtils';
 
 export interface IncidenteCreadoPayload {
   evento: 'incidente:creado';
@@ -27,6 +28,9 @@ export interface IncidenteActualizadoPayload {
     codigo: string;
     nuevoEstado: EstadoIncidente;
     prioridad: PrioridadIncidente;
+    tipoIncidenteId?: string;
+    tipoAfectacion?: string;
+    justificacion?: string;
     actualizadoEn: string;
   };
   emitidoEn: string;
@@ -126,6 +130,18 @@ export function useEncargadoKanbanSocket({
             typeof rawDatos?.prioridad === 'string'
               ? (rawDatos.prioridad as PrioridadIncidente)
               : ('MEDIA' as PrioridadIncidente),
+          tipoIncidenteId:
+            typeof rawDatos?.tipoIncidenteId === 'string'
+              ? rawDatos.tipoIncidenteId
+              : undefined,
+          tipoAfectacion:
+            typeof rawDatos?.tipoAfectacion === 'string'
+              ? rawDatos.tipoAfectacion
+              : undefined,
+          justificacion:
+            typeof rawDatos?.justificacion === 'string'
+              ? rawDatos.justificacion
+              : undefined,
           actualizadoEn:
             typeof rawDatos?.actualizadoEn === 'string'
               ? rawDatos.actualizadoEn
@@ -135,9 +151,17 @@ export function useEncargadoKanbanSocket({
           typeof p?.emitidoEn === 'string' ? p.emitidoEn : new Date().toISOString(),
       };
 
-      setUltimoEvento(
-        `Actualizado: ${normalizedPayload.datos.codigo || ''} → ${normalizedPayload.datos.nuevoEstado}`
-      );
+      const prioridadLegible = formatearPrioridad(normalizedPayload.datos.prioridad);
+      if (normalizedPayload.datos.tipoAfectacion && normalizedPayload.datos.justificacion) {
+        setUltimoEvento(
+          `Tipología reclasificada: ${normalizedPayload.datos.codigo || ''} a ${normalizedPayload.datos.tipoAfectacion} (Prioridad: ${prioridadLegible})`
+        );
+      } else {
+        const estadoLegible = formatearEstado(normalizedPayload.datos.nuevoEstado);
+        setUltimoEvento(
+          `Actualizado: ${normalizedPayload.datos.codigo || ''} → ${estadoLegible} (Prioridad: ${prioridadLegible})`
+        );
+      }
       if (actualizadoRef.current) {
         actualizadoRef.current(normalizedPayload);
       }

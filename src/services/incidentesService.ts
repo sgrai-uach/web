@@ -15,8 +15,18 @@ export const DEFAULT_ENCARGADO_ID = '00000000-0000-4000-8000-000000000003';
 
 export type ListarIncidentesResponse = components['schemas']['ListarIncidentesResponse'];
 export type IncidenteDetalleResponse = components['schemas']['IncidenteDetalleResponse'];
-export type IncidenteResumen = ListarIncidentesResponse['data'][number];
-export type IncidenteDetalle = IncidenteDetalleResponse['data'];
+export type IncidenteResumen = ListarIncidentesResponse['data'][number] & {
+  tipoIncidenteId?: string;
+  reclasificadoEnTerreno?: boolean;
+  justificacionReclasificacion?: string;
+  cambioPrioridadMotivo?: string;
+};
+export type IncidenteDetalle = IncidenteDetalleResponse['data'] & {
+  tipoIncidenteId?: string;
+  reclasificadoEnTerreno?: boolean;
+  justificacionReclasificacion?: string;
+  cambioPrioridadMotivo?: string;
+};
 export type PaginacionMeta = ListarIncidentesResponse['paginacion'];
 export type EstadoIncidente = IncidenteResumen['estado'];
 export type PrioridadIncidente = IncidenteResumen['prioridad'];

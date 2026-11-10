@@ -9,11 +9,19 @@ vi.mock('@/services/incidentesService', () => ({
   DEFAULT_ENCARGADO_ID: '00000000-0000-4000-8000-000000000003',
 }));
 
+let socketCallbacks: {
+  onIncidenteCreado?: (p: any) => void;
+  onIncidenteActualizado?: (p: any) => void;
+} = {};
+
 vi.mock('../useEncargadoKanbanSocket', () => ({
-  useEncargadoKanbanSocket: vi.fn(() => ({
-    conectado: true,
-    ultimoEvento: null,
-  })),
+  useEncargadoKanbanSocket: vi.fn((opts) => {
+    socketCallbacks = opts || {};
+    return {
+      conectado: true,
+      ultimoEvento: null,
+    };
+  }),
 }));
 
 describe('useIncidentesKanban - HU-20 y BUG-04', () => {
@@ -102,5 +110,94 @@ describe('useIncidentesKanban - HU-20 y BUG-04', () => {
     // 3. paginacionColumna debe actualizarse dinámicamente para ambas columnas (BUG-H20-WEB-04)
     expect(result.current.paginacionColumna.REPORTADO?.total).toBe(0);
     expect(result.current.paginacionColumna.VERIFICANDO?.total).toBe(1);
+  });
+
+  it('debe actualizar inmediatamente tipología y prioridad con justificación ante evento incidente:actualizado (H37)', async () => {
+    const mockIncidente: incidentesService.IncidenteResumen = {
+      id: '50000000-0000-4000-8000-000000000001',
+      codigo: 'INC-2026-001',
+      codigoSeguimiento: '20260001',
+      tipoAfectacion: 'Anegamiento menor',
+      descripcion: 'Agua acumulada en frontis',
+      direccion: 'Av. Alemania 450',
+      latitud: -39.82,
+      longitud: -73.23,
+      estado: 'VERIFICANDO',
+      prioridad: 'BAJA',
+      requiereAsistenciaSocial: false,
+      fuenteOrigen: 'CHATBOT',
+      informanteNombre: 'Carlos',
+      delegacionNombre: 'Isla Teja',
+      totalMisiones: 1,
+      creadoEn: '2026-11-10T02:00:00Z',
+      actualizadoEn: '2026-11-10T02:00:00Z',
+    };
+
+    vi.mocked(incidentesService.listarIncidentes).mockImplementation(async (query) => {
+      if (query.estado === 'VERIFICANDO') {
+        return {
+          exito: true,
+          incidentes: [mockIncidente],
+          paginacion: {
+            total: 1,
+            pagina: 1,
+            limite: 10,
+            totalPaginas: 1,
+            tieneSiguiente: false,
+            tieneAnterior: false,
+          },
+          mensaje: 'OK',
+        };
+      }
+      return {
+        exito: true,
+        incidentes: [],
+        paginacion: {
+          total: 0,
+          pagina: 1,
+          limite: 10,
+          totalPaginas: 0,
+          tieneSiguiente: false,
+          tieneAnterior: false,
+        },
+        mensaje: 'OK',
+      };
+    });
+
+    const { result } = renderHook(() => useIncidentesKanban());
+
+    await waitFor(() => {
+      expect(result.current.columnas.VERIFICANDO.length).toBe(1);
+    });
+
+    // Simular recepción de reclasificación presencial en terreno desde la patrulla
+    act(() => {
+      socketCallbacks.onIncidenteActualizado?.({
+        evento: 'incidente:actualizado',
+        datos: {
+          id: '50000000-0000-4000-8000-000000000001',
+          codigo: 'INC-2026-001',
+          nuevoEstado: 'VERIFICANDO',
+          prioridad: 'ALTA',
+          tipoIncidenteId: '40000000-0000-4000-8000-000000000001',
+          tipoAfectacion: 'Inundación',
+          justificacion: 'Tras evaluación presencial se constata desborde de cauce con ingreso de agua a viviendas.',
+          actualizadoEn: '2026-11-10T03:30:00.000Z',
+        },
+        emitidoEn: '2026-11-10T03:30:00.000Z',
+      });
+    });
+
+    // Validar que la tarjeta se actualizó de inmediato en memoria
+    const tarjetaActualizada = result.current.columnas.VERIFICANDO[0];
+    expect(tarjetaActualizada.tipoAfectacion).toBe('Inundación');
+    expect(tarjetaActualizada.prioridad).toBe('ALTA');
+    expect(tarjetaActualizada.reclasificadoEnTerreno).toBe(true);
+    expect(tarjetaActualizada.justificacionReclasificacion).toBe(
+      'Tras evaluación presencial se constata desborde de cauce con ingreso de agua a viviendas.'
+    );
+    expect(tarjetaActualizada.cambioPrioridadMotivo).toBe(
+      'Tras evaluación presencial se constata desborde de cauce con ingreso de agua a viviendas.'
+    );
   });
 });

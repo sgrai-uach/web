@@ -326,14 +326,33 @@ export function useIncidentesKanban(initialUserId?: string) {
           if (idx !== -1) {
             columnaOrigen = est;
             columnaOrigenDetectada = est;
+            const incActual = prev[est][idx];
+            const nuevaPrioridad = datos.prioridad || incActual.prioridad;
+            const nuevoTipo = datos.tipoAfectacion || incActual.tipoAfectacion;
+            const huboCambioPrioridad = Boolean(datos.prioridad && datos.prioridad !== incActual.prioridad);
+            const huboCambioTipologia = Boolean(datos.tipoAfectacion && datos.tipoAfectacion !== incActual.tipoAfectacion);
+            const reclasificado = Boolean(
+              huboCambioTipologia ||
+              datos.justificacion ||
+              incActual.reclasificadoEnTerreno
+            );
+
             incidenteEncontrado = {
-              ...prev[est][idx],
+              ...incActual,
               estado: datos.nuevoEstado,
-              prioridad: datos.prioridad || prev[est][idx].prioridad,
+              prioridad: nuevaPrioridad,
+              tipoAfectacion: nuevoTipo,
+              tipoIncidenteId: datos.tipoIncidenteId || incActual.tipoIncidenteId,
+              reclasificadoEnTerreno: reclasificado,
+              justificacionReclasificacion:
+                datos.justificacion || incActual.justificacionReclasificacion,
+              cambioPrioridadMotivo: huboCambioPrioridad
+                ? datos.justificacion || 'Ajustada tras verificación presencial en terreno'
+                : incActual.cambioPrioridadMotivo,
               totalMisiones:
                 datos.nuevoEstado === 'VERIFICANDO' && est === 'REPORTADO'
-                  ? Math.max(1, (prev[est][idx].totalMisiones || 0) + 1)
-                  : prev[est][idx].totalMisiones,
+                  ? Math.max(1, (incActual.totalMisiones || 0) + 1)
+                  : incActual.totalMisiones,
               actualizadoEn: datos.actualizadoEn || new Date().toISOString(),
             };
             break;
