@@ -94,4 +94,84 @@ describe('Componente IncidenteMisionesSection', () => {
       screen.queryByRole('button', { name: /Despachar Patrulla Verificadora/i })
     ).toBeNull();
   });
+
+  describe('HU-35: Trazabilidad y monitoreo de notificaciones de patrulla', () => {
+    const estadosTrazabilidad = [
+      {
+        estado: 'PENDIENTE_ENVIO' as const,
+        textoEsperado: 'Patrulla sin señal / offline',
+        bg: 'rgb(236, 239, 243)', // #ECEFF3
+        color: 'rgb(59, 63, 69)', // #3B3F45
+      },
+      {
+        estado: 'ENVIADA' as const,
+        textoEsperado: 'Alerta emitida al móvil',
+        bg: 'rgb(255, 243, 224)', // #FFF3E0
+        color: 'rgb(230, 81, 0)', // #E65100
+      },
+      {
+        estado: 'RECIBIDA' as const,
+        textoEsperado: 'Recibida en móvil de terreno',
+        bg: 'rgb(232, 245, 233)', // #E8F5E9
+        color: 'rgb(46, 125, 50)', // #2E7D32
+      },
+      {
+        estado: 'LEIDA' as const,
+        textoEsperado: 'Leída por operador en terreno',
+        bg: 'rgb(224, 242, 241)', // #E0F2F1
+        color: 'rgb(20, 80, 90)', // #14505A
+      },
+    ];
+
+    estadosTrazabilidad.forEach(({ estado, textoEsperado, bg, color }) => {
+      it(`debe renderizar el badge de trazabilidad con texto y estilo correcto para estado ${estado}`, () => {
+        const misionesConTrazabilidad: IncidenteDetalle['misiones'] = [
+          {
+            ...mockMisiones[0],
+            id: `mision-${estado.toLowerCase()}`,
+            trazabilidadNotificacion: estado,
+          },
+        ];
+
+        render(<IncidenteMisionesSection misiones={misionesConTrazabilidad} />);
+
+        const badge = screen.getByTestId(`badge-trazabilidad-mision-${estado.toLowerCase()}`);
+        expect(badge).toBeDefined();
+        expect(badge.textContent).toBe(textoEsperado);
+
+        // Estilos: esquinas rectas obligatorias (borderRadius: 0), borde y colores
+        expect(badge.style.borderRadius).toBe('0px');
+        expect(badge.style.backgroundColor).toBe(bg);
+        expect(badge.style.color).toBe(color);
+        expect(badge.style.border).toContain('1px solid');
+      });
+    });
+
+    it('no debe renderizar el badge de trazabilidad si la misión no tiene trazabilidadNotificacion', () => {
+      render(<IncidenteMisionesSection misiones={mockMisiones} />);
+
+      expect(
+        screen.queryByTestId(`badge-trazabilidad-${mockMisiones[0].id}`)
+      ).toBeNull();
+    });
+
+    it('debe certificar la ausencia total de caracteres emojis en el contenedor renderizado', () => {
+      const misionesConTrazabilidad: IncidenteDetalle['misiones'] = estadosTrazabilidad.map(
+        ({ estado }, idx) => ({
+          ...mockMisiones[0],
+          id: `mision-emoji-check-${idx}`,
+          trazabilidadNotificacion: estado,
+        })
+      );
+
+      const { container } = render(
+        <IncidenteMisionesSection misiones={misionesConTrazabilidad} />
+      );
+
+      // Verificación estricta de ausencia de emojis (Unicode Pictographic)
+      const emojiRegex = /\p{Extended_Pictographic}/u;
+      expect(container.textContent).not.toMatch(emojiRegex);
+      expect(container.innerHTML).not.toMatch(emojiRegex);
+    });
+  });
 });

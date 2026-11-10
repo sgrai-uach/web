@@ -1,11 +1,33 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import { IncidenteDetalleDrawer } from '../IncidenteDetalleDrawer';
 import * as incidentesService from '@/services/incidentesService';
 import * as misionesService from '@/services/misionesService';
 import type { IncidenteDetalle } from '@/services/incidentesService';
 import type { MisionDetalleCompleto } from '@/types/misiones';
+
+let socketListeners: Record<string, ((...args: unknown[]) => void)[]> = {};
+const mockSocket = {
+  connected: true,
+  connect: vi.fn(),
+  emit: vi.fn(),
+  on: vi.fn((event: string, handler: (...args: unknown[]) => void) => {
+    if (!socketListeners[event]) socketListeners[event] = [];
+    socketListeners[event].push(handler);
+    return mockSocket;
+  }),
+  off: vi.fn((event: string, handler: (...args: unknown[]) => void) => {
+    if (socketListeners[event]) {
+      socketListeners[event] = socketListeners[event].filter((h) => h !== handler);
+    }
+    return mockSocket;
+  }),
+};
+
+vi.mock('@/lib/socket/client', () => ({
+  getSocket: () => mockSocket,
+}));
 
 vi.mock('@/components/ui/Toast', () => ({
   useToast: () => ({
@@ -19,6 +41,7 @@ vi.mock('@/components/ui/Toast', () => ({
 describe('Componente IncidenteDetalleDrawer e integración HU-17', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    socketListeners = {};
   });
 
   const mockDetalleIncidente: IncidenteDetalle = {
@@ -221,5 +244,68 @@ describe('Componente IncidenteDetalleDrawer e integración HU-17', () => {
     // En estado EN_ATENCION, no debe estar el botón
     const btnDespachar = screen.queryByRole('button', { name: /Despachar Patrulla/i });
     expect(btnDespachar).toBeNull();
+  });
+
+  it('actualiza reactivamente el estado de trazabilidad de la misión ante notificacion:trazabilidad_actualizada', async () => {
+    vi.spyOn(incidentesService, 'obtenerDetalleIncidente').mockResolvedValueOnce({
+      exito: true,
+      datos: mockDetalleIncidente,
+      mensaje: 'OK',
+    });
+
+    render(
+      <IncidenteDetalleDrawer
+        incidenteId="i1000000-0000-4000-8000-000000000001"
+        userId="user-test"
+        onCerrar={vi.fn()}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('INC-2026-0042')).toBeDefined();
+    });
+
+    // Antes del evento, no se visualiza el badge de trazabilidad
+    expect(
+      screen.queryByTestId('badge-trazabilidad-m1000000-0000-4000-8000-000000000001')
+    ).toBeNull();
+
+    // Simular recepción de evento de socket
+    act(() => {
+      const handler = socketListeners['notificacion:trazabilidad_actualizada']?.[0];
+      handler?.({
+        notificacionId: 'notif-1',
+        misionId: 'm1000000-0000-4000-8000-000000000001',
+        patrullaId: 'pat-1',
+        estado: 'RECIBIDA',
+      });
+    });
+
+    // Se debe renderizar el badge con el texto esperado
+    await waitFor(() => {
+      const badge = screen.getByTestId(
+        'badge-trazabilidad-m1000000-0000-4000-8000-000000000001'
+      );
+      expect(badge).toBeDefined();
+      expect(badge.textContent).toBe('Recibida en móvil de terreno');
+    });
+
+    // Transición a LEIDA
+    act(() => {
+      const handler = socketListeners['notificacion:trazabilidad_actualizada']?.[0];
+      handler?.({
+        notificacionId: 'notif-1',
+        misionId: 'm1000000-0000-4000-8000-000000000001',
+        patrullaId: 'pat-1',
+        estado: 'LEIDA',
+      });
+    });
+
+    await waitFor(() => {
+      const badge = screen.getByTestId(
+        'badge-trazabilidad-m1000000-0000-4000-8000-000000000001'
+      );
+      expect(badge.textContent).toBe('Leída por operador en terreno');
+    });
   });
 });

@@ -1,6 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
-import { useEncargadoKanbanSocket } from '../useEncargadoKanbanSocket';
+import {
+  useEncargadoKanbanSocket,
+  type NotificacionTrazabilidadPayload,
+} from '../useEncargadoKanbanSocket';
 import { getSocket } from '@/lib/socket/client';
 
 vi.mock('@/lib/socket/client', () => {
@@ -55,6 +58,7 @@ describe('useEncargadoKanbanSocket', () => {
     expect(socket.on).toHaveBeenCalledWith('disconnect', expect.any(Function));
     expect(socket.on).toHaveBeenCalledWith('incidente:creado', expect.any(Function));
     expect(socket.on).toHaveBeenCalledWith('incidente:actualizado', expect.any(Function));
+    expect(socket.on).toHaveBeenCalledWith('notificacion:trazabilidad_actualizada', expect.any(Function));
 
     // Simular evento connect
     act(() => {
@@ -135,6 +139,40 @@ describe('useEncargadoKanbanSocket', () => {
     expect(onIncidenteActualizado).toHaveBeenCalledWith(payload);
   });
 
+  it('debe escuchar notificacion:trazabilidad_actualizada e invocar el callback onNotificacionTrazabilidadActualizada', () => {
+    const socket = getSocket();
+    const onNotificacionTrazabilidadActualizada = vi.fn();
+
+    const { result } = renderHook(() =>
+      useEncargadoKanbanSocket({
+        onNotificacionTrazabilidadActualizada,
+      })
+    );
+
+    const payload: NotificacionTrazabilidadPayload = {
+      notificacionId: 'notif-987',
+      misionId: 'mis-100',
+      patrullaId: 'pat-001',
+      estado: 'RECIBIDA',
+      intentosEnvio: 1,
+      creadaAt: '2026-11-10T15:00:00Z',
+      enviadaAt: '2026-11-10T15:00:02Z',
+      recibidaAt: '2026-11-10T15:00:05Z',
+      leidaAt: null,
+      actualizadoEn: '2026-11-10T15:00:05Z',
+    };
+
+    act(() => {
+      (socket as unknown as { _trigger: (ev: string, p: unknown) => void })._trigger(
+        'notificacion:trazabilidad_actualizada',
+        payload
+      );
+    });
+
+    expect(onNotificacionTrazabilidadActualizada).toHaveBeenCalledWith(payload);
+    expect(result.current.ultimoEvento).toBe('Trazabilidad misión: RECIBIDA');
+  });
+
   it('debe limpiar listeners y emitir salir al desmontar', () => {
     const socket = getSocket();
 
@@ -146,6 +184,7 @@ describe('useEncargadoKanbanSocket', () => {
     expect(socket.off).toHaveBeenCalledWith('disconnect', expect.any(Function));
     expect(socket.off).toHaveBeenCalledWith('incidente:creado', expect.any(Function));
     expect(socket.off).toHaveBeenCalledWith('incidente:actualizado', expect.any(Function));
+    expect(socket.off).toHaveBeenCalledWith('notificacion:trazabilidad_actualizada', expect.any(Function));
     expect(socket.emit).toHaveBeenCalledWith('leave', 'encargado');
     expect(socket.emit).toHaveBeenCalledWith('salir', 'sala:encargados');
     expect(socket.emit).toHaveBeenCalledWith('leave', 'mapa');
