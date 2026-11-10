@@ -290,7 +290,9 @@ export const KanbanBoard: React.FC = () => {
             userId={userId}
             onCerrar={() => setIncidenteSeleccionadoId(null)}
             onIncidenteActualizado={(incId, nuevoEstado) => {
-              moverIncidenteAEstado(incId, nuevoEstado);
+              if (incId && nuevoEstado) {
+                moverIncidenteAEstado(incId, nuevoEstado);
+              }
               recargar();
               refrescarKpis();
             }}

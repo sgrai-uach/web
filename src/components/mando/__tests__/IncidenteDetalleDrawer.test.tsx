@@ -7,14 +7,18 @@ import * as misionesService from '@/services/misionesService';
 import type { IncidenteDetalle } from '@/services/incidentesService';
 import type { MisionDetalleCompleto } from '@/types/misiones';
 
-vi.mock('@/components/ui/Toast', () => ({
-  useToast: () => ({
+vi.mock('@/components/ui/Toast', () => {
+  const toastMock = {
     showSuccess: vi.fn(),
     showError: vi.fn(),
     showInfo: vi.fn(),
     showWarning: vi.fn(),
-  }),
-}));
+  };
+  return {
+    useToast: () => toastMock,
+    useOptionalToast: () => toastMock,
+  };
+});
 
 describe('Componente IncidenteDetalleDrawer e integración HU-17', () => {
   beforeEach(() => {
@@ -157,6 +161,156 @@ describe('Componente IncidenteDetalleDrawer e integración HU-17', () => {
 
     // El drawer de incidente sigue abierto sin pérdida de contexto
     expect(screen.getByText('INC-2026-0042')).toBeDefined();
+  });
+
+  it('muestra la barra de despacho táctico con botón habilitado para intentar el despacho incluso si la patrulla está verificando', async () => {
+    const incidenteVerificando: IncidenteDetalle = {
+      ...mockDetalleIncidente,
+      estado: 'VERIFICANDO',
+      misiones: [
+        {
+          id: 'mis-v1',
+          codigo: 'MIS-2026-0010',
+          titulo: 'Verificación en terreno',
+          descripcion: null,
+          tipoMision: 'VERIFICACION',
+          estado: 'EN_SITIO', // Verificación en curso
+          prioridad: 'ALTA',
+          justificacionRechazo: null,
+          patrulla: { id: 'p1', nombre: 'Patrulla Alpha', estado: 'EN_TERRENO' },
+          cuadrilla: null,
+          fechaInicio: '2026-10-02T13:30:00Z',
+          fechaCierre: null,
+          creadoEn: '2026-10-02T13:30:00Z',
+        },
+      ],
+    };
+
+    vi.spyOn(incidentesService, 'obtenerDetalleIncidente').mockResolvedValueOnce({
+      exito: true,
+      datos: incidenteVerificando,
+      mensaje: 'OK',
+    });
+
+    render(
+      <IncidenteDetalleDrawer
+        incidenteId="i1000000-0000-4000-8000-000000000001"
+        userId="user-test"
+        onCerrar={vi.fn()}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText(/Intervención Táctica Operativa/i)).toBeDefined();
+      expect(screen.getByText(/Patrulla asignada: Patrulla Alpha \(EN_SITIO\)/i)).toBeDefined();
+    });
+
+    const btnDespachar = screen.getByRole('button', { name: /Despachar Cuadrilla Operativa/i });
+    expect(btnDespachar.hasAttribute('disabled')).toBe(false);
+  });
+
+  it('permite abrir ModalAsignarCuadrilla cuando la verificación concluyó', async () => {
+    const incidenteVerificadoListo: IncidenteDetalle = {
+      ...mockDetalleIncidente,
+      estado: 'VERIFICANDO',
+      misiones: [
+        {
+          id: 'mis-v2',
+          codigo: 'MIS-2026-0011',
+          titulo: 'Verificación concluida',
+          descripcion: null,
+          tipoMision: 'VERIFICACION',
+          estado: 'COMPLETADA',
+          prioridad: 'ALTA',
+          justificacionRechazo: null,
+          patrulla: { id: 'p1', nombre: 'Patrulla Alpha', estado: 'DISPONIBLE' },
+          cuadrilla: null,
+          fechaInicio: '2026-10-02T13:30:00Z',
+          fechaCierre: '2026-10-02T14:00:00Z',
+          creadoEn: '2026-10-02T13:30:00Z',
+        },
+      ],
+    };
+
+    vi.spyOn(incidentesService, 'obtenerDetalleIncidente').mockResolvedValueOnce({
+      exito: true,
+      datos: incidenteVerificadoListo,
+      mensaje: 'OK',
+    });
+
+    render(
+      <IncidenteDetalleDrawer
+        incidenteId="i1000000-0000-4000-8000-000000000001"
+        userId="user-test"
+        onCerrar={vi.fn()}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText(/Intervención Táctica Operativa/i)).toBeDefined();
+    });
+
+    const btnDespachar = screen.getByRole('button', { name: /Despachar Cuadrilla Operativa/i });
+    expect(btnDespachar.hasAttribute('disabled')).toBe(false);
+
+    fireEvent.click(btnDespachar);
+
+    // Debe abrirse el modal emergente de despacho
+    await waitFor(() => {
+      expect(screen.getByText('Despachar Cuadrilla Operativa')).toBeDefined();
+    });
+  });
+
+  it('no muestra el botón de despacho táctico en incidentes que ya están EN_ATENCION', async () => {
+    vi.spyOn(incidentesService, 'obtenerDetalleIncidente').mockResolvedValueOnce({
+      exito: true,
+      datos: {
+        ...mockDetalleIncidente,
+        estado: 'EN_ATENCION',
+      },
+      mensaje: 'OK',
+    });
+
+    render(
+      <IncidenteDetalleDrawer
+        incidenteId="i1000000-0000-4000-8000-000000000001"
+        userId="user-test"
+        onCerrar={vi.fn()}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('INC-2026-0042')).toBeDefined();
+    });
+
+    expect(screen.queryByRole('button', { name: /Despachar Cuadrilla Operativa/i })).toBeNull();
+  });
+
+  it('muestra el botón de despacho de cuadrilla en incidentes REPORTADO para despacho táctico directo', async () => {
+    vi.spyOn(incidentesService, 'obtenerDetalleIncidente').mockResolvedValueOnce({
+      exito: true,
+      datos: {
+        ...mockDetalleIncidente,
+        estado: 'REPORTADO',
+        misiones: [],
+      },
+      mensaje: 'OK',
+    });
+
+    render(
+      <IncidenteDetalleDrawer
+        incidenteId="i1000000-0000-4000-8000-000000000001"
+        userId="user-test"
+        onCerrar={vi.fn()}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('INC-2026-0042')).toBeDefined();
+    });
+
+    expect(screen.getByRole('button', { name: /Despachar Cuadrilla Operativa/i })).toBeDefined();
+    expect(screen.getByText(/Sin patrulla previa asignada \(despacho táctico directo\)/i)).toBeDefined();
   });
 
   it('muestra el botón "Despachar Patrulla Verificadora" cuando el incidente está en estado REPORTADO y abre el modal', async () => {
