@@ -4,7 +4,7 @@ import { AuthContext } from '@/context/AuthContext';
 
 /**
  * Hook para evaluar si el usuario activo cuenta con el permiso institucional 'misiones:asignar'
- * o privilegios de Administrador. Si se renderiza fuera de un SimulatedSessionProvider
+ * o privilegios de Administrador. Si se renderiza fuera de providers de sesión
  * (por ejemplo en pruebas unitarias aisladas), retorna true como fallback defensivo.
  */
 export function usePuedeAsignarMision(): boolean {
