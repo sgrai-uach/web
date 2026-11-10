@@ -64,12 +64,20 @@ export const BuscadorRecursosSelect: React.FC<BuscadorRecursosSelectProps> = ({
     };
   }, [abierto]);
 
-  // Lista filtrada en tiempo real según el término ingresado
+  // Lista filtrada en tiempo real según el término ingresado (deduplicada por ID)
   const recursosFiltrados = useMemo(() => {
-    const query = terminoBusqueda.trim().toLowerCase();
-    if (!query) return recursos;
+    const unicos = new Map<string, RecursoOpcionItem>();
+    for (const r of recursos) {
+      if (r?.id && !unicos.has(r.id)) {
+        unicos.set(r.id, r);
+      }
+    }
+    const listaUnica = Array.from(unicos.values());
 
-    return recursos.filter((r) => {
+    const query = terminoBusqueda.trim().toLowerCase();
+    if (!query) return listaUnica;
+
+    return listaUnica.filter((r) => {
       const matchNombre = r.nombre.toLowerCase().includes(query);
       const matchEstado = r.estado?.toLowerCase().includes(query);
       return matchNombre || matchEstado;

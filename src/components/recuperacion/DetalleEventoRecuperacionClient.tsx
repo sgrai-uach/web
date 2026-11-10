@@ -162,9 +162,15 @@ export const DetalleEventoRecuperacionClient: React.FC<DetalleEventoRecuperacion
     },
   });
 
-  // Filtrar solo patrullas en estado DISPONIBLE
+  // Filtrar solo patrullas en estado DISPONIBLE deduplicadas por ID
   const patrullasDisponibles = useMemo(() => {
-    return patrullas.filter((p) => p.estado === 'DISPONIBLE');
+    const unicas = new Map<string, (typeof patrullas)[number]>();
+    for (const p of patrullas) {
+      if (p?.id && p.estado === 'DISPONIBLE' && !unicas.has(p.id)) {
+        unicas.set(p.id, p);
+      }
+    }
+    return Array.from(unicas.values());
   }, [patrullas]);
 
   // Mapeo rápido de inventario por ID para cálculos de stock

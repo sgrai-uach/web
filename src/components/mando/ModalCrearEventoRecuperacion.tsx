@@ -86,10 +86,16 @@ export const ModalCrearEventoRecuperacion: React.FC<ModalCrearEventoRecuperacion
   const [cargandoCatalogos, setCargandoCatalogos] = useState(false);
   const [mostrarSoloDisponibles, setMostrarSoloDisponibles] = useState(true);
 
-  // Lista de patrullas a desplegar (prioriza prop externa o datos vivos de sgrai-api)
+  // Lista de patrullas a desplegar (prioriza prop externa o datos vivos de sgrai-api, deduplicadas por ID)
   const patrullas = useMemo(() => {
-    if (patrullasProp && patrullasProp.length > 0) return patrullasProp;
-    return patrullasApi;
+    const origen = patrullasProp && patrullasProp.length > 0 ? patrullasProp : patrullasApi;
+    const unicas = new Map<string, PatrullaVerificadoraItem>();
+    for (const p of origen) {
+      if (p?.id && !unicas.has(p.id)) {
+        unicas.set(p.id, p);
+      }
+    }
+    return Array.from(unicas.values());
   }, [patrullasProp, patrullasApi]);
 
   // Errores y estado de envío
