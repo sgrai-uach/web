@@ -90,12 +90,12 @@ describe('IncidenteCard', () => {
     expect(handleClick).not.toHaveBeenCalled();
   });
 
-  it('NO debe renderizar botón "Asignar Patrulla" si el incidente ya tiene misiones asignadas (totalMisiones > 0)', () => {
+  it('NO debe renderizar botón "Asignar Patrulla" si el incidente tiene una misión despachada pendiente de confirmación (tieneMisionDespachada: true)', () => {
     const handleClick = vi.fn();
     const handleAsignar = vi.fn();
     render(
       <IncidenteCard
-        incidente={mockIncidente} // totalMisiones: 2
+        incidente={{ ...mockIncidente, tieneMisionDespachada: true }}
         onClick={handleClick}
         onAsignarPatrulla={handleAsignar}
       />
@@ -105,6 +105,30 @@ describe('IncidenteCard', () => {
       name: /Asignar patrulla verificadora/i,
     });
     expect(btnAsignar).toBeNull();
+  });
+
+  it('debe renderizar el botón "Confirmación Pendiente" deshabilitado con estilo ámbar cuando tieneMisionDespachada es true en estado REPORTADO (H69)', () => {
+    const handleAsignar = vi.fn();
+    const mockReportadoDespachado: IncidenteResumen = {
+      ...mockIncidente,
+      estado: 'REPORTADO',
+      tieneMisionDespachada: true,
+    };
+
+    render(
+      <IncidenteCard
+        incidente={mockReportadoDespachado}
+        onClick={vi.fn()}
+        onAsignarPatrulla={handleAsignar}
+      />
+    );
+
+    const btnPendiente = screen.getByRole('button', {
+      name: /Confirmación pendiente para el incidente INC-58291045/i,
+    });
+    expect(btnPendiente).toBeDefined();
+    expect(btnPendiente).toBeDisabled();
+    expect(screen.getByText('Confirmación Pendiente')).toBeDefined();
   });
 
   it('NO debe renderizar botón "Asignar Patrulla" si el incidente ya está en otro estado (ej. VERIFICANDO)', () => {
