@@ -100,3 +100,4 @@ La interfaz se distribuye en tres bloques operacionales:
 
 * **`sgrai-api` (Backend):** La asignación se procesa en `POST /api/eventos-atp/recuperacion/{id}/asignar` con bloqueo pesimista `FOR UPDATE` sobre `recurso`, actualizando `cantidad_en_uso` y emitiendo eventos WebSocket `recuperacion:actualizada` y `recurso:actualizado`.
 * **`sgrai-pwa` (Móvil de Terreno):** Al despachar la misión, la dotación de la Patrulla Verificadora recibe en su dispositivo móvil la misión de tipo `RECUPERACION` con la lista de insumos cargados para iniciar su traslado al sector afectado.
+

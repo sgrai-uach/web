@@ -19,3 +19,4 @@ export default async function DetalleEventoRecuperacionPage({ params }: PageProp
   const { id } = await params;
   return <DetalleEventoRecuperacionClient id={id} />;
 }
+

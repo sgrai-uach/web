@@ -26,3 +26,4 @@ describe('DetalleEventoRecuperacionPage', () => {
     expect(metadata.description).toContain('Ficha operativa y asignación de patrullas');
   });
 });
+
