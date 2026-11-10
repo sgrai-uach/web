@@ -44,8 +44,11 @@ describe('Componente IncidenteMisionesSection', () => {
       />
     );
 
-    expect(screen.getByText('MIS-2026-0001: Despeje de cables')).toBeDefined();
-    expect(screen.getByText('EN_CURSO')).toBeDefined();
+    expect(screen.getByText('MIS-2026-0001')).toBeDefined();
+    expect(screen.getByText('Despeje de cables')).toBeDefined();
+    expect(screen.getByText('En curso')).toBeDefined();
+    expect(screen.getByText(/Atención de cuadrilla/i)).toBeDefined();
+    expect(screen.getByText(/\(En misión\)/i)).toBeDefined();
 
     const btnVerDetalles = screen.getByRole('button', {
       name: /Ver detalles de la misión MIS-2026-0001/i,
@@ -93,5 +96,38 @@ describe('Componente IncidenteMisionesSection', () => {
     expect(
       screen.queryByRole('button', { name: /Despachar Patrulla Verificadora/i })
     ).toBeNull();
+  });
+
+  it('debe renderizar chip semántico de rechazo y bloque de justificación cuando la misión fue rechazada', () => {
+    const misionRechazada: IncidenteDetalle['misiones'][number] = {
+      id: 'm-rechazada-1',
+      codigo: 'MIS-2026-9001',
+      titulo: 'Evaluación de desborde',
+      descripcion: 'Evaluar altura de agua',
+      tipoMision: 'VERIFICACION',
+      estado: 'RECHAZADA',
+      prioridad: 'CRITICA',
+      justificacionRechazo: 'Vía cortada por derrumbe previo, imposible acceder con vehículo 4x4.',
+      cuadrilla: null,
+      patrulla: {
+        id: 'pat-1',
+        nombre: 'Patrulla Isla Teja',
+        estado: 'DISPONIBLE',
+      },
+      fechaInicio: null,
+      fechaCierre: null,
+      creadoEn: '2026-11-10T08:00:00Z',
+    };
+
+    render(<IncidenteMisionesSection misiones={[misionRechazada]} />);
+
+    expect(screen.getByText('Rechazada')).toBeDefined();
+    expect(screen.getByText(/Verificación en terreno/i)).toBeDefined();
+    expect(screen.getByText(/Patrulla Isla Teja/i)).toBeDefined();
+    expect(screen.getByText(/\(Disponible\)/i)).toBeDefined();
+    expect(screen.getByText(/Motivo de Rechazo en Terreno:/i)).toBeDefined();
+    expect(
+      screen.getByText('Vía cortada por derrumbe previo, imposible acceder con vehículo 4x4.')
+    ).toBeDefined();
   });
 });

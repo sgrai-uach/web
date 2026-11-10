@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import { getSocket } from '@/lib/socket/client';
 import {
   obtenerDetalleIncidente,
   type IncidenteDetalle,
@@ -65,6 +66,75 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
     };
   }, [incidenteId, userId]);
 
+  // Sincronización en tiempo real ante reclasificación o cambios mientras el drawer está abierto
+  useEffect(() => {
+    if (!incidenteId) return;
+
+    const socket = getSocket();
+    const handleActualizadoSocket = (payload: unknown) => {
+      const p = payload as Record<string, unknown> | null | undefined;
+      const rawDatos = (p?.datos || p?.data || p) as Record<string, unknown> | null | undefined;
+      const id =
+        typeof rawDatos?.id === 'string'
+          ? rawDatos.id
+          : typeof rawDatos?.incidenteId === 'string'
+            ? rawDatos.incidenteId
+            : undefined;
+
+      if (id === incidenteId) {
+        setDetalle((prev) => {
+          if (!prev) return prev;
+          const nuevoTipo =
+            typeof rawDatos?.tipoAfectacion === 'string'
+              ? rawDatos.tipoAfectacion
+              : prev.tipoAfectacion;
+          const nuevaPrioridad =
+            typeof rawDatos?.prioridad === 'string'
+              ? (rawDatos.prioridad as IncidenteDetalle['prioridad'])
+              : prev.prioridad;
+          const nuevoEstado =
+            typeof rawDatos?.nuevoEstado === 'string'
+              ? (rawDatos.nuevoEstado as IncidenteDetalle['estado'])
+              : typeof rawDatos?.estado === 'string'
+                ? (rawDatos.estado as IncidenteDetalle['estado'])
+                : prev.estado;
+          const justificacion =
+            typeof rawDatos?.justificacion === 'string'
+              ? rawDatos.justificacion
+              : prev.justificacionReclasificacion;
+          const huboCambioPrioridad = Boolean(
+            rawDatos?.prioridad && rawDatos.prioridad !== prev.prioridad
+          );
+
+          return {
+            ...prev,
+            tipoAfectacion: nuevoTipo,
+            prioridad: nuevaPrioridad,
+            estado: nuevoEstado,
+            tipoIncidenteId:
+              typeof rawDatos?.tipoIncidenteId === 'string'
+                ? rawDatos.tipoIncidenteId
+                : prev.tipoIncidenteId,
+            reclasificadoEnTerreno: true,
+            justificacionReclasificacion: justificacion,
+            cambioPrioridadMotivo: huboCambioPrioridad
+              ? justificacion || 'Ajustada tras verificación presencial en terreno'
+              : prev.cambioPrioridadMotivo,
+            actualizadoEn:
+              typeof rawDatos?.actualizadoEn === 'string'
+                ? rawDatos.actualizadoEn
+                : new Date().toISOString(),
+          };
+        });
+      }
+    };
+
+    socket.on('incidente:actualizado', handleActualizadoSocket);
+    return () => {
+      socket.off('incidente:actualizado', handleActualizadoSocket);
+    };
+  }, [incidenteId]);
+
   const handleAsignacionExitosa = (data: DespacharPatrullaResponseData) => {
     setDetalle((prev) => {
       if (!prev) return prev;
@@ -89,13 +159,13 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
       };
       return {
         ...prev,
-        estado: 'VERIFICANDO',
+        estado: 'REPORTADO',
         misiones: [nuevaMision, ...prev.misiones],
       };
     });
 
-    // Notificar al tablero Kanban para mover la tarjeta de inmediato
-    onIncidenteActualizado?.(data.incidente.id, 'VERIFICANDO');
+    // Mantener en estado REPORTADO hasta que la patrulla acepte en terreno
+    onIncidenteActualizado?.(data.incidente.id, 'REPORTADO');
   };
 
   if (!incidenteId) return null;

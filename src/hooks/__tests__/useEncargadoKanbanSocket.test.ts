@@ -135,6 +135,42 @@ describe('useEncargadoKanbanSocket', () => {
     expect(onIncidenteActualizado).toHaveBeenCalledWith(payload);
   });
 
+  it('debe procesar reclasificación de tipología en terreno emitiendo string amigable en ultimoEvento', () => {
+    const socket = getSocket();
+    const onIncidenteActualizado = vi.fn();
+
+    const { result } = renderHook(() =>
+      useEncargadoKanbanSocket({
+        onIncidenteActualizado,
+      })
+    );
+
+    const payloadReclasificado = {
+      evento: 'incidente:actualizado' as const,
+      datos: {
+        id: '50000000-0000-4000-8000-000000000001',
+        codigo: 'INC-2026-001',
+        nuevoEstado: 'VERIFICANDO' as const,
+        prioridad: 'ALTA' as const,
+        tipoIncidenteId: '40000000-0000-4000-8000-000000000001',
+        tipoAfectacion: 'Inundación',
+        justificacion: 'Tras evaluación presencial se constata desborde de cauce con ingreso de agua.',
+        actualizadoEn: '2026-11-10T03:30:00.000Z',
+      },
+      emitidoEn: '2026-11-10T03:30:00.000Z',
+    };
+
+    act(() => {
+      (socket as unknown as { _trigger: (ev: string, p: unknown) => void })._trigger(
+        'incidente:actualizado',
+        payloadReclasificado
+      );
+    });
+
+    expect(onIncidenteActualizado).toHaveBeenCalledWith(payloadReclasificado);
+    expect(result.current.ultimoEvento).toContain('Tipología reclasificada: INC-2026-001 a Inundación (Prioridad: Alta)');
+  });
+
   it('debe limpiar listeners y emitir salir al desmontar', () => {
     const socket = getSocket();
 

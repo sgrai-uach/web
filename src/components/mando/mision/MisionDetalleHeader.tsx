@@ -3,6 +3,7 @@
 import React from 'react';
 import { X, Calendar, Clock } from 'lucide-react';
 import type { MisionDetalleCompleto, EstadoMision, PrioridadMision } from '@/types/misiones';
+import { formatearEstado, formatearPrioridad } from '@/lib/utils/estadoUtils';
 import styles from '@/styles/mision-detalle.module.css';
 
 interface MisionDetalleHeaderProps {
@@ -75,15 +76,15 @@ export const MisionDetalleHeader: React.FC<MisionDetalleHeaderProps> = ({
           </span>
           <span
             className={`${styles.badgeEstado} ${getEstadoClass(mision.estado)}`}
-            title={`Estado operativo: ${mision.estado}`}
+            title={`Estado operativo: ${formatearEstado(mision.estado)}`}
           >
-            {mision.estado.replace(/_/g, ' ')}
+            {formatearEstado(mision.estado)}
           </span>
           <span
             className={`${styles.badgePrioridad} ${getPrioridadClass(mision.prioridad)}`}
-            title={`Prioridad: ${mision.prioridad}`}
+            title={`Prioridad: ${formatearPrioridad(mision.prioridad)}`}
           >
-            {mision.prioridad}
+            {formatearPrioridad(mision.prioridad)}
           </span>
         </div>
 
