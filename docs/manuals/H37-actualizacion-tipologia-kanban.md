@@ -51,9 +51,11 @@ Al hacer clic sobre la tarjeta del incidente reclasificado:
 4. En la cabecera del drawer, los badges muestran estados y prioridades institucionales legibles (ej. `Estado: En verificación`, `Prioridad: Alta`), sin exponer enums de programación en mayúsculas sostenidas.
 5. Si el Encargado tenía el panel lateral abierto en el momento exacto en que la patrulla guarda la reclasificación en terreno, el drawer se sincroniza reactivamente actualizando los campos sin cerrarse.
 
-### Paso 5: Sincronización Automática de Columna en Kanban
-- **Transición a "En Verificación":** Cuando una misión de verificación es asignada o aceptada en terreno, el incidente transiciona automáticamente de la columna **"Pendiente / Reportado"** a **"En Verificación"** (`VERIFICANDO`).
-- **Prevención de Asignaciones Duplicadas:** Las tarjetas de incidentes con misiones activas ocultan automáticamente el botón *"Asignar Patrulla"*, evitando despachos redundantes y manteniendo la integridad del flujo operativo.
+### Paso 5: Sincronización Automática de Columna en Kanban (Integración H69)
+- **Confirmación Pendiente:** Al despachar la patrulla, el incidente se mantiene en la columna **"Reportado"** con el botón ámbar deshabilitado *"Confirmación Pendiente"* e ícono `Hourglass`.
+- **Transición a "En Verificación":** Únicamente cuando la patrulla acepta la misión en terreno (`EN_CURSO`), el incidente transiciona atómicamente a la columna **"En Verificación"** (`VERIFICANDO`).
+- **Rechazo de Misión:** Si la patrulla rechaza la misión, el incidente permanece en la columna **"Reportado"**, se resetea la condición de misión despachada, se reactiva el botón *"Asignar Patrulla"* y el Encargado recibe un Toast de advertencia con el motivo del rechazo.
+- **Dimensiones de Columnas:** Las 5 columnas del tablero poseen un ancho mínimo ampliado de **310px** para brindar holgura y lectura óptima de las tarjetas.
 
 ---
 
