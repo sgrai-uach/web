@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import Modal from '@/components/common/Modal';
+import BuscadorRecursosSelect from '@/components/common/BuscadorRecursosSelect';
 import LocationPickerMap from '@/components/maps/LocationPickerMap';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
@@ -159,6 +160,19 @@ export const ModalCrearEventoRecuperacion: React.FC<ModalCrearEventoRecuperacion
     const map = new Map<string, RecursoItem>();
     inventario.forEach((item) => map.set(item.id, item));
     return map;
+  }, [inventario]);
+
+  // Lista adaptada para el buscador predictivo en tiempo real
+  const recursosParaBuscador = useMemo(() => {
+    return inventario.map((item) => ({
+      id: item.id,
+      nombre: item.nombre,
+      cantidadDisponible: item.cantidadDisponible,
+      cantidadInventario: item.cantidadInventario,
+      cantidadEnUso: item.cantidadEnUso,
+      esIndividual: item.esIndividual,
+      estado: item.estado,
+    }));
   }, [inventario]);
 
   // Manejo de filas dinámicas de recursos
@@ -615,21 +629,14 @@ export const ModalCrearEventoRecuperacion: React.FC<ModalCrearEventoRecuperacion
               return (
                 <tr key={fila.idTemporal}>
                   <td>
-                    <select
-                      className={styles.select}
-                      style={{ width: '100%', padding: '6px 8px', fontSize: '13px' }}
+                    <BuscadorRecursosSelect
+                      recursos={recursosParaBuscador}
                       value={fila.recursoId}
-                      onChange={(e) => handleRecursoChange(fila.idTemporal, e.target.value)}
+                      onChange={(nuevoId) => handleRecursoChange(fila.idTemporal, nuevoId)}
                       disabled={isSubmitting || cargandoCatalogos}
-                      aria-label={`Seleccionar insumo para fila ${index + 1}`}
-                    >
-                      <option value="">Seleccionar insumo...</option>
-                      {inventario.map((item) => (
-                        <option key={item.id} value={item.id}>
-                          {item.nombre} (Disp: {item.cantidadDisponible})
-                        </option>
-                      ))}
-                    </select>
+                      ariaLabel={`Seleccionar insumo para fila ${index + 1}`}
+                      placeholder="Buscar por nombre o tipo..."
+                    />
                     {errorFila && <span className={styles.fieldError}>{errorFila}</span>}
                   </td>
                   <td>

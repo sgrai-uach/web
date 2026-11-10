@@ -9,6 +9,7 @@ import { Select } from '@/components/ui/Select';
 import InlineNotice from '@/components/ui/InlineNotice';
 import { useToast } from '@/components/ui/Toast';
 import LocationPickerMap from '@/components/maps/LocationPickerMap';
+import { BuscadorRecursosSelect } from '@/components/common/BuscadorRecursosSelect';
 import { usePuedeAsignarMision } from '@/hooks/usePuedeAsignarMision';
 import { useRecuperacionSocket } from '@/hooks/useRecuperacionSocket';
 import {
@@ -562,29 +563,14 @@ export const DetalleEventoRecuperacionClient: React.FC<DetalleEventoRecuperacion
                         return (
                           <tr key={fila.idTemporal} className={styles.filaRecurso}>
                             <td>
-                              <Select
+                              <BuscadorRecursosSelect
+                                recursos={inventario}
                                 value={fila.recursoId}
-                                onChange={(e) => handleCambiarRecurso(fila.idTemporal, e.target.value)}
+                                onChange={(nuevoId) => handleCambiarRecurso(fila.idTemporal, nuevoId)}
                                 disabled={isSubmitting}
-                                style={{ width: '100%', fontSize: '13px' }}
-                              >
-                                <option value="">-- Seleccionar del inventario --</option>
-                                {inventario.map((r) => {
-                                  const stock = r.cantidadInventario - r.cantidadEnUso;
-                                  const estaDeshabilitado =
-                                    r.esIndividual && (r.estado === 'EN_MANTENCION' || r.estado === 'NO_DISPONIBLE');
-
-                                  return (
-                                    <option
-                                      key={r.id}
-                                      value={r.id}
-                                      disabled={estaDeshabilitado || (!r.esIndividual && stock <= 0)}
-                                    >
-                                      {r.nombre} {r.esIndividual ? '[Activo Único]' : `(Disp: ${stock})`}
-                                    </option>
-                                  );
-                                })}
-                              </Select>
+                                placeholder="Buscar insumo (ej: motosierra, sacos, hilux)..."
+                                ariaLabel="Buscar o seleccionar insumo del inventario"
+                              />
                             </td>
                             <td>
                               {recursoSeleccionado ? (
