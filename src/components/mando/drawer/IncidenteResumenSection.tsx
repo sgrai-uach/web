@@ -2,7 +2,9 @@
 
 import React from 'react';
 import Heading from '@/components/ui/Heading';
+import { ShieldCheck } from 'lucide-react';
 import type { IncidenteDetalle } from '@/services/incidentesService';
+import { formatearPrioridad } from '@/lib/utils/estadoUtils';
 import styles from '@/styles/mando.module.css';
 
 interface IncidenteResumenSectionProps {
@@ -35,6 +37,38 @@ export const IncidenteResumenSection: React.FC<IncidenteResumenSectionProps> = (
           </span>
         </div>
       </div>
+
+      {(detalle.justificacionReclasificacion || detalle.reclasificadoEnTerreno) && (
+        <div
+          data-testid="bloque-reclasificacion-terreno"
+          style={{
+            marginTop: '1rem',
+            padding: '0.75rem 1rem',
+            backgroundColor: 'var(--color-info-bg, #E0F2F1)',
+            borderLeft: '4px solid var(--color-primary-teal, #1B6F7D)',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '0.35rem' }}>
+            <ShieldCheck size={16} color="var(--color-primary-teal, #1B6F7D)" aria-hidden="true" />
+            <strong style={{ fontSize: '0.8125rem', color: 'var(--color-primary-teal-dark, #14505A)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+              Reclasificación Técnica en Terreno
+            </strong>
+          </div>
+          <p style={{ margin: '0.2rem 0', fontSize: '0.8125rem', color: 'var(--color-charcoal, #3B3F45)' }}>
+            <strong>Tipología constatada:</strong> {detalle.tipoAfectacion}
+          </p>
+          {detalle.justificacionReclasificacion && (
+            <p style={{ margin: '0.2rem 0', fontSize: '0.8125rem', color: 'var(--color-charcoal, #3B3F45)' }}>
+              <strong>Justificación de la patrulla:</strong> {detalle.justificacionReclasificacion}
+            </p>
+          )}
+          {detalle.cambioPrioridadMotivo && (
+            <p style={{ margin: '0.2rem 0', fontSize: '0.8125rem', color: 'var(--color-charcoal, #3B3F45)' }}>
+              <strong>Prioridad ajustada:</strong> {formatearPrioridad(detalle.prioridad)}
+            </p>
+          )}
+        </div>
+      )}
 
       <div style={{ marginTop: '0.75rem' }}>
         <span className={styles.drawerDataLabel}>Descripción del Relato</span>

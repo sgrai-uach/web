@@ -1,7 +1,8 @@
 import React from 'react';
-import { MapPin, ShieldCheck } from 'lucide-react';
+import { MapPin, ShieldCheck, CheckCircle2 } from 'lucide-react';
 import type { IncidenteResumen } from '@/services/incidentesService';
 import { obtenerNombreDelegacion } from '@/lib/utils/delegacionUtils';
+import { formatearPrioridad } from '@/lib/utils/estadoUtils';
 import styles from '@/styles/mando.module.css';
 import Heading from '@/components/ui/Heading';
 import Button from '@/components/ui/Button';
@@ -53,9 +54,9 @@ export const IncidenteCard: React.FC<IncidenteCardProps> = ({
         <span className={styles.cardCodigo}>{incidente.codigo}</span>
         <span
           className={`${styles.badgePrioridad} ${getPrioridadClass(incidente.prioridad)}`}
-          title={`Prioridad: ${incidente.prioridad}`}
+          title={`Prioridad: ${formatearPrioridad(incidente.prioridad)}`}
         >
-          {incidente.prioridad}
+          {formatearPrioridad(incidente.prioridad)}
         </span>
       </div>
 
@@ -76,6 +77,29 @@ export const IncidenteCard: React.FC<IncidenteCardProps> = ({
               title="Este incidente requiere levantamiento de ficha FIBE"
             >
               FIBE
+            </span>
+          )}
+          {incidente.reclasificadoEnTerreno && (
+            <span
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '3px',
+                padding: '2px 6px',
+                fontSize: '0.6875rem',
+                fontWeight: 700,
+                color: 'var(--color-primary-teal, #1B6F7D)',
+                backgroundColor: 'var(--color-info-bg, #E0F2F1)',
+                border: '1px solid var(--color-primary-teal, #1B6F7D)',
+              }}
+              title={
+                incidente.justificacionReclasificacion
+                  ? `Tipología reclasificada en terreno: ${incidente.justificacionReclasificacion}${incidente.cambioPrioridadMotivo ? ` (Prioridad ajustada: ${formatearPrioridad(incidente.prioridad)})` : ''}`
+                  : `Tipología rectificada por patrulla en terreno (Prioridad: ${formatearPrioridad(incidente.prioridad)})`
+              }
+            >
+              <CheckCircle2 size={11} strokeWidth={2.5} aria-hidden="true" />
+              <span>Verificado en terreno</span>
             </span>
           )}
           {incidente.totalMisiones > 0 && (

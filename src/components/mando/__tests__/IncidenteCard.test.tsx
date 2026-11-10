@@ -31,7 +31,7 @@ describe('IncidenteCard', () => {
     expect(screen.getByText('INC-58291045')).toBeDefined();
     expect(screen.getByText('Caída de árbol')).toBeDefined();
     expect(screen.getByText('Los Robles 300, Isla Teja')).toBeDefined();
-    expect(screen.getByText('CRITICA')).toBeDefined();
+    expect(screen.getByText('Crítica')).toBeDefined();
     expect(screen.getByText('FIBE')).toBeDefined();
     expect(screen.getByText('2 misiones')).toBeDefined();
     expect(screen.getByText('Isla Teja')).toBeDefined();
@@ -117,5 +117,27 @@ describe('IncidenteCard', () => {
       name: /Asignar patrulla verificadora/i,
     });
     expect(btnAsignar).toBeNull();
+  });
+
+  it('debe exhibir la etiqueta "Verificado en terreno" con tooltip y justificación al reclasificarse (H37)', () => {
+    const incidenteReclasificado: IncidenteResumen = {
+      ...mockIncidente,
+      tipoAfectacion: 'Inundación',
+      prioridad: 'ALTA',
+      reclasificadoEnTerreno: true,
+      justificacionReclasificacion: 'Desborde de río constatado en terreno con anegamiento de viviendas.',
+      cambioPrioridadMotivo: 'Desborde de río constatado en terreno con anegamiento de viviendas.',
+    };
+
+    render(<IncidenteCard incidente={incidenteReclasificado} onClick={vi.fn()} />);
+
+    expect(screen.getByText('Inundación')).toBeDefined();
+    expect(screen.getByText('Alta')).toBeDefined();
+    const tagVerificado = screen.getByText('Verificado en terreno');
+    expect(tagVerificado).toBeDefined();
+    expect(tagVerificado.parentElement?.getAttribute('title')).toContain(
+      'Tipología reclasificada en terreno: Desborde de río constatado en terreno'
+    );
+    expect(tagVerificado.parentElement?.getAttribute('title')).toContain('Prioridad ajustada: Alta');
   });
 });

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { IncidenteDetalleDrawer } from '../IncidenteDetalleDrawer';
 import * as incidentesService from '@/services/incidentesService';
 import * as misionesService from '@/services/misionesService';
@@ -221,5 +221,46 @@ describe('Componente IncidenteDetalleDrawer e integración HU-17', () => {
     // En estado EN_ATENCION, no debe estar el botón
     const btnDespachar = screen.queryByRole('button', { name: /Despachar Patrulla/i });
     expect(btnDespachar).toBeNull();
+  });
+
+  it('renderiza estados y prioridades legibles y muestra bloque de justificación de reclasificación técnica (H37)', async () => {
+    const mockIncidenteReclasificado: IncidenteDetalle = {
+      ...mockDetalleIncidente,
+      tipoAfectacion: 'Inundación Mayor',
+      prioridad: 'CRITICA',
+      reclasificadoEnTerreno: true,
+      justificacionReclasificacion: 'Desborde de río constatado con riesgo inminente a personas.',
+      cambioPrioridadMotivo: 'Desborde de río constatado con riesgo inminente a personas.',
+    };
+
+    vi.spyOn(incidentesService, 'obtenerDetalleIncidente').mockResolvedValueOnce({
+      exito: true,
+      datos: mockIncidenteReclasificado,
+      mensaje: 'OK',
+    });
+
+    render(
+      <IncidenteDetalleDrawer
+        incidenteId="i1000000-0000-4000-8000-000000000001"
+        userId="user-test"
+        onCerrar={vi.fn()}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('INC-2026-0042')).toBeDefined();
+    });
+
+    // Validar strings legibles y sin enums en crudo
+    expect(screen.getByText('Estado: En atención')).toBeDefined();
+    expect(screen.getByText('Prioridad: Crítica')).toBeDefined();
+
+    // Validar bloque informativo de reclasificación técnica en terreno
+    const bloque = screen.getByTestId('bloque-reclasificacion-terreno');
+    expect(bloque).toBeDefined();
+    expect(within(bloque).getByText(/Reclasificación Técnica en Terreno/i)).toBeDefined();
+    expect(within(bloque).getByText(/Inundación Mayor/i)).toBeDefined();
+    expect(within(bloque).getByText(/Desborde de río constatado con riesgo inminente a personas/i)).toBeDefined();
+    expect(within(bloque).getByText(/Prioridad ajustada:/i)).toBeDefined();
   });
 });

@@ -4,6 +4,7 @@ import React from 'react';
 import { History, Calendar, Clock } from 'lucide-react';
 import Heading from '@/components/ui/Heading';
 import type { MisionBitacoraHito } from '@/types/misiones';
+import { formatearHitoBitacora } from '@/lib/utils/estadoUtils';
 import styles from '@/styles/mision-detalle.module.css';
 
 interface MisionBitacoraSectionProps {
@@ -33,7 +34,7 @@ export const MisionBitacoraSection: React.FC<MisionBitacoraSectionProps> = ({ bi
               <div key={`${hito.timestamp}-${index}`} className={styles.timelineItem}>
                 <div className={styles.timelineDot} />
                 <div className={styles.timelineHeader}>
-                  <span className={styles.timelineHito}>{hito.hito}</span>
+                  <span className={styles.timelineHito}>{formatearHitoBitacora(hito.hito)}</span>
                   <span className={styles.timelineDate}>
                     <Calendar size={12} />
                     <span>{hito.fecha}</span>
