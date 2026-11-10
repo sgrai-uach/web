@@ -4,8 +4,37 @@ import React from 'react';
 import { Eye, ShieldCheck } from 'lucide-react';
 import Heading from '@/components/ui/Heading';
 import Button from '@/components/ui/Button';
-import type { IncidenteDetalle } from '@/services/incidentesService';
+import type { IncidenteDetalle, EstadoTrazabilidadNotificacion } from '@/services/incidentesService';
 import styles from '@/styles/mando.module.css';
+
+interface TrazabilidadBadgeConfig {
+  texto: string;
+  bg: string;
+  color: string;
+}
+
+const TRAZABILIDAD_CONFIG: Record<EstadoTrazabilidadNotificacion, TrazabilidadBadgeConfig> = {
+  PENDIENTE_ENVIO: {
+    texto: 'Patrulla sin señal / offline',
+    bg: '#ECEFF3',
+    color: '#3B3F45',
+  },
+  ENVIADA: {
+    texto: 'Alerta emitida al móvil',
+    bg: '#FFF3E0',
+    color: '#E65100',
+  },
+  RECIBIDA: {
+    texto: 'Recibida en móvil de terreno',
+    bg: '#E8F5E9',
+    color: '#2E7D32',
+  },
+  LEIDA: {
+    texto: 'Leída por operador en terreno',
+    bg: '#E0F2F1',
+    color: '#14505A',
+  },
+};
 
 interface IncidenteMisionesSectionProps {
   misiones: IncidenteDetalle['misiones'];
@@ -101,7 +130,7 @@ export const IncidenteMisionesSection: React.FC<IncidenteMisionesSectionProps> =
               <strong>Patrulla:</strong> {mision.patrulla.nombre} ({mision.patrulla.estado})
             </div>
           )}
-          {Boolean((mision as Record<string, unknown>).trazabilidadNotificacion) && (
+          {mision.trazabilidadNotificacion && TRAZABILIDAD_CONFIG[mision.trazabilidadNotificacion] && (
             <div style={{ marginTop: '0.35rem' }}>
               <span
                 data-testid={`badge-trazabilidad-${mision.id}`}
@@ -109,36 +138,15 @@ export const IncidenteMisionesSection: React.FC<IncidenteMisionesSectionProps> =
                   display: 'inline-flex',
                   alignItems: 'center',
                   fontSize: '0.75rem',
-                  fontWeight: 700,
+                  fontWeight: 600,
                   padding: '2px 8px',
                   borderRadius: 0,
-                  backgroundColor:
-                    (mision as Record<string, unknown>).trazabilidadNotificacion === 'LEIDA'
-                      ? '#E0F2F1'
-                      : (mision as Record<string, unknown>).trazabilidadNotificacion === 'RECIBIDA'
-                      ? '#E8F5E9'
-                      : (mision as Record<string, unknown>).trazabilidadNotificacion === 'ENVIADA'
-                      ? '#FFF3E0'
-                      : '#ECEFF3',
-                  color:
-                    (mision as Record<string, unknown>).trazabilidadNotificacion === 'LEIDA'
-                      ? '#14505A'
-                      : (mision as Record<string, unknown>).trazabilidadNotificacion === 'RECIBIDA'
-                      ? '#2E7D32'
-                      : (mision as Record<string, unknown>).trazabilidadNotificacion === 'ENVIADA'
-                      ? '#E65100'
-                      : '#3B3F45',
+                  backgroundColor: TRAZABILIDAD_CONFIG[mision.trazabilidadNotificacion].bg,
+                  color: TRAZABILIDAD_CONFIG[mision.trazabilidadNotificacion].color,
                   border: '1px solid currentColor',
                 }}
               >
-                {(mision as Record<string, unknown>).trazabilidadNotificacion === 'PENDIENTE_ENVIO' &&
-                  'Patrulla sin señal / offline'}
-                {(mision as Record<string, unknown>).trazabilidadNotificacion === 'ENVIADA' &&
-                  'Alerta emitida al móvil'}
-                {(mision as Record<string, unknown>).trazabilidadNotificacion === 'RECIBIDA' &&
-                  'Recibida en móvil de terreno'}
-                {(mision as Record<string, unknown>).trazabilidadNotificacion === 'LEIDA' &&
-                  'Leída por operador en terreno'}
+                {TRAZABILIDAD_CONFIG[mision.trazabilidadNotificacion].texto}
               </span>
             </div>
           )}

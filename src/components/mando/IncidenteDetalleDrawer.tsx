@@ -17,6 +17,7 @@ import type { DespacharPatrullaResponseData } from '@/types/misiones';
 import type { EstadoIncidente } from '@/services/incidentesService';
 import { usePuedeAsignarMision } from '@/hooks/usePuedeAsignarMision';
 import { getSocket } from '@/lib/socket/client';
+import type { NotificacionTrazabilidadPayload } from '@/hooks/useEncargadoKanbanSocket';
 import InlineNotice from '@/components/ui/InlineNotice';
 import styles from '@/styles/mando.module.css';
 
@@ -70,12 +71,7 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
     if (!incidenteId) return;
 
     const socket = getSocket();
-    const handleTrazabilidad = (payload: {
-      notificacionId: string;
-      misionId: string;
-      patrullaId: string;
-      estado: 'PENDIENTE_ENVIO' | 'ENVIADA' | 'RECIBIDA' | 'LEIDA';
-    }) => {
+    const handleTrazabilidad = (payload: NotificacionTrazabilidadPayload) => {
       setDetalle((prev) => {
         if (!prev) return prev;
         return {
