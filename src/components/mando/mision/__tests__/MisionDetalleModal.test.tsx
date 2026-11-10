@@ -410,4 +410,94 @@ describe('Componente MisionDetalleModal (HU-17)', () => {
       screen.queryByLabelText('Visor de evidencia: evidencia_1.jpg')
     ).toBeNull();
   });
+
+  it('debe renderizar el informe técnico de reclasificación de tipología en terreno y evitar enums crudos', async () => {
+    const mockMisionConReclasificacion: MisionDetalleCompleto = {
+      ...mockMision,
+      id: 'm1000000-0000-4000-8000-000000000770',
+      codigo: 'MIS-2026-7700',
+      titulo: 'Verificación: Corte de agua potable - INC-592395-562',
+      tipoMision: 'VERIFICACION',
+      estado: 'EN_CURSO',
+      prioridad: 'MEDIA',
+      patrulla: {
+        id: 'pat-1',
+        nombre: 'papappap',
+        estado: 'EN_VERIFICACION',
+        delegacionNombre: 'Calle Calle',
+        lider: {
+          id: 'u-lider',
+          nombre: 'Cristóbal Felipe Veas Huequemán',
+          email: 'patrulla@valdivia.cl',
+        },
+      },
+      cuadrilla: null,
+      incidente: {
+        id: 'inc-770',
+        codigo: 'INC-592395-562',
+        codigoSeguimiento: '17780027',
+        tipoAfectacion: 'Corte de agua potable',
+        descripcion: 'Matriz rota',
+        direccion: 'Arauco 642, Villa Coltauco',
+        latitud: -39.82,
+        longitud: -73.24,
+        estado: 'VERIFICANDO',
+        prioridad: 'MEDIA',
+        requiereAsistenciaSocial: false,
+        delegacionNombre: 'Calle Calle',
+      },
+      bitacoraTiempos: [
+        {
+          hito: 'CREACION',
+          fecha: '2026-11-10',
+          hora: '01:03:24',
+          timestamp: '2026-11-10T01:03:24.000Z',
+          descripcion: 'Misión planificada y registrada en el sistema',
+        },
+        {
+          hito: 'TIPOLOGIA_RECLASIFICADA',
+          fecha: '2026-11-10',
+          hora: '05:15:00',
+          timestamp: '2026-11-10T05:15:00.000Z',
+          descripcion:
+            'Tipología reclasificada en terreno a: Corte de agua potable. Justificación: Se constata rotura de matriz con suspensión de suministro.',
+        },
+      ],
+      reportesTerreno: [],
+    };
+
+    vi.spyOn(misionesService, 'obtenerDetalleMision').mockResolvedValueOnce({
+      exito: true,
+      datos: mockMisionConReclasificacion,
+      mensaje: 'OK',
+    });
+
+    render(
+      <MisionDetalleModal
+        misionId="m1000000-0000-4000-8000-000000000770"
+        onCerrar={vi.fn()}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('MIS-2026-7700')).toBeDefined();
+    });
+
+    // Validar tipo formateado amigable (no enum VERIFICACION)
+    expect(screen.getByText('Verificación en terreno')).toBeDefined();
+
+    // Validar estados formateados en español
+    expect(screen.getAllByText('En verificación').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('Media').length).toBeGreaterThanOrEqual(1);
+
+    // Validar hito de reclasificación en bitácora
+    expect(screen.getByText('Tipología reclasificada en terreno')).toBeDefined();
+
+    // Validar tarjeta destacada de informe técnico en terreno
+    const cardInforme = screen.getByTestId('reporte-verificacion-reclasificacion');
+    expect(cardInforme).toBeDefined();
+    expect(cardInforme.textContent).toContain('Corte de agua potable');
+    expect(cardInforme.textContent).toContain('rotura de matriz');
+    expect(cardInforme.textContent).toContain('Cristóbal Felipe Veas');
+  });
 });

@@ -11,6 +11,18 @@ interface MisionBitacoraSectionProps {
   bitacora: MisionBitacoraHito[];
 }
 
+const limpiarDescripcion = (desc?: string | null): string => {
+  if (!desc) return '';
+  return desc
+    .replace(/\(EN_CURSO\)/gi, '(En curso)')
+    .replace(/\(DESPACHADA\)/gi, '(Despachada)')
+    .replace(/\(PLANIFICADA\)/gi, '(Planificada)')
+    .replace(/\(COMPLETADA\)/gi, '(Completada)')
+    .replace(/\(RECHAZADA\)/gi, '(Rechazada)')
+    .replace(/\(CANCELADA\)/gi, '(Cancelada)')
+    .replace(/\(EN_VERIFICACION\)/gi, '(En verificación)');
+};
+
 export const MisionBitacoraSection: React.FC<MisionBitacoraSectionProps> = ({ bitacora }) => {
   return (
     <div className={styles.seccionBloque}>
@@ -30,21 +42,47 @@ export const MisionBitacoraSection: React.FC<MisionBitacoraSectionProps> = ({ bi
           </p>
         ) : (
           <div className={styles.timelineList}>
-            {bitacora.map((hito, index) => (
-              <div key={`${hito.timestamp}-${index}`} className={styles.timelineItem}>
-                <div className={styles.timelineDot} />
-                <div className={styles.timelineHeader}>
-                  <span className={styles.timelineHito}>{formatearHitoBitacora(hito.hito)}</span>
-                  <span className={styles.timelineDate}>
-                    <Calendar size={12} />
-                    <span>{hito.fecha}</span>
-                    <Clock size={12} style={{ marginLeft: '4px' }} />
-                    <span>{hito.hora}</span>
-                  </span>
+            {bitacora.map((hito, index) => {
+              const esReclasificacion = hito.hito === 'TIPOLOGIA_RECLASIFICADA';
+
+              return (
+                <div
+                  key={`${hito.timestamp}-${index}`}
+                  className={styles.timelineItem}
+                  style={
+                    esReclasificacion
+                      ? {
+                          backgroundColor: 'var(--color-info-bg, #E0F2F1)',
+                          padding: '8px 12px',
+                          borderLeft: '3px solid var(--color-primary-teal, #1B6F7D)',
+                          marginBottom: '6px',
+                        }
+                      : undefined
+                  }
+                >
+                  <div className={styles.timelineDot} />
+                  <div className={styles.timelineHeader}>
+                    <span
+                      className={styles.timelineHito}
+                      style={
+                        esReclasificacion
+                          ? { color: 'var(--color-primary-teal-dark, #14505A)', fontWeight: 800 }
+                          : undefined
+                      }
+                    >
+                      {formatearHitoBitacora(hito.hito)}
+                    </span>
+                    <span className={styles.timelineDate}>
+                      <Calendar size={12} />
+                      <span>{hito.fecha}</span>
+                      <Clock size={12} style={{ marginLeft: '4px' }} />
+                      <span>{hito.hora}</span>
+                    </span>
+                  </div>
+                  <p className={styles.timelineDesc}>{limpiarDescripcion(hito.descripcion)}</p>
                 </div>
-                <p className={styles.timelineDesc}>{hito.descripcion}</p>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

@@ -3,7 +3,7 @@
 import React from 'react';
 import { X, Calendar, Clock } from 'lucide-react';
 import type { MisionDetalleCompleto, EstadoMision, PrioridadMision } from '@/types/misiones';
-import { formatearEstado, formatearPrioridad } from '@/lib/utils/estadoUtils';
+import { formatearEstado, formatearPrioridad, formatearTipoMision } from '@/lib/utils/estadoUtils';
 import styles from '@/styles/mision-detalle.module.css';
 
 interface MisionDetalleHeaderProps {
@@ -64,6 +64,11 @@ export const MisionDetalleHeader: React.FC<MisionDetalleHeaderProps> = ({
     }
   };
 
+  const tituloMisionSincronizado =
+    mision.tipoMision === 'VERIFICACION' && mision.incidente?.tipoAfectacion && mision.incidente?.codigo
+      ? `Verificación: ${mision.incidente.tipoAfectacion} - ${mision.incidente.codigo}`
+      : mision.titulo;
+
   return (
     <header className={styles.modalHeader}>
       <div className={styles.headerInfo}>
@@ -72,7 +77,7 @@ export const MisionDetalleHeader: React.FC<MisionDetalleHeaderProps> = ({
             {mision.codigo}
           </span>
           <span className={styles.tipoBadge} title="Tipo de Misión Táctica">
-            {mision.tipoMision.replace(/_/g, ' ')}
+            {formatearTipoMision(mision.tipoMision)}
           </span>
           <span
             className={`${styles.badgeEstado} ${getEstadoClass(mision.estado)}`}
@@ -89,7 +94,7 @@ export const MisionDetalleHeader: React.FC<MisionDetalleHeaderProps> = ({
         </div>
 
         <h2 className={styles.headerTitle} id="mision-detalle-titulo">
-          {mision.titulo}
+          {tituloMisionSincronizado}
         </h2>
 
         <div className={styles.headerMetaRow}>

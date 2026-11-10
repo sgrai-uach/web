@@ -85,12 +85,13 @@ export const IncidenteCard: React.FC<IncidenteCardProps> = ({
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '3px',
-                padding: '2px 6px',
+                padding: '1px 5px',
                 fontSize: '0.6875rem',
-                fontWeight: 700,
+                fontWeight: 600,
                 color: 'var(--color-primary-teal, #1B6F7D)',
-                backgroundColor: 'var(--color-info-bg, #E0F2F1)',
-                border: '1px solid var(--color-primary-teal, #1B6F7D)',
+                backgroundColor: 'var(--color-bg-light, #ECEFF3)',
+                border: '1px solid var(--border-color-neutral, #DFE3E8)',
+                whiteSpace: 'nowrap',
               }}
               title={
                 incidente.justificacionReclasificacion
@@ -98,8 +99,8 @@ export const IncidenteCard: React.FC<IncidenteCardProps> = ({
                   : `Tipología rectificada por patrulla en terreno (Prioridad: ${formatearPrioridad(incidente.prioridad)})`
               }
             >
-              <CheckCircle2 size={11} strokeWidth={2.5} aria-hidden="true" />
-              <span>Verificado en terreno</span>
+              <CheckCircle2 size={11} strokeWidth={2.2} color="var(--color-accent-mint, #4FAE9B)" aria-hidden="true" />
+              <span>Verificado</span>
             </span>
           )}
           {incidente.totalMisiones > 0 && (

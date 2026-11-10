@@ -167,7 +167,12 @@ export const MisionDetalleModal: React.FC<MisionDetalleModalProps> = ({
               <MisionBitacoraSection bitacora={mision.bitacoraTiempos || []} />
 
               {/* Reportes de Terreno y Evidencia */}
-              <MisionReportesSection reportes={mision.reportesTerreno || []} />
+              <MisionReportesSection
+                reportes={mision.reportesTerreno || []}
+                bitacora={mision.bitacoraTiempos || []}
+                patrulla={mision.patrulla}
+                incidente={mision.incidente}
+              />
             </div>
 
             <footer className={styles.modalFooter}>

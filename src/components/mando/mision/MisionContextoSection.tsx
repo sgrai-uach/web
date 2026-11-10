@@ -4,6 +4,7 @@ import React from 'react';
 import { AlertCircle, MapPin } from 'lucide-react';
 import Heading from '@/components/ui/Heading';
 import type { IncidenteMisionResumen, PrevencionMisionResumen } from '@/types/misiones';
+import { formatearEstado, formatearPrioridad } from '@/lib/utils/estadoUtils';
 import styles from '@/styles/mision-detalle.module.css';
 
 interface MisionContextoSectionProps {
@@ -100,14 +101,14 @@ export const MisionContextoSection: React.FC<MisionContextoSectionProps> = ({
             <div className={styles.dataItem}>
               <span className={styles.dataLabel}>Estado del Incidente</span>
               <span className={styles.dataValue} style={{ fontWeight: 600 }}>
-                {incidente.estado}
+                {formatearEstado(incidente.estado)}
               </span>
             </div>
 
             <div className={styles.dataItem}>
               <span className={styles.dataLabel}>Prioridad del Incidente</span>
               <span className={styles.dataValue} style={{ fontWeight: 600 }}>
-                {incidente.prioridad}
+                {formatearPrioridad(incidente.prioridad)}
               </span>
             </div>
           </div>

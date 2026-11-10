@@ -178,7 +178,7 @@ describe('IncidenteCard', () => {
 
     expect(screen.getByText('Inundación')).toBeDefined();
     expect(screen.getByText('Alta')).toBeDefined();
-    const tagVerificado = screen.getByText('Verificado en terreno');
+    const tagVerificado = screen.getByText('Verificado');
     expect(tagVerificado).toBeDefined();
     expect(tagVerificado.parentElement?.getAttribute('title')).toContain(
       'Tipología reclasificada en terreno: Desborde de río constatado en terreno'
