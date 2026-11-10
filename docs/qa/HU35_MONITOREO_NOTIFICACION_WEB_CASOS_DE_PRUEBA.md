@@ -193,3 +193,4 @@ La implementación de la Historia de Usuario **HU-35** en el repositorio `sgrai-
 
 - **Veredicto QA:** `CERTIFICACIÓN APROBADA (LISTO PARA MERGE TRAS PAIR REVIEW Y PO REVIEW)`.
 - **Ramas:** Integración lista desde `feature/h35-notificacion-mision-patrulla-web` hacia `develop`.
+
