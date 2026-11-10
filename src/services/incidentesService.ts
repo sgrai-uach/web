@@ -20,12 +20,14 @@ export type IncidenteResumen = ListarIncidentesResponse['data'][number] & {
   reclasificadoEnTerreno?: boolean;
   justificacionReclasificacion?: string;
   cambioPrioridadMotivo?: string;
+  tieneMisionDespachada?: boolean;
 };
 export type IncidenteDetalle = IncidenteDetalleResponse['data'] & {
   tipoIncidenteId?: string;
   reclasificadoEnTerreno?: boolean;
   justificacionReclasificacion?: string;
   cambioPrioridadMotivo?: string;
+  tieneMisionDespachada?: boolean;
 };
 export type PaginacionMeta = ListarIncidentesResponse['paginacion'];
 export type EstadoIncidente = IncidenteResumen['estado'];

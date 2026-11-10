@@ -176,6 +176,47 @@ export function useIncidentesKanban(initialUserId?: string) {
           }
         });
 
+        // Sanitización reactiva del tablero Kanban:
+        // Si un incidente aparece en REPORTADO pero ya cuenta con misiones operativas asignadas
+        // (totalMisiones > 0 o tieneMisionDespachada = true), debe reclasificarse a VERIFICANDO.
+        const enReportado = nuevasColumnas.REPORTADO || [];
+        const incidentesQueDebenSerVerificando: IncidenteResumen[] = [];
+        const incidentesReportadosLimpios: IncidenteResumen[] = [];
+
+        for (const inc of enReportado) {
+          const totalMisionesNum = Number(inc.totalMisiones) || 0;
+          if (totalMisionesNum > 0 || inc.tieneMisionDespachada) {
+            incidentesQueDebenSerVerificando.push({
+              ...inc,
+              estado: 'VERIFICANDO',
+            });
+          } else {
+            incidentesReportadosLimpios.push(inc);
+          }
+        }
+
+        if (incidentesQueDebenSerVerificando.length > 0) {
+          nuevasColumnas.REPORTADO = incidentesReportadosLimpios;
+          const idsExistentesVerificando = new Set((nuevasColumnas.VERIFICANDO || []).map((i) => i.id));
+          const nuevosParaVerificando = incidentesQueDebenSerVerificando.filter(
+            (i) => !idsExistentesVerificando.has(i.id)
+          );
+          nuevasColumnas.VERIFICANDO = [...nuevosParaVerificando, ...(nuevasColumnas.VERIFICANDO || [])];
+
+          if (nuevasPaginaciones.REPORTADO) {
+            nuevasPaginaciones.REPORTADO = {
+              ...nuevasPaginaciones.REPORTADO,
+              total: Math.max(0, nuevasPaginaciones.REPORTADO.total - incidentesQueDebenSerVerificando.length),
+            };
+          }
+          if (nuevasPaginaciones.VERIFICANDO) {
+            nuevasPaginaciones.VERIFICANDO = {
+              ...nuevasPaginaciones.VERIFICANDO,
+              total: nuevasPaginaciones.VERIFICANDO.total + nuevosParaVerificando.length,
+            };
+          }
+        }
+
         setColumnas(nuevasColumnas);
         setPaginacionColumna(nuevasPaginaciones);
       } catch {

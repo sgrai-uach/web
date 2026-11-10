@@ -167,16 +167,62 @@ export function useEncargadoKanbanSocket({
       }
     };
 
+    const handleMisionEvent = (payload: unknown) => {
+      const p = payload as Record<string, unknown> | null | undefined;
+      const raw = (p?.datos || p?.data || p) as Record<string, unknown> | null | undefined;
+      const incidenteId =
+        typeof raw?.incidenteId === 'string'
+          ? raw.incidenteId
+          : typeof raw?.incidente_id === 'string'
+            ? raw.incidente_id
+            : undefined;
+      const estadoMision = typeof raw?.estado === 'string' ? raw.estado : undefined;
+      const tipoMision =
+        typeof raw?.tipoMision === 'string'
+          ? raw.tipoMision
+          : typeof raw?.tipo_mision === 'string'
+            ? raw.tipo_mision
+            : undefined;
+      const codigoMision = typeof raw?.codigo === 'string' ? raw.codigo : '';
+
+      if (incidenteId && (tipoMision === 'VERIFICACION' || !tipoMision)) {
+        if (estadoMision === 'EN_CURSO' || estadoMision === 'DESPACHADA') {
+          const syntheticIncPayload: IncidenteActualizadoPayload = {
+            evento: 'incidente:actualizado',
+            datos: {
+              id: incidenteId,
+              codigo: typeof raw?.incidenteCodigo === 'string' ? raw.incidenteCodigo : '',
+              nuevoEstado: 'VERIFICANDO',
+              prioridad: (raw?.prioridad as PrioridadIncidente) || 'MEDIA',
+              actualizadoEn:
+                typeof raw?.actualizadoEn === 'string'
+                  ? raw.actualizadoEn
+                  : new Date().toISOString(),
+            },
+            emitidoEn: new Date().toISOString(),
+          };
+          if (actualizadoRef.current) {
+            actualizadoRef.current(syntheticIncPayload);
+          }
+          setUltimoEvento(`Misión ${codigoMision} (${estadoMision}): Incidente en verificación`);
+        }
+      }
+    };
+
     socket.on('connect', onConnect);
     socket.on('disconnect', onDisconnect);
     socket.on('incidente:creado', handleCreado);
     socket.on('incidente:actualizado', handleActualizado);
+    socket.on('mision:creada', handleMisionEvent);
+    socket.on('mision:actualizada', handleMisionEvent);
 
     return () => {
       socket.off('connect', onConnect);
       socket.off('disconnect', onDisconnect);
       socket.off('incidente:creado', handleCreado);
       socket.off('incidente:actualizado', handleActualizado);
+      socket.off('mision:creada', handleMisionEvent);
+      socket.off('mision:actualizada', handleMisionEvent);
       socket.emit('leave', 'encargado');
       socket.emit('salir', 'sala:encargados');
       socket.emit('leave', 'mapa');

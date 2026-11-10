@@ -62,12 +62,16 @@ describe('IncidenteCard', () => {
     expect(handleClick).toHaveBeenCalledTimes(1);
   });
 
-  it('debe renderizar botón "Asignar Patrulla" en estado REPORTADO y llamar onAsignarPatrulla sin propagar', () => {
+  it('debe renderizar botón "Asignar Patrulla" en estado REPORTADO sin misiones previas y llamar onAsignarPatrulla sin propagar', () => {
     const handleClick = vi.fn();
     const handleAsignar = vi.fn();
+    const mockReportadoSinMisiones: IncidenteResumen = {
+      ...mockIncidente,
+      totalMisiones: 0,
+    };
     render(
       <IncidenteCard
-        incidente={mockIncidente} // estado: REPORTADO
+        incidente={mockReportadoSinMisiones} // estado: REPORTADO, 0 misiones
         onClick={handleClick}
         onAsignarPatrulla={handleAsignar}
       />
@@ -81,9 +85,26 @@ describe('IncidenteCard', () => {
     fireEvent.click(btnAsignar);
 
     expect(handleAsignar).toHaveBeenCalledTimes(1);
-    expect(handleAsignar).toHaveBeenCalledWith(mockIncidente);
+    expect(handleAsignar).toHaveBeenCalledWith(mockReportadoSinMisiones);
     // No debe abrir el drawer (stopPropagation)
     expect(handleClick).not.toHaveBeenCalled();
+  });
+
+  it('NO debe renderizar botón "Asignar Patrulla" si el incidente ya tiene misiones asignadas (totalMisiones > 0)', () => {
+    const handleClick = vi.fn();
+    const handleAsignar = vi.fn();
+    render(
+      <IncidenteCard
+        incidente={mockIncidente} // totalMisiones: 2
+        onClick={handleClick}
+        onAsignarPatrulla={handleAsignar}
+      />
+    );
+
+    const btnAsignar = screen.queryByRole('button', {
+      name: /Asignar patrulla verificadora/i,
+    });
+    expect(btnAsignar).toBeNull();
   });
 
   it('NO debe renderizar botón "Asignar Patrulla" si el incidente ya está en otro estado (ej. VERIFICANDO)', () => {
