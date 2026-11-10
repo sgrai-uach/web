@@ -8,6 +8,7 @@ import {
   Users,
   Wrench,
   Clock,
+  X,
   Trash2,
 } from 'lucide-react';
 import type { CuadrillaItem, EstadoCuadrilla } from '@/types/cuadrilla';
@@ -20,6 +21,8 @@ interface CuadrillasTablaProps {
   onVerDetalle: (cuadrilla: CuadrillaItem) => void;
   onDesactivarCuadrilla?: (cuadrilla: CuadrillaItem) => void;
   puedeEditar?: boolean;
+  tieneFiltrosActivos?: boolean;
+  onLimpiarFiltros?: () => void;
   puedeEliminar?: boolean;
 }
 
@@ -115,6 +118,8 @@ export default function CuadrillasTabla({
   onVerDetalle,
   onDesactivarCuadrilla,
   puedeEditar = true,
+  tieneFiltrosActivos = false,
+  onLimpiarFiltros,
   puedeEliminar = true,
 }: CuadrillasTablaProps) {
   if (cargando) {
@@ -152,6 +157,13 @@ export default function CuadrillasTabla({
         <p style={{ margin: 0, fontSize: '13px', color: 'var(--color-text-muted)' }}>
           No hay registros coincidentes con los filtros seleccionados.
         </p>
+        {tieneFiltrosActivos && onLimpiarFiltros && (
+          <div style={{ marginTop: '16px' }}>
+            <Button variant="secondary" size="sm" onClick={onLimpiarFiltros} icon={<X size={14} />}>
+              Limpiar filtros
+            </Button>
+          </div>
+        )}
       </div>
     );
   }
@@ -213,10 +225,12 @@ export default function CuadrillasTabla({
             return (
               <tr
                 key={cuadrilla.id}
+                onClick={() => onVerDetalle(cuadrilla)}
                 style={{
                   borderBottom: '1px solid var(--border-color-neutral)',
                   backgroundColor: 'var(--color-white)',
                   transition: 'background-color 0.15s ease',
+                  cursor: 'pointer',
                 }}
               >
                 {/* Nombre de la Cuadrilla */}
@@ -318,7 +332,10 @@ export default function CuadrillasTabla({
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => onVerDetalle(cuadrilla)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onVerDetalle(cuadrilla);
+                      }}
                       title="Ver dotación completa de la cuadrilla"
                       aria-label={`Ver detalle de cuadrilla ${cuadrilla.nombre}`}
                       icon={<Eye size={14} />}
@@ -339,7 +356,10 @@ export default function CuadrillasTabla({
                           variant="primary"
                           size="sm"
                           disabled={bloqueadaPorMision}
-                          onClick={() => onEditarCuadrilla(cuadrilla)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onEditarCuadrilla(cuadrilla);
+                          }}
                           aria-label={`Editar cuadrilla ${cuadrilla.nombre}`}
                           icon={<Pencil size={14} />}
                           style={{

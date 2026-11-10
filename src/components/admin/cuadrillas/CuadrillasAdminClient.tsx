@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { Plus } from 'lucide-react';
+import { usePathname, useSearchParams } from 'next/navigation';
+import { AlertCircle, Plus } from 'lucide-react';
 import type {
   CuadrillaItem,
   FiltrosCuadrillasState,
@@ -24,17 +25,17 @@ import AccesoDenegadoState from '@/components/common/AccesoDenegadoState';
 
 export default function CuadrillasAdminClient() {
   const { showSuccess, showError } = useToast();
-  const { hasPermission, usuarioActivo, isMounted } = useSimulatedSession();
+  const { usuarioActivo, hasPermission, isMounted } = useSimulatedSession();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
 
   const esAdmin = Boolean(
     usuarioActivo?.rol === 'Administrador' ||
       usuarioActivo?.esAdmin
   );
 
-  const tienePermisoLectura = Boolean(
-    isMounted && (hasPermission('recursos:leer') || esAdmin)
-  );
-
+  // Bloqueo perimetral RBAC (H80) con bypass de administrador (HU-82)
+  const puedeLeer = Boolean(isMounted && (hasPermission('recursos:leer') || esAdmin));
   const puedeCrear = Boolean(isMounted && (hasPermission('recursos:crear') || esAdmin));
   const puedeEditar = Boolean(isMounted && (hasPermission('recursos:editar') || esAdmin));
   const puedeEliminar = Boolean(
@@ -50,25 +51,60 @@ export default function CuadrillasAdminClient() {
   // Delegaciones para selector de filtro
   const [delegaciones, setDelegaciones] = useState<DelegacionResumen[]>([]);
 
-  // Filtros de listado
-  const [filtros, setFiltros] = useState<FiltrosCuadrillasState>({
-    pagina: 1,
-    limite: 10,
-    busqueda: '',
-    delegacionId: undefined,
-    estado: undefined,
+  // Filtros de listado (inicializados desde la URL para respetar el contrato H34)
+  const [filtros, setFiltros] = useState<FiltrosCuadrillasState>(() => {
+    const paginaUrl = parseInt(searchParams?.get('page') || '1', 10);
+    return {
+      pagina: Number.isNaN(paginaUrl) || paginaUrl < 1 ? 1 : paginaUrl,
+      limite: 10,
+      busqueda: searchParams?.get('q') || '',
+      delegacionId: searchParams?.get('delegacionId') || undefined,
+      estado: searchParams?.get('estado') || undefined,
+    };
   });
 
   const {
     cuadrillas,
     meta,
     cargando,
+    error,
+    errorStatus,
+    recargar,
     actualizarCuadrillaEnLista,
     removerCuadrillaDeLista,
   } = useCuadrillas(filtros);
 
+  // Sincronización de filtros con URLSearchParams sin recargar la vista
+  const primerRenderRef = useRef(true);
+  useEffect(() => {
+    if (primerRenderRef.current) {
+      primerRenderRef.current = false;
+      return;
+    }
+    if (typeof window === 'undefined') return;
+
+    const params = new URLSearchParams();
+    if (filtros.busqueda && filtros.busqueda.trim() !== '') {
+      params.set('q', filtros.busqueda.trim());
+    }
+    if (filtros.delegacionId) {
+      params.set('delegacionId', filtros.delegacionId);
+    }
+    if (filtros.estado) {
+      params.set('estado', filtros.estado);
+    }
+    if (filtros.pagina > 1) {
+      params.set('page', String(filtros.pagina));
+    }
+
+    const queryString = params.toString();
+    const rutaActual = pathname ?? '';
+    window.history.replaceState(null, '', queryString ? `${rutaActual}?${queryString}` : rutaActual);
+  }, [filtros, pathname]);
+
   // Carga de delegaciones
   useEffect(() => {
+    if (!puedeLeer) return;
     let activo = true;
     cuadrillasService.obtenerDelegaciones().then((res) => {
       if (activo) setDelegaciones(res);
@@ -76,7 +112,7 @@ export default function CuadrillasAdminClient() {
     return () => {
       activo = false;
     };
-  }, []);
+  }, [puedeLeer]);
 
   const handleBusquedaChange = useCallback((busqueda: string) => {
     setFiltros((prev) => ({ ...prev, busqueda, pagina: 1 }));
@@ -112,6 +148,10 @@ export default function CuadrillasAdminClient() {
       );
     },
     [actualizarCuadrillaEnLista, cuadrillaDetalle, showSuccess]
+  );
+
+  const tieneFiltrosActivos = Boolean(
+    filtros.busqueda?.trim() || filtros.delegacionId || filtros.estado
   );
 
   const handleConfirmarDesactivar = useCallback(async () => {
@@ -162,35 +202,21 @@ export default function CuadrillasAdminClient() {
     showError,
   ]);
 
-  if (isMounted && !tienePermisoLectura) {
+  if (!isMounted) {
+    return null;
+  }
+
+  // Bloqueo perimetral RBAC: sin recursos:leer no se expone ningún dato municipal.
+  if (!puedeLeer || errorStatus === 401 || errorStatus === 403) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-        <nav
-          aria-label="Breadcrumb"
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            fontSize: '13px',
-            color: 'var(--color-charcoal)',
-          }}
-        >
-          <Link href="/gestion" style={{ color: 'var(--color-primary-teal)', fontWeight: 500, textDecoration: 'none' }}>
-            Inicio
-          </Link>
-          <span>&rsaquo;</span>
-          <span style={{ color: 'var(--color-charcoal)' }}>Administración</span>
-          <span>&rsaquo;</span>
-          <span style={{ fontWeight: 600, color: 'var(--color-primary-teal-dark)' }}>Cuadrillas Operativas</span>
-        </nav>
-        <AccesoDenegadoState
-          rolUsuario={usuarioActivo?.rol}
-          modulo="Gestión de Cuadrillas Operativas"
-          permisoRequerido="recursos:leer"
-          botonVolverHref="/gestion"
-          botonVolverTexto="Volver al Portal"
-        />
-      </div>
+      <AccesoDenegadoState
+        rolUsuario={usuarioActivo.rol}
+        modulo="el Listado de Cuadrillas Operativas"
+        permisoRequerido="recursos:leer"
+        mensajePersonalizado="Se requieren credenciales de Administrador o Encargado con permiso recursos:leer para consultar la dotación de cuadrillas operativas."
+        botonVolverHref="/gestion"
+        botonVolverTexto="Volver al Inicio"
+      />
     );
   }
 
@@ -266,27 +292,62 @@ export default function CuadrillasAdminClient() {
         onLimpiar={handleLimpiarFiltros}
       />
 
+      {/* Alerta de error con reintento */}
+      {error && (
+        <div
+          role="alert"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '16px',
+            flexWrap: 'wrap',
+            padding: '14px 18px',
+            backgroundColor: 'var(--color-danger-bg, #FFEBEE)',
+            borderLeft: '4px solid var(--color-danger, #D32F2F)',
+            color: 'var(--color-text-dark)',
+            fontSize: '13px',
+          }}
+        >
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '10px' }}>
+            <AlertCircle size={18} style={{ color: 'var(--color-danger, #D32F2F)', flexShrink: 0 }} />
+            <span>
+              <strong>No fue posible cargar las cuadrillas operativas.</strong> {error}
+            </span>
+          </span>
+          <Button variant="outline" size="sm" onClick={() => void recargar()}>
+            Reintentar
+          </Button>
+        </div>
+      )}
+
       {/* Tabla de Cuadrillas */}
-      <CuadrillasTabla
-        cuadrillas={cuadrillas}
-        cargando={cargando}
-        puedeEditar={puedeEditar}
-        puedeEliminar={puedeEliminar}
-        onEditarCuadrilla={(c) => setCuadrillaAEditar(c)}
-        onVerDetalle={(c) => setCuadrillaDetalle(c)}
-        onDesactivarCuadrilla={(c) => setCuadrillaADesactivar(c)}
-      />
+      {!error && (
+        <CuadrillasTabla
+          cuadrillas={cuadrillas}
+          cargando={cargando}
+          puedeEditar={puedeEditar}
+          puedeEliminar={puedeEliminar}
+          tieneFiltrosActivos={tieneFiltrosActivos}
+          onLimpiarFiltros={handleLimpiarFiltros}
+          onEditarCuadrilla={(c) => setCuadrillaAEditar(c)}
+          onVerDetalle={(c) => setCuadrillaDetalle(c)}
+          onDesactivarCuadrilla={(c) => setCuadrillaADesactivar(c)}
+        />
+      )}
 
       {/* Paginación */}
-      <Pagination
-        paginaActual={filtros.pagina}
-        totalPaginas={meta.paginasTotales}
-        totalItems={meta.total}
-        limite={filtros.limite}
-        nombreEntidad="cuadrillas"
-        onCambiarPagina={(nuevaPagina) => setFiltros((prev) => ({ ...prev, pagina: nuevaPagina }))}
-        onCambiarLimite={(nuevoLimite) => setFiltros((prev) => ({ ...prev, limite: nuevoLimite, pagina: 1 }))}
-      />
+      {!error && (
+        <Pagination
+          paginaActual={filtros.pagina}
+          totalPaginas={meta.paginasTotales}
+          totalItems={meta.total}
+          limite={filtros.limite}
+          nombreEntidad="cuadrillas"
+          onCambiarPagina={(nuevaPagina) => setFiltros((prev) => ({ ...prev, pagina: nuevaPagina }))}
+          onCambiarLimite={(nuevoLimite) => setFiltros((prev) => ({ ...prev, limite: nuevoLimite, pagina: 1 }))}
+        />
+      )}
 
       {/* Drawer de Detalle */}
       <CuadrillaDetalleDrawer
