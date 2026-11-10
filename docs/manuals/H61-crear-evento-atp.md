@@ -32,7 +32,7 @@ Al guardar, el evento queda **ACTIVO** de forma inmediata, se persiste junto a s
    - El permiso explícito **`eventos_atp:crear`**.
 
 2. **Asignación del Permiso:**  
-   El permiso `eventos_atp:crear` se administra de forma abstracta desde la pantalla de **Roles y Permisos** (`/gestion/admin/roles-permisos`). No es necesario modificar código para habilitar a otro perfil: basta con asignar el permiso al rol correspondiente. La migración `035_evento_atp_base.ts` garantiza que el permiso exista y esté asignado al rol Administrador.
+   El permiso `eventos_atp:crear` se administra de forma abstracta desde la pantalla de **Roles y Permisos** (`/gestion/admin/roles-permisos`). No es necesario modificar código para habilitar a otro perfil: basta con asignar el permiso al rol correspondiente. La migración `072_evento_atp_base.ts` garantiza que el permiso exista y esté asignado al rol Administrador.
 
 3. **Comportamiento ante Acceso Denegado:**  
    Si un usuario sin privilegios navega directamente a la ruta, el sistema muestra la pantalla **“Acceso Restringido”** con el mensaje:
