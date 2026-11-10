@@ -77,10 +77,18 @@ export async function crearEventoRecuperacion(
       const lower = mensajeError.toLowerCase();
       let tipoConflicto: TipoConflictoRecuperacion = 'OTRO';
 
-      if (lower.includes('patrulla') || lower.includes('disponible para asignación')) {
-        tipoConflicto = 'PATRULLA_OCUPADA';
-      } else if (lower.includes('stock') || lower.includes('bodega') || lower.includes('insuficiente')) {
+      if (lower.includes('stock') || lower.includes('bodega') || lower.includes('insuficiente')) {
         tipoConflicto = 'STOCK_INSUFICIENTE';
+      } else if (
+        lower.includes('mantencion') ||
+        lower.includes('mantención') ||
+        lower.includes('taller') ||
+        lower.includes('activo') ||
+        lower.includes('individual')
+      ) {
+        tipoConflicto = 'ACTIVO_NO_DISPONIBLE';
+      } else if (lower.includes('patrulla') || lower.includes('ocupada')) {
+        tipoConflicto = 'PATRULLA_OCUPADA';
       }
 
       throw new RecuperacionServiceError(mensajeError, {

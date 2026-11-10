@@ -325,6 +325,7 @@ export const KanbanBoard: React.FC = () => {
             userId={userId}
             onSuccess={(eventoCreado) => {
               setEventosRecuperacion((prev) => [eventoCreado, ...prev]);
+              setVistaActiva('mapa');
               handleRefrescoCompleto();
             }}
           />

@@ -11,13 +11,13 @@ import Textarea from '@/components/ui/Textarea';
 import { useToast } from '@/components/ui/Toast';
 import { getCatalogos } from '@/services/catalogosService';
 import { getRecursos } from '@/services/recursosService';
+import { patrullasService } from '@/services/patrullasService';
 import {
   crearEventoRecuperacion,
   RecuperacionServiceError,
   type TipoConflictoRecuperacion,
 } from '@/services/recuperacionService';
 import {
-  PATRULLAS_OFICIALES_SEED,
   type PatrullaVerificadoraItem,
   type PrioridadRecuperacion,
   type EventoRecuperacionResponse,
@@ -60,11 +60,6 @@ export const ModalCrearEventoRecuperacion: React.FC<ModalCrearEventoRecuperacion
 }) => {
   const { showSuccess, showError } = useToast();
 
-  // Lista de patrullas a desplegar
-  const patrullas = useMemo(() => {
-    return patrullasProp && patrullasProp.length > 0 ? patrullasProp : PATRULLAS_OFICIALES_SEED;
-  }, [patrullasProp]);
-
   // Estados del formulario
   const [nombre, setNombre] = useState('');
   const [sector, setSector] = useState('');
@@ -84,11 +79,18 @@ export const ModalCrearEventoRecuperacion: React.FC<ModalCrearEventoRecuperacion
     { idTemporal: 'recurso-1', recursoId: '', cantidad: 1 },
   ]);
 
-  // Catálogos e inventario
+  // Catálogos, inventario y patrullas en tiempo real
   const [delegaciones, setDelegaciones] = useState<CatalogoItem[]>([]);
   const [inventario, setInventario] = useState<RecursoItem[]>([]);
+  const [patrullasApi, setPatrullasApi] = useState<PatrullaVerificadoraItem[]>([]);
   const [cargandoCatalogos, setCargandoCatalogos] = useState(false);
   const [mostrarSoloDisponibles, setMostrarSoloDisponibles] = useState(true);
+
+  // Lista de patrullas a desplegar (prioriza prop externa o datos vivos de sgrai-api)
+  const patrullas = useMemo(() => {
+    if (patrullasProp && patrullasProp.length > 0) return patrullasProp;
+    return patrullasApi;
+  }, [patrullasProp, patrullasApi]);
 
   // Errores y estado de envío
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -104,35 +106,38 @@ export const ModalCrearEventoRecuperacion: React.FC<ModalCrearEventoRecuperacion
     return patrullas.filter((p) => p.estado === 'DISPONIBLE');
   }, [patrullas, mostrarSoloDisponibles]);
 
-  // Carga asíncrona de catálogos e inventario al abrir
+  // Carga asíncrona de catálogos, inventario y patrullas reales al abrir
   useEffect(() => {
     let activo = true;
 
     if (!isOpen) return;
 
-    // Ejecutar en microtarea para evitar setState síncrono en cuerpo del efecto
     queueMicrotask(() => {
       if (!activo) return;
+      setCargandoCatalogos(true);
       setErroresCampos({});
       setBannerConflicto(null);
       setErrorGeneral(null);
 
-      const primeraDisponible = patrullas.find((p) => p.estado === 'DISPONIBLE');
-      if (primeraDisponible) {
-        setPatrullaId((prev) => (prev ? prev : primeraDisponible.id));
-      } else if (patrullas.length > 0) {
-        setPatrullaId((prev) => (prev ? prev : patrullas[0].id));
+      if (patrullasProp && patrullasProp.length > 0) {
+        const primeraDisponible = patrullasProp.find((p) => p.estado === 'DISPONIBLE');
+        if (primeraDisponible) {
+          setPatrullaId(primeraDisponible.id);
+        }
       }
     });
 
     void (async () => {
       try {
-        const [resCatalogos, resRecursos] = await Promise.all([
+        const [resCatalogos, resRecursos, resPatrullas] = await Promise.all([
           getCatalogos().catch(() => ({ delegaciones: [], roles: [], especialidades: [], cargos: [] })),
           getRecursos({ pagina: 1, limite: 100, estado: 'DISPONIBLE' }, userId).catch(() => ({
             data: [],
             meta: { total: 0, pagina: 1, limite: 100, totalPaginas: 1 },
           })),
+          patrullasProp && patrullasProp.length > 0
+            ? Promise.resolve(null)
+            : patrullasService.listar({ limit: 100 }, userId).catch(() => null),
         ]);
 
         if (!activo) return;
@@ -142,6 +147,23 @@ export const ModalCrearEventoRecuperacion: React.FC<ModalCrearEventoRecuperacion
         }
         if (resRecursos?.data) {
           setInventario(resRecursos.data);
+        }
+        if (resPatrullas && resPatrullas.exito) {
+          const mapeadas: PatrullaVerificadoraItem[] = (resPatrullas.data || []).map((p) => ({
+            id: p.id,
+            nombre: p.nombre,
+            estado: p.estado,
+            delegacionId: p.delegacion?.id ?? null,
+            delegacionNombre: p.delegacion?.nombre ?? null,
+          }));
+          setPatrullasApi(mapeadas);
+
+          const primeraDisponible = mapeadas.find((p) => p.estado === 'DISPONIBLE');
+          setPatrullaId((prev) => {
+            const sigueDisponible = mapeadas.some((m) => m.id === prev && m.estado === 'DISPONIBLE');
+            if (sigueDisponible) return prev;
+            return primeraDisponible ? primeraDisponible.id : '';
+          });
         }
       } finally {
         if (activo) {
@@ -153,7 +175,7 @@ export const ModalCrearEventoRecuperacion: React.FC<ModalCrearEventoRecuperacion
     return () => {
       activo = false;
     };
-  }, [isOpen, patrullas, userId]);
+  }, [isOpen, patrullasProp, userId]);
 
   // Diccionario rápido de recursos para consultar stock
   const inventarioMap = useMemo(() => {
@@ -342,8 +364,31 @@ export const ModalCrearEventoRecuperacion: React.FC<ModalCrearEventoRecuperacion
         if (err.tipoConflicto === 'PATRULLA_OCUPADA') {
           setBannerConflicto({
             tipo: 'PATRULLA_OCUPADA',
+            mensaje: err.message
+              ? `La patrulla seleccionada acaba de ser asignada a otra tarea o no se encuentra disponible. Detalle: ${err.message}`
+              : 'La patrulla seleccionada acaba de ser asignada a otra tarea o no se encuentra disponible. Seleccione otra patrulla disponible.',
+          });
+          if (!patrullasProp || patrullasProp.length === 0) {
+            void patrullasService.listar({ limit: 100 }, userId).then((res) => {
+              if (res && res.exito) {
+                setPatrullasApi(
+                  (res.data || []).map((p) => ({
+                    id: p.id,
+                    nombre: p.nombre,
+                    estado: p.estado,
+                    delegacionId: p.delegacion?.id ?? null,
+                    delegacionNombre: p.delegacion?.nombre ?? null,
+                  }))
+                );
+              }
+            }).catch(() => {});
+          }
+        } else if (err.tipoConflicto === 'ACTIVO_NO_DISPONIBLE') {
+          setBannerConflicto({
+            tipo: 'ACTIVO_NO_DISPONIBLE',
             mensaje:
-              'La patrulla seleccionada acaba de ser asignada a otra tarea o no se encuentra disponible. Seleccione otra patrulla disponible.',
+              err.message ||
+              'Uno de los activos individuales seleccionados se encuentra en mantención o no disponible.',
           });
         } else if (err.tipoConflicto === 'STOCK_INSUFICIENTE') {
           setBannerConflicto({
@@ -399,6 +444,8 @@ export const ModalCrearEventoRecuperacion: React.FC<ModalCrearEventoRecuperacion
               <strong>
                 {bannerConflicto.tipo === 'PATRULLA_OCUPADA'
                   ? 'Conflicto Operativo: Patrulla Ocupada'
+                  : bannerConflicto.tipo === 'ACTIVO_NO_DISPONIBLE'
+                  ? 'Conflicto de Inventario: Activo No Disponible'
                   : 'Conflicto de Inventario: Stock Insuficiente'}
               </strong>
               <p style={{ margin: '4px 0 0 0' }}>{bannerConflicto.mensaje}</p>
@@ -579,21 +626,23 @@ export const ModalCrearEventoRecuperacion: React.FC<ModalCrearEventoRecuperacion
             value={patrullaId}
             onChange={(e) => setPatrullaId(e.target.value)}
             error={erroresCampos.patrullaId}
-            disabled={isSubmitting}
+            disabled={isSubmitting || cargandoCatalogos}
           >
-            <option value="">Seleccione una patrulla verificadora...</option>
+            <option value="">
+              {cargandoCatalogos ? 'Cargando patrullas desde servidor...' : 'Seleccione una patrulla verificadora...'}
+            </option>
             {patrullasFiltradas.map((p) => {
               const esDisponible = p.estado === 'DISPONIBLE';
               return (
                 <option key={p.id} value={p.id}>
-                  {p.nombre} — {esDisponible ? '🟢 DISPONIBLE' : `🔴 (${p.estado})`}
+                  {p.nombre} — {esDisponible ? 'DISPONIBLE' : `(${p.estado})`}
                   {p.delegacionNombre ? ` — ${p.delegacionNombre}` : ''}
                 </option>
               );
             })}
           </Select>
 
-          {patrullasFiltradas.length === 0 && (
+          {!cargandoCatalogos && patrullasFiltradas.length === 0 && (
             <div style={{ fontSize: '12px', color: 'var(--color-warning, #E65100)' }}>
               No hay patrullas verificadoras en estado DISPONIBLE. Desmarque el filtro para ver todas las patrullas.
             </div>
@@ -623,6 +672,7 @@ export const ModalCrearEventoRecuperacion: React.FC<ModalCrearEventoRecuperacion
             {filasRecursos.map((fila, index) => {
               const recSeleccionado = inventarioMap.get(fila.recursoId);
               const disponible = recSeleccionado?.cantidadDisponible ?? null;
+              const esIndividual = Boolean(recSeleccionado?.esIndividual);
               const errorFila = erroresCampos[`recurso_${index}`];
               const errorCantidad = erroresCampos[`cantidad_${index}`];
 
@@ -641,13 +691,19 @@ export const ModalCrearEventoRecuperacion: React.FC<ModalCrearEventoRecuperacion
                   </td>
                   <td>
                     {disponible !== null ? (
-                      <span
-                        className={`${styles.stockBadge} ${
-                          disponible > 0 ? styles.stockBadgeAvailable : styles.stockBadgeLow
-                        }`}
-                      >
-                        {disponible > 0 ? `${disponible} unidades disponibles` : 'Sin stock disponible'}
-                      </span>
+                      esIndividual ? (
+                        <span className={`${styles.stockBadge} ${styles.stockBadgeAvailable}`}>
+                          Activo Individual (1 unidad)
+                        </span>
+                      ) : (
+                        <span
+                          className={`${styles.stockBadge} ${
+                            disponible > 0 ? styles.stockBadgeAvailable : styles.stockBadgeLow
+                          }`}
+                        >
+                          {disponible > 0 ? `${disponible} unidades disponibles` : 'Sin stock disponible'}
+                        </span>
+                      )
                     ) : (
                       <span style={{ color: '#888', fontSize: '11px' }}>Seleccione recurso</span>
                     )}
@@ -656,14 +712,14 @@ export const ModalCrearEventoRecuperacion: React.FC<ModalCrearEventoRecuperacion
                     <input
                       type="number"
                       min={1}
-                      max={disponible ?? undefined}
+                      max={esIndividual ? 1 : (disponible ?? undefined)}
                       className={styles.input}
                       style={{ width: '100%', padding: '6px 8px', fontSize: '13px' }}
-                      value={fila.cantidad}
+                      value={esIndividual ? 1 : fila.cantidad}
                       onChange={(e) =>
                         handleCantidadChange(fila.idTemporal, parseInt(e.target.value, 10) || 0)
                       }
-                      disabled={isSubmitting || !fila.recursoId}
+                      disabled={isSubmitting || !fila.recursoId || esIndividual}
                       aria-label={`Cantidad a entregar para fila ${index + 1}`}
                     />
                     {errorCantidad && <span className={styles.fieldError}>{errorCantidad}</span>}

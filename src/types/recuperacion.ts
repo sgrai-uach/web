@@ -79,7 +79,7 @@ export interface CrearEventoRecuperacionApiResponse {
 export interface PatrullaVerificadoraItem {
   id: string;
   nombre: string;
-  estado: 'DISPONIBLE' | 'EN_VERIFICACION' | 'EN_RECUPERACION' | 'NO_DISPONIBLE';
+  estado: 'DISPONIBLE' | 'EN_VERIFICACION' | 'EN_MISION' | 'EN_PREVENCION' | 'EN_RECUPERACION' | 'NO_DISPONIBLE';
   delegacionId?: string | null;
   delegacionNombre?: string | null;
 }
