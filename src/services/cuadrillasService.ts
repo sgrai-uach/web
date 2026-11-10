@@ -751,21 +751,52 @@ export const cuadrillasService = {
         }
       );
 
+      // Propagación explícita de errores de autenticación/autorización:
+      // nunca se debe caer al fallback con datos municipales ante un 401 o 403.
+      if (response && (response.status === 401 || response.status === 403)) {
+        throw new CuadrillaServiceError(
+          response.status === 401
+            ? 'Su sesión expiró o no está autenticado para consultar cuadrillas operativas.'
+            : 'No tiene permisos suficientes para consultar cuadrillas operativas (requiere permiso recursos:leer).',
+          response.status,
+          'general',
+          response.status === 401 ? 'NO_AUTENTICADO' : 'PERMISOS_INSUFICIENTES'
+        );
+      }
+
       if (response && response.ok && data) {
         if (Array.isArray(data.data)) {
+          // Contrato H34: el backend puede responder con page/limit/totalPages
+          // o con la nomenclatura histórica pagina/limite/paginasTotales.
+          const rawMeta = (data.meta ?? {}) as Partial<MetaPaginacionCuadrillas> & {
+            page?: number;
+            limit?: number;
+            totalPages?: number;
+          };
+          const paginaNormalizada = rawMeta.pagina ?? rawMeta.page ?? pagina;
+          const limiteNormalizado = rawMeta.limite ?? rawMeta.limit ?? limite;
+          const totalNormalizado = rawMeta.total ?? data.data.length;
+          const paginasTotalesNormalizadas =
+            rawMeta.paginasTotales ??
+            rawMeta.totalPages ??
+            (Math.ceil(totalNormalizado / limiteNormalizado) || 1);
+
           return {
             cuadrillas: data.data,
-            meta: data.meta || {
-              total: data.data.length,
-              pagina,
-              limite,
-              paginasTotales: Math.ceil(data.data.length / limite) || 1,
+            meta: {
+              total: totalNormalizado,
+              pagina: paginaNormalizada,
+              limite: limiteNormalizado,
+              paginasTotales: paginasTotalesNormalizadas,
             },
           };
         }
       }
-    } catch {
-      // Continuar al fallback si falla la llamada
+    } catch (err) {
+      // Los errores de permisos deben llegar al hook/vista; el resto usa fallback.
+      if (err instanceof CuadrillaServiceError) {
+        throw err;
+      }
     }
 
     // Filtrado de respaldo en memoria local (fallback)

@@ -108,4 +108,83 @@ describe('CuadrillasTabla (H81)', () => {
     fireEvent.click(botonesDetalle[0]);
     expect(onDetalle).toHaveBeenCalledWith(mockCuadrillas[0]);
   });
+
+  it('debe abrir el drawer al hacer clic sobre la fila completa (CA-3)', () => {
+    const onDetalle = vi.fn();
+    render(
+      <CuadrillasTabla
+        cuadrillas={mockCuadrillas}
+        cargando={false}
+        onEditarCuadrilla={vi.fn()}
+        onVerDetalle={onDetalle}
+        puedeEditar={true}
+      />
+    );
+
+    const fila = screen.getByText('Cuadrilla Vías y Despeje').closest('tr');
+    expect(fila).not.toBeNull();
+    fireEvent.click(fila as HTMLElement);
+    expect(onDetalle).toHaveBeenCalledWith(mockCuadrillas[0]);
+  });
+
+  it('no debe propagar el clic de los botones de acción hacia la fila', () => {
+    const onDetalle = vi.fn();
+    const onEditar = vi.fn();
+    render(
+      <CuadrillasTabla
+        cuadrillas={[mockCuadrillas[0]]}
+        cargando={false}
+        onEditarCuadrilla={onEditar}
+        onVerDetalle={onDetalle}
+        puedeEditar={true}
+      />
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /editar/i }));
+    expect(onEditar).toHaveBeenCalledTimes(1);
+    expect(onDetalle).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole('button', { name: /detalle/i }));
+    expect(onDetalle).toHaveBeenCalledTimes(1);
+  });
+
+  it('debe renderizar el badge NO DISPONIBLE con etiqueta neutra', () => {
+    const cuadrillaNoDisponible: CuadrillaItem = {
+      ...mockCuadrillas[0],
+      id: 'cuadrilla-3',
+      nombre: 'Cuadrilla en Mantención',
+      estado: 'NO_DISPONIBLE',
+    };
+
+    render(
+      <CuadrillasTabla
+        cuadrillas={[cuadrillaNoDisponible]}
+        cargando={false}
+        onEditarCuadrilla={vi.fn()}
+        onVerDetalle={vi.fn()}
+        puedeEditar={true}
+      />
+    );
+
+    expect(screen.getByText('NO DISPONIBLE')).toBeDefined();
+  });
+
+  it('debe mostrar el botón Limpiar filtros en el estado vacío con filtros activos', () => {
+    const onLimpiar = vi.fn();
+    render(
+      <CuadrillasTabla
+        cuadrillas={[]}
+        cargando={false}
+        onEditarCuadrilla={vi.fn()}
+        onVerDetalle={vi.fn()}
+        puedeEditar={true}
+        tieneFiltrosActivos={true}
+        onLimpiarFiltros={onLimpiar}
+      />
+    );
+
+    const boton = screen.getByRole('button', { name: /limpiar filtros/i });
+    fireEvent.click(boton);
+    expect(onLimpiar).toHaveBeenCalledTimes(1);
+  });
 });

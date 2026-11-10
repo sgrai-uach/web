@@ -171,5 +171,20 @@ describe('useCuadrillas hook (H80)', () => {
     expect(result.current.error).toBe('Fallo de conexión con el servidor');
     expect(result.current.cuadrillas).toEqual([]);
   });
+
+  it('caso 5: expone errorStatus cuando el servicio rechaza por permisos (403)', async () => {
+    vi.mocked(cuadrillasService.obtenerCuadrillas).mockRejectedValue(
+      Object.assign(new Error('No tiene permisos suficientes'), { status: 403 })
+    );
+
+    const { result } = renderHook(() => useCuadrillas({ pagina: 1, limite: 10 }));
+
+    await waitFor(() => {
+      expect(result.current.cargando).toBe(false);
+    });
+
+    expect(result.current.error).toBe('No tiene permisos suficientes');
+    expect(result.current.errorStatus).toBe(403);
+  });
 });
 

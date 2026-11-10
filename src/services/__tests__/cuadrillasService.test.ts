@@ -415,5 +415,64 @@ describe('cuadrillasService (H79)', () => {
       expect(resultado.cuadrillas.length).toBeGreaterThan(0);
       expect(resultado.meta.total).toBeGreaterThan(0);
     });
+
+    it('debe propagar 403 Forbidden sin exponer datos de fallback', async () => {
+      vi.spyOn(apiClient, 'GET').mockResolvedValueOnce({
+        data: undefined,
+        error: { message: 'Forbidden' },
+        response: new Response(null, { status: 403 }),
+      } as unknown as Awaited<ReturnType<typeof apiClient.GET>>);
+
+      await expect(cuadrillasService.obtenerCuadrillas({ pagina: 1, limite: 10 })).rejects.toMatchObject({
+        name: 'CuadrillaServiceError',
+        status: 403,
+        codigo: 'PERMISOS_INSUFICIENTES',
+      });
+    });
+
+    it('debe propagar 401 Unauthorized sin exponer datos de fallback', async () => {
+      vi.spyOn(apiClient, 'GET').mockResolvedValueOnce({
+        data: undefined,
+        error: { message: 'Unauthorized' },
+        response: new Response(null, { status: 401 }),
+      } as unknown as Awaited<ReturnType<typeof apiClient.GET>>);
+
+      await expect(cuadrillasService.obtenerCuadrillas()).rejects.toMatchObject({
+        name: 'CuadrillaServiceError',
+        status: 401,
+        codigo: 'NO_AUTENTICADO',
+      });
+    });
+
+    it('debe normalizar metadatos H34 (page/limit/totalPages) al contrato interno', async () => {
+      vi.spyOn(apiClient, 'GET').mockResolvedValueOnce({
+        data: {
+          message: 'Listado obtenido',
+          data: [
+            {
+              id: 'c-1',
+              nombre: 'Cuadrilla Test',
+              estado: 'DISPONIBLE',
+              delegacion: { id: 'd-1', nombre: 'Norte' },
+              delegado: { id: 'u-1', nombre: 'Juan', email: 'juan@valdivia.cl' },
+              recursos: [],
+              trabajadores: [],
+              creadoEn: '2026-10-24T12:00:00.000Z',
+            },
+          ],
+          meta: { total: 21, page: 3, limit: 5, totalPages: 5 },
+        },
+        error: null,
+        response: new Response(null, { status: 200 }),
+      } as unknown as Awaited<ReturnType<typeof apiClient.GET>>);
+
+      const resultado = await cuadrillasService.obtenerCuadrillas({ pagina: 1, limite: 10 });
+      expect(resultado.meta).toEqual({
+        total: 21,
+        pagina: 3,
+        limite: 5,
+        paginasTotales: 5,
+      });
+    });
   });
 });

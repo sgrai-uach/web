@@ -14,6 +14,7 @@ export interface UseCuadrillasReturn {
   meta: MetaPaginacionCuadrillas;
   cargando: boolean;
   error: string | null;
+  errorStatus: number | null;
   recargar: () => Promise<void>;
   actualizarCuadrillaEnLista: (cuadrillaActualizada: CuadrillaItem) => void;
 }
@@ -28,6 +29,7 @@ export function useCuadrillas(filtros: FiltrosCuadrillasState): UseCuadrillasRet
   });
   const [cargando, setCargando] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [errorStatus, setErrorStatus] = useState<number | null>(null);
 
   const filtrosRef = useRef(filtros);
   useEffect(() => {
@@ -38,10 +40,16 @@ export function useCuadrillas(filtros: FiltrosCuadrillasState): UseCuadrillasRet
     try {
       setCargando(true);
       setError(null);
+      setErrorStatus(null);
       const resultado = await cuadrillasService.obtenerCuadrillas(filtrosRef.current);
       setCuadrillas(resultado.cuadrillas);
       setMeta(resultado.meta);
     } catch (err: unknown) {
+      const status =
+        typeof (err as { status?: unknown })?.status === 'number'
+          ? (err as { status: number }).status
+          : null;
+      setErrorStatus(status);
       setError(err instanceof Error ? err.message : 'Error al cargar las cuadrillas operativas.');
     } finally {
       setCargando(false);
@@ -102,6 +110,7 @@ export function useCuadrillas(filtros: FiltrosCuadrillasState): UseCuadrillasRet
     meta,
     cargando,
     error,
+    errorStatus,
     recargar: cargarDatos,
     actualizarCuadrillaEnLista,
   };
