@@ -186,6 +186,7 @@ export const IncidentesKpiCards: React.FC<IncidentesKpiCardsProps> = ({
             disabled={cargando}
             aria-label="Actualizar contadores de incidentes"
             title="Actualizar datos"
+            suppressHydrationWarning
           >
             <RotateCw size={13} className={cargando ? styles.spinner : undefined} />
             <span>{cargando ? 'Actualizando...' : 'Actualizar'}</span>
