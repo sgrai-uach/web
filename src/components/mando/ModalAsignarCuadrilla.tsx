@@ -12,7 +12,7 @@ import { misionesService } from '@/services/misionesService';
 import type { IncidenteDetalle } from '@/services/incidentesService';
 import type { CuadrillaItem } from '@/types/cuadrilla';
 import type { PrioridadMision, DespacharCuadrillaResponse } from '@/types/misiones';
-import { HardHat, AlertTriangle, Truck } from 'lucide-react';
+import { HardHat, ShieldCheck, CheckCircle2, Truck } from 'lucide-react';
 import styles from './ModalAsignarCuadrilla.module.css';
 
 export interface ModalAsignarCuadrillaProps {
@@ -41,10 +41,14 @@ export const ModalAsignarCuadrilla: React.FC<ModalAsignarCuadrillaProps> = ({
   const [cargandoCuadrillas, setCargandoCuadrillas] = useState<boolean>(false);
   const [errorCargaCuadrillas, setErrorCargaCuadrillas] = useState<string | null>(null);
 
-  // Campos del formulario
+  // Campos del formulario inicializados de forma reactiva a partir del incidente
   const [cuadrillaId, setCuadrillaId] = useState<string>('');
-  const [prioridad, setPrioridad] = useState<PrioridadMision>('MEDIA');
-  const [titulo, setTitulo] = useState<string>('');
+  const [prioridad, setPrioridad] = useState<PrioridadMision>(
+    (incidente?.prioridad as PrioridadMision) || 'MEDIA'
+  );
+  const [titulo, setTitulo] = useState<string>(
+    incidente ? `Atención táctica - ${incidente.codigo}` : ''
+  );
   const [descripcion, setDescripcion] = useState<string>('');
 
   // Estados de envío y feedback
@@ -66,46 +70,34 @@ export const ModalAsignarCuadrilla: React.FC<ModalAsignarCuadrillaProps> = ({
 
   const patrullaAsignada = misionVerificacion?.patrulla;
 
-  // 2. Validación crítica: El Encargado no puede asignar cuadrilla si la patrulla aún está verificando
-  const verificacionPendiente = useMemo(() => {
-    if (!misionVerificacion) return false;
-    const estadosEnCurso = [
-      'PLANIFICADA',
-      'ASIGNADA',
-      'DESPACHADA',
-      'EN_CAMINO',
-      'EN_SITIO',
-      'EN_CURSO',
-    ];
-    return estadosEnCurso.includes((misionVerificacion.estado || '').toUpperCase());
-  }, [misionVerificacion]);
-
   // Cargar cuadrillas disponibles y reiniciar campos al abrir
   useEffect(() => {
     if (!isOpen || !incidente) return;
 
-    // Inicializar campos
-    setPrioridad((incidente.prioridad as PrioridadMision) || 'MEDIA');
-    setTitulo(`Atención táctica - ${incidente.codigo}`);
-    setDescripcion('');
-    setCuadrillaId('');
-    setErrorApi(null);
-    setErrorCargaCuadrillas(null);
-
     let isMounted = true;
-    setCargandoCuadrillas(true);
 
-    cuadrillasService.obtenerCuadrillas({ pagina: 1, limite: 100, estado: 'DISPONIBLE' })
-      .then((res) => {
-        if (!isMounted) return;
-        setCuadrillasDisponibles(res.cuadrillas || []);
-        setCargandoCuadrillas(false);
-      })
-      .catch(() => {
-        if (!isMounted) return;
-        setErrorCargaCuadrillas('No se pudo cargar la dotación de cuadrillas disponibles.');
-        setCargandoCuadrillas(false);
-      });
+    Promise.resolve().then(() => {
+      if (!isMounted) return;
+      setPrioridad((incidente.prioridad as PrioridadMision) || 'MEDIA');
+      setTitulo(`Atención táctica - ${incidente.codigo}`);
+      setDescripcion('');
+      setCuadrillaId('');
+      setErrorApi(null);
+      setErrorCargaCuadrillas(null);
+      setCargandoCuadrillas(true);
+
+      return cuadrillasService.obtenerCuadrillas({ pagina: 1, limite: 100, estado: 'DISPONIBLE' });
+    })
+    .then((res) => {
+      if (!isMounted || !res) return;
+      setCuadrillasDisponibles(res.cuadrillas || []);
+      setCargandoCuadrillas(false);
+    })
+    .catch(() => {
+      if (!isMounted) return;
+      setErrorCargaCuadrillas('No se pudo cargar la dotación de cuadrillas disponibles.');
+      setCargandoCuadrillas(false);
+    });
 
     return () => {
       isMounted = false;
@@ -116,13 +108,6 @@ export const ModalAsignarCuadrilla: React.FC<ModalAsignarCuadrillaProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (verificacionPendiente) {
-      setErrorApi(
-        'No es posible despachar cuadrilla: la patrulla verificadora aún se encuentra en terreno evaluando el incidente.'
-      );
-      return;
-    }
 
     if (!cuadrillaId) {
       setErrorApi('Debe seleccionar una cuadrilla operativa para realizar el despacho.');
@@ -183,27 +168,37 @@ export const ModalAsignarCuadrilla: React.FC<ModalAsignarCuadrillaProps> = ({
           </div>
         </div>
 
-        {/* Validación 1: Verificación técnica en curso (Bloqueante) */}
-        {verificacionPendiente && (
-          <div className={styles.patrullaBloqueadaCard} role="alert">
-            <AlertTriangle size={18} aria-hidden="true" style={{ flexShrink: 0 }} />
+        {/* Tarjeta Regla de Negocio ICS §3.2: Relevo táctico cuando la patrulla continúa activa */}
+        {patrullaAsignada && misionVerificacion?.estado !== 'COMPLETADA' && (
+          <div className={styles.patrullaRelevoCard} role="status">
+            <ShieldCheck size={18} aria-hidden="true" style={{ flexShrink: 0 }} />
             <div>
-              <strong>Evaluación técnica en terreno en curso</strong>
+              <strong>Regla de Negocio ICS §3.2 (Relevo Táctico)</strong>
               <div>
-                La patrulla verificadora{' '}
-                <strong>{patrullaAsignada?.nombre || 'asignada'}</strong> aún se encuentra evaluando el
-                incidente (misión {misionVerificacion?.codigo}, estado:{' '}
-                <em>{misionVerificacion?.estado}</em>).
-              </div>
-              <div style={{ marginTop: '4px', fontWeight: 600 }}>
-                Según el protocolo ICS, debe esperar a que la patrulla concluya la verificación técnica antes
-                de despachar cuadrillas pesadas.
+                Al confirmar el despacho de la cuadrilla, la patrulla verificadora{' '}
+                <strong>{patrullaAsignada.nombre}</strong> será automáticamente relevada a estado{' '}
+                <strong>DISPONIBLE</strong> y su misión previa se marcará como <strong>COMPLETADA</strong>.
               </div>
             </div>
           </div>
         )}
 
-        {/* Alerta de error API */}
+        {/* Tarjeta de antecedentes técnicos: cuando la patrulla ya concluyó la evaluación */}
+        {patrullaAsignada && misionVerificacion?.estado === 'COMPLETADA' && (
+          <div className={styles.patrullaConcluidaCard} role="status">
+            <CheckCircle2 size={18} aria-hidden="true" style={{ flexShrink: 0 }} />
+            <div>
+              <strong>Diagnóstico Técnico en Terreno Completado</strong>
+              <div>
+                Evaluación técnica en terreno finalizada por la patrulla{' '}
+                <strong>{patrullaAsignada.nombre}</strong>. La unidad ya se encuentra liberada y en estado{' '}
+                <strong>DISPONIBLE</strong>.
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Alerta de error API (incluyendo 409 Conflict VERIFICACION_EN_CURSO) */}
         {errorApi && (
           <InlineNotice variant="error">
             {errorApi}
@@ -240,7 +235,7 @@ export const ModalAsignarCuadrilla: React.FC<ModalAsignarCuadrillaProps> = ({
                 aria-label="Cuadrilla Operativa"
                 value={cuadrillaId}
                 onChange={(e) => setCuadrillaId(e.target.value)}
-                disabled={verificacionPendiente || enviando}
+                disabled={enviando}
                 required
               >
                 <option value="">-- Seleccionar cuadrilla operativa disponible --</option>
@@ -252,7 +247,6 @@ export const ModalAsignarCuadrilla: React.FC<ModalAsignarCuadrillaProps> = ({
                 ))}
               </Select>
             )}
-            
           </div>
 
           {/* Selector de Prioridad */}
@@ -265,7 +259,7 @@ export const ModalAsignarCuadrilla: React.FC<ModalAsignarCuadrillaProps> = ({
               value={prioridad}
               onChange={(e) => setPrioridad(e.target.value as PrioridadMision)}
               options={OPCIONES_PRIORIDAD}
-              disabled={verificacionPendiente || enviando}
+              disabled={enviando}
             />
             <span className={styles.helperText}>
               Heredada inicialmente de la prioridad asignada al incidente.
@@ -282,7 +276,7 @@ export const ModalAsignarCuadrilla: React.FC<ModalAsignarCuadrillaProps> = ({
               value={titulo}
               onChange={(e) => setTitulo(e.target.value)}
               placeholder="Ej. Atención táctica - INC-2026-0001"
-              disabled={verificacionPendiente || enviando}
+              disabled={enviando}
             />
           </div>
 
@@ -297,7 +291,7 @@ export const ModalAsignarCuadrilla: React.FC<ModalAsignarCuadrillaProps> = ({
               onChange={(e) => setDescripcion(e.target.value)}
               placeholder="Describa el trabajo a efectuar: despeje de calzada, uso de motobomba, corte de ramas caídas, etc."
               rows={3}
-              disabled={verificacionPendiente || enviando}
+              disabled={enviando}
             />
           </div>
         </div>
@@ -317,7 +311,6 @@ export const ModalAsignarCuadrilla: React.FC<ModalAsignarCuadrillaProps> = ({
             type="submit"
             variant="primary"
             disabled={
-              verificacionPendiente ||
               !cuadrillaId ||
               cuadrillasDisponibles.length === 0 ||
               enviando

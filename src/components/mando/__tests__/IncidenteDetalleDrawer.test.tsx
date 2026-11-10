@@ -150,7 +150,7 @@ describe('Componente IncidenteDetalleDrawer e integración HU-17', () => {
     expect(screen.getByText('INC-2026-0042')).toBeDefined();
   });
 
-  it('muestra la barra de despacho táctico con botón deshabilitado si la patrulla aún está verificando', async () => {
+  it('muestra la barra de despacho táctico con botón habilitado para intentar el despacho incluso si la patrulla está verificando', async () => {
     const incidenteVerificando: IncidenteDetalle = {
       ...mockDetalleIncidente,
       estado: 'VERIFICANDO',
@@ -189,11 +189,11 @@ describe('Componente IncidenteDetalleDrawer e integración HU-17', () => {
 
     await waitFor(() => {
       expect(screen.getByText(/Intervención Táctica Operativa/i)).toBeDefined();
-      expect(screen.getByText(/Verificación en curso por/i)).toBeDefined();
+      expect(screen.getByText(/Patrulla asignada: Patrulla Alpha \(EN_SITIO\)/i)).toBeDefined();
     });
 
     const btnDespachar = screen.getByRole('button', { name: /Despachar Cuadrilla Operativa/i });
-    expect(btnDespachar.hasAttribute('disabled')).toBe(true);
+    expect(btnDespachar.hasAttribute('disabled')).toBe(false);
   });
 
   it('permite abrir ModalAsignarCuadrilla cuando la verificación concluyó', async () => {
@@ -271,7 +271,7 @@ describe('Componente IncidenteDetalleDrawer e integración HU-17', () => {
     });    expect(screen.queryByRole('button', { name: /Despachar Cuadrilla Operativa/i })).toBeNull();
   });
 
-  it('no muestra el botón de despacho de cuadrilla en incidentes REPORTADO', async () => {
+  it('muestra el botón de despacho de cuadrilla en incidentes REPORTADO para despacho táctico directo', async () => {
     vi.spyOn(incidentesService, 'obtenerDetalleIncidente').mockResolvedValueOnce({
       exito: true,
       datos: {
@@ -294,6 +294,7 @@ describe('Componente IncidenteDetalleDrawer e integración HU-17', () => {
       expect(screen.getByText('INC-2026-0042')).toBeDefined();
     });
 
-    expect(screen.queryByRole('button', { name: /Despachar Cuadrilla Operativa/i })).toBeNull();
+    expect(screen.getByRole('button', { name: /Despachar Cuadrilla Operativa/i })).toBeDefined();
+    expect(screen.getByText(/Sin patrulla previa asignada \(despacho táctico directo\)/i)).toBeDefined();
   });
 });

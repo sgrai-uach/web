@@ -34,7 +34,7 @@ describe('ModalAsignarCuadrilla (HU-21 / Regla ICS §3.2)', () => {
         titulo: 'Verificar nivel de inundación',
         descripcion: 'Inspección visual en sitio',
         tipoMision: 'VERIFICACION',
-        estado: 'EN_SITIO', // En curso -> debe bloquear la asignación de cuadrilla
+        estado: 'EN_SITIO', // En curso -> relevo táctico pendiente según ICS §3.2
         prioridad: 'ALTA',
         justificacionRechazo: null,
         patrulla: {
@@ -61,7 +61,7 @@ describe('ModalAsignarCuadrilla (HU-21 / Regla ICS §3.2)', () => {
     misiones: [
       {
         ...mockIncidenteConPatrullaEnCurso.misiones[0],
-        estado: 'COMPLETADA', // Ya terminó de verificar -> listo para relevar y despachar cuadrilla
+        estado: 'COMPLETADA', // Ya terminó de verificar -> antecedente técnico cerrado
       },
     ],
   };
@@ -102,7 +102,7 @@ describe('ModalAsignarCuadrilla (HU-21 / Regla ICS §3.2)', () => {
     expect(container.firstChild).toBeNull();
   });
 
-  it('bloquea la asignación y muestra advertencia si la patrulla verificadora aún no concluye la evaluación en terreno', async () => {
+  it('muestra la tarjeta de relevo táctico ICS §3.2 cuando la patrulla sigue asociada a la verificación', async () => {
     vi.spyOn(cuadrillasService, 'obtenerCuadrillas').mockResolvedValueOnce({
       cuadrillas: mockCuadrillasDisponibles,
       meta: { total: 2, pagina: 1, limite: 10, paginasTotales: 1 },
@@ -116,17 +116,25 @@ describe('ModalAsignarCuadrilla (HU-21 / Regla ICS §3.2)', () => {
       />
     );
 
-    // Debe mostrar la alerta de evaluación técnica en curso
-    expect(screen.getByText(/Evaluación técnica en terreno en curso/i)).toBeDefined();
+    // Debe mostrar la tarjeta informativa de la regla ICS §3.2 explicando que la patrulla será relevada
+    expect(screen.getByText(/Regla de Negocio ICS §3.2 \(Relevo Táctico\)/i)).toBeDefined();
     expect(screen.getByText(/Patrulla Rápida Costa 1/i)).toBeDefined();
-    expect(screen.getByText(/debe esperar a que la patrulla concluya la verificación técnica/i)).toBeDefined();
+    expect(screen.getByText(/será automáticamente relevada a estado/i)).toBeDefined();
 
-    // El botón de despacho debe estar estrictamente deshabilitado
+    // Esperar a que se listen las cuadrillas disponibles en el selector
+    await waitFor(() => {
+      expect(screen.getByText(/Cuadrilla Vías y Canales 1/i)).toBeDefined();
+    });
+
+    // El botón debe permanecer habilitable una vez seleccionada la cuadrilla (no vetado de antemano)
+    const selectCuadrilla = screen.getByRole('combobox', { name: /Cuadrilla Operativa/i });
+    fireEvent.change(selectCuadrilla, { target: { value: 'cuad-01' } });
+
     const submitBtn = screen.getByRole('button', { name: /Confirmar y Despachar/i });
-    expect(submitBtn.hasAttribute('disabled')).toBe(true);
+    expect(submitBtn.hasAttribute('disabled')).toBe(false);
   });
 
-  it('muestra la regla ICS §3.2 de relevo automático y permite despachar cuando la verificación ya terminó', async () => {
+  it('muestra antecedente técnico cerrado y permite despachar cuando la verificación ya terminó', async () => {
     vi.spyOn(cuadrillasService, 'obtenerCuadrillas').mockResolvedValueOnce({
       cuadrillas: mockCuadrillasDisponibles,
       meta: { total: 2, pagina: 1, limite: 10, paginasTotales: 1 },
@@ -177,6 +185,10 @@ describe('ModalAsignarCuadrilla (HU-21 / Regla ICS §3.2)', () => {
       />
     );
 
+    // Debe mostrar la tarjeta de antecedente técnico cerrado
+    expect(screen.getByText(/Diagnóstico Técnico en Terreno Completado/i)).toBeDefined();
+    expect(screen.getByText(/Evaluación técnica en terreno finalizada por la patrulla/i)).toBeDefined();
+
     // Esperar a que se listen las cuadrillas disponibles en el selector
     await waitFor(() => {
       expect(screen.getByText(/Cuadrilla Vías y Canales 1/i)).toBeDefined();
@@ -207,7 +219,7 @@ describe('ModalAsignarCuadrilla (HU-21 / Regla ICS §3.2)', () => {
     });
   });
 
-  it('despliega error si el backend responde con conflicto o validación fallida', async () => {
+  it('despliega error si el backend responde con conflicto 409 VERIFICACION_EN_CURSO', async () => {
     vi.spyOn(cuadrillasService, 'obtenerCuadrillas').mockResolvedValueOnce({
       cuadrillas: mockCuadrillasDisponibles,
       meta: { total: 2, pagina: 1, limite: 10, paginasTotales: 1 },
@@ -224,7 +236,7 @@ describe('ModalAsignarCuadrilla (HU-21 / Regla ICS §3.2)', () => {
       <ModalAsignarCuadrilla
         isOpen={true}
         onClose={vi.fn()}
-        incidente={mockIncidenteVerificacionConcluida}
+        incidente={mockIncidenteConPatrullaEnCurso}
       />
     );
 
@@ -238,9 +250,6 @@ describe('ModalAsignarCuadrilla (HU-21 / Regla ICS §3.2)', () => {
     const submitBtn = screen.getByRole('button', { name: /Confirmar y Despachar/i });
     fireEvent.click(submitBtn);
 
-    await waitFor(() => {
-      expect(screen.getByText(/Conflicto: la patrulla aún está evaluando el sitio/i)).toBeDefined();
-    });
     await waitFor(() => {
       expect(screen.getByText(/Conflicto: la patrulla aún está evaluando el sitio/i)).toBeDefined();
     });
