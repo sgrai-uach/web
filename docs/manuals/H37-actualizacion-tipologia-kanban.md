@@ -35,7 +35,7 @@ Sin que el Encargado deba presionar F5 o refrescar la pantalla:
 4. **Tooltip Informativo:** Al posar el cursor sobre la tarjeta o su etiqueta, se despliega la justificación presencial ingresada por la patrulla y si existió ajuste de prioridad.
 5. **Franja en Vivo:** La barra de estado del Centro de Mando informa la novedad: `"Actualización en vivo: Tipología reclasificada: INC-2026-001 a Inundación (Prioridad: Alta)"`.
 
-### Paso 4: Consulta de Justificación en el Panel Lateral (Drawer)
+### Paso 4: Consulta de Justificación y Misiones en el Panel Lateral (Drawer)
 Al hacer clic sobre la tarjeta del incidente reclasificado:
 1. Se abre el panel lateral de detalle del caso.
 2. En la sección **Resumen del Incidente**, se despliega el bloque destacado con acento institucional:
@@ -43,8 +43,17 @@ Al hacer clic sobre la tarjeta del incidente reclasificado:
    - **Tipología constatada:** Nombre oficial de la categoría corregida.
    - **Justificación de la patrulla:** Relato técnico detallado ingresado por el verificador en terreno.
    - **Prioridad ajustada:** Valor amigable resultante de la evaluación técnica.
-3. En la cabecera del drawer, los badges muestran estados y prioridades institucionales legibles (ej. `Estado: En verificación`, `Prioridad: Alta`), sin exponer enums de programación en mayúsculas sostenidas.
-4. Si el Encargado tenía el panel lateral abierto en el momento exacto en que la patrulla guarda la reclasificación en terreno, el drawer se sincroniza reactivamente actualizando los campos sin cerrarse.
+3. En la sección **Misiones y Equipos en Terreno**, las tarjetas de misión han sido completamente estandarizadas bajo las normas de diseño institucional (`GEMINI.md`):
+   - **Estados en Chips Planos:** El estado de la misión se exhibe en un chip de esquinas rectas (`0px`), texto en negrita y colores semánticos (`En Curso`, `Despachada`, `Completada`, `Rechazada`, `Planificada`, `Cancelada`).
+   - **Textos Legibles:** Se eliminan enums internos en crudo (`EN_CURSO`, `VERIFICACION`, `MEDIA`); se muestran denominaciones naturales como `Verificación en terreno`, `Prioridad: Media`, `Patrulla: [Nombre] (En verificación)`.
+   - **Gestión Visual de Rechazo:** Si una misión fue rechazada por la cuadrilla o patrulla, la tarjeta exhibe un borde lateral de alerta destructiva (`var(--color-danger)`), el ícono `AlertTriangle` y una caja semántica de fondo suave destacando la **justificación del rechazo** ingresada desde terreno.
+   - **Detalle de Fecha y Código:** Código de la misión presentado en un tag carbón discreto (`MIS-2026-XXXX`) y hora de asignación formateada con ícono `Clock`.
+4. En la cabecera del drawer, los badges muestran estados y prioridades institucionales legibles (ej. `Estado: En verificación`, `Prioridad: Alta`), sin exponer enums de programación en mayúsculas sostenidas.
+5. Si el Encargado tenía el panel lateral abierto en el momento exacto en que la patrulla guarda la reclasificación en terreno, el drawer se sincroniza reactivamente actualizando los campos sin cerrarse.
+
+### Paso 5: Sincronización Automática de Columna en Kanban
+- **Transición a "En Verificación":** Cuando una misión de verificación es asignada o aceptada en terreno, el incidente transiciona automáticamente de la columna **"Pendiente / Reportado"** a **"En Verificación"** (`VERIFICANDO`).
+- **Prevención de Asignaciones Duplicadas:** Las tarjetas de incidentes con misiones activas ocultan automáticamente el botón *"Asignar Patrulla"*, evitando despachos redundantes y manteniendo la integridad del flujo operativo.
 
 ---
 
