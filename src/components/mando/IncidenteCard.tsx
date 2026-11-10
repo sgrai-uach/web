@@ -1,5 +1,5 @@
 import React from 'react';
-import { MapPin, ShieldCheck, CheckCircle2 } from 'lucide-react';
+import { MapPin, ShieldCheck, CheckCircle2, Hourglass } from 'lucide-react';
 import type { IncidenteResumen } from '@/services/incidentesService';
 import { obtenerNombreDelegacion } from '@/lib/utils/delegacionUtils';
 import { formatearPrioridad } from '@/lib/utils/estadoUtils';
@@ -113,27 +113,47 @@ export const IncidenteCard: React.FC<IncidenteCardProps> = ({
         <span>{obtenerNombreDelegacion(incidente.delegacionNombre, 'Sin delegación')}</span>
       </div>
 
-      {incidente.estado === 'REPORTADO' &&
-        !incidente.tieneMisionDespachada &&
-        (!incidente.totalMisiones || incidente.totalMisiones === 0) &&
-        onAsignarPatrulla &&
-        puedeAsignarPatrulla && (
+      {incidente.estado === 'REPORTADO' && (incidente.tieneMisionDespachada || (onAsignarPatrulla && puedeAsignarPatrulla)) && (
         <div style={{ marginTop: '0.625rem', paddingTop: '0.5rem', borderTop: '1px solid var(--border-color-neutral, #DFE3E8)' }}>
-          <Button
-            type="button"
-            variant="primary"
-            size="sm"
-            onClick={(e) => {
-              e.stopPropagation();
-              onAsignarPatrulla(incidente);
-            }}
-            style={{ width: '100%', justifyContent: 'center' }}
-            title={`Asignar patrulla verificadora al incidente ${incidente.codigo}`}
-            aria-label={`Asignar patrulla verificadora al incidente ${incidente.codigo}`}
-          >
-            <ShieldCheck size={14} style={{ marginRight: '5px' }} />
-            <span>Asignar Patrulla</span>
-          </Button>
+          {incidente.tieneMisionDespachada ? (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled
+              icon={<Hourglass size={15} strokeWidth={2.25} style={{ flexShrink: 0 }} aria-hidden="true" />}
+              style={{
+                width: '100%',
+                justifyContent: 'center',
+                backgroundColor: 'var(--color-warning-bg, #FFF3E0)',
+                color: 'var(--color-warning, #E65100)',
+                cursor: 'not-allowed',
+                borderColor: 'var(--color-warning-border, #FFE0B2)',
+                fontWeight: 700,
+                opacity: 1,
+              }}
+              title="La patrulla fue asignada y está a la espera de aceptar o rechazar en terreno"
+              aria-label={`Confirmación pendiente para el incidente ${incidente.codigo}`}
+            >
+              <span>Confirmación Pendiente</span>
+            </Button>
+          ) : onAsignarPatrulla && puedeAsignarPatrulla ? (
+            <Button
+              type="button"
+              variant="primary"
+              size="sm"
+              icon={<ShieldCheck size={14} style={{ flexShrink: 0 }} />}
+              onClick={(e) => {
+                e.stopPropagation();
+                onAsignarPatrulla(incidente);
+              }}
+              style={{ width: '100%', justifyContent: 'center' }}
+              title={`Asignar patrulla verificadora al incidente ${incidente.codigo}`}
+              aria-label={`Asignar patrulla verificadora al incidente ${incidente.codigo}`}
+            >
+              <span>Asignar Patrulla</span>
+            </Button>
+          ) : null}
         </div>
       )}
     </div>
