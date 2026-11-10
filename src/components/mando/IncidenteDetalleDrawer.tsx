@@ -14,7 +14,10 @@ import { IncidenteRecursosSection } from './drawer/IncidenteRecursosSection';
 import { MisionDetalleModal } from './mision/MisionDetalleModal';
 import { AsignarPatrullaModal } from './patrullas/AsignarPatrullaModal';
 import type { DespacharPatrullaResponseData } from '@/types/misiones';
-import type { EstadoIncidente } from '@/services/incidentesService';
+import type {
+  EstadoIncidente,
+  EstadoTrazabilidadNotificacion,
+} from '@/services/incidentesService';
 import { usePuedeAsignarMision } from '@/hooks/usePuedeAsignarMision';
 import { getSocket } from '@/lib/socket/client';
 import type { NotificacionTrazabilidadPayload } from '@/hooks/useEncargadoKanbanSocket';
@@ -110,6 +113,9 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
           estado: data.patrulla.estado,
         },
         cuadrilla: null,
+        trazabilidadNotificacion:
+          ((data as unknown as { notificacion?: { estado?: EstadoTrazabilidadNotificacion } })
+            ?.notificacion?.estado) || 'PENDIENTE_ENVIO',
         fechaInicio: null,
         fechaCierre: null,
         creadoEn: new Date().toISOString(),
