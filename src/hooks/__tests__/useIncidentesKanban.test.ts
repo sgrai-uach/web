@@ -352,4 +352,71 @@ describe('useIncidentesKanban - HU-20 y BUG-04', () => {
     expect(incidentePostRechazo.estado).toBe('REPORTADO');
     expect(incidentePostRechazo.tieneMisionDespachada).toBe(false);
   });
+
+  it('debe reclasificar automáticamente a la columna VERIFICANDO si un incidente recibido en REPORTADO tiene tieneMisionEnCurso: true', async () => {
+    const mockIncidenteEnCurso: incidentesService.IncidenteResumen = {
+      id: 'inc-en-curso-1',
+      codigo: 'INC-592395-562',
+      codigoSeguimiento: '592395562',
+      tipoAfectacion: 'Anegamiento',
+      descripcion: 'Agua en patio',
+      direccion: 'Arauco 642, Villa Coltauco',
+      latitud: -39.82,
+      longitud: -73.24,
+      estado: 'REPORTADO',
+      prioridad: 'MEDIA',
+      requiereAsistenciaSocial: false,
+      fuenteOrigen: 'WEB',
+      informanteNombre: 'Vecino',
+      delegacionNombre: 'Valdivia',
+      totalMisiones: 1,
+      tieneMisionDespachada: false,
+      tieneMisionEnCurso: true,
+      creadoEn: '2026-11-10T10:00:00Z',
+      actualizadoEn: '2026-11-10T10:00:00Z',
+    };
+
+    vi.mocked(incidentesService.listarIncidentes).mockImplementation(async (query) => {
+      if (query.estado === 'REPORTADO') {
+        return {
+          exito: true,
+          incidentes: [mockIncidenteEnCurso],
+          paginacion: {
+            total: 1,
+            pagina: 1,
+            limite: 10,
+            totalPaginas: 1,
+            tieneSiguiente: false,
+            tieneAnterior: false,
+          },
+          mensaje: 'OK',
+        };
+      }
+      return {
+        exito: true,
+        incidentes: [],
+        paginacion: {
+          total: 0,
+          pagina: 1,
+          limite: 10,
+          totalPaginas: 0,
+          tieneSiguiente: false,
+          tieneAnterior: false,
+        },
+        mensaje: 'OK',
+      };
+    });
+
+    const { result } = renderHook(() => useIncidentesKanban());
+
+    await waitFor(() => {
+      // Debe haber sido extraído de REPORTADO y colocado en VERIFICANDO
+      expect(result.current.columnas.REPORTADO.length).toBe(0);
+      expect(result.current.columnas.VERIFICANDO.length).toBe(1);
+    });
+
+    const incVerificando = result.current.columnas.VERIFICANDO[0];
+    expect(incVerificando.codigo).toBe('INC-592395-562');
+    expect(incVerificando.estado).toBe('VERIFICANDO');
+  });
 });

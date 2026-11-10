@@ -21,6 +21,7 @@ export type IncidenteResumen = ListarIncidentesResponse['data'][number] & {
   justificacionReclasificacion?: string;
   cambioPrioridadMotivo?: string;
   tieneMisionDespachada?: boolean;
+  tieneMisionEnCurso?: boolean;
 };
 export type IncidenteDetalle = IncidenteDetalleResponse['data'] & {
   tipoIncidenteId?: string;
@@ -28,6 +29,7 @@ export type IncidenteDetalle = IncidenteDetalleResponse['data'] & {
   justificacionReclasificacion?: string;
   cambioPrioridadMotivo?: string;
   tieneMisionDespachada?: boolean;
+  tieneMisionEnCurso?: boolean;
 };
 export type PaginacionMeta = ListarIncidentesResponse['paginacion'];
 export type EstadoIncidente = IncidenteResumen['estado'];

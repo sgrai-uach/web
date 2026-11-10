@@ -186,6 +186,22 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
           }
         });
 
+        // Sanitización defensiva: Si un incidente posee una misión EN_CURSO (aceptada en terreno),
+        // debe ubicarse inequívocamente en la columna VERIFICANDO (En Verificación)
+        if (nuevasColumnas.REPORTADO && nuevasColumnas.REPORTADO.length > 0) {
+          const aMoverAVerificando: IncidenteResumen[] = [];
+          nuevasColumnas.REPORTADO = nuevasColumnas.REPORTADO.filter((inc) => {
+            if (inc.tieneMisionEnCurso) {
+              aMoverAVerificando.push({ ...inc, estado: 'VERIFICANDO' });
+              return false;
+            }
+            return true;
+          });
+          if (aMoverAVerificando.length > 0) {
+            nuevasColumnas.VERIFICANDO = [...aMoverAVerificando, ...nuevasColumnas.VERIFICANDO];
+          }
+        }
+
         setColumnas(nuevasColumnas);
         setPaginacionColumna(nuevasPaginaciones);
       } catch {

@@ -113,7 +113,9 @@ export const IncidenteCard: React.FC<IncidenteCardProps> = ({
         <span>{obtenerNombreDelegacion(incidente.delegacionNombre, 'Sin delegación')}</span>
       </div>
 
-      {incidente.estado === 'REPORTADO' && (incidente.tieneMisionDespachada || (onAsignarPatrulla && puedeAsignarPatrulla)) && (
+      {incidente.estado === 'REPORTADO' &&
+        (incidente.tieneMisionDespachada ||
+          (!incidente.tieneMisionEnCurso && onAsignarPatrulla && puedeAsignarPatrulla)) && (
         <div style={{ marginTop: '0.625rem', paddingTop: '0.5rem', borderTop: '1px solid var(--border-color-neutral, #DFE3E8)' }}>
           {incidente.tieneMisionDespachada ? (
             <Button
@@ -137,7 +139,7 @@ export const IncidenteCard: React.FC<IncidenteCardProps> = ({
             >
               <span>Confirmación Pendiente</span>
             </Button>
-          ) : onAsignarPatrulla && puedeAsignarPatrulla ? (
+          ) : !incidente.tieneMisionEnCurso && onAsignarPatrulla && puedeAsignarPatrulla ? (
             <Button
               type="button"
               variant="primary"

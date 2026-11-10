@@ -185,4 +185,32 @@ describe('IncidenteCard', () => {
     );
     expect(tagVerificado.parentElement?.getAttribute('title')).toContain('Prioridad ajustada: Alta');
   });
+
+  it('NO debe renderizar botón "Asignar Patrulla" si el incidente tiene una misión en curso activa (tieneMisionEnCurso: true)', () => {
+    const handleAsignar = vi.fn();
+    render(
+      <IncidenteCard
+        incidente={{
+          ...mockIncidente,
+          estado: 'REPORTADO',
+          totalMisiones: 1,
+          tieneMisionEnCurso: true,
+          tieneMisionDespachada: false,
+        }}
+        onClick={vi.fn()}
+        onAsignarPatrulla={handleAsignar}
+        puedeAsignarPatrulla={true}
+      />
+    );
+
+    const btnAsignar = screen.queryByRole('button', {
+      name: /Asignar patrulla verificadora/i,
+    });
+    expect(btnAsignar).toBeNull();
+
+    const btnPendiente = screen.queryByRole('button', {
+      name: /Confirmación pendiente/i,
+    });
+    expect(btnPendiente).toBeNull();
+  });
 });
