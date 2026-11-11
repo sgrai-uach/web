@@ -499,5 +499,19 @@ describe('Componente MisionDetalleModal (HU-17)', () => {
     expect(cardInforme.textContent).toContain('Corte de agua potable');
     expect(cardInforme.textContent).toContain('rotura de matriz');
     expect(cardInforme.textContent).toContain('Cristóbal Felipe Veas');
+
+    // Validar interacción de colapsar / desplegar informe de evaluación
+    const triggerToggle = screen.getByLabelText(/Colapsar informe de evaluación en terreno/i);
+    expect(triggerToggle.getAttribute('aria-expanded')).toBe('true');
+
+    // Al hacer clic, se colapsa
+    fireEvent.click(triggerToggle);
+    expect(triggerToggle.getAttribute('aria-expanded')).toBe('false');
+    expect(screen.queryByText('Se constata rotura de matriz con suspensión de suministro.')).toBeNull();
+
+    // Al volver a hacer clic, se despliega nuevamente
+    fireEvent.click(triggerToggle);
+    expect(triggerToggle.getAttribute('aria-expanded')).toBe('true');
+    expect(screen.getByText('Se constata rotura de matriz con suspensión de suministro.')).toBeDefined();
   });
 });

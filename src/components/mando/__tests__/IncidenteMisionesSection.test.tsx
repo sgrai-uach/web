@@ -130,4 +130,100 @@ describe('Componente IncidenteMisionesSection', () => {
       screen.getByText('Vía cortada por derrumbe previo, imposible acceder con vehículo 4x4.')
     ).toBeDefined();
   });
+
+  it('debe priorizar las misiones en proceso al inicio y agrupar las rechazadas en un menú desplegable colapsado', () => {
+    const misionEnCurso: IncidenteDetalle['misiones'][number] = {
+      id: 'm-activa-1',
+      codigo: 'MIS-2026-1002',
+      titulo: 'Atención con cuadrilla en terreno',
+      descripcion: 'Despeje de ramas',
+      tipoMision: 'ATENCION_CUADRILLA',
+      estado: 'EN_CURSO',
+      prioridad: 'ALTA',
+      justificacionRechazo: null,
+      cuadrilla: {
+        id: 'c-1',
+        nombre: 'Cuadrilla Las Ánimas',
+        estado: 'EN_MISION',
+      },
+      patrulla: null,
+      fechaInicio: '2026-11-10T09:00:00Z',
+      fechaCierre: null,
+      creadoEn: '2026-11-10T08:30:00Z',
+    };
+
+    const misionRechazada1: IncidenteDetalle['misiones'][number] = {
+      id: 'm-rech-1',
+      codigo: 'MIS-2026-9001',
+      titulo: 'Verificación inicial',
+      descripcion: 'Evaluación rápida',
+      tipoMision: 'VERIFICACION',
+      estado: 'RECHAZADA',
+      prioridad: 'MEDIA',
+      justificacionRechazo: 'Terreno inaccesible por inundación de calzada.',
+      cuadrilla: null,
+      patrulla: {
+        id: 'p-1',
+        nombre: 'Patrulla Centro',
+        estado: 'DISPONIBLE',
+      },
+      fechaInicio: null,
+      fechaCierre: null,
+      creadoEn: '2026-11-10T07:00:00Z',
+    };
+
+    const misionRechazada2: IncidenteDetalle['misiones'][number] = {
+      id: 'm-rech-2',
+      codigo: 'MIS-2026-9002',
+      titulo: 'Segunda verificación',
+      descripcion: 'Intento con patrulla alternativa',
+      tipoMision: 'VERIFICACION',
+      estado: 'RECHAZADA',
+      prioridad: 'MEDIA',
+      justificacionRechazo: 'Falla mecánica en vehículo de patrulla.',
+      cuadrilla: null,
+      patrulla: {
+        id: 'p-2',
+        nombre: 'Patrulla Norte',
+        estado: 'DISPONIBLE',
+      },
+      fechaInicio: null,
+      fechaCierre: null,
+      creadoEn: '2026-11-10T07:30:00Z',
+    };
+
+    // Pasamos las 3 misiones (rechazadas primero en el array para comprobar que el componente las reordena)
+    render(
+      <IncidenteMisionesSection
+        misiones={[misionRechazada1, misionRechazada2, misionEnCurso]}
+      />
+    );
+
+    // 1. La misión en proceso debe aparecer visible inmediatamente
+    expect(screen.getByText('MIS-2026-1002')).toBeDefined();
+    expect(screen.getByText('Atención con cuadrilla en terreno')).toBeDefined();
+    expect(screen.getByText('Cuadrilla Las Ánimas')).toBeDefined();
+
+    // 2. Debe existir el menú desplegable de rechazos indicando la cantidad de rechazos (2)
+    const triggerRechazos = screen.getByLabelText(/Desplegar misiones rechazadas \(2\)/i);
+    expect(triggerRechazos).toBeDefined();
+    expect(triggerRechazos.getAttribute('aria-expanded')).toBe('false');
+
+    // 3. Al estar colapsado, los motivos individuales de rechazo NO deben estar visibles en pantalla
+    expect(screen.queryByText('Terreno inaccesible por inundación de calzada.')).toBeNull();
+    expect(screen.queryByText('Falla mecánica en vehículo de patrulla.')).toBeNull();
+
+    // 4. Al hacer clic en el menú desplegable, se abren las tarjetas de rechazo
+    fireEvent.click(triggerRechazos);
+    expect(triggerRechazos.getAttribute('aria-expanded')).toBe('true');
+    expect(screen.getByText('Terreno inaccesible por inundación de calzada.')).toBeDefined();
+    expect(screen.getByText('Falla mecánica en vehículo de patrulla.')).toBeDefined();
+    expect(screen.getByText('MIS-2026-9001')).toBeDefined();
+    expect(screen.getByText('MIS-2026-9002')).toBeDefined();
+
+    // 5. Al volver a hacer clic, se colapsan nuevamente
+    fireEvent.click(triggerRechazos);
+    expect(triggerRechazos.getAttribute('aria-expanded')).toBe('false');
+    expect(screen.queryByText('Terreno inaccesible por inundación de calzada.')).toBeNull();
+  });
 });

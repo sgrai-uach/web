@@ -565,6 +565,54 @@
   border-left: 3px solid #E53E3E;
 }
 
+/* Acordeón / Desplegable de Misiones Rechazadas en Drawer */
+.rechazosContainer {
+  margin-top: 0.75rem;
+  border: 1px solid #FFCDD2;
+  border-left: 4px solid var(--color-danger, #D32F2F);
+  background-color: #FFFDFD;
+  border-radius: var(--radius-none, 0px);
+  overflow: hidden;
+}
+
+.rechazosTrigger {
+  width: 100%;
+  background: transparent;
+  border: none;
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  text-align: left;
+  cursor: pointer;
+  color: inherit;
+  font-family: inherit;
+  transition: background-color 0.15s ease;
+}
+
+.rechazosTrigger:hover {
+  background-color: #FFEBEE;
+}
+
+.rechazosTrigger:focus-visible {
+  outline: 2px solid var(--color-danger, #D32F2F);
+  outline-offset: -2px;
+}
+
+.rechazosBody {
+  padding: 12px 14px;
+  border-top: 1px solid #FFCDD2;
+  background-color: #FAFAFA;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.chevronRotated {
+  transform: rotate(180deg);
+  transition: transform 0.2s ease;
+}
+
 /* Tabla de Recursos Asociados en Drawer */
 .recursosTable {
   width: 100%;

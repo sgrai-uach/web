@@ -42,47 +42,26 @@ export const MisionBitacoraSection: React.FC<MisionBitacoraSectionProps> = ({ bi
           </p>
         ) : (
           <div className={styles.timelineList}>
-            {bitacora.map((hito, index) => {
-              const esReclasificacion = hito.hito === 'TIPOLOGIA_RECLASIFICADA';
-
-              return (
-                <div
-                  key={`${hito.timestamp}-${index}`}
-                  className={styles.timelineItem}
-                  style={
-                    esReclasificacion
-                      ? {
-                          backgroundColor: 'var(--color-info-bg, #E0F2F1)',
-                          padding: '8px 12px',
-                          borderLeft: '3px solid var(--color-primary-teal, #1B6F7D)',
-                          marginBottom: '6px',
-                        }
-                      : undefined
-                  }
-                >
-                  <div className={styles.timelineDot} />
-                  <div className={styles.timelineHeader}>
-                    <span
-                      className={styles.timelineHito}
-                      style={
-                        esReclasificacion
-                          ? { color: 'var(--color-primary-teal-dark, #14505A)', fontWeight: 800 }
-                          : undefined
-                      }
-                    >
-                      {formatearHitoBitacora(hito.hito)}
-                    </span>
-                    <span className={styles.timelineDate}>
-                      <Calendar size={12} />
-                      <span>{hito.fecha}</span>
-                      <Clock size={12} style={{ marginLeft: '4px' }} />
-                      <span>{hito.hora}</span>
-                    </span>
-                  </div>
-                  <p className={styles.timelineDesc}>{limpiarDescripcion(hito.descripcion)}</p>
+            {bitacora.map((hito, index) => (
+              <div
+                key={`${hito.timestamp}-${index}`}
+                className={styles.timelineItem}
+              >
+                <div className={styles.timelineDot} />
+                <div className={styles.timelineHeader}>
+                  <span className={styles.timelineHito}>
+                    {formatearHitoBitacora(hito.hito)}
+                  </span>
+                  <span className={styles.timelineDate}>
+                    <Calendar size={12} />
+                    <span>{hito.fecha}</span>
+                    <Clock size={12} style={{ marginLeft: '4px' }} />
+                    <span>{hito.hora}</span>
+                  </span>
                 </div>
-              );
-            })}
+                <p className={styles.timelineDesc}>{limpiarDescripcion(hito.descripcion)}</p>
+              </div>
+            ))}
           </div>
         )}
       </div>
