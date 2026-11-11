@@ -360,7 +360,8 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
             const reclasificado = Boolean(
               huboCambioTipologia ||
               datos.justificacion ||
-              incActual.reclasificadoEnTerreno
+              incActual.reclasificadoEnTerreno ||
+              incActual.verificado
             );
 
             incidenteEncontrado = {
@@ -369,6 +370,7 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
               prioridad: nuevaPrioridad,
               tipoAfectacion: nuevoTipo,
               tipoIncidenteId: datos.tipoIncidenteId || incActual.tipoIncidenteId,
+              verificado: true,
               reclasificadoEnTerreno: reclasificado,
               justificacionReclasificacion:
                 datos.justificacion || incActual.justificacionReclasificacion,

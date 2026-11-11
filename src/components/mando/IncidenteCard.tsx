@@ -79,7 +79,7 @@ export const IncidenteCard: React.FC<IncidenteCardProps> = ({
               FIBE
             </span>
           )}
-          {incidente.reclasificadoEnTerreno && (
+          {(incidente.reclasificadoEnTerreno || incidente.verificado) && (
             <span
               style={{
                 display: 'inline-flex',

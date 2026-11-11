@@ -213,4 +213,17 @@ describe('IncidenteCard', () => {
     });
     expect(btnPendiente).toBeNull();
   });
+
+  it('debe exhibir la etiqueta "Verificado" cuando verificado es true al cargar desde el servidor (paginación/refresco)', () => {
+    const incidenteVerificadoDesdeApi: IncidenteResumen = {
+      ...mockIncidente,
+      verificado: true,
+      reclasificadoEnTerreno: false,
+    };
+
+    render(<IncidenteCard incidente={incidenteVerificadoDesdeApi} onClick={vi.fn()} />);
+
+    const tagVerificado = screen.getByText('Verificado');
+    expect(tagVerificado).toBeDefined();
+  });
 });

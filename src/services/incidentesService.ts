@@ -17,6 +17,7 @@ export type ListarIncidentesResponse = components['schemas']['ListarIncidentesRe
 export type IncidenteDetalleResponse = components['schemas']['IncidenteDetalleResponse'];
 export type IncidenteResumen = ListarIncidentesResponse['data'][number] & {
   tipoIncidenteId?: string;
+  verificado?: boolean;
   reclasificadoEnTerreno?: boolean;
   justificacionReclasificacion?: string;
   cambioPrioridadMotivo?: string;
@@ -25,6 +26,7 @@ export type IncidenteResumen = ListarIncidentesResponse['data'][number] & {
 };
 export type IncidenteDetalle = IncidenteDetalleResponse['data'] & {
   tipoIncidenteId?: string;
+  verificado?: boolean;
   reclasificadoEnTerreno?: boolean;
   justificacionReclasificacion?: string;
   cambioPrioridadMotivo?: string;
