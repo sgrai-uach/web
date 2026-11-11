@@ -1,13 +1,27 @@
 'use client';
 
 import React from 'react';
-import { Check, Eye, ShieldCheck } from 'lucide-react';
+import { Check, Clock, Eye, ShieldCheck, WifiOff } from 'lucide-react';
 import Heading from '@/components/ui/Heading';
 import Button from '@/components/ui/Button';
 import type { IncidenteDetalle } from '@/services/incidentesService';
 import { TRAZABILIDAD_CONFIG } from '@/lib/socket/trazabilidadConfig';
 import { TrazabilidadIcon } from '../TrazabilidadIcon';
 import styles from '@/styles/mando.module.css';
+
+const obtenerBordeSegmento = (
+  completado: boolean,
+  enEspera: boolean,
+  colorActivo: string
+): string => {
+  if (completado) {
+    return `2px solid ${colorActivo}`;
+  }
+  if (enEspera) {
+    return '2px dashed #94A3B8';
+  }
+  return '2px dashed #CBD5E1';
+};
 
 interface IncidenteMisionesSectionProps {
   misiones: IncidenteDetalle['misiones'];
@@ -108,16 +122,35 @@ export const IncidenteMisionesSection: React.FC<IncidenteMisionesSectionProps> =
               const cfg = TRAZABILIDAD_CONFIG[mision.trazabilidadNotificacion];
               const pasos = [
                 {
-                  etiqueta: cfg.paso === 0 ? 'En cola offline' : 'Emitida al móvil',
+                  numero: 1,
+                  etiqueta: cfg.paso === 0 ? 'Sin señal (en cola)' : 'Emitida al móvil',
+                  subEstado: cfg.paso === 0 ? 'En espera de red' : 'Confirmado',
                   completado: cfg.paso >= 1,
+                  esActual: cfg.paso === 0,
                 },
                 {
+                  numero: 2,
                   etiqueta: 'Recibida en móvil',
+                  subEstado:
+                    cfg.paso >= 2
+                      ? 'Confirmado'
+                      : cfg.paso === 1
+                        ? 'Esperando acuse'
+                        : 'Pendiente',
                   completado: cfg.paso >= 2,
+                  esActual: cfg.paso === 1,
                 },
                 {
+                  numero: 3,
                   etiqueta: 'Leída por operador',
+                  subEstado:
+                    cfg.paso >= 3
+                      ? 'Confirmado'
+                      : cfg.paso === 2
+                        ? 'Esperando lectura'
+                        : 'Pendiente',
                   completado: cfg.paso >= 3,
+                  esActual: cfg.paso === 2,
                 },
               ];
 
@@ -125,10 +158,13 @@ export const IncidenteMisionesSection: React.FC<IncidenteMisionesSectionProps> =
                 <div
                   style={{
                     marginTop: '0.5rem',
-                    padding: '8px 10px',
+                    padding: '10px 12px',
                     backgroundColor: '#FFFFFF',
                     border: '1px solid #CBD5E1',
                     borderRadius: 0,
+                    width: '100%',
+                    boxSizing: 'border-box',
+                    overflow: 'hidden',
                   }}
                 >
                   <div
@@ -148,6 +184,9 @@ export const IncidenteMisionesSection: React.FC<IncidenteMisionesSectionProps> =
                         fontSize: '0.72rem',
                         fontWeight: 700,
                         color: cfg.color,
+                        minWidth: 0,
+                        overflowWrap: 'anywhere',
+                        wordBreak: 'break-word',
                       }}
                     >
                       <TrazabilidadIcon estado={mision.trazabilidadNotificacion} size={13} />
@@ -172,42 +211,116 @@ export const IncidenteMisionesSection: React.FC<IncidenteMisionesSectionProps> =
                   </div>
 
                   <div
-                    style={{
-                      display: 'grid',
-                      gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
-                      gap: '4px',
-                      marginTop: '6px',
-                    }}
+                    data-testid={`timeline-trazabilidad-${mision.id}`}
+                    role="list"
+                    aria-label="Línea de tiempo de trazabilidad de la notificación"
+                    className={styles.trazabilidadTimeline}
                   >
-                    {pasos.map((pasoItem) => (
-                      <div
-                        key={pasoItem.etiqueta}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '4px',
-                          padding: '3px 6px',
-                          borderRadius: 0,
-                          fontSize: '0.68rem',
-                          fontWeight: pasoItem.completado ? 700 : 500,
-                          backgroundColor: pasoItem.completado ? cfg.bg : '#F8FAFC',
-                          color: pasoItem.completado ? cfg.color : '#5F676E',
-                          border: pasoItem.completado
-                            ? '1px solid currentColor'
-                            : '1px solid #DFE3E8',
-                        }}
-                      >
-                        <Check
-                          size={11}
-                          aria-hidden="true"
-                          style={{
-                            flexShrink: 0,
-                            opacity: pasoItem.completado ? 1 : 0.3,
-                          }}
-                        />
-                        <span>{pasoItem.etiqueta}</span>
-                      </div>
-                    ))}
+                    {pasos.map((pasoItem, idx) => {
+                      const bordeIzq =
+                        idx === 0
+                          ? '2px solid transparent'
+                          : obtenerBordeSegmento(
+                              pasoItem.completado,
+                              pasoItem.esActual,
+                              cfg.color
+                            );
+                      const siguientePaso = pasos[idx + 1];
+                      const bordeDer = !siguientePaso
+                        ? '2px solid transparent'
+                        : obtenerBordeSegmento(
+                            siguientePaso.completado,
+                            siguientePaso.esActual,
+                            cfg.color
+                          );
+
+                      return (
+                        <div
+                          key={pasoItem.numero}
+                          role="listitem"
+                          data-testid={`timeline-step-${mision.id}-${pasoItem.numero}`}
+                          data-estado={
+                            pasoItem.completado
+                              ? 'completado'
+                              : pasoItem.esActual
+                                ? 'actual'
+                                : 'pendiente'
+                          }
+                          className={styles.trazabilidadStep}
+                        >
+                          <div className={styles.trazabilidadTrack}>
+                            <span
+                              aria-hidden="true"
+                              className={styles.trazabilidadLineSegment}
+                              style={{ borderTop: bordeIzq }}
+                            />
+                            <span
+                              aria-hidden="true"
+                              className={styles.trazabilidadNode}
+                              style={{
+                                borderRadius: 0,
+                                backgroundColor: pasoItem.completado
+                                  ? cfg.color
+                                  : pasoItem.esActual
+                                    ? cfg.bg
+                                    : '#FFFFFF',
+                                color: pasoItem.completado
+                                  ? '#FFFFFF'
+                                  : pasoItem.esActual
+                                    ? cfg.color
+                                    : '#94A3B8',
+                                border:
+                                  pasoItem.completado || pasoItem.esActual
+                                    ? `2px solid ${cfg.color}`
+                                    : '2px solid #CBD5E1',
+                              }}
+                            >
+                              {pasoItem.completado ? (
+                                <Check size={12} strokeWidth={2.75} aria-hidden="true" />
+                              ) : pasoItem.esActual ? (
+                                cfg.paso === 0 && idx === 0 ? (
+                                  <WifiOff size={11} aria-hidden="true" />
+                                ) : (
+                                  <Clock size={11} aria-hidden="true" />
+                                )
+                              ) : (
+                                <span>{pasoItem.numero}</span>
+                              )}
+                            </span>
+                            <span
+                              aria-hidden="true"
+                              className={styles.trazabilidadLineSegment}
+                              style={{ borderTop: bordeDer }}
+                            />
+                          </div>
+
+                          <div className={styles.trazabilidadStepTextWrap}>
+                            <span
+                              className={styles.trazabilidadStepLabel}
+                              style={{
+                                fontWeight: pasoItem.completado || pasoItem.esActual ? 700 : 500,
+                                color: pasoItem.completado
+                                  ? cfg.color
+                                  : pasoItem.esActual
+                                    ? '#24272B'
+                                    : '#5F676E',
+                              }}
+                            >
+                              {pasoItem.etiqueta}
+                            </span>
+                            <span
+                              className={styles.trazabilidadStepMeta}
+                              style={{
+                                fontWeight: pasoItem.esActual ? 600 : 500,
+                                color: pasoItem.completado ? cfg.color : '#5F676E',
+                              }}
+                            >
+                              {pasoItem.subEstado}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               );
@@ -226,8 +339,11 @@ export const IncidenteMisionesSection: React.FC<IncidenteMisionesSectionProps> =
                   borderRadius: 0,
                   fontSize: '0.75rem',
                   display: 'flex',
-                  alignItems: 'center',
+                  alignItems: 'flex-start',
                   gap: '6px',
+                  boxSizing: 'border-box',
+                  overflowWrap: 'anywhere',
+                  wordBreak: 'break-word',
                 }}
               >
                 <TrazabilidadIcon size={13} />

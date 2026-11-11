@@ -76,7 +76,7 @@ export const IncidenteCard: React.FC<IncidenteCardProps> = ({
       </Heading>
 
       <p className={styles.cardDireccion} title={incidente.direccion}>
-        <MapPin size={14} aria-hidden="true" style={{ flexShrink: 0 }} />
+        <MapPin size={14} aria-hidden="true" style={{ flexShrink: 0, marginTop: '2px' }} />
         <span>{incidente.direccion}</span>
       </p>
 
@@ -106,10 +106,13 @@ export const IncidenteCard: React.FC<IncidenteCardProps> = ({
           data-testid={`card-trazabilidad-${incidente.id}`}
           style={{
             display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: '0.4rem',
-            padding: '5px 8px',
+            flexDirection: 'column',
+            alignItems: 'flex-start',
+            gap: '3px',
+            width: '100%',
+            boxSizing: 'border-box',
+            overflow: 'hidden',
+            padding: '6px 8px',
             backgroundColor: trazabilidadConfig.bg,
             color: trazabilidadConfig.color,
             border: '1px solid currentColor',
@@ -126,13 +129,24 @@ export const IncidenteCard: React.FC<IncidenteCardProps> = ({
               alignItems: 'center',
               gap: '5px',
               fontWeight: 700,
-              whiteSpace: 'nowrap',
+              maxWidth: '100%',
+              overflowWrap: 'anywhere',
+              wordBreak: 'break-word',
             }}
           >
             <TrazabilidadIcon estado={estadoTrazabilidad} size={13} />
             <span>{trazabilidadConfig.etiquetaLectura}</span>
           </span>
-          <span style={{ fontWeight: 600, textAlign: 'right' }}>
+          <span
+            style={{
+              fontWeight: 600,
+              fontSize: '0.7rem',
+              lineHeight: 1.3,
+              maxWidth: '100%',
+              overflowWrap: 'anywhere',
+              wordBreak: 'break-word',
+            }}
+          >
             {trazabilidadConfig.textoCorto}
           </span>
         </div>
@@ -142,10 +156,13 @@ export const IncidenteCard: React.FC<IncidenteCardProps> = ({
             data-testid={`card-trazabilidad-pendiente-${incidente.id}`}
             style={{
               display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: '0.4rem',
-              padding: '5px 8px',
+              flexDirection: 'column',
+              alignItems: 'flex-start',
+              gap: '3px',
+              width: '100%',
+              boxSizing: 'border-box',
+              overflow: 'hidden',
+              padding: '6px 8px',
               backgroundColor: '#F8FAFC',
               color: '#5F676E',
               border: '1px dashed #94A3B8',
@@ -161,13 +178,24 @@ export const IncidenteCard: React.FC<IncidenteCardProps> = ({
                 alignItems: 'center',
                 gap: '5px',
                 fontWeight: 700,
-                whiteSpace: 'nowrap',
+                maxWidth: '100%',
+                overflowWrap: 'anywhere',
+                wordBreak: 'break-word',
               }}
             >
               <TrazabilidadIcon size={13} />
               <span>SIN ACUSE</span>
             </span>
-            <span style={{ fontWeight: 500, textAlign: 'right' }}>
+            <span
+              style={{
+                fontWeight: 500,
+                fontSize: '0.7rem',
+                lineHeight: 1.3,
+                maxWidth: '100%',
+                overflowWrap: 'anywhere',
+                wordBreak: 'break-word',
+              }}
+            >
               Lectura aún no confirmada
             </span>
           </div>
