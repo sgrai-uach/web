@@ -159,6 +159,7 @@ describe('IncidenteCard', () => {
     expect(aviso.textContent).toContain('SIN ACUSE');
     expect(aviso.textContent).toContain('Lectura aún no confirmada');
     expect(aviso.style.flexDirection).toBe('column');
+    expect(aviso.style.flexShrink).toBe('0');
     expect(aviso.style.overflow).toBe('hidden');
     expect(aviso.style.borderRadius).toBe('0px');
   });
@@ -179,6 +180,7 @@ describe('IncidenteCard', () => {
 
     const cardBox = screen.getByTestId('card-trazabilidad-inc-001');
     expect(cardBox.style.flexDirection).toBe('column');
+    expect(cardBox.style.flexShrink).toBe('0');
     expect(cardBox.style.width).toBe('100%');
     expect(cardBox.style.overflow).toBe('hidden');
     expect(cardBox.style.borderRadius).toBe('0px');
