@@ -81,7 +81,10 @@ export const IncidenteMisionesSection: React.FC<IncidenteMisionesSectionProps> =
     }
   };
 
-  const renderTarjetaMision = (mision: IncidenteDetalle['misiones'][number]) => {
+  const renderTarjetaMision = (
+    mision: IncidenteDetalle['misiones'][number],
+    esDentroDeRechazos = false
+  ) => {
     const chip = obtenerChipEstadoMision(mision.estado);
     const esRechazada = mision.estado === 'RECHAZADA' || Boolean(mision.justificacionRechazo);
     const fechaLegible = formatFechaHora(mision.fechaInicio || mision.creadoEn);
@@ -91,7 +94,11 @@ export const IncidenteMisionesSection: React.FC<IncidenteMisionesSectionProps> =
         key={mision.id}
         className={styles.misionCard}
         style={{
-          borderLeft: esRechazada ? '4px solid var(--color-danger, #D32F2F)' : '1px solid #CBD5E1',
+          border: esDentroDeRechazos ? '1px solid #DFE3E8' : undefined,
+          borderLeft:
+            esRechazada && !esDentroDeRechazos
+              ? '4px solid var(--color-danger, #D32F2F)'
+              : '1px solid #CBD5E1',
           backgroundColor: esRechazada ? '#FFFDFD' : 'var(--color-bg-light, #ECEFF3)',
           marginBottom: '0.6rem',
         }}
@@ -334,7 +341,7 @@ export const IncidenteMisionesSection: React.FC<IncidenteMisionesSectionProps> =
 
           {rechazosAbiertos && (
             <div className={styles.rechazosBody}>
-              {misionesRechazadas.map((mision) => renderTarjetaMision(mision))}
+              {misionesRechazadas.map((mision) => renderTarjetaMision(mision, true))}
             </div>
           )}
         </div>
