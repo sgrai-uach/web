@@ -1,40 +1,13 @@
 'use client';
 
 import React from 'react';
-import { Eye, ShieldCheck } from 'lucide-react';
+import { Check, Eye, ShieldCheck } from 'lucide-react';
 import Heading from '@/components/ui/Heading';
 import Button from '@/components/ui/Button';
-import type { IncidenteDetalle, EstadoTrazabilidadNotificacion } from '@/services/incidentesService';
+import type { IncidenteDetalle } from '@/services/incidentesService';
+import { TRAZABILIDAD_CONFIG } from '@/lib/socket/trazabilidadConfig';
+import { TrazabilidadIcon } from '../TrazabilidadIcon';
 import styles from '@/styles/mando.module.css';
-
-interface TrazabilidadBadgeConfig {
-  texto: string;
-  bg: string;
-  color: string;
-}
-
-const TRAZABILIDAD_CONFIG: Record<EstadoTrazabilidadNotificacion, TrazabilidadBadgeConfig> = {
-  PENDIENTE_ENVIO: {
-    texto: 'Patrulla sin señal / offline',
-    bg: '#ECEFF3',
-    color: '#3B3F45',
-  },
-  ENVIADA: {
-    texto: 'Alerta emitida al móvil',
-    bg: '#FFF3E0',
-    color: '#E65100',
-  },
-  RECIBIDA: {
-    texto: 'Recibida en móvil de terreno',
-    bg: '#E8F5E9',
-    color: '#2E7D32',
-  },
-  LEIDA: {
-    texto: 'Leída por operador en terreno',
-    bg: '#E0F2F1',
-    color: '#14505A',
-  },
-};
 
 interface IncidenteMisionesSectionProps {
   misiones: IncidenteDetalle['misiones'];
@@ -130,25 +103,139 @@ export const IncidenteMisionesSection: React.FC<IncidenteMisionesSectionProps> =
               <strong>Patrulla:</strong> {mision.patrulla.nombre} ({mision.patrulla.estado})
             </div>
           )}
-          {mision.trazabilidadNotificacion && TRAZABILIDAD_CONFIG[mision.trazabilidadNotificacion] && (
-            <div style={{ marginTop: '0.35rem' }}>
-              <span
-                data-testid={`badge-trazabilidad-${mision.id}`}
+          {mision.trazabilidadNotificacion && TRAZABILIDAD_CONFIG[mision.trazabilidadNotificacion] ? (
+            (() => {
+              const cfg = TRAZABILIDAD_CONFIG[mision.trazabilidadNotificacion];
+              const pasos = [
+                {
+                  etiqueta: cfg.paso === 0 ? 'En cola offline' : 'Emitida al móvil',
+                  completado: cfg.paso >= 1,
+                },
+                {
+                  etiqueta: 'Recibida en móvil',
+                  completado: cfg.paso >= 2,
+                },
+                {
+                  etiqueta: 'Leída por operador',
+                  completado: cfg.paso >= 3,
+                },
+              ];
+
+              return (
+                <div
+                  style={{
+                    marginTop: '0.5rem',
+                    padding: '8px 10px',
+                    backgroundColor: '#FFFFFF',
+                    border: '1px solid #CBD5E1',
+                    borderRadius: 0,
+                  }}
+                >
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      flexWrap: 'wrap',
+                      gap: '6px',
+                    }}
+                  >
+                    <span
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '5px',
+                        fontSize: '0.72rem',
+                        fontWeight: 700,
+                        color: cfg.color,
+                      }}
+                    >
+                      <TrazabilidadIcon estado={mision.trazabilidadNotificacion} size={13} />
+                      <span>{cfg.tituloLectura}</span>
+                    </span>
+                    <span
+                      data-testid={`badge-trazabilidad-${mision.id}`}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        fontSize: '0.75rem',
+                        fontWeight: 600,
+                        padding: '2px 8px',
+                        borderRadius: 0,
+                        backgroundColor: cfg.bg,
+                        color: cfg.color,
+                        border: '1px solid currentColor',
+                      }}
+                    >
+                      {cfg.texto}
+                    </span>
+                  </div>
+
+                  <div
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+                      gap: '4px',
+                      marginTop: '6px',
+                    }}
+                  >
+                    {pasos.map((pasoItem) => (
+                      <div
+                        key={pasoItem.etiqueta}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          padding: '3px 6px',
+                          borderRadius: 0,
+                          fontSize: '0.68rem',
+                          fontWeight: pasoItem.completado ? 700 : 500,
+                          backgroundColor: pasoItem.completado ? cfg.bg : '#F8FAFC',
+                          color: pasoItem.completado ? cfg.color : '#5F676E',
+                          border: pasoItem.completado
+                            ? '1px solid currentColor'
+                            : '1px solid #DFE3E8',
+                        }}
+                      >
+                        <Check
+                          size={11}
+                          aria-hidden="true"
+                          style={{
+                            flexShrink: 0,
+                            opacity: pasoItem.completado ? 1 : 0.3,
+                          }}
+                        />
+                        <span>{pasoItem.etiqueta}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()
+          ) : (
+            mision.patrulla &&
+            ['PLANIFICADA', 'DESPACHADA', 'EN_CURSO'].includes(mision.estado) && (
+              <div
+                data-testid={`aviso-trazabilidad-sin-acuse-${mision.id}`}
                 style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  fontSize: '0.75rem',
-                  fontWeight: 600,
-                  padding: '2px 8px',
+                  marginTop: '0.5rem',
+                  padding: '6px 10px',
+                  backgroundColor: '#F8FAFC',
+                  color: '#5F676E',
+                  border: '1px dashed #94A3B8',
                   borderRadius: 0,
-                  backgroundColor: TRAZABILIDAD_CONFIG[mision.trazabilidadNotificacion].bg,
-                  color: TRAZABILIDAD_CONFIG[mision.trazabilidadNotificacion].color,
-                  border: '1px solid currentColor',
+                  fontSize: '0.75rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
                 }}
               >
-                {TRAZABILIDAD_CONFIG[mision.trazabilidadNotificacion].texto}
-              </span>
-            </div>
+                <TrazabilidadIcon size={13} />
+                <span>
+                  <strong>SIN CONFIRMACIÓN DE LECTURA:</strong> Aún no se registra recepción o lectura desde la patrulla en terreno.
+                </span>
+              </div>
+            )
           )}
           {mision.justificacionRechazo && (
             <div className={styles.misionRechazo}>

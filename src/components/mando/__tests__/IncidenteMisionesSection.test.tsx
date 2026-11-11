@@ -155,6 +155,31 @@ describe('Componente IncidenteMisionesSection', () => {
       ).toBeNull();
     });
 
+    it('debe mostrar aviso SIN CONFIRMACIÓN DE LECTURA en misiones activas con patrulla sin acuse aún', () => {
+      const misionesPatrullaSinAcuse: IncidenteDetalle['misiones'] = [
+        {
+          ...mockMisiones[0],
+          id: 'mision-patrulla-sin-acuse',
+          tipoMision: 'VERIFICACION',
+          estado: 'DESPACHADA',
+          cuadrilla: null,
+          patrulla: {
+            id: 'pat-1',
+            nombre: 'Patrulla Las Ánimas',
+            estado: 'EN_VERIFICACION',
+          },
+        },
+      ];
+
+      render(<IncidenteMisionesSection misiones={misionesPatrullaSinAcuse} />);
+
+      expect(
+        screen.queryByTestId('badge-trazabilidad-mision-patrulla-sin-acuse')
+      ).toBeNull();
+      const aviso = screen.getByTestId('aviso-trazabilidad-sin-acuse-mision-patrulla-sin-acuse');
+      expect(aviso.textContent).toContain('SIN CONFIRMACIÓN DE LECTURA');
+    });
+
     it('debe certificar la ausencia total de caracteres emojis en el contenedor renderizado', () => {
       const misionesConTrazabilidad: IncidenteDetalle['misiones'] = estadosTrazabilidad.map(
         ({ estado }, idx) => ({

@@ -1,7 +1,18 @@
 import type { EstadoTrazabilidadNotificacion } from '@/services/incidentesService';
 
-const STORAGE_KEY = 'sgrai_trazabilidad_notificaciones';
-const memoryCache = new Map<string, EstadoTrazabilidadNotificacion>();
+const STORAGE_KEY = 'sgrai_trazabilidad_notificaciones_v2';
+
+interface PersistedTrazabilidadPayload {
+  misiones: Record<string, EstadoTrazabilidadNotificacion>;
+  incidentes: Record<string, EstadoTrazabilidadNotificacion>;
+  misionIncidente: Record<string, string>;
+}
+
+const misionEstadoCache = new Map<string, EstadoTrazabilidadNotificacion>();
+const incidenteEstadoCache = new Map<string, EstadoTrazabilidadNotificacion>();
+const misionIncidenteMap = new Map<string, string>();
+const listeners = new Set<() => void>();
+
 let hydratedFromStorage = false;
 
 function esEstadoValido(valor: unknown): valor is EstadoTrazabilidadNotificacion {
@@ -13,50 +24,128 @@ function esEstadoValido(valor: unknown): valor is EstadoTrazabilidadNotificacion
   );
 }
 
-function ensureHydrated(): void {
-  if (hydratedFromStorage || typeof window === 'undefined') return;
-  hydratedFromStorage = true;
+function getStorage(): Storage | null {
+  if (typeof window === 'undefined') return null;
   try {
-    const raw = window.sessionStorage.getItem(STORAGE_KEY);
+    return window.localStorage;
+  } catch {
+    return null;
+  }
+}
+
+function ensureHydrated(): void {
+  if (hydratedFromStorage) return;
+  const storage = getStorage();
+  if (!storage) return;
+  hydratedFromStorage = true;
+
+  try {
+    const raw = storage.getItem(STORAGE_KEY);
     if (!raw) return;
-    const parsed = JSON.parse(raw) as Record<string, unknown>;
-    if (parsed && typeof parsed === 'object') {
-      for (const [misionId, estado] of Object.entries(parsed)) {
+    const parsed = JSON.parse(raw) as Partial<PersistedTrazabilidadPayload> | null;
+    if (!parsed || typeof parsed !== 'object') return;
+
+    if (parsed.misiones && typeof parsed.misiones === 'object') {
+      for (const [misionId, estado] of Object.entries(parsed.misiones)) {
         if (esEstadoValido(estado)) {
-          memoryCache.set(misionId, estado);
+          misionEstadoCache.set(misionId, estado);
+        }
+      }
+    }
+
+    if (parsed.incidentes && typeof parsed.incidentes === 'object') {
+      for (const [incidenteId, estado] of Object.entries(parsed.incidentes)) {
+        if (esEstadoValido(estado)) {
+          incidenteEstadoCache.set(incidenteId, estado);
+        }
+      }
+    }
+
+    if (parsed.misionIncidente && typeof parsed.misionIncidente === 'object') {
+      for (const [misionId, incidenteId] of Object.entries(parsed.misionIncidente)) {
+        if (typeof incidenteId === 'string' && incidenteId) {
+          misionIncidenteMap.set(misionId, incidenteId);
         }
       }
     }
   } catch {
-    // Ignorar errores de acceso a sessionStorage en entornos restringidos
+    // Ignorar errores de acceso o parseo de localStorage
   }
 }
 
 function persistCache(): void {
-  if (typeof window === 'undefined') return;
+  const storage = getStorage();
+  if (!storage) return;
+
   try {
-    const obj: Record<string, EstadoTrazabilidadNotificacion> = {};
-    memoryCache.forEach((estado, misionId) => {
-      obj[misionId] = estado;
-    });
-    window.sessionStorage.setItem(STORAGE_KEY, JSON.stringify(obj));
+    const payload: PersistedTrazabilidadPayload = {
+      misiones: Object.fromEntries(misionEstadoCache.entries()),
+      incidentes: Object.fromEntries(incidenteEstadoCache.entries()),
+      misionIncidente: Object.fromEntries(misionIncidenteMap.entries()),
+    };
+    storage.setItem(STORAGE_KEY, JSON.stringify(payload));
   } catch {
-    // Ignorar errores de cuota o acceso a sessionStorage
+    // Ignorar errores de cuota o acceso restringido a localStorage
   }
 }
 
+function notifyListeners(): void {
+  listeners.forEach((listener) => {
+    try {
+      listener();
+    } catch {
+      // Proteger suscripción ante errores de un consumidor
+    }
+  });
+}
+
 /**
- * Registra en memoria y sessionStorage el último estado de trazabilidad conocido
- * para una misión operativa, permitiendo conservar el indicador al reabrir el drawer
- * o recargar la vista cuando el endpoint de detalle aún no retorna el campo.
+ * Registra en memoria y localStorage el último estado de trazabilidad conocido
+ * para una misión operativa (y opcionalmente su incidente asociado).
  */
 export function setTrazabilidadEstado(
   misionId: string,
-  estado: EstadoTrazabilidadNotificacion
+  estado: EstadoTrazabilidadNotificacion,
+  incidenteId?: string
 ): void {
   ensureHydrated();
-  memoryCache.set(misionId, estado);
+  misionEstadoCache.set(misionId, estado);
+
+  const resolvedIncidenteId = incidenteId || misionIncidenteMap.get(misionId);
+  if (incidenteId) {
+    misionIncidenteMap.set(misionId, incidenteId);
+  }
+  if (resolvedIncidenteId) {
+    incidenteEstadoCache.set(resolvedIncidenteId, estado);
+  }
+
   persistCache();
+  notifyListeners();
+}
+
+/**
+ * Registra la relación entre una misión y su incidente padre para reflejar
+ * eventos de trazabilidad directamente sobre la tarjeta del tablero Kanban.
+ */
+export function vincularMisionIncidente(misionId: string, incidenteId: string): void {
+  if (!misionId || !incidenteId) return;
+  ensureHydrated();
+
+  const previo = misionIncidenteMap.get(misionId);
+  misionIncidenteMap.set(misionId, incidenteId);
+
+  const estadoMision = misionEstadoCache.get(misionId);
+  let huboCambio = previo !== incidenteId;
+
+  if (estadoMision && incidenteEstadoCache.get(incidenteId) !== estadoMision) {
+    incidenteEstadoCache.set(incidenteId, estadoMision);
+    huboCambio = true;
+  }
+
+  if (huboCambio) {
+    persistCache();
+    notifyListeners();
+  }
 }
 
 /**
@@ -66,21 +155,74 @@ export function getTrazabilidadEstado(
   misionId: string
 ): EstadoTrazabilidadNotificacion | undefined {
   ensureHydrated();
-  return memoryCache.get(misionId);
+  return misionEstadoCache.get(misionId);
 }
 
 /**
- * Limpia el caché en memoria y sessionStorage (útil en pruebas unitarias).
+ * Recupera el último estado de trazabilidad conocido para un incidente en el Kanban.
  */
-export function clearTrazabilidadCache(): void {
-  memoryCache.clear();
-  hydratedFromStorage = false;
-  if (typeof window !== 'undefined') {
-    try {
-      window.sessionStorage.removeItem(STORAGE_KEY);
-    } catch {
-      // Ignorar errores de acceso a sessionStorage
-    }
-  }
+export function getTrazabilidadPorIncidente(
+  incidenteId: string
+): EstadoTrazabilidadNotificacion | undefined {
+  ensureHydrated();
+  return incidenteEstadoCache.get(incidenteId);
 }
 
+/**
+ * Devuelve el incidenteId vinculado en caché para una misión dada, si existe.
+ */
+export function getIncidentePorMision(misionId: string): string | undefined {
+  ensureHydrated();
+  return misionIncidenteMap.get(misionId);
+}
+
+/**
+ * Retorna una instantánea con todos los estados conocidos indexados por incidenteId.
+ */
+export function getSnapshotTrazabilidadIncidentes(): Record<
+  string,
+  EstadoTrazabilidadNotificacion
+> {
+  ensureHydrated();
+  return Object.fromEntries(incidenteEstadoCache.entries());
+}
+
+/**
+ * Retorna una instantánea con todos los estados conocidos indexados por misionId.
+ */
+export function getSnapshotTrazabilidadMisiones(): Record<
+  string,
+  EstadoTrazabilidadNotificacion
+> {
+  ensureHydrated();
+  return Object.fromEntries(misionEstadoCache.entries());
+}
+
+/**
+ * Suscribe un callback a los cambios del caché de trazabilidad y retorna un desuscriptor.
+ */
+export function subscribeTrazabilidad(listener: () => void): () => void {
+  listeners.add(listener);
+  return () => {
+    listeners.delete(listener);
+  };
+}
+
+/**
+ * Limpia el caché en memoria y localStorage (útil en pruebas unitarias).
+ */
+export function clearTrazabilidadCache(): void {
+  misionEstadoCache.clear();
+  incidenteEstadoCache.clear();
+  misionIncidenteMap.clear();
+  hydratedFromStorage = false;
+  const storage = getStorage();
+  if (storage) {
+    try {
+      storage.removeItem(STORAGE_KEY);
+    } catch {
+      // Ignorar errores de acceso
+    }
+  }
+  notifyListeners();
+}

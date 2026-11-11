@@ -8,6 +8,7 @@ import type { IncidenteDetalle } from '@/services/incidentesService';
 import type { MisionDetalleCompleto } from '@/types/misiones';
 import {
   clearTrazabilidadCache,
+  getIncidentePorMision,
   setTrazabilidadEstado,
 } from '@/lib/socket/trazabilidadStore';
 
@@ -340,5 +341,65 @@ describe('Componente IncidenteDetalleDrawer e integración HU-17', () => {
     );
     expect(badge).toBeDefined();
     expect(badge.textContent).toBe('Recibida en móvil de terreno');
+  });
+
+  it('muestra el resumen superior de lectura en terreno para patrulla activa y actualiza en vivo al recibir LEIDA', async () => {
+    const detalleConPatrulla: IncidenteDetalle = {
+      ...mockDetalleIncidente,
+      estado: 'VERIFICANDO',
+      misiones: [
+        {
+          ...mockDetalleIncidente.misiones[0],
+          id: 'm-pat-001',
+          codigo: 'MIS-2026-0099',
+          tipoMision: 'VERIFICACION',
+          estado: 'DESPACHADA',
+          cuadrilla: null,
+          patrulla: {
+            id: 'pat-01',
+            nombre: 'Patrulla Rápida Norte',
+            estado: 'EN_VERIFICACION',
+          },
+          trazabilidadNotificacion: 'PENDIENTE_ENVIO',
+        },
+      ],
+    };
+
+    vi.spyOn(incidentesService, 'obtenerDetalleIncidente').mockResolvedValueOnce({
+      exito: true,
+      datos: detalleConPatrulla,
+      mensaje: 'OK',
+    });
+
+    render(
+      <IncidenteDetalleDrawer
+        incidenteId="i1000000-0000-4000-8000-000000000001"
+        userId="user-test"
+        onCerrar={vi.fn()}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('drawer-trazabilidad-resumen')).toBeDefined();
+    });
+
+    const resumenInicial = screen.getByTestId('drawer-trazabilidad-resumen');
+    expect(resumenInicial.textContent).toContain('NO LEÍDA');
+    expect(getIncidentePorMision('m-pat-001')).toBe('i1000000-0000-4000-8000-000000000001');
+
+    act(() => {
+      const handler = socketListeners['notificacion:trazabilidad_actualizada']?.[0];
+      handler?.({
+        notificacionId: 'notif-99',
+        misionId: 'm-pat-001',
+        patrullaId: 'pat-01',
+        estado: 'LEIDA',
+      });
+    });
+
+    await waitFor(() => {
+      const resumenActualizado = screen.getByTestId('drawer-trazabilidad-resumen');
+      expect(resumenActualizado.textContent).toContain('LEÍDA: Leída por operador en terreno');
+    });
   });
 });

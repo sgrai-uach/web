@@ -14,16 +14,19 @@ import { IncidenteRecursosSection } from './drawer/IncidenteRecursosSection';
 import { MisionDetalleModal } from './mision/MisionDetalleModal';
 import { AsignarPatrullaModal } from './patrullas/AsignarPatrullaModal';
 import type { DespacharPatrullaResponseData } from '@/types/misiones';
-import type {
-  EstadoIncidente,
-  EstadoTrazabilidadNotificacion,
-} from '@/services/incidentesService';
+import type { EstadoIncidente } from '@/services/incidentesService';
 import { usePuedeAsignarMision } from '@/hooks/usePuedeAsignarMision';
 import { getSocket } from '@/lib/socket/client';
 import {
   getTrazabilidadEstado,
   setTrazabilidadEstado,
+  vincularMisionIncidente,
 } from '@/lib/socket/trazabilidadStore';
+import {
+  TRAZABILIDAD_CONFIG,
+  extraerEstadoInicialNotificacion,
+} from '@/lib/socket/trazabilidadConfig';
+import { TrazabilidadIcon } from './TrazabilidadIcon';
 import type { NotificacionTrazabilidadPayload } from '@/hooks/useEncargadoKanbanSocket';
 import InlineNotice from '@/components/ui/InlineNotice';
 import styles from '@/styles/mando.module.css';
@@ -62,9 +65,11 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
     obtenerDetalleIncidente(incidenteId, userId).then((res) => {
       if (!isMounted) return;
       if (res.exito && res.datos) {
+        const incId = res.datos.id;
         const misionesHidratadas = res.datos.misiones.map((m) => {
+          vincularMisionIncidente(m.id, incId);
           if (m.trazabilidadNotificacion) {
-            setTrazabilidadEstado(m.id, m.trazabilidadNotificacion);
+            setTrazabilidadEstado(m.id, m.trazabilidadNotificacion, incId);
             return m;
           }
           const cached = getTrazabilidadEstado(m.id);
@@ -87,7 +92,7 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
 
     const socket = getSocket();
     const handleTrazabilidad = (payload: NotificacionTrazabilidadPayload) => {
-      setTrazabilidadEstado(payload.misionId, payload.estado);
+      setTrazabilidadEstado(payload.misionId, payload.estado, incidenteId);
       setDetalle((prev) => {
         if (!prev) return prev;
         return {
@@ -109,10 +114,8 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
   }, [incidenteId]);
 
   const handleAsignacionExitosa = (data: DespacharPatrullaResponseData) => {
-    const estadoInicial: EstadoTrazabilidadNotificacion =
-      (data as unknown as { notificacion?: { estado?: EstadoTrazabilidadNotificacion } })
-        ?.notificacion?.estado || 'PENDIENTE_ENVIO';
-    setTrazabilidadEstado(data.mision.id, estadoInicial);
+    const estadoInicial = extraerEstadoInicialNotificacion(data);
+    setTrazabilidadEstado(data.mision.id, estadoInicial, data.incidente.id);
 
     setDetalle((prev) => {
       if (!prev) return prev;
@@ -149,6 +152,15 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
 
   if (!incidenteId) return null;
 
+  const misionPatrullaActiva = detalle?.misiones.find(
+    (m) =>
+      Boolean(m.patrulla) &&
+      ['PLANIFICADA', 'DESPACHADA', 'EN_CURSO'].includes(m.estado)
+  );
+  const trazabilidadResumenCfg = misionPatrullaActiva?.trazabilidadNotificacion
+    ? TRAZABILIDAD_CONFIG[misionPatrullaActiva.trazabilidadNotificacion]
+    : undefined;
+
   return (
     <>
       <div className={styles.drawerOverlay} onClick={onCerrar} role="dialog" aria-modal="true">
@@ -177,6 +189,49 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
 
             {!cargando && detalle && (
               <>
+                {misionPatrullaActiva && (
+                  <div
+                    data-testid="drawer-trazabilidad-resumen"
+                    style={{
+                      marginBottom: 'var(--space-3, 12px)',
+                      padding: '8px 12px',
+                      borderRadius: 0,
+                      border: trazabilidadResumenCfg
+                        ? '1px solid currentColor'
+                        : '1px dashed #94A3B8',
+                      borderLeft: trazabilidadResumenCfg
+                        ? '4px solid currentColor'
+                        : '4px solid #94A3B8',
+                      backgroundColor: trazabilidadResumenCfg
+                        ? trazabilidadResumenCfg.bg
+                        : '#F8FAFC',
+                      color: trazabilidadResumenCfg
+                        ? trazabilidadResumenCfg.color
+                        : '#5F676E',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      flexWrap: 'wrap',
+                      gap: '8px',
+                      fontSize: '0.8rem',
+                    }}
+                  >
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontWeight: 700 }}>
+                      <TrazabilidadIcon
+                        estado={misionPatrullaActiva.trazabilidadNotificacion}
+                        size={15}
+                      />
+                      <span>
+                        {trazabilidadResumenCfg
+                          ? `${trazabilidadResumenCfg.etiquetaLectura}: ${trazabilidadResumenCfg.texto}`
+                          : 'SIN ACUSE: Lectura por patrulla aún no confirmada'}
+                      </span>
+                    </span>
+                    <span style={{ fontSize: '0.75rem', fontWeight: 600 }}>
+                      {misionPatrullaActiva.codigo} · {misionPatrullaActiva.patrulla?.nombre}
+                    </span>
+                  </div>
+                )}
                 <IncidenteResumenSection detalle={detalle} />
                 <IncidenteUbicacionSection detalle={detalle} />
                 <IncidenteInformanteSection detalle={detalle} />

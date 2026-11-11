@@ -5,6 +5,7 @@ import type {
   IncidenteResumen,
   EstadoIncidente,
   PaginacionMeta,
+  EstadoTrazabilidadNotificacion,
 } from '@/services/incidentesService';
 import Button from '@/components/ui/Button';
 import Heading from '@/components/ui/Heading';
@@ -23,6 +24,7 @@ interface KanbanColumnProps {
   onSeleccionarIncidente: (incidente: IncidenteResumen) => void;
   onAsignarPatrulla?: (incidente: IncidenteResumen) => void;
   puedeAsignarPatrulla?: boolean;
+  trazabilidadPorIncidente?: Record<string, EstadoTrazabilidadNotificacion>;
 }
 
 export const KanbanColumn: React.FC<KanbanColumnProps> = ({
@@ -37,6 +39,7 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({
   onSeleccionarIncidente,
   onAsignarPatrulla,
   puedeAsignarPatrulla = true,
+  trazabilidadPorIncidente,
 }) => {
   const getHeaderStyle = (est: EstadoIncidente) => {
     switch (est) {
@@ -84,6 +87,9 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({
               onClick={onSeleccionarIncidente}
               onAsignarPatrulla={onAsignarPatrulla}
               puedeAsignarPatrulla={puedeAsignarPatrulla}
+              trazabilidadNotificacion={
+                incidente.trazabilidadNotificacion ?? trazabilidadPorIncidente?.[incidente.id]
+              }
             />
           ))
         )}

@@ -118,4 +118,45 @@ describe('IncidenteCard', () => {
     });
     expect(btnAsignar).toBeNull();
   });
+
+  it('muestra el indicador directo de lectura/no lectura en la tarjeta Kanban según trazabilidadNotificacion', () => {
+    const { rerender } = render(
+      <IncidenteCard
+        incidente={{ ...mockIncidente, estado: 'VERIFICANDO' }}
+        onClick={vi.fn()}
+        trazabilidadNotificacion="PENDIENTE_ENVIO"
+      />
+    );
+
+    const cardOffline = screen.getByTestId('card-trazabilidad-inc-001');
+    expect(cardOffline.textContent).toContain('NO LEÍDA');
+    expect(cardOffline.textContent).toContain('Sin señal / offline');
+    expect(cardOffline.style.borderRadius).toBe('0px');
+
+    rerender(
+      <IncidenteCard
+        incidente={{ ...mockIncidente, estado: 'VERIFICANDO' }}
+        onClick={vi.fn()}
+        trazabilidadNotificacion="LEIDA"
+      />
+    );
+
+    const cardLeida = screen.getByTestId('card-trazabilidad-inc-001');
+    expect(cardLeida.textContent).toContain('LEÍDA');
+    expect(cardLeida.textContent).toContain('Leída por operador en terreno');
+    expect(/\p{Extended_Pictographic}/u.test(cardLeida.textContent || '')).toBe(false);
+  });
+
+  it('muestra aviso SIN ACUSE en tarjetas VERIFICANDO sin confirmación recibida aún', () => {
+    render(
+      <IncidenteCard
+        incidente={{ ...mockIncidente, estado: 'VERIFICANDO' }}
+        onClick={vi.fn()}
+      />
+    );
+
+    const aviso = screen.getByTestId('card-trazabilidad-pendiente-inc-001');
+    expect(aviso.textContent).toContain('SIN ACUSE');
+    expect(aviso.textContent).toContain('Lectura aún no confirmada');
+  });
 });

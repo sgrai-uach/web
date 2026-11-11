@@ -15,13 +15,15 @@ export const DEFAULT_ENCARGADO_ID = '00000000-0000-4000-8000-000000000003';
 
 export type ListarIncidentesResponse = components['schemas']['ListarIncidentesResponse'];
 export type IncidenteDetalleResponse = components['schemas']['IncidenteDetalleResponse'];
-export type IncidenteResumen = ListarIncidentesResponse['data'][number];
-
 export type EstadoTrazabilidadNotificacion =
   | 'PENDIENTE_ENVIO'
   | 'ENVIADA'
   | 'RECIBIDA'
   | 'LEIDA';
+
+export type IncidenteResumen = ListarIncidentesResponse['data'][number] & {
+  trazabilidadNotificacion?: EstadoTrazabilidadNotificacion;
+};
 
 export type MisionDetalle = IncidenteDetalleResponse['data']['misiones'][number] & {
   trazabilidadNotificacion?: EstadoTrazabilidadNotificacion;
