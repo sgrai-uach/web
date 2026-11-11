@@ -20,6 +20,10 @@ import type {
 } from '@/services/incidentesService';
 import { usePuedeAsignarMision } from '@/hooks/usePuedeAsignarMision';
 import { getSocket } from '@/lib/socket/client';
+import {
+  getTrazabilidadEstado,
+  setTrazabilidadEstado,
+} from '@/lib/socket/trazabilidadStore';
 import type { NotificacionTrazabilidadPayload } from '@/hooks/useEncargadoKanbanSocket';
 import InlineNotice from '@/components/ui/InlineNotice';
 import styles from '@/styles/mando.module.css';
@@ -58,7 +62,15 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
     obtenerDetalleIncidente(incidenteId, userId).then((res) => {
       if (!isMounted) return;
       if (res.exito && res.datos) {
-        setDetalle(res.datos);
+        const misionesHidratadas = res.datos.misiones.map((m) => {
+          if (m.trazabilidadNotificacion) {
+            setTrazabilidadEstado(m.id, m.trazabilidadNotificacion);
+            return m;
+          }
+          const cached = getTrazabilidadEstado(m.id);
+          return cached ? { ...m, trazabilidadNotificacion: cached } : m;
+        });
+        setDetalle({ ...res.datos, misiones: misionesHidratadas });
       } else {
         setError(res.mensaje);
       }
@@ -75,6 +87,7 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
 
     const socket = getSocket();
     const handleTrazabilidad = (payload: NotificacionTrazabilidadPayload) => {
+      setTrazabilidadEstado(payload.misionId, payload.estado);
       setDetalle((prev) => {
         if (!prev) return prev;
         return {
@@ -96,6 +109,11 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
   }, [incidenteId]);
 
   const handleAsignacionExitosa = (data: DespacharPatrullaResponseData) => {
+    const estadoInicial: EstadoTrazabilidadNotificacion =
+      (data as unknown as { notificacion?: { estado?: EstadoTrazabilidadNotificacion } })
+        ?.notificacion?.estado || 'PENDIENTE_ENVIO';
+    setTrazabilidadEstado(data.mision.id, estadoInicial);
+
     setDetalle((prev) => {
       if (!prev) return prev;
       const nuevaMision = {
@@ -113,9 +131,7 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
           estado: data.patrulla.estado,
         },
         cuadrilla: null,
-        trazabilidadNotificacion:
-          ((data as unknown as { notificacion?: { estado?: EstadoTrazabilidadNotificacion } })
-            ?.notificacion?.estado) || 'PENDIENTE_ENVIO',
+        trazabilidadNotificacion: estadoInicial,
         fechaInicio: null,
         fechaCierre: null,
         creadoEn: new Date().toISOString(),

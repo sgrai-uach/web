@@ -6,6 +6,10 @@ import * as incidentesService from '@/services/incidentesService';
 import * as misionesService from '@/services/misionesService';
 import type { IncidenteDetalle } from '@/services/incidentesService';
 import type { MisionDetalleCompleto } from '@/types/misiones';
+import {
+  clearTrazabilidadCache,
+  setTrazabilidadEstado,
+} from '@/lib/socket/trazabilidadStore';
 
 let socketListeners: Record<string, ((...args: unknown[]) => void)[]> = {};
 const mockSocket = {
@@ -41,6 +45,7 @@ vi.mock('@/components/ui/Toast', () => ({
 describe('Componente IncidenteDetalleDrawer e integración HU-17', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    clearTrazabilidadCache();
     socketListeners = {};
   });
 
@@ -307,5 +312,33 @@ describe('Componente IncidenteDetalleDrawer e integración HU-17', () => {
       );
       expect(badge.textContent).toBe('Leída por operador en terreno');
     });
+  });
+
+  it('hidrata el badge de trazabilidad desde el cache local cuando el detalle de API omite trazabilidadNotificacion', async () => {
+    setTrazabilidadEstado('m1000000-0000-4000-8000-000000000001', 'RECIBIDA');
+
+    vi.spyOn(incidentesService, 'obtenerDetalleIncidente').mockResolvedValueOnce({
+      exito: true,
+      datos: mockDetalleIncidente,
+      mensaje: 'OK',
+    });
+
+    render(
+      <IncidenteDetalleDrawer
+        incidenteId="i1000000-0000-4000-8000-000000000001"
+        userId="user-test"
+        onCerrar={vi.fn()}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('INC-2026-0042')).toBeDefined();
+    });
+
+    const badge = screen.getByTestId(
+      'badge-trazabilidad-m1000000-0000-4000-8000-000000000001'
+    );
+    expect(badge).toBeDefined();
+    expect(badge.textContent).toBe('Recibida en móvil de terreno');
   });
 });

@@ -5,6 +5,10 @@ import {
   type NotificacionTrazabilidadPayload,
 } from '../useEncargadoKanbanSocket';
 import { getSocket } from '@/lib/socket/client';
+import {
+  clearTrazabilidadCache,
+  getTrazabilidadEstado,
+} from '@/lib/socket/trazabilidadStore';
 
 vi.mock('@/lib/socket/client', () => {
   const listeners: Record<string, ((...args: unknown[]) => void)[]> = {};
@@ -43,6 +47,7 @@ vi.mock('@/lib/socket/client', () => {
 describe('useEncargadoKanbanSocket', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    clearTrazabilidadCache();
     const socket = getSocket() as unknown as { _clear: () => void; connected: boolean };
     socket._clear();
     socket.connected = false;
@@ -171,6 +176,7 @@ describe('useEncargadoKanbanSocket', () => {
 
     expect(onNotificacionTrazabilidadActualizada).toHaveBeenCalledWith(payload);
     expect(result.current.ultimoEvento).toBe('Trazabilidad misión: RECIBIDA');
+    expect(getTrazabilidadEstado('mis-100')).toBe('RECIBIDA');
   });
 
   it('debe limpiar listeners y emitir salir al desmontar', () => {
