@@ -198,5 +198,42 @@ describe('Componente IncidenteMisionesSection', () => {
       expect(container.textContent).not.toMatch(emojiRegex);
       expect(container.innerHTML).not.toMatch(emojiRegex);
     });
+
+    it('debe renderizar la línea de tiempo horizontal conectada con estados progresivos y nodos cuadrados (borderRadius: 0)', () => {
+      const casosTimeline = [
+        { estado: 'PENDIENTE_ENVIO' as const, esperados: ['actual', 'pendiente', 'pendiente'] },
+        { estado: 'ENVIADA' as const, esperados: ['completado', 'actual', 'pendiente'] },
+        { estado: 'RECIBIDA' as const, esperados: ['completado', 'completado', 'actual'] },
+        { estado: 'LEIDA' as const, esperados: ['completado', 'completado', 'completado'] },
+      ];
+
+      casosTimeline.forEach(({ estado, esperados }) => {
+        const misionId = `mision-tl-${estado.toLowerCase()}`;
+        const { container } = render(
+          <IncidenteMisionesSection
+            misiones={[
+              {
+                ...mockMisiones[0],
+                id: misionId,
+                trazabilidadNotificacion: estado,
+              },
+            ]}
+          />
+        );
+
+        const timeline = screen.getByTestId(`timeline-trazabilidad-${misionId}`);
+        expect(timeline.getAttribute('role')).toBe('list');
+
+        [1, 2, 3].forEach((num, idx) => {
+          const step = screen.getByTestId(`timeline-step-${misionId}-${num}`);
+          expect(step.getAttribute('data-estado')).toBe(esperados[idx]);
+          const node = step.querySelector('span[style*="border-radius"]');
+          expect(node).not.toBeNull();
+          expect((node as HTMLElement).style.borderRadius).toBe('0px');
+        });
+
+        expect(container.textContent).not.toMatch(/\p{Extended_Pictographic}/u);
+      });
+    });
   });
 });
