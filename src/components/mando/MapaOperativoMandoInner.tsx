@@ -291,6 +291,12 @@ export default function MapaOperativoMandoInner({
                 ${recursosList}
               </ul>
             </div>
+
+            <div style="margin-top: 8px; padding-top: 6px; border-top: 1px solid #DFE3E8; text-align: center;">
+              <a href="/eventos-atp/recuperacion/${rec.id}" style="display: block; background-color: #1B6F7D; color: #FFFFFF; padding: 5px 8px; text-decoration: none; font-weight: 700; font-size: 11px;">
+                Ver Detalle y Asignar Recursos &rarr;
+              </a>
+            </div>
           </div>
         `;
 

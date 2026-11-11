@@ -79,7 +79,7 @@ export interface CrearEventoRecuperacionApiResponse {
 export interface PatrullaVerificadoraItem {
   id: string;
   nombre: string;
-  estado: 'DISPONIBLE' | 'EN_VERIFICACION' | 'EN_RECUPERACION' | 'NO_DISPONIBLE';
+  estado: 'DISPONIBLE' | 'EN_VERIFICACION' | 'EN_MISION' | 'EN_PREVENCION' | 'EN_RECUPERACION' | 'NO_DISPONIBLE';
   delegacionId?: string | null;
   delegacionNombre?: string | null;
 }
@@ -101,3 +101,90 @@ export const PATRULLAS_OFICIALES_SEED: PatrullaVerificadoraItem[] = [
     delegacionNombre: 'Delegación Costa',
   },
 ];
+
+/**
+ * Modelos para Detalle y Asignación de Recursos a Evento de Recuperación (HU-32).
+ */
+export interface MisionRecuperacionItem {
+  id: string;
+  codigo: string;
+  titulo: string;
+  estado: string;
+  tipoMision: string;
+  creadoEn: string;
+  patrulla: {
+    id: string;
+    nombre: string;
+    estado: string;
+  } | null;
+  recursos?: Array<{
+    recursoId: string;
+    nombre: string;
+    cantidadAsignada: number;
+  }>;
+}
+
+export interface DetalleEventoRecuperacionResponse {
+  id: string;
+  codigo: string;
+  nombre: string;
+  descripcion: string | null;
+  sector: string;
+  direccionTexto: string | null;
+  prioridad: PrioridadRecuperacion;
+  contactoNombre: string | null;
+  contactoTelefono: string | null;
+  latitud: number;
+  longitud: number;
+  estado: EstadoRecuperacion;
+  familiasAfectadas: number;
+  delegacion: {
+    id: string;
+    codigo: string;
+    nombre: string;
+  } | null;
+  misiones: MisionRecuperacionItem[];
+  recursos: RecursoAsignadoItem[];
+  creadoPorId?: string;
+  creadoEn: string;
+  actualizadoEn: string;
+}
+
+export interface GetEventoRecuperacionApiResponse {
+  message?: string;
+  data: DetalleEventoRecuperacionResponse;
+}
+
+export interface AsignarRecursoItemInput {
+  recursoId: string;
+  cantidad: number;
+}
+
+export interface AsignarRecursosRecuperacionInput {
+  patrullaId: string;
+  recursos: AsignarRecursoItemInput[];
+}
+
+export interface AsignarRecursosRecuperacionResponse {
+  message: string;
+  data: {
+    mision: {
+      id: string;
+      codigo: string;
+      titulo: string;
+      estado: string;
+      tipoMision: string;
+    };
+    patrulla: {
+      id: string;
+      nombre: string;
+      estado: string;
+    };
+    recursos: Array<{
+      recursoId: string;
+      nombre: string;
+      cantidadAsignada: number;
+    }>;
+    evento?: DetalleEventoRecuperacionResponse;
+  };
+}
