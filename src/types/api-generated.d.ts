@@ -3246,7 +3246,169 @@ export interface paths {
             };
         };
         put?: never;
-        post?: never;
+        /**
+         * Crear y despachar misión operativa
+         * @description Despacha una misión operativa (ej. patrulla verificadora para evaluación técnica ICS o cuadrilla en terreno) ejecutando la transacción atómica de asignación y actualización de estados.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: {
+                    /** @description UUID del usuario solicitante (Encargado) */
+                    "x-user-id"?: string;
+                    /** @description Token Bearer JWT de sesión */
+                    authorization?: string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /**
+                         * Format: uuid
+                         * @description UUID del incidente asociado
+                         */
+                        incidenteId: string;
+                        /**
+                         * Format: uuid
+                         * @description UUID de la patrulla verificadora asignada (requerido para tipo VERIFICACION)
+                         */
+                        patrullaId?: string;
+                        /**
+                         * Format: uuid
+                         * @description UUID de la cuadrilla asignada
+                         */
+                        cuadrillaId?: string;
+                        /**
+                         * @description Tipo táctico de misión
+                         * @enum {string}
+                         */
+                        tipoMision: "VERIFICACION" | "ATENCION_CUADRILLA" | "PREVENCION" | "RECUPERACION" | "ASISTENCIA_SOCIAL";
+                        /** @description Título descriptivo de la misión */
+                        titulo?: string;
+                        /** @description Instrucciones u observaciones técnicas */
+                        descripcion?: string;
+                        /**
+                         * @description Prioridad táctica
+                         * @enum {string}
+                         */
+                        prioridad?: "BAJA" | "MEDIA" | "ALTA" | "CRITICA";
+                    };
+                };
+            };
+            responses: {
+                /** @description Misión creada y patrulla despachada exitosamente */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            message: string;
+                            data: {
+                                mision: {
+                                    id: string;
+                                    codigo: string;
+                                    titulo: string;
+                                    descripcion?: string | null;
+                                    tipoMision: "VERIFICACION" | "ATENCION_CUADRILLA" | "PREVENCION" | "RECUPERACION" | "ASISTENCIA_SOCIAL";
+                                    estado: "PLANIFICADA" | "DESPACHADA" | "EN_CURSO" | "COMPLETADA" | "CANCELADA" | "RECHAZADA";
+                                    prioridad?: "BAJA" | "MEDIA" | "ALTA" | "CRITICA";
+                                    incidenteId?: string | null;
+                                    patrullaId?: string | null;
+                                    cuadrillaId?: string | null;
+                                    creadoEn?: string;
+                                };
+                                incidente: {
+                                    id: string;
+                                    codigo: string;
+                                    estado: "REPORTADO" | "VERIFICANDO" | "EN_ATENCION" | "NO_ABORDABLE" | "RESUELTO";
+                                };
+                                patrulla: {
+                                    id: string;
+                                    nombre: string;
+                                    estado: "DISPONIBLE" | "EN_VERIFICACION" | "EN_TRANSITO" | "EN_TERRENO" | "NO_DISPONIBLE";
+                                };
+                                hitoInicial?: {
+                                    id?: string;
+                                    tipoHito?: string;
+                                    descripcion?: string;
+                                    creadoEn?: string;
+                                };
+                            };
+                        };
+                    };
+                };
+                /** @description Parámetros o cuerpo de solicitud inválidos */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            message: string;
+                            errors?: unknown;
+                        };
+                    };
+                };
+                /** @description No autenticado */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            message: string;
+                        };
+                    };
+                };
+                /** @description Permiso insuficiente (requiere misiones:asignar) */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            message: string;
+                        };
+                    };
+                };
+                /** @description Incidente o patrulla no encontrados */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            message: string;
+                        };
+                    };
+                };
+                /** @description Conflicto: la patrulla seleccionada ya no está disponible o el incidente ya no está en REPORTADO */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            message: string;
+                        };
+                    };
+                };
+                /** @description Error interno del servidor */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            message: string;
+                        };
+                    };
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
@@ -5694,10 +5856,330 @@ export interface paths {
             };
         };
     };
+    "/api/patrullas": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    page?: number;
+                    limit?: number;
+                    delegacionId?: string;
+                    estado?: "DISPONIBLE" | "EN_VERIFICACION" | "EN_MISION" | "EN_PREVENCION" | "EN_RECUPERACION" | "NO_DISPONIBLE";
+                    q?: string;
+                };
+                header?: {
+                    authorization?: string;
+                    "x-user-id"?: string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data: components["schemas"]["PatrullaVerificadoraItemSchema"][];
+                            meta: components["schemas"]["PaginacionMetaSchema"];
+                            message: string;
+                        };
+                    };
+                };
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            message: string;
+                        };
+                    };
+                };
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            message: string;
+                        };
+                    };
+                };
+            };
+        };
+        post: {
+            parameters: {
+                query?: never;
+                header?: {
+                    authorization?: string;
+                    "x-user-id"?: string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["CrearPatrullaInputSchema"];
+                };
+            };
+            responses: {
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            message: string;
+                            data: components["schemas"]["PatrullaVerificadoraItemSchema"];
+                        };
+                    };
+                };
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            message: string;
+                        };
+                    };
+                };
+            };
+        };
+    };
+    "/api/patrullas/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: {
+                    authorization?: string;
+                    "x-user-id"?: string;
+                };
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data: components["schemas"]["PatrullaVerificadoraItemSchema"];
+                        };
+                    };
+                };
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            message: string;
+                        };
+                    };
+                };
+            };
+        };
+        put: {
+            parameters: {
+                query?: never;
+                header?: {
+                    authorization?: string;
+                    "x-user-id"?: string;
+                };
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["EditarPatrullaInputSchema"];
+                };
+            };
+            responses: {
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            message: string;
+                            data: components["schemas"]["PatrullaVerificadoraItemSchema"];
+                        };
+                    };
+                };
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            message: string;
+                        };
+                    };
+                };
+            };
+        };
+        delete: {
+            parameters: {
+                query?: never;
+                header?: {
+                    authorization?: string;
+                    "x-user-id"?: string;
+                };
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DesactivarPatrullaResponse"];
+                    };
+                };
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            message: string;
+                        };
+                    };
+                };
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            message: string;
+                        };
+                    };
+                };
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            message: string;
+                        };
+                    };
+                };
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            message: string;
+                        };
+                    };
+                };
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            message: string;
+                        };
+                    };
+                };
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            message: string;
+                        };
+                    };
+                };
+            };
+        };
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        DesactivarPatrullaResponseData: {
+            id: string;
+            codigo?: string | null;
+            nombre: string;
+            estado: "DISPONIBLE" | "EN_VERIFICACION" | "EN_MISION" | "EN_PREVENCION" | "EN_RECUPERACION" | "NO_DISPONIBLE";
+            activo: boolean;
+            eliminadoEn: string;
+            eliminadoPorId?: string | null;
+            vehiculoLiberadoId?: string | null;
+            personalLiberadoIds?: string[];
+        };
+        DesactivarPatrullaResponse: {
+            message: string;
+            data: components["schemas"]["DesactivarPatrullaResponseData"];
+        };
+        PatrullaVerificadoraItemSchema: {
+            id: string;
+            codigo?: string | null;
+            nombre: string;
+            estado: "DISPONIBLE" | "EN_VERIFICACION" | "EN_MISION" | "EN_PREVENCION" | "EN_RECUPERACION" | "NO_DISPONIBLE";
+            delegacionId?: string | null;
+            vehiculoId?: string | null;
+            usuarioLiderId?: string | null;
+            activo: boolean;
+            creadoEn?: string;
+            actualizadoEn?: string;
+            eliminadoEn?: string | null;
+            eliminadoPorId?: string | null;
+        };
+        PaginacionMetaSchema: {
+            total: number;
+            page: number;
+            limit: number;
+            totalPages: number;
+            hasNext?: boolean;
+            hasPrev?: boolean;
+        };
+        CrearPatrullaInputSchema: {
+            codigo?: string;
+            nombre: string;
+            delegacionId: string;
+            vehiculoId?: string;
+            usuarioLiderId: string;
+            personalIds?: string[];
+        };
+        EditarPatrullaInputSchema: {
+            nombre?: string;
+            delegacionId?: string;
+            vehiculoId?: string | null;
+            usuarioLiderId?: string;
+            personalIds?: string[];
+        };
         DesactivarCuadrillaResponseData: {
             id: string;
             nombre: string;
@@ -5732,6 +6214,8 @@ export interface components {
                 nombre: string;
                 cantidadAsignada: number;
                 esIndividual: boolean;
+                descripcion?: string | null;
+                especificaciones?: Record<string, unknown> | null;
             }[];
             trabajadores: {
                 id: string;
@@ -5741,8 +6225,26 @@ export interface components {
                 rut?: string | null;
                 cargo?: string | null;
                 especialidad?: string | null;
+                telefono?: string | null;
                 asignadoEn: string;
             }[];
+            misionActiva?: {
+                id: string;
+                codigo: string;
+                titulo: string;
+                tipoMision: string;
+                estado: string;
+                fechaDespacho: string | null;
+                tiempoTranscurridoMinutos: number | null;
+                incidente: {
+                    id: string;
+                    codigo: string;
+                    tipo: string | null;
+                    direccion: string | null;
+                    latitud: number | null;
+                    longitud: number | null;
+                } | null;
+            } | null;
             totalRecursos?: number;
             totalTrabajadores?: number;
             activo?: boolean;
@@ -6774,6 +7276,22 @@ export interface components {
              *     ]
              */
             permisos: string[];
+            /**
+             * Format: uuid
+             * @description UUID de la unidad táctica u operativa asignada (patrulla o cuadrilla)
+             * @example 40000000-0000-4000-8000-000000000001
+             */
+            unidadId?: string | null;
+            /**
+             * @description Nombre de la unidad táctica u operativa asignada
+             * @example Patrulla Verificadora Alfa
+             */
+            unidadNombre?: string | null;
+            /**
+             * @description Indica si la unidad operativa se encuentra activa (false si fue dada de baja mediante baja lógica)
+             * @example true
+             */
+            unidadActiva?: boolean;
         };
         /** @description Información del rol institucional asignado */
         UsuarioActivoRol: {
@@ -6886,6 +7404,22 @@ export interface components {
              *     ]
              */
             permisos: string[];
+            /**
+             * Format: uuid
+             * @description UUID de la unidad táctica u operativa asignada (patrulla o cuadrilla)
+             * @example 40000000-0000-4000-8000-000000000001
+             */
+            unidadId?: string | null;
+            /**
+             * @description Nombre de la unidad táctica u operativa asignada
+             * @example Patrulla Verificadora Alfa
+             */
+            unidadNombre?: string | null;
+            /**
+             * @description Indica si la unidad operativa se encuentra activa (false si fue dada de baja mediante baja lógica)
+             * @example true
+             */
+            unidadActiva?: boolean;
         };
         AvisosPaginadosResponse: {
             /** @example Avisos obtenidos exitosamente */

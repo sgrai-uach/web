@@ -494,3 +494,70 @@
   gap: var(--space-2, 8px);
 }
 
+.errorBoxHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2, 8px);
+  font-weight: 700;
+}
+
+.estadoRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.estadoLabel {
+  font-size: var(--font-size-sm, 13px);
+  font-weight: 600;
+  color: var(--color-charcoal, #3B3F45);
+}
+
+.inactivaNotice {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 16px;
+  background-color: #F1F3F5;
+  border: 1px solid #DFE3E8;
+  border-left: 4px solid var(--color-text-muted, #5F676E);
+  color: var(--color-text-muted, #5F676E);
+  font-size: 13px;
+}
+
+.inactivaIcon {
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.misionAdvertenciaProtegida {
+  font-size: 12px;
+  color: var(--color-warning, #E65100);
+}
+
+.incidenteDireccion {
+  font-size: 11px;
+  color: var(--color-text-muted, #5F676E);
+  margin-top: 2px;
+}
+
+.incidenteDireccionIcon {
+  display: inline;
+  margin-right: 3px;
+}
+
+.delegadoEmail {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.sinTelefono {
+  font-size: 11px;
+  color: var(--color-text-muted, #5F676E);
+}
+
+.auditEliminado {
+  color: var(--color-danger, #D32F2F);
+}
+

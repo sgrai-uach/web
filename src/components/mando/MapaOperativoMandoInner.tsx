@@ -21,6 +21,17 @@ interface MapaOperativoMandoInnerProps {
   mostrarRecuperaciones?: boolean;
 }
 
+// Función utilitaria para escapar entidades HTML y prevenir inyección en popups
+function escapeHtml(str?: string | null): string {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 // SVG de marcador para Incidentes
 function createIncidentePinSvg(prioridad: string): string {
   const color =
@@ -149,7 +160,7 @@ export default function MapaOperativoMandoInner({
           ? `
             <div style="background-color: #E0F2F1; border: 1px solid #B2DFDB; padding: 4px 6px; margin-bottom: 6px; font-size: 11px;">
               <strong style="color: #14505A;">Cuadrilla en Terreno:</strong>
-              <div style="color: #1B6F7D; font-weight: 600;">${cuadrillaAsignada.nombre}</div>
+              <div style="color: #1B6F7D; font-weight: 600;">${escapeHtml(cuadrillaAsignada.nombre)}</div>
             </div>
             <button
               id="btn-ver-cuadrilla-${inc.id}"
@@ -163,14 +174,14 @@ export default function MapaOperativoMandoInner({
         const popupHtml = `
           <div style="font-family: inherit; font-size: 13px; color: #2B2B2B; min-width: 200px; padding: 2px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-              <strong style="color: #14505A; font-size: 14px;">${inc.codigo}</strong>
+              <strong style="color: #14505A; font-size: 14px;">${escapeHtml(inc.codigo)}</strong>
               <span style="background-color: #ECEFF3; padding: 2px 6px; font-size: 10px; font-weight: 700; border: 1px solid #DFE3E8;">
-                ${inc.prioridad}
+                ${escapeHtml(inc.prioridad)}
               </span>
             </div>
-            <div style="font-weight: 600; margin-bottom: 4px; color: #1B6F7D;">${inc.tipoAfectacion}</div>
-            <div style="font-size: 12px; margin-bottom: 6px; color: #555;">${inc.direccion}</div>
-            <div style="font-size: 11px; color: #666; margin-bottom: 8px;">Estado: <strong>${inc.estado}</strong></div>
+            <div style="font-weight: 600; margin-bottom: 4px; color: #1B6F7D;">${escapeHtml(inc.tipoAfectacion)}</div>
+            <div style="font-size: 12px; margin-bottom: 6px; color: #555;">${escapeHtml(inc.direccion)}</div>
+            <div style="font-size: 11px; color: #666; margin-bottom: 8px;">Estado: <strong>${escapeHtml(inc.estado)}</strong></div>
             ${cuadrillaHtml}
             <button
               id="btn-ver-incidente-${inc.id}"

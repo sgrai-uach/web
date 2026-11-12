@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useEffect, useState, useMemo } from 'react';
-import Link from 'next/link';
 import {
   X,
   HardHat,
@@ -17,9 +16,8 @@ import {
   ShieldAlert,
   MapPin,
   Mail,
-  Calendar,
 } from 'lucide-react';
-import type { CuadrillaItem, CuadrillaDetalle, EstadoCuadrilla } from '@/types/cuadrilla';
+import type { CuadrillaItem, EstadoCuadrilla } from '@/types/cuadrilla';
 import { cuadrillasService, CuadrillaServiceError } from '@/services/cuadrillasService';
 import Button from '@/components/ui/Button';
 import Heading from '@/components/ui/Heading';
@@ -37,103 +35,98 @@ export interface CuadrillaDetalleDrawerProps {
   puedeEliminar?: boolean;
 }
 
-/**
- * Formatea minutos transcurridos en una cadena legible ("X h Y min" o "Y min").
- */
-function formatearTiempoTranscurrido(minutos?: number | null, fechaDespacho?: string | null): string {
+function BadgeEstado({ estado }: { estado: EstadoCuadrilla }) {
+  const estadoUpper = (estado || '').toUpperCase();
+
+  switch (estadoUpper) {
+    case 'DISPONIBLE':
+      return (
+        <span
+          className={`${styles.badgeEstado} ${styles.badgeDisponible}`}
+          data-testid="cuadrilla-badge-disponible"
+        >
+          <span className={styles.statusDot} aria-hidden="true" />
+          DISPONIBLE
+        </span>
+      );
+    case 'EN_MISION':
+      return (
+        <span
+          className={`${styles.badgeEstado} ${styles.badgeEnMision}`}
+          data-testid="cuadrilla-badge-en-mision"
+        >
+          <span className={styles.statusDot} aria-hidden="true" />
+          EN MISIÓN
+        </span>
+      );
+    case 'NO_DISPONIBLE':
+    default:
+      return (
+        <span
+          className={`${styles.badgeEstado} ${styles.badgeNoDisponible}`}
+          data-testid="cuadrilla-badge-no-disponible"
+        >
+          <span className={styles.statusDot} aria-hidden="true" />
+          NO DISPONIBLE
+        </span>
+      );
+  }
+}
+
+function formatearTiempoTranscurrido(
+  minutos?: number | null,
+  fechaDespacho?: string | null
+): string {
   let mins = minutos;
+
   if ((mins === undefined || mins === null) && fechaDespacho) {
-    const despachoTime = new Date(fechaDespacho).getTime();
-    const ahora = Date.now();
-    if (!isNaN(despachoTime) && ahora >= despachoTime) {
-      mins = Math.floor((ahora - despachoTime) / (1000 * 60));
-    }
+    const diffMs = Date.now() - new Date(fechaDespacho).getTime();
+    mins = Math.max(0, Math.floor(diffMs / (1000 * 60)));
   }
 
   if (mins === undefined || mins === null || isNaN(mins)) {
     return 'Reciente';
   }
 
-  if (mins < 1) return 'Menos de 1 min';
-  if (mins < 60) return `${mins} min`;
+  if (mins < 60) {
+    return `${mins} min`;
+  }
 
   const horas = Math.floor(mins / 60);
-  const residuo = mins % 60;
-  return residuo > 0 ? `${horas} h ${residuo} min` : `${horas} h`;
+  const restMins = mins % 60;
+  return `${horas} h ${restMins} min`;
 }
 
-/**
- * Badge del estado operativo de la cuadrilla.
- */
-function BadgeEstado({ estado }: { estado?: EstadoCuadrilla }) {
-  const est = (estado || '').toUpperCase();
-
-  if (est === 'DISPONIBLE') {
-    return (
-      <span className={`${styles.badgeEstado} ${styles.badgeDisponible}`} data-testid="cuadrilla-badge-disponible">
-        <span className={styles.statusDot} />
-        DISPONIBLE
-      </span>
-    );
-  }
-
-  if (est === 'EN_MISION' || est === 'EN_TRANSITO' || est === 'EN_OPERACION') {
-    return (
-      <span className={`${styles.badgeEstado} ${styles.badgeEnMision}`} data-testid="cuadrilla-badge-en-mision">
-        <Clock size={12} />
-        EN MISIÓN
-      </span>
-    );
-  }
-
-  return (
-    <span className={`${styles.badgeEstado} ${styles.badgeNoDisponible}`} data-testid="cuadrilla-badge-no-disponible">
-      <span className={styles.statusDot} />
-      NO DISPONIBLE
-    </span>
-  );
+interface CuadrillaDetalleContentProps {
+  targetId: string;
+  cuadrillaProp?: CuadrillaItem | null;
+  onCerrar: () => void;
+  onEditar?: (cuadrilla: CuadrillaItem) => void;
+  onDesactivar?: (cuadrilla: CuadrillaItem) => void;
+  onSelectIncidente?: (incidenteId: string) => void;
+  puedeEditar?: boolean;
+  puedeEliminar?: boolean;
 }
 
-export default function CuadrillaDetalleDrawer({
-  cuadrilla: cuadrillaProp,
-  cuadrillaId: cuadrillaIdProp,
-  isOpen,
+function CuadrillaDetalleDrawerContent({
+  targetId,
+  cuadrillaProp,
   onCerrar,
   onEditar,
   onDesactivar,
   onSelectIncidente,
-  puedeEditar = true,
-  puedeEliminar = true,
-}: CuadrillaDetalleDrawerProps) {
-  const [cuadrillaData, setCuadrillaData] = useState<CuadrillaDetalle | null>(cuadrillaProp || null);
-  const [cargando, setCargando] = useState<boolean>(false);
+  puedeEditar = false,
+  puedeEliminar = false,
+}: CuadrillaDetalleContentProps) {
+  const [cuadrillaData, setCuadrillaData] = useState<CuadrillaItem | null>(
+    cuadrillaProp && cuadrillaProp.id === targetId ? cuadrillaProp : null
+  );
+  const [cargando, setCargando] = useState<boolean>(true);
   const [errorCarga, setErrorCarga] = useState<string | null>(null);
   const [esForbidden, setEsForbidden] = useState<boolean>(false);
 
-  const targetId = useMemo(() => {
-    return cuadrillaIdProp || cuadrillaProp?.id || null;
-  }, [cuadrillaIdProp, cuadrillaProp]);
-
-  // Cargar información completa desde el endpoint GET /api/cuadrillas/{id}
   useEffect(() => {
-    if (!isOpen || !targetId) {
-      if (!isOpen) {
-        setCuadrillaData(null);
-        setErrorCarga(null);
-        setEsForbidden(false);
-      }
-      return;
-    }
-
     let isMounted = true;
-    setCargando(true);
-    setErrorCarga(null);
-    setEsForbidden(false);
-
-    // Si ya teníamos datos iniciales del item de la lista, asignarlos temporalmente
-    if (cuadrillaProp && cuadrillaProp.id === targetId) {
-      setCuadrillaData(cuadrillaProp);
-    }
 
     cuadrillasService
       .obtenerCuadrillaPorId(targetId)
@@ -145,6 +138,7 @@ export default function CuadrillaDetalleDrawer({
       .catch((err: unknown) => {
         if (!isMounted) return;
         setCargando(false);
+        setCuadrillaData(null);
         if (err instanceof CuadrillaServiceError && err.status === 403) {
           setEsForbidden(true);
           setErrorCarga(err.message);
@@ -158,83 +152,89 @@ export default function CuadrillaDetalleDrawer({
     return () => {
       isMounted = false;
     };
-  }, [isOpen, targetId, cuadrillaProp]);
+  }, [targetId]);
 
-  // Manejo de teclado tecla Escape
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
-      if (e.key === 'Escape' && isOpen) {
+      if (e.key === 'Escape') {
         onCerrar();
       }
     }
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onCerrar]);
+  }, [onCerrar]);
 
-  if (!isOpen) return null;
-
-  const cuadrilla = cuadrillaData || cuadrillaProp;
+  const cuadrilla = esForbidden ? null : (cuadrillaData || (!errorCarga ? cuadrillaProp : null));
   const estadoNorm = (cuadrilla?.estado || '').toUpperCase();
   const estaInactiva = cuadrilla?.activo === false || estadoNorm === 'NO_DISPONIBLE';
   const bloqueadaPorMision =
     estadoNorm === 'EN_MISION' ||
-    estadoNorm === 'EN_TRANSITO' ||
-    estadoNorm === 'EN_OPERACION' ||
-    Boolean(cuadrilla?.misionActiva);
-  const misionActiva = cuadrilla?.misionActiva;
+    cuadrilla?.misionActiva?.estado === 'EN_CURSO' ||
+    cuadrilla?.misionActiva?.estado === 'DESPACHADA';
+
+  const misionActiva = useMemo(() => {
+    if (!cuadrilla?.misionActiva) return null;
+    return cuadrilla.misionActiva;
+  }, [cuadrilla]);
 
   return (
     <div
       className={styles.backdrop}
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="drawer-cuadrilla-title"
-      data-testid="cuadrilla-detalle-drawer"
+      role="presentation"
       onClick={(e) => {
-        if (e.target === e.currentTarget) onCerrar();
+        if (e.target === e.currentTarget) {
+          onCerrar();
+        }
       }}
     >
-      <aside className={styles.drawer}>
-        {/* Cabecera del Drawer */}
+      <div
+        className={styles.drawer}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="cuadrilla-detalle-titulo"
+        data-testid="cuadrilla-detalle-drawer"
+      >
+        {/* Cabecera Institucional */}
         <header className={styles.header}>
           <div className={styles.headerTitleGroup}>
-            <HardHat size={26} className={styles.headerIcon} aria-hidden="true" />
+            <HardHat size={22} className={styles.headerIcon} aria-hidden="true" />
             <div className={styles.headerTitles}>
-              <Heading as="h3" variant="h3" color="white" noMargin id="drawer-cuadrilla-title">
+              <Heading as="h2" variant="h3" color="white" noMargin id="cuadrilla-detalle-titulo">
                 {cuadrilla?.nombre || 'Ficha Técnica de Cuadrilla'}
               </Heading>
-              {cuadrilla?.delegacion && (
-                <span className={styles.headerSubtitle}>
-                  Delegación {cuadrilla.delegacion.nombre}
-                </span>
-              )}
+              <span className={styles.headerSubtitle}>
+                {cuadrilla?.delegacion?.nombre
+                  ? `Delegación ${cuadrilla.delegacion.nombre}`
+                  : 'Dotación operativa y recursos municipales'}
+              </span>
             </div>
           </div>
 
           <button
             type="button"
-            onClick={onCerrar}
-            aria-label="Cerrar panel de detalle de cuadrilla"
             className={styles.closeButton}
+            onClick={onCerrar}
+            aria-label="Cerrar panel de detalle"
+            title="Cerrar panel"
           >
-            <X size={20} />
+            <X size={20} aria-hidden="true" />
           </button>
         </header>
 
         {/* Cuerpo del Drawer */}
         <div className={styles.body}>
-          {/* Estado de carga */}
-          {cargando && !cuadrilla && (
-            <div className={styles.loadingState}>
-              <HardHat size={36} color="var(--color-primary-teal, #1B6F7D)" />
-              <p>Consultando dotación y recursos de la cuadrilla...</p>
+          {/* Skeleton o spinner durante la carga inicial */}
+          {cargando && !cuadrilla && !errorCarga && (
+            <div className={styles.loadingState} data-testid="cuadrilla-loading-state">
+              <div className={styles.spinner} aria-hidden="true" />
+              <span>Consultando composición y recursos en tiempo real...</span>
             </div>
           )}
 
-          {/* Estado de Acceso Denegado (403 Forbidden) */}
+          {/* Aviso de Error 403 Forbidden (RBAC) */}
           {esForbidden && (
             <div className={styles.errorBox} data-testid="cuadrilla-forbidden-notice">
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 700 }}>
+              <div className={styles.errorBoxHeader}>
                 <ShieldAlert size={18} />
                 <span>Acceso Restringido (403 Forbidden)</span>
               </div>
@@ -245,7 +245,7 @@ export default function CuadrillaDetalleDrawer({
           {/* Error general de carga */}
           {errorCarga && !esForbidden && !cuadrilla && (
             <div className={styles.errorBox}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 700 }}>
+              <div className={styles.errorBoxHeader}>
                 <AlertCircle size={18} />
                 <span>Error de Consulta</span>
               </div>
@@ -253,12 +253,13 @@ export default function CuadrillaDetalleDrawer({
             </div>
           )}
 
-          {cuadrilla && (
+          {/* Renderizado condicional protegido: NUNCA fugar datos si hay 403 o error */}
+          {!esForbidden && !errorCarga && cuadrilla && (
             <>
               {/* Tarjeta de Estado Operativo Actual */}
               <div className={styles.card}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-charcoal, #3B3F45)' }}>
+                <div className={styles.estadoRow}>
+                  <span className={styles.estadoLabel}>
                     Estado Operativo Actual:
                   </span>
                   <BadgeEstado estado={cuadrilla.estado} />
@@ -267,21 +268,8 @@ export default function CuadrillaDetalleDrawer({
 
               {/* Advertencia si la unidad está inactiva */}
               {estaInactiva && (
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'flex-start',
-                    gap: '10px',
-                    padding: '12px 16px',
-                    backgroundColor: '#F1F3F5',
-                    border: '1px solid #DFE3E8',
-                    borderLeft: '4px solid var(--color-text-muted, #5F676E)',
-                    color: 'var(--color-text-muted, #5F676E)',
-                    fontSize: '13px',
-                  }}
-                  data-testid="cuadrilla-inactiva-notice"
-                >
-                  <AlertCircle size={18} style={{ flexShrink: 0, marginTop: '1px' }} />
+                <div className={styles.inactivaNotice} data-testid="cuadrilla-inactiva-notice">
+                  <AlertCircle size={18} className={styles.inactivaIcon} />
                   <div>
                     <strong>Unidad Inactiva / No Disponible:</strong> Esta cuadrilla ha sido dada de baja o no se encuentra disponible para asignaciones operativas en terreno.
                   </div>
@@ -317,17 +305,18 @@ export default function CuadrillaDetalleDrawer({
                             <strong>Incidente:</strong> {misionActiva.incidente.codigo}
                             {misionActiva.incidente.tipo && ` — ${misionActiva.incidente.tipo}`}
                             {misionActiva.incidente.direccion && (
-                              <div style={{ fontSize: '11px', color: 'var(--color-text-muted, #5F676E)', marginTop: '2px' }}>
-                                <MapPin size={11} style={{ display: 'inline', marginRight: '3px' }} />
+                              <div className={styles.incidenteDireccion}>
+                                <MapPin size={11} className={styles.incidenteDireccionIcon} />
                                 {misionActiva.incidente.direccion}
                               </div>
                             )}
                           </div>
 
                           {onSelectIncidente ? (
-                            <button
+                            <Button
                               type="button"
-                              className={styles.incidenteBotonLink}
+                              variant="teal"
+                              size="sm"
                               onClick={() => {
                                 if (misionActiva.incidente?.id) {
                                   onCerrar();
@@ -336,25 +325,26 @@ export default function CuadrillaDetalleDrawer({
                               }}
                               data-testid="btn-ver-incidente-mision"
                             >
+                              <ExternalLink size={13} style={{ marginRight: '4px' }} />
                               <span>Ver Incidente</span>
-                              <ExternalLink size={13} />
-                            </button>
+                            </Button>
                           ) : (
-                            <Link
+                            <Button
                               href={`/gestion/centro-incidentes?incidenteId=${misionActiva.incidente.id}`}
-                              className={styles.incidenteBotonLink}
+                              variant="teal"
+                              size="sm"
                               onClick={onCerrar}
                               data-testid="link-ver-incidente-mision"
                             >
+                              <ExternalLink size={13} style={{ marginRight: '4px' }} />
                               <span>Ver Incidente</span>
-                              <ExternalLink size={13} />
-                            </Link>
+                            </Button>
                           )}
                         </div>
                       )}
                     </>
                   ) : (
-                    <div style={{ fontSize: '12px', color: 'var(--color-warning, #E65100)' }}>
+                    <div className={styles.misionAdvertenciaProtegida}>
                       La cuadrilla se encuentra despachada a una misión activa en terreno. Sus datos y recursos están protegidos contra modificaciones operativas.
                     </div>
                   )}
@@ -380,7 +370,7 @@ export default function CuadrillaDetalleDrawer({
                     </span>
                     <div className={styles.delegadoMeta}>
                       {cuadrilla.delegado?.email && (
-                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                        <span className={styles.delegadoEmail}>
                           <Mail size={12} />
                           {cuadrilla.delegado.email}
                         </span>
@@ -439,7 +429,7 @@ export default function CuadrillaDetalleDrawer({
                               <span>{t.telefono}</span>
                             </a>
                           ) : (
-                            <span style={{ fontSize: '11px', color: 'var(--color-text-muted, #5F676E)' }}>
+                            <span className={styles.sinTelefono}>
                               Sin teléfono
                             </span>
                           )}
@@ -449,7 +439,7 @@ export default function CuadrillaDetalleDrawer({
                   </div>
                 ) : (
                   <p className={styles.emptyText}>
-                    No hay funcionarios operativos asignados a la nómina de esta cuadrilla.
+                    No hay trabajadores operativos asignados a esta cuadrilla.
                   </p>
                 )}
               </div>
@@ -503,12 +493,12 @@ export default function CuadrillaDetalleDrawer({
                   </div>
                 ) : (
                   <p className={styles.emptyText}>
-                    No hay recursos materiales, vehículos ni herramientas asignadas a esta unidad.
+                    No hay recursos logísticos ni vehículos asignados a esta cuadrilla.
                   </p>
                 )}
               </div>
 
-              {/* Metadatos de Auditoría */}
+              {/* Metadatos de Auditoría con soporte para eliminadoEn (HU-82 / BUG-H22-WEB-05) */}
               <div className={styles.auditFooter}>
                 <span>
                   <strong>Creado:</strong>{' '}
@@ -518,6 +508,12 @@ export default function CuadrillaDetalleDrawer({
                   <span>
                     <strong>Última actualización:</strong>{' '}
                     {new Date(cuadrilla.actualizadoEn).toLocaleString('es-CL')}
+                  </span>
+                )}
+                {cuadrilla.eliminadoEn && (
+                  <span className={styles.auditEliminado} data-testid="cuadrilla-audit-eliminado">
+                    <strong>Eliminado / Dado de baja:</strong>{' '}
+                    {new Date(cuadrilla.eliminadoEn).toLocaleString('es-CL')}
                   </span>
                 )}
               </div>
@@ -539,14 +535,15 @@ export default function CuadrillaDetalleDrawer({
               onClick={() => {
                 onDesactivar(cuadrilla);
               }}
-              icon={<Trash2 size={15} />}
               title={
                 bloqueadaPorMision
-                  ? 'No se puede desactivar una cuadrilla que se encuentra actualmente en misión activa'
-                  : 'Desactivar cuadrilla operativa'
+                  ? 'No se puede desactivar una cuadrilla asignada a una misión activa'
+                  : 'Desactivar esta cuadrilla'
               }
+              aria-label="Desactivar Cuadrilla"
             >
-              Desactivar
+              <Trash2 size={16} aria-hidden="true" style={{ marginRight: '6px' }} />
+              <span>Desactivar</span>
             </Button>
           )}
 
@@ -559,18 +556,41 @@ export default function CuadrillaDetalleDrawer({
                 onCerrar();
                 onEditar(cuadrilla);
               }}
-              icon={<Pencil size={15} />}
               title={
                 bloqueadaPorMision
-                  ? 'No se puede editar una cuadrilla que se encuentra actualmente en misión activa'
-                  : 'Modificar datos y dotación'
+                  ? 'No se puede editar una cuadrilla que se encuentra en misión activa'
+                  : 'Editar composición de la cuadrilla'
               }
+              aria-label="Editar Cuadrilla"
             >
-              Editar Cuadrilla
+              <Pencil size={16} aria-hidden="true" style={{ marginRight: '6px' }} />
+              <span>Editar Cuadrilla</span>
             </Button>
           )}
         </footer>
-      </aside>
+      </div>
     </div>
+  );
+}
+
+export default function CuadrillaDetalleDrawer({
+  cuadrilla,
+  cuadrillaId,
+  isOpen,
+  ...restProps
+}: CuadrillaDetalleDrawerProps) {
+  if (!isOpen || (!cuadrilla && !cuadrillaId)) {
+    return null;
+  }
+
+  const targetId = cuadrillaId || cuadrilla?.id || '';
+
+  return (
+    <CuadrillaDetalleDrawerContent
+      key={targetId}
+      targetId={targetId}
+      cuadrillaProp={cuadrilla}
+      {...restProps}
+    />
   );
 }

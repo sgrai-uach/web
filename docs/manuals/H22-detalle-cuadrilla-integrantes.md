@@ -39,8 +39,6 @@ Esta herramienta proporciona visibilidad inmediata sobre:
 
 ### Opción 1: Consulta desde el Mapa Táctico (Centro de Mando)
 
-![Acceso a Cuadrilla desde Marcador del Mapa](/docs/manuals/assets/H22-detalle-cuadrilla-integrantes/01-mapa-popup-cuadrilla.png)
-
 1. Ingrese a **Centro de Mando** (`/gestion/centro-incidentes`).
 2. En la barra superior, seleccione la vista **Mapa Operativo**.
 3. Haga clic sobre el marcador del incidente que se encuentre en estado `EN_ATENCION` o con cuadrilla despachada.
@@ -51,8 +49,6 @@ Esta herramienta proporciona visibilidad inmediata sobre:
 
 ### Opción 2: Consulta desde la Tabla de Cuadrillas (Administración)
 
-![Tabla de Cuadrillas con Enlace de Detalle](/docs/manuals/assets/H22-detalle-cuadrilla-integrantes/02-tabla-cuadrillas-detalle.png)
-
 1. En la barra lateral (`AppSidebar`), bajo el grupo **Administración**, seleccione **Cuadrillas** (o navegue a `/gestion/admin/cuadrillas`).
 2. Puede filtrar la lista por nombre de unidad, nombre/RUT de delegado, delegación territorial o estado operativo.
 3. En la fila de la cuadrilla deseada, haga clic en el **nombre de la cuadrilla** o en el botón **"Detalle"** (icono de ojo) ubicado en la columna **Acciones**.
@@ -62,8 +58,6 @@ Esta herramienta proporciona visibilidad inmediata sobre:
 
 ### Opción 3: Consulta desde el Detalle de un Incidente
 
-![Detalle de Misiones y Cuadrilla Asignada](/docs/manuals/assets/H22-detalle-cuadrilla-integrantes/03-incidente-drawer-cuadrilla.png)
-
 1. Al abrir el drawer de un incidente en el Centro de Mando, desplácese a la sección **Misiones y Equipos en Terreno**.
 2. En la tarjeta de la misión que cuente con cuadrilla asignada, presione el botón institucional **"Ver Cuadrilla"** (con icono de integrantes).
 3. El sistema abrirá la ficha técnica completa de la cuadrilla.
@@ -71,8 +65,6 @@ Esta herramienta proporciona visibilidad inmediata sobre:
 ---
 
 ## 4. Estructura de la Ficha Técnica (Drawer Lateral)
-
-![Drawer Lateral de Ficha Técnica de Cuadrilla](/docs/manuals/assets/H22-detalle-cuadrilla-integrantes/04-drawer-cuadrilla-completo.png)
 
 El panel lateral se divide en los siguientes bloques funcionales:
 

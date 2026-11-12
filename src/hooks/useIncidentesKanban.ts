@@ -38,6 +38,28 @@ export interface FiltrosKanban {
   soloHoy?: boolean;
 }
 
+/**
+ * Ordena incidentes para una columna del Kanban.
+ * En la columna 'VERIFICANDO', los incidentes ya verificados por patrulla
+ * aparecen siempre primero en la parte superior.
+ */
+function ordenarIncidentesColumna(
+  incidentes: IncidenteResumen[],
+  estado: EstadoIncidente
+): IncidenteResumen[] {
+  if (estado === 'VERIFICANDO') {
+    return [...incidentes].sort((a, b) => {
+      const aVerif = a.verificado ? 1 : 0;
+      const bVerif = b.verificado ? 1 : 0;
+      if (aVerif !== bVerif) {
+        return bVerif - aVerif; // Verificados (1) primero
+      }
+      return new Date(b.creadoEn).getTime() - new Date(a.creadoEn).getTime();
+    });
+  }
+  return incidentes;
+}
+
 export function useIncidentesKanban(initialUserId?: string) {
   let sessionUserId: string | undefined;
   let sessionSetUser: ((id: string) => void) | undefined;
@@ -171,7 +193,7 @@ export function useIncidentesKanban(initialUserId?: string) {
         columnasAConsultar.forEach((estado, idx) => {
           const res = resultados[idx];
           if (res.exito) {
-            nuevasColumnas[estado] = res.incidentes;
+            nuevasColumnas[estado] = ordenarIncidentesColumna(res.incidentes, estado);
             nuevasPaginaciones[estado] = res.paginacion || null;
           }
         });
@@ -230,7 +252,7 @@ export function useIncidentesKanban(initialUserId?: string) {
         if (res.exito) {
           setColumnas((prev) => ({
             ...prev,
-            [estado]: [...prev[estado], ...res.incidentes],
+            [estado]: ordenarIncidentesColumna([...prev[estado], ...res.incidentes], estado),
           }));
           setPaginacionColumna((prev) => ({
             ...prev,
@@ -314,6 +336,8 @@ export function useIncidentesKanban(initialUserId?: string) {
       const { datos } = payload;
       if (!datos || !datos.id) return;
 
+      let columnaOrigenDetectada: EstadoIncidente | null = null;
+
       setColumnas((prev) => {
         let incidenteEncontrado: IncidenteResumen | null = null;
         let columnaOrigen: EstadoIncidente | null = null;
@@ -322,13 +346,18 @@ export function useIncidentesKanban(initialUserId?: string) {
         for (const est of ESTADOS_KANBAN) {
           const idx = prev[est].findIndex((i) => i.id === datos.id);
           if (idx !== -1) {
+            columnaOrigen = est;
+            columnaOrigenDetectada = est;
             incidenteEncontrado = {
               ...prev[est][idx],
               estado: datos.nuevoEstado,
               prioridad: datos.prioridad || prev[est][idx].prioridad,
+              totalMisiones:
+                datos.nuevoEstado === 'VERIFICANDO' && est === 'REPORTADO'
+                  ? Math.max(1, (prev[est][idx].totalMisiones || 0) + 1)
+                  : prev[est][idx].totalMisiones,
               actualizadoEn: datos.actualizadoEn || new Date().toISOString(),
             };
-            columnaOrigen = est;
             break;
           }
         }
@@ -351,7 +380,92 @@ export function useIncidentesKanban(initialUserId?: string) {
         return {
           ...prev,
           [columnaOrigen!]: prev[columnaOrigen!].filter((i) => i.id !== datos.id),
-          [datos.nuevoEstado]: [incidenteEncontrado, ...prev[datos.nuevoEstado]],
+          [datos.nuevoEstado]: ordenarIncidentesColumna([incidenteEncontrado, ...prev[datos.nuevoEstado]], datos.nuevoEstado),
+        };
+      });
+
+      // Actualizar dinámicamente paginacionColumna si cambió de columna
+      if (columnaOrigenDetectada && columnaOrigenDetectada !== datos.nuevoEstado) {
+        setPaginacionColumna((prev) => {
+          const metaOrigen = prev[columnaOrigenDetectada!];
+          const metaDestino = prev[datos.nuevoEstado];
+          return {
+            ...prev,
+            [columnaOrigenDetectada!]: metaOrigen
+              ? { ...metaOrigen, total: Math.max(0, metaOrigen.total - 1) }
+              : null,
+            [datos.nuevoEstado]: metaDestino
+              ? { ...metaDestino, total: metaDestino.total + 1 }
+              : null,
+          };
+        });
+      }
+    },
+    []
+  );
+
+  // Función para mover un incidente de columna de forma inmediata e imperativa
+  const moverIncidenteAEstado = useCallback(
+    (incidenteId: string, nuevoEstado: EstadoIncidente, prioridad?: PrioridadIncidente) => {
+      let columnaOrigenDetectada: EstadoIncidente | null = null;
+
+      setColumnas((prev) => {
+        let incidenteEncontrado: IncidenteResumen | null = null;
+        let columnaOrigen: EstadoIncidente | null = null;
+
+        for (const est of ESTADOS_KANBAN) {
+          const idx = prev[est].findIndex((i) => i.id === incidenteId);
+          if (idx !== -1) {
+            columnaOrigen = est;
+            columnaOrigenDetectada = est;
+            incidenteEncontrado = {
+              ...prev[est][idx],
+              estado: nuevoEstado,
+              prioridad: prioridad || prev[est][idx].prioridad,
+              totalMisiones:
+                nuevoEstado === 'VERIFICANDO' && est === 'REPORTADO'
+                  ? Math.max(1, (prev[est][idx].totalMisiones || 0) + 1)
+                  : prev[est][idx].totalMisiones,
+              actualizadoEn: new Date().toISOString(),
+            };
+            break;
+          }
+        }
+
+        if (!incidenteEncontrado) return prev;
+
+        if (columnaOrigen === nuevoEstado) {
+          return {
+            ...prev,
+            [columnaOrigen]: prev[columnaOrigen].map((i) =>
+              i.id === incidenteId ? incidenteEncontrado! : i
+            ),
+          };
+        }
+
+        return {
+          ...prev,
+          [columnaOrigen!]: prev[columnaOrigen!].filter((i) => i.id !== incidenteId),
+          [nuevoEstado]: [incidenteEncontrado, ...prev[nuevoEstado]],
+        };
+      });
+
+      // Actualizar contadores locales de paginación dinámicamente según origen y destino
+      setPaginacionColumna((prev) => {
+        const origen = columnaOrigenDetectada || ('REPORTADO' as EstadoIncidente);
+        if (origen === nuevoEstado) return prev;
+
+        const metaOrigen = prev[origen];
+        const metaDestino = prev[nuevoEstado];
+
+        return {
+          ...prev,
+          [origen]: metaOrigen
+            ? { ...metaOrigen, total: Math.max(0, metaOrigen.total - 1) }
+            : null,
+          [nuevoEstado]: metaDestino
+            ? { ...metaDestino, total: metaDestino.total + 1 }
+            : null,
         };
       });
     },
@@ -384,6 +498,7 @@ export function useIncidentesKanban(initialUserId?: string) {
     limpiarFiltros,
     cargarMas,
     recargar: cargarTablero,
+    moverIncidenteAEstado,
     conectado,
     ultimoEvento,
     totalIncidentesVisibles,

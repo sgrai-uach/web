@@ -1,18 +1,25 @@
-'use client';
-
 import React from 'react';
-import { MapPin } from 'lucide-react';
+import { MapPin, CheckCircle2, ShieldCheck } from 'lucide-react';
 import type { IncidenteResumen } from '@/services/incidentesService';
 import { obtenerNombreDelegacion } from '@/lib/utils/delegacionUtils';
 import styles from '@/styles/mando.module.css';
 import Heading from '@/components/ui/Heading';
+import Button from '@/components/ui/Button';
 
 interface IncidenteCardProps {
   incidente: IncidenteResumen;
   onClick: (incidente: IncidenteResumen) => void;
+  onAsignarPatrulla?: (incidente: IncidenteResumen) => void;
+  puedeAsignarPatrulla?: boolean;
 }
 
-export const IncidenteCard: React.FC<IncidenteCardProps> = ({ incidente, onClick }) => {
+export const IncidenteCard: React.FC<IncidenteCardProps> = ({
+  incidente,
+  onClick,
+  onAsignarPatrulla,
+  puedeAsignarPatrulla = true,
+}) => {
+  const estaVerificado = Boolean(incidente.verificado);
   const getPrioridadClass = (prioridad: string) => {
     switch (prioridad) {
       case 'CRITICA':
@@ -36,7 +43,7 @@ export const IncidenteCard: React.FC<IncidenteCardProps> = ({ incidente, onClick
 
   return (
     <div
-      className={styles.incidenteCard}
+      className={`${styles.incidenteCard} ${estaVerificado ? styles.incidenteVerificado : ''}`}
       onClick={() => onClick(incidente)}
       onKeyDown={handleKeyDown}
       role="button"
@@ -44,7 +51,19 @@ export const IncidenteCard: React.FC<IncidenteCardProps> = ({ incidente, onClick
       aria-label={`Ver detalles del incidente ${incidente.codigo} tipo ${incidente.tipoAfectacion}`}
     >
       <div className={styles.cardTopRow}>
-        <span className={styles.cardCodigo}>{incidente.codigo}</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', flexWrap: 'wrap' }}>
+          <span className={styles.cardCodigo}>{incidente.codigo}</span>
+          {estaVerificado && (
+            <span
+              className={styles.badgeVerificado}
+              title="Diagnóstico técnico en terreno finalizado por patrulla"
+              data-testid="badge-verificado"
+            >
+              <CheckCircle2 size={11} aria-hidden="true" />
+              <span>Verificado</span>
+            </span>
+          )}
+        </div>
         <span
           className={`${styles.badgePrioridad} ${getPrioridadClass(incidente.prioridad)}`}
           title={`Prioridad: ${incidente.prioridad}`}
@@ -82,6 +101,26 @@ export const IncidenteCard: React.FC<IncidenteCardProps> = ({ incidente, onClick
 
         <span>{obtenerNombreDelegacion(incidente.delegacionNombre, 'Sin delegación')}</span>
       </div>
+
+      {incidente.estado === 'REPORTADO' && onAsignarPatrulla && puedeAsignarPatrulla && (
+        <div style={{ marginTop: '0.625rem', paddingTop: '0.5rem', borderTop: '1px solid var(--border-color-neutral, #DFE3E8)' }}>
+          <Button
+            type="button"
+            variant="primary"
+            size="sm"
+            onClick={(e) => {
+              e.stopPropagation();
+              onAsignarPatrulla(incidente);
+            }}
+            style={{ width: '100%', justifyContent: 'center' }}
+            title={`Asignar patrulla verificadora al incidente ${incidente.codigo}`}
+            aria-label={`Asignar patrulla verificadora al incidente ${incidente.codigo}`}
+          >
+            <ShieldCheck size={14} style={{ marginRight: '5px' }} />
+            <span>Asignar Patrulla</span>
+          </Button>
+        </div>
+      )}
     </div>
   );
 };

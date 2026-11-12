@@ -1,6 +1,6 @@
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import CuadrillaDetalleDrawer from '../CuadrillaDetalleDrawer';
 import { cuadrillasService, CuadrillaServiceError } from '@/services/cuadrillasService';
 import type { CuadrillaItem } from '@/types/cuadrilla';
@@ -111,20 +111,39 @@ const mockCuadrillaEnMision: CuadrillaItem = {
   actualizadoEn: null,
 };
 
-describe('CuadrillaDetalleDrawer (HU-22)', () => {
+const mockCuadrillaDadaDeBaja: CuadrillaItem = {
+  ...mockCuadrillaDisponible,
+  id: 'c-300',
+  nombre: 'Cuadrilla Histórica Desactivada',
+  activo: false,
+  estado: 'NO_DISPONIBLE',
+  eliminadoEn: '2026-11-01T15:00:00.000Z',
+};
+
+describe('CuadrillaDetalleDrawer (HU-22 & H80)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('no debe renderizar nada si isOpen es false', () => {
-    render(
+  it('no debe renderizar nada si isOpen es false o no hay cuadrilla', () => {
+    const { container, rerender } = render(
       <CuadrillaDetalleDrawer
         cuadrilla={mockCuadrillaDisponible}
         isOpen={false}
         onCerrar={vi.fn()}
       />
     );
-    expect(screen.queryByTestId('cuadrilla-detalle-drawer')).toBeNull();
+    expect(container.firstChild).toBeNull();
+
+    rerender(
+      <CuadrillaDetalleDrawer
+        cuadrilla={null}
+        cuadrillaId={null}
+        isOpen={true}
+        onCerrar={vi.fn()}
+      />
+    );
+    expect(container.firstChild).toBeNull();
   });
 
   it('debe renderizar la ficha técnica de una cuadrilla disponible con sus integrantes y recursos', async () => {
@@ -198,13 +217,19 @@ describe('CuadrillaDetalleDrawer (HU-22)', () => {
     expect(mockSelectIncidente).toHaveBeenCalledWith('inc-042');
   });
 
-  it('debe mostrar advertencia de Acceso Restringido ante error 403 Forbidden', async () => {
+  it('debe mostrar advertencia de Acceso Restringido ante error 403 Forbidden y no fugar datos (BUG-H22-WEB-02)', async () => {
     vi.spyOn(cuadrillasService, 'obtenerCuadrillaPorId').mockRejectedValueOnce(
-      new CuadrillaServiceError('Permisos insuficientes para ver cuadrilla', 403, 'general', 'PERMISOS_INSUFICIENTES')
+      new CuadrillaServiceError(
+        'Permisos insuficientes para ver cuadrilla',
+        403,
+        'general',
+        'PERMISOS_INSUFICIENTES'
+      )
     );
 
     render(
       <CuadrillaDetalleDrawer
+        cuadrilla={mockCuadrillaDisponible}
         cuadrillaId="c-prohibida"
         isOpen={true}
         onCerrar={vi.fn()}
@@ -213,6 +238,11 @@ describe('CuadrillaDetalleDrawer (HU-22)', () => {
 
     expect(await screen.findByTestId('cuadrilla-forbidden-notice')).toBeInTheDocument();
     expect(screen.getByText(/Acceso Restringido \(403 Forbidden\)/)).toBeInTheDocument();
+
+    // NO debe renderizar la nómina ni la dotación ante 403 Forbidden
+    expect(screen.queryByTestId('cuadrilla-trabajadores-lista')).toBeNull();
+    expect(screen.queryByTestId('cuadrilla-recursos-lista')).toBeNull();
+    expect(screen.queryByText('Carlos Delegado')).toBeNull();
   });
 
   it('debe responder al teclado con tecla Escape y cerrar el panel', async () => {
@@ -272,5 +302,20 @@ describe('CuadrillaDetalleDrawer (HU-22)', () => {
     const btnEditarBloqueado = screen.getByRole('button', { name: /Editar Cuadrilla/i });
     expect(btnEditarBloqueado).toBeDisabled();
   });
-});
 
+  it('debe mostrar metadatos de auditoría incluyendo eliminadoEn cuando la cuadrilla está dada de baja (BUG-H22-WEB-05)', async () => {
+    vi.spyOn(cuadrillasService, 'obtenerCuadrillaPorId').mockResolvedValueOnce(mockCuadrillaDadaDeBaja);
+
+    render(
+      <CuadrillaDetalleDrawer
+        cuadrillaId="c-300"
+        isOpen={true}
+        onCerrar={vi.fn()}
+      />
+    );
+
+    expect(await screen.findByText('Cuadrilla Histórica Desactivada')).toBeInTheDocument();
+    expect(screen.getByTestId('cuadrilla-inactiva-notice')).toBeInTheDocument();
+    expect(screen.getByTestId('cuadrilla-audit-eliminado')).toHaveTextContent(/Eliminado \/ Dado de baja/);
+  });
+});

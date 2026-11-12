@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Eye, Users } from 'lucide-react';
+import { Eye, Users, ShieldCheck } from 'lucide-react';
 import Heading from '@/components/ui/Heading';
 import Button from '@/components/ui/Button';
 import type { IncidenteDetalle } from '@/services/incidentesService';
@@ -9,85 +9,138 @@ import styles from '@/styles/mando.module.css';
 
 interface IncidenteMisionesSectionProps {
   misiones: IncidenteDetalle['misiones'];
+  incidenteEstado?: string;
   onVerDetalleMision?: (misionId: string) => void;
   onVerDetalleCuadrilla?: (cuadrillaId: string) => void;
+  onAsignarPatrulla?: () => void;
+  puedeAsignar?: boolean;
 }
 
 export const IncidenteMisionesSection: React.FC<IncidenteMisionesSectionProps> = ({
   misiones,
+  incidenteEstado,
   onVerDetalleMision,
   onVerDetalleCuadrilla,
+  onAsignarPatrulla,
+  puedeAsignar = true,
 }) => {
+  const tieneVerificacionActiva = misiones.some(
+    (m) =>
+      m.tipoMision === 'VERIFICACION' &&
+      ['PLANIFICADA', 'DESPACHADA', 'EN_CURSO'].includes(m.estado)
+  );
+
+  const mostrarBotonDespacho =
+    incidenteEstado === 'REPORTADO' &&
+    !tieneVerificacionActiva &&
+    Boolean(onAsignarPatrulla) &&
+    puedeAsignar;
+
   return (
     <div className={styles.drawerSection}>
-      <Heading as="h3" variant="h4" color="teal" style={{ marginBottom: '0.75rem' }}>
-        Misiones y Equipos en Terreno ({misiones.length})
-      </Heading>
-      {misiones.length === 0 ? (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+        <Heading as="h3" variant="h4" color="teal" noMargin>
+          Misiones y Equipos en Terreno ({misiones.length})
+        </Heading>
+      </div>
+
+      {mostrarBotonDespacho && (
+        <div
+          style={{
+            backgroundColor: '#F8FAFB',
+            border: '1px solid var(--border-color-neutral, #DFE3E8)',
+            padding: '12px 14px',
+            borderRadius: 0,
+            marginBottom: misiones.length > 0 ? '1rem' : '0',
+          }}
+        >
+          <p
+            style={{
+              color: 'var(--color-text-dark, #2B2B2B)',
+              fontSize: '0.85rem',
+              margin: '0 0 10px 0',
+            }}
+          >
+            Este incidente está pendiente de evaluación inicial. Despache una patrulla disponible para verificar en terreno las necesidades reales.
+          </p>
+          <Button
+            type="button"
+            variant="primary"
+            size="sm"
+            onClick={onAsignarPatrulla}
+            title="Despachar patrulla verificadora"
+          >
+            <ShieldCheck size={14} style={{ marginRight: '5px' }} />
+            <span>Despachar Patrulla Verificadora</span>
+          </Button>
+        </div>
+      )}
+
+      {misiones.length === 0 && !mostrarBotonDespacho && (
         <p style={{ color: 'var(--color-text-muted, #5F676E)', fontSize: '0.85rem', margin: 0 }}>
           No se han despachado misiones operativas para este caso.
         </p>
-      ) : (
-        misiones.map((mision) => (
-          <div key={mision.id} className={styles.misionCard}>
-            <div className={styles.misionHeader}>
-              <span>{mision.codigo}: {mision.titulo}</span>
-              <span style={{ color: 'var(--color-primary-teal, #1B6F7D)', fontWeight: 700 }}>
-                {mision.estado}
-              </span>
-            </div>
-            <div style={{ fontSize: '0.8125rem', marginTop: '0.25rem' }}>
-              <strong>Tipo:</strong> {mision.tipoMision} | <strong>Prioridad:</strong> {mision.prioridad}
-            </div>
-            {mision.cuadrilla && (
-              <div style={{ fontSize: '0.8125rem', marginTop: '0.25rem' }}>
-                <strong>Cuadrilla:</strong> {mision.cuadrilla.nombre} ({mision.cuadrilla.estado})
-              </div>
-            )}
-            {mision.patrulla && (
-              <div style={{ fontSize: '0.8125rem', marginTop: '0.25rem' }}>
-                <strong>Patrulla:</strong> {mision.patrulla.nombre} ({mision.patrulla.estado})
-              </div>
-            )}
-            {mision.justificacionRechazo && (
-              <div className={styles.misionRechazo}>
-                <strong>Motivo de Rechazo por la Cuadrilla:</strong> {mision.justificacionRechazo}
-              </div>
-            )}
+      )}
 
-            <div style={{ marginTop: '0.75rem', display: 'flex', justifyContent: 'flex-end', gap: '8px', flexWrap: 'wrap' }}>
-              {mision.cuadrilla && onVerDetalleCuadrilla && (mision.cuadrilla.id || (mision as unknown as { cuadrillaId?: string }).cuadrillaId) && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() =>
-                    onVerDetalleCuadrilla(
-                      mision.cuadrilla?.id || (mision as unknown as { cuadrillaId: string }).cuadrillaId
-                    )
-                  }
-                  title={`Ver dotación, personal y equipamiento de ${mision.cuadrilla.nombre}`}
-                  aria-label={`Ver ficha de la cuadrilla ${mision.cuadrilla.nombre}`}
-                >
-                  <Users size={13} aria-hidden="true" style={{ marginRight: '5px' }} />
-                  <span>Ver Cuadrilla</span>
-                </Button>
-              )}
+      {misiones.map((mision) => (
+        <div key={mision.id} className={styles.misionCard}>
+          <div className={styles.misionHeader}>
+            <span>{mision.codigo}: {mision.titulo}</span>
+            <span style={{ color: 'var(--color-primary-teal, #1B6F7D)', fontWeight: 700 }}>
+              {mision.estado}
+            </span>
+          </div>
+          <div style={{ fontSize: '0.8125rem', marginTop: '0.25rem' }}>
+            <strong>Tipo:</strong> {mision.tipoMision} | <strong>Prioridad:</strong> {mision.prioridad}
+          </div>
+          {mision.cuadrilla && (
+            <div style={{ fontSize: '0.8125rem', marginTop: '0.25rem' }}>
+              <strong>Cuadrilla:</strong> {mision.cuadrilla.nombre} ({mision.cuadrilla.estado})
+            </div>
+          )}
+          {mision.patrulla && (
+            <div style={{ fontSize: '0.8125rem', marginTop: '0.25rem' }}>
+              <strong>Patrulla:</strong> {mision.patrulla.nombre} ({mision.patrulla.estado})
+            </div>
+          )}
+          {mision.justificacionRechazo && (
+            <div className={styles.misionRechazo}>
+              <strong>Motivo de Rechazo por la Cuadrilla:</strong> {mision.justificacionRechazo}
+            </div>
+          )}
+
+          <div style={{ marginTop: '0.75rem', display: 'flex', justifyContent: 'flex-end', gap: '8px', flexWrap: 'wrap' }}>
+            {mision.cuadrilla && onVerDetalleCuadrilla && (mision.cuadrilla.id || (mision as unknown as { cuadrillaId?: string }).cuadrillaId) && (
               <Button
                 type="button"
-                variant="secondary"
+                variant="outline"
                 size="sm"
-                onClick={() => onVerDetalleMision?.(mision.id)}
-                title={`Ver detalles completos de la misión ${mision.codigo}`}
-                aria-label={`Ver detalles de la misión ${mision.codigo}`}
+                onClick={() =>
+                  onVerDetalleCuadrilla(
+                    mision.cuadrilla?.id || (mision as unknown as { cuadrillaId: string }).cuadrillaId
+                  )
+                }
+                title={`Ver dotación, personal y equipamiento de ${mision.cuadrilla.nombre}`}
+                aria-label={`Ver ficha de la cuadrilla ${mision.cuadrilla.nombre}`}
               >
-                <Eye size={13} aria-hidden="true" style={{ marginRight: '4px' }} />
-                <span>Ver Detalles</span>
+                <Users size={13} aria-hidden="true" style={{ marginRight: '5px' }} />
+                <span>Ver Cuadrilla</span>
               </Button>
-            </div>
+            )}
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={() => onVerDetalleMision?.(mision.id)}
+              title={`Ver detalles completos de la misión ${mision.codigo}`}
+              aria-label={`Ver detalles de la misión ${mision.codigo}`}
+            >
+              <Eye size={13} aria-hidden="true" style={{ marginRight: '4px' }} />
+              <span>Ver Detalles</span>
+            </Button>
           </div>
-        ))
-      )}
+        </div>
+      ))}
     </div>
   );
 };

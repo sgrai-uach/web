@@ -400,5 +400,194 @@ describe('Servicio de Patrullas Verificadoras (HU-16: Visualizar Patrullas)', ()
       expect(res.mensaje).toContain('Error de conexión');
     });
   });
+
+  describe('patrullasService.desactivar (HU-85: Baja Lógica de Patrulla Verificadora)', () => {
+    const patrullaId = 'f1000000-0000-4000-8000-000000000001';
+
+    it('debe desactivar exitosamente la patrulla con código 200 OK y liberar recursos', async () => {
+      const mockResponse = {
+        message: 'Patrulla verificadora desactivada exitosamente.',
+        data: {
+          id: patrullaId,
+          codigo: 'PV-COSTA-01',
+          nombre: 'Patrulla Costa 01',
+          estado: 'NO_DISPONIBLE',
+          activo: false,
+          eliminadoEn: '2026-10-26T12:00:00.000Z',
+          eliminadoPorId: DEFAULT_ENCARGADO_ID,
+          vehiculoLiberadoId: 'v1000000-0000-4000-8000-000000000001',
+          personalLiberadoIds: ['p1', 'p2'],
+        },
+      };
+
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => mockResponse,
+      });
+      vi.stubGlobal('fetch', mockFetch);
+
+      const res = await patrullasService.desactivar(patrullaId, DEFAULT_ENCARGADO_ID);
+
+      expect(res.exito).toBe(true);
+      expect(res.data?.id).toBe(patrullaId);
+      expect(res.data?.activo).toBe(false);
+      expect(res.data?.estado).toBe('NO_DISPONIBLE');
+      expect(res.mensaje).toContain('desactivada exitosamente');
+
+      const [url, options] = mockFetch.mock.calls[0];
+      expect(url).toBe(`/api/patrullas/${patrullaId}`);
+      expect(options.method).toBe('DELETE');
+      expect(options.headers['x-user-id']).toBe(DEFAULT_ENCARGADO_ID);
+    });
+
+    it('BUG-H85-WEB-02: si no se provee userId, no adjunta cabecera x-user-id por defecto ni usa DEFAULT_ENCARGADO_ID', async () => {
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          message: 'Patrulla desactivada.',
+          data: { id: patrullaId, activo: false, estado: 'NO_DISPONIBLE', eliminadoEn: '2026-10-26T12:00:00.000Z' },
+        }),
+      });
+      vi.stubGlobal('fetch', mockFetch);
+
+      await patrullasService.desactivar(patrullaId);
+
+      const [, options] = mockFetch.mock.calls[0];
+      expect(options.headers['x-user-id']).toBeUndefined();
+    });
+
+    it('BUG-H85-WEB-02: debe manejar 401 Unauthorized y extraer el mensaje del backend si existe', async () => {
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: false,
+        status: 401,
+        json: async () => ({
+          message: 'Token expirado o sesión inválida.',
+        }),
+      });
+      vi.stubGlobal('fetch', mockFetch);
+
+      const res = await patrullasService.desactivar(patrullaId);
+
+      expect(res.exito).toBe(false);
+      expect(res.codigoError).toBe(401);
+      expect(res.esNoAutorizado).toBe(true);
+      expect(res.mensaje).toContain('Token expirado');
+    });
+
+    it('BUG-H85-WEB-02: lee json.message personalizado retornado por el servidor ante 403 Forbidden', async () => {
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: false,
+        status: 403,
+        json: async () => ({
+          message: 'Permiso recursos:eliminar denegado para su perfil.',
+        }),
+      });
+      vi.stubGlobal('fetch', mockFetch);
+
+      const res = await patrullasService.desactivar(patrullaId);
+
+      expect(res.exito).toBe(false);
+      expect(res.esForbidden).toBe(true);
+      expect(res.codigoError).toBe(403);
+      expect(res.mensaje).toBe('Permiso recursos:eliminar denegado para su perfil.');
+    });
+
+    it('debe manejar conflicto operativo (409 Conflict) si posee misiones activas o está en verificación', async () => {
+      const mensajeConflicto =
+        'La patrulla se encuentra en terreno ejecutando la misión MIS-2026-0001 y no puede ser dada de baja.';
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: false,
+        status: 409,
+        json: async () => ({
+          message: mensajeConflicto,
+        }),
+      });
+      vi.stubGlobal('fetch', mockFetch);
+
+      const res = await patrullasService.desactivar(patrullaId);
+
+      expect(res.exito).toBe(false);
+      expect(res.esConflicto).toBe(true);
+      expect(res.codigoError).toBe(409);
+      expect(res.mensaje).toBe(mensajeConflicto);
+    });
+
+    it('debe manejar permisos insuficientes (403 Forbidden)', async () => {
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: false,
+        status: 403,
+      });
+      vi.stubGlobal('fetch', mockFetch);
+
+      const res = await patrullasService.desactivar(patrullaId);
+
+      expect(res.exito).toBe(false);
+      expect(res.esForbidden).toBe(true);
+      expect(res.codigoError).toBe(403);
+      expect(res.mensaje).toContain('recursos:eliminar');
+    });
+
+    it('debe manejar error 404 si la patrulla ya fue desactivada o no existe', async () => {
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: false,
+        status: 404,
+        json: async () => ({
+          message: 'La patrulla verificadora ya no existe o fue desactivada previamente.',
+        }),
+      });
+      vi.stubGlobal('fetch', mockFetch);
+
+      const res = await patrullasService.desactivar(patrullaId);
+
+      expect(res.exito).toBe(false);
+      expect(res.codigoError).toBe(404);
+      expect(res.mensaje).toContain('desactivada previamente');
+    });
+
+    it('debe capturar errores de conexión de red', async () => {
+      const mockFetch = vi.fn().mockRejectedValue(new Error('Connection failure'));
+      vi.stubGlobal('fetch', mockFetch);
+
+      const res = await patrullasService.desactivar(patrullaId);
+
+      expect(res.exito).toBe(false);
+      expect(res.codigoError).toBe(500);
+      expect(res.mensaje).toContain('Error de conexión');
+    });
+  });
+
+  describe('HU-20: listarDisponibles', () => {
+    it('debe solicitar patrullas filtrando por estado=DISPONIBLE y límite 100', async () => {
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          message: 'Listado disponible',
+          data: [
+            {
+              id: 'pat-1',
+              nombre: 'Patrulla Centro 1',
+              estado: 'DISPONIBLE',
+            },
+          ],
+          meta: { total: 1, page: 1, limit: 100, totalPages: 1 },
+        }),
+      });
+      vi.stubGlobal('fetch', mockFetch);
+
+      const res = await patrullasService.listarDisponibles();
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        expect.stringContaining('estado=DISPONIBLE'),
+        expect.any(Object)
+      );
+      expect(res.exito).toBe(true);
+      expect(res.data).toHaveLength(1);
+      expect(res.data[0].id).toBe('pat-1');
+    });
+  });
 });
+
 

@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { useSearchParams } from 'next/navigation';
 import {
   useIncidentesKanban,
 } from '@/hooks/useIncidentesKanban';
@@ -8,7 +9,7 @@ import { useIncidentesKpis } from '@/hooks/useIncidentesKpis';
 import { usePrevencionSocket } from '@/hooks/usePrevencionSocket';
 import { useRecuperacionSocket } from '@/hooks/useRecuperacionSocket';
 import { useToast } from '@/components/ui/Toast';
-import type { EstadoIncidente } from '@/services/incidentesService';
+import type { EstadoIncidente, IncidenteResumen } from '@/services/incidentesService';
 import type { EventoPrevencionDTO } from '@/types/evento-prevencion';
 import type { EventoRecuperacionResponse } from '@/types/recuperacion';
 import { KanbanHeader } from './KanbanHeader';
@@ -19,6 +20,7 @@ import { IncidenteDetalleDrawer } from './IncidenteDetalleDrawer';
 import { AccesoDenegado } from './AccesoDenegado';
 import { MisionesModal } from './misiones/MisionesModal';
 import { MisionDetalleModal } from './mision/MisionDetalleModal';
+import { AsignarPatrullaModal } from './patrullas/AsignarPatrullaModal';
 import { PanelPatrullasModal } from './patrullas/PanelPatrullasModal';
 import { ModalCrearEventoPrevencion } from './ModalCrearEventoPrevencion';
 import { ModalCrearEventoRecuperacion } from './ModalCrearEventoRecuperacion';
@@ -28,6 +30,7 @@ import CuadrillaDetalleDrawer from '@/components/admin/cuadrillas/CuadrillaDetal
 import { cuadrillasService } from '@/services/cuadrillasService';
 import type { CuadrillaItem } from '@/types/cuadrilla';
 import { Zap } from 'lucide-react';
+import { usePuedeAsignarMision } from '@/hooks/usePuedeAsignarMision';
 import InlineNotice from '@/components/ui/InlineNotice';
 import styles from '@/styles/mando.module.css';
 
@@ -41,6 +44,7 @@ const TITULOS_COLUMNAS = {
 
 export const KanbanBoard: React.FC = () => {
   const { showInfo } = useToast();
+  const searchParams = useSearchParams();
   const [vistaActiva, setVistaActiva] = useState<'kanban' | 'mapa'>('kanban');
   const [misionesModalAbierto, setMisionesModalAbierto] = useState(false);
   const [patrullasModalAbierto, setPatrullasModalAbierto] = useState(false);
@@ -51,8 +55,10 @@ export const KanbanBoard: React.FC = () => {
   const [eventosRecuperacion, setEventosRecuperacion] = useState<EventoRecuperacionResponse[]>([]);
   const [cuadrillaSeleccionadaId, setCuadrillaSeleccionadaId] = useState<string | null>(null);
   const [cuadrillasOperativas, setCuadrillasOperativas] = useState<CuadrillaItem[]>([]);
+  const [incidenteParaAsignar, setIncidenteParaAsignar] = useState<IncidenteResumen | null>(null);
+  const puedeAsignar = usePuedeAsignarMision();
 
-  useEffect(() => {
+  const cargarCuadrillas = useCallback(() => {
     let isMounted = true;
     cuadrillasService
       .obtenerCuadrillas({ pagina: 1, limite: 100 })
@@ -66,6 +72,10 @@ export const KanbanBoard: React.FC = () => {
       isMounted = false;
     };
   }, []);
+
+  useEffect(() => {
+    cargarCuadrillas();
+  }, [cargarCuadrillas]);
 
   const {
     userId,
@@ -82,6 +92,7 @@ export const KanbanBoard: React.FC = () => {
     limpiarFiltros,
     cargarMas,
     recargar,
+    moverIncidenteAEstado,
     conectado,
     ultimoEvento,
     totalIncidentesVisibles,
@@ -91,6 +102,21 @@ export const KanbanBoard: React.FC = () => {
 
 
   const [estadoEnfocado, setEstadoEnfocado] = useState<EstadoIncidente | null>(null);
+
+  // CA-5 (BUG-H22-WEB-03): Abrir incidente automáticamente si se accede con ?incidenteId=...
+  const incidenteIdParam = searchParams?.get('incidenteId');
+  useEffect(() => {
+    if (incidenteIdParam) {
+      setIncidenteSeleccionadoId(incidenteIdParam);
+    }
+  }, [incidenteIdParam, setIncidenteSeleccionadoId]);
+
+  // Actualizar cuadrillas operativas ante eventos socket en tiempo real (BUG-H22-WEB-04)
+  useEffect(() => {
+    if (ultimoEvento) {
+      cargarCuadrillas();
+    }
+  }, [ultimoEvento, cargarCuadrillas]);
 
   const {
     kpis,
@@ -183,6 +209,7 @@ export const KanbanBoard: React.FC = () => {
   const handleRefrescoCompleto = () => {
     refrescarKpis(true);
     recargar();
+    cargarCuadrillas();
   };
 
   const contadoresPorEstado = useMemo(() => {
@@ -281,6 +308,8 @@ export const KanbanBoard: React.FC = () => {
                     resaltada={estadoEnfocado === estado}
                     onCargarMas={cargarMas}
                     onSeleccionarIncidente={(inc) => setIncidenteSeleccionadoId(inc.id)}
+                    onAsignarPatrulla={(inc) => setIncidenteParaAsignar(inc)}
+                    puedeAsignarPatrulla={puedeAsignar}
                   />
                 ))}
               </div>
@@ -305,6 +334,29 @@ export const KanbanBoard: React.FC = () => {
             userId={userId}
             onCerrar={() => setIncidenteSeleccionadoId(null)}
             onSelectCuadrilla={(cuadrillaId) => setCuadrillaSeleccionadaId(cuadrillaId)}
+            onIncidenteActualizado={(incId, nuevoEstado) => {
+              if (incId && nuevoEstado) {
+                moverIncidenteAEstado(incId, nuevoEstado);
+              }
+              recargar();
+              refrescarKpis();
+              cargarCuadrillas();
+            }}
+          />
+
+          {/* Modal de Asignación de Patrulla desde tarjeta Kanban */}
+          <AsignarPatrullaModal
+            isOpen={!!incidenteParaAsignar}
+            onClose={() => setIncidenteParaAsignar(null)}
+            incidente={incidenteParaAsignar}
+            userId={userId}
+            onAsignacionExitosa={(data) => {
+              moverIncidenteAEstado(data.incidente.id, 'VERIFICANDO');
+              recargar();
+              refrescarKpis();
+              cargarCuadrillas();
+              setIncidenteParaAsignar(null);
+            }}
           />
 
           <MisionesModal

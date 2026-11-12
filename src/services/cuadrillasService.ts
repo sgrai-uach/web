@@ -368,7 +368,8 @@ async function aplicarActualizacionFallback(
   let delegadoObj = CANDIDATOS_DELEGADOS_FALLBACK.find((c) => c.id === payload.usuarioDelegadoId);
   if (!delegadoObj) {
     try {
-      const candidatos = await cuadrillasService.obtenerCandidatosDelegados();
+      // Se excluye la propia cuadrilla para que su delegado actual siga siendo resoluble
+      const candidatos = await cuadrillasService.obtenerCandidatosDelegados(undefined, item.id);
       delegadoObj = candidatos.find((c) => c.id === payload.usuarioDelegadoId);
     } catch {
       // Ignorar fallo de búsqueda
@@ -404,7 +405,7 @@ async function aplicarActualizacionFallback(
   // Mapear trabajadores asignados
   let personalDisponible: PersonalOperativoDisponible[] = [];
   try {
-    personalDisponible = await cuadrillasService.obtenerPersonalOperativoDisponible();
+    personalDisponible = await cuadrillasService.obtenerPersonalOperativoDisponible(undefined, item.id);
   } catch {
     // Ignorar fallo de personal
   }
@@ -548,10 +549,22 @@ export const cuadrillasService = {
   },
 
   /**
-   * Obtiene la nómina de funcionarios activos de terreno aptos para ser asignados como Delegado de Cuadrilla.
-   * Consulta GET /api/personal mediante apiClient y aplica filtros amplios de personal operativo.
+   * Obtiene la nómina de funcionarios aptos para ser asignados como Delegado de Cuadrilla.
+   *
+   * Candidatos admisibles:
+   * - BRIGADISTA: al guardar la cuadrilla se promueve automáticamente a DELEGADO_CUADRILLA.
+   * - DELEGADO_CUADRILLA: conserva su rol y asume el liderazgo de la nueva unidad.
+   *
+   * Se consultan vía GET /api/personal aplicando `sinAsignacionCuadrilla`, de modo que el
+   * backend ya excluye a quienes lideran o integran otra cuadrilla operativa activa (regla ICS).
+   *
+   * @param busqueda Texto de búsqueda opcional (RUT, nombres, apellidos o email).
+   * @param excluirCuadrillaId Cuadrilla que se está editando: sus integrantes no se excluyen.
    */
-  async obtenerCandidatosDelegados(busqueda?: string): Promise<PersonalCandidatoDelegado[]> {
+  async obtenerCandidatosDelegados(
+    busqueda?: string,
+    excluirCuadrillaId?: string
+  ): Promise<PersonalCandidatoDelegado[]> {
     try {
       const q = busqueda?.trim();
 
@@ -578,6 +591,8 @@ export const cuadrillasService = {
           params: {
             query: {
               q: q || undefined,
+              sinAsignacionCuadrilla: true,
+              excluirCuadrillaId: excluirCuadrillaId || undefined,
             },
             header: {
               authorization: authHeader,
@@ -586,10 +601,10 @@ export const cuadrillasService = {
         }
       );
 
-      const personal = response.ok && data?.data ? data.data : [];
-
-      if (personal.length > 0) {
-        return personal
+      // Si la API responde correctamente se respeta el resultado (incluso vacío);
+      // el fallback predefinido solo aplica ante fallo de comunicación.
+      if (response.ok && Array.isArray(data?.data)) {
+        return data.data
           .filter((emp) => {
             // Excluir únicamente si está explícitamente inactivo
             if (emp.usuario_activo === false) return false;
@@ -598,13 +613,18 @@ export const cuadrillasService = {
             const rolNombre = (emp.rol_nombre || '').toLowerCase();
             const cargo = (emp.cargo || '').toLowerCase();
 
-            // Filtrar exclusivamente personal con rol o cargo de Brigadista
+            // Admite brigadistas (se promoverán) y delegados de cuadrilla ya constituidos
             const esBrigadista =
               rolCodigo === 'BRIGADISTA' ||
               rolNombre.includes('brigad') ||
               cargo.includes('brigad');
 
-            return esBrigadista;
+            const esDelegado =
+              rolCodigo === 'DELEGADO_CUADRILLA' ||
+              rolNombre.includes('delegad') ||
+              cargo.includes('delegad');
+
+            return esBrigadista || esDelegado;
           })
           .map((emp) => ({
             id: emp.usuario_id,
@@ -618,7 +638,7 @@ export const cuadrillasService = {
           }));
       }
 
-      // Fallback a lista predefinida si el endpoint no tiene registros aún o falló
+      // Fallback a lista predefinida si el endpoint falló (sin conectividad o error del servidor)
       const fallbackFiltrado = CANDIDATOS_DELEGADOS_FALLBACK.filter((c) => {
         if (!q) return true;
         const termino = q.toLowerCase();
@@ -807,6 +827,7 @@ export const cuadrillasService = {
     const delegacionId = filtros?.delegacionId;
     const estado = filtros?.estado;
 
+    // Mapeo de estados del filtro de UI al contrato de la API (HU-82)
     const estadoQuery: "DISPONIBLE" | "EN_MISION" | "NO_DISPONIBLE" | undefined =
       estado === 'INACTIVAS'
         ? 'NO_DISPONIBLE'
@@ -818,41 +839,71 @@ export const cuadrillasService = {
 
     try {
       const authHeader = getAuthorizationHeader();
-      const { data, response } = await apiClient.GET('/api/cuadrillas', {
-        params: {
-          query: {
-            pagina,
-            limite,
-            q: busqueda || undefined,
-            delegacionId: delegacionId || undefined,
-            estado: estadoQuery,
-            incluirInactivas,
-          },
-          header: {
-            authorization: authHeader,
-          },
-        },
-      });
-
-      if (response && response.ok && data) {
-        const resp = data as ListarCuadrillasApiResponse;
-        if (resp && Array.isArray(resp.data)) {
-          return {
-            cuadrillas: resp.data,
-            meta: resp.meta || {
-              total: resp.data.length,
+      const { data, response } = await (apiClient.GET as unknown as HttpGetFn)<ListarCuadrillasApiResponse>(
+        '/api/cuadrillas',
+        {
+          params: {
+            query: {
               pagina,
               limite,
               q: busqueda || undefined,
               delegacionId: delegacionId || undefined,
-              estado: estado || undefined,
-              paginasTotales: Math.ceil(resp.data.length / limite) || 1,
+              estado: estadoQuery,
+              incluirInactivas,
+            },
+            header: {
+              authorization: authHeader,
+            },
+          },
+        }
+      );
+
+      // Propagación explícita de errores de autenticación/autorización:
+      // nunca se debe caer al fallback con datos municipales ante un 401 o 403.
+      if (response && (response.status === 401 || response.status === 403)) {
+        throw new CuadrillaServiceError(
+          response.status === 401
+            ? 'Su sesión expiró o no está autenticado para consultar cuadrillas operativas.'
+            : 'No tiene permisos suficientes para consultar cuadrillas operativas (requiere permiso recursos:leer).',
+          response.status,
+          'general',
+          response.status === 401 ? 'NO_AUTENTICADO' : 'PERMISOS_INSUFICIENTES'
+        );
+      }
+
+      if (response && response.ok && data) {
+        if (Array.isArray(data.data)) {
+          // Contrato H34: el backend puede responder con page/limit/totalPages
+          // o con la nomenclatura histórica pagina/limite/paginasTotales.
+          const rawMeta = (data.meta ?? {}) as Partial<MetaPaginacionCuadrillas> & {
+            page?: number;
+            limit?: number;
+            totalPages?: number;
+          };
+          const paginaNormalizada = rawMeta.pagina ?? rawMeta.page ?? pagina;
+          const limiteNormalizado = rawMeta.limite ?? rawMeta.limit ?? limite;
+          const totalNormalizado = rawMeta.total ?? data.data.length;
+          const paginasTotalesNormalizadas =
+            rawMeta.paginasTotales ??
+            rawMeta.totalPages ??
+            (Math.ceil(totalNormalizado / limiteNormalizado) || 1);
+
+          return {
+            cuadrillas: data.data,
+            meta: {
+              total: totalNormalizado,
+              pagina: paginaNormalizada,
+              limite: limiteNormalizado,
+              paginasTotales: paginasTotalesNormalizadas,
             },
           };
         }
       }
-    } catch {
-      // Continuar al fallback si falla la llamada
+    } catch (err) {
+      // Los errores de permisos deben llegar al hook/vista; el resto usa fallback.
+      if (err instanceof CuadrillaServiceError) {
+        throw err;
+      }
     }
 
     // Filtrado de respaldo en memoria local (fallback)
@@ -872,13 +923,7 @@ export const cuadrillasService = {
       resultado = resultado.filter((c) => c.delegacion.id === delegacionId);
     }
 
-    if (!estado || estado === 'ACTIVAS') {
-      resultado = resultado.filter((c) => c.activo !== false && c.estado !== 'NO_DISPONIBLE');
-    } else if (estado === 'NO_DISPONIBLE' || estado === 'INACTIVAS') {
-      resultado = resultado.filter((c) => c.activo === false || c.estado === 'NO_DISPONIBLE');
-    } else if (estado === 'TODAS') {
-      // no filtrar por estado, muestra todas
-    } else if (estado) {
+    if (estado) {
       resultado = resultado.filter((c) => c.estado === estado);
     }
 
@@ -913,39 +958,59 @@ export const cuadrillasService = {
         },
       });
 
-      if (response && response.status === 403) {
-        throw new CuadrillaServiceError(
-          'No cuenta con privilegios suficientes para consultar el detalle de la cuadrilla (requiere permiso recursos:leer o rol Encargado).',
-          403,
-          'general',
-          'PERMISOS_INSUFICIENTES'
-        );
-      }
-
-      if (response && response.status === 404) {
-        const cuadrillaLocal = CUADRILLAS_FALLBACK.find((c) => c.id === id);
-        if (cuadrillaLocal) {
-          return cuadrillaLocal;
+      if (response) {
+        if (response.status === 403) {
+          throw new CuadrillaServiceError(
+            'No cuenta con privilegios suficientes para consultar el detalle de la cuadrilla (requiere permiso recursos:leer o rol Encargado).',
+            403,
+            'general',
+            'PERMISOS_INSUFICIENTES'
+          );
         }
-        throw new CuadrillaServiceError(
-          'La cuadrilla operativa especificada no existe.',
-          404,
-          'general',
-          'RECURSO_NO_ENCONTRADO'
-        );
-      }
 
-      if (response && response.ok && data) {
-        const resp = data as DetalleCuadrillaApiResponse;
-        if (resp && resp.data) {
-          return resp.data as CuadrillaDetalle;
+        if (response.status === 401) {
+          throw new CuadrillaServiceError(
+            'Sesión no válida o expirada. Por favor inicie sesión nuevamente.',
+            401,
+            'general',
+            'NO_AUTORIZADO'
+          );
+        }
+
+        if (response.status === 404) {
+          throw new CuadrillaServiceError(
+            'La cuadrilla operativa especificada no existe.',
+            404,
+            'general',
+            'RECURSO_NO_ENCONTRADO'
+          );
+        }
+
+        if (!response.ok) {
+          const mensajeError =
+            response.status === 400
+              ? 'Solicitud incorrecta al consultar la cuadrilla.'
+              : 'Error interno del servidor al consultar la cuadrilla.';
+          throw new CuadrillaServiceError(
+            mensajeError,
+            response.status,
+            'general',
+            response.status >= 500 ? 'ERROR_SERVIDOR' : 'ERROR_SOLICITUD'
+          );
+        }
+
+        if (response.ok && data) {
+          const resp = data as DetalleCuadrillaApiResponse;
+          if (resp && resp.data) {
+            return resp.data as CuadrillaDetalle;
+          }
         }
       }
     } catch (err: unknown) {
       if (err instanceof CuadrillaServiceError) {
         throw err;
       }
-      // Continuar al fallback si fue fallo de red u otro error
+      // Solo en caso de error de red estricto (offline/servidor apagado) se permite fallback
     }
 
     const cuadrillaLocal = CUADRILLAS_FALLBACK.find((c) => c.id === id);
@@ -960,7 +1025,10 @@ export const cuadrillasService = {
    * Obtiene el personal de terreno disponible para conformar la dotación de la cuadrilla (cuadrilla_personal).
    * Consulta GET /api/personal?estadoOperativo=disponible&soloPersonal=true.
    */
-  async obtenerPersonalOperativoDisponible(busqueda?: string): Promise<PersonalOperativoDisponible[]> {
+  async obtenerPersonalOperativoDisponible(
+    busqueda?: string,
+    excluirCuadrillaId?: string
+  ): Promise<PersonalOperativoDisponible[]> {
     try {
       const q = busqueda?.trim();
       interface PersonalOperativoRawApi {
@@ -987,6 +1055,8 @@ export const cuadrillasService = {
               q: q || undefined,
               estadoOperativo: 'disponible',
               soloPersonal: true,
+              sinAsignacionCuadrilla: true,
+              excluirCuadrillaId: excluirCuadrillaId || undefined,
             },
             header: {
               authorization: authHeader,
