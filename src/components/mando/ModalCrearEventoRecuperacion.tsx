@@ -8,6 +8,7 @@ import Input from '@/components/ui/Input';
 import Select from '@/components/ui/Select';
 import Textarea from '@/components/ui/Textarea';
 import { useToast } from '@/components/ui/Toast';
+import { SelectorEventoAtp } from '@/components/eventos-atp/SelectorEventoAtp';
 import { getCatalogos } from '@/services/catalogosService';
 import { getRecursos } from '@/services/recursosService';
 import {
@@ -75,6 +76,7 @@ export const ModalCrearEventoRecuperacion: React.FC<ModalCrearEventoRecuperacion
   const [familiasAfectadas, setFamiliasAfectadas] = useState<number>(0);
   const [delegacionId, setDelegacionId] = useState<string>('');
   const [patrullaId, setPatrullaId] = useState<string>('');
+  const [eventoAtpId, setEventoAtpId] = useState<string | null>(null);
   const [latitud, setLatitud] = useState<number>(-39.8142);
   const [longitud, setLongitud] = useState<number>(-73.2459);
 
@@ -308,6 +310,7 @@ export const ModalCrearEventoRecuperacion: React.FC<ModalCrearEventoRecuperacion
       patrullaId,
       familiasAfectadas: familiasAfectadas >= 0 ? familiasAfectadas : 0,
       recursos: recursosLimpios,
+      eventoAtpId,
     };
 
     try {
@@ -474,6 +477,16 @@ export const ModalCrearEventoRecuperacion: React.FC<ModalCrearEventoRecuperacion
               </option>
             ))}
           </Select>
+        </div>
+
+        <div>
+          <SelectorEventoAtp
+            id="recuperacion-evento-atp"
+            value={eventoAtpId}
+            onChange={setEventoAtpId}
+            disabled={isSubmitting}
+            helperText="Opcional. Agrupa este operativo bajo un Evento ATP activo (H60)."
+          />
         </div>
 
         <div className={styles.gridThreeCols}>

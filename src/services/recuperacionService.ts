@@ -143,3 +143,45 @@ export async function crearEventoRecuperacion(
     });
   }
 }
+
+export interface RecuperacionListadoItem {
+  id: string;
+  codigo: string;
+  nombre: string;
+  estado: string;
+  eventoAtpId: string | null;
+}
+
+/**
+ * Lista operativos de recuperación con filtro opcional por Evento ATP (H60).
+ */
+export async function listarRecuperaciones(query: {
+  eventoAtpId?: string;
+  estado?: string;
+  pagina?: number;
+  limite?: number;
+} = {}): Promise<{ exito: boolean; operativos: RecuperacionListadoItem[]; mensaje?: string }> {
+  try {
+    const { data, response } = await apiClient.GET(
+      '/api/eventos-atp/recuperacion',
+      { params: { query: query as never } }
+    );
+
+    if (response?.status === 200 && data) {
+      return {
+        exito: true,
+        operativos: (data.data ?? []).map((item) => ({
+          id: item.id,
+          codigo: item.codigo,
+          nombre: item.nombre,
+          estado: item.estado,
+          eventoAtpId: item.eventoAtpId ?? null,
+        })),
+      };
+    }
+
+    return { exito: false, operativos: [], mensaje: 'No fue posible listar los operativos de recuperación.' };
+  } catch {
+    return { exito: false, operativos: [], mensaje: 'No fue posible conectar con el servicio de recuperación.' };
+  }
+}

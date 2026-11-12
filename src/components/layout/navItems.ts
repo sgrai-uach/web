@@ -12,6 +12,7 @@ import {
   Users,
   AlertTriangle,
   HardHat,
+  Siren,
 } from 'lucide-react';
 
 export interface NavItem {
@@ -135,6 +136,13 @@ export const NAV_GROUPS: NavGroup[] = [
         href: '/gestion/admin/puntos-criticos',
         icon: AlertTriangle,
         requiredPermissions: ['puntos_criticos:leer', 'puntos_criticos:crear', 'seguridad:roles:gestionar'],
+      },
+      {
+        id: 'eventos-atp',
+        label: 'Eventos ATP',
+        href: '/gestion/admin/eventos-atp',
+        icon: Siren,
+        requiredPermissions: ['eventos_atp:vincular', 'eventos_atp:crear'],
       },
       {
         id: 'roles-permisos',

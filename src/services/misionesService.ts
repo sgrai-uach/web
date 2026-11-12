@@ -389,7 +389,7 @@ export const misionesService = {
           esForbidden: true,
           codigoError: 403,
           mensaje:
-            (error as { message?: string })?.message ||
+            (error as unknown as { message?: string })?.message ||
             'No cuenta con el permiso requerido (misiones:asignar) para despachar patrullas.',
         };
       }
@@ -400,7 +400,7 @@ export const misionesService = {
           esConflicto: true,
           codigoError: 409,
           mensaje:
-            (error as { message?: string })?.message ||
+            (error as unknown as { message?: string })?.message ||
             'La patrulla seleccionada ya no se encuentra disponible. Por favor selecciona otra patrulla.',
         };
       }
@@ -410,7 +410,7 @@ export const misionesService = {
           exito: false,
           codigoError: response.status,
           mensaje:
-            (error as { message?: string })?.message ||
+            (error as unknown as { message?: string })?.message ||
             `Error HTTP ${response.status} al despachar patrulla verificadora.`,
         };
       }

@@ -54,6 +54,7 @@ export const EVENTOS_ASISTENCIA_SOCIAL_MOCK: EventoAsistenciaSocialItem[] = [
     delegacionId: '30000000-0000-4000-8000-000000000001',
     delegacionNombre: 'Delegación Municipal Costa',
     incidenteId: null,
+    eventoAtpId: null,
     asistenteSocialId: null,
     asistenteSocialNombre: null,
     creadoPor: {
@@ -81,6 +82,7 @@ export const EVENTOS_ASISTENCIA_SOCIAL_MOCK: EventoAsistenciaSocialItem[] = [
     delegacionId: '30000000-0000-4000-8000-000000000002',
     delegacionNombre: 'Delegación Municipal Sur',
     incidenteId: null,
+    eventoAtpId: null,
     asistenteSocialId: null,
     asistenteSocialNombre: null,
     creadoPor: {
@@ -161,6 +163,7 @@ export async function crearEventoAsistenciaSocial(
     contactoRut: payload.contactoRut?.trim() || null,
     delegacionId: payload.delegacionId || null,
     incidenteId: payload.incidenteId ? payload.incidenteId.trim() : null,
+    eventoAtpId: payload.eventoAtpId || null,
   };
 
   try {
@@ -252,6 +255,7 @@ export async function crearEventoAsistenciaSocial(
         delegacionId: body.delegacionId,
         delegacionNombre: body.delegacionId ? 'Delegación Municipal' : null,
         incidenteId: body.incidenteId ?? null,
+        eventoAtpId: body.eventoAtpId ?? null,
         asistenteSocialId: null,
         asistenteSocialNombre: null,
         creadoPor: {
@@ -288,6 +292,7 @@ export async function obtenerEventosAsistenciaSocial(
   if (filtros.delegacionId) queryParams.delegacionId = filtros.delegacionId;
   if (filtros.prioridad) queryParams.prioridad = filtros.prioridad;
   if (filtros.busqueda) queryParams.busqueda = filtros.busqueda;
+  if (filtros.eventoAtpId) queryParams.eventoAtpId = filtros.eventoAtpId;
 
   try {
     const { data, response } = await apiClient.GET(

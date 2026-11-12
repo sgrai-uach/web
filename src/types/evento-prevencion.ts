@@ -24,6 +24,7 @@ export interface CrearEventoPrevencionPayload {
   longitud: number;
   patrullaId: string;
   recursos?: ItemRecursoSolicitadoPrevencion[];
+  eventoAtpId?: string | null;
 }
 
 export interface RecursoAsignadoPrevencionDTO {
@@ -74,6 +75,7 @@ export interface EventoPrevencionDTO {
   mision: MisionPrevencionResumenDTO;
   patrulla: PatrullaPrevencionResumenDTO;
   recursos: RecursoAsignadoPrevencionDTO[];
+  eventoAtpId: string | null;
   creadoPorId: string;
   creadoEn: string;
   actualizadoEn: string;

@@ -8,6 +8,7 @@ import Input from '@/components/ui/Input';
 import Select from '@/components/ui/Select';
 import Textarea from '@/components/ui/Textarea';
 import { useToast } from '@/components/ui/Toast';
+import { SelectorEventoAtp } from '@/components/eventos-atp/SelectorEventoAtp';
 import { getCatalogos } from '@/services/catalogosService';
 import { getRecursos } from '@/services/recursosService';
 import { getPuntosCriticos } from '@/services/puntosCriticosService';
@@ -77,6 +78,7 @@ export const ModalCrearEventoPrevencion: React.FC<ModalCrearEventoPrevencionProp
   const [delegacionId, setDelegacionId] = useState<string>('');
   const [puntoCriticoId, setPuntoCriticoId] = useState<string>('');
   const [patrullaId, setPatrullaId] = useState<string>('');
+  const [eventoAtpId, setEventoAtpId] = useState<string | null>(null);
   const [latitud, setLatitud] = useState<number>(-39.8142);
   const [longitud, setLongitud] = useState<number>(-73.2459);
 
@@ -350,6 +352,7 @@ export const ModalCrearEventoPrevencion: React.FC<ModalCrearEventoPrevencionProp
       longitud,
       patrullaId,
       recursos: recursosLimpios.length > 0 ? recursosLimpios : undefined,
+      eventoAtpId,
     };
 
     try {
@@ -498,6 +501,16 @@ export const ModalCrearEventoPrevencion: React.FC<ModalCrearEventoPrevencionProp
                     { value: '30000000-0000-4000-8000-000000000004', label: 'Delegación Calle Calle' },
                   ]
             }
+          />
+        </div>
+
+        <div>
+          <SelectorEventoAtp
+            id="prevencion-evento-atp"
+            value={eventoAtpId}
+            onChange={setEventoAtpId}
+            disabled={isSubmitting}
+            helperText="Opcional. Agrupa esta labor preventiva bajo un Evento ATP activo (H60)."
           />
         </div>
 

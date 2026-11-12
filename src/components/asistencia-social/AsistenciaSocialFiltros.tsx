@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { DELEGACIONES_MUNICIPALES } from '@/hooks/usePuntosCriticos';
 import {
   FilterBar,
@@ -14,6 +14,8 @@ import type {
   PrioridadEventoSocial,
   EstadoEventoSocial,
 } from '@/types/asistenciaSocial';
+import { listarEventosAtp } from '@/services/eventosAtpService';
+import type { EventoAtpResumen } from '@/types/eventoAtp';
 
 interface AsistenciaSocialFiltrosProps {
   filtros: FiltrosEventosAsistenciaSocialState;
@@ -21,6 +23,7 @@ interface AsistenciaSocialFiltrosProps {
   onCambiarDelegacion: (delegacionId?: string) => void;
   onCambiarPrioridad: (prioridad?: PrioridadEventoSocial) => void;
   onCambiarEstado: (estado?: EstadoEventoSocial) => void;
+  onCambiarEventoAtp: (eventoAtpId?: string) => void;
   onLimpiarFiltros: () => void;
 }
 
@@ -46,8 +49,37 @@ export default function AsistenciaSocialFiltros({
   onCambiarDelegacion,
   onCambiarPrioridad,
   onCambiarEstado,
+  onCambiarEventoAtp,
   onLimpiarFiltros,
 }: AsistenciaSocialFiltrosProps) {
+  const [eventosAtp, setEventosAtp] = useState<EventoAtpResumen[]>([]);
+
+  useEffect(() => {
+    let activo = true;
+
+    queueMicrotask(() => {
+      if (!activo) return;
+      listarEventosAtp({ estado: 'ACTIVO', limit: 100 }).then((res) => {
+        if (activo) setEventosAtp(res.exito ? res.eventos : []);
+      });
+    });
+
+    return () => {
+      activo = false;
+    };
+  }, []);
+
+  const opcionesEventoAtp = useMemo(
+    () => [
+      { valor: '', etiqueta: 'Todos los Eventos ATP' },
+      ...eventosAtp.map((evento) => ({
+        valor: evento.id,
+        etiqueta: `${evento.codigo} · ${evento.nombre}`,
+      })),
+    ],
+    [eventosAtp]
+  );
+
   const opcionesDelegacion = useMemo(
     () => [
       { valor: '', etiqueta: 'Todas las delegaciones' },
@@ -91,6 +123,16 @@ export default function AsistenciaSocialFiltros({
       });
     }
 
+    if (filtros.eventoAtpId) {
+      const match = eventosAtp.find((e) => e.id === filtros.eventoAtpId);
+      chips.push({
+        id: 'eventoAtp',
+        etiqueta: 'Evento ATP',
+        valorVisible: match ? match.codigo : filtros.eventoAtpId,
+        onRemove: () => onCambiarEventoAtp(undefined),
+      });
+    }
+
     if (filtros.estado && filtros.estado !== 'PENDIENTE') {
       const match = OPCIONES_ESTADO.find((e) => e.valor === filtros.estado);
       chips.push({
@@ -102,7 +144,15 @@ export default function AsistenciaSocialFiltros({
     }
 
     return chips;
-  }, [filtros, onCambiarBusqueda, onCambiarDelegacion, onCambiarPrioridad, onCambiarEstado]);
+  }, [
+    filtros,
+    eventosAtp,
+    onCambiarBusqueda,
+    onCambiarDelegacion,
+    onCambiarPrioridad,
+    onCambiarEstado,
+    onCambiarEventoAtp,
+  ]);
 
   return (
     <FilterBar
@@ -148,6 +198,14 @@ export default function AsistenciaSocialFiltros({
           value={filtros.estado || ''}
           options={OPCIONES_ESTADO}
           onChange={(val) => onCambiarEstado((val as EstadoEventoSocial) || undefined)}
+        />
+
+        <FilterSelect
+          id="filtro-evento-atp-asistencia-social"
+          label="Evento ATP:"
+          value={filtros.eventoAtpId || ''}
+          options={opcionesEventoAtp}
+          onChange={(val) => onCambiarEventoAtp(val || undefined)}
         />
       </div>
 

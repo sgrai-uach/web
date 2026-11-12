@@ -21,9 +21,12 @@ import Modal from '@/components/common/Modal';
 import Button from '@/components/ui/Button';
 import Heading from '@/components/ui/Heading';
 import { TIPOS_AFECTACION_SOCIAL } from '@/types/asistenciaSocial';
+import { VinculoEventoAtpPanel } from '@/components/eventos-atp/VinculoEventoAtpPanel';
 import type { PrioridadEventoSocial, TipoAfectacionSocial } from '@/types/asistenciaSocial';
 
 export interface DatosFichaAsistenciaSocial {
+  id?: string;
+  eventoAtpId?: string | null;
   codigo?: string;
   descripcion: string;
   tipoAfectacion: TipoAfectacionSocial | string;
@@ -252,6 +255,22 @@ export default function EventoAsistenciaSocialDetalleModal({
             </span>
           </div>
         </div>
+
+        {!esVistaPrevia && datos.id && (
+          <div
+            style={{
+              padding: 'var(--space-4, 16px)',
+              backgroundColor: 'var(--color-white, #FFFFFF)',
+              border: '1px solid var(--border-color-neutral, #DFE3E8)',
+            }}
+          >
+            <VinculoEventoAtpPanel
+              tipoEntidad="EVENTO_ASISTENCIA_SOCIAL"
+              entidadId={datos.id}
+              eventoAtpId={datos.eventoAtpId ?? null}
+            />
+          </div>
+        )}
 
         {/* 1. Caracterización del Caso y Daño */}
         <div
