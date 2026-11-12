@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   obtenerDetalleIncidente,
   type IncidenteDetalle,
@@ -24,10 +24,11 @@ import {
 } from '@/lib/socket/trazabilidadStore';
 import {
   TRAZABILIDAD_CONFIG,
+  esPayloadTrazabilidadValido,
   extraerEstadoInicialNotificacion,
+  resolverSiguienteEstadoTrazabilidad,
 } from '@/lib/socket/trazabilidadConfig';
 import { TrazabilidadIcon } from './TrazabilidadIcon';
-import type { NotificacionTrazabilidadPayload } from '@/hooks/useEncargadoKanbanSocket';
 import InlineNotice from '@/components/ui/InlineNotice';
 import styles from '@/styles/mando.module.css';
 
@@ -50,6 +51,11 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
   const [misionSeleccionadaId, setMisionSeleccionadaId] = useState<string | null>(null);
   const [modalAsignarPatrullaAbierto, setModalAsignarPatrullaAbierto] = useState<boolean>(false);
   const puedeAsignar = usePuedeAsignarMision();
+  const detalleRef = useRef<IncidenteDetalle | null>(null);
+
+  useEffect(() => {
+    detalleRef.current = detalle;
+  }, [detalle]);
 
   useEffect(() => {
     if (!incidenteId) return;
@@ -70,10 +76,9 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
           vincularMisionIncidente(m.id, incId);
           if (m.trazabilidadNotificacion) {
             setTrazabilidadEstado(m.id, m.trazabilidadNotificacion, incId);
-            return m;
           }
-          const cached = getTrazabilidadEstado(m.id);
-          return cached ? { ...m, trazabilidadNotificacion: cached } : m;
+          const consolidado = getTrazabilidadEstado(m.id) ?? m.trazabilidadNotificacion;
+          return consolidado ? { ...m, trazabilidadNotificacion: consolidado } : m;
         });
         setDetalle({ ...res.datos, misiones: misionesHidratadas });
       } else {
@@ -91,24 +96,53 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
     if (!incidenteId) return;
 
     const socket = getSocket();
-    const handleTrazabilidad = (payload: NotificacionTrazabilidadPayload) => {
+
+    const asegurarSalasEncargado = () => {
+      socket.emit('join', 'encargado');
+      socket.emit('unirse', 'sala:encargados');
+    };
+
+    if (!socket.connected && typeof socket.connect === 'function') {
+      socket.connect();
+    }
+    if (socket.connected) {
+      asegurarSalasEncargado();
+    }
+
+    const handleTrazabilidad = (payload: unknown) => {
+      if (!esPayloadTrazabilidadValido(payload)) return;
+
+      const detalleActual = detalleRef.current;
+      if (!detalleActual || detalleActual.id !== incidenteId) return;
+
+      const perteneceAlIncidente = detalleActual.misiones.some(
+        (m) => m.id === payload.misionId
+      );
+      if (!perteneceAlIncidente) return;
+
       setTrazabilidadEstado(payload.misionId, payload.estado, incidenteId);
       setDetalle((prev) => {
-        if (!prev) return prev;
-        return {
-          ...prev,
-          misiones: prev.misiones.map((m) =>
-            m.id === payload.misionId
-              ? { ...m, trazabilidadNotificacion: payload.estado }
-              : m
-          ),
-        };
+        if (!prev || prev.id !== incidenteId) return prev;
+        let cambio = false;
+        const misionesActualizadas = prev.misiones.map((m) => {
+          if (m.id !== payload.misionId) return m;
+          const siguiente = resolverSiguienteEstadoTrazabilidad(
+            m.trazabilidadNotificacion,
+            payload.estado
+          );
+          if (!siguiente) return m;
+          cambio = true;
+          return { ...m, trazabilidadNotificacion: siguiente };
+        });
+        return cambio ? { ...prev, misiones: misionesActualizadas } : prev;
       });
     };
 
+    socket.on('connect', asegurarSalasEncargado);
     socket.on('notificacion:trazabilidad_actualizada', handleTrazabilidad);
 
     return () => {
+      socket.off('connect', asegurarSalasEncargado);
       socket.off('notificacion:trazabilidad_actualizada', handleTrazabilidad);
     };
   }, [incidenteId]);

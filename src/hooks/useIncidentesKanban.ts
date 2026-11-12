@@ -482,7 +482,7 @@ export function useIncidentesKanban(initialUserId?: string) {
 
   const handleTrazabilidadActualizada = useCallback(
     (payload: NotificacionTrazabilidadPayload) => {
-      if (getIncidentePorMision(payload.misionId)) {
+      if (!payload?.misionId || getIncidentePorMision(payload.misionId)) {
         return;
       }
       void obtenerDetalleMision(payload.misionId, userId)

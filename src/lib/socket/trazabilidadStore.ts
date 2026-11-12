@@ -1,4 +1,8 @@
 import type { EstadoTrazabilidadNotificacion } from '@/services/incidentesService';
+import {
+  esEstadoTrazabilidadValido,
+  resolverSiguienteEstadoTrazabilidad,
+} from './trazabilidadConfig';
 
 const STORAGE_KEY = 'sgrai_trazabilidad_notificaciones_v2';
 
@@ -14,15 +18,6 @@ const misionIncidenteMap = new Map<string, string>();
 const listeners = new Set<() => void>();
 
 let hydratedFromStorage = false;
-
-function esEstadoValido(valor: unknown): valor is EstadoTrazabilidadNotificacion {
-  return (
-    valor === 'PENDIENTE_ENVIO' ||
-    valor === 'ENVIADA' ||
-    valor === 'RECIBIDA' ||
-    valor === 'LEIDA'
-  );
-}
 
 function getStorage(): Storage | null {
   if (typeof window === 'undefined') return null;
@@ -47,7 +42,7 @@ function ensureHydrated(): void {
 
     if (parsed.misiones && typeof parsed.misiones === 'object') {
       for (const [misionId, estado] of Object.entries(parsed.misiones)) {
-        if (esEstadoValido(estado)) {
+        if (esEstadoTrazabilidadValido(estado)) {
           misionEstadoCache.set(misionId, estado);
         }
       }
@@ -55,7 +50,7 @@ function ensureHydrated(): void {
 
     if (parsed.incidentes && typeof parsed.incidentes === 'object') {
       for (const [incidenteId, estado] of Object.entries(parsed.incidentes)) {
-        if (esEstadoValido(estado)) {
+        if (esEstadoTrazabilidadValido(estado)) {
           incidenteEstadoCache.set(incidenteId, estado);
         }
       }
@@ -99,28 +94,65 @@ function notifyListeners(): void {
   });
 }
 
+function sincronizarIncidenteDesdeMision(misionId: string, incidenteId?: string): boolean {
+  const resolvedIncidenteId =
+    (typeof incidenteId === 'string' && incidenteId.trim() ? incidenteId.trim() : undefined) ||
+    misionIncidenteMap.get(misionId);
+
+  if (!resolvedIncidenteId) return false;
+
+  let huboCambio = false;
+  if (incidenteId && misionIncidenteMap.get(misionId) !== resolvedIncidenteId) {
+    misionIncidenteMap.set(misionId, resolvedIncidenteId);
+    huboCambio = true;
+  }
+
+  const estadoMision = misionEstadoCache.get(misionId);
+  const siguienteIncidente = resolverSiguienteEstadoTrazabilidad(
+    incidenteEstadoCache.get(resolvedIncidenteId),
+    estadoMision
+  );
+  if (siguienteIncidente) {
+    incidenteEstadoCache.set(resolvedIncidenteId, siguienteIncidente);
+    huboCambio = true;
+  }
+
+  return huboCambio;
+}
+
 /**
  * Registra en memoria y localStorage el último estado de trazabilidad conocido
- * para una misión operativa (y opcionalmente su incidente asociado).
+ * para una misión operativa (y opcionalmente su incidente asociado), garantizando
+ * progresión monotónica e idempotencia.
  */
 export function setTrazabilidadEstado(
   misionId: string,
   estado: EstadoTrazabilidadNotificacion,
   incidenteId?: string
 ): void {
+  if (typeof misionId !== 'string' || !misionId.trim()) return;
+  if (!esEstadoTrazabilidadValido(estado)) return;
+
   ensureHydrated();
-  misionEstadoCache.set(misionId, estado);
+  let huboCambio = false;
 
-  const resolvedIncidenteId = incidenteId || misionIncidenteMap.get(misionId);
-  if (incidenteId) {
-    misionIncidenteMap.set(misionId, incidenteId);
-  }
-  if (resolvedIncidenteId) {
-    incidenteEstadoCache.set(resolvedIncidenteId, estado);
+  const siguienteMision = resolverSiguienteEstadoTrazabilidad(
+    misionEstadoCache.get(misionId),
+    estado
+  );
+  if (siguienteMision) {
+    misionEstadoCache.set(misionId, siguienteMision);
+    huboCambio = true;
   }
 
-  persistCache();
-  notifyListeners();
+  if (sincronizarIncidenteDesdeMision(misionId, incidenteId)) {
+    huboCambio = true;
+  }
+
+  if (huboCambio) {
+    persistCache();
+    notifyListeners();
+  }
 }
 
 /**
@@ -128,21 +160,11 @@ export function setTrazabilidadEstado(
  * eventos de trazabilidad directamente sobre la tarjeta del tablero Kanban.
  */
 export function vincularMisionIncidente(misionId: string, incidenteId: string): void {
-  if (!misionId || !incidenteId) return;
+  if (typeof misionId !== 'string' || !misionId.trim()) return;
+  if (typeof incidenteId !== 'string' || !incidenteId.trim()) return;
   ensureHydrated();
 
-  const previo = misionIncidenteMap.get(misionId);
-  misionIncidenteMap.set(misionId, incidenteId);
-
-  const estadoMision = misionEstadoCache.get(misionId);
-  let huboCambio = previo !== incidenteId;
-
-  if (estadoMision && incidenteEstadoCache.get(incidenteId) !== estadoMision) {
-    incidenteEstadoCache.set(incidenteId, estadoMision);
-    huboCambio = true;
-  }
-
-  if (huboCambio) {
+  if (sincronizarIncidenteDesdeMision(misionId, incidenteId)) {
     persistCache();
     notifyListeners();
   }

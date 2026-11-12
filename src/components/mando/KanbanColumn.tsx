@@ -9,6 +9,7 @@ import type {
 } from '@/services/incidentesService';
 import Button from '@/components/ui/Button';
 import Heading from '@/components/ui/Heading';
+import { seleccionarEstadoTrazabilidadMayor } from '@/lib/socket/trazabilidadConfig';
 import { IncidenteCard } from './IncidenteCard';
 import styles from '@/styles/mando.module.css';
 
@@ -87,9 +88,10 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({
               onClick={onSeleccionarIncidente}
               onAsignarPatrulla={onAsignarPatrulla}
               puedeAsignarPatrulla={puedeAsignarPatrulla}
-              trazabilidadNotificacion={
-                incidente.trazabilidadNotificacion ?? trazabilidadPorIncidente?.[incidente.id]
-              }
+              trazabilidadNotificacion={seleccionarEstadoTrazabilidadMayor(
+                incidente.trazabilidadNotificacion,
+                trazabilidadPorIncidente?.[incidente.id]
+              )}
             />
           ))
         )}

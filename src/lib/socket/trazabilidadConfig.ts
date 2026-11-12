@@ -69,12 +69,78 @@ export const TRAZABILIDAD_CONFIG: Record<
 };
 
 /**
+ * Valida en tiempo de ejecución si un valor pertenece al dominio oficial
+ * de estados de trazabilidad de notificación de misión.
+ */
+export function esEstadoTrazabilidadValido(
+  valor: unknown
+): valor is EstadoTrazabilidadNotificacion {
+  return (
+    valor === 'PENDIENTE_ENVIO' ||
+    valor === 'ENVIADA' ||
+    valor === 'RECIBIDA' ||
+    valor === 'LEIDA'
+  );
+}
+
+/**
+ * Resuelve la transición de estado aplicando progresión estrictamente monotónica
+ * (PENDIENTE_ENVIO < ENVIADA < RECIBIDA < LEIDA).
+ * Retorna `null` si el estado candidato es inválido o no supera al actual (evita retrocesos y duplicados).
+ */
+export function resolverSiguienteEstadoTrazabilidad(
+  actual: EstadoTrazabilidadNotificacion | undefined,
+  candidato: unknown
+): EstadoTrazabilidadNotificacion | null {
+  if (!esEstadoTrazabilidadValido(candidato)) return null;
+  if (!actual || !esEstadoTrazabilidadValido(actual)) return candidato;
+  return TRAZABILIDAD_CONFIG[candidato].paso > TRAZABILIDAD_CONFIG[actual].paso
+    ? candidato
+    : null;
+}
+
+/**
+ * Selecciona entre dos estados opcionales el de mayor avance monotónico en el ciclo de vida.
+ */
+export function seleccionarEstadoTrazabilidadMayor(
+  a?: EstadoTrazabilidadNotificacion,
+  b?: EstadoTrazabilidadNotificacion
+): EstadoTrazabilidadNotificacion | undefined {
+  const aValido = esEstadoTrazabilidadValido(a);
+  const bValido = esEstadoTrazabilidadValido(b);
+  if (aValido && bValido) {
+    return TRAZABILIDAD_CONFIG[b].paso > TRAZABILIDAD_CONFIG[a].paso ? b : a;
+  }
+  if (aValido) return a;
+  if (bValido) return b;
+  return undefined;
+}
+
+/**
+ * Valida en tiempo de ejecución la estructura mínima requerida de un payload
+ * recibido por el evento WebSocket `notificacion:trazabilidad_actualizada`.
+ */
+export function esPayloadTrazabilidadValido(
+  payload: unknown
+): payload is { misionId: string; estado: EstadoTrazabilidadNotificacion } {
+  if (!payload || typeof payload !== 'object') return false;
+  const p = payload as Record<string, unknown>;
+  return (
+    typeof p.misionId === 'string' &&
+    p.misionId.trim().length > 0 &&
+    esEstadoTrazabilidadValido(p.estado)
+  );
+}
+
+/**
  * Extrae el estado inicial de notificación devuelto por el backend al despachar
  * una patrulla verificadora, o asume PENDIENTE_ENVIO si no viene informado.
  */
 export function extraerEstadoInicialNotificacion(data: {
   notificacion?: { estado?: EstadoTrazabilidadNotificacion };
 }): EstadoTrazabilidadNotificacion {
-  return data.notificacion?.estado || 'PENDIENTE_ENVIO';
+  return data.notificacion?.estado && esEstadoTrazabilidadValido(data.notificacion.estado)
+    ? data.notificacion.estado
+    : 'PENDIENTE_ENVIO';
 }
 

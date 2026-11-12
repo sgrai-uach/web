@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { getSocket } from '@/lib/socket/client';
+import { esPayloadTrazabilidadValido } from '@/lib/socket/trazabilidadConfig';
 import { setTrazabilidadEstado } from '@/lib/socket/trazabilidadStore';
 import type { EstadoIncidente, PrioridadIncidente } from '@/services/incidentesService';
 
@@ -164,11 +165,14 @@ export function useEncargadoKanbanSocket({
       }
     };
 
-    const handleTrazabilidad = (payload: NotificacionTrazabilidadPayload) => {
-      setTrazabilidadEstado(payload.misionId, payload.estado);
-      setUltimoEvento(`Trazabilidad misión: ${payload.estado}`);
+    const handleTrazabilidad = (payload: unknown) => {
+      if (!esPayloadTrazabilidadValido(payload)) return;
+
+      const typedPayload = payload as NotificacionTrazabilidadPayload;
+      setTrazabilidadEstado(typedPayload.misionId, typedPayload.estado);
+      setUltimoEvento(`Trazabilidad misión: ${typedPayload.estado}`);
       if (trazabilidadRef.current) {
-        trazabilidadRef.current(payload);
+        trazabilidadRef.current(typedPayload);
       }
     };
 
