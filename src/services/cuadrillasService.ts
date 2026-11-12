@@ -1170,7 +1170,7 @@ export const cuadrillasService = {
 
       // 3. Conflicto por misiones activas (409 Conflict)
       if (response && response.status === 409) {
-        const errObj = error as { message?: string } | null;
+        const errObj = error as unknown as { message?: string } | null;
         const msg =
           errObj?.message ||
           'No es posible desactivar la cuadrilla porque posee misiones activas en curso (PLANIFICADA, DESPACHADA o EN_CURSO).';
@@ -1197,7 +1197,7 @@ export const cuadrillasService = {
         );
       }
 
-      const errObj = error as { message?: string } | null;
+      const errObj = error as unknown as { message?: string } | null;
       const mensaje =
         errObj?.message || 'Error al intentar desactivar la cuadrilla operativa. Intente nuevamente.';
       throw new CuadrillaServiceError(mensaje, response ? response.status : 500);

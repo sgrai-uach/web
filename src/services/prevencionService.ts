@@ -73,6 +73,7 @@ export async function crearEventoPrevencion(
       longitud: payload.longitud,
       patrullaId: payload.patrullaId,
       recursos: payload.recursos,
+      eventoAtpId: payload.eventoAtpId ?? null,
     };
 
     const { data, error, response } = await apiClient.POST('/api/eventos-atp/prevencion', {
@@ -181,5 +182,47 @@ export async function crearEventoPrevencion(
       statusCode: formatted.statusCode,
       apiDetails: formatted,
     });
+  }
+}
+
+export interface EventoPrevencionListadoItem {
+  id: string;
+  codigo: string;
+  nombre: string;
+  estado: string;
+  eventoAtpId: string | null;
+}
+
+/**
+ * Lista eventos de prevención con filtro opcional por Evento ATP (H60).
+ */
+export async function listarEventosPrevencion(query: {
+  eventoAtpId?: string;
+  estado?: string;
+  pagina?: number;
+  limite?: number;
+} = {}): Promise<{ exito: boolean; eventos: EventoPrevencionListadoItem[]; mensaje?: string }> {
+  try {
+    const { data, response } = await apiClient.GET(
+      '/api/eventos-atp/prevencion',
+      { params: { query: query as never } }
+    );
+
+    if (response?.status === 200 && data) {
+      return {
+        exito: true,
+        eventos: (data.data ?? []).map((item) => ({
+          id: item.id,
+          codigo: item.codigo,
+          nombre: item.nombre,
+          estado: item.estado,
+          eventoAtpId: item.eventoAtpId ?? null,
+        })),
+      };
+    }
+
+    return { exito: false, eventos: [], mensaje: 'No fue posible listar los eventos de prevención.' };
+  } catch {
+    return { exito: false, eventos: [], mensaje: 'No fue posible conectar con el servicio de prevención.' };
   }
 }

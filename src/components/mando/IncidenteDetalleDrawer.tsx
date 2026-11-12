@@ -11,6 +11,7 @@ import { IncidenteUbicacionSection } from './drawer/IncidenteUbicacionSection';
 import { IncidenteInformanteSection } from './drawer/IncidenteInformanteSection';
 import { IncidenteMisionesSection } from './drawer/IncidenteMisionesSection';
 import { IncidenteRecursosSection } from './drawer/IncidenteRecursosSection';
+import { VinculoEventoAtpPanel } from '@/components/eventos-atp/VinculoEventoAtpPanel';
 import { MisionDetalleModal } from './mision/MisionDetalleModal';
 import { AsignarPatrullaModal } from './patrullas/AsignarPatrullaModal';
 import type { DespacharPatrullaResponseData } from '@/types/misiones';
@@ -131,6 +132,16 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
                 <IncidenteResumenSection detalle={detalle} />
                 <IncidenteUbicacionSection detalle={detalle} />
                 <IncidenteInformanteSection detalle={detalle} />
+                <VinculoEventoAtpPanel
+                  tipoEntidad="INCIDENTE"
+                  entidadId={detalle.id}
+                  eventoAtpId={detalle.eventoAtpId}
+                  onCambio={(nuevoEventoAtpId) =>
+                    setDetalle((prev) =>
+                      prev ? { ...prev, eventoAtpId: nuevoEventoAtpId } : prev
+                    )
+                  }
+                />
                 <IncidenteMisionesSection
                   misiones={detalle.misiones}
                   incidenteEstado={detalle.estado}

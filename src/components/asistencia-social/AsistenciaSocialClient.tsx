@@ -78,6 +78,10 @@ export default function AsistenciaSocialClient({
     setFiltros((prev) => ({ ...prev, estado, pagina: 1 }));
   }, []);
 
+  const handleCambiarEventoAtp = useCallback((eventoAtpId?: string) => {
+    setFiltros((prev) => ({ ...prev, eventoAtpId, pagina: 1 }));
+  }, []);
+
   const handleLimpiarFiltros = useCallback(() => {
     setFiltros({
       pagina: 1,
@@ -86,6 +90,7 @@ export default function AsistenciaSocialClient({
       delegacionId: undefined,
       prioridad: undefined,
       estado: 'PENDIENTE',
+      eventoAtpId: undefined,
     });
   }, []);
 
@@ -110,6 +115,7 @@ export default function AsistenciaSocialClient({
     Boolean(filtros.busqueda) ||
     Boolean(filtros.delegacionId) ||
     Boolean(filtros.prioridad) ||
+    Boolean(filtros.eventoAtpId) ||
     (Boolean(filtros.estado) && filtros.estado !== 'PENDIENTE');
 
   return (
@@ -128,6 +134,7 @@ export default function AsistenciaSocialClient({
         onCambiarDelegacion={handleCambiarDelegacion}
         onCambiarPrioridad={handleCambiarPrioridad}
         onCambiarEstado={handleCambiarEstado}
+        onCambiarEventoAtp={handleCambiarEventoAtp}
         onLimpiarFiltros={handleLimpiarFiltros}
       />
 

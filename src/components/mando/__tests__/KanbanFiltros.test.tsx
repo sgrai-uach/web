@@ -9,6 +9,31 @@ vi.mock('@/hooks/useCatalogos', () => ({
   }),
 }));
 
+vi.mock('@/services/eventosAtpService', () => ({
+  listarEventosAtp: vi.fn().mockResolvedValue({
+    exito: true,
+    eventos: [
+      {
+        id: '50000000-0000-4000-8000-000000000001',
+        codigo: 'ATP-2026-0001',
+        nombre: 'Sistema Frontal Mayo 2026',
+        descripcion: 'Sistema frontal con precipitaciones intensas.',
+        tipoAmenaza: 'METEOROLOGICA',
+        nivelAlerta: 'AMARILLA',
+        fechaInicio: '2026-05-01T10:00:00.000Z',
+        fechaTermino: '2026-05-03T18:00:00.000Z',
+        estado: 'ACTIVO',
+        delegaciones: [],
+        creadoPorId: '00000000-0000-4000-8000-000000000003',
+        creadoEn: '2026-05-01T09:55:00.000Z',
+        actualizadoEn: '2026-05-01T09:55:00.000Z',
+        totalVinculados: 0,
+      },
+    ],
+    mensaje: 'ok',
+  }),
+}));
+
 describe('KanbanFiltros', () => {
   beforeEach(() => {
     vi.useFakeTimers();
@@ -293,6 +318,42 @@ describe('KanbanFiltros', () => {
 
     expect(onFiltrosChange).toHaveBeenCalledWith(
       expect.objectContaining({ soloHoy: false })
+    );
+  });
+
+  it('debe mostrar y emitir el filtro de Evento ATP (H60)', async () => {
+    const onFiltrosChange = vi.fn();
+
+    render(
+      <KanbanFiltros
+        filtros={{
+          busqueda: '',
+          delegacion: 'TODAS',
+          estado: 'TODOS',
+          prioridad: '',
+          tipoAfectacion: '',
+          fuenteOrigen: '',
+          eventoAtpId: undefined,
+        }}
+        onFiltrosChange={onFiltrosChange}
+      />
+    );
+
+    const select = screen.getByLabelText(/Evento ATP/i);
+    expect(select).toBeInTheDocument();
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    fireEvent.change(select, {
+      target: { value: '50000000-0000-4000-8000-000000000001' },
+    });
+
+    expect(onFiltrosChange).toHaveBeenCalledWith(
+      expect.objectContaining({
+        eventoAtpId: '50000000-0000-4000-8000-000000000001',
+      })
     );
   });
 });

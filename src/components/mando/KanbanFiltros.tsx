@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import type { FiltrosKanban } from '@/hooks/useIncidentesKanban';
 import type { PrioridadIncidente } from '@/services/incidentesService';
 import { useCatalogos } from '@/hooks/useCatalogos';
@@ -13,6 +13,8 @@ import {
   type ActiveChipItem,
 } from '@/components/common/filters';
 import filterStyles from '@/components/common/filters/FilterComponents.module.css';
+import { listarEventosAtp } from '@/services/eventosAtpService';
+import type { EventoAtpResumen } from '@/types/eventoAtp';
 
 interface KanbanFiltrosProps {
   filtros: FiltrosKanban;
@@ -67,6 +69,33 @@ export const KanbanFiltros: React.FC<KanbanFiltrosProps> = ({
   contadoresPorEstado,
 }) => {
   const { nombresDelegaciones } = useCatalogos();
+  const [eventosAtp, setEventosAtp] = useState<EventoAtpResumen[]>([]);
+
+  useEffect(() => {
+    let activo = true;
+
+    queueMicrotask(() => {
+      if (!activo) return;
+      listarEventosAtp({ estado: 'ACTIVO', limit: 100 }).then((res) => {
+        if (activo) setEventosAtp(res.exito ? res.eventos : []);
+      });
+    });
+
+    return () => {
+      activo = false;
+    };
+  }, []);
+
+  const opcionesEventoAtp = useMemo(
+    () => [
+      { valor: '', etiqueta: 'Todos los Eventos ATP' },
+      ...eventosAtp.map((evento) => ({
+        valor: evento.id,
+        etiqueta: `${evento.codigo} · ${evento.nombre}`,
+      })),
+    ],
+    [eventosAtp]
+  );
 
   const opcionesEstadoConContador = React.useMemo(() => {
     return OPCIONES_ESTADO.map((opt) => ({
@@ -130,6 +159,7 @@ export const KanbanFiltros: React.FC<KanbanFiltrosProps> = ({
         fuenteOrigen: '',
         delegacionId: undefined,
         soloHoy: false,
+        eventoAtpId: undefined,
       });
     }
   };
@@ -199,6 +229,17 @@ export const KanbanFiltros: React.FC<KanbanFiltrosProps> = ({
       etiqueta: 'Origen',
       valorVisible: labelOrigen,
       onRemove: () => handleOrigenChange(''),
+    });
+  }
+
+  if (filtros.eventoAtpId) {
+    const match = eventosAtp.find((e) => e.id === filtros.eventoAtpId);
+    chipsActivos.push({
+      id: 'eventoAtp',
+      etiqueta: 'Evento ATP',
+      valorVisible: match ? match.codigo : filtros.eventoAtpId,
+      onRemove: () =>
+        onFiltrosChange({ ...filtros, eventoAtpId: undefined }),
     });
   }
 
@@ -276,6 +317,16 @@ export const KanbanFiltros: React.FC<KanbanFiltrosProps> = ({
           value={filtros.fuenteOrigen || ''}
           options={OPCIONES_ORIGEN}
           onChange={handleOrigenChange}
+        />
+
+        <FilterSelect
+          id="filtro-incidente-evento-atp"
+          label="Evento ATP:"
+          value={filtros.eventoAtpId || ''}
+          options={opcionesEventoAtp}
+          onChange={(val) =>
+            onFiltrosChange({ ...filtros, eventoAtpId: val || undefined })
+          }
         />
 
         <div className={filterStyles.filterField} style={{ justifyContent: 'flex-end' }}>

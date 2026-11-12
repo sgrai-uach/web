@@ -21,6 +21,48 @@ export type EventoAtpDetalle = NonNullable<
   paths['/api/eventos-atp']['post']['responses'][201]['content']
 >['application/json']['data'];
 
+export type ListarEventosAtpQuery = NonNullable<
+  paths['/api/eventos-atp']['get']['parameters']['query']
+>;
+
+export type ListarEventosAtpResponse = NonNullable<
+  paths['/api/eventos-atp']['get']['responses'][200]['content']
+>['application/json'];
+
+export type EventoAtpResumen = ListarEventosAtpResponse['data'][number];
+
+export type ObtenerEventoAtpResponse = NonNullable<
+  paths['/api/eventos-atp/{id}']['get']['responses'][200]['content']
+>['application/json'];
+
+export type EventoAtpDetalleCompleto = ObtenerEventoAtpResponse['data'];
+
+export type EventoAtpDetalleVinculos = ObtenerEventoAtpResponse['data']['vinculos'];
+
+export type EntidadVinculadaEventoAtp =
+  EventoAtpDetalleVinculos['incidentes'][number];
+
+export type TipoEntidadVinculable =
+  | 'INCIDENTE'
+  | 'EVENTO_PREVENCION'
+  | 'RECUPERACION'
+  | 'EVENTO_ASISTENCIA_SOCIAL';
+
+export type VincularEntidadesInput = NonNullable<
+  NonNullable<
+    paths['/api/eventos-atp/{id}/vinculos']['post']['requestBody']
+  >['content']
+>['application/json'];
+
+export type VincularEntidadesInputParcial = Partial<VincularEntidadesInput>;
+
+export type ResultadoVinculacion = NonNullable<
+  paths['/api/eventos-atp/{id}/vinculos']['post']['responses'][200]['content']
+>['application/json']['data'];
+
+export type EntidadVinculadaResultado =
+  ResultadoVinculacion['entidades']['incidentes'][number];
+
 export type DelegacionEventoAtp = EventoAtpDetalle['delegaciones'][number];
 
 export interface DelegacionEventoAtpOption {
@@ -70,9 +112,18 @@ export const NIVELES_ALERTA_EVENTO_ATP: ReadonlyArray<{
 
 export const ESTADO_EVENTO_ATP_LABEL: Record<EstadoEventoAtp, string> = {
   ACTIVO: 'Activo',
-  CERRADO: 'Cerrado',
+  FINALIZADO: 'Finalizado',
   CANCELADO: 'Cancelado',
 };
+
+export const ESTADOS_EVENTO_ATP: ReadonlyArray<{
+  value: EstadoEventoAtp;
+  label: string;
+}> = [
+  { value: 'ACTIVO', label: 'Activo' },
+  { value: 'FINALIZADO', label: 'Finalizado' },
+  { value: 'CANCELADO', label: 'Cancelado' },
+];
 
 /**
  * Normaliza un enum técnico de amenaza a su etiqueta legible.

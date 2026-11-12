@@ -102,7 +102,7 @@ describe('prevencionService (HU-30)', () => {
     const resultado = await crearEventoPrevencion(mockPayload, DEFAULT_ENCARGADO_ID);
 
     expect(apiClient.POST).toHaveBeenCalledWith('/api/eventos-atp/prevencion', {
-      body: mockPayload,
+      body: { ...mockPayload, eventoAtpId: null },
       headers: {
         'x-user-id': DEFAULT_ENCARGADO_ID,
         Authorization: 'Bearer mock-jwt-token',

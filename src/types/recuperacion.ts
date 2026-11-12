@@ -26,6 +26,7 @@ export interface CrearEventoRecuperacionInput {
   patrullaId: string;
   familiasAfectadas?: number;
   recursos: ItemRecursoSolicitado[];
+  eventoAtpId?: string | null;
 }
 
 export interface RecursoAsignadoItem {
@@ -66,6 +67,7 @@ export interface EventoRecuperacionResponse {
     estado: string;
   };
   recursos: RecursoAsignadoItem[];
+  eventoAtpId: string | null;
   creadoPorId: string;
   creadoEn: string;
   actualizadoEn: string;

@@ -70,6 +70,7 @@ export interface CrearEventoAsistenciaSocialDTO {
   contactoRut?: string | null;
   delegacionId?: string | null;
   incidenteId?: string | null;
+  eventoAtpId?: string | null;
 }
 
 export interface EventoAsistenciaSocialItem {
@@ -90,6 +91,7 @@ export interface EventoAsistenciaSocialItem {
   delegacionId: string | null;
   delegacionNombre: string | null;
   incidenteId: string | null;
+  eventoAtpId: string | null;
   asistenteSocialId: string | null;
   asistenteSocialNombre: string | null;
   creadoPor: {
@@ -115,6 +117,7 @@ export interface FiltrosEventosAsistenciaSocialState {
   delegacionId?: string;
   prioridad?: PrioridadEventoSocial;
   estado?: EstadoEventoSocial;
+  eventoAtpId?: string;
 }
 
 export const crearEventoAsistenciaSocialSchema = z.object({

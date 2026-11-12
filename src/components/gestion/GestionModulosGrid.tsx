@@ -17,6 +17,7 @@ import {
   ArrowRight,
   ShieldAlert,
   AlertTriangle,
+  Siren,
 } from 'lucide-react';
 import type { ComponentType } from 'react';
 import type { LucideProps } from 'lucide-react';
@@ -117,6 +118,21 @@ const MODULOS_SISTEMA: ModuloConfig[] = [
       label: '+ Nuevo Funcionario',
       href: '/gestion/admin/empleados?nuevo=1',
       permiso: 'personal:crear',
+    },
+  },
+  {
+    id: 'eventos-atp',
+    titulo: 'Eventos ATP',
+    descripcion:
+      'Catálogo de Eventos de Alerta Temprana Preventiva y agrupación transversal de incidentes, prevención, recuperación y asistencia social.',
+    href: '/gestion/admin/eventos-atp',
+    icon: Siren,
+    requiredPermissions: ['eventos_atp:vincular', 'eventos_atp:crear'],
+    accionPrimaria: 'Ver Eventos ATP',
+    accionSecundaria: {
+      label: '+ Nuevo Evento ATP',
+      href: '/gestion/admin/eventos-atp/nuevo',
+      permiso: 'eventos_atp:crear',
     },
   },
   {

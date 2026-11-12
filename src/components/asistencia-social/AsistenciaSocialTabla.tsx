@@ -354,6 +354,8 @@ export default function AsistenciaSocialTabla({
         datos={
           eventoSeleccionado
             ? {
+                id: eventoSeleccionado.id,
+                eventoAtpId: eventoSeleccionado.eventoAtpId,
                 codigo: eventoSeleccionado.codigo,
                 descripcion: eventoSeleccionado.descripcion,
                 tipoAfectacion: eventoSeleccionado.tipoAfectacion,

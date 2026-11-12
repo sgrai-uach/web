@@ -36,6 +36,7 @@ export interface FiltrosKanban {
   fuenteOrigen: string; // '', 'CHATBOT', 'LLAMADA_TELEFONICA', 'FUNCIONARIO_TERRENO', 'WEB'
   delegacionId?: string;
   soloHoy?: boolean;
+  eventoAtpId?: string;
 }
 
 export function useIncidentesKanban(initialUserId?: string) {
@@ -136,6 +137,7 @@ export function useIncidentesKanban(initialUserId?: string) {
               tipoAfectacion: filtros.tipoAfectacion || undefined,
               busqueda: filtros.busqueda.trim() || undefined,
               soloHoy: filtros.soloHoy ? true : undefined,
+              eventoAtpId: filtros.eventoAtpId || undefined,
             },
             userId
           )
@@ -223,6 +225,7 @@ export function useIncidentesKanban(initialUserId?: string) {
             tipoAfectacion: filtros.tipoAfectacion || undefined,
             busqueda: filtros.busqueda.trim() || undefined,
             soloHoy: filtros.soloHoy ? true : undefined,
+            eventoAtpId: filtros.eventoAtpId || undefined,
           },
           userId
         );
@@ -280,6 +283,7 @@ export function useIncidentesKanban(initialUserId?: string) {
         informanteNombre: null,
         delegacionNombre: null,
         totalMisiones: 0,
+        eventoAtpId: null,
         creadoEn: datos.creadoEn,
         actualizadoEn: datos.creadoEn,
       };
