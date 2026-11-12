@@ -15,23 +15,12 @@ export const DEFAULT_ENCARGADO_ID = '00000000-0000-4000-8000-000000000003';
 
 export type ListarIncidentesResponse = components['schemas']['ListarIncidentesResponse'];
 export type IncidenteDetalleResponse = components['schemas']['IncidenteDetalleResponse'];
-export type EstadoTrazabilidadNotificacion =
-  | 'PENDIENTE_ENVIO'
-  | 'ENVIADA'
-  | 'RECIBIDA'
-  | 'LEIDA';
-
-export type IncidenteResumen = ListarIncidentesResponse['data'][number] & {
-  trazabilidadNotificacion?: EstadoTrazabilidadNotificacion;
-};
-
-export type MisionDetalle = IncidenteDetalleResponse['data']['misiones'][number] & {
-  trazabilidadNotificacion?: EstadoTrazabilidadNotificacion;
-};
-
-export type IncidenteDetalle = Omit<IncidenteDetalleResponse['data'], 'misiones'> & {
-  misiones: MisionDetalle[];
-};
+export type IncidenteResumen = ListarIncidentesResponse['data'][number];
+export type MisionDetalle = IncidenteDetalleResponse['data']['misiones'][number];
+export type IncidenteDetalle = IncidenteDetalleResponse['data'];
+export type EstadoTrazabilidadNotificacion = NonNullable<
+  MisionDetalle['trazabilidadNotificacion']
+>;
 
 export type PaginacionMeta = ListarIncidentesResponse['paginacion'];
 export type EstadoIncidente = IncidenteResumen['estado'];

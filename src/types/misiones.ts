@@ -197,14 +197,7 @@ export type CrearMisionResponse201 =
 export type DespacharPatrullaPayload = Omit<CrearMisionRequestBody, 'tipoMision'> & {
   tipoMision?: CrearMisionRequestBody['tipoMision'];
 };
-export type DespacharPatrullaResponseData = CrearMisionResponse201['data'] & {
-  notificacion?: {
-    id?: string;
-    misionId?: string;
-    patrullaId?: string;
-    estado?: 'PENDIENTE_ENVIO' | 'ENVIADA' | 'RECIBIDA' | 'LEIDA';
-  };
-};
+export type DespacharPatrullaResponseData = CrearMisionResponse201['data'];
 export type DespacharPatrullaResponse = CrearMisionResponse201;
 
 export interface ResultadoDespacharPatrulla {
