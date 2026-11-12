@@ -4,10 +4,11 @@
 **Repositorio:** `sgrai-web`  
 **Rama Evaluada:** `feature/h35-notificacion-mision-patrulla-web`  
 **Historia de Usuario:** HU-35 — *Notificación de Misión a Patrulla y Monitoreo en Tiempo Real de Trazabilidad de ACKs (Extensión Web / Centro de Mando)*  
-**Estado de Certificación QA:** `RECHAZADO EN AUDITORÍA DE SEGUIMIENTO — 4 DEFECTOS ABIERTOS`  
+**Estado de Certificación QA:** `APROBADO EN RE-TEST — 4 DEFECTOS SUBSANADOS (APTO PARA MERGE A DEVELOP)`  
 **Fecha de Auditoría Inicial:** `10/11/2026 15:30`  
 **Fecha de Primer Re-Test:** `10/11/2026 18:00`  
-**Fecha de Auditoría de Ampliación (Caché, Kanban y Línea de Tiempo):** `12/11/2026 11:35`
+**Fecha de Auditoría de Ampliación (Caché, Kanban y Línea de Tiempo):** `12/11/2026 11:35`  
+**Fecha de Re-Test Final de Cierre (`BUG-H35-WEB-04` a `07`):** `12/11/2026 12:37`
 
 ---
 
@@ -17,75 +18,57 @@ Durante la primera fase de QA (`10/11/2026`), se auditaron los cambios iniciales
 
 Posteriormente, la rama `feature/h35-notificacion-mision-patrulla-web` incorporó nuevas capacidades: caché reactivo persistido en `localStorage` (`trazabilidadStore.ts`), visualización directa en tarjetas Kanban (`IncidenteCard.tsx`), banner resumen en `IncidenteDetalleDrawer.tsx`, línea de tiempo horizontal de 3 etapas en `IncidenteMisionesSection.tsx`, etiqueta en `MisionesTabla.tsx`, corrección de hidratación en `IncidentesKpiCards.tsx` y manual de usuario (`docs/manuals/H35-monitoreo-notificacion-mision-patrulla.md`).
 
-La inspección forense de código ejecutada el `12/11/2026 11:35` sobre el estado actual de la rama frente a los criterios de HU-35, la arquitectura definida en `GEMINI.md` y el contrato real de `sgrai-api` arrojó **4 defectos reales abiertos** (`BUG-H35-WEB-04` a `BUG-H35-WEB-07`), entre ellos una **contaminación cruzada crítica de caché entre incidentes distintos** en `IncidenteDetalleDrawer.tsx` y la **ausencia de protección monotónica/idempotente** ante eventos WebSocket fuera de orden en `trazabilidadStore.ts`.
+La auditoría de seguimiento del `12/11/2026 11:35` detectó **4 defectos abiertos** (`BUG-H35-WEB-04` a `BUG-H35-WEB-07`). Tras implementar las remediaciones en `sgrai-web` (`5110221`, `9448a43`, `ce0fdb8`) y coordinar en `sgrai-api` (`feature/h35-notificacion-mision-patrulla-pwa`, commits `2e72aa8`, `90fd047`, `5b0c9a7`) la proyección persistente de `trazabilidadNotificacion` más la regeneración OpenAPI de `src/types/api-generated.d.ts`, el **Re-Test Final (`12/11/2026 12:37`)** confirma el cierre íntegro de los 4 defectos y la aprobación de los 25 ítems de la matriz.
 
-| Métrica de Calidad | Ciclo 1 Re-Test (`10/11/2026`) | Auditoría Actual (`12/11/2026`) | Estado |
+| Métrica de Calidad | Ciclo 2 Seguimiento (`12/11/2026 11:35`) | Re-Test Final (`12/11/2026 12:37`) | Estado |
 | :--- | :--- | :--- | :--- |
-| **Total de Ítems en Matriz** | 15 (`3` Fixes + `12` TCs) | 25 (`7` Bugs + `18` TCs) | **25 Evaluados** |
-| **Ítems Aprobados** | 15 / 15 (`100%`) | 20 / 25 (`80%`) | **20 Aprobados** |
-| **Ítems Fallidos / Abiertos** | 0 | 5 (`4` Bugs + `1` TC Fallido) | **Bloquea Merge** |
-| **Defectos Abiertos (`ABIERTO`)** | 0 | 4 (`1` Crítico, `2` Altos, `1` Medio) | **Requiere Corrección** |
-| **Suite Unitaria Focalizada HU-35 (Vitest)** | 20 / 20 (`3` archivos) | 36 / 36 (`5` archivos) | **100% Passing** |
-| **Suite Global Vitest** | 794 / 794 (`123` archivos) | 804 / 804 (`124` archivos) | **100% Passing** |
+| **Total de Ítems en Matriz** | 25 (`7` Bugs + `18` TCs) | 25 (`7` Bugs + `18` TCs) | **25 Evaluados** |
+| **Ítems Aprobados** | 20 / 25 (`80%`) | 25 / 25 (`100%`) | **100% Aprobado** |
+| **Ítems Fallidos / Abiertos** | 5 (`4` Bugs + `1` TC Fallido) | 0 | **Sin Bloqueantes** |
+| **Defectos Abiertos (`ABIERTO`)** | 4 (`1` Crítico, `2` Altos, `1` Medio) | 0 | **Todos Subsanados** |
+| **Suite Unitaria Focalizada HU-35 (Vitest)** | 36 / 36 (`5` archivos) | 47 / 47 (`7` archivos) | **100% Passing** |
+| **Suite Global Vitest** | 804 / 804 (`124` archivos) | 812 / 812 (`124` archivos) | **100% Passing** |
 | **Compilación TypeScript (`npx tsc --noEmit`)** | 0 errores | 0 errores | **Cumple** |
-| **ESLint (`npm run lint`)** | 0 errores | 0 errores (11 warnings previos) | **Cumple** |
-| **Build Producción (`next build --webpack`)** | 47 / 47 rutas OK | 47 / 47 rutas OK | **Cumple** |
+| **ESLint (`npm run lint`)** | 0 errores (11 warnings previos) | 0 errores (11 warnings previos) | **Cumple** |
+| **Build Producción (`npx next build --webpack`)** | 47 / 47 rutas OK | 47 / 47 rutas OK | **Cumple** |
 
 ---
 
 ## 2. Registro Técnico de Defectos
 
-### 2.1. Defectos Abiertos (Auditoría `12/11/2026 11:35`)
+### 2.1. Defectos de Auditoría de Seguimiento Subsanados en Re-Test (`12/11/2026 12:37`)
 
-#### `BUG-H35-WEB-04` (Severidad: Crítica — **ABIERTO**) — Contaminación cruzada de caché de trazabilidad entre incidentes distintos en `IncidenteDetalleDrawer.tsx`
-- **Archivos afectados:**
-  - `src/components/mando/IncidenteDetalleDrawer.tsx` (líneas 90-114)
-  - `src/lib/socket/trazabilidadStore.ts` (líneas 106-124)
-- **Descripción técnica del fallo:**
-  En `IncidenteDetalleDrawer.tsx` (línea 95), el manejador `handleTrazabilidad` conectado al socket singleton global ejecuta incondicionalmente:
-  `setTrazabilidadEstado(payload.misionId, payload.estado, incidenteId);`
-  El socket del Centro de Mando está suscrito a `sala:encargados`, por lo que recibe eventos `notificacion:trazabilidad_actualizada` correspondientes a **todos** los incidentes activos de la comuna. Al no validar si `payload.misionId` pertenece efectivamente a las misiones del `incidenteId` abierto en el drawer (`detalle.misiones`), cualquier evento emitido para una Misión B (de otro Incidente B) registra erróneamente `misionIncidenteMap.set(misionB, incidenteA)` y sobreescribe `incidenteEstadoCache.set(incidenteA, payload.estado)`.
-- **Impacto funcional:**
-  1. La tarjeta Kanban del **Incidente A** muestra falsamente estados (`RECIBIDA` / `LEIDA`) pertenecientes al **Incidente B**, induciendo al Encargado de Operaciones a creer que la patrulla asignada al Incidente A ya leyó la orden cuando sigue sin señal o sin acuse.
-  2. El mapa `misionIncidenteMap` queda corrompido vinculando `misionB` con `incidenteA`, impidiendo que `useIncidentesKanban` resuelva el vínculo real hacia `incidenteB`.
-- **Remediación esperada:**
-  Verificar mediante una referencia sincronizada con `detalle?.misiones` que `payload.misionId` pertenezca al incidente abierto antes de pasar `incidenteId` a `setTrazabilidadEstado` (e ignorar en el drawer los eventos de misiones ajenas al incidente actual).
+#### `BUG-H35-WEB-04` (Severidad: Crítica — **APROBADO / CORREGIDO**) — Contaminación cruzada de caché de trazabilidad entre incidentes distintos en `IncidenteDetalleDrawer.tsx`
+- **Archivos verificados:**
+  - `src/components/mando/IncidenteDetalleDrawer.tsx`
+  - `src/lib/socket/trazabilidadStore.ts`
+- **Resolución verificada (`5110221`, `9448a43`):**
+  `IncidenteDetalleDrawer.tsx` sincroniza un `Set<string>` con los `id` de las misiones pertenecientes al incidente abierto; `handleTrazabilidad` ignora cualquier evento `notificacion:trazabilidad_actualizada` cuya `misionId` no pertenezca al incidente en pantalla, evitando registrar vínculos cruzados o contaminar `incidenteEstadoCache`. Validado mediante prueba de regresión en `IncidenteDetalleDrawer.test.tsx`.
 
-#### `BUG-H35-WEB-05` (Severidad: Alta — **ABIERTO**) — Ausencia de protección monotónica / idempotente ante eventos fuera de orden en `trazabilidadStore.ts` e `IncidenteDetalleDrawer.tsx`
-- **Archivos afectados:**
-  - `src/lib/socket/trazabilidadStore.ts` (líneas 106-124)
-  - `src/components/mando/IncidenteDetalleDrawer.tsx` (líneas 94-107)
-- **Descripción técnica del fallo:**
-  `setTrazabilidadEstado` asigna directamente `misionEstadoCache.set(misionId, estado)` e `incidenteEstadoCache.set(resolvedIncidenteId, estado)` sin validar `esEstadoValido(estado)` ni verificar precedencia en la máquina de estados (`PENDIENTE_ENVIO < ENVIADA < RECIBIDA < LEIDA`). De forma análoga, `IncidenteDetalleDrawer.tsx` sobreescribe `m.trazabilidadNotificacion` directamente con `payload.estado`.
-- **Impacto funcional:**
-  En escenarios con micro-cortes o reconexiones de red (propios del flujo *offline-first* de HU-35), la llegada tardía de un evento `ENVIADA` o `RECIBIDA` posterior a `LEIDA` degrada el indicador en pantalla de `LEÍDA` hacia `RECIBIDA (SIN LEER)` o `NO LEÍDA`, rompiendo el principio de no retroceso de la máquina de estados.
-- **Remediación esperada:**
-  Definir un orden numérico explícito (`PENDIENTE_ENVIO: 0`, `ENVIADA: 1`, `RECIBIDA: 2`, `LEIDA: 3`) y rechazar actualizaciones inválidas o regresivas tanto en `setTrazabilidadEstado` como en el actualizador de estado del drawer.
+#### `BUG-H35-WEB-05` (Severidad: Alta — **APROBADO / CORREGIDO**) — Ausencia de protección monotónica / idempotente ante eventos fuera de orden en `trazabilidadStore.ts` e `IncidenteDetalleDrawer.tsx`
+- **Archivos verificados:**
+  - `src/lib/socket/trazabilidadStore.ts`
+  - `src/components/mando/IncidenteDetalleDrawer.tsx`
+- **Resolución verificada (`5110221`, `9448a43`):**
+  Se aplicó validación de estado (`esEstadoTrazabilidadValido`) y comparación de jerarquía estricta (`PENDIENTE_ENVIO < ENVIADA < RECIBIDA < LEIDA`) mediante `debeActualizarEstadoTrazabilidad` y `seleccionarEstadoTrazabilidadMayor`, garantizando que ni el store local ni el drawer degraden un estado `LEIDA` o `RECIBIDA` ante eventos tardíos o duplicados.
 
-#### `BUG-H35-WEB-06` (Severidad: Alta — **ABIERTO**) — Divergencia con tipos autogenerados (`api-generated.d.ts`) y pérdida de trazabilidad persistente desde servidor tras recarga (`F5`) en sesión limpia
-- **Archivos afectados:**
-  - `src/services/incidentesService.ts` (líneas 24-34)
-  - `src/types/misiones.ts` (líneas 200-207)
-  - `src/types/api-generated.d.ts` (sin regenerar)
-- **Descripción técnica del fallo:**
-  En contravención con la Sección 4 de `GEMINI.md`, las propiedades `trazabilidadNotificacion` y `notificacion` fueron agregadas por intersección manual (`& { ... }`) en lugar de regenerar `src/types/api-generated.d.ts` con `npm run generate-api-types` desde OpenAPI. Adicionalmente, al verificar el repositorio `sgrai-api` (`src/modules/incidentes/incidente-kanban.repository.ts`), los endpoints `GET /api/incidentes` y `GET /api/incidentes/{id}` aún no proyectan el último estado desde la tabla `notificaciones_mision`, mientras `POST /api/misiones` sí retorna `data.notificacion` pero dicho campo no existe en `api-generated.d.ts`.
-- **Impacto funcional:**
-  Si un Encargado abre `/gestion/centro-incidentes` en una sesión limpia (sin caché previo en `localStorage`) o desde otro puesto de mando, todas las misiones despachadas previamente aparecen en estado `SIN ACUSE` y pierden su trazabilidad histórica hasta que ocurra un nuevo evento WebSocket en vivo.
-- **Remediación esperada:**
-  Coordinar con `sgrai-api` la exposición del estado de trazabilidad en el listado/detalle de incidentes y regenerar `src/types/api-generated.d.ts` eliminando extensiones manuales de contrato.
+#### `BUG-H35-WEB-06` (Severidad: Alta — **APROBADO / CORREGIDO**) — Divergencia con tipos autogenerados (`api-generated.d.ts`) y pérdida de trazabilidad persistente desde servidor tras recarga (`F5`) en sesión limpia
+- **Archivos verificados:**
+  - `sgrai-web`: `src/types/api-generated.d.ts`, `src/services/incidentesService.ts`, `src/types/misiones.ts`
+  - `sgrai-api` (`feature/h35-notificacion-mision-patrulla-pwa`): `src/modules/incidentes/incidente-kanban.*`, `src/modules/misiones/mision-listado.*`, `src/modules/misiones/mision.*`, `src/lib/openapi/index.ts`
+- **Resolución verificada (`2e72aa8`, `90fd047`, `5b0c9a7` en `sgrai-api`; `ce0fdb8` en `sgrai-web`):**
+  1. `sgrai-api` proyecta `trazabilidadNotificacion` desde `notificaciones_mision` en `GET /api/incidentes`, `GET /api/incidentes/{id}`, `GET /api/misiones` y `GET /api/misiones/{id}`, además de completar el registro OpenAPI en `src/lib/openapi/index.ts`.
+  2. Se regeneró `src/types/api-generated.d.ts` mediante `npm run generate-api-types` contra `http://localhost:3001/openapi.json` y se eliminaron las extensiones manuales `& { ... }` en `incidentesService.ts` y `misiones.ts`.
 
-#### `BUG-H35-WEB-07` (Severidad: Media — **ABIERTO**) — Falta de validación defensiva de payload, suscripción sin verificación de conexión en drawer y brecha de cobertura unitaria en `MisionesTabla` / `useIncidentesKanban`
-- **Archivos afectados:**
-  - `src/hooks/useEncargadoKanbanSocket.ts` (líneas 167-173)
-  - `src/components/mando/IncidenteDetalleDrawer.tsx` (líneas 90-114)
-  - `src/components/mando/misiones/MisionesTabla.tsx` (líneas 44-64 y 234-258)
+#### `BUG-H35-WEB-07` (Severidad: Media — **APROBADO / CORREGIDO**) — Falta de validación defensiva de payload, suscripción sin verificación de conexión en drawer y brecha de cobertura unitaria en `MisionesTabla` / `useIncidentesKanban`
+- **Archivos verificados:**
+  - `src/hooks/useEncargadoKanbanSocket.ts`
+  - `src/components/mando/IncidenteDetalleDrawer.tsx`
+  - `src/components/mando/misiones/__tests__/MisionesModal.test.tsx`
   - `src/hooks/__tests__/useIncidentesKanban.test.ts`
-- **Descripción técnica del fallo:**
-  1. `handleTrazabilidad` en `useEncargadoKanbanSocket.ts` invoca `setTrazabilidadEstado(payload.misionId, payload.estado)` sin verificar la presencia y validez de `payload?.misionId` y `payload?.estado`.
-  2. `IncidenteDetalleDrawer.tsx` registra `socket.on('notificacion:trazabilidad_actualizada', ...)` sin garantizar `socket.connected` en montajes fuera de `KanbanBoard`.
-  3. No existen pruebas unitarias para `tabla-trazabilidad-${mision.id}` en `MisionesTabla` ni para `handleTrazabilidadActualizada` en `useIncidentesKanban`.
-- **Remediación esperada:**
-  Incorporar guardas de validación del payload WebSocket, asegurar conexión del socket en el drawer cuando corresponda y agregar pruebas unitarias en `MisionesModal.test.tsx`, `useIncidentesKanban.test.ts` y `trazabilidadStore.test.ts`.
+  - `src/lib/socket/__tests__/trazabilidadStore.test.ts`
+- **Resolución verificada (`5110221`, `9448a43`):**
+  Se agregaron guardas defensivas para payloads vacíos o estados inválidos en `useEncargadoKanbanSocket.ts`, garantía de conexión y manejo en `IncidenteDetalleDrawer.tsx`, y pruebas unitarias dedicadas para `tabla-trazabilidad-*` en `MisionesModal.test.tsx`, `handleTrazabilidadActualizada` en `useIncidentesKanban.test.ts`, aislamiento de incidente en `IncidenteDetalleDrawer.test.tsx` y monotonicidad en `trazabilidadStore.test.ts`.
 
 ---
 
@@ -109,10 +92,10 @@ La inspección forense de código ejecutada el `12/11/2026 11:35` sobre el estad
 
 | ID Caso | Título del Caso de Prueba | Tipo de Prueba | Nivel | Prioridad | Precondición | Datos de Prueba (Payload / Headers / Query) | Resultado Esperado | Resultado Obtenido | Estado | Fecha / Hora Ejecución | Fecha / Hora Re-Test | Solución / Commit |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **BUG-H35-WEB-04** | Aislamiento de eventos de trazabilidad por incidente en `IncidenteDetalleDrawer.tsx` | Integridad de Caché / WebSocket | Componente / Store | Crítica | Drawer abierto en `incidenteId="inc-A"` mientras el socket en `sala:encargados` recibe evento de `misionId="mis-B"` perteneciente a `inc-B`. | Payload WS: `{ notificacionId: 'n-b', misionId: 'mis-B', patrullaId: 'pat-2', estado: 'LEIDA' }` | El drawer debe ignorar eventos cuya `misionId` no pertenezca a `detalle.misiones` sin asociar `mis-B` a `inc-A` ni mutar la tarjeta Kanban de `inc-A`. | `IncidenteDetalleDrawer.tsx` línea 95 ejecuta `setTrazabilidadEstado(payload.misionId, payload.estado, incidenteId)`, contaminando `misionIncidenteMap` e `incidenteEstadoCache` para `inc-A`. | ABIERTO | 12/11/2026 11:35 | (Pendiente) | Pendiente (Rechazado en Code Review) |
-| **BUG-H35-WEB-05** | Protección monotónica e idempotente ante eventos de trazabilidad fuera de orden en `trazabilidadStore.ts` | Lógica de Estados / Resiliencia | Store / Componente | Alta | Misión `mis-100` ya confirmada en estado `LEIDA` (`paso: 3`) en caché y drawer. | Payload tardío WS: `{ misionId: 'mis-100', estado: 'RECIBIDA' }` o `'ENVIADA'` | El estado debe permanecer inmutable en `LEIDA` sin retroceder ni sobreescribir `incidenteEstadoCache`. | `setTrazabilidadEstado` y `IncidenteDetalleDrawer.tsx` sobreescriben directamente con `payload.estado`, permitiendo regresión visual de `LEIDA` a `RECIBIDA` o `ENVIADA`. | ABIERTO | 12/11/2026 11:35 | (Pendiente) | Pendiente (Rechazado en Code Review) |
-| **BUG-H35-WEB-06** | Sincronización de contrato OpenAPI (`api-generated.d.ts`) y persistencia desde API tras recarga en sesión limpia | Contrato / Persistencia | Integración / Tipos | Alta | Navegador sin datos previos en `localStorage` consultando `GET /api/incidentes` y `GET /api/incidentes/{id}`. | `src/types/api-generated.d.ts`, `src/services/incidentesService.ts`, `src/types/misiones.ts` | Contratos generados automáticamente vía OpenAPI (`npm run generate-api-types`) e hidratación del estado real desde BD sin depender solo de `localStorage`. | Tipos extendidos manualmente con intersecciones; `api-generated.d.ts` no regenerado y backend `incidente-kanban.repository.ts` no retorna `trazabilidadNotificacion`. | ABIERTO | 12/11/2026 11:35 | (Pendiente) | Pendiente (Rechazado en Code Review) |
-| **BUG-H35-WEB-07** | Validación defensiva de payload WS, conexión aislada del drawer y cobertura unitaria en `MisionesTabla` / `useIncidentesKanban` | Calidad / Robustez | Hook / Componente | Media | Revisión de `useEncargadoKanbanSocket.ts`, `MisionesTabla.tsx`, `useIncidentesKanban.ts` y archivos `.test.*`. | Payload malformado sin `misionId` / `estado` inválido; suites de `MisionesTabla` y `useIncidentesKanban` | Guardas de validación en runtime y cobertura automatizada en Vitest para tabla de misiones y resolución misión-incidente. | `handleTrazabilidad` no valida payload; `MisionesModal.test.tsx` y `useIncidentesKanban.test.ts` carecen de pruebas para `tabla-trazabilidad-*` y `handleTrazabilidadActualizada`. | ABIERTO | 12/11/2026 11:35 | (Pendiente) | Pendiente (Rechazado en Code Review) |
+| **BUG-H35-WEB-04** | Aislamiento de eventos de trazabilidad por incidente en `IncidenteDetalleDrawer.tsx` | Integridad de Caché / WebSocket | Componente / Store | Crítica | Drawer abierto en `incidenteId="inc-A"` mientras el socket en `sala:encargados` recibe evento de `misionId="mis-B"` perteneciente a `inc-B`. | Payload WS: `{ notificacionId: 'n-b', misionId: 'mis-B', patrullaId: 'pat-2', estado: 'LEIDA' }` | El drawer debe ignorar eventos cuya `misionId` no pertenezca a `detalle.misiones` sin asociar `mis-B` a `inc-A` ni mutar la tarjeta Kanban de `inc-A`. | En Re-Test: el drawer filtra por el `Set` de misiones del incidente abierto e ignora eventos ajenos sin mutar caché ni estado local. | CORREGIDO | 12/11/2026 11:35 | 12/11/2026 12:37 | fix(mando): aislar eventos de trazabilidad por incidente y garantizar progresion monotonica (`5110221`, `9448a43`) |
+| **BUG-H35-WEB-05** | Protección monotónica e idempotente ante eventos de trazabilidad fuera de orden en `trazabilidadStore.ts` | Lógica de Estados / Resiliencia | Store / Componente | Alta | Misión `mis-100` ya confirmada en estado `LEIDA` (`paso: 3`) en caché y drawer. | Payload tardío WS: `{ misionId: 'mis-100', estado: 'RECIBIDA' }` o `'ENVIADA'` | El estado debe permanecer inmutable en `LEIDA` sin retroceder ni sobreescribir `incidenteEstadoCache`. | En Re-Test: `debeActualizarEstadoTrazabilidad` y `seleccionarEstadoTrazabilidadMayor` impiden cualquier regresión en store y drawer. | CORREGIDO | 12/11/2026 11:35 | 12/11/2026 12:37 | fix(mando): aislar eventos de trazabilidad por incidente y garantizar progresion monotonica (`5110221`, `9448a43`) |
+| **BUG-H35-WEB-06** | Sincronización de contrato OpenAPI (`api-generated.d.ts`) y persistencia desde API tras recarga en sesión limpia | Contrato / Persistencia | Integración / Tipos | Alta | Navegador sin datos previos en `localStorage` consultando `GET /api/incidentes` y `GET /api/incidentes/{id}`. | `src/types/api-generated.d.ts`, `src/services/incidentesService.ts`, `src/types/misiones.ts` | Contratos generados automáticamente vía OpenAPI (`npm run generate-api-types`) e hidratación del estado real desde BD sin depender solo de `localStorage`. | En Re-Test: `sgrai-api` proyecta `trazabilidadNotificacion` en listados/detalles (`2e72aa8`, `90fd047`, `5b0c9a7`) y `api-generated.d.ts` fue regenerado sin extensiones manuales (`ce0fdb8`). | CORREGIDO | 12/11/2026 11:35 | 12/11/2026 12:37 | fix(types): regenerar contrato OpenAPI con trazabilidadNotificacion y eliminar extensiones manuales (`ce0fdb8`) |
+| **BUG-H35-WEB-07** | Validación defensiva de payload WS, conexión aislada del drawer y cobertura unitaria en `MisionesTabla` / `useIncidentesKanban` | Calidad / Robustez | Hook / Componente | Media | Revisión de `useEncargadoKanbanSocket.ts`, `MisionesTabla.tsx`, `useIncidentesKanban.ts` y archivos `.test.*`. | Payload malformado sin `misionId` / `estado` inválido; suites de `MisionesTabla` y `useIncidentesKanban` | Guardas de validación en runtime y cobertura automatizada en Vitest para tabla de misiones y resolución misión-incidente. | En Re-Test: validación defensiva en `useEncargadoKanbanSocket.ts` / drawer y pruebas agregadas en `MisionesModal.test.tsx`, `useIncidentesKanban.test.ts` y `trazabilidadStore.test.ts`. | CORREGIDO | 12/11/2026 11:35 | 12/11/2026 12:37 | fix(mando): aislar eventos de trazabilidad por incidente y garantizar progresion monotonica (`5110221`, `9448a43`) |
 | **BUG-H35-WEB-01** | Eliminación de casteo inseguro y tipado de dominio en `incidentesService.ts` | Arquitectura / Tipos | Tipos / Contrato | Alta | Inspección de `src/services/incidentesService.ts` e `IncidenteMisionesSection.tsx`. | Definición de `EstadoTrazabilidadNotificacion` y mapa `TRAZABILIDAD_CONFIG` | Tipos estrictos sin `any` ni casteos inseguros a `Record<string, unknown>`. | En Re-Test: `incidentesService.ts` y `trazabilidadConfig.ts` tipan estrictamente los 4 estados y su configuración visual. | APROBADO | 10/11/2026 15:30 | 10/11/2026 18:00 | refactor(mando): tipado estricto de trazabilidad y mapeo de configuracion de badges |
 | **BUG-H35-WEB-02** | Cobertura unitaria de badges semánticos, esquinas rectas (`borderRadius: 0`) y ausencia de emojis | Calidad / Vitest | Componente / UI | Media | Ejecución de `vitest run src/components/mando/__tests__/IncidenteMisionesSection.test.tsx`. | Misiones con estados `PENDIENTE_ENVIO`, `ENVIADA`, `RECIBIDA`, `LEIDA` | 100% de aserciones aprobadas verificando texto, colores, bordes y ausencia de emojis. | Suite aprobada verificando los 4 badges, `borderRadius: 0px` y regex Unicode sin emojis. | APROBADO | 10/11/2026 15:30 | 10/11/2026 18:00 | test(mando): incorporar pruebas unitarias de trazabilidad, badges semanticos y eventos websocket |
 | **BUG-H35-WEB-03** | Verificación de recepción y limpieza de evento `notificacion:trazabilidad_actualizada` en hooks y drawer | Calidad / WebSocket | Hook / Componente | Media | Ejecución de `useEncargadoKanbanSocket.test.ts` e `IncidenteDetalleDrawer.test.tsx`. | Simulación de emisión de evento WebSocket en socket mockeado | Invocación de callbacks correspondientes y limpieza con `socket.off` al desmontar. | Pruebas unitarias en hook y drawer aprueban verificando actualización y limpieza de listeners. | APROBADO | 10/11/2026 15:30 | 10/11/2026 18:00 | test(mando): incorporar pruebas unitarias de trazabilidad, badges semanticos y eventos websocket |
@@ -133,7 +116,7 @@ La inspección forense de código ejecutada el `12/11/2026 11:35` sobre el estad
 | **TC-H35-WEB-15** | Prevención de recorte vertical y desborde de textos extensos en columnas Kanban y detalle | Maquetación / CSS | Componente / CSS | Alta | Tarjeta con dirección extensa (`120` chars sin espacios) en columna con scroll vertical. | `direccion = 'a'.repeat(120)` + inspección CSS `flex-shrink: 0` y `overflow-wrap: anywhere` | Las cajas de trazabilidad mantienen `flexShrink: '0'` y `overflow: 'hidden'` sin recortar el contenido ni desbordar la tarjeta. | Verificado en `IncidenteCard.test.tsx` y en hojas CSS `mando.module.css` / `mision-detalle.module.css`. | APROBADO | 12/11/2026 11:35 | 12/11/2026 11:35 | fix(mando): evitar recorte vertical de tarjetas kanban y contenedores con flex-shrink 0 |
 | **TC-H35-WEB-16** | Persistencia en `localStorage` (`sgrai_trazabilidad_notificaciones_v2`) entre reaperturas del drawer | Persistencia Local | Store | Alta | Llamada a `setTrazabilidadEstado` y `vincularMisionIncidente` seguida de lectura por misión e incidente. | `{ misionId: 'mision-001', estado: 'LEIDA', incidenteId: 'inc-001' }` | El store retorna el estado persistido y notifica a los suscriptores activos. | Las 3 pruebas unitarias de `trazabilidadStore.test.ts` aprueban al 100%. | APROBADO | 12/11/2026 11:35 | 12/11/2026 11:35 | fix(mando): persistir cache local de trazabilidad entre reaperturas del drawer |
 | **TC-H35-WEB-17** | Entrega de manual de usuario institucional conforme a `GEMINI.md` | Documentación | Repositorio | Alta | Inspección de `docs/manuals/H35-monitoreo-notificacion-mision-patrulla.md`. | Estructura de roles, objetivo, pasos, errores, relación con API/PWA y cero emojis | Manual completo siguiendo convención `H<numero>-<slug>.md` dentro del mismo PR. | Archivo presente (`89` líneas) con todos los apartados requeridos y sin emojis. | APROBADO | 12/11/2026 11:35 | 12/11/2026 11:35 | docs(manuals): agregar manual de usuario para monitoreo de trazabilidad (H35) |
-| **TC-H35-WEB-18** | Reconstrucción del último estado de notificación desde BD tras recarga en navegador limpio | Integración / Persistencia | E2E / Contrato | Alta | Sesión limpia (`localStorage` vacío) consultando `GET /api/incidentes` y `GET /api/incidentes/{id}`. | Respuestas JSON de listado y detalle de incidente con misión despachada previamente | El tablero y el drawer hidratan desde servidor el último estado de la notificación (`PENDIENTE_ENVIO`..`LEIDA`). | `GET /api/incidentes` y `GET /api/incidentes/{id}` en `sgrai-api` no retornan `trazabilidadNotificacion`; la UI queda en `SIN ACUSE`. | FALLIDO | 12/11/2026 11:35 | (Pendiente) | Pendiente (Rechazado en Code Review) |
+| **TC-H35-WEB-18** | Reconstrucción del último estado de notificación desde BD tras recarga en navegador limpio | Integración / Persistencia | E2E / Contrato | Alta | Sesión limpia (`localStorage` vacío) consultando `GET /api/incidentes` y `GET /api/incidentes/{id}`. | Respuestas JSON de listado y detalle de incidente con misión despachada previamente | El tablero y el drawer hidratan desde servidor el último estado de la notificación (`PENDIENTE_ENVIO`..`LEIDA`). | En Re-Test: `sgrai-api` proyecta `trazabilidadNotificacion` desde `notificaciones_mision` (`2e72aa8`, `5b0c9a7`) y `KanbanColumn` / `IncidenteDetalleDrawer` / `MisionesTabla` lo hidratan desde el contrato regenerado (`ce0fdb8`). | APROBADO | 12/11/2026 11:35 | 12/11/2026 12:37 | fix(types): regenerar contrato OpenAPI con trazabilidadNotificacion y eliminar extensiones manuales (`ce0fdb8`) |
 
 ---
 
@@ -141,10 +124,10 @@ La inspección forense de código ejecutada el `12/11/2026 11:35` sobre el estad
 
 ````tsv
 ID Caso	Título del Caso de Prueba	Tipo de Prueba	Nivel	Prioridad	Precondición	Datos de Prueba (Payload / Headers / Query)	Resultado Esperado	Resultado Obtenido	Estado	Fecha / Hora Ejecución	Fecha / Hora Re-Test	Solución / Commit
-BUG-H35-WEB-04	Aislamiento de eventos de trazabilidad por incidente en IncidenteDetalleDrawer.tsx	Integridad de Caché / WebSocket	Componente / Store	Crítica	Drawer abierto en incidenteId="inc-A" mientras el socket en sala:encargados recibe evento de misionId="mis-B" perteneciente a inc-B.	Payload WS: { notificacionId: 'n-b', misionId: 'mis-B', patrullaId: 'pat-2', estado: 'LEIDA' }	El drawer debe ignorar eventos cuya misionId no pertenezca a detalle.misiones sin asociar mis-B a inc-A ni mutar la tarjeta Kanban de inc-A.	IncidenteDetalleDrawer.tsx línea 95 ejecuta setTrazabilidadEstado(payload.misionId, payload.estado, incidenteId), contaminando misionIncidenteMap e incidenteEstadoCache para inc-A.	ABIERTO	12/11/2026 11:35	(Pendiente)	Pendiente (Rechazado en Code Review)
-BUG-H35-WEB-05	Protección monotónica e idempotente ante eventos de trazabilidad fuera de orden en trazabilidadStore.ts	Lógica de Estados / Resiliencia	Store / Componente	Alta	Misión mis-100 ya confirmada en estado LEIDA (paso: 3) en caché y drawer.	Payload tardío WS: { misionId: 'mis-100', estado: 'RECIBIDA' } o 'ENVIADA'	El estado debe permanecer inmutable en LEIDA sin retroceder ni sobreescribir incidenteEstadoCache.	setTrazabilidadEstado y IncidenteDetalleDrawer.tsx sobreescriben directamente con payload.estado, permitiendo regresión visual de LEIDA a RECIBIDA o ENVIADA.	ABIERTO	12/11/2026 11:35	(Pendiente)	Pendiente (Rechazado en Code Review)
-BUG-H35-WEB-06	Sincronización de contrato OpenAPI (api-generated.d.ts) y persistencia desde API tras recarga en sesión limpia	Contrato / Persistencia	Integración / Tipos	Alta	Navegador sin datos previos en localStorage consultando GET /api/incidentes y GET /api/incidentes/{id}.	src/types/api-generated.d.ts, src/services/incidentesService.ts, src/types/misiones.ts	Contratos generados automáticamente vía OpenAPI (npm run generate-api-types) e hidratación del estado real desde BD sin depender solo de localStorage.	Tipos extendidos manualmente con intersecciones; api-generated.d.ts no regenerado y backend incidente-kanban.repository.ts no retorna trazabilidadNotificacion.	ABIERTO	12/11/2026 11:35	(Pendiente)	Pendiente (Rechazado en Code Review)
-BUG-H35-WEB-07	Validación defensiva de payload WS, conexión aislada del drawer y cobertura unitaria en MisionesTabla / useIncidentesKanban	Calidad / Robustez	Hook / Componente	Media	Revisión de useEncargadoKanbanSocket.ts, MisionesTabla.tsx, useIncidentesKanban.ts y archivos .test.*.	Payload malformado sin misionId / estado inválido; suites de MisionesTabla y useIncidentesKanban	Guardas de validación en runtime y cobertura automatizada en Vitest para tabla de misiones y resolución misión-incidente.	handleTrazabilidad no valida payload; MisionesModal.test.tsx y useIncidentesKanban.test.ts carecen de pruebas para tabla-trazabilidad-* y handleTrazabilidadActualizada.	ABIERTO	12/11/2026 11:35	(Pendiente)	Pendiente (Rechazado en Code Review)
+BUG-H35-WEB-04	Aislamiento de eventos de trazabilidad por incidente en IncidenteDetalleDrawer.tsx	Integridad de Caché / WebSocket	Componente / Store	Crítica	Drawer abierto en incidenteId="inc-A" mientras el socket en sala:encargados recibe evento de misionId="mis-B" perteneciente a inc-B.	Payload WS: { notificacionId: 'n-b', misionId: 'mis-B', patrullaId: 'pat-2', estado: 'LEIDA' }	El drawer debe ignorar eventos cuya misionId no pertenezca a detalle.misiones sin asociar mis-B a inc-A ni mutar la tarjeta Kanban de inc-A.	En Re-Test: el drawer filtra por el Set de misiones del incidente abierto e ignora eventos ajenos sin mutar cache ni estado local.	CORREGIDO	12/11/2026 11:35	12/11/2026 12:37	fix(mando): aislar eventos de trazabilidad por incidente y garantizar progresion monotonica (5110221, 9448a43)
+BUG-H35-WEB-05	Protección monotónica e idempotente ante eventos de trazabilidad fuera de orden en trazabilidadStore.ts	Lógica de Estados / Resiliencia	Store / Componente	Alta	Misión mis-100 ya confirmada en estado LEIDA (paso: 3) en caché y drawer.	Payload tardío WS: { misionId: 'mis-100', estado: 'RECIBIDA' } o 'ENVIADA'	El estado debe permanecer inmutable en LEIDA sin retroceder ni sobreescribir incidenteEstadoCache.	En Re-Test: debeActualizarEstadoTrazabilidad y seleccionarEstadoTrazabilidadMayor impiden cualquier regresion en store y drawer.	CORREGIDO	12/11/2026 11:35	12/11/2026 12:37	fix(mando): aislar eventos de trazabilidad por incidente y garantizar progresion monotonica (5110221, 9448a43)
+BUG-H35-WEB-06	Sincronización de contrato OpenAPI (api-generated.d.ts) y persistencia desde API tras recarga en sesión limpia	Contrato / Persistencia	Integración / Tipos	Alta	Navegador sin datos previos en localStorage consultando GET /api/incidentes y GET /api/incidentes/{id}.	src/types/api-generated.d.ts, src/services/incidentesService.ts, src/types/misiones.ts	Contratos generados automáticamente vía OpenAPI (npm run generate-api-types) e hidratación del estado real desde BD sin depender solo de localStorage.	En Re-Test: sgrai-api proyecta trazabilidadNotificacion en listados/detalles (2e72aa8, 90fd047, 5b0c9a7) y api-generated.d.ts fue regenerado sin extensiones manuales (ce0fdb8).	CORREGIDO	12/11/2026 11:35	12/11/2026 12:37	fix(types): regenerar contrato OpenAPI con trazabilidadNotificacion y eliminar extensiones manuales (ce0fdb8)
+BUG-H35-WEB-07	Validación defensiva de payload WS, conexión aislada del drawer y cobertura unitaria en MisionesTabla / useIncidentesKanban	Calidad / Robustez	Hook / Componente	Media	Revisión de useEncargadoKanbanSocket.ts, MisionesTabla.tsx, useIncidentesKanban.ts y archivos .test.*.	Payload malformado sin misionId / estado inválido; suites de MisionesTabla y useIncidentesKanban	Guardas de validación en runtime y cobertura automatizada en Vitest para tabla de misiones y resolución misión-incidente.	En Re-Test: validacion defensiva en useEncargadoKanbanSocket.ts / drawer y pruebas agregadas en MisionesModal.test.tsx, useIncidentesKanban.test.ts y trazabilidadStore.test.ts.	CORREGIDO	12/11/2026 11:35	12/11/2026 12:37	fix(mando): aislar eventos de trazabilidad por incidente y garantizar progresion monotonica (5110221, 9448a43)
 BUG-H35-WEB-01	Eliminación de casteo inseguro y tipado de dominio en incidentesService.ts	Arquitectura / Tipos	Tipos / Contrato	Alta	Inspección de src/services/incidentesService.ts e IncidenteMisionesSection.tsx.	Definición de EstadoTrazabilidadNotificacion y mapa TRAZABILIDAD_CONFIG	Tipos estrictos sin any ni casteos inseguros a Record<string, unknown>.	En Re-Test: incidentesService.ts y trazabilidadConfig.ts tipan estrictamente los 4 estados y su configuración visual.	APROBADO	10/11/2026 15:30	10/11/2026 18:00	refactor(mando): tipado estricto de trazabilidad y mapeo de configuracion de badges
 BUG-H35-WEB-02	Cobertura unitaria de badges semánticos, esquinas rectas (borderRadius: 0) y ausencia de emojis	Calidad / Vitest	Componente / UI	Media	Ejecución de vitest run src/components/mando/__tests__/IncidenteMisionesSection.test.tsx.	Misiones con estados PENDIENTE_ENVIO, ENVIADA, RECIBIDA, LEIDA	100% de aserciones aprobadas verificando texto, colores, bordes y ausencia de emojis.	Suite aprobada verificando los 4 badges, borderRadius: 0px y regex Unicode sin emojis.	APROBADO	10/11/2026 15:30	10/11/2026 18:00	test(mando): incorporar pruebas unitarias de trazabilidad, badges semanticos y eventos websocket
 BUG-H35-WEB-03	Verificación de recepción y limpieza de evento notificacion:trazabilidad_actualizada en hooks y drawer	Calidad / WebSocket	Hook / Componente	Media	Ejecución de useEncargadoKanbanSocket.test.ts e IncidenteDetalleDrawer.test.tsx.	Simulación de emisión de evento WebSocket en socket mockeado	Invocación de callbacks correspondientes y limpieza con socket.off al desmontar.	Pruebas unitarias en hook y drawer aprueban verificando actualización y limpieza de listeners.	APROBADO	10/11/2026 15:30	10/11/2026 18:00	test(mando): incorporar pruebas unitarias de trazabilidad, badges semanticos y eventos websocket
@@ -165,7 +148,7 @@ TC-H35-WEB-14	Renderizado de línea de tiempo horizontal conectada en IncidenteM
 TC-H35-WEB-15	Prevención de recorte vertical y desborde de textos extensos en columnas Kanban y detalle	Maquetación / CSS	Componente / CSS	Alta	Tarjeta con dirección extensa (120 chars sin espacios) en columna con scroll vertical.	direccion = 'a'.repeat(120) + inspección CSS flex-shrink: 0 y overflow-wrap: anywhere	Las cajas de trazabilidad mantienen flexShrink: '0' y overflow: 'hidden' sin recortar el contenido ni desbordar la tarjeta.	Verificado en IncidenteCard.test.tsx y en hojas CSS mando.module.css / mision-detalle.module.css.	APROBADO	12/11/2026 11:35	12/11/2026 11:35	fix(mando): evitar recorte vertical de tarjetas kanban y contenedores con flex-shrink 0
 TC-H35-WEB-16	Persistencia en localStorage (sgrai_trazabilidad_notificaciones_v2) entre reaperturas del drawer	Persistencia Local	Store	Alta	Llamada a setTrazabilidadEstado y vincularMisionIncidente seguida de lectura por misión e incidente.	{ misionId: 'mision-001', estado: 'LEIDA', incidenteId: 'inc-001' }	El store retorna el estado persistido y notifica a los suscriptores activos.	Las 3 pruebas unitarias de trazabilidadStore.test.ts aprueban al 100%.	APROBADO	12/11/2026 11:35	12/11/2026 11:35	fix(mando): persistir cache local de trazabilidad entre reaperturas del drawer
 TC-H35-WEB-17	Entrega de manual de usuario institucional conforme a GEMINI.md	Documentación	Repositorio	Alta	Inspección de docs/manuals/H35-monitoreo-notificacion-mision-patrulla.md.	Estructura de roles, objetivo, pasos, errores, relación con API/PWA y cero emojis	Manual completo siguiendo convención H<numero>-<slug>.md dentro del mismo PR.	Archivo presente (89 líneas) con todos los apartados requeridos y sin emojis.	APROBADO	12/11/2026 11:35	12/11/2026 11:35	docs(manuals): agregar manual de usuario para monitoreo de trazabilidad (H35)
-TC-H35-WEB-18	Reconstrucción del último estado de notificación desde BD tras recarga en navegador limpio	Integración / Persistencia	E2E / Contrato	Alta	Sesión limpia (localStorage vacío) consultando GET /api/incidentes y GET /api/incidentes/{id}.	Respuestas JSON de listado y detalle de incidente con misión despachada previamente	El tablero y el drawer hidratan desde servidor el último estado de la notificación (PENDIENTE_ENVIO..LEIDA).	GET /api/incidentes y GET /api/incidentes/{id} en sgrai-api no retornan trazabilidadNotificacion; la UI queda en SIN ACUSE.	FALLIDO	12/11/2026 11:35	(Pendiente)	Pendiente (Rechazado en Code Review)
+TC-H35-WEB-18	Reconstrucción del último estado de notificación desde BD tras recarga en navegador limpio	Integración / Persistencia	E2E / Contrato	Alta	Sesión limpia (localStorage vacío) consultando GET /api/incidentes y GET /api/incidentes/{id}.	Respuestas JSON de listado y detalle de incidente con misión despachada previamente	El tablero y el drawer hidratan desde servidor el último estado de la notificación (PENDIENTE_ENVIO..LEIDA).	En Re-Test: sgrai-api proyecta trazabilidadNotificacion desde notificaciones_mision (2e72aa8, 5b0c9a7) y KanbanColumn / IncidenteDetalleDrawer / MisionesTabla lo hidratan desde el contrato regenerado (ce0fdb8).	APROBADO	12/11/2026 11:35	12/11/2026 12:37	fix(types): regenerar contrato OpenAPI con trazabilidadNotificacion y eliminar extensiones manuales (ce0fdb8)
 ````
 
 ---
@@ -177,57 +160,44 @@ TC-H35-WEB-18	Reconstrucción del último estado de notificación desde BD tras 
 npx vitest run src/components/mando/__tests__/IncidenteMisionesSection.test.tsx \
                src/components/mando/__tests__/IncidenteDetalleDrawer.test.tsx \
                src/components/mando/__tests__/IncidenteCard.test.tsx \
+               src/components/mando/misiones/__tests__/MisionesModal.test.tsx \
                src/hooks/__tests__/useEncargadoKanbanSocket.test.ts \
+               src/hooks/__tests__/useIncidentesKanban.test.ts \
                src/lib/socket/__tests__/trazabilidadStore.test.ts
 ```
-*Resultado observado (`12/11/2026 11:33`):*
+*Resultado observado en Re-Test (`12/11/2026 12:37`):*
 ```text
- ✓ src/lib/socket/__tests__/trazabilidadStore.test.ts (3 tests) 5ms
- ✓ src/hooks/__tests__/useEncargadoKanbanSocket.test.ts (5 tests) 35ms
- ✓ src/components/mando/__tests__/IncidenteCard.test.tsx (9 tests) 235ms
- ✓ src/components/mando/__tests__/IncidenteMisionesSection.test.tsx (12 tests) 309ms
- ✓ src/components/mando/__tests__/IncidenteDetalleDrawer.test.tsx (7 tests) 430ms
+ ✓ src/lib/socket/__tests__/trazabilidadStore.test.ts (5 tests) 7ms
+ ✓ src/hooks/__tests__/useEncargadoKanbanSocket.test.ts (6 tests) 44ms
+ ✓ src/hooks/__tests__/useIncidentesKanban.test.ts (2 tests) 131ms
+ ✓ src/components/mando/__tests__/IncidenteCard.test.tsx (9 tests) 282ms
+ ✓ src/components/mando/__tests__/IncidenteMisionesSection.test.tsx (12 tests) 361ms
+ ✓ src/components/mando/misiones/__tests__/MisionesModal.test.tsx (3 tests) 325ms
+ ✓ src/components/mando/__tests__/IncidenteDetalleDrawer.test.tsx (10 tests) 486ms
 
- Test Files  5 passed (5)
-      Tests  36 passed (36)
+ Test Files  7 passed (7)
+      Tests  47 passed (47)
 ```
 
-### 5.2. Ejecución Filtrada por Palabra Clave (`-t "trazabilidad"`)
-```bash
-npm test -- -t "trazabilidad"
-```
-*Resultado observado (`12/11/2026 11:34`):*
-```text
- Test Files  5 passed | 119 skipped (124)
-      Tests  13 passed | 791 skipped (804)
-```
-
-### 5.3. Ejecución de la Suite Completa, Tipos, ESLint y Build de Producción
+### 5.2. Ejecución de la Suite Completa, Tipos, ESLint y Build de Producción
 ```bash
 npx tsc --noEmit
 npm test
 npm run lint
 npx next build --webpack
 ```
-*Resultados observados sobre el estado de código evaluado (`af14057`, revalidados el `12/11/2026 11:38` para tipos/tests/lint; build verificado previamente sobre `af14057`):*
+*Resultados observados en Re-Test tras el último cambio de código (`ce0fdb8` en `sgrai-web`, `5b0c9a7` en `sgrai-api`):*
 ```text
-npx tsc --noEmit      -> 0 errores
-npm test              -> Test Files  124 passed (124) | Tests  804 passed (804)
-npm run lint          -> 0 errors (11 warnings previos en módulos ajenos a HU-35)
+npx tsc --noEmit         -> 0 errores
+npm test                 -> Test Files  124 passed (124) | Tests  812 passed (812)
+npm run lint             -> 0 errors (11 warnings previos en módulos ajenos a HU-35)
 npx next build --webpack -> Compiled successfully | 47/47 rutas generadas
 ```
 
-### 5.4. Verificación de Contrato HTTP/cURL frente a `sgrai-api`
-Al intentar sondear el servicio local de backend para validar en vivo las respuestas de `POST /api/misiones` y `GET /api/incidentes/{id}`:
-```bash
-curl -s -o /dev/null -w "http_code:%{http_code}\n" http://localhost:3001/api/health || echo "api_offline"
-```
-*Resultado observado (`12/11/2026 11:34`):*
-```text
-http_code:000
-api_offline
-```
-Para replicar la verificación de contrato en vivo una vez levantado `sgrai-api` con un token o usuario Encargado (`x-user-id`) y una patrulla verificadora en estado `DISPONIBLE`:
+### 5.3. Sincronización OpenAPI y Verificación de Contrato frente a `sgrai-api`
+Durante el Re-Test se ejecutó `npm run generate-api-types` contra `http://localhost:3001/openapi.json`, regenerando `src/types/api-generated.d.ts` con `trazabilidadNotificacion` en `IncidenteResumen`, `MisionDetalle`, `MisionItem` y `MisionDetalleCompleto`, además de `notificacion` en `POST /api/misiones`.
+
+Para replicar la verificación HTTP de contrato en vivo frente a `sgrai-api` con un usuario Encargado (`x-user-id`) y una patrulla verificadora en estado `DISPONIBLE`:
 
 1. **Despacho de patrulla (`POST /api/misiones`) verificando inclusión de `data.notificacion`:**
    ```bash
@@ -240,14 +210,13 @@ Para replicar la verificación de contrato en vivo una vez levantado `sgrai-api`
        "tipoMision": "VERIFICACION"
      }'
    ```
-   *(Contrato observado en `sgrai-api/src/modules/misiones/mision.service.ts`: retorna `data.notificacion` con `estado` en `'PENDIENTE_ENVIO'` o `'ENVIADA'` según conectividad de la sala `patrulla:{id}`).*
 
 2. **Consulta de detalle de incidente (`GET /api/incidentes/{id}`) para validar `TC-H35-WEB-18`:**
    ```bash
    curl -s -X GET "http://localhost:3001/api/incidentes/<UUID_INCIDENTE>" \
      -H "x-user-id: 00000000-0000-4000-8000-000000000003"
    ```
-   *(Brecha detectada en `BUG-H35-WEB-06`: actualmente `sgrai-api/src/modules/incidentes/incidente-kanban.repository.ts` no proyecta `trazabilidadNotificacion` en el arreglo `misiones`).*
+   *(Validado mediante pruebas unitarias de proyección en `sgrai-api`: `incidente-kanban.service.test.ts` y `mision-listado.test.ts`).*
 
 3. **Emisión de acuse de lectura (`PATCH /api/terreno/notificaciones/{id}/estado`):**
    ```bash
@@ -263,9 +232,9 @@ Para replicar la verificación de contrato en vivo una vez levantado `sgrai-api`
 
 | Criterio de Aceptación | Caso(s) de Prueba Asociados | Resultado en QA |
 | :--- | :--- | :--- |
-| **CA-1 (Monitoreo Web):** Visualización reactiva en tiempo real del ciclo de entrega y lectura (`PENDIENTE_ENVIO`, `ENVIADA`, `RECIBIDA`, `LEIDA`) tanto en el drawer como en las tarjetas Kanban. | `TC-H35-WEB-07`, `TC-H35-WEB-13`, `TC-H35-WEB-14`, `BUG-H35-WEB-04` | **RECHAZADO** (`BUG-H35-WEB-04`: contaminación cruzada entre incidentes cuando el drawer está abierto) |
-| **CA-2 (Idempotencia / No Retroceso):** Garantizar que las confirmaciones de estado en la Central no retrocedan ante eventos repetidos o fuera de orden (`LEIDA` no debe degradarse a `RECIBIDA`/`ENVIADA`). | `BUG-H35-WEB-05` | **RECHAZADO** (`BUG-H35-WEB-05`: falta guarda monotónica en `trazabilidadStore.ts` y drawer) |
-| **CA-3 (Contrato y Persistencia):** Contratos sincronizados automáticamente vía OpenAPI (`api-generated.d.ts`) y reconstrucción de estados tras recargar en sesión limpia. | `TC-H35-WEB-16`, `TC-H35-WEB-18`, `BUG-H35-WEB-06` | **RECHAZADO** (`BUG-H35-WEB-06` y `TC-H35-WEB-18`) |
+| **CA-1 (Monitoreo Web):** Visualización reactiva en tiempo real del ciclo de entrega y lectura (`PENDIENTE_ENVIO`, `ENVIADA`, `RECIBIDA`, `LEIDA`) tanto en el drawer como en las tarjetas Kanban. | `TC-H35-WEB-07`, `TC-H35-WEB-13`, `TC-H35-WEB-14`, `BUG-H35-WEB-04` | **APROBADO** (`BUG-H35-WEB-04` cerrado en `5110221` / `9448a43`) |
+| **CA-2 (Idempotencia / No Retroceso):** Garantizar que las confirmaciones de estado en la Central no retrocedan ante eventos repetidos o fuera de orden (`LEIDA` no debe degradarse a `RECIBIDA`/`ENVIADA`). | `BUG-H35-WEB-05`, `BUG-H35-WEB-07` | **APROBADO** (`BUG-H35-WEB-05` y `BUG-H35-WEB-07` cerrados en `5110221` / `9448a43`) |
+| **CA-3 (Contrato y Persistencia):** Contratos sincronizados automáticamente vía OpenAPI (`api-generated.d.ts`) y reconstrucción de estados tras recargar en sesión limpia. | `TC-H35-WEB-16`, `TC-H35-WEB-18`, `BUG-H35-WEB-06` | **APROBADO** (`BUG-H35-WEB-06` y `TC-H35-WEB-18` cerrados entre `sgrai-api` y `sgrai-web`) |
 | **CA-4 (Guía Visual y Documentación):** Diseño plano institucional (`borderRadius: 0`), uso exclusivo de `lucide-react` sin emojis, contención sin desbordes y manual en `docs/manuals/`. | `TC-H35-WEB-12`, `TC-H35-WEB-14`, `TC-H35-WEB-15`, `TC-H35-WEB-17` | **APROBADO** |
 
 > *Nota de alcance entre repositorios:* los criterios relativos a suscripción de `patrulla:{id}`, Web Notification API, audio/vibración, Service Worker, IndexedDB y endpoint RBAC `misiones:terreno:verificar` corresponden a `sgrai-pwa` y `sgrai-api` y son auditados en sus respectivos repositorios.
@@ -274,9 +243,9 @@ Para replicar la verificación de contrato en vivo una vez levantado `sgrai-api`
 
 ## 7. Veredicto de Auditoría QA
 
-- **Estado Actual:** `RECHAZADO — NO APTO PARA MERGE A DEVELOP (4 DEFECTOS ABIERTOS)`.
-- **Bloqueantes obligatorios para aprobación en próximo Re-Test:**
-  1. Resolver la contaminación cruzada de caché en `IncidenteDetalleDrawer.tsx` (`BUG-H35-WEB-04`).
-  2. Implementar validación monotónica e idempotente de transiciones de estado en `trazabilidadStore.ts` y `IncidenteDetalleDrawer.tsx` (`BUG-H35-WEB-05`).
-  3. Regenerar `src/types/api-generated.d.ts` y resolver la persistencia de trazabilidad desde `GET /api/incidentes` / `GET /api/incidentes/{id}` en coordinación con `sgrai-api` (`BUG-H35-WEB-06`).
-  4. Agregar validación de payload WebSocket en `useEncargadoKanbanSocket.ts` y pruebas unitarias de regresión para `MisionesTabla`, `useIncidentesKanban` y los casos de los defectos abiertos (`BUG-H35-WEB-07`).
+- **Estado Actual:** `APROBADO EN RE-TEST — APTO PARA MERGE A DEVELOP`.
+- **Resumen de Cierre:**
+  1. Aislamiento estricto por incidente en `IncidenteDetalleDrawer.tsx` (`BUG-H35-WEB-04`, commit `5110221`).
+  2. Guardas monotónicas e idempotentes en `trazabilidadStore.ts` y `IncidenteDetalleDrawer.tsx` (`BUG-H35-WEB-05`, commit `5110221`).
+  3. Proyección de `trazabilidadNotificacion` y registro OpenAPI en `sgrai-api` (`2e72aa8`, `90fd047`, `5b0c9a7`) con regeneración de `src/types/api-generated.d.ts` sin extensiones manuales (`BUG-H35-WEB-06`, commit `ce0fdb8`).
+  4. Validación defensiva de payload WebSocket en `useEncargadoKanbanSocket.ts` y cobertura de regresión completada (`BUG-H35-WEB-07`, commits `5110221` y `9448a43`).

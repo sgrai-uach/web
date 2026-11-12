@@ -85,5 +85,5 @@ El sistema representa el avance de entrega y lectura de la orden táctica median
 
 ## 5. Relación con Otros Repositorios del Sistema
 
-- **`sgrai-api`:** Emite y persiste la notificación al crear misiones (`POST /api/misiones`), procesa los acuses recibidos mediante el evento `notificacion:ack` y distribuye las actualizaciones de estado por Socket.io mediante `notificacion:trazabilidad_actualizada` hacia la sala de la misión (`mision:{misionId}`) y hacia los encargados en el Centro de Mando.
+- **`sgrai-api`:** Emite y persiste la notificación al crear misiones (`POST /api/misiones`), procesa los acuses recibidos mediante el evento `notificacion:ack`, distribuye las actualizaciones de estado por Socket.io mediante `notificacion:trazabilidad_actualizada` hacia la sala de la misión (`mision:{misionId}`) y hacia los encargados en el Centro de Mando, y proyecta el último estado persistido (`trazabilidadNotificacion`) en `GET /api/incidentes`, `GET /api/incidentes/{id}`, `GET /api/misiones` y `GET /api/misiones/{id}` para conservar el estado tras recargar el navegador.
 - **`sgrai-pwa`:** Aplicación móvil en terreno operada por la patrulla verificadora. Envía automáticamente el acuse técnico **`RECIBIDA`** al recepcionar la notificación push/socket y emite el acuse operativo **`LEIDA`** cuando el operador presiona **"Ver Misión"** en su dispositivo.
