@@ -9,6 +9,8 @@ import type { MisionDetalleCompleto } from '@/types/misiones';
 import {
   clearTrazabilidadCache,
   getIncidentePorMision,
+  getTrazabilidadEstado,
+  getTrazabilidadPorIncidente,
   setTrazabilidadEstado,
 } from '@/lib/socket/trazabilidadStore';
 
@@ -48,6 +50,7 @@ describe('Componente IncidenteDetalleDrawer e integración HU-17', () => {
     vi.clearAllMocks();
     clearTrazabilidadCache();
     socketListeners = {};
+    mockSocket.connected = true;
   });
 
   const mockDetalleIncidente: IncidenteDetalle = {
@@ -401,5 +404,149 @@ describe('Componente IncidenteDetalleDrawer e integración HU-17', () => {
       const resumenActualizado = screen.getByTestId('drawer-trazabilidad-resumen');
       expect(resumenActualizado.textContent).toContain('LEÍDA: Leída por operador en terreno');
     });
+  });
+
+  it('BUG-H35-WEB-04: ignora eventos de misiones ajenas sin contaminar el caché del incidente abierto', async () => {
+    vi.spyOn(incidentesService, 'obtenerDetalleIncidente').mockResolvedValueOnce({
+      exito: true,
+      datos: mockDetalleIncidente,
+      mensaje: 'OK',
+    });
+
+    render(
+      <IncidenteDetalleDrawer
+        incidenteId={mockDetalleIncidente.id}
+        userId="user-test"
+        onCerrar={vi.fn()}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('INC-2026-0042')).toBeDefined();
+    });
+
+    act(() => {
+      const handler = socketListeners['notificacion:trazabilidad_actualizada']?.[0];
+      handler?.({
+        notificacionId: 'notif-ajena',
+        misionId: 'mision-de-otro-incidente-B',
+        patrullaId: 'pat-99',
+        estado: 'LEIDA',
+      });
+    });
+
+    expect(getIncidentePorMision('mision-de-otro-incidente-B')).toBeUndefined();
+    expect(getTrazabilidadEstado('mision-de-otro-incidente-B')).toBeUndefined();
+    expect(getTrazabilidadPorIncidente(mockDetalleIncidente.id)).toBeUndefined();
+    expect(
+      screen.queryByTestId('badge-trazabilidad-m1000000-0000-4000-8000-000000000001')
+    ).toBeNull();
+  });
+
+  it('BUG-H35-WEB-05: impide retroceso visual si llega un evento RECIBIDA o ENVIADA tras LEIDA', async () => {
+    const detalleLeida: IncidenteDetalle = {
+      ...mockDetalleIncidente,
+      estado: 'VERIFICANDO',
+      misiones: [
+        {
+          ...mockDetalleIncidente.misiones[0],
+          id: 'm-pat-leida',
+          codigo: 'MIS-2026-0111',
+          tipoMision: 'VERIFICACION',
+          estado: 'DESPACHADA',
+          cuadrilla: null,
+          patrulla: {
+            id: 'pat-11',
+            nombre: 'Patrulla Sur',
+            estado: 'EN_VERIFICACION',
+          },
+          trazabilidadNotificacion: 'LEIDA',
+        },
+      ],
+    };
+
+    vi.spyOn(incidentesService, 'obtenerDetalleIncidente').mockResolvedValueOnce({
+      exito: true,
+      datos: detalleLeida,
+      mensaje: 'OK',
+    });
+
+    render(
+      <IncidenteDetalleDrawer
+        incidenteId={mockDetalleIncidente.id}
+        userId="user-test"
+        onCerrar={vi.fn()}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('badge-trazabilidad-m-pat-leida').textContent).toBe(
+        'Leída por operador en terreno'
+      );
+    });
+
+    act(() => {
+      const handler = socketListeners['notificacion:trazabilidad_actualizada']?.[0];
+      handler?.({
+        notificacionId: 'notif-tardia',
+        misionId: 'm-pat-leida',
+        patrullaId: 'pat-11',
+        estado: 'RECIBIDA',
+      });
+      handler?.({
+        notificacionId: 'notif-tardia',
+        misionId: 'm-pat-leida',
+        patrullaId: 'pat-11',
+        estado: 'ENVIADA',
+      });
+    });
+
+    expect(screen.getByTestId('badge-trazabilidad-m-pat-leida').textContent).toBe(
+      'Leída por operador en terreno'
+    );
+    expect(screen.getByTestId('drawer-trazabilidad-resumen').textContent).toContain(
+      'LEÍDA: Leída por operador en terreno'
+    );
+  });
+
+  it('BUG-H35-WEB-07: asegura conexión del socket y suscripción a sala:encargados en montaje aislado sin emitir salir al cerrar', async () => {
+    mockSocket.connected = false;
+    vi.spyOn(incidentesService, 'obtenerDetalleIncidente').mockResolvedValueOnce({
+      exito: true,
+      datos: mockDetalleIncidente,
+      mensaje: 'OK',
+    });
+
+    const { unmount } = render(
+      <IncidenteDetalleDrawer
+        incidenteId={mockDetalleIncidente.id}
+        userId="user-test"
+        onCerrar={vi.fn()}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('INC-2026-0042')).toBeDefined();
+    });
+
+    expect(mockSocket.connect).toHaveBeenCalledTimes(1);
+    expect(mockSocket.on).toHaveBeenCalledWith('connect', expect.any(Function));
+
+    act(() => {
+      mockSocket.connected = true;
+      socketListeners['connect']?.forEach((cb) => cb());
+    });
+
+    expect(mockSocket.emit).toHaveBeenCalledWith('join', 'encargado');
+    expect(mockSocket.emit).toHaveBeenCalledWith('unirse', 'sala:encargados');
+
+    unmount();
+
+    expect(mockSocket.off).toHaveBeenCalledWith('connect', expect.any(Function));
+    expect(mockSocket.off).toHaveBeenCalledWith(
+      'notificacion:trazabilidad_actualizada',
+      expect.any(Function)
+    );
+    expect(mockSocket.emit).not.toHaveBeenCalledWith('salir', 'sala:encargados');
   });
 });

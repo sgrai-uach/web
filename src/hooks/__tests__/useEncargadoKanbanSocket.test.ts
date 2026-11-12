@@ -196,4 +196,30 @@ describe('useEncargadoKanbanSocket', () => {
     expect(socket.emit).toHaveBeenCalledWith('leave', 'mapa');
     expect(socket.emit).toHaveBeenCalledWith('salir', 'mapa');
   });
+
+  it('BUG-H35-WEB-07: ignora payloads malformados o con estado inválido en notificacion:trazabilidad_actualizada', () => {
+    const socket = getSocket();
+    const onNotificacionTrazabilidadActualizada = vi.fn();
+
+    const { result } = renderHook(() =>
+      useEncargadoKanbanSocket({
+        onNotificacionTrazabilidadActualizada,
+      })
+    );
+
+    const trigger = (socket as unknown as { _trigger: (ev: string, p: unknown) => void })._trigger;
+
+    act(() => {
+      trigger('notificacion:trazabilidad_actualizada', null);
+      trigger('notificacion:trazabilidad_actualizada', { misionId: '', estado: 'RECIBIDA' });
+      trigger('notificacion:trazabilidad_actualizada', {
+        misionId: 'mis-invalido',
+        estado: 'OTRO_ESTADO',
+      });
+    });
+
+    expect(onNotificacionTrazabilidadActualizada).not.toHaveBeenCalled();
+    expect(result.current.ultimoEvento).toBeNull();
+    expect(getTrazabilidadEstado('mis-invalido')).toBeUndefined();
+  });
 });
