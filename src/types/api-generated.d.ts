@@ -3896,6 +3896,224 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/eventos-atp": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Crear Evento de Alerta Temprana Preventiva (ATP)
+         * @description Registra el marco oficial de un Evento ATP, persiste su alcance territorial en evento_atp_delegacion dentro de una sola transacción PostgreSQL y emite el evento WebSocket evento_atp:creado a las salas administrativas, operativas y del mapa. Requiere rol Administrador o el permiso eventos_atp:crear.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Datos requeridos para crear el Evento ATP */
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /**
+                         * @description Código identificador único. Si se omite, se genera automáticamente con formato ATP-YYYY-####
+                         * @example ATP-2026-0001
+                         */
+                        codigo?: string;
+                        /**
+                         * @description Nombre descriptivo del fenómeno o evento
+                         * @example Sistema Frontal Mayo 2026
+                         */
+                        nombre: string;
+                        /**
+                         * @description Descripción detallada del fenómeno y su impacto esperado
+                         * @example Sistema frontal con precipitaciones intensas y vientos moderados a fuertes durante 48 horas.
+                         */
+                        descripcion: string;
+                        /**
+                         * @description Clasificación principal de la amenaza
+                         * @example METEOROLOGICA
+                         * @enum {string}
+                         */
+                        tipoAmenaza: "METEOROLOGICA" | "MAREJADAS" | "REMOCION_EN_MASA" | "INUNDACION" | "INCENDIO_FORESTAL" | "SISMICA" | "OTRO";
+                        /**
+                         * @description Nivel oficial de alerta comunal
+                         * @example AMARILLA
+                         * @enum {string}
+                         */
+                        nivelAlerta: "VERDE" | "AMARILLA" | "ROJA";
+                        /**
+                         * Format: date-time
+                         * @description Fecha y hora de inicio del evento
+                         * @example 2026-05-01T10:00
+                         */
+                        fechaInicio: string;
+                        /**
+                         * Format: date-time
+                         * @description Fecha y hora estimada de término del evento
+                         * @example 2026-05-03T18:00
+                         */
+                        fechaTermino: string;
+                        /**
+                         * @description Delegaciones municipales afectadas. Arreglo vacío u omitido representa alcance comunal centralizado
+                         * @default []
+                         * @example [
+                         *       "30000000-0000-4000-8000-000000000001"
+                         *     ]
+                         */
+                        delegacionIds?: string[];
+                    };
+                };
+            };
+            responses: {
+                /** @description Evento ATP creado exitosamente */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example Evento ATP registrado exitosamente. */
+                            message: string;
+                            data: {
+                                /**
+                                 * Format: uuid
+                                 * @description Identificador único del Evento ATP
+                                 * @example 50000000-0000-4000-8000-000000000001
+                                 */
+                                id: string;
+                                /**
+                                 * @description Código único del Evento ATP
+                                 * @example ATP-2026-0001
+                                 */
+                                codigo: string;
+                                /**
+                                 * @description Nombre del evento
+                                 * @example Sistema Frontal Mayo 2026
+                                 */
+                                nombre: string;
+                                /** @description Descripción detallada del evento */
+                                descripcion: string;
+                                /**
+                                 * @description Tipo de amenaza del evento
+                                 * @example METEOROLOGICA
+                                 * @enum {string}
+                                 */
+                                tipoAmenaza: "METEOROLOGICA" | "MAREJADAS" | "REMOCION_EN_MASA" | "INUNDACION" | "INCENDIO_FORESTAL" | "SISMICA" | "OTRO";
+                                /**
+                                 * @description Nivel de alerta comunal
+                                 * @example AMARILLA
+                                 * @enum {string}
+                                 */
+                                nivelAlerta: "VERDE" | "AMARILLA" | "ROJA";
+                                /**
+                                 * Format: date-time
+                                 * @description Fecha y hora de inicio en formato ISO-8601
+                                 * @example 2026-05-01T10:00:00.000Z
+                                 */
+                                fechaInicio: string;
+                                /**
+                                 * Format: date-time
+                                 * @description Fecha y hora de término estimada en formato ISO-8601
+                                 * @example 2026-05-03T18:00:00.000Z
+                                 */
+                                fechaTermino: string;
+                                /**
+                                 * @description Estado actual del Evento ATP
+                                 * @example ACTIVO
+                                 * @enum {string}
+                                 */
+                                estado: "ACTIVO" | "CERRADO" | "CANCELADO";
+                                /** @description Delegaciones municipales afectadas. Arreglo vacío indica alcance comunal centralizado */
+                                delegaciones: {
+                                    /**
+                                     * Format: uuid
+                                     * @description Identificador único de la delegación municipal
+                                     * @example 30000000-0000-4000-8000-000000000001
+                                     */
+                                    id: string;
+                                    /**
+                                     * @description Código institucional de la delegación
+                                     * @example DEL_NORTE
+                                     */
+                                    codigo: string;
+                                    /**
+                                     * @description Nombre legible de la delegación
+                                     * @example Delegación Municipal Norte
+                                     */
+                                    nombre: string;
+                                }[];
+                                /**
+                                 * Format: uuid
+                                 * @description Identificador del usuario que registró el evento
+                                 * @example 00000000-0000-4000-8000-000000000001
+                                 */
+                                creadoPorId: string | null;
+                                /**
+                                 * Format: date-time
+                                 * @description Fecha y hora de creación en formato ISO-8601
+                                 * @example 2026-05-01T09:55:00.000Z
+                                 */
+                                creadoEn: string;
+                                /**
+                                 * Format: date-time
+                                 * @description Fecha y hora de última actualización en formato ISO-8601
+                                 * @example 2026-05-01T09:55:00.000Z
+                                 */
+                                actualizadoEn: string;
+                            };
+                        };
+                    };
+                };
+                /** @description Datos inválidos, fechas inconsistentes o delegaciones inexistentes */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description No autenticado. Se requiere cabecera Authorization válida */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Acceso denegado. Se requiere rol Administrador o permiso eventos_atp:crear */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Conflicto por código de Evento ATP duplicado */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Error interno del servidor al procesar la solicitud */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+
     "/api/puntos-criticos": {
         parameters: {
             query?: never;
@@ -9172,6 +9390,233 @@ export interface components {
              * @example Valdivia2026!
              */
             confirmacionPassword: string;
+        };
+        CrearEventoAtpInput: {
+            /**
+             * @description Código identificador único. Si se omite, se genera automáticamente con formato ATP-YYYY-####
+             * @example ATP-2026-0001
+             */
+            codigo?: string;
+            /**
+             * @description Nombre descriptivo del fenómeno o evento
+             * @example Sistema Frontal Mayo 2026
+             */
+            nombre: string;
+            /**
+             * @description Descripción detallada del fenómeno y su impacto esperado
+             * @example Sistema frontal con precipitaciones intensas y vientos moderados a fuertes durante 48 horas.
+             */
+            descripcion: string;
+            /**
+             * @description Clasificación principal de la amenaza
+             * @example METEOROLOGICA
+             * @enum {string}
+             */
+            tipoAmenaza: "METEOROLOGICA" | "MAREJADAS" | "REMOCION_EN_MASA" | "INUNDACION" | "INCENDIO_FORESTAL" | "SISMICA" | "OTRO";
+            /**
+             * @description Nivel oficial de alerta comunal
+             * @example AMARILLA
+             * @enum {string}
+             */
+            nivelAlerta: "VERDE" | "AMARILLA" | "ROJA";
+            /**
+             * Format: date-time
+             * @description Fecha y hora de inicio del evento
+             * @example 2026-05-01T10:00
+             */
+            fechaInicio: string;
+            /**
+             * Format: date-time
+             * @description Fecha y hora estimada de término del evento
+             * @example 2026-05-03T18:00
+             */
+            fechaTermino: string;
+            /**
+             * @description Delegaciones municipales afectadas. Arreglo vacío u omitido representa alcance comunal centralizado
+             * @default []
+             * @example [
+             *       "30000000-0000-4000-8000-000000000001"
+             *     ]
+             */
+            delegacionIds: string[];
+        };
+        EventoAtpResponse: {
+            /**
+             * Format: uuid
+             * @description Identificador único del Evento ATP
+             * @example 50000000-0000-4000-8000-000000000001
+             */
+            id: string;
+            /**
+             * @description Código único del Evento ATP
+             * @example ATP-2026-0001
+             */
+            codigo: string;
+            /**
+             * @description Nombre del evento
+             * @example Sistema Frontal Mayo 2026
+             */
+            nombre: string;
+            /** @description Descripción detallada del evento */
+            descripcion: string;
+            /**
+             * @description Tipo de amenaza del evento
+             * @example METEOROLOGICA
+             * @enum {string}
+             */
+            tipoAmenaza: "METEOROLOGICA" | "MAREJADAS" | "REMOCION_EN_MASA" | "INUNDACION" | "INCENDIO_FORESTAL" | "SISMICA" | "OTRO";
+            /**
+             * @description Nivel de alerta comunal
+             * @example AMARILLA
+             * @enum {string}
+             */
+            nivelAlerta: "VERDE" | "AMARILLA" | "ROJA";
+            /**
+             * Format: date-time
+             * @description Fecha y hora de inicio en formato ISO-8601
+             * @example 2026-05-01T10:00:00.000Z
+             */
+            fechaInicio: string;
+            /**
+             * Format: date-time
+             * @description Fecha y hora de término estimada en formato ISO-8601
+             * @example 2026-05-03T18:00:00.000Z
+             */
+            fechaTermino: string;
+            /**
+             * @description Estado actual del Evento ATP
+             * @example ACTIVO
+             * @enum {string}
+             */
+            estado: "ACTIVO" | "CERRADO" | "CANCELADO";
+            /** @description Delegaciones municipales afectadas. Arreglo vacío indica alcance comunal centralizado */
+            delegaciones: {
+                /**
+                 * Format: uuid
+                 * @description Identificador único de la delegación municipal
+                 * @example 30000000-0000-4000-8000-000000000001
+                 */
+                id: string;
+                /**
+                 * @description Código institucional de la delegación
+                 * @example DEL_NORTE
+                 */
+                codigo: string;
+                /**
+                 * @description Nombre legible de la delegación
+                 * @example Delegación Municipal Norte
+                 */
+                nombre: string;
+            }[];
+            /**
+             * Format: uuid
+             * @description Identificador del usuario que registró el evento
+             * @example 00000000-0000-4000-8000-000000000001
+             */
+            creadoPorId: string | null;
+            /**
+             * Format: date-time
+             * @description Fecha y hora de creación en formato ISO-8601
+             * @example 2026-05-01T09:55:00.000Z
+             */
+            creadoEn: string;
+            /**
+             * Format: date-time
+             * @description Fecha y hora de última actualización en formato ISO-8601
+             * @example 2026-05-01T09:55:00.000Z
+             */
+            actualizadoEn: string;
+        };
+        CrearEventoAtpResponse: {
+            /** @example Evento ATP registrado exitosamente. */
+            message: string;
+            data: {
+                /**
+                 * Format: uuid
+                 * @description Identificador único del Evento ATP
+                 * @example 50000000-0000-4000-8000-000000000001
+                 */
+                id: string;
+                /**
+                 * @description Código único del Evento ATP
+                 * @example ATP-2026-0001
+                 */
+                codigo: string;
+                /**
+                 * @description Nombre del evento
+                 * @example Sistema Frontal Mayo 2026
+                 */
+                nombre: string;
+                /** @description Descripción detallada del evento */
+                descripcion: string;
+                /**
+                 * @description Tipo de amenaza del evento
+                 * @example METEOROLOGICA
+                 * @enum {string}
+                 */
+                tipoAmenaza: "METEOROLOGICA" | "MAREJADAS" | "REMOCION_EN_MASA" | "INUNDACION" | "INCENDIO_FORESTAL" | "SISMICA" | "OTRO";
+                /**
+                 * @description Nivel de alerta comunal
+                 * @example AMARILLA
+                 * @enum {string}
+                 */
+                nivelAlerta: "VERDE" | "AMARILLA" | "ROJA";
+                /**
+                 * Format: date-time
+                 * @description Fecha y hora de inicio en formato ISO-8601
+                 * @example 2026-05-01T10:00:00.000Z
+                 */
+                fechaInicio: string;
+                /**
+                 * Format: date-time
+                 * @description Fecha y hora de término estimada en formato ISO-8601
+                 * @example 2026-05-03T18:00:00.000Z
+                 */
+                fechaTermino: string;
+                /**
+                 * @description Estado actual del Evento ATP
+                 * @example ACTIVO
+                 * @enum {string}
+                 */
+                estado: "ACTIVO" | "CERRADO" | "CANCELADO";
+                /** @description Delegaciones municipales afectadas. Arreglo vacío indica alcance comunal centralizado */
+                delegaciones: {
+                    /**
+                     * Format: uuid
+                     * @description Identificador único de la delegación municipal
+                     * @example 30000000-0000-4000-8000-000000000001
+                     */
+                    id: string;
+                    /**
+                     * @description Código institucional de la delegación
+                     * @example DEL_NORTE
+                     */
+                    codigo: string;
+                    /**
+                     * @description Nombre legible de la delegación
+                     * @example Delegación Municipal Norte
+                     */
+                    nombre: string;
+                }[];
+                /**
+                 * Format: uuid
+                 * @description Identificador del usuario que registró el evento
+                 * @example 00000000-0000-4000-8000-000000000001
+                 */
+                creadoPorId: string | null;
+                /**
+                 * Format: date-time
+                 * @description Fecha y hora de creación en formato ISO-8601
+                 * @example 2026-05-01T09:55:00.000Z
+                 */
+                creadoEn: string;
+                /**
+                 * Format: date-time
+                 * @description Fecha y hora de última actualización en formato ISO-8601
+                 * @example 2026-05-01T09:55:00.000Z
+                 */
+                actualizadoEn: string;
+            };
         };
     };
     responses: never;
