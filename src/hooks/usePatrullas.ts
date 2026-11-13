@@ -98,12 +98,23 @@ export function usePatrullas({
   }, [filtros]);
 
   const consultarRef = useRef(consultar);
+  const eventosProcesadosRef = useRef<Map<string, number>>(new Map());
   useEffect(() => {
     consultarRef.current = consultar;
   }, [consultar]);
 
   useEffect(() => {
     if (!enabled) return;
+
+    const esEventoDuplicado = (clave: string, ventanaMs = 4000): boolean => {
+      const ahora = Date.now();
+      const ultimoProc = eventosProcesadosRef.current.get(clave);
+      if (ultimoProc && ahora - ultimoProc < ventanaMs) {
+        return true;
+      }
+      eventosProcesadosRef.current.set(clave, ahora);
+      return false;
+    };
 
     const socket = getSocket();
 
@@ -133,6 +144,9 @@ export function usePatrullas({
 
     const handlePatrullaActualizada = (payload: PatrullaActualizadaSocketPayload) => {
       if (!payload?.patrullaId) return;
+      if (esEventoDuplicado(`patrulla-act:${payload.patrullaId}:${payload.estado}:${payload.misionActivaId || ''}`)) {
+        return;
+      }
 
       const nombre = payload.nombre || 'Patrulla';
       const nuevoEstado: EstadoPatrullaEnum = payload.estado;
@@ -172,6 +186,9 @@ export function usePatrullas({
 
     const handleMisionAsignada = (payload: MisionAsignadaSocketPayload) => {
       if (!payload?.patrullaId) return;
+      if (esEventoDuplicado(`mision-asig:${payload.patrullaId}:${payload.misionId}`)) {
+        return;
+      }
 
       setUltimoEvento(`Misión ${payload.codigo || ''} asignada a patrulla`);
 
@@ -207,6 +224,9 @@ export function usePatrullas({
 
     const handlePatrullaCreada = (payload: PatrullaCreadaSocketPayload) => {
       if (!payload?.patrullaId) return;
+      if (esEventoDuplicado(`patrulla-creada:${payload.patrullaId}`)) {
+        return;
+      }
       const nombre = payload.nombre || payload.codigo || 'Nueva Patrulla';
       setUltimoEvento(`Nueva patrulla incorporada: ${nombre} (${payload.estado || 'DISPONIBLE'})`);
       consultarRef.current(filtrosRef.current);
@@ -214,6 +234,9 @@ export function usePatrullas({
 
     const handlePatrullaDesactivada = (payload: PatrullaDesactivadaSocketPayload) => {
       if (!payload?.patrullaId) return;
+      if (esEventoDuplicado(`patrulla-desact:${payload.patrullaId}`)) {
+        return;
+      }
       const nombre = payload.nombre || 'Patrulla';
       setUltimoEvento(`Patrulla dada de baja: ${nombre}`);
       setPatrullas((prev) => {

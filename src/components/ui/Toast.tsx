@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useCallback, useContext, useState } from 'react';
+import React, { createContext, useCallback, useContext, useRef, useState } from 'react';
 import ToastItem from './ToastItem';
 
 export type ToastType = 'success' | 'error' | 'warning' | 'info';
@@ -30,6 +30,8 @@ export interface ToastOptions {
   priorityBadge?: string;
   details?: ToastDetailItem[];
   action?: ToastAction;
+  /** Clave opcional para evitar toasts duplicados en una ventana de tiempo */
+  dedupKey?: string;
 }
 
 export interface ToastMessage extends ToastOptions {
@@ -64,16 +66,32 @@ export function useOptionalToast(): ToastContextValue | null {
 
 export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
+  const recentToastsRef = useRef<Map<string, number>>(new Map());
 
   const removeToast = useCallback((id: string) => {
     setToasts((prev) => prev.filter((t) => t.id !== id));
   }, []);
 
   const showToast = useCallback(
-    ({ type, title, message, durationMs = 6000, ...rest }: Omit<ToastMessage, 'id'>) => {
-      const id = `${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
-      const newToast: ToastMessage = { id, type, title, message, durationMs, ...rest };
-      setToasts((prev) => [...prev, newToast]);
+    ({ type, title, message, durationMs = 6000, dedupKey, ...rest }: Omit<ToastMessage, 'id'>) => {
+      const fingerprint = dedupKey || `${type}|${title || ''}|${rest.codeBadge || ''}|${message}`;
+      const ahora = Date.now();
+      const ultimaVez = recentToastsRef.current.get(fingerprint);
+      if (ultimaVez && ahora - ultimaVez < 3000) {
+        return;
+      }
+      recentToastsRef.current.set(fingerprint, ahora);
+
+      const id = `${ahora}-${Math.random().toString(36).substring(2, 7)}`;
+      const newToast: ToastMessage = { id, type, title, message, durationMs, dedupKey, ...rest };
+      setToasts((prev) => {
+        const yaVisible = prev.some(
+          (t) =>
+            (t.dedupKey || `${t.type}|${t.title || ''}|${t.codeBadge || ''}|${t.message}`) ===
+            fingerprint
+        );
+        return yaVisible ? prev : [...prev, newToast];
+      });
     },
     []
   );
