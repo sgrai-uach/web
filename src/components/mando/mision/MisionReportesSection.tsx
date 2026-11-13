@@ -23,9 +23,11 @@ import type {
   EvaluacionTerrenoMisionDetalle,
 } from '@/types/misiones';
 import {
+  esJustificacionSinCambios,
   formatearEstado,
   formatearPrioridad,
   formatearCompromisoVivienda,
+  fueTipologiaModificada,
   obtenerVarianteCompromisoVivienda,
 } from '@/lib/utils/estadoUtils';
 import { MisionEvidenciasGallery } from './MisionEvidenciasGallery';
@@ -393,9 +395,18 @@ export const MisionReportesSection: React.FC<MisionReportesSectionProps> = ({
                     <div>
                       <span className={styles.dataLabel}>Diagnóstico Técnico y Tipología Constatada:</span>
                       <p style={{ margin: '4px 0 0 0', fontSize: '15px', fontWeight: 700, color: 'var(--color-primary-teal-dark, #14505A)' }}>
-                        {tipoAnteriorMeta
-                          ? `${tipoAnteriorMeta} → ${tipoNuevoMeta || incidente?.tipoAfectacion || 'Tipología reclasificada en terreno'}`
-                          : tipoNuevoMeta || incidente?.tipoAfectacion || 'Tipología reclasificada en terreno'}
+                        {(() => {
+                          const tipoFinal = tipoNuevoMeta || incidente?.tipoAfectacion || '';
+                          const sinCambios = tipoAnteriorMeta
+                            ? !fueTipologiaModificada(tipoAnteriorMeta, tipoFinal)
+                            : esJustificacionSinCambios(justificacionExtraida || hitoReclasificacion.descripcion);
+                          if (sinCambios && tipoFinal) {
+                            return `${tipoFinal} (confirmada sin modificaciones por la patrulla)`;
+                          }
+                          return tipoAnteriorMeta
+                            ? `${tipoAnteriorMeta} → ${tipoFinal || 'Tipología reclasificada en terreno'}`
+                            : tipoFinal || 'Tipología reclasificada en terreno';
+                        })()}
                       </p>
                     </div>
 

@@ -118,11 +118,13 @@ export const IncidenteCard: React.FC<IncidenteCardProps> = ({
               size="sm"
               icon={<CheckCircle2 size={11} strokeWidth={2.2} />}
               title={
-                incidente.justificacionReclasificacion
-                  ? `Tipología reclasificada en terreno: ${incidente.justificacionReclasificacion}${incidente.cambioPrioridadMotivo || incidente.justificacionPrioridad ? ` (Prioridad ajustada: ${formatearPrioridad(incidente.prioridad)})` : ''}`
+                incidente.reclasificadoEnTerreno
+                  ? incidente.justificacionReclasificacion
+                    ? `Tipología reclasificada en terreno: ${incidente.justificacionReclasificacion}${incidente.cambioPrioridadMotivo || incidente.justificacionPrioridad ? ` (Prioridad ajustada: ${formatearPrioridad(incidente.prioridad)})` : ''}`
+                    : `Tipología rectificada por patrulla en terreno (Prioridad: ${formatearPrioridad(incidente.prioridad)})`
                   : incidente.justificacionPrioridad
                     ? `Evaluación en terreno con ajuste de prioridad: ${incidente.justificacionPrioridad} (Prioridad: ${formatearPrioridad(incidente.prioridad)})`
-                    : `Tipología rectificada por patrulla en terreno (Prioridad: ${formatearPrioridad(incidente.prioridad)})`
+                    : `Tipología constatada en terreno sin modificaciones (Prioridad: ${formatearPrioridad(incidente.prioridad)})`
               }
             >
               Verificado

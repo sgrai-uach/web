@@ -1,9 +1,13 @@
 'use client';
 
 import React from 'react';
-import { FileText, GitCompareArrows } from 'lucide-react';
+import { CheckCircle2, FileText, GitCompareArrows } from 'lucide-react';
 import type { IncidenteDetalle } from '@/services/incidentesService';
-import { formatearFuenteOrigen } from '@/lib/utils/estadoUtils';
+import {
+  esJustificacionSinCambios,
+  formatearFuenteOrigen,
+  fueTipologiaModificada,
+} from '@/lib/utils/estadoUtils';
 import { DrawerSectionHeader } from './DrawerSectionHeader';
 import Chip from '@/components/ui/Chip';
 import styles from '@/styles/mando.module.css';
@@ -49,10 +53,18 @@ export const IncidenteResumenSection: React.FC<IncidenteResumenSectionProps> = (
     return null;
   }, [detalle]);
 
-  const tooltipCambio = cambioAfectacion
+  const huboCambioTipologia = cambioAfectacion
     ? cambioAfectacion.tipoAnterior
-      ? `Tipo de afectación cambiado en terreno (${cambioAfectacion.tipoAnterior} → ${cambioAfectacion.tipoNuevo}). Click para ver el reporte en la misión ${cambioAfectacion.misionCodigo}`
-      : `Tipo de afectación reclasificado en terreno (${cambioAfectacion.tipoNuevo}). Click para ver el reporte en la misión ${cambioAfectacion.misionCodigo}`
+      ? fueTipologiaModificada(cambioAfectacion.tipoAnterior, cambioAfectacion.tipoNuevo)
+      : !esJustificacionSinCambios(cambioAfectacion.justificacion)
+    : false;
+
+  const tooltipCambio = cambioAfectacion
+    ? !huboCambioTipologia
+      ? `La tipología (${cambioAfectacion.tipoNuevo}) fue constatada en terreno sin modificaciones por la patrulla. Click para ver el reporte en la misión ${cambioAfectacion.misionCodigo}`
+      : cambioAfectacion.tipoAnterior
+        ? `Tipo de afectación cambiado en terreno (${cambioAfectacion.tipoAnterior} → ${cambioAfectacion.tipoNuevo}). Click para ver el reporte en la misión ${cambioAfectacion.misionCodigo}`
+        : `Tipo de afectación reclasificado en terreno (${cambioAfectacion.tipoNuevo}). Click para ver el reporte en la misión ${cambioAfectacion.misionCodigo}`
     : '';
 
   return (
@@ -72,9 +84,9 @@ export const IncidenteResumenSection: React.FC<IncidenteResumenSectionProps> = (
             {cambioAfectacion && onVerReporteCambioAfectacion && (
               <Chip
                 data-testid="btn-ver-cambio-afectacion"
-                variant="teal"
+                variant={huboCambioTipologia ? 'teal' : 'success'}
                 size="sm"
-                icon={<GitCompareArrows size={12} />}
+                icon={huboCambioTipologia ? <GitCompareArrows size={12} /> : <CheckCircle2 size={12} />}
                 onClick={() =>
                   onVerReporteCambioAfectacion(
                     cambioAfectacion.misionId,
@@ -84,9 +96,11 @@ export const IncidenteResumenSection: React.FC<IncidenteResumenSectionProps> = (
                 title={tooltipCambio}
                 aria-label={tooltipCambio}
               >
-                {cambioAfectacion.tipoAnterior
-                  ? `Antes: ${cambioAfectacion.tipoAnterior}`
-                  : 'Reclasificado'}
+                {!huboCambioTipologia
+                  ? 'Confirmada sin cambios'
+                  : cambioAfectacion.tipoAnterior
+                    ? `Antes: ${cambioAfectacion.tipoAnterior}`
+                    : 'Reclasificado'}
               </Chip>
             )}
           </span>

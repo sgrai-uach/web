@@ -27,6 +27,7 @@ export const ESTADOS_KANBAN: EstadoIncidente[] = [
 
 import { catalogosService } from '@/services/catalogosService';
 import { useSimulatedSession } from '@/context/SimulatedSessionContext';
+import { fueTipologiaModificada } from '@/lib/utils/estadoUtils';
 
 export interface FiltrosKanban {
   busqueda: string;
@@ -369,6 +370,7 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
       if (!datos || !datos.id) return;
 
       let columnaOrigenDetectada: EstadoIncidente | null = null;
+      let tipoAnteriorDetectado: string | undefined;
 
       setColumnas((prev) => {
         let incidenteEncontrado: IncidenteResumen | null = null;
@@ -381,6 +383,7 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
             columnaOrigen = est;
             columnaOrigenDetectada = est;
             const incActual = prev[est][idx];
+            tipoAnteriorDetectado = incActual.tipoAfectacion;
             const nuevaPrioridad = datos.prioridad || incActual.prioridad;
             const nuevaPrioridadSugerida =
               datos.prioridadSugerida !== undefined
@@ -395,13 +398,13 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
               (datos.prioridad && datos.prioridad !== incActual.prioridad) ||
               (nuevaPrioridadSugerida && nuevaPrioridad !== nuevaPrioridadSugerida)
             );
-            const huboCambioTipologia = Boolean(datos.tipoAfectacion && datos.tipoAfectacion !== incActual.tipoAfectacion);
+            const huboCambioTipologia = fueTipologiaModificada(
+              incActual.tipoAfectacion,
+              datos.tipoAfectacion
+            );
             const reclasificado = Boolean(
               huboCambioTipologia ||
-              datos.justificacion ||
-              datos.reporteTerreno ||
-              incActual.reclasificadoEnTerreno ||
-              incActual.verificado
+              incActual.reclasificadoEnTerreno
             );
 
             const totalReportesPrevios = Number(incActual.totalReportesTerreno ?? 0);
@@ -483,10 +486,21 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
         });
       }
 
+      const payloadEnriquecido: IncidenteActualizadoPayload =
+        datos.tipoAnterior || !tipoAnteriorDetectado
+          ? payload
+          : {
+              ...payload,
+              datos: {
+                ...datos,
+                tipoAnterior: tipoAnteriorDetectado,
+              },
+            };
+
       if (datos.reporteTerreno) {
-        optionsObj.onReporteTerrenoRecibido?.(payload);
+        optionsObj.onReporteTerrenoRecibido?.(payloadEnriquecido);
       } else {
-        optionsObj.onIncidenteActualizadoSocket?.(payload);
+        optionsObj.onIncidenteActualizadoSocket?.(payloadEnriquecido);
       }
     },
     [optionsObj]

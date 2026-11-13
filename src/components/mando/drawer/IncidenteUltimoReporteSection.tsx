@@ -5,7 +5,12 @@ import { ClipboardList, Clock, ExternalLink, User, Wrench } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import { Chip } from '@/components/ui/Chip';
 import { obtenerVarianteChipPrioridad } from '@/lib/utils/chipVariants';
-import { formatearPrioridad, formatearCompromisoVivienda } from '@/lib/utils/estadoUtils';
+import {
+  esJustificacionSinCambios,
+  formatearPrioridad,
+  formatearCompromisoVivienda,
+  fueTipologiaModificada,
+} from '@/lib/utils/estadoUtils';
 import type { IncidenteDetalle } from '@/services/incidentesService';
 import { DrawerSectionHeader } from './DrawerSectionHeader';
 import styles from '@/styles/mando.module.css';
@@ -87,13 +92,19 @@ export const IncidenteUltimoReporteSection: React.FC<IncidenteUltimoReporteSecti
   const etiquetaTipo = React.useMemo(() => {
     if (!ultimoReporte) return '';
     if (ultimoReporte.origen === 'RECLASIFICACION') {
-      return 'Reclasificación en Terreno';
+      const r = detalle.reclasificacionTipologia;
+      const sinCambios = r
+        ? r.tipoAnterior
+          ? !fueTipologiaModificada(r.tipoAnterior, r.tipoNuevo)
+          : esJustificacionSinCambios(r.justificacion)
+        : false;
+      return sinCambios ? 'Constatación en Terreno (Sin cambios)' : 'Reclasificación en Terreno';
     }
     const ver = ultimoReporte.versionReporte ?? 1;
     return ultimoReporte.esRectificacion || ver > 1
       ? `Reporte #${ver} (Rectificación)`
       : 'Reporte #1 (Inicial)';
-  }, [ultimoReporte]);
+  }, [ultimoReporte, detalle.reclasificacionTipologia]);
 
   const fechaLegible = React.useMemo(() => {
     if (!ultimoReporte?.creadoEn) return '';
@@ -115,11 +126,18 @@ export const IncidenteUltimoReporteSection: React.FC<IncidenteUltimoReporteSecti
 
     if (ultimoReporte.origen === 'RECLASIFICACION' && detalle.reclasificacionTipologia) {
       const r = detalle.reclasificacionTipologia;
+      const sinCambios = r.tipoAnterior
+        ? !fueTipologiaModificada(r.tipoAnterior, r.tipoNuevo)
+        : esJustificacionSinCambios(r.justificacion);
       return {
         itemsBasicos: [
           {
             etiqueta: 'Tipología constatada',
-            valor: r.tipoAnterior ? `${r.tipoAnterior} → ${r.tipoNuevo}` : r.tipoNuevo,
+            valor: sinCambios
+              ? `${r.tipoNuevo} (confirmada sin modificaciones por la patrulla)`
+              : r.tipoAnterior
+                ? `${r.tipoAnterior} → ${r.tipoNuevo}`
+                : r.tipoNuevo,
           },
         ],
         accionesTexto: r.justificacion || ultimoReporte.resumen || null,

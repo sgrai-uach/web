@@ -187,4 +187,104 @@ describe('useEncargadoKanbanSocket', () => {
     expect(socket.emit).toHaveBeenCalledWith('leave', 'mapa');
     expect(socket.emit).toHaveBeenCalledWith('salir', 'mapa');
   });
+
+  it('debe deduplicar eventos incidente:actualizado repetidos por múltiples salas', () => {
+    const socket = getSocket();
+    const onIncidenteActualizado = vi.fn();
+
+    renderHook(() =>
+      useEncargadoKanbanSocket({
+        onIncidenteActualizado,
+      })
+    );
+
+    const payload = {
+      evento: 'incidente:actualizado' as const,
+      datos: {
+        id: 'inc-dup-1',
+        codigo: 'INC-948888-846',
+        nuevoEstado: 'VERIFICANDO' as const,
+        prioridad: 'MEDIA' as const,
+        actualizadoEn: '2026-11-13T12:00:00Z',
+      },
+      emitidoEn: '2026-11-13T12:00:00Z',
+    };
+
+    act(() => {
+      const trigger = (socket as unknown as { _trigger: (ev: string, p: unknown) => void })._trigger;
+      trigger('incidente:actualizado', payload);
+      trigger('incidente:actualizado', payload);
+      trigger('incidente:actualizado', payload);
+    });
+
+    expect(onIncidenteActualizado).toHaveBeenCalledTimes(1);
+  });
+
+  it('debe marcar esSintetico: true al sintetizar actualización desde mision:actualizada en EN_CURSO', () => {
+    const socket = getSocket();
+    const onIncidenteActualizado = vi.fn();
+
+    renderHook(() =>
+      useEncargadoKanbanSocket({
+        onIncidenteActualizado,
+      })
+    );
+
+    act(() => {
+      const trigger = (socket as unknown as { _trigger: (ev: string, p: unknown) => void })._trigger;
+      trigger('mision:actualizada', {
+        incidenteId: 'inc-mision-1',
+        estado: 'EN_CURSO',
+        tipoMision: 'VERIFICACION',
+        codigo: 'MIS-001',
+      });
+      trigger('mision:actualizada', {
+        incidenteId: 'inc-mision-1',
+        estado: 'EN_CURSO',
+        tipoMision: 'VERIFICACION',
+        codigo: 'MIS-001',
+      });
+    });
+
+    expect(onIncidenteActualizado).toHaveBeenCalledTimes(1);
+    expect(onIncidenteActualizado).toHaveBeenCalledWith(
+      expect.objectContaining({
+        esSintetico: true,
+        datos: expect.objectContaining({
+          id: 'inc-mision-1',
+          nuevoEstado: 'VERIFICANDO',
+        }),
+      })
+    );
+  });
+
+  it('debe reflejar en ultimoEvento cuando la tipología fue confirmada sin cambios', () => {
+    const socket = getSocket();
+    const onIncidenteActualizado = vi.fn();
+
+    const { result } = renderHook(() =>
+      useEncargadoKanbanSocket({
+        onIncidenteActualizado,
+      })
+    );
+
+    act(() => {
+      const trigger = (socket as unknown as { _trigger: (ev: string, p: unknown) => void })._trigger;
+      trigger('incidente:actualizado', {
+        evento: 'incidente:actualizado',
+        datos: {
+          id: 'inc-rat-1',
+          codigo: 'INC-948888-846',
+          nuevoEstado: 'VERIFICANDO',
+          prioridad: 'MEDIA',
+          tipoAnterior: 'Deslizamiento',
+          tipoAfectacion: 'Deslizamiento',
+          justificacion: 'Tipología constatada y ratificada en terreno sin variaciones.',
+          actualizadoEn: '2026-11-13T15:21:38Z',
+        },
+      });
+    });
+
+    expect(result.current.ultimoEvento).toContain('Tipología confirmada sin cambios: INC-948888-846 (Deslizamiento');
+  });
 });

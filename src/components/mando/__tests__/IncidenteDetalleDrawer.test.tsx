@@ -731,4 +731,65 @@ describe('Componente IncidenteDetalleDrawer e integración HU-17', () => {
     expect(desgloseFamilias.textContent).toContain('FIBE');
     expect(desgloseFamilias.textContent).toContain('Familia Casa 2 Interior: 2 pers.');
   });
+
+  it('indica explícitamente cuando la tipología no fue modificada por la patrulla en Resumen y Último Reporte', async () => {
+    const mockIncidenteRatificado: IncidenteDetalle = {
+      ...mockDetalleIncidente,
+      codigo: 'INC-948888-846',
+      tipoAfectacion: 'Deslizamiento',
+      reclasificadoEnTerreno: false,
+      reclasificacionTipologia: {
+        hitoId: 'hito-rat-1',
+        misionId: 'm1000000-0000-4000-8000-000000000001',
+        misionCodigo: 'MIS-2026-0001',
+        tipoAnterior: 'Deslizamiento',
+        tipoNuevo: 'Deslizamiento',
+        justificacion: 'Tipología constatada y ratificada en terreno sin variaciones.',
+        registradoPor: 'Cristóbal Felipe Veas',
+        creadoEn: '2026-11-13T15:21:38Z',
+      },
+      ultimoReporte: {
+        origen: 'RECLASIFICACION',
+        reporteId: 'reclasificacion-hito-rat-1',
+        misionId: 'm1000000-0000-4000-8000-000000000001',
+        misionCodigo: 'MIS-2026-0001',
+        evaluadorNombre: 'Cristóbal Felipe Veas',
+        creadoEn: '2026-11-13T15:21:38Z',
+        resumen: 'Tipología constatada y ratificada en terreno sin variaciones.',
+        prioridadAsignada: null,
+        versionReporte: null,
+        esRectificacion: false,
+      },
+    };
+
+    vi.spyOn(incidentesService, 'obtenerDetalleIncidente').mockResolvedValueOnce({
+      exito: true,
+      datos: mockIncidenteRatificado,
+      mensaje: 'OK',
+    });
+
+    render(
+      <IncidenteDetalleDrawer
+        incidenteId="i1000000-0000-4000-8000-000000000001"
+        incidenteCodigo="INC-948888-846"
+        userId="user-test"
+        onCerrar={vi.fn()}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('INC-948888-846')).toBeDefined();
+    });
+
+    // Imagen 1: Resumen no debe decir "Antes: Deslizamiento"
+    const btnCambio = screen.getByTestId('btn-ver-cambio-afectacion');
+    expect(btnCambio.textContent).toContain('Confirmada sin cambios');
+    expect(btnCambio.textContent).not.toContain('Antes:');
+
+    // Imagen 2: Último reporte no debe mostrar "Deslizamiento → Deslizamiento"
+    const seccionUltimo = screen.getByTestId('incidente-ultimo-reporte-section');
+    expect(seccionUltimo.textContent).toContain('Constatación en Terreno (Sin cambios)');
+    expect(seccionUltimo.textContent).toContain('Deslizamiento (confirmada sin modificaciones por la patrulla)');
+    expect(seccionUltimo.textContent).not.toContain('Deslizamiento → Deslizamiento');
+  });
 });

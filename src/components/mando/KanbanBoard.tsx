@@ -17,9 +17,11 @@ import {
   IncidenteCreadoPayload,
 } from '@/hooks/useEncargadoKanbanSocket';
 import {
+  esJustificacionSinCambios,
   formatearPrioridad,
   formatearCompromisoVivienda,
   formatearEstado,
+  fueTipologiaModificada,
 } from '@/lib/utils/estadoUtils';
 import { KanbanHeader } from './KanbanHeader';
 import { KanbanFiltros } from './KanbanFiltros';
@@ -238,10 +240,23 @@ export const KanbanBoard: React.FC = () => {
     [showInfo, showWarning, refrescarKpis]
   );
 
+  const ultimosToastsIncidenteRef = React.useRef<Map<string, number>>(new Map());
+
+  const esToastIncidenteDuplicado = React.useCallback((clave: string, ventanaMs = 4000): boolean => {
+    const ahora = Date.now();
+    const ultimaVez = ultimosToastsIncidenteRef.current.get(clave);
+    if (ultimaVez && ahora - ultimaVez < ventanaMs) {
+      return true;
+    }
+    ultimosToastsIncidenteRef.current.set(clave, ahora);
+    return false;
+  }, []);
+
   const handleIncidenteCreadoSocket = React.useCallback(
     (payload: IncidenteCreadoPayload) => {
       const { datos } = payload;
       if (!datos) return;
+      if (esToastIncidenteDuplicado(`creado:${datos.id}`)) return;
 
       showInfo(
         `Nuevo incidente ${datos.codigo} ingresado en ${datos.direccion || 'sector sin dirección'}.`,
@@ -250,6 +265,7 @@ export const KanbanBoard: React.FC = () => {
           icon: 'incidente',
           codeBadge: datos.codigo,
           priorityBadge: datos.prioridad,
+          dedupKey: `incidente-creado:${datos.id}`,
           details: [
             { label: 'Tipología', value: datos.tipoAfectacion || 'No clasificada' },
             ...(datos.direccion ? [{ label: 'Ubicación', value: datos.direccion }] : []),
@@ -263,7 +279,7 @@ export const KanbanBoard: React.FC = () => {
 
       refrescarKpis(false);
     },
-    [showInfo, refrescarKpis]
+    [showInfo, refrescarKpis, esToastIncidenteDuplicado]
   );
 
   const handleIncidenteActualizadoSocket = React.useCallback(
@@ -271,18 +287,36 @@ export const KanbanBoard: React.FC = () => {
       const { datos } = payload;
       if (!datos) return;
 
-      const esReclasificacion = Boolean(datos.tipoAfectacion && datos.justificacion);
+      if (payload.esSintetico) {
+        refrescarKpis(false);
+        return;
+      }
 
-      if (esReclasificacion) {
+      const claveDedup = `act:${datos.id}:${datos.nuevoEstado}:${datos.tipoAfectacion || ''}`;
+      if (esToastIncidenteDuplicado(claveDedup)) return;
+
+      const esEventoTipologia = Boolean(datos.tipoAfectacion && datos.justificacion);
+
+      if (esEventoTipologia) {
+        const sinCambiosTipologia = datos.tipoAnterior
+          ? !fueTipologiaModificada(datos.tipoAnterior, datos.tipoAfectacion)
+          : esJustificacionSinCambios(datos.justificacion);
+
         showInfo(
-          `Tipología reclasificada a ${datos.tipoAfectacion}.`,
-          'Reclasificación en Terreno',
+          sinCambiosTipologia
+            ? `La patrulla ratificó la tipología ${datos.tipoAfectacion} sin modificaciones.`
+            : `Tipología reclasificada a ${datos.tipoAfectacion}.`,
+          sinCambiosTipologia ? 'Tipología Confirmada en Terreno' : 'Reclasificación en Terreno',
           {
-            icon: 'reclasificacion',
+            icon: sinCambiosTipologia ? 'patrulla' : 'reclasificacion',
             codeBadge: datos.codigo,
             priorityBadge: datos.prioridad,
+            dedupKey: claveDedup,
             details: [
-              { label: 'Nueva tipología', value: datos.tipoAfectacion || 'No especificada' },
+              {
+                label: sinCambiosTipologia ? 'Tipología constatada' : 'Nueva tipología',
+                value: datos.tipoAfectacion || 'No especificada',
+              },
               ...(datos.justificacion ? [{ label: 'Justificación', value: datos.justificacion }] : []),
             ],
             action: {
@@ -299,6 +333,7 @@ export const KanbanBoard: React.FC = () => {
             icon: 'incidente',
             codeBadge: datos.codigo,
             priorityBadge: datos.prioridad,
+            dedupKey: claveDedup,
             action: {
               label: 'Ver incidente',
               onClick: () => setIncidenteSeleccionadoId(datos.id),
@@ -309,7 +344,7 @@ export const KanbanBoard: React.FC = () => {
 
       refrescarKpis(false);
     },
-    [showInfo, refrescarKpis]
+    [showInfo, refrescarKpis, esToastIncidenteDuplicado]
   );
 
   const {

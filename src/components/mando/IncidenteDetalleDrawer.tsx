@@ -20,6 +20,7 @@ import { AsignarPatrullaModal } from './patrullas/AsignarPatrullaModal';
 import { useOptionalAuth } from '@/context/AuthContext';
 import { useOptionalToast } from '@/components/ui/Toast';
 import { usePuedeAsignarMision } from '@/hooks/usePuedeAsignarMision';
+import { fueTipologiaModificada } from '@/lib/utils/estadoUtils';
 import Button from '@/components/ui/Button';
 import InlineNotice from '@/components/ui/InlineNotice';
 import type { DespacharCuadrillaResponse, DespacharPatrullaResponseData } from '@/types/misiones';
@@ -234,7 +235,10 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
                 ? rawDatos.tipoIncidenteId
                 : prev.tipoIncidenteId,
             reportesEvaluacionTerreno: nuevosReportes,
-            reclasificadoEnTerreno: true,
+            reclasificadoEnTerreno: Boolean(
+              fueTipologiaModificada(prev.tipoAfectacion, nuevoTipo) ||
+                prev.reclasificadoEnTerreno
+            ),
             justificacionReclasificacion: justificacion,
             cambioPrioridadMotivo: huboCambioPrioridad
               ? justificacionPrioridad ||

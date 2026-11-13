@@ -5,6 +5,9 @@ import {
   formatearHitoBitacora,
   formatearTipoMision,
   obtenerChipEstadoMision,
+  fueTipologiaModificada,
+  esJustificacionSinCambios,
+  esHitoTipologiaSinCambios,
 } from '../estadoUtils';
 
 describe('formatearEstado', () => {
@@ -104,6 +107,37 @@ describe('obtenerChipEstadoMision', () => {
     expect(obtenerChipEstadoMision('RECHAZADA').label).toBe('Rechazada');
     expect(obtenerChipEstadoMision('RECHAZADA').color).toContain('danger');
     expect(obtenerChipEstadoMision('PLANIFICADA').label).toBe('Planificada');
+  });
+});
+
+describe('fueTipologiaModificada y detección de ratificación sin cambios', () => {
+  it('detecta correctamente cuando la tipología fue modificada vs cuando es igual', () => {
+    expect(fueTipologiaModificada('Anegamiento', 'Inundación')).toBe(true);
+    expect(fueTipologiaModificada('Deslizamiento', 'Deslizamiento')).toBe(false);
+    expect(fueTipologiaModificada('  Deslizamiento ', 'deslizamiento')).toBe(false);
+    expect(fueTipologiaModificada(null, 'Deslizamiento')).toBe(false);
+  });
+
+  it('detecta justificaciones de ratificación sin variaciones', () => {
+    expect(esJustificacionSinCambios('Tipología constatada y ratificada en terreno sin variaciones.')).toBe(true);
+    expect(esJustificacionSinCambios('Se constata rotura de matriz.')).toBe(false);
+  });
+
+  it('detecta hitos TIPOLOGIA_RECLASIFICADA sin cambios en metadatos o descripción', () => {
+    expect(
+      esHitoTipologiaSinCambios({
+        hito: 'TIPOLOGIA_RECLASIFICADA',
+        descripcion: 'Tipología reclasificada en terreno a: Deslizamiento.',
+        metadatos: { tipoAnterior: 'Deslizamiento', tipoNuevo: 'Deslizamiento' },
+      })
+    ).toBe(true);
+    expect(
+      esHitoTipologiaSinCambios({
+        hito: 'TIPOLOGIA_RECLASIFICADA',
+        descripcion: 'Tipología reclasificada en terreno a: Inundación.',
+        metadatos: { tipoAnterior: 'Anegamiento', tipoNuevo: 'Inundación' },
+      })
+    ).toBe(false);
   });
 });
 

@@ -7,7 +7,12 @@ import type {
   PrioridadIncidente,
   ReporteEvaluacionTerreno,
 } from '@/services/incidentesService';
-import { formatearEstado, formatearPrioridad } from '@/lib/utils/estadoUtils';
+import {
+  esJustificacionSinCambios,
+  formatearEstado,
+  formatearPrioridad,
+  fueTipologiaModificada,
+} from '@/lib/utils/estadoUtils';
 
 export interface IncidenteCreadoPayload {
   evento: 'incidente:creado';
@@ -27,6 +32,8 @@ export interface IncidenteCreadoPayload {
 
 export interface IncidenteActualizadoPayload {
   evento: 'incidente:actualizado';
+  /** Indica que el payload fue sintetizado desde mision:actualizada para sincronizar el tablero sin emitir toast duplicado */
+  esSintetico?: boolean;
   datos: {
     id: string;
     codigo: string;
@@ -37,6 +44,7 @@ export interface IncidenteActualizadoPayload {
     requiereAsistenciaSocial?: boolean;
     verificado?: boolean;
     tipoIncidenteId?: string;
+    tipoAnterior?: string;
     tipoAfectacion?: string;
     justificacion?: string;
     reporteTerreno?: ReporteEvaluacionTerreno | null;
@@ -127,7 +135,21 @@ export function useEncargadoKanbanSocket({
       });
     }
 
+    const esEventoDuplicado = (clave: string, ventanaMs = 4000): boolean => {
+      const ahora = Date.now();
+      const ultimoProc = eventosProcesadosRef.current.get(clave);
+      if (ultimoProc && ahora - ultimoProc < ventanaMs) {
+        return true;
+      }
+      eventosProcesadosRef.current.set(clave, ahora);
+      return false;
+    };
+
     const handleCreado = (payload: IncidenteCreadoPayload) => {
+      const incId = payload?.datos?.id || payload?.datos?.codigo;
+      if (incId && esEventoDuplicado(`inc-creado:${incId}`)) {
+        return;
+      }
       setUltimoEvento(`Nuevo incidente: ${payload?.datos?.codigo || ''}`);
       if (creadoRef.current) {
         creadoRef.current(payload);
@@ -155,6 +177,12 @@ export function useEncargadoKanbanSocket({
         rawDatos?.reporteTerreno && typeof rawDatos.reporteTerreno === 'object'
           ? (rawDatos.reporteTerreno as ReporteEvaluacionTerreno)
           : undefined;
+
+      const reporteKey = rawReporte?.id || rawReporte?.versionReporte || '';
+      const tipoKey = typeof rawDatos?.tipoAfectacion === 'string' ? rawDatos.tipoAfectacion : '';
+      if (esEventoDuplicado(`inc-act:${id}:${nuevoEstado || 'VERIFICANDO'}:${reporteKey}:${tipoKey}`)) {
+        return;
+      }
 
       const justificacionPrioridad =
         typeof rawDatos?.justificacionPrioridad === 'string'
@@ -192,6 +220,12 @@ export function useEncargadoKanbanSocket({
             typeof rawDatos?.tipoIncidenteId === 'string'
               ? rawDatos.tipoIncidenteId
               : undefined,
+          tipoAnterior:
+            typeof rawDatos?.tipoAnterior === 'string'
+              ? rawDatos.tipoAnterior
+              : typeof rawDatos?.tipo_anterior === 'string'
+                ? rawDatos.tipo_anterior
+                : undefined,
           tipoAfectacion:
             typeof rawDatos?.tipoAfectacion === 'string'
               ? rawDatos.tipoAfectacion
@@ -223,8 +257,17 @@ export function useEncargadoKanbanSocket({
           `${etiquetaVer} recibido en ${normalizedPayload.datos.codigo || 'incidente'} → Prioridad: ${prioridadLegible}`
         );
       } else if (normalizedPayload.datos.tipoAfectacion && normalizedPayload.datos.justificacion) {
+        const sinCambiosTipologia = normalizedPayload.datos.tipoAnterior
+          ? !fueTipologiaModificada(
+              normalizedPayload.datos.tipoAnterior,
+              normalizedPayload.datos.tipoAfectacion
+            )
+          : esJustificacionSinCambios(normalizedPayload.datos.justificacion);
+
         setUltimoEvento(
-          `Tipología reclasificada: ${normalizedPayload.datos.codigo || ''} a ${normalizedPayload.datos.tipoAfectacion} (Prioridad: ${prioridadLegible})`
+          sinCambiosTipologia
+            ? `Tipología confirmada sin cambios: ${normalizedPayload.datos.codigo || ''} (${normalizedPayload.datos.tipoAfectacion}, Prioridad: ${prioridadLegible})`
+            : `Tipología reclasificada: ${normalizedPayload.datos.codigo || ''} a ${normalizedPayload.datos.tipoAfectacion} (Prioridad: ${prioridadLegible})`
         );
       } else {
         const estadoLegible = formatearEstado(normalizedPayload.datos.nuevoEstado);
@@ -259,8 +302,12 @@ export function useEncargadoKanbanSocket({
       // el incidente transiciona a la columna VERIFICANDO.
       if (incidenteId && (tipoMision === 'VERIFICACION' || !tipoMision)) {
         if (estadoMision === 'EN_CURSO') {
+          if (esEventoDuplicado(`mision-ev:${incidenteId}:${estadoMision}`)) {
+            return;
+          }
           const syntheticIncPayload: IncidenteActualizadoPayload = {
             evento: 'incidente:actualizado',
+            esSintetico: true,
             datos: {
               id: incidenteId,
               codigo: typeof raw?.incidenteCodigo === 'string' ? raw.incidenteCodigo : '',
@@ -304,13 +351,9 @@ export function useEncargadoKanbanSocket({
 
       if (!misionId && !codigo) return;
 
-      const dedupKey = `${misionId || codigo}-RECHAZADA`;
-      const ahora = Date.now();
-      const ultimoProc = eventosProcesadosRef.current.get(dedupKey);
-      if (ultimoProc && ahora - ultimoProc < 3000) {
+      if (esEventoDuplicado(`${misionId || codigo}-RECHAZADA`, 3000)) {
         return;
       }
-      eventosProcesadosRef.current.set(dedupKey, ahora);
 
       const normalizedPayload: MisionRechazadaPayload = {
         misionId,

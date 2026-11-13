@@ -316,5 +316,51 @@ export function formatearFuenteOrigen(
   return formatearEstado(fuente, fallback);
 }
 
+/**
+ * Determina si una justificación o descripción indica explícitamente que la
+ * tipología fue ratificada sin modificaciones en terreno.
+ */
+export function esJustificacionSinCambios(texto?: string | null): boolean {
+  if (!texto || typeof texto !== 'string') return false;
+  return /sin variaciones|sin cambios|sin modificaciones|ratificada en terreno/i.test(texto);
+}
+
+/**
+ * Determina si la tipología fue efectivamente modificada entre el valor previo
+ * y el constatado en terreno. Retorna false si ambos coinciden (ignorando
+ * mayúsculas y espacios) o si alguno no está definido.
+ */
+export function fueTipologiaModificada(
+  tipoAnterior?: string | null,
+  tipoNuevo?: string | null
+): boolean {
+  if (!tipoAnterior || !tipoNuevo) return false;
+  const ant = tipoAnterior.trim().toLowerCase();
+  const nue = tipoNuevo.trim().toLowerCase();
+  if (!ant || !nue) return false;
+  return ant !== nue;
+}
+
+/**
+ * Evalúa si un hito de bitácora de tipo TIPOLOGIA_RECLASIFICADA corresponde
+ * en realidad a una ratificación sin cambios de tipología.
+ */
+export function esHitoTipologiaSinCambios(hito: {
+  hito?: string | null;
+  descripcion?: string | null;
+  metadatos?: Record<string, unknown> | null;
+}): boolean {
+  if (hito.hito !== 'TIPOLOGIA_RECLASIFICADA') return false;
+  const meta = hito.metadatos;
+  if (meta && typeof meta === 'object') {
+    const ant = typeof meta.tipoAnterior === 'string' ? meta.tipoAnterior.trim() : '';
+    const nue = typeof meta.tipoNuevo === 'string' ? meta.tipoNuevo.trim() : '';
+    if (ant && nue) {
+      return !fueTipologiaModificada(ant, nue);
+    }
+  }
+  return esJustificacionSinCambios(hito.descripcion);
+}
+
 
 

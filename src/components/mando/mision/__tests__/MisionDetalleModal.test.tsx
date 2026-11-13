@@ -764,4 +764,63 @@ describe('Componente MisionDetalleModal (HU-17)', () => {
     expect(desgloseGeneral.textContent).toContain('Consolidado General de Afectación');
     expect(desgloseGeneral.textContent).toContain('7 (2 familias)');
   });
+
+  it('indica explícitamente cuando la tipología no fue modificada en Diagnóstico Técnico y Bitácora Cronológica', async () => {
+    const mockMisionRatificada: MisionDetalleCompleto = {
+      ...mockMision,
+      id: 'm-rat-1',
+      codigo: 'MIS-2026-0999',
+      tipoMision: 'VERIFICACION',
+      incidente: {
+        id: 'inc-999',
+        codigo: 'INC-948888-846',
+        tipoAfectacion: 'Deslizamiento',
+        estado: 'VERIFICANDO',
+        prioridad: 'MEDIA',
+        direccion: 'Sector Norte',
+      },
+      bitacoraTiempos: [
+        {
+          id: 'hito-rat-1',
+          hito: 'TIPOLOGIA_RECLASIFICADA',
+          descripcion:
+            'Tipología reclasificada en terreno a: Deslizamiento. Justificación: Tipología constatada y ratificada en terreno sin variaciones.',
+          fecha: '2026-11-13',
+          hora: '15:21:38',
+          timestamp: '2026-11-13T15:21:38Z',
+          metadatos: {
+            tipoAnterior: 'Deslizamiento',
+            tipoNuevo: 'Deslizamiento',
+          },
+        },
+      ],
+    };
+
+    vi.spyOn(misionesService, 'obtenerDetalleMision').mockResolvedValueOnce({
+      exito: true,
+      datos: mockMisionRatificada,
+      mensaje: 'OK',
+    });
+
+    render(
+      <MisionDetalleModal misionId="m-rat-1" onCerrar={vi.fn()} />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('MIS-2026-0999')).toBeDefined();
+    });
+
+    // Imagen 3: Diagnóstico Técnico y Tipología Constatada sin flecha X → X
+    const cardInforme = screen.getByTestId('reporte-verificacion-reclasificacion');
+    expect(cardInforme.textContent).toContain('Deslizamiento (confirmada sin modificaciones por la patrulla)');
+    expect(cardInforme.textContent).not.toContain('Deslizamiento → Deslizamiento');
+
+    // Imagen 4: Bitácora Cronológica debe indicar que no hubo cambios
+    expect(screen.getByText('Tipología constatada en terreno (sin cambios)')).toBeDefined();
+    expect(
+      screen.getByText(
+        /Tipología confirmada en terreno sin modificaciones: Deslizamiento\./i
+      )
+    ).toBeDefined();
+  });
 });
