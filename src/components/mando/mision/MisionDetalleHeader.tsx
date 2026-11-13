@@ -2,8 +2,13 @@
 
 import React from 'react';
 import { X, Calendar, Clock } from 'lucide-react';
-import type { MisionDetalleCompleto, EstadoMision, PrioridadMision } from '@/types/misiones';
+import type { MisionDetalleCompleto } from '@/types/misiones';
 import { formatearEstado, formatearPrioridad, formatearTipoMision } from '@/lib/utils/estadoUtils';
+import {
+  obtenerVarianteChipEstadoMision,
+  obtenerVarianteChipPrioridad,
+} from '@/lib/utils/chipVariants';
+import Chip from '@/components/ui/Chip';
 import styles from '@/styles/mision-detalle.module.css';
 
 interface MisionDetalleHeaderProps {
@@ -15,39 +20,6 @@ export const MisionDetalleHeader: React.FC<MisionDetalleHeaderProps> = ({
   mision,
   onCerrar,
 }) => {
-  const getEstadoClass = (estado: EstadoMision) => {
-    switch (estado) {
-      case 'PLANIFICADA':
-        return styles.estadoPlanificada;
-      case 'DESPACHADA':
-        return styles.estadoDespachada;
-      case 'EN_CURSO':
-        return styles.estadoEnCurso;
-      case 'COMPLETADA':
-        return styles.estadoCompletada;
-      case 'CANCELADA':
-        return styles.estadoCancelada;
-      case 'RECHAZADA':
-        return styles.estadoRechazada;
-      default:
-        return '';
-    }
-  };
-
-  const getPrioridadClass = (prioridad: PrioridadMision) => {
-    switch (prioridad) {
-      case 'CRITICA':
-        return styles.prioridadCritica;
-      case 'ALTA':
-        return styles.prioridadAlta;
-      case 'MEDIA':
-        return styles.prioridadMedia;
-      case 'BAJA':
-      default:
-        return styles.prioridadBaja;
-    }
-  };
-
   const formatFecha = (isoString?: string | null) => {
     if (!isoString) return 'No registrado';
     try {
@@ -76,21 +48,23 @@ export const MisionDetalleHeader: React.FC<MisionDetalleHeaderProps> = ({
           <span className={styles.codigoBadge} title="Código Oficial de la Misión">
             {mision.codigo}
           </span>
-          <span className={styles.tipoBadge} title="Tipo de Misión Táctica">
+          <Chip variant="neutral" size="md" title="Tipo de Misión Táctica">
             {formatearTipoMision(mision.tipoMision)}
-          </span>
-          <span
-            className={`${styles.badgeEstado} ${getEstadoClass(mision.estado)}`}
+          </Chip>
+          <Chip
+            variant={obtenerVarianteChipEstadoMision(mision.estado)}
+            size="md"
             title={`Estado operativo: ${formatearEstado(mision.estado)}`}
           >
             {formatearEstado(mision.estado)}
-          </span>
-          <span
-            className={`${styles.badgePrioridad} ${getPrioridadClass(mision.prioridad)}`}
+          </Chip>
+          <Chip
+            variant={obtenerVarianteChipPrioridad(mision.prioridad)}
+            size="md"
             title={`Prioridad: ${formatearPrioridad(mision.prioridad)}`}
           >
             {formatearPrioridad(mision.prioridad)}
-          </span>
+          </Chip>
         </div>
 
         <h2 className={styles.headerTitle} id="mision-detalle-titulo">

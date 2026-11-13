@@ -2,7 +2,11 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { getSocket } from '@/lib/socket/client';
-import type { EstadoIncidente, PrioridadIncidente } from '@/services/incidentesService';
+import type {
+  EstadoIncidente,
+  PrioridadIncidente,
+  ReporteEvaluacionTerreno,
+} from '@/services/incidentesService';
 import { formatearEstado, formatearPrioridad } from '@/lib/utils/estadoUtils';
 
 export interface IncidenteCreadoPayload {
@@ -28,9 +32,14 @@ export interface IncidenteActualizadoPayload {
     codigo: string;
     nuevoEstado: EstadoIncidente;
     prioridad: PrioridadIncidente;
+    prioridadSugerida?: PrioridadIncidente | null;
+    justificacionPrioridad?: string | null;
+    requiereAsistenciaSocial?: boolean;
+    verificado?: boolean;
     tipoIncidenteId?: string;
     tipoAfectacion?: string;
     justificacion?: string;
+    reporteTerreno?: ReporteEvaluacionTerreno | null;
     actualizadoEn: string;
   };
   emitidoEn: string;
@@ -142,6 +151,25 @@ export function useEncargadoKanbanSocket({
             : undefined;
       if (!id) return;
 
+      const rawReporte =
+        rawDatos?.reporteTerreno && typeof rawDatos.reporteTerreno === 'object'
+          ? (rawDatos.reporteTerreno as ReporteEvaluacionTerreno)
+          : undefined;
+
+      const justificacionPrioridad =
+        typeof rawDatos?.justificacionPrioridad === 'string'
+          ? rawDatos.justificacionPrioridad
+          : typeof rawDatos?.justificacion_prioridad === 'string'
+            ? rawDatos.justificacion_prioridad
+            : rawReporte?.justificacionPrioridad ?? undefined;
+
+      const prioridadSugerida =
+        typeof rawDatos?.prioridadSugerida === 'string'
+          ? (rawDatos.prioridadSugerida as PrioridadIncidente)
+          : typeof rawDatos?.prioridad_sugerida === 'string'
+            ? (rawDatos.prioridad_sugerida as PrioridadIncidente)
+            : (rawReporte?.prioridadSugerida as PrioridadIncidente | undefined) ?? undefined;
+
       const normalizedPayload: IncidenteActualizadoPayload = {
         evento: 'incidente:actualizado',
         datos: {
@@ -152,6 +180,14 @@ export function useEncargadoKanbanSocket({
             typeof rawDatos?.prioridad === 'string'
               ? (rawDatos.prioridad as PrioridadIncidente)
               : ('MEDIA' as PrioridadIncidente),
+          prioridadSugerida,
+          justificacionPrioridad,
+          requiereAsistenciaSocial:
+            typeof rawDatos?.requiereAsistenciaSocial === 'boolean'
+              ? rawDatos.requiereAsistenciaSocial
+              : undefined,
+          verificado:
+            typeof rawDatos?.verificado === 'boolean' ? rawDatos.verificado : undefined,
           tipoIncidenteId:
             typeof rawDatos?.tipoIncidenteId === 'string'
               ? rawDatos.tipoIncidenteId
@@ -163,7 +199,8 @@ export function useEncargadoKanbanSocket({
           justificacion:
             typeof rawDatos?.justificacion === 'string'
               ? rawDatos.justificacion
-              : undefined,
+              : justificacionPrioridad,
+          reporteTerreno: rawReporte,
           actualizadoEn:
             typeof rawDatos?.actualizadoEn === 'string'
               ? rawDatos.actualizadoEn
@@ -174,7 +211,18 @@ export function useEncargadoKanbanSocket({
       };
 
       const prioridadLegible = formatearPrioridad(normalizedPayload.datos.prioridad);
-      if (normalizedPayload.datos.tipoAfectacion && normalizedPayload.datos.justificacion) {
+      if (normalizedPayload.datos.reporteTerreno) {
+        const numVer = Number(normalizedPayload.datos.reporteTerreno.versionReporte || 1);
+        const esRect = Boolean(
+          normalizedPayload.datos.reporteTerreno.esRectificacion || numVer > 1
+        );
+        const etiquetaVer = esRect
+          ? `Reporte #${numVer} (Rectificación)`
+          : 'Reporte #1 (Evaluación Inicial)';
+        setUltimoEvento(
+          `${etiquetaVer} recibido en ${normalizedPayload.datos.codigo || 'incidente'} → Prioridad: ${prioridadLegible}`
+        );
+      } else if (normalizedPayload.datos.tipoAfectacion && normalizedPayload.datos.justificacion) {
         setUltimoEvento(
           `Tipología reclasificada: ${normalizedPayload.datos.codigo || ''} a ${normalizedPayload.datos.tipoAfectacion} (Prioridad: ${prioridadLegible})`
         );

@@ -226,4 +226,31 @@ describe('IncidenteCard', () => {
     const tagVerificado = screen.getByText('Verificado');
     expect(tagVerificado).toBeDefined();
   });
+
+  it('debe mostrar indicador de prioridad ajustada manualmente y tooltip con justificación cuando prioridad difiere de prioridadSugerida (HU-38)', () => {
+    const incidenteConPrioridadAjustada: IncidenteResumen = {
+      ...mockIncidente,
+      prioridad: 'CRITICA',
+      prioridadSugerida: 'ALTA',
+      justificacionPrioridad: 'Avance rápido del agua hacia dormitorio de adulto mayor postrado.',
+      totalReportesTerreno: 2,
+      verificado: true,
+    };
+
+    render(<IncidenteCard incidente={incidenteConPrioridadAjustada} onClick={vi.fn()} />);
+
+    const indicadorAjustada = screen.getByTestId('indicador-prioridad-ajustada');
+    expect(indicadorAjustada).toBeDefined();
+    expect(indicadorAjustada.textContent).toContain('Ajustada');
+    expect(indicadorAjustada.getAttribute('title')).toContain(
+      'Prioridad ajustada manualmente en terreno: Crítica (Sugerida por sistema: Alta)'
+    );
+    expect(indicadorAjustada.getAttribute('title')).toContain(
+      'Avance rápido del agua hacia dormitorio de adulto mayor postrado.'
+    );
+
+    const badgeReportes = screen.getByTestId('badge-total-reportes-terreno');
+    expect(badgeReportes).toBeDefined();
+    expect(badgeReportes.textContent).toContain('2 reportes · Rectificado');
+  });
 });

@@ -17,6 +17,7 @@ import type {
 } from '@/types/avisos';
 import { normalizarEstadoAviso, obtenerDelegacionAviso } from '@/types/avisos';
 import { OPERADORES_PREDEFINIDOS } from '@/components/callcenter/AvisosHeader';
+import { formatearFuenteOrigen } from '@/lib/utils/estadoUtils';
 
 function mapearEstadoParaApi(
   filtro: FiltroEstado
@@ -195,9 +196,18 @@ export function useAvisos() {
 
       if (esNuevo) {
         setTotalItems((total) => total + 1);
+        const fuenteLegible = formatearFuenteOrigen(nuevoAviso.origenReporte);
         showInfo(
-          `Nuevo reporte: ${nuevoAviso.tipoPreliminarNombre || 'Aviso de emergencia'} (${nuevoAviso.origenReporte})`,
-          'Nuevo Aviso Entrante'
+          `Nuevo reporte: ${nuevoAviso.tipoPreliminarNombre || 'Aviso de emergencia'} (${fuenteLegible})`,
+          'Nuevo Aviso Entrante',
+          {
+            icon: 'incidente',
+            codeBadge: nuevoAviso.codigoSeguimiento,
+            details: [
+              { label: 'Canal de origen', value: fuenteLegible },
+              ...(nuevoAviso.direccionTexto ? [{ label: 'Ubicación', value: nuevoAviso.direccionTexto }] : []),
+            ],
+          }
         );
       }
     },
@@ -213,12 +223,20 @@ export function useAvisos() {
         setAvisoSeleccionado(null);
         showWarning(
           `El aviso fue promovido a Incidente con folio ${payload.folio} por otro operador.`,
-          'Aviso Atendido'
+          'Aviso Atendido',
+          {
+            icon: 'incidente',
+            codeBadge: payload.folio,
+          }
         );
       } else {
         showInfo(
           `Aviso promovido a Incidente (Folio: ${payload.folio})`,
-          'Derivado a Operaciones'
+          'Derivado a Operaciones',
+          {
+            icon: 'incidente',
+            codeBadge: payload.folio,
+          }
         );
       }
     },
@@ -234,7 +252,11 @@ export function useAvisos() {
         setAvisoSeleccionado(null);
         showWarning(
           `Este aviso fue descartado por otro operador: "${payload.motivoDescarte}".`,
-          'Aviso Descartado'
+          'Aviso Descartado',
+          {
+            icon: 'rechazo',
+            details: [{ label: 'Motivo', value: payload.motivoDescarte }],
+          }
         );
       }
     },

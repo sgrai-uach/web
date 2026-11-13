@@ -1,7 +1,7 @@
 'use client';
 
-import React from 'react';
-import { X, ShieldCheck, Zap } from 'lucide-react';
+import React, { useEffect, useRef } from 'react';
+import { X, ShieldCheck } from 'lucide-react';
 import ConnectionStatusBadge from '@/components/common/ConnectionStatusBadge';
 import Button from '@/components/ui/Button';
 import Heading from '@/components/ui/Heading';
@@ -9,6 +9,7 @@ import Pagination from '@/components/common/Pagination';
 import EmptyState from '@/components/common/EmptyState';
 import InlineNotice from '@/components/ui/InlineNotice';
 import CommonAccesoDenegadoState from '@/components/common/AccesoDenegadoState';
+import { useOptionalToast } from '@/components/ui/Toast';
 import { usePatrullas } from '@/hooks/usePatrullas';
 import { PatrullasFiltros } from './PatrullasFiltros';
 import { PatrullaCard } from './PatrullaCard';
@@ -47,6 +48,18 @@ export const PanelPatrullasModal: React.FC<PanelPatrullasModalProps> = ({
     hayFiltrosActivos,
     dotacionResumen,
   } = usePatrullas({ userId, enabled: isOpen });
+
+  const toast = useOptionalToast();
+  const ultimoEventoRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (isOpen && ultimoEvento && ultimoEvento !== ultimoEventoRef.current) {
+      ultimoEventoRef.current = ultimoEvento;
+      toast?.showInfo(ultimoEvento, 'Actualización de Patrullas', {
+        icon: 'patrulla',
+      });
+    }
+  }, [isOpen, ultimoEvento, toast]);
 
   if (!isOpen) return null;
 
@@ -94,26 +107,6 @@ export const PanelPatrullasModal: React.FC<PanelPatrullasModalProps> = ({
             </Button>
           </div>
         </header>
-
-        {/* Notificación en vivo de Socket */}
-        {ultimoEvento && (
-          <div
-            style={{
-              backgroundColor: 'var(--color-info-bg, #E0F2F1)',
-              color: 'var(--color-primary-teal, #1B6F7D)',
-              padding: '6px 16px',
-              fontSize: '12px',
-              fontWeight: 600,
-              borderBottom: '1px solid var(--border-color-neutral, #DFE3E8)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-            }}
-          >
-            <Zap size={14} color="var(--color-primary-teal, #1B6F7D)" />
-            <span>Actualización en vivo: {ultimoEvento}</span>
-          </div>
-        )}
 
         {/* Contenido con scroll */}
         <div className={styles.modalBody}>

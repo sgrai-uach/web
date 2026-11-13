@@ -23,9 +23,57 @@ export interface EvaluadorTerreno {
   rut?: string | null;
 }
 
+export interface FamiliaAfectadaMisionDetalle {
+  id?: string;
+  referencia?: string;
+  nucleoFamiliarTotal?: number;
+  cantidadNinos?: number;
+  cantidadAdultosMayores?: number;
+  personasDiscapacitadas?: number;
+  personasElectrodependientes?: number;
+  mascotasAfectadas?: number;
+  nivelCompromisoVivienda?: string;
+  requiereAsistenciaSocial?: boolean;
+}
+
+export interface EvaluacionTerrenoMisionDetalle {
+  familias?: FamiliaAfectadaMisionDetalle[];
+  nucleoFamiliarTotal?: number;
+  familiasAfectadas?: number;
+  cantidadNinos?: number;
+  cantidadAdultosMayores?: number;
+  personasDiscapacitadas?: number;
+  personasElectrodependientes?: number;
+  mascotasAfectadas?: number;
+  viviendasAfectadas?: number;
+  nivelCompromisoVivienda?: 'SIN_DANO' | 'LEVE' | 'MODERADO' | 'GRAVE_INHABITABLE' | string;
+  requiereEvacuacion?: boolean;
+  requiereAsistenciaSocial?: boolean;
+  requiereApoyoAdicional?: boolean;
+  riesgosActivos?: {
+    riesgoElectrico?: boolean;
+    riesgoEstructural?: boolean;
+    riesgoQuimicoSanitario?: boolean;
+    aislamientoVial?: boolean;
+  };
+  detallesAdicionales?: string | null;
+  accionesRealizadas?: string | null;
+  danosEstimados?: string | null;
+  puntajeTotal?: number;
+  factoresGatillantes?: string[];
+  [key: string]: unknown;
+}
+
 export interface ReporteTerrenoDetalle {
   id: string;
   misionId: string;
+  versionReporte?: number;
+  esRectificacion?: boolean;
+  etiquetaReporte?: string;
+  prioridadSugerida?: 'BAJA' | 'MEDIA' | 'ALTA' | 'CRITICA' | null;
+  prioridadAsignada?: 'BAJA' | 'MEDIA' | 'ALTA' | 'CRITICA' | null;
+  justificacionPrioridad?: string | null;
+  detallesEvaluacion?: EvaluacionTerrenoMisionDetalle;
   evaluador: EvaluadorTerreno;
   resumenTecnico: string;
   accionesRealizadas: string | null;
@@ -40,11 +88,13 @@ export interface ReporteTerrenoDetalle {
 }
 
 export interface MisionBitacoraHito {
+  id?: string;
   hito: string;
   fecha: string;
   hora: string;
   timestamp: string;
   descripcion: string;
+  metadatos?: Record<string, unknown> | null;
 }
 
 export interface IncidenteMisionResumen {
@@ -58,6 +108,8 @@ export interface IncidenteMisionResumen {
   longitud: number;
   estado: string;
   prioridad: string;
+  prioridadSugerida?: string | null;
+  justificacionPrioridad?: string | null;
   requiereAsistenciaSocial: boolean;
   delegacionNombre: string | null;
 }

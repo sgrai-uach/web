@@ -42,6 +42,8 @@ export const MAPA_ESTADOS_LEGIBLES: Record<string, string> = {
 
   // Hitos de Bitácora Operativa
   TIPOLOGIA_RECLASIFICADA: 'Tipología reclasificada en terreno',
+  PRIORIDAD_ASIGNADA: 'Prioridad evaluada y asignada en terreno',
+  PRIORIDAD_RECTIFICADA: 'Reporte de evaluación y prioridad rectificados en terreno',
   MISION_DESPACHADA: 'Misión despachada',
   MISION_ACEPTADA: 'Misión aceptada',
   EN_RUTA: 'En ruta al sitio',
@@ -51,6 +53,12 @@ export const MAPA_ESTADOS_LEGIBLES: Record<string, string> = {
   MISION_COMPLETADA: 'Misión completada',
   MISION_RECHAZADA: 'Misión rechazada',
   MISION_CANCELADA: 'Misión cancelada',
+
+  // Nivel de compromiso de vivienda (HU-38)
+  SIN_DANO: 'Sin daño habitacional',
+  LEVE: 'Daño leve',
+  MODERADO: 'Daño moderado',
+  GRAVE_INHABITABLE: 'Grave / Inhabitable',
 
   // Personal y Funcionarios
   disponible: 'Disponible',
@@ -121,6 +129,45 @@ export function formatearPrioridad(
   };
 
   return mapaPrioridades[limpio] || formatearEstado(prioridad, fallback);
+}
+
+/**
+ * Retorna la denominación legible del nivel de compromiso de vivienda constatado en terreno (HU-38).
+ */
+export function formatearCompromisoVivienda(
+  nivel?: string | null,
+  fallback = 'No especificado'
+): string {
+  if (!nivel || typeof nivel !== 'string' || nivel.trim() === '') {
+    return fallback;
+  }
+
+  const limpio = nivel.trim().toUpperCase();
+  const mapaCompromiso: Record<string, string> = {
+    SIN_DANO: 'Sin daño habitacional',
+    LEVE: 'Daño leve (Habitable)',
+    LEVE_HABITABLE: 'Daño leve (Habitable)',
+    MODERADO: 'Daño moderado (Parcial)',
+    MODERADO_PARCIAL: 'Daño moderado (Parcial)',
+    GRAVE_INHABITABLE: 'Grave / Inhabitable',
+    DESTRUCCION_TOTAL: 'Destrucción total',
+  };
+
+  return mapaCompromiso[limpio] || formatearEstado(nivel, fallback);
+}
+
+/**
+ * Retorna la variante semántica de Chip para un nivel de compromiso habitacional.
+ */
+export function obtenerVarianteCompromisoVivienda(
+  nivel?: string | null
+): 'neutral' | 'teal' | 'warning' | 'danger' {
+  if (!nivel || typeof nivel !== 'string') return 'neutral';
+  const limpio = nivel.trim().toUpperCase();
+  if (limpio === 'DESTRUCCION_TOTAL' || limpio === 'GRAVE_INHABITABLE') return 'danger';
+  if (limpio === 'MODERADO_PARCIAL' || limpio === 'MODERADO') return 'warning';
+  if (limpio === 'LEVE_HABITABLE' || limpio === 'LEVE') return 'teal';
+  return 'neutral';
 }
 
 /**
@@ -237,5 +284,37 @@ export function obtenerChipEstadoMision(estado?: string | null): ChipEstadoMisio
       };
   }
 }
+
+export const MAPA_FUENTES_ORIGEN: Record<string, string> = {
+  WEB: 'Portal Web',
+  CHATBOT: 'Chatbot Municipal',
+  LLAMADA_TELEFONICA: 'Central Telefónica',
+  LLAMADA: 'Central Telefónica',
+  FUNCIONARIO_TERRENO: 'Funcionario en Terreno',
+  TERRENO: 'Funcionario en Terreno',
+  SENAPRED: 'SENAPRED',
+};
+
+/**
+ * Convierte un valor de enum de fuente u origen del reporte (ej. 'LLAMADA_TELEFONICA')
+ * en un texto amigable para el usuario final (ej. 'Central Telefónica').
+ */
+export function formatearFuenteOrigen(
+  fuente?: string | null,
+  fallback = 'No especificado'
+): string {
+  if (!fuente || typeof fuente !== 'string') {
+    return fallback;
+  }
+  const limpio = fuente.trim().toUpperCase();
+  if (!limpio) {
+    return fallback;
+  }
+  if (MAPA_FUENTES_ORIGEN[limpio]) {
+    return MAPA_FUENTES_ORIGEN[limpio];
+  }
+  return formatearEstado(fuente, fallback);
+}
+
 
 

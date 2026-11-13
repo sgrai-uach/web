@@ -42,11 +42,16 @@ export interface FiltrosKanban {
 export interface UseIncidentesKanbanOptions {
   initialUserId?: string;
   onMisionRechazada?: (payload: MisionRechazadaPayload) => void;
+  onReporteTerrenoRecibido?: (payload: IncidenteActualizadoPayload) => void;
+  onIncidenteCreadoSocket?: (payload: IncidenteCreadoPayload) => void;
+  onIncidenteActualizadoSocket?: (payload: IncidenteActualizadoPayload) => void;
 }
 
 export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | string) {
-  const optionsObj: UseIncidentesKanbanOptions =
-    typeof options === 'string' ? { initialUserId: options } : options || {};
+  const optionsObj: UseIncidentesKanbanOptions = useMemo(
+    () => (typeof options === 'string' ? { initialUserId: options } : options || {}),
+    [options]
+  );
   const initialUserId = optionsObj.initialUserId;
 
   let sessionUserId: string | undefined;
@@ -331,8 +336,10 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
           },
         };
       });
+
+      optionsObj.onIncidenteCreadoSocket?.(payload);
     },
-    []
+    [optionsObj]
   );
 
   const handleIncidenteActualizado = useCallback(
@@ -354,20 +361,47 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
             columnaOrigenDetectada = est;
             const incActual = prev[est][idx];
             const nuevaPrioridad = datos.prioridad || incActual.prioridad;
+            const nuevaPrioridadSugerida =
+              datos.prioridadSugerida !== undefined
+                ? datos.prioridadSugerida
+                : incActual.prioridadSugerida;
+            const nuevaJustificacionPrioridad =
+              datos.justificacionPrioridad !== undefined
+                ? datos.justificacionPrioridad
+                : incActual.justificacionPrioridad;
             const nuevoTipo = datos.tipoAfectacion || incActual.tipoAfectacion;
-            const huboCambioPrioridad = Boolean(datos.prioridad && datos.prioridad !== incActual.prioridad);
+            const huboCambioPrioridad = Boolean(
+              (datos.prioridad && datos.prioridad !== incActual.prioridad) ||
+              (nuevaPrioridadSugerida && nuevaPrioridad !== nuevaPrioridadSugerida)
+            );
             const huboCambioTipologia = Boolean(datos.tipoAfectacion && datos.tipoAfectacion !== incActual.tipoAfectacion);
             const reclasificado = Boolean(
               huboCambioTipologia ||
               datos.justificacion ||
+              datos.reporteTerreno ||
               incActual.reclasificadoEnTerreno ||
               incActual.verificado
             );
+
+            const totalReportesPrevios = Number(incActual.totalReportesTerreno ?? 0);
+            const nuevoTotalReportes = datos.reporteTerreno
+              ? Math.max(
+                  Number(datos.reporteTerreno.versionReporte || 1),
+                  totalReportesPrevios + 1
+                )
+              : totalReportesPrevios;
 
             incidenteEncontrado = {
               ...incActual,
               estado: datos.nuevoEstado,
               prioridad: nuevaPrioridad,
+              prioridadSugerida: nuevaPrioridadSugerida,
+              justificacionPrioridad: nuevaJustificacionPrioridad,
+              totalReportesTerreno: nuevoTotalReportes,
+              requiereAsistenciaSocial:
+                datos.requiereAsistenciaSocial !== undefined
+                  ? datos.requiereAsistenciaSocial
+                  : incActual.requiereAsistenciaSocial,
               tipoAfectacion: nuevoTipo,
               tipoIncidenteId: datos.tipoIncidenteId || incActual.tipoIncidenteId,
               verificado: true,
@@ -375,7 +409,9 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
               justificacionReclasificacion:
                 datos.justificacion || incActual.justificacionReclasificacion,
               cambioPrioridadMotivo: huboCambioPrioridad
-                ? datos.justificacion || 'Ajustada tras verificación presencial en terreno'
+                ? nuevaJustificacionPrioridad ||
+                  datos.justificacion ||
+                  'Ajustada tras verificación presencial en terreno'
                 : incActual.cambioPrioridadMotivo,
               totalMisiones:
                 datos.nuevoEstado === 'VERIFICANDO' && est === 'REPORTADO'
@@ -425,8 +461,14 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
           };
         });
       }
+
+      if (datos.reporteTerreno) {
+        optionsObj.onReporteTerrenoRecibido?.(payload);
+      } else {
+        optionsObj.onIncidenteActualizadoSocket?.(payload);
+      }
     },
-    []
+    [optionsObj]
   );
 
   // Función para mover un incidente de columna de forma inmediata e imperativa

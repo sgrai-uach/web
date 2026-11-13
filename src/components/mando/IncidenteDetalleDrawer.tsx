@@ -5,9 +5,11 @@ import { getSocket } from '@/lib/socket/client';
 import {
   obtenerDetalleIncidente,
   type IncidenteDetalle,
+  type ReporteEvaluacionTerreno,
 } from '@/services/incidentesService';
 import { IncidenteDetalleHeader } from './drawer/IncidenteDetalleHeader';
 import { IncidenteResumenSection } from './drawer/IncidenteResumenSection';
+import { IncidenteUltimoReporteSection } from './drawer/IncidenteUltimoReporteSection';
 import { IncidenteUbicacionSection } from './drawer/IncidenteUbicacionSection';
 import { IncidenteInformanteSection } from './drawer/IncidenteInformanteSection';
 import { IncidenteMisionesSection } from './drawer/IncidenteMisionesSection';
@@ -22,6 +24,7 @@ import styles from '@/styles/mando.module.css';
 
 interface IncidenteDetalleDrawerProps {
   incidenteId: string | null;
+  incidenteCodigo?: string | null;
   userId: string;
   onCerrar: () => void;
   onIncidenteActualizado?: (incidenteId: string, nuevoEstado: EstadoIncidente) => void;
@@ -29,6 +32,7 @@ interface IncidenteDetalleDrawerProps {
 
 export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
   incidenteId,
+  incidenteCodigo = null,
   userId,
   onCerrar,
   onIncidenteActualizado,
@@ -37,6 +41,8 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
   const [cargando, setCargando] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [misionSeleccionadaId, setMisionSeleccionadaId] = useState<string | null>(null);
+  const [enfocarReportesMision, setEnfocarReportesMision] = useState<boolean>(false);
+  const [reporteDestacadoId, setReporteDestacadoId] = useState<string | null>(null);
   const [modalAsignarPatrullaAbierto, setModalAsignarPatrullaAbierto] = useState<boolean>(false);
   const puedeAsignar = usePuedeAsignarMision();
 
@@ -98,27 +104,59 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
               : typeof rawDatos?.estado === 'string'
                 ? (rawDatos.estado as IncidenteDetalle['estado'])
                 : prev.estado;
+          const justificacionPrioridad =
+            typeof rawDatos?.justificacionPrioridad === 'string'
+              ? rawDatos.justificacionPrioridad
+              : prev.justificacionPrioridad;
+          const prioridadSugerida =
+            typeof rawDatos?.prioridadSugerida === 'string'
+              ? (rawDatos.prioridadSugerida as IncidenteDetalle['prioridadSugerida'])
+              : prev.prioridadSugerida;
           const justificacion =
             typeof rawDatos?.justificacion === 'string'
               ? rawDatos.justificacion
-              : prev.justificacionReclasificacion;
+              : justificacionPrioridad || prev.justificacionReclasificacion;
           const huboCambioPrioridad = Boolean(
-            rawDatos?.prioridad && rawDatos.prioridad !== prev.prioridad
+            (rawDatos?.prioridad && rawDatos.prioridad !== prev.prioridad) ||
+              (prioridadSugerida && nuevaPrioridad !== prioridadSugerida)
           );
+
+          let nuevosReportes = prev.reportesEvaluacionTerreno || [];
+          if (rawDatos?.reporteTerreno && typeof rawDatos.reporteTerreno === 'object') {
+            const repentrante = rawDatos.reporteTerreno as ReporteEvaluacionTerreno;
+            const yaExiste = nuevosReportes.some((r) => r.id === repentrante.id);
+            nuevosReportes = yaExiste
+              ? nuevosReportes.map((r) => (r.id === repentrante.id ? repentrante : r))
+              : [repentrante, ...nuevosReportes];
+          }
 
           return {
             ...prev,
             tipoAfectacion: nuevoTipo,
+            misiones: prev.misiones.map((m) =>
+              m.tipoMision === 'VERIFICACION' && nuevoTipo && prev.codigo
+                ? { ...m, titulo: `Verificación: ${nuevoTipo} - ${prev.codigo}` }
+                : m
+            ),
             prioridad: nuevaPrioridad,
+            prioridadSugerida,
+            justificacionPrioridad,
+            requiereAsistenciaSocial:
+              typeof rawDatos?.requiereAsistenciaSocial === 'boolean'
+                ? rawDatos.requiereAsistenciaSocial
+                : prev.requiereAsistenciaSocial,
             estado: nuevoEstado,
             tipoIncidenteId:
               typeof rawDatos?.tipoIncidenteId === 'string'
                 ? rawDatos.tipoIncidenteId
                 : prev.tipoIncidenteId,
+            reportesEvaluacionTerreno: nuevosReportes,
             reclasificadoEnTerreno: true,
             justificacionReclasificacion: justificacion,
             cambioPrioridadMotivo: huboCambioPrioridad
-              ? justificacion || 'Ajustada tras verificación presencial en terreno'
+              ? justificacionPrioridad ||
+                justificacion ||
+                'Ajustada tras verificación presencial en terreno'
               : prev.cambioPrioridadMotivo,
             actualizadoEn:
               typeof rawDatos?.actualizadoEn === 'string'
@@ -176,6 +214,8 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
         <div className={styles.drawerContent} onClick={(e) => e.stopPropagation()}>
           <IncidenteDetalleHeader
             detalle={detalle}
+            codigoInicial={incidenteCodigo}
+            incidenteId={incidenteId}
             onCerrar={onCerrar}
             onAsignarPatrulla={() => setModalAsignarPatrullaAbierto(true)}
             puedeAsignar={puedeAsignar}
@@ -198,13 +238,38 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
 
             {!cargando && detalle && (
               <>
-                <IncidenteResumenSection detalle={detalle} />
+                <IncidenteResumenSection
+                  detalle={detalle}
+                  onVerReporteCambioAfectacion={(misionId, reporteId) => {
+                    setEnfocarReportesMision(true);
+                    setReporteDestacadoId(reporteId);
+                    setMisionSeleccionadaId(misionId);
+                  }}
+                />
+                <IncidenteUltimoReporteSection
+                  detalle={detalle}
+                  onVerDetalleReporte={(misionId, reporteId) => {
+                    setEnfocarReportesMision(true);
+                    setReporteDestacadoId(reporteId);
+                    setMisionSeleccionadaId(misionId);
+                  }}
+                />
                 <IncidenteUbicacionSection detalle={detalle} />
                 <IncidenteInformanteSection detalle={detalle} />
                 <IncidenteMisionesSection
                   misiones={detalle.misiones}
+                  reportesEvaluacionTerreno={detalle.reportesEvaluacionTerreno}
                   incidenteEstado={detalle.estado}
-                  onVerDetalleMision={(misionId) => setMisionSeleccionadaId(misionId)}
+                  onVerDetalleMision={(misionId) => {
+                    setEnfocarReportesMision(false);
+                    setReporteDestacadoId(null);
+                    setMisionSeleccionadaId(misionId);
+                  }}
+                  onVerReportesMision={(misionId, reporteId) => {
+                    setEnfocarReportesMision(true);
+                    setReporteDestacadoId(reporteId || null);
+                    setMisionSeleccionadaId(misionId);
+                  }}
                   onAsignarPatrulla={() => setModalAsignarPatrullaAbierto(true)}
                   puedeAsignar={puedeAsignar}
                 />
@@ -215,11 +280,17 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
         </div>
       </div>
 
-      {/* Modal de Detalle de Misión (HU-17) con preservación del contexto del incidente y tablero */}
+      {/* Modal de Detalle de Misión (HU-17 / HU-38) con preservación del contexto del incidente y tablero */}
       <MisionDetalleModal
         misionId={misionSeleccionadaId}
         userId={userId}
-        onCerrar={() => setMisionSeleccionadaId(null)}
+        enfocarReportes={enfocarReportesMision}
+        reporteDestacadoId={reporteDestacadoId}
+        onCerrar={() => {
+          setMisionSeleccionadaId(null);
+          setEnfocarReportesMision(false);
+          setReporteDestacadoId(null);
+        }}
       />
 
       {/* Modal de Asignación de Patrulla Verificadora (HU-20) */}

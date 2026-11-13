@@ -226,4 +226,122 @@ describe('Componente IncidenteMisionesSection', () => {
     expect(triggerRechazos.getAttribute('aria-expanded')).toBe('false');
     expect(screen.queryByText('Terreno inaccesible por inundación de calzada.')).toBeNull();
   });
+
+  it('debe mostrar el acceso directo al último reporte realizado de las misiones activas y permitir acceder a todos los reportes de la misión (HU-38)', () => {
+    const handleVerReportesMision = vi.fn();
+    const misionVerificacionActiva: IncidenteDetalle['misiones'][number] = {
+      id: 'm-verif-1',
+      codigo: 'MIS-2026-0050',
+      titulo: 'Verificación de inundación',
+      descripcion: 'Evaluar viviendas afectadas',
+      tipoMision: 'VERIFICACION',
+      estado: 'EN_CURSO',
+      prioridad: 'CRITICA',
+      justificacionRechazo: null,
+      cuadrilla: null,
+      patrulla: {
+        id: 'pat-1',
+        nombre: 'Patrulla Calle Calle',
+        estado: 'EN_VERIFICACION',
+      },
+      fechaInicio: '2026-11-11T10:00:00Z',
+      fechaCierre: null,
+      creadoEn: '2026-11-11T09:45:00Z',
+    };
+
+    const mockReportesTerreno: NonNullable<IncidenteDetalle['reportesEvaluacionTerreno']> = [
+      {
+        id: 'rep-v2',
+        misionId: 'm-verif-1',
+        versionReporte: 2,
+        esRectificacion: true,
+        etiquetaReporte: 'Reporte de Evaluación #2 (Rectificación)',
+        prioridadSugerida: 'ALTA',
+        prioridadAsignada: 'CRITICA',
+        justificacionPrioridad: 'Sube nivel del agua e ingresa a vivienda de adulto mayor con discapacidad.',
+        resumenTecnico: 'Rectificación: 5 personas afectadas, se solicita cuadrilla pesada.',
+        accionesRealizadas: 'Corte preventivo de energía.',
+        danosEstimados: 'Primer piso anegado.',
+        observaciones: 'Requiere motobomba.',
+        personasAfectadas: 5,
+        requiereApoyoAdicional: true,
+        evaluacion: {
+          nucleoFamiliarTotal: 5,
+          cantidadNinos: 2,
+          cantidadAdultosMayores: 1,
+          personasDiscapacitadas: 1,
+          mascotasAfectadas: 2,
+          nivelCompromisoVivienda: 'GRAVE_INHABITABLE',
+        },
+        evaluador: {
+          id: 'u-pat-1',
+          nombre: 'Inspector Terreno',
+          email: 'inspector@valdivia.cl',
+        },
+        creadoEn: '2026-11-11T10:30:00Z',
+      },
+      {
+        id: 'rep-v1',
+        misionId: 'm-verif-1',
+        versionReporte: 1,
+        esRectificacion: false,
+        etiquetaReporte: 'Reporte de Evaluación #1 (Inicial)',
+        prioridadSugerida: 'MEDIA',
+        prioridadAsignada: 'ALTA',
+        justificacionPrioridad: 'Riesgo de ingreso a vivienda.',
+        resumenTecnico: 'Evaluación inicial en terreno.',
+        accionesRealizadas: null,
+        danosEstimados: null,
+        observaciones: null,
+        personasAfectadas: 3,
+        requiereApoyoAdicional: false,
+        evaluacion: {
+          nucleoFamiliarTotal: 3,
+        },
+        evaluador: {
+          id: 'u-pat-1',
+          nombre: 'Inspector Terreno',
+          email: 'inspector@valdivia.cl',
+        },
+        creadoEn: '2026-11-11T10:10:00Z',
+      },
+    ];
+
+    render(
+      <IncidenteMisionesSection
+        misiones={[misionVerificacionActiva]}
+        reportesEvaluacionTerreno={mockReportesTerreno}
+        onVerReportesMision={handleVerReportesMision}
+      />
+    );
+
+    const bloqueUltimoReporte = screen.getByTestId('ultimo-reporte-mision-m-verif-1');
+    expect(bloqueUltimoReporte).toBeDefined();
+    expect(bloqueUltimoReporte.textContent).toContain('Reporte #2 — Rectificación Vigente');
+    expect(bloqueUltimoReporte.textContent).toContain('Prioridad sugerida: Alta');
+    expect(bloqueUltimoReporte.textContent).toContain('Prioridad confirmada: Crítica');
+    expect(bloqueUltimoReporte.textContent).toContain(
+      'Sube nivel del agua e ingresa a vivienda de adulto mayor con discapacidad.'
+    );
+    expect(bloqueUltimoReporte.textContent).toContain('Núcleo familiar: 5 pers.');
+    expect(bloqueUltimoReporte.textContent).toContain('Niños: 2');
+    expect(bloqueUltimoReporte.textContent).toContain('Discapacidad: 1');
+    expect(bloqueUltimoReporte.textContent).toContain('Mascotas: 2');
+    expect(bloqueUltimoReporte.textContent).toContain('Grave / Inhabitable');
+
+    // Clic en acceso directo "Ver Último Reporte"
+    const btnUltimo = screen.getByRole('button', {
+      name: /Ver último reporte de la misión MIS-2026-0050/i,
+    });
+    fireEvent.click(btnUltimo);
+    expect(handleVerReportesMision).toHaveBeenCalledWith('m-verif-1', 'rep-v2');
+
+    // Clic en "Ver Todos los Reportes (2)"
+    const btnTodos = screen.getByRole('button', {
+      name: /Ver todos los reportes de la misión MIS-2026-0050/i,
+    });
+    expect(btnTodos.textContent).toContain('Ver Todos los Reportes (2)');
+    fireEvent.click(btnTodos);
+    expect(handleVerReportesMision).toHaveBeenCalledWith('m-verif-1');
+  });
 });
