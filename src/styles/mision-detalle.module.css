@@ -411,12 +411,62 @@
   border: 1px solid var(--border-color-neutral, #DFE3E8);
   border-left: 4px solid var(--color-accent-mint, #4FAE9B);
   background-color: var(--color-white, #FFFFFF);
+  border-radius: var(--radius-none, 0px);
+  flex-shrink: 0;
+  overflow: hidden;
+  transition: box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+.reporteCard:hover {
+  border-color: var(--color-primary-teal, #1B6F7D);
+}
+
+.reporteHeaderTrigger {
+  width: 100%;
+  background: transparent;
+  border: none;
+  padding: var(--space-3, 12px) var(--space-4, 16px);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  text-align: left;
+  cursor: pointer;
+  gap: var(--space-3, 12px);
+  color: inherit;
+  font-family: inherit;
+  transition: background-color 0.15s ease;
+}
+
+.reporteHeaderTrigger:hover {
+  background-color: rgba(27, 111, 125, 0.04);
+}
+
+.reporteHeaderTrigger:focus-visible {
+  outline: 2px solid var(--color-primary-teal, #1B6F7D);
+  outline-offset: -2px;
+}
+
+.reporteChevron {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-primary-teal, #1B6F7D);
+  transition: transform 0.2s ease;
+  flex-shrink: 0;
+}
+
+.reporteChevronExpanded {
+  transform: rotate(180deg);
+}
+
+.reporteBody {
   padding: var(--space-4, 16px);
+  padding-top: var(--space-2, 8px);
+  border-top: 1px solid var(--border-color-neutral, #DFE3E8);
   display: flex;
   flex-direction: column;
   gap: var(--space-3, 12px);
-  border-radius: var(--radius-none, 0px);
-  flex-shrink: 0;
+  animation: fadeIn 0.15s ease-out;
 }
 
 .reporteHeader {

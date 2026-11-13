@@ -1,8 +1,9 @@
 'use client';
 
 import React from 'react';
-import Heading from '@/components/ui/Heading';
+import { UserRound } from 'lucide-react';
 import type { IncidenteDetalle } from '@/services/incidentesService';
+import { DrawerSectionHeader } from './DrawerSectionHeader';
 import styles from '@/styles/mando.module.css';
 
 interface IncidenteInformanteSectionProps {
@@ -12,9 +13,10 @@ interface IncidenteInformanteSectionProps {
 export const IncidenteInformanteSection: React.FC<IncidenteInformanteSectionProps> = ({ detalle }) => {
   return (
     <div className={styles.drawerSection}>
-      <Heading as="h3" variant="h4" color="teal" style={{ marginBottom: '0.75rem' }}>
-        Informante y Operador
-      </Heading>
+      <DrawerSectionHeader
+        icono={<UserRound size={18} />}
+        titulo="Informante y Operador"
+      />
       <div className={styles.drawerDataGrid}>
         <div>
           <span className={styles.drawerDataLabel}>Nombre Informante</span>

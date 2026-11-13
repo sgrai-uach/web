@@ -1,24 +1,52 @@
 'use client';
 
-import React, { createContext, useCallback, useContext, useState } from 'react';
+import React, { createContext, useCallback, useContext, useRef, useState } from 'react';
 import ToastItem from './ToastItem';
 
 export type ToastType = 'success' | 'error' | 'warning' | 'info';
 
-export interface ToastMessage {
+export type ToastIconType =
+  | 'reporte'
+  | 'reclasificacion'
+  | 'incidente'
+  | 'patrulla'
+  | 'rechazo'
+  | 'operativo';
+
+export interface ToastDetailItem {
+  label: string;
+  value: string;
+}
+
+export interface ToastAction {
+  label: string;
+  onClick: () => void;
+}
+
+export interface ToastOptions {
+  durationMs?: number;
+  icon?: ToastIconType | React.ReactNode;
+  codeBadge?: string;
+  priorityBadge?: string;
+  details?: ToastDetailItem[];
+  action?: ToastAction;
+  /** Clave opcional para evitar toasts duplicados en una ventana de tiempo */
+  dedupKey?: string;
+}
+
+export interface ToastMessage extends ToastOptions {
   id: string;
   type: ToastType;
   title?: string;
   message: string;
-  durationMs?: number;
 }
 
 interface ToastContextValue {
   showToast: (toast: Omit<ToastMessage, 'id'>) => void;
-  showSuccess: (message: string, title?: string) => void;
-  showError: (message: string, title?: string) => void;
-  showWarning: (message: string, title?: string) => void;
-  showInfo: (message: string, title?: string) => void;
+  showSuccess: (message: string, title?: string, options?: ToastOptions) => void;
+  showError: (message: string, title?: string, options?: ToastOptions) => void;
+  showWarning: (message: string, title?: string, options?: ToastOptions) => void;
+  showInfo: (message: string, title?: string, options?: ToastOptions) => void;
   removeToast: (id: string) => void;
 }
 
@@ -35,27 +63,62 @@ export function useToast(): ToastContextValue {
 export function useOptionalToast(): ToastContextValue | null {
   return useContext(ToastContext);
 }
+
 export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
+  const recentToastsRef = useRef<Map<string, number>>(new Map());
 
   const removeToast = useCallback((id: string) => {
     setToasts((prev) => prev.filter((t) => t.id !== id));
   }, []);
 
   const showToast = useCallback(
-    ({ type, title, message, durationMs = 5000 }: Omit<ToastMessage, 'id'>) => {
-      const id = `${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
-      const newToast: ToastMessage = { id, type, title, message, durationMs };
-      setToasts((prev) => [...prev, newToast]);
-      if (durationMs > 0) setTimeout(() => removeToast(id), durationMs);
+    ({ type, title, message, durationMs = 6000, dedupKey, ...rest }: Omit<ToastMessage, 'id'>) => {
+      const fingerprint = dedupKey || `${type}|${title || ''}|${rest.codeBadge || ''}|${message}`;
+      const ahora = Date.now();
+      const ultimaVez = recentToastsRef.current.get(fingerprint);
+      if (ultimaVez && ahora - ultimaVez < 3000) {
+        return;
+      }
+      recentToastsRef.current.set(fingerprint, ahora);
+
+      const id = `${ahora}-${Math.random().toString(36).substring(2, 7)}`;
+      const newToast: ToastMessage = { id, type, title, message, durationMs, dedupKey, ...rest };
+      setToasts((prev) => {
+        const yaVisible = prev.some(
+          (t) =>
+            (t.dedupKey || `${t.type}|${t.title || ''}|${t.codeBadge || ''}|${t.message}`) ===
+            fingerprint
+        );
+        return yaVisible ? prev : [...prev, newToast];
+      });
     },
-    [removeToast]
+    []
   );
 
-  const showSuccess = useCallback((m: string, t = 'Operación exitosa') => showToast({ type: 'success', title: t, message: m }), [showToast]);
-  const showError = useCallback((m: string, t = 'Error') => showToast({ type: 'error', title: t, message: m, durationMs: 7000 }), [showToast]);
-  const showWarning = useCallback((m: string, t = 'Atención') => showToast({ type: 'warning', title: t, message: m, durationMs: 6000 }), [showToast]);
-  const showInfo = useCallback((m: string, t = 'Información') => showToast({ type: 'info', title: t, message: m }), [showToast]);
+  const showSuccess = useCallback(
+    (m: string, t = 'Operación exitosa', opts?: ToastOptions) =>
+      showToast({ type: 'success', title: t, message: m, durationMs: 5000, ...opts }),
+    [showToast]
+  );
+
+  const showError = useCallback(
+    (m: string, t = 'Error', opts?: ToastOptions) =>
+      showToast({ type: 'error', title: t, message: m, durationMs: 8000, ...opts }),
+    [showToast]
+  );
+
+  const showWarning = useCallback(
+    (m: string, t = 'Atención', opts?: ToastOptions) =>
+      showToast({ type: 'warning', title: t, message: m, durationMs: 7000, ...opts }),
+    [showToast]
+  );
+
+  const showInfo = useCallback(
+    (m: string, t = 'Información', opts?: ToastOptions) =>
+      showToast({ type: 'info', title: t, message: m, durationMs: 6000, ...opts }),
+    [showToast]
+  );
 
   return (
     <ToastContext.Provider value={{ showToast, showSuccess, showError, showWarning, showInfo, removeToast }}>
@@ -63,9 +126,16 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
       <div
         id="toast-container"
         style={{
-          position: 'fixed', top: '1.5rem', right: '1.5rem', zIndex: 9999,
-          display: 'flex', flexDirection: 'column', gap: '0.75rem',
-          maxWidth: '420px', width: 'calc(100vw - 3rem)', pointerEvents: 'none',
+          position: 'fixed',
+          top: '1.5rem',
+          right: '1.5rem',
+          zIndex: 9999,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '0.75rem',
+          maxWidth: '440px',
+          width: 'calc(100vw - 3rem)',
+          pointerEvents: 'none',
         }}
       >
         {toasts.map((toast) => (

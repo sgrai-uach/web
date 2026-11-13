@@ -10,16 +10,122 @@ import type {
   DelegacionOpcion,
 } from '@/types/incidentesKpis';
 import { DELEGACIONES_VALDIVIA_DEFAULT } from '@/types/incidentesKpis';
+import type { FamiliaAfectadaMisionDetalle } from '@/types/misiones';
 
 export const DEFAULT_ENCARGADO_ID = '00000000-0000-4000-8000-000000000003';
 
 export type ListarIncidentesResponse = components['schemas']['ListarIncidentesResponse'];
 export type IncidenteDetalleResponse = components['schemas']['IncidenteDetalleResponse'];
+
+export type NivelCompromisoVivienda = 'SIN_DANO' | 'LEVE' | 'MODERADO' | 'GRAVE_INHABITABLE';
+
+export interface RiesgosActivosEvaluacion {
+  riesgoElectrico?: boolean;
+  riesgoEstructural?: boolean;
+  riesgoQuimicoSanitario?: boolean;
+  aislamientoVial?: boolean;
+}
+
+export interface EvaluacionTerrenoDetalle {
+  familias?: FamiliaAfectadaMisionDetalle[];
+  nucleoFamiliarTotal?: number;
+  familiasAfectadas?: number;
+  cantidadNinos?: number;
+  cantidadAdultosMayores?: number;
+  personasDiscapacitadas?: number;
+  personasElectrodependientes?: number;
+  mascotasAfectadas?: number;
+  viviendasAfectadas?: number;
+  nivelCompromisoVivienda?: NivelCompromisoVivienda | string;
+  requiereEvacuacion?: boolean;
+  requiereAsistenciaSocial?: boolean;
+  requiereApoyoAdicional?: boolean;
+  riesgosActivos?: RiesgosActivosEvaluacion;
+  detallesAdicionales?: string | null;
+  accionesRealizadas?: string | null;
+  danosEstimados?: string | null;
+  puntajeTotal?: number;
+  factoresGatillantes?: string[];
+  [key: string]: unknown;
+}
+
+export interface ReporteEvaluacionTerreno {
+  id: string;
+  misionId: string;
+  versionReporte: number;
+  esRectificacion: boolean;
+  etiquetaReporte: string;
+  prioridadSugerida: 'BAJA' | 'MEDIA' | 'ALTA' | 'CRITICA' | null;
+  prioridadAsignada: 'BAJA' | 'MEDIA' | 'ALTA' | 'CRITICA' | null;
+  justificacionPrioridad: string | null;
+  resumenTecnico: string;
+  accionesRealizadas: string | null;
+  danosEstimados: string | null;
+  observaciones: string | null;
+  detallesAdicionales?: string | null;
+  personasAfectadas: number;
+  requiereApoyoAdicional: boolean;
+  evaluacion: EvaluacionTerrenoDetalle;
+  evaluador: {
+    id: string;
+    nombre: string;
+    email?: string | null;
+    rut?: string | null;
+  };
+  creadoEn: string;
+}
+
+export interface ReclasificacionTipologiaResumen {
+  hitoId: string;
+  misionId: string;
+  misionCodigo: string;
+  tipoAnterior: string | null;
+  tipoNuevo: string;
+  justificacion: string;
+  registradoPor: string | null;
+  creadoEn: string;
+}
+
+export interface UltimoReporteIncidenteResumen {
+  origen: 'REPORTE_TERRENO' | 'RECLASIFICACION';
+  reporteId: string;
+  misionId: string;
+  misionCodigo: string;
+  evaluadorNombre: string;
+  creadoEn: string;
+  resumen: string;
+  prioridadAsignada: 'BAJA' | 'MEDIA' | 'ALTA' | 'CRITICA' | null;
+  versionReporte: number | null;
+  esRectificacion: boolean;
+}
+
 export type IncidenteResumen = ListarIncidentesResponse['data'][number] & {
+  tipoIncidenteId?: string | null;
+  prioridadSugerida?: 'BAJA' | 'MEDIA' | 'ALTA' | 'CRITICA' | null;
+  justificacionPrioridad?: string | null;
+  totalReportesTerreno?: number;
   /** Indica si la patrulla verificadora completó el informe/diagnóstico en terreno */
   verificado?: boolean;
+  reclasificadoEnTerreno?: boolean;
+  justificacionReclasificacion?: string | null;
+  cambioPrioridadMotivo?: string | null;
+  tieneMisionDespachada?: boolean;
+  tieneMisionEnCurso?: boolean;
 };
-export type IncidenteDetalle = IncidenteDetalleResponse['data'];
+export type IncidenteDetalle = IncidenteDetalleResponse['data'] & {
+  tipoIncidenteId?: string | null;
+  prioridadSugerida?: 'BAJA' | 'MEDIA' | 'ALTA' | 'CRITICA' | null;
+  justificacionPrioridad?: string | null;
+  reportesEvaluacionTerreno?: ReporteEvaluacionTerreno[];
+  verificado?: boolean;
+  reclasificadoEnTerreno?: boolean;
+  justificacionReclasificacion?: string | null;
+  cambioPrioridadMotivo?: string | null;
+  reclasificacionTipologia?: ReclasificacionTipologiaResumen | null;
+  ultimoReporte?: UltimoReporteIncidenteResumen | null;
+  tieneMisionDespachada?: boolean;
+  tieneMisionEnCurso?: boolean;
+};
 export type PaginacionMeta = ListarIncidentesResponse['paginacion'];
 export type EstadoIncidente = IncidenteResumen['estado'];
 export type PrioridadIncidente = IncidenteResumen['prioridad'];

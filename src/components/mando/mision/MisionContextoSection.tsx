@@ -3,7 +3,9 @@
 import React from 'react';
 import { AlertCircle, MapPin } from 'lucide-react';
 import Heading from '@/components/ui/Heading';
+import Chip from '@/components/ui/Chip';
 import type { IncidenteMisionResumen, PrevencionMisionResumen } from '@/types/misiones';
+import { formatearEstado, formatearPrioridad } from '@/lib/utils/estadoUtils';
 import styles from '@/styles/mision-detalle.module.css';
 
 interface MisionContextoSectionProps {
@@ -27,21 +29,13 @@ export const MisionContextoSection: React.FC<MisionContextoSectionProps> = ({
           </Heading>
         </div>
         {incidente && incidente.requiereAsistenciaSocial && (
-          <span
-            style={{
-              backgroundColor: '#EDE9FE',
-              color: '#5B21B6',
-              border: '1px solid #C4B5FD',
-              padding: '2px 8px',
-              fontSize: '11px',
-              fontWeight: 800,
-              textTransform: 'uppercase',
-              letterSpacing: '0.4px',
-            }}
+          <Chip
+            variant="warning"
+            size="sm"
             title="Este caso requiere aplicación de Ficha Básica de Emergencia (FIBE)"
           >
             Requiere Asistencia Social (FIBE)
-          </span>
+          </Chip>
         )}
       </div>
 
@@ -100,14 +94,14 @@ export const MisionContextoSection: React.FC<MisionContextoSectionProps> = ({
             <div className={styles.dataItem}>
               <span className={styles.dataLabel}>Estado del Incidente</span>
               <span className={styles.dataValue} style={{ fontWeight: 600 }}>
-                {incidente.estado}
+                {formatearEstado(incidente.estado)}
               </span>
             </div>
 
             <div className={styles.dataItem}>
               <span className={styles.dataLabel}>Prioridad del Incidente</span>
               <span className={styles.dataValue} style={{ fontWeight: 600 }}>
-                {incidente.prioridad}
+                {formatearPrioridad(incidente.prioridad)}
               </span>
             </div>
           </div>

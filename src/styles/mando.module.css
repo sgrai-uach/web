@@ -214,7 +214,7 @@
 
 .kanbanBoard {
   display: grid;
-  grid-template-columns: repeat(5, minmax(250px, 1fr));
+  grid-template-columns: repeat(5, minmax(310px, 1fr));
   gap: var(--space-4, 16px);
   align-items: start;
   width: 100%;
@@ -228,6 +228,8 @@
   display: flex;
   flex-direction: column;
   max-height: calc(100vh - 230px);
+  min-width: 0;
+  overflow: hidden;
 }
 
 .columnHeader {
@@ -278,10 +280,12 @@
 .columnCardsList {
   padding: 0.85rem;
   overflow-y: auto;
+  overflow-x: hidden;
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
   flex: 1;
+  min-width: 0;
 }
 
 .columnEmptyMessage {
@@ -327,6 +331,10 @@
   gap: 0.65rem;
   transition: border-color 0.15s ease, background-color 0.15s ease;
   position: relative;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
 /* Indicador de incidente verificado (Recomendación táctica H21 / ICS) */
@@ -357,7 +365,9 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 0.5rem;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.5rem;
+  min-width: 0;
 }
 
 .cardCodigo {
@@ -365,32 +375,49 @@
   font-weight: 700;
   color: var(--color-primary-teal-dark, #14505A);
   letter-spacing: -0.01em;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
-/* Badges de Prioridad Planos */
+/* Badges de Prioridad Estándar (alineados con Chip sm: 20px / 11px) */
 .badgePrioridad {
-  font-size: 0.7rem;
-  font-weight: 800;
-  padding: 0.15rem 0.45rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--color-white, #FFFFFF);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 20px;
+  padding: 0 8px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  line-height: 1;
+  border-radius: var(--radius-none, 0px);
+  border: 1px solid transparent;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  box-sizing: border-box;
 }
 
 .prioridadBaja {
-  background-color: #718096;
+  background-color: var(--color-success-bg, #E8F5E9);
+  color: var(--color-success, #2E7D32);
+  border-color: #A5D6A7;
 }
 
 .prioridadMedia {
-  background-color: #2B6CB0;
+  background-color: var(--color-info-bg, #E0F2F1);
+  color: var(--color-primary-teal-dark, #14505A);
+  border-color: var(--color-primary-teal, #1B6F7D);
 }
 
 .prioridadAlta {
-  background-color: #DD6B20;
+  background-color: var(--color-warning-bg, #FFF3E0);
+  color: var(--color-warning, #E65100);
+  border-color: #FFCC80;
 }
 
 .prioridadCritica {
-  background-color: #C53030;
+  background-color: var(--color-danger-bg, #FFEBEE);
+  color: var(--color-danger, #D32F2F);
+  border-color: #EF9A9A;
 }
 
 .cardTipoAfectacion {
@@ -399,6 +426,7 @@
   color: var(--color-charcoal-dark, #24272B);
   margin: 0;
   line-height: 1.25;
+  overflow-wrap: anywhere;
 }
 
 .cardDireccion {
@@ -406,42 +434,78 @@
   color: #4A5568;
   margin: 0;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 0.35rem;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .cardFooter {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-wrap: wrap;
+  gap: 0.4rem 0.5rem;
   border-top: 1px solid #E2E8F0;
   padding-top: 0.5rem;
   margin-top: 0.25rem;
   font-size: 0.75rem;
   color: #718096;
+  min-width: 0;
 }
 
 .cardMetaTags {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 0.35rem;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.cardDelegacion {
+  margin-left: auto;
+  white-space: nowrap;
+  font-size: 0.75rem;
+  color: #64748B;
+  text-align: right;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .tagAsistenciaSocial {
-  background-color: #FED7D7;
-  color: #9B2C2C;
-  font-size: 0.65rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 20px;
+  padding: 0 8px;
+  font-size: 0.6875rem;
   font-weight: 700;
-  padding: 0.1rem 0.35rem;
+  line-height: 1;
+  border-radius: var(--radius-none, 0px);
+  background-color: var(--color-warning-bg, #FFF3E0);
+  color: var(--color-warning, #E65100);
+  border: 1px solid #FFCC80;
+  white-space: nowrap;
+  box-sizing: border-box;
 }
 
 .tagMisiones {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 20px;
+  padding: 0 8px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  line-height: 1;
+  border-radius: var(--radius-none, 0px);
   background-color: var(--color-bg-light, #ECEFF3);
   color: var(--color-charcoal, #3B3F45);
-  font-size: 0.7rem;
-  font-weight: 600;
-  padding: 0.1rem 0.35rem;
   border: 1px solid #CBD5E1;
+  white-space: nowrap;
+  box-sizing: border-box;
 }
 
 /* --- Panel Lateral Deslizante (Drawer de Detalle) --- */
@@ -582,6 +646,54 @@
   margin-top: 0.5rem;
   font-size: 0.8rem;
   border-left: 3px solid #E53E3E;
+}
+
+/* Acordeón / Desplegable de Misiones Rechazadas en Drawer */
+.rechazosContainer {
+  margin-top: 0.75rem;
+  border: 1px solid #FFCDD2;
+  border-left: 4px solid var(--color-danger, #D32F2F);
+  background-color: #FFFDFD;
+  border-radius: var(--radius-none, 0px);
+  overflow: hidden;
+}
+
+.rechazosTrigger {
+  width: 100%;
+  background: transparent;
+  border: none;
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  text-align: left;
+  cursor: pointer;
+  color: inherit;
+  font-family: inherit;
+  transition: background-color 0.15s ease;
+}
+
+.rechazosTrigger:hover {
+  background-color: #FFEBEE;
+}
+
+.rechazosTrigger:focus-visible {
+  outline: 2px solid var(--color-danger, #D32F2F);
+  outline-offset: -2px;
+}
+
+.rechazosBody {
+  padding: 12px 14px;
+  border-top: 1px solid #FFCDD2;
+  background-color: #FAFAFA;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.chevronRotated {
+  transform: rotate(180deg);
+  transition: transform 0.2s ease;
 }
 
 /* Tabla de Recursos Asociados en Drawer */
