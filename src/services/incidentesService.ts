@@ -104,6 +104,7 @@ export type IncidenteResumen = ListarIncidentesResponse['data'][number] & {
   prioridadSugerida?: 'BAJA' | 'MEDIA' | 'ALTA' | 'CRITICA' | null;
   justificacionPrioridad?: string | null;
   totalReportesTerreno?: number;
+  /** Indica si la patrulla verificadora completó el informe/diagnóstico en terreno */
   verificado?: boolean;
   reclasificadoEnTerreno?: boolean;
   justificacionReclasificacion?: string | null;

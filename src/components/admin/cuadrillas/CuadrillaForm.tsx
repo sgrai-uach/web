@@ -542,7 +542,7 @@ export default function CuadrillaForm({ onSuccess, onCancel }: CuadrillaFormProp
           <div className={styles.noticeBox}>
             <Info size={18} className={styles.noticeIcon} />
             <div>
-              <strong>Asignación de Responsable:</strong> Al guardar la cuadrilla, el funcionario seleccionado (con rol de Brigadista) será designado automáticamente como Delegado de Cuadrilla, permitiéndole coordinar la unidad en terreno desde su dispositivo móvil.
+              <strong>Asignación de Responsable:</strong> Al guardar la cuadrilla, el funcionario seleccionado será designado Delegado de Cuadrilla. Si es brigadista, se promoverá automáticamente al rol de Delegado; si ya es Delegado de Cuadrilla, conservará su rol y podrá coordinar la unidad en terreno desde su dispositivo móvil.
             </div>
           </div>
 

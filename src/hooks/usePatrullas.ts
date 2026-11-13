@@ -232,6 +232,7 @@ export function usePatrullas({
     socket.on('connect', onConnect);
     socket.on('disconnect', onDisconnect);
     socket.on('patrulla:actualizada', handlePatrullaActualizada);
+    socket.on('patrulla:liberada', handlePatrullaActualizada);
     socket.on('mision:asignada', handleMisionAsignada);
     socket.on('patrulla:creada', handlePatrullaCreada);
     socket.on('patrulla:desactivada', handlePatrullaDesactivada);
@@ -240,6 +241,7 @@ export function usePatrullas({
       socket.off('connect', onConnect);
       socket.off('disconnect', onDisconnect);
       socket.off('patrulla:actualizada', handlePatrullaActualizada);
+      socket.off('patrulla:liberada', handlePatrullaActualizada);
       socket.off('mision:asignada', handleMisionAsignada);
       socket.off('patrulla:creada', handlePatrullaCreada);
       socket.off('patrulla:desactivada', handlePatrullaDesactivada);

@@ -29,6 +29,8 @@ export const IncidenteCard: React.FC<IncidenteCardProps> = ({
   onAsignarPatrulla,
   puedeAsignarPatrulla = true,
 }) => {
+  const estaVerificado = Boolean(incidente.verificado);
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
@@ -59,7 +61,7 @@ export const IncidenteCard: React.FC<IncidenteCardProps> = ({
 
   return (
     <div
-      className={styles.incidenteCard}
+      className={`${styles.incidenteCard} ${estaVerificado ? styles.incidenteVerificado : ''}`}
       onClick={() => onClick(incidente)}
       onKeyDown={handleKeyDown}
       role="button"
