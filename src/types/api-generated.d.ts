@@ -6214,6 +6214,8 @@ export interface components {
                 nombre: string;
                 cantidadAsignada: number;
                 esIndividual: boolean;
+                descripcion?: string | null;
+                especificaciones?: Record<string, unknown> | null;
             }[];
             trabajadores: {
                 id: string;
@@ -6223,8 +6225,26 @@ export interface components {
                 rut?: string | null;
                 cargo?: string | null;
                 especialidad?: string | null;
+                telefono?: string | null;
                 asignadoEn: string;
             }[];
+            misionActiva?: {
+                id: string;
+                codigo: string;
+                titulo: string;
+                tipoMision: string;
+                estado: string;
+                fechaDespacho: string | null;
+                tiempoTranscurridoMinutos: number | null;
+                incidente: {
+                    id: string;
+                    codigo: string;
+                    tipo: string | null;
+                    direccion: string | null;
+                    latitud: number | null;
+                    longitud: number | null;
+                } | null;
+            } | null;
             totalRecursos?: number;
             totalTrabajadores?: number;
             activo?: boolean;

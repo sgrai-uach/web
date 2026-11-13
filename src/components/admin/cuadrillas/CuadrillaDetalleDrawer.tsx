@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import {
   X,
   HardHat,
@@ -8,445 +8,589 @@ import {
   Wrench,
   Pencil,
   AlertCircle,
+  AlertTriangle,
   Trash2,
+  Phone,
+  Clock,
+  ExternalLink,
+  ShieldAlert,
+  MapPin,
+  Mail,
 } from 'lucide-react';
-import type { CuadrillaItem } from '@/types/cuadrilla';
+import type { CuadrillaItem, EstadoCuadrilla } from '@/types/cuadrilla';
+import { cuadrillasService, CuadrillaServiceError } from '@/services/cuadrillasService';
 import Button from '@/components/ui/Button';
+import Heading from '@/components/ui/Heading';
+import styles from './CuadrillaDetalleDrawer.module.css';
 
-interface CuadrillaDetalleDrawerProps {
-  cuadrilla: CuadrillaItem | null;
+export interface CuadrillaDetalleDrawerProps {
+  cuadrilla?: CuadrillaItem | null;
+  cuadrillaId?: string | null;
   isOpen: boolean;
   onCerrar: () => void;
   onEditar?: (cuadrilla: CuadrillaItem) => void;
   onDesactivar?: (cuadrilla: CuadrillaItem) => void;
+  onSelectIncidente?: (incidenteId: string) => void;
   puedeEditar?: boolean;
   puedeEliminar?: boolean;
 }
 
-export default function CuadrillaDetalleDrawer({
-  cuadrilla,
-  isOpen,
+function BadgeEstado({ estado }: { estado: EstadoCuadrilla }) {
+  const estadoUpper = (estado || '').toUpperCase();
+
+  switch (estadoUpper) {
+    case 'DISPONIBLE':
+      return (
+        <span
+          className={`${styles.badgeEstado} ${styles.badgeDisponible}`}
+          data-testid="cuadrilla-badge-disponible"
+        >
+          <span className={styles.statusDot} aria-hidden="true" />
+          DISPONIBLE
+        </span>
+      );
+    case 'EN_MISION':
+      return (
+        <span
+          className={`${styles.badgeEstado} ${styles.badgeEnMision}`}
+          data-testid="cuadrilla-badge-en-mision"
+        >
+          <span className={styles.statusDot} aria-hidden="true" />
+          EN MISIÓN
+        </span>
+      );
+    case 'NO_DISPONIBLE':
+    default:
+      return (
+        <span
+          className={`${styles.badgeEstado} ${styles.badgeNoDisponible}`}
+          data-testid="cuadrilla-badge-no-disponible"
+        >
+          <span className={styles.statusDot} aria-hidden="true" />
+          NO DISPONIBLE
+        </span>
+      );
+  }
+}
+
+function formatearTiempoTranscurrido(
+  minutos?: number | null,
+  fechaDespacho?: string | null
+): string {
+  let mins = minutos;
+
+  if ((mins === undefined || mins === null) && fechaDespacho) {
+    const diffMs = Date.now() - new Date(fechaDespacho).getTime();
+    mins = Math.max(0, Math.floor(diffMs / (1000 * 60)));
+  }
+
+  if (mins === undefined || mins === null || isNaN(mins)) {
+    return 'Reciente';
+  }
+
+  if (mins < 60) {
+    return `${mins} min`;
+  }
+
+  const horas = Math.floor(mins / 60);
+  const restMins = mins % 60;
+  return `${horas} h ${restMins} min`;
+}
+
+interface CuadrillaDetalleContentProps {
+  targetId: string;
+  cuadrillaProp?: CuadrillaItem | null;
+  onCerrar: () => void;
+  onEditar?: (cuadrilla: CuadrillaItem) => void;
+  onDesactivar?: (cuadrilla: CuadrillaItem) => void;
+  onSelectIncidente?: (incidenteId: string) => void;
+  puedeEditar?: boolean;
+  puedeEliminar?: boolean;
+}
+
+function CuadrillaDetalleDrawerContent({
+  targetId,
+  cuadrillaProp,
   onCerrar,
   onEditar,
   onDesactivar,
-  puedeEditar = true,
-  puedeEliminar = true,
-}: CuadrillaDetalleDrawerProps) {
+  onSelectIncidente,
+  puedeEditar = false,
+  puedeEliminar = false,
+}: CuadrillaDetalleContentProps) {
+  const [cuadrillaData, setCuadrillaData] = useState<CuadrillaItem | null>(
+    cuadrillaProp && cuadrillaProp.id === targetId ? cuadrillaProp : null
+  );
+  const [cargando, setCargando] = useState<boolean>(true);
+  const [errorCarga, setErrorCarga] = useState<string | null>(null);
+  const [esForbidden, setEsForbidden] = useState<boolean>(false);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    cuadrillasService
+      .obtenerCuadrillaPorId(targetId)
+      .then((data) => {
+        if (!isMounted) return;
+        setCuadrillaData(data);
+        setCargando(false);
+      })
+      .catch((err: unknown) => {
+        if (!isMounted) return;
+        setCargando(false);
+        setCuadrillaData(null);
+        if (err instanceof CuadrillaServiceError && err.status === 403) {
+          setEsForbidden(true);
+          setErrorCarga(err.message);
+        } else {
+          setErrorCarga(
+            err instanceof Error ? err.message : 'Error al consultar la composición de la cuadrilla.'
+          );
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [targetId]);
+
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
-      if (e.key === 'Escape' && isOpen) {
+      if (e.key === 'Escape') {
         onCerrar();
       }
     }
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onCerrar]);
+  }, [onCerrar]);
 
-  if (!isOpen || !cuadrilla) return null;
-
-  const estadoNorm = (cuadrilla.estado || '').toUpperCase();
-  const estaInactiva = cuadrilla.activo === false || estadoNorm === 'NO_DISPONIBLE';
+  const cuadrilla = esForbidden ? null : (cuadrillaData || (!errorCarga ? cuadrillaProp : null));
+  const estadoNorm = (cuadrilla?.estado || '').toUpperCase();
+  const estaInactiva = cuadrilla?.activo === false || estadoNorm === 'NO_DISPONIBLE';
   const bloqueadaPorMision =
-    estadoNorm === 'EN_MISION' || estadoNorm === 'EN_TRANSITO' || estadoNorm === 'EN_OPERACION';
+    estadoNorm === 'EN_MISION' ||
+    cuadrilla?.misionActiva?.estado === 'EN_CURSO' ||
+    cuadrilla?.misionActiva?.estado === 'DESPACHADA';
+
+  const misionActiva = useMemo(() => {
+    if (!cuadrilla?.misionActiva) return null;
+    return cuadrilla.misionActiva;
+  }, [cuadrilla]);
 
   return (
     <div
-      style={{
-        position: 'fixed',
-        inset: 0,
-        zIndex: 'var(--z-drawer, 1000)',
-        display: 'flex',
-        justifyContent: 'flex-end',
+      className={styles.backdrop}
+      role="presentation"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) {
+          onCerrar();
+        }
       }}
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="drawer-title"
     >
-      {/* Backdrop oscuro */}
       <div
-        onClick={onCerrar}
-        style={{
-          position: 'fixed',
-          inset: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.45)',
-          backdropFilter: 'blur(2px)',
-        }}
-      />
-
-      {/* Panel lateral deslizante */}
-      <div
-        style={{
-          position: 'relative',
-          width: '100%',
-          maxWidth: '560px',
-          height: '100%',
-          backgroundColor: 'var(--color-white)',
-          boxShadow: 'var(--shadow-md)',
-          display: 'flex',
-          flexDirection: 'column',
-          zIndex: 1001,
-          overflowY: 'auto',
-        }}
+        className={styles.drawer}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="cuadrilla-detalle-titulo"
+        data-testid="cuadrilla-detalle-drawer"
       >
-        {/* Cabecera del Drawer */}
-        <div
-          style={{
-            padding: '20px 24px',
-            backgroundColor: 'var(--color-primary-teal-dark, #14505A)',
-            color: 'var(--color-white)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            borderBottom: '3px solid var(--color-accent-mint, #4FAE9B)',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <HardHat size={24} style={{ color: 'var(--color-accent-mint)' }} />
-            <div>
-              <span
-                id="drawer-title"
-                style={{
-                  fontSize: '16px',
-                  fontWeight: 800,
-                  display: 'block',
-                  color: 'var(--color-white)',
-                }}
-              >
-                {cuadrilla.nombre}
-              </span>
-              <span style={{ fontSize: '12px', color: '#CCD2D9' }}>
-                Delegación {cuadrilla.delegacion.nombre}
+        {/* Cabecera Institucional */}
+        <header className={styles.header}>
+          <div className={styles.headerTitleGroup}>
+            <HardHat size={22} className={styles.headerIcon} aria-hidden="true" />
+            <div className={styles.headerTitles}>
+              <Heading as="h2" variant="h3" color="white" noMargin id="cuadrilla-detalle-titulo">
+                {cuadrilla?.nombre || 'Ficha Técnica de Cuadrilla'}
+              </Heading>
+              <span className={styles.headerSubtitle}>
+                {cuadrilla?.delegacion?.nombre
+                  ? `Delegación ${cuadrilla.delegacion.nombre}`
+                  : 'Dotación operativa y recursos municipales'}
               </span>
             </div>
           </div>
 
           <button
             type="button"
+            className={styles.closeButton}
             onClick={onCerrar}
             aria-label="Cerrar panel de detalle"
-            style={{
-              background: 'transparent',
-              border: 'none',
-              color: 'var(--color-white)',
-              cursor: 'pointer',
-              padding: '6px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
+            title="Cerrar panel"
           >
-            <X size={20} />
+            <X size={20} aria-hidden="true" />
           </button>
-        </div>
+        </header>
 
         {/* Cuerpo del Drawer */}
-        <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '24px', flex: 1 }}>
-          {/* Advertencia si está en misión */}
-          {bloqueadaPorMision && (
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'flex-start',
-                gap: '10px',
-                padding: '12px 16px',
-                backgroundColor: 'var(--color-warning-bg, #FFF3E0)',
-                border: '1px solid #FFE0B2',
-                color: 'var(--color-warning, #E65100)',
-                fontSize: '13px',
-              }}
-            >
-              <AlertCircle size={18} style={{ flexShrink: 0, marginTop: '1px' }} />
-              <div>
-                <strong>Cuadrilla Desplegada en Terreno:</strong> Esta unidad se encuentra actualmente en misión activa. Su dotación y datos están protegidos contra modificaciones operativas.
-              </div>
+        <div className={styles.body}>
+          {/* Skeleton o spinner durante la carga inicial */}
+          {cargando && !cuadrilla && !errorCarga && (
+            <div className={styles.loadingState} data-testid="cuadrilla-loading-state">
+              <div className={styles.spinner} aria-hidden="true" />
+              <span>Consultando composición y recursos en tiempo real...</span>
             </div>
           )}
 
-          {/* Tarjeta de Delegado Responsable */}
-          <div
-            style={{
-              border: '1px solid var(--border-color-neutral)',
-              padding: '16px',
-              backgroundColor: 'var(--color-bg-light)',
-            }}
-          >
-            <span
-              style={{
-                fontSize: '11px',
-                fontWeight: 700,
-                color: 'var(--color-primary-teal)',
-                textTransform: 'uppercase',
-                letterSpacing: '0.5px',
-                display: 'block',
-                marginBottom: '8px',
-              }}
-            >
-              Delegado Responsable en Terreno
-            </span>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div
-                style={{
-                  width: '38px',
-                  height: '38px',
-                  backgroundColor: 'var(--color-primary-teal)',
-                  color: 'var(--color-white)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontWeight: 700,
-                }}
-              >
-                {cuadrilla.delegado?.nombre ? cuadrilla.delegado.nombre.charAt(0) : 'D'}
+          {/* Aviso de Error 403 Forbidden (RBAC) */}
+          {esForbidden && (
+            <div className={styles.errorBox} data-testid="cuadrilla-forbidden-notice">
+              <div className={styles.errorBoxHeader}>
+                <ShieldAlert size={18} />
+                <span>Acceso Restringido (403 Forbidden)</span>
               </div>
-              <div>
-                <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--color-text-dark)', display: 'block' }}>
-                  {cuadrilla.delegado?.nombre || 'Sin delegado asignado'}
-                </span>
-                <span style={{ fontSize: '12px', color: 'var(--color-text-muted)', display: 'block' }}>
-                  {cuadrilla.delegado?.email} {cuadrilla.delegado?.rut && `• RUT: ${cuadrilla.delegado.rut}`}
-                </span>
+              <div>{errorCarga || 'No cuenta con los privilegios necesarios para consultar la composición de cuadrillas.'}</div>
+            </div>
+          )}
+
+          {/* Error general de carga */}
+          {errorCarga && !esForbidden && !cuadrilla && (
+            <div className={styles.errorBox}>
+              <div className={styles.errorBoxHeader}>
+                <AlertCircle size={18} />
+                <span>Error de Consulta</span>
               </div>
+              <div>{errorCarga}</div>
             </div>
-          </div>
+          )}
 
-          {/* Sección Trabajadores Operativos */}
-          <div>
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                marginBottom: '10px',
-                borderBottom: '1px solid var(--border-color-neutral)',
-                paddingBottom: '6px',
-              }}
-            >
-              <span
-                style={{
-                  fontSize: '13px',
-                  fontWeight: 700,
-                  color: 'var(--color-primary-teal-dark)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                }}
-              >
-                <Users size={16} />
-                Trabajadores Asignados ({cuadrilla.trabajadores?.length || 0})
-              </span>
-            </div>
+          {/* Renderizado condicional protegido: NUNCA fugar datos si hay 403 o error */}
+          {!esForbidden && !errorCarga && cuadrilla && (
+            <>
+              {/* Tarjeta de Estado Operativo Actual */}
+              <div className={styles.card}>
+                <div className={styles.estadoRow}>
+                  <span className={styles.estadoLabel}>
+                    Estado Operativo Actual:
+                  </span>
+                  <BadgeEstado estado={cuadrilla.estado} />
+                </div>
+              </div>
 
-            {cuadrilla.trabajadores && cuadrilla.trabajadores.length > 0 ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                {cuadrilla.trabajadores.map((t) => (
-                  <div
-                    key={t.id}
-                    style={{
-                      border: '1px solid var(--border-color-neutral)',
-                      padding: '10px 12px',
-                      backgroundColor: 'var(--color-white)',
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                    }}
-                  >
-                    <div>
-                      <span style={{ fontWeight: 600, fontSize: '13px', display: 'block' }}>
-                        {t.nombre}
-                      </span>
-                      <span style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
-                        {t.cargo || 'Operario'} {t.especialidad && `• ${t.especialidad}`}
-                      </span>
-                    </div>
-                    {t.rut && (
-                      <span style={{ fontSize: '11px', color: 'var(--color-text-muted)', backgroundColor: 'var(--color-bg-light)', padding: '2px 6px' }}>
-                        {t.rut}
-                      </span>
-                    )}
+              {/* Advertencia si la unidad está inactiva */}
+              {estaInactiva && (
+                <div className={styles.inactivaNotice} data-testid="cuadrilla-inactiva-notice">
+                  <AlertCircle size={18} className={styles.inactivaIcon} />
+                  <div>
+                    <strong>Unidad Inactiva / No Disponible:</strong> Esta cuadrilla ha sido dada de baja o no se encuentra disponible para asignaciones operativas en terreno.
                   </div>
-                ))}
-              </div>
-            ) : (
-              <p style={{ margin: 0, fontSize: '13px', color: 'var(--color-text-muted)', fontStyle: 'italic' }}>
-                No hay trabajadores operativos asignados a esta cuadrilla.
-              </p>
-            )}
-          </div>
+                </div>
+              )}
 
-          {/* Sección Recursos Materiales y Vehículos */}
-          <div>
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                marginBottom: '10px',
-                borderBottom: '1px solid var(--border-color-neutral)',
-                paddingBottom: '6px',
-              }}
-            >
-              <span
-                style={{
-                  fontSize: '13px',
-                  fontWeight: 700,
-                  color: 'var(--color-primary-teal-dark)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                }}
-              >
-                <Wrench size={16} />
-                Equipamiento y Vehículos ({cuadrilla.recursos?.length || 0})
-              </span>
-            </div>
+              {/* Misión Activa en Ejecución (si la cuadrilla está EN_MISION) */}
+              {bloqueadaPorMision && (
+                <div className={styles.misionActivaCard} data-testid="cuadrilla-mision-activa-card">
+                  <div className={styles.misionActivaHeader}>
+                    <div className={styles.misionBadge}>
+                      <AlertTriangle size={15} />
+                      <span>Cuadrilla en Misión Activa</span>
+                    </div>
 
-            {cuadrilla.recursos && cuadrilla.recursos.length > 0 ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                {cuadrilla.recursos.map((r) => (
-                  <div
-                    key={r.id}
-                    style={{
-                      border: '1px solid var(--border-color-neutral)',
-                      padding: '10px 12px',
-                      backgroundColor: 'var(--color-white)',
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                    }}
-                  >
-                    <div>
-                      <span style={{ fontWeight: 600, fontSize: '13px', display: 'block' }}>
-                        {r.nombre}
-                      </span>
-                      <span style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>
-                        {r.esIndividual ? 'Vehículo / Activo Individual' : 'Insumo / Herramienta'}
+                    <div className={styles.misionTiempo}>
+                      <Clock size={13} />
+                      <span>
+                        Despachada hace: {formatearTiempoTranscurrido(misionActiva?.tiempoTranscurridoMinutos, misionActiva?.fechaDespacho)}
                       </span>
                     </div>
-                    <span
-                      style={{
-                        fontSize: '12px',
-                        fontWeight: 700,
-                        backgroundColor: 'var(--color-bg-light)',
-                        padding: '3px 8px',
-                        border: '1px solid var(--border-color-neutral)',
-                      }}
-                    >
-                      {r.cantidadAsignada} {r.cantidadAsignada === 1 ? 'unidad' : 'unidades'}
+                  </div>
+
+                  {misionActiva ? (
+                    <>
+                      <div className={styles.misionTitulo}>
+                        {misionActiva.codigo}: {misionActiva.titulo}
+                      </div>
+
+                      {misionActiva.incidente && (
+                        <div className={styles.incidenteRow}>
+                          <div className={styles.incidenteInfo}>
+                            <strong>Incidente:</strong> {misionActiva.incidente.codigo}
+                            {misionActiva.incidente.tipo && ` — ${misionActiva.incidente.tipo}`}
+                            {misionActiva.incidente.direccion && (
+                              <div className={styles.incidenteDireccion}>
+                                <MapPin size={11} className={styles.incidenteDireccionIcon} />
+                                {misionActiva.incidente.direccion}
+                              </div>
+                            )}
+                          </div>
+
+                          {onSelectIncidente ? (
+                            <Button
+                              type="button"
+                              variant="teal"
+                              size="sm"
+                              onClick={() => {
+                                if (misionActiva.incidente?.id) {
+                                  onCerrar();
+                                  onSelectIncidente(misionActiva.incidente.id);
+                                }
+                              }}
+                              data-testid="btn-ver-incidente-mision"
+                            >
+                              <ExternalLink size={13} style={{ marginRight: '4px' }} />
+                              <span>Ver Incidente</span>
+                            </Button>
+                          ) : (
+                            <Button
+                              href={`/gestion/centro-incidentes?incidenteId=${misionActiva.incidente.id}`}
+                              variant="teal"
+                              size="sm"
+                              onClick={onCerrar}
+                              data-testid="link-ver-incidente-mision"
+                            >
+                              <ExternalLink size={13} style={{ marginRight: '4px' }} />
+                              <span>Ver Incidente</span>
+                            </Button>
+                          )}
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <div className={styles.misionAdvertenciaProtegida}>
+                      La cuadrilla se encuentra despachada a una misión activa en terreno. Sus datos y recursos están protegidos contra modificaciones operativas.
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Delegado Responsable */}
+              <div className={styles.card}>
+                <div className={styles.cardHeader}>
+                  <div className={styles.cardTitle}>
+                    <Users size={15} />
+                    <span>Delegado a Cargo en Terreno</span>
+                  </div>
+                </div>
+
+                <div className={styles.delegadoContainer}>
+                  <div className={styles.delegadoAvatar} aria-hidden="true">
+                    {cuadrilla.delegado?.nombre ? cuadrilla.delegado.nombre.charAt(0).toUpperCase() : 'D'}
+                  </div>
+                  <div className={styles.delegadoDetails}>
+                    <span className={styles.delegadoNombre}>
+                      {cuadrilla.delegado?.nombre || 'Sin delegado asignado'}
                     </span>
+                    <div className={styles.delegadoMeta}>
+                      {cuadrilla.delegado?.email && (
+                        <span className={styles.delegadoEmail}>
+                          <Mail size={12} />
+                          {cuadrilla.delegado.email}
+                        </span>
+                      )}
+                      {cuadrilla.delegado?.rut && (
+                        <span className={styles.rutBadge}>RUT: {cuadrilla.delegado.rut}</span>
+                      )}
+                      {cuadrilla.delegado?.telefono && (
+                        <a
+                          href={`tel:${cuadrilla.delegado.telefono}`}
+                          className={styles.telefonoLink}
+                          title={`Llamar a ${cuadrilla.delegado.nombre}`}
+                        >
+                          <Phone size={12} />
+                          <span>{cuadrilla.delegado.telefono}</span>
+                        </a>
+                      )}
+                    </div>
                   </div>
-                ))}
+                </div>
               </div>
-            ) : (
-              <p style={{ margin: 0, fontSize: '13px', color: 'var(--color-text-muted)', fontStyle: 'italic' }}>
-                No hay recursos logísticos ni vehículos asignados a esta cuadrilla.
-              </p>
-            )}
-          </div>
 
-          {/* Metadatos de Auditoría */}
-          <div
-            style={{
-              marginTop: 'auto',
-              borderTop: '1px solid var(--border-color-neutral)',
-              paddingTop: '12px',
-              fontSize: '11px',
-              color: 'var(--color-text-muted)',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '4px',
-            }}
-          >
-            <span>
-              <strong>Creado:</strong>{' '}
-              {cuadrilla.creadoEn ? new Date(cuadrilla.creadoEn).toLocaleString('es-CL') : 'N/D'}
-            </span>
-            {cuadrilla.actualizadoEn && (
-              <span>
-                <strong>Última actualización:</strong>{' '}
-                {new Date(cuadrilla.actualizadoEn).toLocaleString('es-CL')}
-              </span>
-            )}
-            {cuadrilla.eliminadoEn && (
-              <span style={{ color: 'var(--color-danger, #D32F2F)' }}>
-                <strong>Eliminado / Dado de baja:</strong>{' '}
-                {new Date(cuadrilla.eliminadoEn).toLocaleString('es-CL')}
-              </span>
-            )}
-          </div>
+              {/* Nómina de Integrantes (cuadrilla_integrante) */}
+              <div className={styles.card}>
+                <div className={styles.cardHeader}>
+                  <div className={styles.cardTitle}>
+                    <Users size={15} />
+                    <span>Nómina de Integrantes ({cuadrilla.trabajadores?.length || 0})</span>
+                  </div>
+                </div>
+
+                {cuadrilla.trabajadores && cuadrilla.trabajadores.length > 0 ? (
+                  <div className={styles.trabajadoresList} data-testid="cuadrilla-trabajadores-lista">
+                    {cuadrilla.trabajadores.map((t) => (
+                      <div key={t.id} className={styles.trabajadorRow} data-testid={`integrante-row-${t.personalId}`}>
+                        <div className={styles.trabajadorMain}>
+                          <span className={styles.trabajadorNombre}>{t.nombre}</span>
+                          <div className={styles.trabajadorCargoGroup}>
+                            <span className={styles.cargoBadge}>{t.cargo || 'Operario'}</span>
+                            {t.especialidad && (
+                              <span className={styles.especialidadText}>• {t.especialidad}</span>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className={styles.trabajadorContact}>
+                          {t.rut && <span className={styles.rutBadge}>{t.rut}</span>}
+                          {t.telefono ? (
+                            <a
+                              href={`tel:${t.telefono}`}
+                              className={styles.telefonoLink}
+                              title={`Llamar a ${t.nombre}`}
+                              data-testid={`tel-link-${t.personalId}`}
+                            >
+                              <Phone size={12} />
+                              <span>{t.telefono}</span>
+                            </a>
+                          ) : (
+                            <span className={styles.sinTelefono}>
+                              Sin teléfono
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className={styles.emptyText}>
+                    No hay trabajadores operativos asignados a esta cuadrilla.
+                  </p>
+                )}
+              </div>
+
+              {/* Recursos Materiales, Vehículos y Herramientas (cuadrilla_recurso) */}
+              <div className={styles.card}>
+                <div className={styles.cardHeader}>
+                  <div className={styles.cardTitle}>
+                    <Wrench size={15} />
+                    <span>Equipamiento y Vehículos ({cuadrilla.recursos?.length || 0})</span>
+                  </div>
+                </div>
+
+                {cuadrilla.recursos && cuadrilla.recursos.length > 0 ? (
+                  <div className={styles.recursosList} data-testid="cuadrilla-recursos-lista">
+                    {cuadrilla.recursos.map((r) => {
+                      const especificaciones = r.especificaciones || null;
+                      const tieneSpecs = especificaciones && Object.keys(especificaciones).length > 0;
+
+                      return (
+                        <div key={r.id} className={styles.recursoCard} data-testid={`recurso-card-${r.recursoId}`}>
+                          <div className={styles.recursoHeaderRow}>
+                            <div>
+                              <div className={styles.recursoNombre}>{r.nombre}</div>
+                              <div className={styles.recursoTipo}>
+                                {r.esIndividual ? 'Vehículo / Activo Individual' : 'Insumo / Herramienta a Granel'}
+                              </div>
+                            </div>
+                            <span className={styles.recursoCantidadBadge}>
+                              {r.cantidadAsignada} {r.cantidadAsignada === 1 ? 'unidad' : 'unidades'}
+                            </span>
+                          </div>
+
+                          {r.descripcion && (
+                            <p className={styles.recursoDescripcion}>{r.descripcion}</p>
+                          )}
+
+                          {tieneSpecs && (
+                            <div className={styles.especificacionesContainer} data-testid="especificaciones-container">
+                              {Object.entries(especificaciones).map(([clave, valor]) => (
+                                <div key={clave} className={styles.especificacionItem}>
+                                  <span className={styles.especificacionClave}>{clave}:</span>{' '}
+                                  <span>{String(valor)}</span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <p className={styles.emptyText}>
+                    No hay recursos logísticos ni vehículos asignados a esta cuadrilla.
+                  </p>
+                )}
+              </div>
+
+              {/* Metadatos de Auditoría con soporte para eliminadoEn (HU-82 / BUG-H22-WEB-05) */}
+              <div className={styles.auditFooter}>
+                <span>
+                  <strong>Creado:</strong>{' '}
+                  {cuadrilla.creadoEn ? new Date(cuadrilla.creadoEn).toLocaleString('es-CL') : 'N/D'}
+                </span>
+                {cuadrilla.actualizadoEn && (
+                  <span>
+                    <strong>Última actualización:</strong>{' '}
+                    {new Date(cuadrilla.actualizadoEn).toLocaleString('es-CL')}
+                  </span>
+                )}
+                {cuadrilla.eliminadoEn && (
+                  <span className={styles.auditEliminado} data-testid="cuadrilla-audit-eliminado">
+                    <strong>Eliminado / Dado de baja:</strong>{' '}
+                    {new Date(cuadrilla.eliminadoEn).toLocaleString('es-CL')}
+                  </span>
+                )}
+              </div>
+            </>
+          )}
         </div>
 
-        {/* Pie del Drawer */}
-        <div
-          style={{
-            padding: '16px 24px',
-            backgroundColor: 'var(--color-bg-light)',
-            borderTop: '1px solid var(--border-color-neutral)',
-            display: 'flex',
-            justifyContent: 'flex-end',
-            gap: '12px',
-          }}
-        >
+        {/* Pie del Drawer con Acciones */}
+        <footer className={styles.footer}>
           <Button variant="outline" size="md" onClick={onCerrar}>
             Cerrar
           </Button>
 
-          {puedeEditar && onEditar && !estaInactiva && (
-            <div
-              style={{ display: 'inline-block' }}
+          {puedeEliminar && onDesactivar && cuadrilla && !estaInactiva && (
+            <Button
+              variant="destructive"
+              size="md"
+              disabled={bloqueadaPorMision}
+              onClick={() => {
+                onDesactivar(cuadrilla);
+              }}
               title={
                 bloqueadaPorMision
-                  ? 'No se puede editar una cuadrilla que se encuentra actualmente en misión activa'
-                  : 'Modificar datos y dotación'
+                  ? 'No se puede desactivar una cuadrilla asignada a una misión activa'
+                  : 'Desactivar esta cuadrilla'
               }
+              aria-label="Desactivar Cuadrilla"
             >
-              <Button
-                variant="primary"
-                size="md"
-                disabled={bloqueadaPorMision}
-                onClick={() => {
-                  onCerrar();
-                  onEditar(cuadrilla);
-                }}
-                icon={<Pencil size={15} />}
-                style={{
-                  opacity: bloqueadaPorMision ? 0.6 : 1,
-                  cursor: bloqueadaPorMision ? 'not-allowed' : 'pointer',
-                }}
-              >
-                Editar Cuadrilla
-              </Button>
-            </div>
+              <Trash2 size={16} aria-hidden="true" style={{ marginRight: '6px' }} />
+              <span>Desactivar</span>
+            </Button>
           )}
 
-          {puedeEliminar && onDesactivar && !estaInactiva && (
-            <div
-              style={{ display: 'inline-block' }}
+          {puedeEditar && onEditar && cuadrilla && !estaInactiva && (
+            <Button
+              variant="primary"
+              size="md"
+              disabled={bloqueadaPorMision}
+              onClick={() => {
+                onCerrar();
+                onEditar(cuadrilla);
+              }}
               title={
                 bloqueadaPorMision
-                  ? 'No se puede desactivar una cuadrilla que se encuentra actualmente en misión activa'
-                  : 'Desactivar y retirar de servicio operativo la cuadrilla'
+                  ? 'No se puede editar una cuadrilla que se encuentra en misión activa'
+                  : 'Editar composición de la cuadrilla'
               }
+              aria-label="Editar Cuadrilla"
             >
-              <Button
-                variant="destructive"
-                size="md"
-                disabled={bloqueadaPorMision}
-                onClick={() => {
-                  onCerrar();
-                  onDesactivar(cuadrilla);
-                }}
-                icon={<Trash2 size={15} />}
-                style={{
-                  opacity: bloqueadaPorMision ? 0.6 : 1,
-                  cursor: bloqueadaPorMision ? 'not-allowed' : 'pointer',
-                }}
-              >
-                Desactivar Cuadrilla
-              </Button>
-            </div>
+              <Pencil size={16} aria-hidden="true" style={{ marginRight: '6px' }} />
+              <span>Editar Cuadrilla</span>
+            </Button>
           )}
-        </div>
+        </footer>
       </div>
     </div>
+  );
+}
+
+export default function CuadrillaDetalleDrawer({
+  cuadrilla,
+  cuadrillaId,
+  isOpen,
+  ...restProps
+}: CuadrillaDetalleDrawerProps) {
+  if (!isOpen || (!cuadrilla && !cuadrillaId)) {
+    return null;
+  }
+
+  const targetId = cuadrillaId || cuadrilla?.id || '';
+
+  return (
+    <CuadrillaDetalleDrawerContent
+      key={targetId}
+      targetId={targetId}
+      cuadrillaProp={cuadrilla}
+      {...restProps}
+    />
   );
 }

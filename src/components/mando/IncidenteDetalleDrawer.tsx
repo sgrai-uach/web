@@ -28,6 +28,7 @@ export interface IncidenteDetalleDrawerProps {
   incidenteId: string | null;
   userId: string;
   onCerrar: () => void;
+  onSelectCuadrilla?: (cuadrillaId: string) => void;
   onIncidenteActualizado?: (incidenteId?: string, nuevoEstado?: EstadoIncidente) => void;
 }
 
@@ -35,6 +36,7 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
   incidenteId,
   userId,
   onCerrar,
+  onSelectCuadrilla,
   onIncidenteActualizado,
 }) => {
   const toast = useOptionalToast();
@@ -312,6 +314,7 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
                   misiones={detalle.misiones}
                   incidenteEstado={detalle.estado}
                   onVerDetalleMision={(misionId) => setMisionSeleccionadaId(misionId)}
+                  onVerDetalleCuadrilla={onSelectCuadrilla}
                   onAsignarPatrulla={() => setModalAsignarPatrullaAbierto(true)}
                   puedeAsignar={puedeAsignar}
                 />

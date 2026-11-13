@@ -58,6 +58,25 @@ describe('Componente IncidenteMisionesSection', () => {
     );
   });
 
+  it('debe renderizar el botón "Ver Cuadrilla" y llamar a onVerDetalleCuadrilla al hacer clic', () => {
+    const handleVerCuadrilla = vi.fn();
+
+    render(
+      <IncidenteMisionesSection
+        misiones={mockMisiones}
+        onVerDetalleCuadrilla={handleVerCuadrilla}
+      />
+    );
+
+    const btnVerCuadrilla = screen.getByRole('button', {
+      name: /Ver ficha de la cuadrilla Cuadrilla Alfa 1/i,
+    });
+    expect(btnVerCuadrilla).toBeDefined();
+
+    fireEvent.click(btnVerCuadrilla);
+    expect(handleVerCuadrilla).toHaveBeenCalledWith('c1');
+  });
+
   it('debe mostrar el botón de despachar patrulla verificadora cuando el incidente está en REPORTADO aunque tenga misiones previas no activas (BUG-02)', () => {
     const handleAsignarPatrulla = vi.fn();
 
