@@ -3365,6 +3365,100 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/misiones/{id}/aceptar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Confirmar y aceptar misión asignada desde terreno (HU-36)
+         * @description Permite a la patrulla verificadora confirmar y aceptar la misión asignada desde su dispositivo móvil (PWA). Ejecuta una transición atómica actualizando mision.estado de DESPACHADA a EN_CURSO, fijando mision.fecha_inicio = CURRENT_TIMESTAMP y registrando el hito 'Misión Aceptada por Patrulla' (código 'MISION_ACEPTADA') en mision_hito. Mantiene patrulla_verificadora.estado en EN_VERIFICACION e incidente.estado en VERIFICANDO, y emite el evento WebSocket 'mision:actualizada' hacia la sala 'encargado'. Requiere el permiso RBAC 'misiones:terreno:verificar'.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: {
+                    /** @description Token Bearer JWT de sesión de la patrulla verificadora */
+                    authorization?: string;
+                    /** @description UUID del usuario autenticado con permiso misiones:terreno:verificar */
+                    "x-user-id"?: string;
+                };
+                path: {
+                    /** @description Identificador único UUID de la misión */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            /** @description Coordenadas GPS opcionales al momento de confirmar la salida en la PWA */
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["AceptarMisionInput"];
+                };
+            };
+            responses: {
+                /** @description Misión aceptada exitosamente y hito registrado en bitácora */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AceptarMisionResponse"];
+                    };
+                };
+                /** @description El identificador de la misión no es un UUID válido o las coordenadas son inválidas */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description No autenticado o token de sesión inválido/expirado */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Acceso denegado. Se requiere el permiso 'misiones:terreno:verificar' y pertenecer a la patrulla asignada */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description No se encontró ninguna misión con el identificador proporcionado */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Conflicto de estado: la misión no se encuentra en estado 'DESPACHADA' (ej. ya fue aceptada o cancelada) */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Error interno del servidor */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/misiones/{id}": {
         parameters: {
             query?: never;
@@ -6916,20 +7010,19 @@ export interface paths {
                                 nombre: string;
                                 /** @enum {string} */
                                 estado: "DISPONIBLE" | "EN_MISION" | "NO_DISPONIBLE";
-                                delegacion: {
+                                delegacion?: {
                                     /** Format: uuid */
-                                    id: string;
-                                    nombre: string;
+                                    id?: string | null;
+                                    nombre?: string | null;
                                     codigo?: string | null;
-                                };
-                                delegado: {
+                                } | null;
+                                delegado?: {
                                     /** Format: uuid */
-                                    id: string;
-                                    nombre: string;
-                                    /** Format: email */
-                                    email: string;
+                                    id?: string | null;
+                                    nombre?: string | null;
+                                    email?: (string | null) | "" | unknown;
                                     rut?: string | null;
-                                };
+                                } | null;
                                 /** @default [] */
                                 recursos: {
                                     /** Format: uuid */
@@ -6939,6 +7032,13 @@ export interface paths {
                                     nombre: string;
                                     cantidadAsignada: number;
                                     esIndividual: boolean;
+                                    descripcion?: string | null;
+                                    detalles?: {
+                                        [key: string]: unknown;
+                                    } | null;
+                                    especificaciones?: {
+                                        [key: string]: unknown;
+                                    } | null;
                                 }[];
                                 /** @default [] */
                                 trabajadores: {
@@ -6952,6 +7052,7 @@ export interface paths {
                                     rut?: string | null;
                                     cargo?: string | null;
                                     especialidad?: string | null;
+                                    telefono?: string | null;
                                     asignadoEn: string;
                                 }[];
                                 /**
@@ -6964,6 +7065,85 @@ export interface paths {
                                  * @example 1
                                  */
                                 totalTrabajadores: number;
+                                /**
+                                 * MisionActivaCuadrilla
+                                 * @description Detalle de la misión táctica activa que la cuadrilla se encuentra atendiendo
+                                 */
+                                misionActiva?: {
+                                    /**
+                                     * Format: uuid
+                                     * @description Identificador de la misión
+                                     * @example 50000000-0000-4000-8000-000000000001
+                                     */
+                                    id: string;
+                                    /**
+                                     * @description Código de la misión
+                                     * @example MIS-2026-0012
+                                     */
+                                    codigo: string;
+                                    /**
+                                     * @description Título de la misión
+                                     * @example Atención anegamiento en Isla Teja
+                                     */
+                                    titulo: string;
+                                    /**
+                                     * @description Tipo de misión táctica
+                                     * @example ATENCION_CUADRILLA
+                                     */
+                                    tipoMision: string;
+                                    /**
+                                     * @description Estado de la misión (DESPACHADA o EN_CURSO)
+                                     * @example EN_CURSO
+                                     */
+                                    estado: string;
+                                    /**
+                                     * @description Fecha y hora de despacho a terreno
+                                     * @example 2026-11-08T09:30:00.000Z
+                                     */
+                                    fechaDespacho?: string | null;
+                                    /**
+                                     * @description Minutos transcurridos desde el despacho de la misión
+                                     * @example 45
+                                     */
+                                    tiempoTranscurridoMinutos?: number | null;
+                                    /**
+                                     * MisionActivaIncidente
+                                     * @description Datos esenciales del incidente asignado a la misión en ejecución
+                                     */
+                                    incidente?: {
+                                        /**
+                                         * Format: uuid
+                                         * @description Identificador único del incidente
+                                         * @example 40000000-0000-4000-8000-000000000001
+                                         */
+                                        id: string;
+                                        /**
+                                         * @description Código oficial del incidente
+                                         * @example INC-2026-0042
+                                         */
+                                        codigo: string;
+                                        /**
+                                         * @description Tipo o afectación del incidente
+                                         * @example Inundación
+                                         */
+                                        tipo?: string | null;
+                                        /**
+                                         * @description Dirección o punto de referencia
+                                         * @example Av. Los Robles 450, Isla Teja
+                                         */
+                                        direccion?: string | null;
+                                        /**
+                                         * @description Coordenada latitud
+                                         * @example -39.8152
+                                         */
+                                        latitud?: number | null;
+                                        /**
+                                         * @description Coordenada longitud
+                                         * @example -73.2458
+                                         */
+                                        longitud?: number | null;
+                                    } | null;
+                                } | null;
                                 /**
                                  * @description Indica si la cuadrilla se encuentra activa operativamente
                                  * @default true
@@ -7084,20 +7264,19 @@ export interface paths {
                                 nombre: string;
                                 /** @enum {string} */
                                 estado: "DISPONIBLE" | "EN_MISION" | "NO_DISPONIBLE";
-                                delegacion: {
+                                delegacion?: {
                                     /** Format: uuid */
-                                    id: string;
-                                    nombre: string;
+                                    id?: string | null;
+                                    nombre?: string | null;
                                     codigo?: string | null;
-                                };
-                                delegado: {
+                                } | null;
+                                delegado?: {
                                     /** Format: uuid */
-                                    id: string;
-                                    nombre: string;
-                                    /** Format: email */
-                                    email: string;
+                                    id?: string | null;
+                                    nombre?: string | null;
+                                    email?: (string | null) | "" | unknown;
                                     rut?: string | null;
-                                };
+                                } | null;
                                 /** @default [] */
                                 recursos: {
                                     /** Format: uuid */
@@ -7107,6 +7286,13 @@ export interface paths {
                                     nombre: string;
                                     cantidadAsignada: number;
                                     esIndividual: boolean;
+                                    descripcion?: string | null;
+                                    detalles?: {
+                                        [key: string]: unknown;
+                                    } | null;
+                                    especificaciones?: {
+                                        [key: string]: unknown;
+                                    } | null;
                                 }[];
                                 /** @default [] */
                                 trabajadores: {
@@ -7120,10 +7306,90 @@ export interface paths {
                                     rut?: string | null;
                                     cargo?: string | null;
                                     especialidad?: string | null;
+                                    telefono?: string | null;
                                     asignadoEn: string;
                                 }[];
                                 totalRecursos?: number;
                                 totalTrabajadores?: number;
+                                /**
+                                 * MisionActivaCuadrilla
+                                 * @description Detalle de la misión táctica activa que la cuadrilla se encuentra atendiendo
+                                 */
+                                misionActiva?: {
+                                    /**
+                                     * Format: uuid
+                                     * @description Identificador de la misión
+                                     * @example 50000000-0000-4000-8000-000000000001
+                                     */
+                                    id: string;
+                                    /**
+                                     * @description Código de la misión
+                                     * @example MIS-2026-0012
+                                     */
+                                    codigo: string;
+                                    /**
+                                     * @description Título de la misión
+                                     * @example Atención anegamiento en Isla Teja
+                                     */
+                                    titulo: string;
+                                    /**
+                                     * @description Tipo de misión táctica
+                                     * @example ATENCION_CUADRILLA
+                                     */
+                                    tipoMision: string;
+                                    /**
+                                     * @description Estado de la misión (DESPACHADA o EN_CURSO)
+                                     * @example EN_CURSO
+                                     */
+                                    estado: string;
+                                    /**
+                                     * @description Fecha y hora de despacho a terreno
+                                     * @example 2026-11-08T09:30:00.000Z
+                                     */
+                                    fechaDespacho?: string | null;
+                                    /**
+                                     * @description Minutos transcurridos desde el despacho de la misión
+                                     * @example 45
+                                     */
+                                    tiempoTranscurridoMinutos?: number | null;
+                                    /**
+                                     * MisionActivaIncidente
+                                     * @description Datos esenciales del incidente asignado a la misión en ejecución
+                                     */
+                                    incidente?: {
+                                        /**
+                                         * Format: uuid
+                                         * @description Identificador único del incidente
+                                         * @example 40000000-0000-4000-8000-000000000001
+                                         */
+                                        id: string;
+                                        /**
+                                         * @description Código oficial del incidente
+                                         * @example INC-2026-0042
+                                         */
+                                        codigo: string;
+                                        /**
+                                         * @description Tipo o afectación del incidente
+                                         * @example Inundación
+                                         */
+                                        tipo?: string | null;
+                                        /**
+                                         * @description Dirección o punto de referencia
+                                         * @example Av. Los Robles 450, Isla Teja
+                                         */
+                                        direccion?: string | null;
+                                        /**
+                                         * @description Coordenada latitud
+                                         * @example -39.8152
+                                         */
+                                        latitud?: number | null;
+                                        /**
+                                         * @description Coordenada longitud
+                                         * @example -73.2458
+                                         */
+                                        longitud?: number | null;
+                                    } | null;
+                                } | null;
                                 /** @default true */
                                 activo: boolean;
                                 creadoEn: string;
@@ -7197,8 +7463,8 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Obtener detalle unitario de una cuadrilla operativa (H81 / H79)
-         * @description Retorna la información detallada de una cuadrilla consolidando su delegación, delegado, recursos y trabajadores.
+         * Obtener detalle unitario de una cuadrilla operativa (H81 / H79 / H22)
+         * @description Retorna la información detallada de una cuadrilla consolidando su delegación, delegado, nómina completa de integrantes (con RUT, cargo, especialidad y teléfono de contacto), recursos y herramientas con especificaciones técnicas, y detalle de la misión en ejecución con tiempo transcurrido e incidente asociado si se encuentra EN_MISION.
          */
         get: {
             parameters: {
@@ -7235,20 +7501,19 @@ export interface paths {
                                 nombre: string;
                                 /** @enum {string} */
                                 estado: "DISPONIBLE" | "EN_MISION" | "NO_DISPONIBLE";
-                                delegacion: {
+                                delegacion?: {
                                     /** Format: uuid */
-                                    id: string;
-                                    nombre: string;
+                                    id?: string | null;
+                                    nombre?: string | null;
                                     codigo?: string | null;
-                                };
-                                delegado: {
+                                } | null;
+                                delegado?: {
                                     /** Format: uuid */
-                                    id: string;
-                                    nombre: string;
-                                    /** Format: email */
-                                    email: string;
+                                    id?: string | null;
+                                    nombre?: string | null;
+                                    email?: (string | null) | "" | unknown;
                                     rut?: string | null;
-                                };
+                                } | null;
                                 /** @default [] */
                                 recursos: {
                                     /** Format: uuid */
@@ -7258,6 +7523,13 @@ export interface paths {
                                     nombre: string;
                                     cantidadAsignada: number;
                                     esIndividual: boolean;
+                                    descripcion?: string | null;
+                                    detalles?: {
+                                        [key: string]: unknown;
+                                    } | null;
+                                    especificaciones?: {
+                                        [key: string]: unknown;
+                                    } | null;
                                 }[];
                                 /** @default [] */
                                 trabajadores: {
@@ -7271,10 +7543,90 @@ export interface paths {
                                     rut?: string | null;
                                     cargo?: string | null;
                                     especialidad?: string | null;
+                                    telefono?: string | null;
                                     asignadoEn: string;
                                 }[];
                                 totalRecursos?: number;
                                 totalTrabajadores?: number;
+                                /**
+                                 * MisionActivaCuadrilla
+                                 * @description Detalle de la misión táctica activa que la cuadrilla se encuentra atendiendo
+                                 */
+                                misionActiva?: {
+                                    /**
+                                     * Format: uuid
+                                     * @description Identificador de la misión
+                                     * @example 50000000-0000-4000-8000-000000000001
+                                     */
+                                    id: string;
+                                    /**
+                                     * @description Código de la misión
+                                     * @example MIS-2026-0012
+                                     */
+                                    codigo: string;
+                                    /**
+                                     * @description Título de la misión
+                                     * @example Atención anegamiento en Isla Teja
+                                     */
+                                    titulo: string;
+                                    /**
+                                     * @description Tipo de misión táctica
+                                     * @example ATENCION_CUADRILLA
+                                     */
+                                    tipoMision: string;
+                                    /**
+                                     * @description Estado de la misión (DESPACHADA o EN_CURSO)
+                                     * @example EN_CURSO
+                                     */
+                                    estado: string;
+                                    /**
+                                     * @description Fecha y hora de despacho a terreno
+                                     * @example 2026-11-08T09:30:00.000Z
+                                     */
+                                    fechaDespacho?: string | null;
+                                    /**
+                                     * @description Minutos transcurridos desde el despacho de la misión
+                                     * @example 45
+                                     */
+                                    tiempoTranscurridoMinutos?: number | null;
+                                    /**
+                                     * MisionActivaIncidente
+                                     * @description Datos esenciales del incidente asignado a la misión en ejecución
+                                     */
+                                    incidente?: {
+                                        /**
+                                         * Format: uuid
+                                         * @description Identificador único del incidente
+                                         * @example 40000000-0000-4000-8000-000000000001
+                                         */
+                                        id: string;
+                                        /**
+                                         * @description Código oficial del incidente
+                                         * @example INC-2026-0042
+                                         */
+                                        codigo: string;
+                                        /**
+                                         * @description Tipo o afectación del incidente
+                                         * @example Inundación
+                                         */
+                                        tipo?: string | null;
+                                        /**
+                                         * @description Dirección o punto de referencia
+                                         * @example Av. Los Robles 450, Isla Teja
+                                         */
+                                        direccion?: string | null;
+                                        /**
+                                         * @description Coordenada latitud
+                                         * @example -39.8152
+                                         */
+                                        latitud?: number | null;
+                                        /**
+                                         * @description Coordenada longitud
+                                         * @example -73.2458
+                                         */
+                                        longitud?: number | null;
+                                    } | null;
+                                } | null;
                                 /** @default true */
                                 activo: boolean;
                                 creadoEn: string;
@@ -7414,20 +7766,19 @@ export interface paths {
                                 nombre: string;
                                 /** @enum {string} */
                                 estado: "DISPONIBLE" | "EN_MISION" | "NO_DISPONIBLE";
-                                delegacion: {
+                                delegacion?: {
                                     /** Format: uuid */
-                                    id: string;
-                                    nombre: string;
+                                    id?: string | null;
+                                    nombre?: string | null;
                                     codigo?: string | null;
-                                };
-                                delegado: {
+                                } | null;
+                                delegado?: {
                                     /** Format: uuid */
-                                    id: string;
-                                    nombre: string;
-                                    /** Format: email */
-                                    email: string;
+                                    id?: string | null;
+                                    nombre?: string | null;
+                                    email?: (string | null) | "" | unknown;
                                     rut?: string | null;
-                                };
+                                } | null;
                                 /** @default [] */
                                 recursos: {
                                     /** Format: uuid */
@@ -7437,6 +7788,13 @@ export interface paths {
                                     nombre: string;
                                     cantidadAsignada: number;
                                     esIndividual: boolean;
+                                    descripcion?: string | null;
+                                    detalles?: {
+                                        [key: string]: unknown;
+                                    } | null;
+                                    especificaciones?: {
+                                        [key: string]: unknown;
+                                    } | null;
                                 }[];
                                 /** @default [] */
                                 trabajadores: {
@@ -7450,10 +7808,90 @@ export interface paths {
                                     rut?: string | null;
                                     cargo?: string | null;
                                     especialidad?: string | null;
+                                    telefono?: string | null;
                                     asignadoEn: string;
                                 }[];
                                 totalRecursos?: number;
                                 totalTrabajadores?: number;
+                                /**
+                                 * MisionActivaCuadrilla
+                                 * @description Detalle de la misión táctica activa que la cuadrilla se encuentra atendiendo
+                                 */
+                                misionActiva?: {
+                                    /**
+                                     * Format: uuid
+                                     * @description Identificador de la misión
+                                     * @example 50000000-0000-4000-8000-000000000001
+                                     */
+                                    id: string;
+                                    /**
+                                     * @description Código de la misión
+                                     * @example MIS-2026-0012
+                                     */
+                                    codigo: string;
+                                    /**
+                                     * @description Título de la misión
+                                     * @example Atención anegamiento en Isla Teja
+                                     */
+                                    titulo: string;
+                                    /**
+                                     * @description Tipo de misión táctica
+                                     * @example ATENCION_CUADRILLA
+                                     */
+                                    tipoMision: string;
+                                    /**
+                                     * @description Estado de la misión (DESPACHADA o EN_CURSO)
+                                     * @example EN_CURSO
+                                     */
+                                    estado: string;
+                                    /**
+                                     * @description Fecha y hora de despacho a terreno
+                                     * @example 2026-11-08T09:30:00.000Z
+                                     */
+                                    fechaDespacho?: string | null;
+                                    /**
+                                     * @description Minutos transcurridos desde el despacho de la misión
+                                     * @example 45
+                                     */
+                                    tiempoTranscurridoMinutos?: number | null;
+                                    /**
+                                     * MisionActivaIncidente
+                                     * @description Datos esenciales del incidente asignado a la misión en ejecución
+                                     */
+                                    incidente?: {
+                                        /**
+                                         * Format: uuid
+                                         * @description Identificador único del incidente
+                                         * @example 40000000-0000-4000-8000-000000000001
+                                         */
+                                        id: string;
+                                        /**
+                                         * @description Código oficial del incidente
+                                         * @example INC-2026-0042
+                                         */
+                                        codigo: string;
+                                        /**
+                                         * @description Tipo o afectación del incidente
+                                         * @example Inundación
+                                         */
+                                        tipo?: string | null;
+                                        /**
+                                         * @description Dirección o punto de referencia
+                                         * @example Av. Los Robles 450, Isla Teja
+                                         */
+                                        direccion?: string | null;
+                                        /**
+                                         * @description Coordenada latitud
+                                         * @example -39.8152
+                                         */
+                                        latitud?: number | null;
+                                        /**
+                                         * @description Coordenada longitud
+                                         * @example -73.2458
+                                         */
+                                        longitud?: number | null;
+                                    } | null;
+                                } | null;
                                 /** @default true */
                                 activo: boolean;
                                 creadoEn: string;
@@ -8751,20 +9189,19 @@ export interface components {
                 nombre: string;
                 /** @enum {string} */
                 estado: "DISPONIBLE" | "EN_MISION" | "NO_DISPONIBLE";
-                delegacion: {
+                delegacion?: {
                     /** Format: uuid */
-                    id: string;
-                    nombre: string;
+                    id?: string | null;
+                    nombre?: string | null;
                     codigo?: string | null;
-                };
-                delegado: {
+                } | null;
+                delegado?: {
                     /** Format: uuid */
-                    id: string;
-                    nombre: string;
-                    /** Format: email */
-                    email: string;
+                    id?: string | null;
+                    nombre?: string | null;
+                    email?: (string | null) | "" | unknown;
                     rut?: string | null;
-                };
+                } | null;
                 /** @default [] */
                 recursos: {
                     /** Format: uuid */
@@ -8774,6 +9211,13 @@ export interface components {
                     nombre: string;
                     cantidadAsignada: number;
                     esIndividual: boolean;
+                    descripcion?: string | null;
+                    detalles?: {
+                        [key: string]: unknown;
+                    } | null;
+                    especificaciones?: {
+                        [key: string]: unknown;
+                    } | null;
                 }[];
                 /** @default [] */
                 trabajadores: {
@@ -8787,10 +9231,90 @@ export interface components {
                     rut?: string | null;
                     cargo?: string | null;
                     especialidad?: string | null;
+                    telefono?: string | null;
                     asignadoEn: string;
                 }[];
                 totalRecursos?: number;
                 totalTrabajadores?: number;
+                /**
+                 * MisionActivaCuadrilla
+                 * @description Detalle de la misión táctica activa que la cuadrilla se encuentra atendiendo
+                 */
+                misionActiva?: {
+                    /**
+                     * Format: uuid
+                     * @description Identificador de la misión
+                     * @example 50000000-0000-4000-8000-000000000001
+                     */
+                    id: string;
+                    /**
+                     * @description Código de la misión
+                     * @example MIS-2026-0012
+                     */
+                    codigo: string;
+                    /**
+                     * @description Título de la misión
+                     * @example Atención anegamiento en Isla Teja
+                     */
+                    titulo: string;
+                    /**
+                     * @description Tipo de misión táctica
+                     * @example ATENCION_CUADRILLA
+                     */
+                    tipoMision: string;
+                    /**
+                     * @description Estado de la misión (DESPACHADA o EN_CURSO)
+                     * @example EN_CURSO
+                     */
+                    estado: string;
+                    /**
+                     * @description Fecha y hora de despacho a terreno
+                     * @example 2026-11-08T09:30:00.000Z
+                     */
+                    fechaDespacho?: string | null;
+                    /**
+                     * @description Minutos transcurridos desde el despacho de la misión
+                     * @example 45
+                     */
+                    tiempoTranscurridoMinutos?: number | null;
+                    /**
+                     * MisionActivaIncidente
+                     * @description Datos esenciales del incidente asignado a la misión en ejecución
+                     */
+                    incidente?: {
+                        /**
+                         * Format: uuid
+                         * @description Identificador único del incidente
+                         * @example 40000000-0000-4000-8000-000000000001
+                         */
+                        id: string;
+                        /**
+                         * @description Código oficial del incidente
+                         * @example INC-2026-0042
+                         */
+                        codigo: string;
+                        /**
+                         * @description Tipo o afectación del incidente
+                         * @example Inundación
+                         */
+                        tipo?: string | null;
+                        /**
+                         * @description Dirección o punto de referencia
+                         * @example Av. Los Robles 450, Isla Teja
+                         */
+                        direccion?: string | null;
+                        /**
+                         * @description Coordenada latitud
+                         * @example -39.8152
+                         */
+                        latitud?: number | null;
+                        /**
+                         * @description Coordenada longitud
+                         * @example -73.2458
+                         */
+                        longitud?: number | null;
+                    } | null;
+                } | null;
                 /** @default true */
                 activo: boolean;
                 creadoEn: string;
@@ -8874,20 +9398,19 @@ export interface components {
                 nombre: string;
                 /** @enum {string} */
                 estado: "DISPONIBLE" | "EN_MISION" | "NO_DISPONIBLE";
-                delegacion: {
+                delegacion?: {
                     /** Format: uuid */
-                    id: string;
-                    nombre: string;
+                    id?: string | null;
+                    nombre?: string | null;
                     codigo?: string | null;
-                };
-                delegado: {
+                } | null;
+                delegado?: {
                     /** Format: uuid */
-                    id: string;
-                    nombre: string;
-                    /** Format: email */
-                    email: string;
+                    id?: string | null;
+                    nombre?: string | null;
+                    email?: (string | null) | "" | unknown;
                     rut?: string | null;
-                };
+                } | null;
                 /** @default [] */
                 recursos: {
                     /** Format: uuid */
@@ -8897,6 +9420,13 @@ export interface components {
                     nombre: string;
                     cantidadAsignada: number;
                     esIndividual: boolean;
+                    descripcion?: string | null;
+                    detalles?: {
+                        [key: string]: unknown;
+                    } | null;
+                    especificaciones?: {
+                        [key: string]: unknown;
+                    } | null;
                 }[];
                 /** @default [] */
                 trabajadores: {
@@ -8910,10 +9440,90 @@ export interface components {
                     rut?: string | null;
                     cargo?: string | null;
                     especialidad?: string | null;
+                    telefono?: string | null;
                     asignadoEn: string;
                 }[];
                 totalRecursos?: number;
                 totalTrabajadores?: number;
+                /**
+                 * MisionActivaCuadrilla
+                 * @description Detalle de la misión táctica activa que la cuadrilla se encuentra atendiendo
+                 */
+                misionActiva?: {
+                    /**
+                     * Format: uuid
+                     * @description Identificador de la misión
+                     * @example 50000000-0000-4000-8000-000000000001
+                     */
+                    id: string;
+                    /**
+                     * @description Código de la misión
+                     * @example MIS-2026-0012
+                     */
+                    codigo: string;
+                    /**
+                     * @description Título de la misión
+                     * @example Atención anegamiento en Isla Teja
+                     */
+                    titulo: string;
+                    /**
+                     * @description Tipo de misión táctica
+                     * @example ATENCION_CUADRILLA
+                     */
+                    tipoMision: string;
+                    /**
+                     * @description Estado de la misión (DESPACHADA o EN_CURSO)
+                     * @example EN_CURSO
+                     */
+                    estado: string;
+                    /**
+                     * @description Fecha y hora de despacho a terreno
+                     * @example 2026-11-08T09:30:00.000Z
+                     */
+                    fechaDespacho?: string | null;
+                    /**
+                     * @description Minutos transcurridos desde el despacho de la misión
+                     * @example 45
+                     */
+                    tiempoTranscurridoMinutos?: number | null;
+                    /**
+                     * MisionActivaIncidente
+                     * @description Datos esenciales del incidente asignado a la misión en ejecución
+                     */
+                    incidente?: {
+                        /**
+                         * Format: uuid
+                         * @description Identificador único del incidente
+                         * @example 40000000-0000-4000-8000-000000000001
+                         */
+                        id: string;
+                        /**
+                         * @description Código oficial del incidente
+                         * @example INC-2026-0042
+                         */
+                        codigo: string;
+                        /**
+                         * @description Tipo o afectación del incidente
+                         * @example Inundación
+                         */
+                        tipo?: string | null;
+                        /**
+                         * @description Dirección o punto de referencia
+                         * @example Av. Los Robles 450, Isla Teja
+                         */
+                        direccion?: string | null;
+                        /**
+                         * @description Coordenada latitud
+                         * @example -39.8152
+                         */
+                        latitud?: number | null;
+                        /**
+                         * @description Coordenada longitud
+                         * @example -73.2458
+                         */
+                        longitud?: number | null;
+                    } | null;
+                } | null;
                 /** @default true */
                 activo: boolean;
                 creadoEn: string;
@@ -8944,20 +9554,19 @@ export interface components {
                 nombre: string;
                 /** @enum {string} */
                 estado: "DISPONIBLE" | "EN_MISION" | "NO_DISPONIBLE";
-                delegacion: {
+                delegacion?: {
                     /** Format: uuid */
-                    id: string;
-                    nombre: string;
+                    id?: string | null;
+                    nombre?: string | null;
                     codigo?: string | null;
-                };
-                delegado: {
+                } | null;
+                delegado?: {
                     /** Format: uuid */
-                    id: string;
-                    nombre: string;
-                    /** Format: email */
-                    email: string;
+                    id?: string | null;
+                    nombre?: string | null;
+                    email?: (string | null) | "" | unknown;
                     rut?: string | null;
-                };
+                } | null;
                 /** @default [] */
                 recursos: {
                     /** Format: uuid */
@@ -8967,6 +9576,13 @@ export interface components {
                     nombre: string;
                     cantidadAsignada: number;
                     esIndividual: boolean;
+                    descripcion?: string | null;
+                    detalles?: {
+                        [key: string]: unknown;
+                    } | null;
+                    especificaciones?: {
+                        [key: string]: unknown;
+                    } | null;
                 }[];
                 /** @default [] */
                 trabajadores: {
@@ -8980,10 +9596,90 @@ export interface components {
                     rut?: string | null;
                     cargo?: string | null;
                     especialidad?: string | null;
+                    telefono?: string | null;
                     asignadoEn: string;
                 }[];
                 totalRecursos?: number;
                 totalTrabajadores?: number;
+                /**
+                 * MisionActivaCuadrilla
+                 * @description Detalle de la misión táctica activa que la cuadrilla se encuentra atendiendo
+                 */
+                misionActiva?: {
+                    /**
+                     * Format: uuid
+                     * @description Identificador de la misión
+                     * @example 50000000-0000-4000-8000-000000000001
+                     */
+                    id: string;
+                    /**
+                     * @description Código de la misión
+                     * @example MIS-2026-0012
+                     */
+                    codigo: string;
+                    /**
+                     * @description Título de la misión
+                     * @example Atención anegamiento en Isla Teja
+                     */
+                    titulo: string;
+                    /**
+                     * @description Tipo de misión táctica
+                     * @example ATENCION_CUADRILLA
+                     */
+                    tipoMision: string;
+                    /**
+                     * @description Estado de la misión (DESPACHADA o EN_CURSO)
+                     * @example EN_CURSO
+                     */
+                    estado: string;
+                    /**
+                     * @description Fecha y hora de despacho a terreno
+                     * @example 2026-11-08T09:30:00.000Z
+                     */
+                    fechaDespacho?: string | null;
+                    /**
+                     * @description Minutos transcurridos desde el despacho de la misión
+                     * @example 45
+                     */
+                    tiempoTranscurridoMinutos?: number | null;
+                    /**
+                     * MisionActivaIncidente
+                     * @description Datos esenciales del incidente asignado a la misión en ejecución
+                     */
+                    incidente?: {
+                        /**
+                         * Format: uuid
+                         * @description Identificador único del incidente
+                         * @example 40000000-0000-4000-8000-000000000001
+                         */
+                        id: string;
+                        /**
+                         * @description Código oficial del incidente
+                         * @example INC-2026-0042
+                         */
+                        codigo: string;
+                        /**
+                         * @description Tipo o afectación del incidente
+                         * @example Inundación
+                         */
+                        tipo?: string | null;
+                        /**
+                         * @description Dirección o punto de referencia
+                         * @example Av. Los Robles 450, Isla Teja
+                         */
+                        direccion?: string | null;
+                        /**
+                         * @description Coordenada latitud
+                         * @example -39.8152
+                         */
+                        latitud?: number | null;
+                        /**
+                         * @description Coordenada longitud
+                         * @example -73.2458
+                         */
+                        longitud?: number | null;
+                    } | null;
+                } | null;
                 /** @default true */
                 activo: boolean;
                 creadoEn: string;
@@ -9044,20 +9740,19 @@ export interface components {
                 nombre: string;
                 /** @enum {string} */
                 estado: "DISPONIBLE" | "EN_MISION" | "NO_DISPONIBLE";
-                delegacion: {
+                delegacion?: {
                     /** Format: uuid */
-                    id: string;
-                    nombre: string;
+                    id?: string | null;
+                    nombre?: string | null;
                     codigo?: string | null;
-                };
-                delegado: {
+                } | null;
+                delegado?: {
                     /** Format: uuid */
-                    id: string;
-                    nombre: string;
-                    /** Format: email */
-                    email: string;
+                    id?: string | null;
+                    nombre?: string | null;
+                    email?: (string | null) | "" | unknown;
                     rut?: string | null;
-                };
+                } | null;
                 /** @default [] */
                 recursos: {
                     /** Format: uuid */
@@ -9067,6 +9762,13 @@ export interface components {
                     nombre: string;
                     cantidadAsignada: number;
                     esIndividual: boolean;
+                    descripcion?: string | null;
+                    detalles?: {
+                        [key: string]: unknown;
+                    } | null;
+                    especificaciones?: {
+                        [key: string]: unknown;
+                    } | null;
                 }[];
                 /** @default [] */
                 trabajadores: {
@@ -9080,6 +9782,7 @@ export interface components {
                     rut?: string | null;
                     cargo?: string | null;
                     especialidad?: string | null;
+                    telefono?: string | null;
                     asignadoEn: string;
                 }[];
                 /**
@@ -9092,6 +9795,85 @@ export interface components {
                  * @example 1
                  */
                 totalTrabajadores: number;
+                /**
+                 * MisionActivaCuadrilla
+                 * @description Detalle de la misión táctica activa que la cuadrilla se encuentra atendiendo
+                 */
+                misionActiva?: {
+                    /**
+                     * Format: uuid
+                     * @description Identificador de la misión
+                     * @example 50000000-0000-4000-8000-000000000001
+                     */
+                    id: string;
+                    /**
+                     * @description Código de la misión
+                     * @example MIS-2026-0012
+                     */
+                    codigo: string;
+                    /**
+                     * @description Título de la misión
+                     * @example Atención anegamiento en Isla Teja
+                     */
+                    titulo: string;
+                    /**
+                     * @description Tipo de misión táctica
+                     * @example ATENCION_CUADRILLA
+                     */
+                    tipoMision: string;
+                    /**
+                     * @description Estado de la misión (DESPACHADA o EN_CURSO)
+                     * @example EN_CURSO
+                     */
+                    estado: string;
+                    /**
+                     * @description Fecha y hora de despacho a terreno
+                     * @example 2026-11-08T09:30:00.000Z
+                     */
+                    fechaDespacho?: string | null;
+                    /**
+                     * @description Minutos transcurridos desde el despacho de la misión
+                     * @example 45
+                     */
+                    tiempoTranscurridoMinutos?: number | null;
+                    /**
+                     * MisionActivaIncidente
+                     * @description Datos esenciales del incidente asignado a la misión en ejecución
+                     */
+                    incidente?: {
+                        /**
+                         * Format: uuid
+                         * @description Identificador único del incidente
+                         * @example 40000000-0000-4000-8000-000000000001
+                         */
+                        id: string;
+                        /**
+                         * @description Código oficial del incidente
+                         * @example INC-2026-0042
+                         */
+                        codigo: string;
+                        /**
+                         * @description Tipo o afectación del incidente
+                         * @example Inundación
+                         */
+                        tipo?: string | null;
+                        /**
+                         * @description Dirección o punto de referencia
+                         * @example Av. Los Robles 450, Isla Teja
+                         */
+                        direccion?: string | null;
+                        /**
+                         * @description Coordenada latitud
+                         * @example -39.8152
+                         */
+                        latitud?: number | null;
+                        /**
+                         * @description Coordenada longitud
+                         * @example -73.2458
+                         */
+                        longitud?: number | null;
+                    } | null;
+                } | null;
                 /**
                  * @description Indica si la cuadrilla se encuentra activa operativamente
                  * @default true
@@ -9123,6 +9905,122 @@ export interface components {
                 hasNext: boolean;
                 hasPrev: boolean;
             };
+        };
+        /**
+         * MisionActivaIncidente
+         * @description Datos esenciales del incidente asignado a la misión en ejecución
+         */
+        MisionActivaIncidente: {
+            /**
+             * Format: uuid
+             * @description Identificador único del incidente
+             * @example 40000000-0000-4000-8000-000000000001
+             */
+            id: string;
+            /**
+             * @description Código oficial del incidente
+             * @example INC-2026-0042
+             */
+            codigo: string;
+            /**
+             * @description Tipo o afectación del incidente
+             * @example Inundación
+             */
+            tipo?: string | null;
+            /**
+             * @description Dirección o punto de referencia
+             * @example Av. Los Robles 450, Isla Teja
+             */
+            direccion?: string | null;
+            /**
+             * @description Coordenada latitud
+             * @example -39.8152
+             */
+            latitud?: number | null;
+            /**
+             * @description Coordenada longitud
+             * @example -73.2458
+             */
+            longitud?: number | null;
+        };
+        /**
+         * MisionActivaCuadrilla
+         * @description Detalle de la misión táctica activa que la cuadrilla se encuentra atendiendo
+         */
+        MisionActivaCuadrilla: {
+            /**
+             * Format: uuid
+             * @description Identificador de la misión
+             * @example 50000000-0000-4000-8000-000000000001
+             */
+            id: string;
+            /**
+             * @description Código de la misión
+             * @example MIS-2026-0012
+             */
+            codigo: string;
+            /**
+             * @description Título de la misión
+             * @example Atención anegamiento en Isla Teja
+             */
+            titulo: string;
+            /**
+             * @description Tipo de misión táctica
+             * @example ATENCION_CUADRILLA
+             */
+            tipoMision: string;
+            /**
+             * @description Estado de la misión (DESPACHADA o EN_CURSO)
+             * @example EN_CURSO
+             */
+            estado: string;
+            /**
+             * @description Fecha y hora de despacho a terreno
+             * @example 2026-11-08T09:30:00.000Z
+             */
+            fechaDespacho?: string | null;
+            /**
+             * @description Minutos transcurridos desde el despacho de la misión
+             * @example 45
+             */
+            tiempoTranscurridoMinutos?: number | null;
+            /**
+             * MisionActivaIncidente
+             * @description Datos esenciales del incidente asignado a la misión en ejecución
+             */
+            incidente?: {
+                /**
+                 * Format: uuid
+                 * @description Identificador único del incidente
+                 * @example 40000000-0000-4000-8000-000000000001
+                 */
+                id: string;
+                /**
+                 * @description Código oficial del incidente
+                 * @example INC-2026-0042
+                 */
+                codigo: string;
+                /**
+                 * @description Tipo o afectación del incidente
+                 * @example Inundación
+                 */
+                tipo?: string | null;
+                /**
+                 * @description Dirección o punto de referencia
+                 * @example Av. Los Robles 450, Isla Teja
+                 */
+                direccion?: string | null;
+                /**
+                 * @description Coordenada latitud
+                 * @example -39.8152
+                 */
+                latitud?: number | null;
+                /**
+                 * @description Coordenada longitud
+                 * @example -73.2458
+                 */
+                longitud?: number | null;
+            } | null;
         };
         ListarRolesResponse: {
             /** @description Colección de perfiles con sus permisos asignados */
@@ -10709,6 +11607,101 @@ export interface components {
             limite: number;
             /** @example 1 */
             totalPaginas: number;
+        };
+        AceptarMisionInput: {
+            /**
+             * @description Coordenada GPS opcional de latitud (WGS84) al momento de aceptar la misión desde la PWA
+             * @example -39.819588
+             */
+            latitud?: number;
+            /**
+             * @description Coordenada GPS opcional de longitud (WGS84) al momento de aceptar la misión desde la PWA
+             * @example -73.245209
+             */
+            longitud?: number;
+        };
+        MisionHitoRegistrado: {
+            /**
+             * Format: uuid
+             * @description Identificador único UUID del hito registrado en mision_hito
+             */
+            id: string;
+            /**
+             * Format: uuid
+             * @description Identificador único UUID de la misión
+             */
+            misionId: string;
+            /**
+             * @description Código canónico del hito
+             * @example MISION_ACEPTADA
+             */
+            hito: string;
+            /**
+             * @description Glosa descriptiva del hito operativo
+             * @example Misión Aceptada por Patrulla
+             */
+            descripcion: string;
+            /**
+             * Format: uuid
+             * @description UUID del funcionario de patrulla en sesión que confirmó la salida
+             */
+            registradoPorId: string | null;
+            /** @description Latitud reportada al momento del hito */
+            latitud: number | null;
+            /** @description Longitud reportada al momento del hito */
+            longitud: number | null;
+            /** @description Fecha y hora del hito en formato ISO 8601 */
+            creadoEn: string;
+        };
+        AceptarMisionResponse: {
+            /** @example Misión aceptada exitosamente. La patrulla se encuentra en trayecto para iniciar la evaluación. */
+            message: string;
+            data: {
+                mision: {
+                    /** Format: uuid */
+                    id: string;
+                    codigo: string;
+                    titulo: string;
+                    descripcion: string | null;
+                    /** @enum {string} */
+                    tipoMision: "VERIFICACION" | "ATENCION_CUADRILLA" | "PREVENCION" | "RECUPERACION" | "ASISTENCIA_SOCIAL";
+                    /**
+                     * @example EN_CURSO
+                     * @enum {string}
+                     */
+                    estado: "PLANIFICADA" | "DESPACHADA" | "EN_CURSO" | "COMPLETADA" | "CANCELADA" | "RECHAZADA";
+                    /** @enum {string} */
+                    prioridad: "BAJA" | "MEDIA" | "ALTA" | "CRITICA";
+                    /** Format: uuid */
+                    incidenteId: string | null;
+                    /** Format: uuid */
+                    patrullaId: string | null;
+                    /** @description Timestamp ISO 8601 fijado al momento de aceptar la misión */
+                    fechaInicio: string;
+                    actualizadoEn: string;
+                };
+                patrulla: {
+                    /** Format: uuid */
+                    id: string;
+                    nombre: string;
+                    /**
+                     * @description Se mantiene en EN_VERIFICACION durante el trayecto y evaluación
+                     * @example EN_VERIFICACION
+                     */
+                    estado: string;
+                } | null;
+                incidente: {
+                    /** Format: uuid */
+                    id: string;
+                    codigo: string;
+                    /**
+                     * @description Permanece en estado canónico VERIFICANDO (no 'En camino')
+                     * @example VERIFICANDO
+                     */
+                    estado: string;
+                } | null;
+                hito: components["schemas"]["MisionHitoRegistrado"];
+            };
         };
         PuntoCriticoItem: {
             /**

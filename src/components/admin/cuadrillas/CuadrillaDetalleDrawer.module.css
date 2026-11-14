@@ -1,0 +1,563 @@
+/* ==========================================================================
+   CuadrillaDetalleDrawer.module.css
+   Estilos institucionales para la Ficha Técnica y Composición de Cuadrilla (HU-22)
+   Conforme a GEMINI.md: Noto Sans, paleta Valdivia, esquinas rectas, sin sombras pesadas
+   ========================================================================== */
+
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-drawer, 1000);
+  background-color: rgba(20, 80, 90, 0.45);
+  backdrop-filter: blur(2px);
+  display: flex;
+  justify-content: flex-end;
+  align-items: stretch;
+}
+
+.drawer {
+  position: relative;
+  width: 100%;
+  max-width: 620px;
+  height: 100%;
+  background-color: var(--color-white, #FFFFFF);
+  box-shadow: var(--shadow-md, 0 4px 12px rgba(0, 0, 0, 0.08));
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-left: 1px solid var(--border-color-neutral, #DFE3E8);
+}
+
+/* Cabecera del Drawer */
+.header {
+  padding: var(--space-4, 16px) var(--space-5, 20px);
+  background-color: var(--color-primary-teal-dark, #14505A);
+  color: var(--color-white, #FFFFFF);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 3px solid var(--color-accent-mint, #4FAE9B);
+  flex-shrink: 0;
+}
+
+.headerTitleGroup {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3, 12px);
+}
+
+.headerIcon {
+  color: var(--color-accent-mint, #4FAE9B);
+  flex-shrink: 0;
+}
+
+.headerTitles {
+  display: flex;
+  flex-direction: column;
+}
+
+.headerSubtitle {
+  font-size: var(--font-size-xs, 12px);
+  color: #CCD2D9;
+  margin-top: 2px;
+}
+
+.closeButton {
+  background: transparent;
+  border: none;
+  color: var(--color-white, #FFFFFF);
+  cursor: pointer;
+  padding: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.15s ease;
+}
+
+.closeButton:hover {
+  opacity: 0.8;
+}
+
+/* Cuerpo del Drawer */
+.body {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-5, 20px);
+  background-color: var(--color-bg-light, #ECEFF3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4, 16px);
+}
+
+/* Tarjeta / Contenedor de Bloque */
+.card {
+  background-color: var(--color-white, #FFFFFF);
+  border: 1px solid var(--border-color-neutral, #DFE3E8);
+  padding: var(--space-4, 16px);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3, 12px);
+}
+
+.cardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border-color-neutral, #DFE3E8);
+  padding-bottom: var(--space-2, 8px);
+}
+
+.cardTitle {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2, 8px);
+  font-size: var(--font-size-sm, 13px);
+  font-weight: 700;
+  color: var(--color-primary-teal-dark, #14505A);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+/* Badges de Estado */
+.badgeEstado {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  font-size: var(--font-size-xs, 12px);
+  font-weight: 700;
+  border-radius: var(--radius-none, 0px);
+  letter-spacing: 0.3px;
+}
+
+.badgeDisponible {
+  background-color: var(--color-success-bg, #E8F5E9);
+  color: var(--color-success, #2E7D32);
+  border: 1px solid #C8E6C9;
+}
+
+.badgeEnMision {
+  background-color: var(--color-warning-bg, #FFF3E0);
+  color: var(--color-warning, #E65100);
+  border: 1px solid #FFE0B2;
+}
+
+.badgeNoDisponible {
+  background-color: #F1F3F5;
+  color: var(--color-text-muted, #5F676E);
+  border: 1px solid #DFE3E8;
+}
+
+.statusDot {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--radius-round, 9999px);
+  background-color: currentColor;
+}
+
+/* Tarjeta Destacada de Misión Activa */
+.misionActivaCard {
+  background-color: var(--color-warning-bg, #FFF3E0);
+  border: 1px solid #FFE0B2;
+  border-left: 4px solid var(--color-warning, #E65100);
+  padding: var(--space-4, 16px);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2, 8px);
+}
+
+.misionActivaHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-2, 8px);
+}
+
+.misionBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--font-size-xs, 12px);
+  font-weight: 700;
+  color: var(--color-warning, #E65100);
+  text-transform: uppercase;
+}
+
+.misionTiempo {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--font-size-xs, 12px);
+  font-weight: 700;
+  color: var(--color-charcoal, #3B3F45);
+  background-color: rgba(255, 255, 255, 0.7);
+  padding: 2px 8px;
+  border: 1px solid #FFE0B2;
+}
+
+.misionTitulo {
+  font-size: var(--font-size-base, 14px);
+  font-weight: 700;
+  color: var(--color-text-dark, #2B2B2B);
+}
+
+.incidenteRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-2, 8px);
+  padding-top: var(--space-2, 8px);
+  border-top: 1px solid rgba(230, 81, 0, 0.2);
+  margin-top: 4px;
+}
+
+.incidenteInfo {
+  font-size: var(--font-size-sm, 13px);
+  color: var(--color-charcoal, #3B3F45);
+}
+
+.incidenteBotonLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background-color: var(--color-primary-teal, #1B6F7D);
+  color: var(--color-white, #FFFFFF);
+  font-size: var(--font-size-xs, 12px);
+  font-weight: 700;
+  border: none;
+  border-radius: var(--radius-none, 0px);
+  cursor: pointer;
+  text-decoration: none;
+  transition: background-color 0.15s ease;
+}
+
+.incidenteBotonLink:hover {
+  background-color: var(--color-primary-teal-dark, #14505A);
+  color: var(--color-white, #FFFFFF);
+}
+
+/* Delegado Responsable */
+.delegadoContainer {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3, 12px);
+}
+
+.delegadoAvatar {
+  width: 42px;
+  height: 42px;
+  background-color: var(--color-primary-teal, #1B6F7D);
+  color: var(--color-white, #FFFFFF);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--font-size-md, 16px);
+  font-weight: 700;
+  border-radius: var(--radius-none, 0px);
+  flex-shrink: 0;
+}
+
+.delegadoDetails {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.delegadoNombre {
+  font-size: var(--font-size-base, 14px);
+  font-weight: 700;
+  color: var(--color-text-dark, #2B2B2B);
+}
+
+.delegadoMeta {
+  font-size: var(--font-size-xs, 12px);
+  color: var(--color-text-muted, #5F676E);
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2, 8px);
+}
+
+/* Listado de Trabajadores / Integrantes */
+.trabajadoresList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2, 8px);
+}
+
+.trabajadorRow {
+  border: 1px solid var(--border-color-neutral, #DFE3E8);
+  padding: var(--space-3, 12px);
+  background-color: var(--color-white, #FFFFFF);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2, 8px);
+}
+
+.trabajadorMain {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.trabajadorNombre {
+  font-size: var(--font-size-sm, 13px);
+  font-weight: 700;
+  color: var(--color-text-dark, #2B2B2B);
+}
+
+.trabajadorCargoGroup {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.cargoBadge {
+  display: inline-block;
+  padding: 2px 6px;
+  background-color: var(--color-bg-light, #ECEFF3);
+  color: var(--color-primary-teal, #1B6F7D);
+  font-size: var(--font-size-xs, 11px);
+  font-weight: 600;
+  border: 1px solid var(--border-color-neutral, #DFE3E8);
+  border-radius: var(--radius-none, 0px);
+}
+
+.especialidadText {
+  font-size: var(--font-size-xs, 12px);
+  color: var(--color-text-muted, #5F676E);
+}
+
+.trabajadorContact {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3, 12px);
+}
+
+.rutBadge {
+  font-size: var(--font-size-xs, 11px);
+  color: var(--color-text-muted, #5F676E);
+  background-color: var(--color-bg-light, #ECEFF3);
+  padding: 2px 6px;
+  border: 1px solid var(--border-color-neutral, #DFE3E8);
+  font-weight: 600;
+}
+
+.telefonoLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--font-size-xs, 12px);
+  font-weight: 700;
+  color: var(--color-primary-teal, #1B6F7D);
+  text-decoration: none;
+  padding: 4px 8px;
+  background-color: var(--color-info-bg, #E0F2F1);
+  border: 1px solid #B2DFDB;
+  border-radius: var(--radius-none, 0px);
+  transition: all 0.15s ease;
+}
+
+.telefonoLink:hover {
+  background-color: var(--color-primary-teal, #1B6F7D);
+  color: var(--color-white, #FFFFFF);
+}
+
+/* Listado de Recursos Materiales y Vehículos */
+.recursosList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2, 8px);
+}
+
+.recursoCard {
+  border: 1px solid var(--border-color-neutral, #DFE3E8);
+  padding: var(--space-3, 12px);
+  background-color: var(--color-white, #FFFFFF);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2, 8px);
+}
+
+.recursoHeaderRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--space-2, 8px);
+}
+
+.recursoNombre {
+  font-size: var(--font-size-sm, 13px);
+  font-weight: 700;
+  color: var(--color-text-dark, #2B2B2B);
+}
+
+.recursoTipo {
+  font-size: var(--font-size-xs, 11px);
+  color: var(--color-text-muted, #5F676E);
+  margin-top: 2px;
+}
+
+.recursoCantidadBadge {
+  font-size: var(--font-size-xs, 12px);
+  font-weight: 700;
+  background-color: var(--color-bg-light, #ECEFF3);
+  color: var(--color-charcoal, #3B3F45);
+  padding: 3px 8px;
+  border: 1px solid var(--border-color-neutral, #DFE3E8);
+  white-space: nowrap;
+}
+
+.recursoDescripcion {
+  font-size: var(--font-size-xs, 12px);
+  color: var(--color-text-muted, #5F676E);
+  margin: 0;
+}
+
+.especificacionesContainer {
+  background-color: var(--color-bg-light, #ECEFF3);
+  border: 1px solid var(--border-color-neutral, #DFE3E8);
+  padding: var(--space-2, 8px);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2, 8px);
+}
+
+.especificacionItem {
+  font-size: var(--font-size-xs, 11px);
+  color: var(--color-charcoal, #3B3F45);
+}
+
+.especificacionClave {
+  font-weight: 700;
+  text-transform: capitalize;
+  color: var(--color-primary-teal, #1B6F7D);
+}
+
+/* Auditoría y Fechas */
+.auditFooter {
+  margin-top: auto;
+  border-top: 1px solid var(--border-color-neutral, #DFE3E8);
+  padding-top: var(--space-3, 12px);
+  font-size: var(--font-size-xs, 11px);
+  color: var(--color-text-muted, #5F676E);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* Pie del Drawer */
+.footer {
+  padding: var(--space-3, 12px) var(--space-5, 20px);
+  background-color: var(--color-bg-light, #ECEFF3);
+  border-top: 1px solid var(--border-color-neutral, #DFE3E8);
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-3, 12px);
+  flex-shrink: 0;
+}
+
+/* Estados de Carga y Error */
+.loadingState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-10, 40px) var(--space-4, 16px);
+  color: var(--color-text-muted, #5F676E);
+  gap: var(--space-3, 12px);
+  text-align: center;
+}
+
+.emptyText {
+  margin: 0;
+  font-size: var(--font-size-sm, 13px);
+  color: var(--color-text-muted, #5F676E);
+  font-style: italic;
+}
+
+.errorBox {
+  background-color: var(--color-danger-bg, #FFEBEE);
+  border: 1px solid #FFCDD2;
+  border-left: 4px solid var(--color-danger, #D32F2F);
+  padding: var(--space-4, 16px);
+  color: var(--color-danger, #D32F2F);
+  font-size: var(--font-size-sm, 13px);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2, 8px);
+}
+
+.errorBoxHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2, 8px);
+  font-weight: 700;
+}
+
+.estadoRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.estadoLabel {
+  font-size: var(--font-size-sm, 13px);
+  font-weight: 600;
+  color: var(--color-charcoal, #3B3F45);
+}
+
+.inactivaNotice {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 16px;
+  background-color: #F1F3F5;
+  border: 1px solid #DFE3E8;
+  border-left: 4px solid var(--color-text-muted, #5F676E);
+  color: var(--color-text-muted, #5F676E);
+  font-size: 13px;
+}
+
+.inactivaIcon {
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.misionAdvertenciaProtegida {
+  font-size: 12px;
+  color: var(--color-warning, #E65100);
+}
+
+.incidenteDireccion {
+  font-size: 11px;
+  color: var(--color-text-muted, #5F676E);
+  margin-top: 2px;
+}
+
+.incidenteDireccionIcon {
+  display: inline;
+  margin-right: 3px;
+}
+
+.delegadoEmail {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.sinTelefono {
+  font-size: 11px;
+  color: var(--color-text-muted, #5F676E);
+}
+
+.auditEliminado {
+  color: var(--color-danger, #D32F2F);
+}
+
