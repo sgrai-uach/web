@@ -27,6 +27,8 @@ import { MapaOperativoMando } from './MapaOperativoMando';
 import { KanbanViewSwitcher } from './KanbanViewSwitcher';
 import { Zap } from 'lucide-react';
 import { usePuedeAsignarMision } from '@/hooks/usePuedeAsignarMision';
+import { extraerEstadoInicialNotificacion } from '@/lib/socket/trazabilidadConfig';
+import { setTrazabilidadEstado } from '@/lib/socket/trazabilidadStore';
 import InlineNotice from '@/components/ui/InlineNotice';
 import styles from '@/styles/mando.module.css';
 
@@ -72,6 +74,7 @@ export const KanbanBoard: React.FC = () => {
     totalIncidentesVisibles,
     incidenteSeleccionadoId,
     setIncidenteSeleccionadoId,
+    trazabilidadPorIncidente,
   } = useIncidentesKanban();
 
 
@@ -268,6 +271,7 @@ export const KanbanBoard: React.FC = () => {
                     onSeleccionarIncidente={(inc) => setIncidenteSeleccionadoId(inc.id)}
                     onAsignarPatrulla={(inc) => setIncidenteParaAsignar(inc)}
                     puedeAsignarPatrulla={puedeAsignar}
+                    trazabilidadPorIncidente={trazabilidadPorIncidente}
                   />
                 ))}
               </div>
@@ -305,6 +309,8 @@ export const KanbanBoard: React.FC = () => {
             incidente={incidenteParaAsignar}
             userId={userId}
             onAsignacionExitosa={(data) => {
+              const estadoInicial = extraerEstadoInicialNotificacion(data);
+              setTrazabilidadEstado(data.mision.id, estadoInicial, data.incidente.id);
               moverIncidenteAEstado(data.incidente.id, 'VERIFICANDO');
               recargar();
               refrescarKpis();

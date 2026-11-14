@@ -235,6 +235,9 @@
   color: #5C1D1D;
   border-radius: var(--radius-none, 0px);
   flex-shrink: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .bannerRechazoIcon {
@@ -251,6 +254,8 @@
   flex-shrink: 0;
   width: 100%;
   box-sizing: border-box;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .seccionHeader {
@@ -274,6 +279,9 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-3, 12px);
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 /* Grid de Datos Clave-Valor */
@@ -304,6 +312,7 @@
   color: var(--color-text-dark, #2B2B2B);
   font-weight: 500;
   line-height: 1.4;
+  overflow-wrap: anywhere;
   word-break: break-word;
 }
 
@@ -404,6 +413,8 @@
   color: var(--color-text-dark, #2B2B2B);
   margin: 0;
   line-height: 1.4;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 /* Tarjetas de Reportes de Terreno */
@@ -417,6 +428,10 @@
   gap: var(--space-3, 12px);
   border-radius: var(--radius-none, 0px);
   flex-shrink: 0;
+  min-width: 0;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .reporteHeader {
