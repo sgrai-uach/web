@@ -101,10 +101,14 @@ describe('useIncidentesKpis', () => {
     });
   });
 
-  it('debe conectar el socket y suscribirse con join y unirse de forma defensiva', () => {
+  it('debe conectar el socket y suscribirse con join y unirse de forma defensiva', async () => {
     const socket = getSocket();
 
     renderHook(() => useIncidentesKpis());
+
+    await waitFor(() => {
+      expect(obtenerKpisIncidentes).toHaveBeenCalledTimes(1);
+    });
 
     expect(socket.connect).toHaveBeenCalled();
     expect(socket.on).toHaveBeenCalledWith('connect', expect.any(Function));
@@ -115,7 +119,7 @@ describe('useIncidentesKpis', () => {
 
     // Simular evento de conexión
     const socketHelper = socket as unknown as { _trigger: (ev: string) => void };
-    act(() => {
+    await act(async () => {
       socketHelper._trigger('connect');
     });
 
