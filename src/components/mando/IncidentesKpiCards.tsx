@@ -117,7 +117,9 @@ export const IncidentesKpiCards: React.FC<IncidentesKpiCardsProps> = ({
   const [isMounted, setIsMounted] = React.useState(false);
 
   React.useEffect(() => {
-    setIsMounted(true);
+    queueMicrotask(() => {
+      setIsMounted(true);
+    });
   }, []);
 
   const contadores = kpis?.contadores || {
