@@ -1,7 +1,17 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import type { MisionItem } from '@/types/misiones';
+import type { EstadoTrazabilidadNotificacion } from '@/services/incidentesService';
+import {
+  TRAZABILIDAD_CONFIG,
+  seleccionarEstadoTrazabilidadMayor,
+} from '@/lib/socket/trazabilidadConfig';
+import {
+  getSnapshotTrazabilidadMisiones,
+  subscribeTrazabilidad,
+} from '@/lib/socket/trazabilidadStore';
+import { TrazabilidadIcon } from '../TrazabilidadIcon';
 import { AlertTriangle, Users, ShieldAlert } from 'lucide-react';
 import Button from '@/components/ui/Button';
 
@@ -34,6 +44,28 @@ export const MisionesTabla: React.FC<MisionesTablaProps> = ({
   hayFiltrosActivos,
   onLimpiarFiltros,
 }) => {
+  const [trazabilidadMisiones, setTrazabilidadMisiones] = useState<
+    Record<string, EstadoTrazabilidadNotificacion>
+  >({});
+
+  useEffect(() => {
+    let activo = true;
+    queueMicrotask(() => {
+      if (activo) {
+        setTrazabilidadMisiones(getSnapshotTrazabilidadMisiones());
+      }
+    });
+    const unsubscribe = subscribeTrazabilidad(() => {
+      if (activo) {
+        setTrazabilidadMisiones(getSnapshotTrazabilidadMisiones());
+      }
+    });
+    return () => {
+      activo = false;
+      unsubscribe();
+    };
+  }, []);
+
   if (cargando) {
     return (
       <div style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--color-text-muted, #5F676E)' }}>
@@ -101,6 +133,13 @@ export const MisionesTabla: React.FC<MisionesTablaProps> = ({
               color: 'var(--color-text-muted, #5F676E)',
               label: mision.prioridad,
             };
+            const estadoTrazabilidad = seleccionarEstadoTrazabilidadMayor(
+              mision.trazabilidadNotificacion,
+              trazabilidadMisiones[mision.id]
+            );
+            const cfgTrazabilidad = estadoTrazabilidad
+              ? TRAZABILIDAD_CONFIG[estadoTrazabilidad]
+              : undefined;
 
             return (
               <tr
@@ -196,6 +235,32 @@ export const MisionesTabla: React.FC<MisionesTablaProps> = ({
                   >
                     {badge.label}
                   </span>
+
+                  {cfgTrazabilidad && (
+                    <div style={{ marginTop: '4px' }}>
+                      <span
+                        data-testid={`tabla-trazabilidad-${mision.id}`}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          padding: '2px 6px',
+                          backgroundColor: cfgTrazabilidad.bg,
+                          color: cfgTrazabilidad.color,
+                          border: '1px solid currentColor',
+                          borderRadius: 0,
+                          fontSize: '11px',
+                          fontWeight: 600,
+                        }}
+                        title={cfgTrazabilidad.texto}
+                      >
+                        <TrazabilidadIcon estado={estadoTrazabilidad} size={11} />
+                        <span>
+                          {cfgTrazabilidad.etiquetaLectura}: {cfgTrazabilidad.textoCorto}
+                        </span>
+                      </span>
+                    </div>
+                  )}
 
                   {mision.estado === 'RECHAZADA' && mision.justificacionRechazo && (
                     <div

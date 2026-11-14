@@ -2,6 +2,8 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { getSocket } from '@/lib/socket/client';
+import { esPayloadTrazabilidadValido } from '@/lib/socket/trazabilidadConfig';
+import { setTrazabilidadEstado } from '@/lib/socket/trazabilidadStore';
 import type { EstadoIncidente, PrioridadIncidente } from '@/services/incidentesService';
 
 export interface IncidenteCreadoPayload {
@@ -32,9 +34,23 @@ export interface IncidenteActualizadoPayload {
   emitidoEn: string;
 }
 
+export interface NotificacionTrazabilidadPayload {
+  notificacionId: string;
+  misionId: string;
+  patrullaId: string;
+  estado: 'PENDIENTE_ENVIO' | 'ENVIADA' | 'RECIBIDA' | 'LEIDA';
+  intentosEnvio?: number;
+  creadaAt?: string;
+  enviadaAt?: string | null;
+  recibidaAt?: string | null;
+  leidaAt?: string | null;
+  actualizadoEn?: string;
+}
+
 export interface UseEncargadoKanbanSocketOptions {
   onIncidenteCreado?: (payload: IncidenteCreadoPayload) => void;
   onIncidenteActualizado?: (payload: IncidenteActualizadoPayload) => void;
+  onNotificacionTrazabilidadActualizada?: (payload: NotificacionTrazabilidadPayload) => void;
   enabled?: boolean;
 }
 
@@ -45,6 +61,7 @@ export interface UseEncargadoKanbanSocketOptions {
 export function useEncargadoKanbanSocket({
   onIncidenteCreado,
   onIncidenteActualizado,
+  onNotificacionTrazabilidadActualizada,
   enabled = true,
 }: UseEncargadoKanbanSocketOptions = {}) {
   const [conectado, setConectado] = useState(false);
@@ -52,6 +69,7 @@ export function useEncargadoKanbanSocket({
 
   const creadoRef = useRef(onIncidenteCreado);
   const actualizadoRef = useRef(onIncidenteActualizado);
+  const trazabilidadRef = useRef(onNotificacionTrazabilidadActualizada);
 
   useEffect(() => {
     creadoRef.current = onIncidenteCreado;
@@ -60,6 +78,10 @@ export function useEncargadoKanbanSocket({
   useEffect(() => {
     actualizadoRef.current = onIncidenteActualizado;
   }, [onIncidenteActualizado]);
+
+  useEffect(() => {
+    trazabilidadRef.current = onNotificacionTrazabilidadActualizada;
+  }, [onNotificacionTrazabilidadActualizada]);
 
   useEffect(() => {
     if (!enabled) return;
@@ -143,16 +165,29 @@ export function useEncargadoKanbanSocket({
       }
     };
 
+    const handleTrazabilidad = (payload: unknown) => {
+      if (!esPayloadTrazabilidadValido(payload)) return;
+
+      const typedPayload = payload as NotificacionTrazabilidadPayload;
+      setTrazabilidadEstado(typedPayload.misionId, typedPayload.estado);
+      setUltimoEvento(`Trazabilidad misión: ${typedPayload.estado}`);
+      if (trazabilidadRef.current) {
+        trazabilidadRef.current(typedPayload);
+      }
+    };
+
     socket.on('connect', onConnect);
     socket.on('disconnect', onDisconnect);
     socket.on('incidente:creado', handleCreado);
     socket.on('incidente:actualizado', handleActualizado);
+    socket.on('notificacion:trazabilidad_actualizada', handleTrazabilidad);
 
     return () => {
       socket.off('connect', onConnect);
       socket.off('disconnect', onDisconnect);
       socket.off('incidente:creado', handleCreado);
       socket.off('incidente:actualizado', handleActualizado);
+      socket.off('notificacion:trazabilidad_actualizada', handleTrazabilidad);
       socket.emit('leave', 'encargado');
       socket.emit('salir', 'sala:encargados');
       socket.emit('leave', 'mapa');
