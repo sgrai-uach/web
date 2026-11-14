@@ -165,9 +165,15 @@ export function useEncargadoKanbanSocket({
       }
     };
 
-    const handleMisionRechazada = (payload: any) => {
-      const raw = payload?.datos || payload?.data || payload;
-      const misionId = raw?.misionId || raw?.id || '';
+    const handleMisionRechazada = (payload: unknown) => {
+      const p = payload as Record<string, unknown> | null | undefined;
+      const raw = (p?.datos || p?.data || p) as Record<string, unknown> | null | undefined;
+      const misionId =
+        typeof raw?.misionId === 'string'
+          ? raw.misionId
+          : typeof raw?.id === 'string'
+            ? raw.id
+            : '';
       const ahora = Date.now();
 
       // Deduplicación reactiva ante emisiones múltiples por broadcast o varias salas concurrentes
@@ -188,16 +194,27 @@ export function useEncargadoKanbanSocket({
 
       const normalizedPayload: MisionRechazadaPayload = {
         misionId,
-        codigo: raw?.codigo || '',
-        tipoMision: raw?.tipoMision || 'VERIFICACION',
-        motivo: raw?.motivo || raw?.justificacionRechazo || 'Sin motivo especificado',
-        justificacionRechazo: raw?.justificacionRechazo || raw?.motivo,
-        patrullaId: raw?.patrullaId || null,
-        patrullaNombre: raw?.patrullaNombre || null,
-        incidenteId: raw?.incidenteId || null,
-        incidenteCodigo: raw?.incidenteCodigo || null,
-        rechazadoPorId: raw?.rechazadoPorId || null,
-        rechazadoEn: raw?.rechazadoEn || new Date().toISOString(),
+        codigo: typeof raw?.codigo === 'string' ? raw.codigo : '',
+        tipoMision: typeof raw?.tipoMision === 'string' ? raw.tipoMision : 'VERIFICACION',
+        motivo:
+          typeof raw?.motivo === 'string'
+            ? raw.motivo
+            : typeof raw?.justificacionRechazo === 'string'
+              ? raw.justificacionRechazo
+              : 'Sin motivo especificado',
+        justificacionRechazo:
+          typeof raw?.justificacionRechazo === 'string'
+            ? raw.justificacionRechazo
+            : typeof raw?.motivo === 'string'
+              ? raw.motivo
+              : undefined,
+        patrullaId: typeof raw?.patrullaId === 'string' ? raw.patrullaId : null,
+        patrullaNombre: typeof raw?.patrullaNombre === 'string' ? raw.patrullaNombre : null,
+        incidenteId: typeof raw?.incidenteId === 'string' ? raw.incidenteId : null,
+        incidenteCodigo: typeof raw?.incidenteCodigo === 'string' ? raw.incidenteCodigo : null,
+        rechazadoPorId: typeof raw?.rechazadoPorId === 'string' ? raw.rechazadoPorId : null,
+        rechazadoEn:
+          typeof raw?.rechazadoEn === 'string' ? raw.rechazadoEn : new Date().toISOString(),
       };
 
       setUltimoEvento(`Misión rechazada: ${normalizedPayload.codigo}`);

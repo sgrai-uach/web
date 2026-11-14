@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   listarIncidentes,
   DEFAULT_ENCARGADO_ID,
@@ -48,6 +48,11 @@ export function useIncidentesKanban(options?: string | UseIncidentesKanbanOption
   const optionsObj: UseIncidentesKanbanOptions =
     typeof options === 'string' ? { initialUserId: options } : options || {};
   const initialUserId = optionsObj.initialUserId;
+
+  const onMisionRechazadaRef = useRef(optionsObj.onMisionRechazada);
+  useEffect(() => {
+    onMisionRechazadaRef.current = optionsObj.onMisionRechazada;
+  }, [optionsObj.onMisionRechazada]);
 
   let sessionUserId: string | undefined;
   let sessionSetUser: ((id: string) => void) | undefined;
@@ -187,7 +192,16 @@ export function useIncidentesKanban(options?: string | UseIncidentesKanbanOption
           }
         });
 
-        setColumnas(nuevasColumnas);
+        setColumnas((prev) => {
+          const preservadas: Record<EstadoIncidente, IncidenteResumen[]> = { ...nuevasColumnas };
+          columnasAConsultar.forEach((estado) => {
+            preservadas[estado] = nuevasColumnas[estado].map((inc) => {
+              const previo = prev[estado]?.find((p) => p.id === inc.id);
+              return previo?.tieneMisionDespachada ? { ...inc, tieneMisionDespachada: true } : inc;
+            });
+          });
+          return preservadas;
+        });
         setPaginacionColumna(nuevasPaginaciones);
       } catch {
         setError('Error al conectar con el servidor.');
@@ -517,23 +531,27 @@ export function useIncidentesKanban(options?: string | UseIncidentesKanbanOption
           };
         });
 
-        if (columnaOrigenDetectada && columnaOrigenDetectada !== 'REPORTADO') {
-          setPaginacionColumna((prev) => ({
+        setPaginacionColumna((prev) => {
+          if (!columnaOrigenDetectada || columnaOrigenDetectada === 'REPORTADO') {
+            return prev;
+          }
+
+          return {
             ...prev,
             REPORTADO: prev.REPORTADO ? { ...prev.REPORTADO, total: prev.REPORTADO.total + 1 } : null,
-            [columnaOrigenDetectada!]: prev[columnaOrigenDetectada!]
+            [columnaOrigenDetectada]: prev[columnaOrigenDetectada]
               ? {
-                  ...prev[columnaOrigenDetectada!]!,
-                  total: Math.max(0, prev[columnaOrigenDetectada!]!.total - 1),
+                  ...prev[columnaOrigenDetectada]!,
+                  total: Math.max(0, prev[columnaOrigenDetectada]!.total - 1),
                 }
               : null,
-          }));
-        }
+          };
+        });
       }
 
-      optionsObj.onMisionRechazada?.(payload);
+      onMisionRechazadaRef.current?.(payload);
     },
-    [optionsObj]
+    []
   );
 
   const marcarIncidenteMisionDespachada = useCallback(

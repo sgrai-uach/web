@@ -324,6 +324,9 @@ export const KanbanBoard: React.FC = () => {
             userId={userId}
             onCerrar={() => setIncidenteSeleccionadoId(null)}
             onIncidenteActualizado={(incId, nuevoEstado) => {
+              if (nuevoEstado === 'REPORTADO') {
+                marcarIncidenteMisionDespachada(incId, true);
+              }
               moverIncidenteAEstado(incId, nuevoEstado);
               recargar();
               refrescarKpis();
