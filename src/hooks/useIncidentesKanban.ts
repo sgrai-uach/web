@@ -47,6 +47,28 @@ export interface FiltrosKanban {
   soloHoy?: boolean;
 }
 
+/**
+ * Ordena incidentes para una columna del Kanban.
+ * En la columna 'VERIFICANDO', los incidentes ya verificados por patrulla
+ * aparecen siempre primero en la parte superior.
+ */
+function ordenarIncidentesColumna(
+  incidentes: IncidenteResumen[],
+  estado: EstadoIncidente
+): IncidenteResumen[] {
+  if (estado === 'VERIFICANDO') {
+    return [...incidentes].sort((a, b) => {
+      const aVerif = a.verificado ? 1 : 0;
+      const bVerif = b.verificado ? 1 : 0;
+      if (aVerif !== bVerif) {
+        return bVerif - aVerif; // Verificados (1) primero
+      }
+      return new Date(b.creadoEn).getTime() - new Date(a.creadoEn).getTime();
+    });
+  }
+  return incidentes;
+}
+
 export function useIncidentesKanban(initialUserId?: string) {
   let sessionUserId: string | undefined;
   let sessionSetUser: ((id: string) => void) | undefined;
@@ -201,7 +223,7 @@ export function useIncidentesKanban(initialUserId?: string) {
         columnasAConsultar.forEach((estado, idx) => {
           const res = resultados[idx];
           if (res.exito) {
-            nuevasColumnas[estado] = res.incidentes;
+            nuevasColumnas[estado] = ordenarIncidentesColumna(res.incidentes, estado);
             nuevasPaginaciones[estado] = res.paginacion || null;
           }
         });
@@ -260,7 +282,7 @@ export function useIncidentesKanban(initialUserId?: string) {
         if (res.exito) {
           setColumnas((prev) => ({
             ...prev,
-            [estado]: [...prev[estado], ...res.incidentes],
+            [estado]: ordenarIncidentesColumna([...prev[estado], ...res.incidentes], estado),
           }));
           setPaginacionColumna((prev) => ({
             ...prev,
@@ -310,6 +332,7 @@ export function useIncidentesKanban(initialUserId?: string) {
         informanteNombre: null,
         delegacionNombre: null,
         totalMisiones: 0,
+        verificado: false,
         creadoEn: datos.creadoEn,
         actualizadoEn: datos.creadoEn,
       };
@@ -388,7 +411,7 @@ export function useIncidentesKanban(initialUserId?: string) {
         return {
           ...prev,
           [columnaOrigen!]: prev[columnaOrigen!].filter((i) => i.id !== datos.id),
-          [datos.nuevoEstado]: [incidenteEncontrado, ...prev[datos.nuevoEstado]],
+          [datos.nuevoEstado]: ordenarIncidentesColumna([incidenteEncontrado, ...prev[datos.nuevoEstado]], datos.nuevoEstado),
         };
       });
 

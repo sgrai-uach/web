@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { cuadrillasService } from '@/services/cuadrillasService';
 import { getSocket } from '@/lib/socket/client';
 import type {
@@ -14,6 +14,7 @@ export interface UseCuadrillasReturn {
   meta: MetaPaginacionCuadrillas;
   cargando: boolean;
   error: string | null;
+  errorStatus: number | null;
   recargar: () => Promise<void>;
   actualizarCuadrillaEnLista: (cuadrillaActualizada: CuadrillaItem) => void;
   removerCuadrillaDeLista: (id: string) => void;
@@ -29,45 +30,40 @@ export function useCuadrillas(filtros: FiltrosCuadrillasState): UseCuadrillasRet
   });
   const [cargando, setCargando] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [errorStatus, setErrorStatus] = useState<number | null>(null);
+
+  // Referencia vigente de filtros para evitar re-consultas con estado obsoleto (H80)
+  const filtrosRef = useRef(filtros);
+  useEffect(() => {
+    filtrosRef.current = filtros;
+  }, [filtros]);
 
   const cargarDatos = useCallback(async () => {
     try {
       setCargando(true);
       setError(null);
-      const resultado = await cuadrillasService.obtenerCuadrillas(filtros);
+      setErrorStatus(null);
+      const resultado = await cuadrillasService.obtenerCuadrillas(filtrosRef.current);
       setCuadrillas(resultado.cuadrillas);
       setMeta(resultado.meta);
     } catch (err: unknown) {
+      const status =
+        typeof (err as { status?: unknown })?.status === 'number'
+          ? (err as { status: number }).status
+          : null;
+      setErrorStatus(status);
       setError(err instanceof Error ? err.message : 'Error al cargar las cuadrillas operativas.');
     } finally {
       setCargando(false);
     }
-  }, [filtros]);
-
-  const { pagina, limite, busqueda, delegacionId, estado } = filtros;
+  }, []);
 
   useEffect(() => {
-    let ignore = false;
-    cuadrillasService
-      .obtenerCuadrillas({ pagina, limite, busqueda, delegacionId, estado })
-      .then((resultado) => {
-        if (!ignore) {
-          setCuadrillas(resultado.cuadrillas);
-          setMeta(resultado.meta);
-          setCargando(false);
-        }
-      })
-      .catch((err: unknown) => {
-        if (!ignore) {
-          setError(err instanceof Error ? err.message : 'Error al cargar las cuadrillas operativas.');
-          setCargando(false);
-        }
-      });
-
-    return () => {
-      ignore = true;
-    };
-  }, [pagina, limite, busqueda, delegacionId, estado]);
+    const timer = setTimeout(() => {
+      cargarDatos();
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [cargarDatos, filtros.pagina, filtros.limite, filtros.busqueda, filtros.delegacionId, filtros.estado]);
 
   const actualizarCuadrillaEnLista = useCallback((cuadrillaActualizada: CuadrillaItem) => {
     setCuadrillas((prev) => {
@@ -132,6 +128,7 @@ export function useCuadrillas(filtros: FiltrosCuadrillasState): UseCuadrillasRet
     meta,
     cargando,
     error,
+    errorStatus,
     recargar: cargarDatos,
     actualizarCuadrillaEnLista,
     removerCuadrillaDeLista,

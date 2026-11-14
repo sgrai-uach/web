@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { Suspense } from 'react';
 import CuadrillasAdminClient from '@/components/admin/cuadrillas/CuadrillasAdminClient';
 
 export const metadata: Metadata = {
@@ -7,5 +8,9 @@ export const metadata: Metadata = {
 };
 
 export default function CuadrillasIndexPage() {
-  return <CuadrillasAdminClient />;
+  return (
+    <Suspense fallback={null}>
+      <CuadrillasAdminClient />
+    </Suspense>
+  );
 }

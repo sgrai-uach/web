@@ -74,8 +74,8 @@ export function useCuadrillaEditForm({
 
         const [delegs, delegados, personal, recursos] = await Promise.all([
           cuadrillasService.obtenerDelegaciones(),
-          cuadrillasService.obtenerCandidatosDelegados(),
-          cuadrillasService.obtenerPersonalOperativoDisponible(),
+          cuadrillasService.obtenerCandidatosDelegados(undefined, cuadrilla.id),
+          cuadrillasService.obtenerPersonalOperativoDisponible(undefined, cuadrilla.id),
           cuadrillasService.obtenerRecursosDisponibles(),
         ]);
 

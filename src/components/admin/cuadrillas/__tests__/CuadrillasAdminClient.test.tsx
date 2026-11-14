@@ -57,7 +57,9 @@ describe('CuadrillasAdminClient RBAC (HU-82 / BUG-H82-WEB-03)', () => {
     render(<CuadrillasAdminClient />);
 
     expect(screen.getByText(/Acceso Restringido/i)).toBeDefined();
-    expect(screen.getByText(/Visualización del Inventario Logístico/i)).toBeDefined();
+    expect(
+      screen.getByText(/Se requieren credenciales de Administrador o Encargado/i)
+    ).toBeDefined();
   });
 
   it('debe permitir la visualización de la interfaz si el usuario posee recursos:leer', () => {
