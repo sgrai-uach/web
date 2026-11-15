@@ -123,7 +123,7 @@ En la sección **4. Alcance territorial del evento**:
    - Botones **“Registrar otro Evento ATP”** y **“Volver al Panel de Administración”**.
 5. **Error:** se despliega un aviso con el mensaje del servidor y, cuando corresponde, el detalle de los campos rechazados.
 
-> **Cancelar:** el botón **“Cancelar”** descarta los cambios y vuelve al panel de administración correspondiente (`/gestion/admin` o `/admin`).
+> **Cancelar:** el botón **“Cancelar”** descarta los cambios y vuelve al panel de administración (`/gestion`). El mismo destino se usa en el botón **“Volver al Panel de Administración”** de la tarjeta de éxito y en el botón de retorno de la pantalla **“Acceso Restringido”**.
 
 ---
 
@@ -141,20 +141,25 @@ En la sección **4. Alcance territorial del evento**:
 | **Descripción extensa** | Máximo 2.000 caracteres | *“La descripción no puede superar los 2000 caracteres.”* |
 | **Tipo de amenaza ausente** | Enum homologado | *“Debe seleccionar un tipo de amenaza.”* |
 | **Nivel de alerta ausente** | `VERDE`, `AMARILLA` o `ROJA` | *“Debe seleccionar un nivel de alerta.”* |
-| **Fecha de inicio inválida** | Fecha/hora parseable | *“Debe indicar una fecha y hora de inicio válida.”* |
-| **Fecha de término inválida** | Fecha/hora parseable | *“Debe indicar una fecha y hora de término válida.”* |
+| **Fecha de inicio inválida** | Fecha y hora local completa (`AAAA-MM-DDTHH:mm`) con fecha calendario real | *“Debe indicar una fecha y hora de inicio válida.”* |
+| **Fecha de término inválida** | Fecha y hora local completa (`AAAA-MM-DDTHH:mm`) con fecha calendario real | *“Debe indicar una fecha y hora de término válida.”* |
 | **Término anterior al inicio** | `fechaTermino >= fechaInicio` | *“La fecha y hora de término debe ser mayor o igual a la fecha y hora de inicio.”* |
+| **Término igual al inicio** | Válido (mismo instante) | Sin error; el evento se registra con la vigencia indicada |
 | **Delegación duplicada** | Sin IDs repetidos | *“No se puede repetir una misma delegación en el evento.”* |
-| **Delegación inexistente** | Debe existir en `delegacion` | *“Las siguientes delegaciones no existen en el sistema: ...”* (HTTP 400) |
+| **Delegación inexistente o inactiva** | Debe existir y estar activa en `delegacion` | *“Las siguientes delegaciones no existen en el sistema: ...”* (HTTP 400) |
 | **Acceso no autorizado** | Sin rol Administrador ni permiso | Pantalla **“Acceso Restringido”** / HTTP 403 |
+| **Sesión expirada o no autenticada** | HTTP 401 | *“Su sesión ha expirado o no está autenticado. Inicie sesión nuevamente.”* |
+| **Servidor no disponible** | HTTP 5xx sin detalle | *“Error HTTP {status}: No fue posible crear el Evento ATP”* |
 
 ---
 
 ## 5. Integración con otros Repositorios y Tiempo Real
 
 - **Persistencia transaccional (`sgrai-api`):** El evento se inserta en `evento_atp` con estado inicial **`ACTIVO`** y sus delegaciones en `evento_atp_delegacion` dentro de una única transacción PostgreSQL. Si falla cualquier inserción, se revierte todo el conjunto.
-- **Correlativo atómico:** la generación de `ATP-AAAA-####` utiliza un advisory lock por año para evitar colisiones cuando dos administradores crean eventos simultáneamente.
+- **Correlativo atómico:** la generación de `ATP-AAAA-####` utiliza un advisory lock por año y considera solo los códigos con sufijo numérico (`ATP-AAAA-####`), de modo que un código manual como `ATP-2026-MAYO` no altera la secuencia. La unicidad del código manual se verifica dentro de la misma transacción y una colisión responde HTTP 409.
+- **Normalización horaria:** el formulario convierte la fecha y hora local del navegador a ISO-8601 con zona horaria antes de enviar el payload, evitando desfases de 3 a 4 horas frente a un backend en UTC.
+- **Doble envío bloqueado:** el formulario impide envíos concurrentes, de modo que una pulsación rápida de Enter no genera eventos ATP duplicados.
 - **Auditoría:** se registra `creado_por_id` con el identificador del usuario autenticado.
-- **Notificación en tiempo real (Socket.io):** al crear el evento, el backend emite `evento_atp:creado` a las salas `sala:encargados`, `encargado`, `supervisor`, `mapa`, `admin` y `administrador`, además del broadcast global. Los tableros operativos y el mapa comunal reciben el evento sin refrescar la página.
+- **Notificación en tiempo real (Socket.io):** al crear el evento, el backend emite `evento_atp:creado` exclusivamente a las salas `sala:encargados`, `encargado`, `supervisor`, `mapa`, `admin` y `administrador` (sin broadcast global ni entregas duplicadas). Los tableros operativos y el mapa comunal reciben el evento sin refrescar la página.
 - **Preparación para H60:** la migración deja columnas nullable `evento_atp_id` en `incidente`, `evento_prevencion`, `recuperacion` y `evento_asistencia_social`, de modo que las historias posteriores puedan vincular sus registros al evento ATP sin una nueva migración estructural.
 - **Contrato OpenAPI:** `POST /api/eventos-atp` queda publicado en `/openapi.json` con los esquemas `CrearEventoAtpInput`, `EventoAtpResponse` y `CrearEventoAtpResponse`.

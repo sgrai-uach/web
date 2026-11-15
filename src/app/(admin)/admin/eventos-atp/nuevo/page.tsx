@@ -1,27 +1,38 @@
 'use client';
 
-import React from 'react';
-import { usePathname } from 'next/navigation';
+import React, { useContext } from 'react';
 import { Breadcrumbs } from '@/components/common/Breadcrumbs';
 import PageTitleCard from '@/components/common/PageTitleCard';
 import CommonAccesoDenegadoState from '@/components/common/AccesoDenegadoState';
-import { useSimulatedSession } from '@/context/SimulatedSessionContext';
-import { DEFAULT_ADMIN_USER_ID } from '@/lib/api/client';
+import { AuthContext } from '@/context/AuthContext';
+import { SimulatedSessionContext } from '@/context/SimulatedSessionContext';
+import { RUTA_INICIO_GESTION } from '@/lib/constants/routes';
 import EventoAtpForm from '@/components/admin/eventos-atp/EventoAtpForm';
 
 export default function NuevoEventoAtpPage() {
-  const pathname = usePathname() || '';
-  const { usuarioActivo, hasPermission } = useSimulatedSession();
+  const auth = useContext(AuthContext);
+  const session = useContext(SimulatedSessionContext);
 
-  const panelPath = pathname.startsWith('/gestion')
-    ? '/gestion/admin'
-    : '/admin';
+  // Política Fail-Closed: durante SSR, la hidratación de la sesión o la carga
+  // de permisos no se expone el formulario. Se renderiza sólo cuando la
+  // sesión y los permisos ya están resueltos.
+  const sesionResuelta =
+    Boolean(session?.isMounted) &&
+    !auth?.cargando &&
+    !session?.cargandoPermisos;
 
-  const tienePermiso =
-    usuarioActivo.rol === 'Administrador' ||
-    Boolean(usuarioActivo.esAdmin) ||
-    usuarioActivo.id === DEFAULT_ADMIN_USER_ID ||
-    hasPermission('eventos_atp:crear');
+  if (!sesionResuelta) {
+    return null;
+  }
+
+  const tienePermiso = auth?.usuario
+    ? auth.usuario.rolCodigo === 'ADMIN' ||
+      auth.tienePermiso('eventos_atp:crear')
+    : session?.usuarioActivo
+      ? session.usuarioActivo.rol === 'Administrador' ||
+        Boolean(session.usuarioActivo.esAdmin) ||
+        session.hasPermission('eventos_atp:crear')
+      : false;
 
   if (!tienePermiso) {
     return (
@@ -41,10 +52,10 @@ export default function NuevoEventoAtpPage() {
           ]}
         />
         <CommonAccesoDenegadoState
-          rolUsuario={usuarioActivo.rol}
+          rolUsuario={session?.usuarioActivo.rol ?? 'Usuario'}
           modulo="la Creación de Eventos ATP"
           mensajePersonalizado="Se requieren privilegios de Administrador o el permiso 'eventos_atp:crear' para registrar un Evento de Alerta Temprana Preventiva."
-          botonVolverHref={panelPath}
+          botonVolverHref={RUTA_INICIO_GESTION}
           botonVolverTexto="Volver al Panel de Administración"
         />
       </div>

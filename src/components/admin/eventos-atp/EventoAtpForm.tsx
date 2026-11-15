@@ -1,11 +1,12 @@
 'use client';
 
 import React from 'react';
-import { usePathname, useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { ArrowLeft, CheckCircle2, PlusCircle, Save } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import Heading from '@/components/ui/Heading';
 import InlineNotice from '@/components/ui/InlineNotice';
+import { RUTA_INICIO_GESTION } from '@/lib/constants/routes';
 import {
   useEventoAtpForm,
   traducirCampoEventoAtp,
@@ -31,8 +32,7 @@ function formatearFechaHora(valor: string): string {
 
 export default function EventoAtpForm() {
   const router = useRouter();
-  const pathname = usePathname() || '';
-  const panelPath = pathname.startsWith('/gestion') ? '/gestion/admin' : '/admin';
+  const panelPath = RUTA_INICIO_GESTION;
 
   const {
     formData,

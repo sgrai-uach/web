@@ -1,11 +1,9 @@
 'use client';
 
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { useCatalogos } from '@/hooks/useCatalogos';
 import { DELEGACIONES_MUNICIPALES } from '@/hooks/usePuntosCriticos';
 import { useToast } from '@/components/ui/Toast';
-import { useSimulatedSession } from '@/context/SimulatedSessionContext';
-import { DEFAULT_ADMIN_USER_ID } from '@/lib/api/client';
 import {
   crearEventoAtp,
   EventoAtpServiceError,
@@ -73,24 +71,63 @@ const ETIQUETAS_CAMPOS_ATP: Record<string, string> = {
   delegacion_ids: 'Delegaciones afectadas',
 };
 
+/**
+ * Formato de fecha/hora local emitido por `<input type="datetime-local">`.
+ * Se exige una fecha y hora completas con fecha calendario real.
+ */
+const REGEX_FECHA_HORA_LOCAL = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/;
+
+/**
+ * Valida una fecha/hora local de formulario (formato `datetime-local`),
+ * rechazando textos arbitrarios, fechas sin hora y fechas inexistentes
+ * (por ejemplo `2026-02-30`), que en V8 sufren rollover silencioso.
+ */
 function esFechaValida(valor: string): boolean {
-  return Boolean(valor) && !Number.isNaN(Date.parse(valor));
+  const coincidencia = REGEX_FECHA_HORA_LOCAL.exec(valor.trim());
+
+  if (!coincidencia) {
+    return false;
+  }
+
+  const [, anio, mes, dia, hora, minuto] = coincidencia;
+
+  const fecha = new Date(
+    Number(anio),
+    Number(mes) - 1,
+    Number(dia),
+    Number(hora),
+    Number(minuto),
+    0,
+    0
+  );
+
+  return (
+    fecha.getFullYear() === Number(anio) &&
+    fecha.getMonth() === Number(mes) - 1 &&
+    fecha.getDate() === Number(dia) &&
+    fecha.getHours() === Number(hora) &&
+    fecha.getMinutes() === Number(minuto)
+  );
+}
+
+/**
+ * Normaliza una fecha/hora local de formulario a ISO-8601 con zona horaria
+ * (instante UTC), evitando el desfase horario al persistir en el backend.
+ */
+function aISOConZonaHoraria(valor: string): string {
+  return new Date(valor).toISOString();
 }
 
 export function useEventoAtpForm() {
   const { showSuccess, showError } = useToast();
 
-  let usuarioActivoId = DEFAULT_ADMIN_USER_ID;
-  try {
-    const session = useSimulatedSession();
-    if (session?.usuarioActivo?.id) {
-      usuarioActivoId = session.usuarioActivo.id;
-    }
-  } catch {
-    // Permite utilizar el hook fuera de SimulatedSessionProvider (tests aislados).
-  }
-
   const { catalogos, cargando: cargandoCatalogos } = useCatalogos();
+
+  /**
+   * Guarda síncrona de envío: impide el doble submit (doble Enter o dos
+   * pulsaciones rápidas) antes de que React aplique `disabled={isSubmitting}`.
+   */
+  const submittingRef = useRef(false);
 
   const [formData, setFormData] =
     useState<EventoAtpFormData>(INITIAL_FORM_DATA);
@@ -241,6 +278,12 @@ export function useEventoAtpForm() {
     async (event?: React.FormEvent) => {
       if (event) event.preventDefault();
 
+      // Guarda síncrona: descarta envíos concurrentes mientras hay una
+      // petición en vuelo (doble Enter o doble pulsación rápida).
+      if (submittingRef.current) {
+        return;
+      }
+
       setTouched({
         codigo: true,
         nombre: true,
@@ -259,6 +302,7 @@ export function useEventoAtpForm() {
         return;
       }
 
+      submittingRef.current = true;
       setIsSubmitting(true);
       setServerError(null);
       setServerFieldErrors([]);
@@ -271,8 +315,8 @@ export function useEventoAtpForm() {
           descripcion: formData.descripcion.trim(),
           tipoAmenaza: formData.tipoAmenaza,
           nivelAlerta: formData.nivelAlerta,
-          fechaInicio: formData.fechaInicio,
-          fechaTermino: formData.fechaTermino,
+          fechaInicio: aISOConZonaHoraria(formData.fechaInicio),
+          fechaTermino: aISOConZonaHoraria(formData.fechaTermino),
           delegacionIds: formData.delegacionIds,
         };
 
@@ -299,6 +343,7 @@ export function useEventoAtpForm() {
           showError(mensaje, 'Error al guardar');
         }
       } finally {
+        submittingRef.current = false;
         setIsSubmitting(false);
       }
     },
@@ -318,7 +363,6 @@ export function useEventoAtpForm() {
     delegaciones,
     cargandoCatalogos,
     todasSeleccionadas,
-    usuarioActivoId,
     handleFieldChange,
     handleBlur,
     toggleDelegacion,

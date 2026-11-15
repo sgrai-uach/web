@@ -87,6 +87,70 @@ describe('eventosAtpService (H61)', () => {
     );
   });
 
+  it('debe preservar el mensaje específico del servidor en un 403', async () => {
+    vi.spyOn(apiClient, 'POST').mockResolvedValueOnce({
+      error: { message: 'El usuario especificado se encuentra inactivo.' },
+      response: { status: 403 } as Response,
+    } as never);
+
+    await expect(crearEventoAtp(payload)).rejects.toThrow(/inactivo/i);
+  });
+
+  it('debe traducir el 401 a un mensaje institucional de sesión expirada', async () => {
+    vi.spyOn(apiClient, 'POST').mockResolvedValueOnce({
+      error: {
+        message:
+          'Se requiere cabecera de autenticación Authorization: Bearer <token>.',
+      },
+      response: { status: 401 } as Response,
+    } as never);
+
+    await expect(crearEventoAtp(payload)).rejects.toThrow(
+      /Su sesión ha expirado o no está autenticado/i
+    );
+  });
+
+  it('debe conservar el detalle de errores por campo en un 400', async () => {
+    vi.spyOn(apiClient, 'POST').mockResolvedValueOnce({
+      error: {
+        message: 'Datos de creación de Evento ATP inválidos.',
+        errors: [
+          {
+            campo: 'fechaTermino',
+            mensaje:
+              'La fecha y hora de término debe ser mayor o igual a la fecha y hora de inicio',
+          },
+        ],
+      },
+      response: { status: 400 } as Response,
+    } as never);
+
+    await expect(crearEventoAtp(payload)).rejects.toMatchObject({
+      name: 'EventoAtpServiceError',
+      statusCode: 400,
+      apiError: {
+        errors: [
+          {
+            campo: 'fechaTermino',
+            mensaje:
+              'La fecha y hora de término debe ser mayor o igual a la fecha y hora de inicio',
+          },
+        ],
+      },
+    });
+  });
+
+  it('debe usar el fallback HTTP cuando la respuesta no trae cuerpo de error', async () => {
+    vi.spyOn(apiClient, 'POST').mockResolvedValueOnce({
+      error: undefined,
+      response: { status: 502 } as Response,
+    } as never);
+
+    await expect(crearEventoAtp(payload)).rejects.toThrow(
+      /Error HTTP 502: No fue posible crear el Evento ATP/
+    );
+  });
+
   it('debe encapsular errores inesperados en EventoAtpServiceError', async () => {
     vi.spyOn(apiClient, 'POST').mockRejectedValueOnce(
       new Error('Fallo de red inesperado')

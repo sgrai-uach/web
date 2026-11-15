@@ -31,6 +31,63 @@ export class EventoAtpServiceError extends Error {
 }
 
 /**
+ * Mensaje institucional para respuestas 401 (sesión ausente o expirada).
+ */
+const MENSAJE_SESION_EXPIRADA =
+  'Su sesión ha expirado o no está autenticado. Inicie sesión nuevamente.';
+
+/**
+ * Mensaje institucional por defecto cuando la API deniega el acceso.
+ */
+const MENSAJE_ACCESO_DENEGADO =
+  'Acceso denegado. Se requiere perfil de Administrador o el permiso eventos_atp:crear.';
+
+/**
+ * Extrae el mensaje del cuerpo de error de la API cuando existe.
+ * Devuelve `null` si la respuesta no trae un mensaje utilizable.
+ */
+function extraerMensajeApi(error: unknown): string | null {
+  if (typeof error !== 'object' || error === null) {
+    return null;
+  }
+
+  const candidato = error as { message?: unknown; error?: unknown };
+
+  if (typeof candidato.message === 'string' && candidato.message.trim()) {
+    return candidato.message.trim();
+  }
+
+  if (typeof candidato.error === 'string' && candidato.error.trim()) {
+    return candidato.error.trim();
+  }
+
+  return null;
+}
+
+/**
+ * Determina si el mensaje devuelto por la API es un texto genérico que no
+ * aporta información específica (permisos de gestión de roles o un simple
+ * "Acceso denegado."), en cuyo caso se usa el mensaje institucional.
+ */
+function esMensajeGenericoDePermisos(mensaje: string | null): boolean {
+  if (!mensaje) {
+    return true;
+  }
+
+  if (/permisos? de gesti[oó]n de roles|gesti[oó]n de roles para acceder/i.test(mensaje)) {
+    return true;
+  }
+
+  return /^acceso denegado\.?$/i.test(mensaje.trim());
+}
+
+/**
+ * Registra un nuevo Evento de Alerta Temprana Preventiva a través de
+ * `POST /api/eventos-atp` (H61).
+ *
+ * El token JWT de sesión es inyectado automáticamente por el cliente tipado.
+ */
+/**
  * Registra un nuevo Evento de Alerta Temprana Preventiva a través de
  * `POST /api/eventos-atp` (H61).
  *
@@ -50,19 +107,30 @@ export async function crearEventoAtp(
 
     if (error || (response && response.status >= 400)) {
       const statusCode = response?.status ?? 500;
+      const mensajeServidor = extraerMensajeApi(error);
       const apiErr = formatApiError({
         ...(typeof error === 'object' && error !== null ? error : {}),
         status: statusCode,
       });
 
-      const mensaje =
-        statusCode === 403
-          ? 'Acceso denegado. Se requiere perfil de Administrador o el permiso eventos_atp:crear.'
-          : statusCode === 409
-            ? apiErr.message ||
-              'Ya existe un Evento ATP registrado con el código ingresado.'
-            : apiErr.message ||
-              `Error HTTP ${statusCode}: No fue posible crear el Evento ATP`;
+      let mensaje: string;
+
+      if (statusCode === 401) {
+        mensaje = MENSAJE_SESION_EXPIRADA;
+      } else if (statusCode === 403) {
+        mensaje =
+          mensajeServidor && !esMensajeGenericoDePermisos(mensajeServidor)
+            ? mensajeServidor
+            : MENSAJE_ACCESO_DENEGADO;
+      } else if (statusCode === 409) {
+        mensaje =
+          mensajeServidor ||
+          'Ya existe un Evento ATP registrado con el código ingresado.';
+      } else {
+        mensaje =
+          mensajeServidor ||
+          `Error HTTP ${statusCode}: No fue posible crear el Evento ATP`;
+      }
 
       throw new EventoAtpServiceError({
         message: mensaje,
