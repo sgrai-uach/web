@@ -48,11 +48,13 @@ Al guardar, el evento queda **ACTIVO** de forma inmediata, se persiste junto a s
 ### Paso 1: Ingreso al Formulario de Creación
 
 1. Inicie sesión con un usuario Administrador (o con el permiso `eventos_atp:crear`).
-2. Navegue a `/gestion/admin/eventos-atp/nuevo`.
+2. Ingrese al formulario por cualquiera de estas vías:
+   - **Centro de Mando:** en la cabecera del tablero (`/gestion/centro-incidentes`), pulse el botón **“Evento ATP”**, disponible solo para Administradores o usuarios con el permiso `eventos_atp:crear`.
+   - **Ruta directa:** navegue a `/gestion/admin/eventos-atp/nuevo`.
    - También es válida la ruta corta `/admin/eventos-atp/nuevo`.
 3. Verifique el encabezado **“Crear Evento de Alerta Temprana Preventiva”** y el distintivo **“Evento ATP”**.
 
-> **Nota:** H61 no agrega una entrada de navegación ni un listado de eventos. El acceso se realiza por la ruta directa o desde futuras historias del módulo ATP.
+> **Nota:** H61 no agrega una entrada de navegación permanente en el menú lateral ni un listado de eventos. El acceso se realiza desde el botón **“Evento ATP”** del Centro de Mando, por la ruta directa o desde futuras historias del módulo ATP.
 
 ### Paso 2: Identificación y Clasificación del Fenómeno
 

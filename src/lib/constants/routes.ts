@@ -16,3 +16,6 @@ export const RUTA_TERRENO_PATRULLA = '/terreno/patrulla/misiones';
 
 /** Listado de misiones de cuadrilla en terreno. */
 export const RUTA_TERRENO_CUADRILLA = '/terreno/cuadrilla/misiones';
+
+/** Alta de Evento de Alerta Temprana Preventiva (H61). */
+export const RUTA_NUEVO_EVENTO_ATP = '/gestion/admin/eventos-atp/nuevo';

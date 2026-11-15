@@ -27,6 +27,7 @@ import { MapaOperativoMando } from './MapaOperativoMando';
 import { KanbanViewSwitcher } from './KanbanViewSwitcher';
 import { Zap } from 'lucide-react';
 import { usePuedeAsignarMision } from '@/hooks/usePuedeAsignarMision';
+import { usePuedeCrearEventoAtp } from '@/hooks/usePuedeCrearEventoAtp';
 import InlineNotice from '@/components/ui/InlineNotice';
 import styles from '@/styles/mando.module.css';
 
@@ -50,6 +51,7 @@ export const KanbanBoard: React.FC = () => {
   const [eventosRecuperacion, setEventosRecuperacion] = useState<EventoRecuperacionResponse[]>([]);
   const [incidenteParaAsignar, setIncidenteParaAsignar] = useState<IncidenteResumen | null>(null);
   const puedeAsignar = usePuedeAsignarMision();
+  const puedeCrearEventoAtp = usePuedeCrearEventoAtp();
 
   const {
     userId,
@@ -191,6 +193,7 @@ export const KanbanBoard: React.FC = () => {
         onAbrirPatrullas={() => setPatrullasModalAbierto(true)}
         onOpenCrearPrevencion={() => setModalPrevencionAbierto(true)}
         onOpenCrearRecuperacion={() => setModalRecuperacionAbierto(true)}
+        puedeCrearEventoAtp={puedeCrearEventoAtp}
       />
 
       {esForbidden ? (
