@@ -12,6 +12,7 @@ import {
   FileText,
   SlidersHorizontal,
   Route,
+  HeartHandshake,
 } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import Chip from '@/components/ui/Chip';
@@ -21,12 +22,18 @@ import type {
   ReporteEvaluacionTerreno,
 } from '@/services/incidentesService';
 import {
+  calcularComparativaPersonasAfectadas,
+  esReporteVerificacionCierre,
+  formatearDictamenTerreno,
   formatearEstado,
   formatearPrioridad,
   formatearTipoMision,
   formatearCompromisoVivienda,
 } from '@/lib/utils/estadoUtils';
-import { obtenerVarianteChipEstadoMision } from '@/lib/utils/chipVariants';
+import {
+  obtenerVarianteChipDictamen,
+  obtenerVarianteChipEstadoMision,
+} from '@/lib/utils/chipVariants';
 import styles from '@/styles/mando.module.css';
 
 interface IncidenteMisionesSectionProps {
@@ -52,6 +59,9 @@ export const IncidenteMisionesSection: React.FC<IncidenteMisionesSectionProps> =
   const reportesPorMision = useMemo(() => {
     const mapa = new Map<string, ReporteEvaluacionTerreno[]>();
     const ordenados = [...reportesEvaluacionTerreno].sort((a, b) => {
+      const cierreA = esReporteVerificacionCierre(a) ? 1 : 0;
+      const cierreB = esReporteVerificacionCierre(b) ? 1 : 0;
+      if (cierreA !== cierreB) return cierreB - cierreA;
       const verA = Number(a.versionReporte ?? 0);
       const verB = Number(b.versionReporte ?? 0);
       if (verA !== verB) return verB - verA;
@@ -258,13 +268,19 @@ export const IncidenteMisionesSection: React.FC<IncidenteMisionesSectionProps> =
           if (reportesMision.length === 0) return null;
 
           const ultimoReporte = reportesMision[0];
+          const esCierre = esReporteVerificacionCierre(ultimoReporte);
+          const comparativaPersonas = esCierre
+            ? calcularComparativaPersonasAfectadas(ultimoReporte, reportesMision)
+            : null;
           const numVersion = Number(ultimoReporte.versionReporte || reportesMision.length);
           const esRectificacion = Boolean(
             ultimoReporte.esRectificacion || numVersion > 1
           );
-          const etiquetaUltimo = esRectificacion
-            ? `Reporte #${numVersion} — Rectificación Vigente`
-            : 'Reporte #1 — Evaluación Inicial';
+          const etiquetaUltimo = esCierre
+            ? ultimoReporte.etiquetaReporte || 'Informe de Verificación y Cierre'
+            : esRectificacion
+              ? `Reporte #${numVersion} — Rectificación Vigente`
+              : 'Reporte #1 — Evaluación Inicial';
 
           const prioridadAjustadaManual = Boolean(
             (ultimoReporte.prioridadSugerida &&
@@ -274,6 +290,9 @@ export const IncidenteMisionesSection: React.FC<IncidenteMisionesSectionProps> =
           );
 
           const evalData = (ultimoReporte.evaluacion || {}) as Record<string, unknown>;
+          const requiereFibeCierre = Boolean(
+            ultimoReporte.requiereAsistenciaSocial ?? evalData.requiereAsistenciaSocial
+          );
           const familiasRaw = Array.isArray(evalData.familias)
             ? (evalData.familias as Record<string, unknown>[])
             : undefined;
@@ -373,6 +392,54 @@ export const IncidenteMisionesSection: React.FC<IncidenteMisionesSectionProps> =
                 )}
               </div>
 
+              {/* Badges de Dictamen y FIBE cuando es Informe de Verificación y Cierre (H39) */}
+              {esCierre && (
+                <div
+                  style={{
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    gap: '6px',
+                    marginBottom: '6px',
+                  }}
+                >
+                  {ultimoReporte.dictamen && (
+                    <Chip
+                      variant={obtenerVarianteChipDictamen(ultimoReporte.dictamen)}
+                      size="sm"
+                    >
+                      Dictamen: {formatearDictamenTerreno(ultimoReporte.dictamen)}
+                    </Chip>
+                  )}
+                  <Chip
+                    variant={requiereFibeCierre ? 'warning' : 'neutral'}
+                    size="sm"
+                    icon={<HeartHandshake size={11} />}
+                  >
+                    {requiereFibeCierre ? 'Requiere Ficha FIBE' : 'No requiere Ficha FIBE'}
+                  </Chip>
+                  {ultimoReporte.estadoTerreno && (
+                    <Chip variant="neutral" size="sm">
+                      Terreno: {formatearEstado(ultimoReporte.estadoTerreno)}
+                    </Chip>
+                  )}
+                </div>
+              )}
+
+              {esCierre && ultimoReporte.motivoNoAbordable && (
+                <p
+                  style={{
+                    margin: '0 0 6px 0',
+                    fontSize: '0.78rem',
+                    color: 'var(--color-charcoal, #3B3F45)',
+                    backgroundColor: 'var(--color-danger-bg, #FFEBEE)',
+                    padding: '4px 8px',
+                    borderLeft: '2px solid var(--color-danger, #D32F2F)',
+                  }}
+                >
+                  <strong>Motivo No Abordable:</strong> {ultimoReporte.motivoNoAbordable}
+                </p>
+              )}
+
               {/* Comparativa de Prioridad Sugerida vs Asignada */}
               {(ultimoReporte.prioridadSugerida || ultimoReporte.prioridadAsignada) && (
                 <div
@@ -440,44 +507,53 @@ export const IncidenteMisionesSection: React.FC<IncidenteMisionesSectionProps> =
                   marginBottom: '6px',
                 }}
               >
-                {familiasCount !== undefined && (
+                {!esCierre && familiasCount !== undefined && (
                   <span>
                     <strong>Hogares:</strong> {familiasCount}{' '}
                     {familiasCount === 1 ? 'familia' : 'familias'}
                   </span>
                 )}
                 <span>
-                  <strong>Núcleo familiar:</strong> {nucleoTotal} pers.
+                  <strong>{esCierre ? 'Personas afectadas:' : 'Núcleo familiar:'}</strong> {nucleoTotal} pers.
+                  {esCierre && comparativaPersonas?.fueModificado && (
+                    <span style={{ color: 'var(--color-warning, #E65100)', fontWeight: 700 }}>
+                      {' '}
+                      {comparativaPersonas.personasPrevias !== null
+                        ? `(Modificado; antes: ${comparativaPersonas.personasPrevias})`
+                        : '(Modificado al cierre)'}
+                    </span>
+                  )}
                 </span>
-                {ninos !== undefined && (
+                {!esCierre && ninos !== undefined && (
                   <span>
                     <strong>Niños:</strong> {ninos}
                   </span>
                 )}
-                {adultosMayores !== undefined && (
+                {!esCierre && adultosMayores !== undefined && (
                   <span>
                     <strong>Adultos mayores:</strong> {adultosMayores}
                   </span>
                 )}
-                {discapacitados !== undefined && (
+                {!esCierre && discapacitados !== undefined && (
                   <span>
                     <strong>Discapacidad:</strong> {discapacitados}
                   </span>
                 )}
-                {mascotas !== undefined && (
+                {!esCierre && mascotas !== undefined && (
                   <span>
                     <strong>Mascotas:</strong> {mascotas}
                   </span>
                 )}
-                {compromisoViv && (
+                {!esCierre && compromisoViv && (
                   <span>
                     <strong>Vivienda:</strong> {formatearCompromisoVivienda(compromisoViv)}
                   </span>
                 )}
               </div>
 
-              {/* Detalle compacto de familias si hay desglose */}
-              {familiasRaw &&
+              {/* Detalle compacto de familias si hay desglose (solo en reportes de evaluación H38, sin FIBE) */}
+              {!esCierre &&
+                familiasRaw &&
                 familiasRaw.length > 0 &&
                 (familiasRaw.length > 1 || Boolean(familiasRaw[0].referencia)) && (
                   <div
@@ -516,7 +592,6 @@ export const IncidenteMisionesSection: React.FC<IncidenteMisionesSectionProps> =
                           }}
                         >
                           <strong>{nombre}:</strong> {[pers, comp].filter(Boolean).join(' · ')}
-                          {Boolean(f.requiereAsistenciaSocial) && ' (FIBE)'}
                         </span>
                       );
                     })}

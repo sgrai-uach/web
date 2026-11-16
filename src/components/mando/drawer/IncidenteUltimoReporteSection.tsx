@@ -1,12 +1,19 @@
 'use client';
 
 import React from 'react';
-import { ClipboardList, Clock, ExternalLink, User, Wrench } from 'lucide-react';
+import { Ban, ClipboardList, Clock, ExternalLink, HeartHandshake, User, Wrench } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import { Chip } from '@/components/ui/Chip';
-import { obtenerVarianteChipPrioridad } from '@/lib/utils/chipVariants';
 import {
+  obtenerVarianteChipDictamen,
+  obtenerVarianteChipPrioridad,
+} from '@/lib/utils/chipVariants';
+import {
+  calcularComparativaPersonasAfectadas,
   esJustificacionSinCambios,
+  esReporteVerificacionCierre,
+  formatearDictamenTerreno,
+  formatearEstado,
   formatearPrioridad,
   formatearCompromisoVivienda,
   fueTipologiaModificada,
@@ -38,6 +45,9 @@ export const IncidenteUltimoReporteSection: React.FC<IncidenteUltimoReporteSecti
       if (porId) return porId;
     }
     const ordenados = [...lista].sort((a, b) => {
+      const cierreA = esReporteVerificacionCierre(a) ? 1 : 0;
+      const cierreB = esReporteVerificacionCierre(b) ? 1 : 0;
+      if (cierreA !== cierreB) return cierreB - cierreA;
       const tB = new Date(b.creadoEn).getTime();
       const tA = new Date(a.creadoEn).getTime();
       if (tB !== tA) return tB - tA;
@@ -67,6 +77,14 @@ export const IncidenteUltimoReporteSection: React.FC<IncidenteUltimoReporteSecti
         prioridadAsignada: top.prioridadAsignada ?? null,
         versionReporte: top.versionReporte,
         esRectificacion: top.esRectificacion,
+        tipoReporte: top.tipoReporte,
+        dictamen: top.dictamen,
+        motivoNoAbordable: top.motivoNoAbordable,
+        estadoTerreno: top.estadoTerreno,
+        requiereAsistenciaSocial: top.requiereAsistenciaSocial,
+        personasAfectadas: top.personasAfectadas,
+        personasAfectadasPrevias: top.personasAfectadasPrevias,
+        personasAfectadasModificadas: top.personasAfectadasModificadas,
       };
     }
 
@@ -89,6 +107,58 @@ export const IncidenteUltimoReporteSection: React.FC<IncidenteUltimoReporteSecti
     return null;
   }, [detalle, reporteTerrenoReciente]);
 
+  const esCierre = React.useMemo(() => {
+    if (!ultimoReporte || ultimoReporte.origen === 'RECLASIFICACION') return false;
+    return esReporteVerificacionCierre(reporteTerrenoReciente || ultimoReporte);
+  }, [ultimoReporte, reporteTerrenoReciente]);
+
+  const dictamenCierre = React.useMemo(() => {
+    if (!esCierre) return null;
+    return (
+      reporteTerrenoReciente?.dictamen ??
+      ultimoReporte?.dictamen ??
+      (detalle.estado === 'NO_ABORDABLE' ? 'NO_ABORDABLE' : null)
+    );
+  }, [esCierre, reporteTerrenoReciente, ultimoReporte, detalle.estado]);
+
+  const motivoNoAbordableCierre = React.useMemo(() => {
+    if (!esCierre) return null;
+    return (
+      reporteTerrenoReciente?.motivoNoAbordable ??
+      ultimoReporte?.motivoNoAbordable ??
+      detalle.motivoNoAbordable ??
+      null
+    );
+  }, [esCierre, reporteTerrenoReciente, ultimoReporte, detalle.motivoNoAbordable]);
+
+  const estadoTerrenoCierre = React.useMemo(() => {
+    if (!esCierre) return null;
+    return reporteTerrenoReciente?.estadoTerreno ?? ultimoReporte?.estadoTerreno ?? null;
+  }, [esCierre, reporteTerrenoReciente, ultimoReporte]);
+
+  const requiereFibeCierre = React.useMemo(() => {
+    if (!esCierre) return false;
+    return Boolean(
+      reporteTerrenoReciente?.requiereAsistenciaSocial ??
+        ultimoReporte?.requiereAsistenciaSocial ??
+        detalle.requiereAsistenciaSocial
+    );
+  }, [esCierre, reporteTerrenoReciente, ultimoReporte, detalle.requiereAsistenciaSocial]);
+
+  const comparativaPersonasCierre = React.useMemo(() => {
+    if (!esCierre) return null;
+    if (reporteTerrenoReciente) {
+      return calcularComparativaPersonasAfectadas(
+        reporteTerrenoReciente,
+        detalle.reportesEvaluacionTerreno || []
+      );
+    }
+    return {
+      personasPrevias: ultimoReporte?.personasAfectadasPrevias ?? null,
+      fueModificado: Boolean(ultimoReporte?.personasAfectadasModificadas),
+    };
+  }, [esCierre, reporteTerrenoReciente, detalle.reportesEvaluacionTerreno, ultimoReporte]);
+
   const etiquetaTipo = React.useMemo(() => {
     if (!ultimoReporte) return '';
     if (ultimoReporte.origen === 'RECLASIFICACION') {
@@ -100,11 +170,14 @@ export const IncidenteUltimoReporteSection: React.FC<IncidenteUltimoReporteSecti
         : false;
       return sinCambios ? 'Constatación en Terreno (Sin cambios)' : 'Reclasificación en Terreno';
     }
+    if (esCierre) {
+      return reporteTerrenoReciente?.etiquetaReporte || 'Informe de Verificación y Cierre';
+    }
     const ver = ultimoReporte.versionReporte ?? 1;
     return ultimoReporte.esRectificacion || ver > 1
       ? `Reporte #${ver} (Rectificación)`
       : 'Reporte #1 (Inicial)';
-  }, [ultimoReporte, detalle.reclasificacionTipologia]);
+  }, [ultimoReporte, detalle.reclasificacionTipologia, esCierre, reporteTerrenoReciente]);
 
   const fechaLegible = React.useMemo(() => {
     if (!ultimoReporte?.creadoEn) return '';
@@ -149,7 +222,7 @@ export const IncidenteUltimoReporteSection: React.FC<IncidenteUltimoReporteSecti
     const personas =
       typeof evalData.nucleoFamiliarTotal === 'number'
         ? evalData.nucleoFamiliarTotal
-        : reporteTerrenoReciente?.personasAfectadas;
+        : reporteTerrenoReciente?.personasAfectadas ?? ultimoReporte.personasAfectadas ?? undefined;
     const familiasRaw = Array.isArray(evalData.familias)
       ? (evalData.familias as Record<string, unknown>[])
       : undefined;
@@ -167,19 +240,38 @@ export const IncidenteUltimoReporteSection: React.FC<IncidenteUltimoReporteSecti
         : undefined;
 
     const itemsBasicos: Array<{ etiqueta: string; valor: string }> = [];
-    if (typeof personas === 'number') {
+    if (esCierre && estadoTerrenoCierre) {
       itemsBasicos.push({
-        etiqueta: 'Personas afectadas',
-        valor: `${personas} ${personas === 1 ? 'persona' : 'personas'}`,
+        etiqueta: 'Estado del terreno',
+        valor: formatearEstado(estadoTerrenoCierre),
       });
     }
-    if (familiasCount !== undefined) {
+    if (typeof personas === 'number') {
+      let textoPersonas = `${personas} ${personas === 1 ? 'persona' : 'personas'}`;
+      if (esCierre && comparativaPersonasCierre?.fueModificado) {
+        textoPersonas +=
+          comparativaPersonasCierre.personasPrevias !== null
+            ? ` (Modificado; antes: ${comparativaPersonasCierre.personasPrevias})`
+            : ' (Modificado al cierre)';
+      }
+      itemsBasicos.push({
+        etiqueta: 'Personas afectadas',
+        valor: textoPersonas,
+      });
+    }
+    if (esCierre && reporteTerrenoReciente?.danosEstimados) {
+      itemsBasicos.push({
+        etiqueta: 'Daños estimados',
+        valor: reporteTerrenoReciente.danosEstimados,
+      });
+    }
+    if (!esCierre && familiasCount !== undefined) {
       itemsBasicos.push({
         etiqueta: 'Familias afectadas',
         valor: `${familiasCount} ${familiasCount === 1 ? 'familia' : 'familias'}`,
       });
     }
-    if (compromiso || viviendas !== undefined) {
+    if (!esCierre && (compromiso || viviendas !== undefined)) {
       const textoViv =
         viviendas !== undefined
           ? `${viviendas} ${viviendas === 1 ? 'vivienda' : 'viviendas'}`
@@ -192,6 +284,7 @@ export const IncidenteUltimoReporteSection: React.FC<IncidenteUltimoReporteSecti
     }
 
     const familiasDesglose =
+      !esCierre &&
       familiasRaw &&
       familiasRaw.length > 0 &&
       (familiasRaw.length > 1 || Boolean(familiasRaw[0].referencia))
@@ -209,19 +302,21 @@ export const IncidenteUltimoReporteSection: React.FC<IncidenteUltimoReporteSecti
                 typeof f.nivelCompromisoVivienda === 'string'
                   ? f.nivelCompromisoVivienda
                   : undefined,
-              requiereFibe: Boolean(f.requiereAsistenciaSocial),
             };
           })
         : null;
 
-    const accionesDirectas =
-      reporteTerrenoReciente?.accionesRealizadas?.trim() ||
-      reporteTerrenoReciente?.observaciones?.trim() ||
-      (typeof evalData.detallesAdicionales === 'string'
-        ? evalData.detallesAdicionales.trim()
-        : '') ||
-      reporteTerrenoReciente?.justificacionPrioridad?.trim() ||
-      '';
+    const accionesDirectas = esCierre
+      ? reporteTerrenoReciente?.resumenTecnico?.trim() ||
+        reporteTerrenoReciente?.observaciones?.trim() ||
+        ''
+      : reporteTerrenoReciente?.accionesRealizadas?.trim() ||
+        reporteTerrenoReciente?.observaciones?.trim() ||
+        (typeof evalData.detallesAdicionales === 'string'
+          ? evalData.detallesAdicionales.trim()
+          : '') ||
+        reporteTerrenoReciente?.justificacionPrioridad?.trim() ||
+        '';
 
     const resumenLimpio = !esResumenAutogeneradoEvaluacion(ultimoReporte.resumen)
       ? ultimoReporte.resumen?.trim() || ''
@@ -231,11 +326,20 @@ export const IncidenteUltimoReporteSection: React.FC<IncidenteUltimoReporteSecti
       itemsBasicos,
       familiasDesglose,
       accionesTexto: accionesDirectas || resumenLimpio || null,
-      etiquetaAcciones: reporteTerrenoReciente?.accionesRealizadas?.trim()
-        ? 'Acciones realizadas'
-        : 'Observaciones / Acciones en terreno',
+      etiquetaAcciones: esCierre
+        ? 'Diagnóstico técnico de cierre'
+        : reporteTerrenoReciente?.accionesRealizadas?.trim()
+          ? 'Acciones realizadas'
+          : 'Observaciones / Acciones en terreno',
     };
-  }, [ultimoReporte, detalle.reclasificacionTipologia, reporteTerrenoReciente]);
+  }, [
+    ultimoReporte,
+    detalle.reclasificacionTipologia,
+    reporteTerrenoReciente,
+    esCierre,
+    estadoTerrenoCierre,
+    comparativaPersonasCierre,
+  ]);
 
   return (
     <div className={styles.drawerSection} data-testid="incidente-ultimo-reporte-section">
@@ -280,6 +384,25 @@ export const IncidenteUltimoReporteSection: React.FC<IncidenteUltimoReporteSecti
               <Chip variant="teal" size="sm">
                 {etiquetaTipo}
               </Chip>
+              {esCierre && dictamenCierre && (
+                <Chip
+                  variant={obtenerVarianteChipDictamen(dictamenCierre)}
+                  size="sm"
+                  data-testid="ultimo-reporte-badge-dictamen"
+                >
+                  Dictamen: {formatearDictamenTerreno(dictamenCierre)}
+                </Chip>
+              )}
+              {esCierre && (
+                <Chip
+                  variant={requiereFibeCierre ? 'warning' : 'neutral'}
+                  size="sm"
+                  icon={<HeartHandshake size={11} />}
+                  data-testid="ultimo-reporte-badge-fibe"
+                >
+                  {requiereFibeCierre ? 'Requiere Ficha FIBE' : 'No requiere Ficha FIBE'}
+                </Chip>
+              )}
               {ultimoReporte.misionCodigo && (
                 <Chip variant="neutral" size="sm">
                   {ultimoReporte.misionCodigo}
@@ -310,6 +433,33 @@ export const IncidenteUltimoReporteSection: React.FC<IncidenteUltimoReporteSecti
               </span>
             )}
           </div>
+
+          {/* 1.1 Motivo de No Abordabilidad en cierre */}
+          {esCierre && (dictamenCierre === 'NO_ABORDABLE' || Boolean(motivoNoAbordableCierre)) && (
+            <div
+              data-testid="ultimo-reporte-motivo-no-abordable"
+              style={{
+                padding: '6px 10px',
+                backgroundColor: 'var(--color-danger-bg, #FFEBEE)',
+                borderLeft: '3px solid var(--color-danger, #D32F2F)',
+                fontSize: '0.78rem',
+                color: 'var(--color-text-dark, #2B2B2B)',
+              }}
+            >
+              <strong
+                style={{
+                  color: 'var(--color-danger, #D32F2F)',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                }}
+              >
+                <Ban size={12} aria-hidden="true" />
+                <span>Motivo de No Abordabilidad:</span>
+              </strong>{' '}
+              <span>{motivoNoAbordableCierre || 'Declarado No Abordable en terreno.'}</span>
+            </div>
+          )}
 
           {/* 2. Información básica ordenada */}
           {datosBasicosYAcciones && datosBasicosYAcciones.itemsBasicos.length > 0 && (
@@ -400,11 +550,6 @@ export const IncidenteUltimoReporteSection: React.FC<IncidenteUltimoReporteSecti
                         <span style={{ color: 'var(--color-text-muted, #5F676E)' }}>
                           {formatearCompromisoVivienda(f.compromiso)}
                         </span>
-                      )}
-                      {f.requiereFibe && (
-                        <Chip variant="warning" size="sm">
-                          FIBE
-                        </Chip>
                       )}
                     </div>
                   </div>

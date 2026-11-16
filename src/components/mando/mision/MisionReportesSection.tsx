@@ -12,6 +12,7 @@ import {
   Home,
   Users,
   HeartHandshake,
+  Ban,
 } from 'lucide-react';
 import Heading from '@/components/ui/Heading';
 import Chip from '@/components/ui/Chip';
@@ -23,13 +24,17 @@ import type {
   EvaluacionTerrenoMisionDetalle,
 } from '@/types/misiones';
 import {
+  calcularComparativaPersonasAfectadas,
   esJustificacionSinCambios,
+  esReporteVerificacionCierre,
+  formatearDictamenTerreno,
   formatearEstado,
   formatearPrioridad,
   formatearCompromisoVivienda,
   fueTipologiaModificada,
   obtenerVarianteCompromisoVivienda,
 } from '@/lib/utils/estadoUtils';
+import { obtenerVarianteChipDictamen } from '@/lib/utils/chipVariants';
 import { MisionEvidenciasGallery } from './MisionEvidenciasGallery';
 import styles from '@/styles/mision-detalle.module.css';
 
@@ -196,10 +201,13 @@ export const MisionReportesSection: React.FC<MisionReportesSectionProps> = ({
 }) => {
   const [desplegados, setDesplegados] = useState<Record<string, boolean>>({});
 
-  // Ordenar reportes dejando la versión más reciente primero (vigente) cuando hay múltiples envíos
+  // Ordenar reportes dejando la versión más reciente primero (vigente) y priorizando VERIFICACION_CIERRE al cierre
   const reportesOrdenados = useMemo(() => {
     if (reportes.length <= 1) return reportes;
     return [...reportes].sort((a, b) => {
+      const cierreA = esReporteVerificacionCierre(a) ? 1 : 0;
+      const cierreB = esReporteVerificacionCierre(b) ? 1 : 0;
+      if (cierreA !== cierreB) return cierreB - cierreA;
       const verA = Number(a.versionReporte ?? 0);
       const verB = Number(b.versionReporte ?? 0);
       if (verA !== verB) return verB - verA;
@@ -486,21 +494,39 @@ export const MisionReportesSection: React.FC<MisionReportesSectionProps> = ({
               }
 
               const esDestacado = reporteDestacadoId === reporte.id;
+              const esCierre = esReporteVerificacionCierre(reporte);
+              const comparativaPersonas = esCierre
+                ? calcularComparativaPersonasAfectadas(reporte, reportesOrdenados)
+                : null;
+              const requiereFibeCierre = Boolean(
+                reporte.requiereAsistenciaSocial ?? evalNorm?.requiereAsistenciaSocial
+              );
+
+              const cardStyle: React.CSSProperties | undefined = esDestacado
+                ? {
+                    borderLeft: '4px solid var(--color-primary-teal, #1B6F7D)',
+                    borderColor: 'var(--color-primary-teal, #1B6F7D)',
+                  }
+                : esCierre
+                  ? {
+                      borderLeft:
+                        reporte.dictamen === 'NO_ABORDABLE'
+                          ? '4px solid var(--color-danger, #D32F2F)'
+                          : '4px solid var(--color-accent-mint, #4FAE9B)',
+                    }
+                  : undefined;
 
               return (
                 <div
                   key={reporte.id}
                   className={styles.reporteCard}
-                  data-testid={`reporte-terreno-card-${reporte.id}`}
-                  data-report-id={reporte.id}
-                  style={
-                    esDestacado
-                      ? {
-                          borderLeft: '4px solid var(--color-primary-teal, #1B6F7D)',
-                          borderColor: 'var(--color-primary-teal, #1B6F7D)',
-                        }
-                      : undefined
+                  data-testid={
+                    esCierre
+                      ? `reporte-verificacion-cierre-${reporte.id}`
+                      : `reporte-terreno-card-${reporte.id}`
                   }
+                  data-report-id={reporte.id}
+                  style={cardStyle}
                 >
                   <button
                     type="button"
@@ -521,10 +547,27 @@ export const MisionReportesSection: React.FC<MisionReportesSectionProps> = ({
                     </div>
 
                     <div className={styles.reporteMetaTags} style={{ flexWrap: 'wrap' }}>
-                      {tieneEvaluacionPrioridad && (
-                        <Chip variant={esRectificacion ? 'teal' : 'neutral'} size="sm">
-                          {etiquetaVersion}
-                        </Chip>
+                      {esCierre ? (
+                        <>
+                          <Chip variant="solid-teal" size="sm">
+                            {reporte.etiquetaReporte || 'Informe de Verificación y Cierre'}
+                          </Chip>
+                          {reporte.dictamen && (
+                            <Chip
+                              data-testid={`badge-dictamen-${reporte.id}`}
+                              variant={obtenerVarianteChipDictamen(reporte.dictamen)}
+                              size="sm"
+                            >
+                              Dictamen: {formatearDictamenTerreno(reporte.dictamen)}
+                            </Chip>
+                          )}
+                        </>
+                      ) : (
+                        tieneEvaluacionPrioridad && (
+                          <Chip variant={esRectificacion ? 'teal' : 'neutral'} size="sm">
+                            {etiquetaVersion}
+                          </Chip>
+                        )
                       )}
 
                       {reportesOrdenados.length > 1 && (
@@ -537,9 +580,10 @@ export const MisionReportesSection: React.FC<MisionReportesSectionProps> = ({
                         {formatearEstado(reporte.estadoTerreno)}
                       </Chip>
 
-                      {(evalNorm?.familias && evalNorm.familias.length > 0
-                        ? evalNorm.familias.length
-                        : evalNorm?.familiasAfectadas) ? (
+                      {!esCierre &&
+                        (evalNorm?.familias && evalNorm.familias.length > 0
+                          ? evalNorm.familias.length
+                          : evalNorm?.familiasAfectadas) ? (
                         <Chip variant="neutral" size="sm" title="Familias / Hogares evaluados en terreno">
                           {evalNorm?.familias && evalNorm.familias.length > 0
                             ? evalNorm.familias.length
@@ -586,7 +630,167 @@ export const MisionReportesSection: React.FC<MisionReportesSectionProps> = ({
                   </button>
 
                   {/* Contenido técnico desplegable */}
-                  {estaAbierto && (
+                  {estaAbierto && esCierre && (
+                    <div className={styles.reporteBody}>
+                      {(reporte.dictamen === 'NO_ABORDABLE' || Boolean(reporte.motivoNoAbordable)) && (
+                        <div
+                          data-testid={`motivo-no-abordable-${reporte.id}`}
+                          style={{
+                            padding: '10px 12px',
+                            backgroundColor: 'var(--color-danger-bg, #FFEBEE)',
+                            border: '1px solid #FFCDD2',
+                            borderLeft: '4px solid var(--color-danger, #D32F2F)',
+                          }}
+                        >
+                          <div
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '6px',
+                              marginBottom: '4px',
+                            }}
+                          >
+                            <Ban size={14} color="var(--color-danger, #D32F2F)" aria-hidden="true" />
+                            <strong
+                              style={{
+                                fontSize: '13px',
+                                color: 'var(--color-danger, #D32F2F)',
+                              }}
+                            >
+                              Declaración Fundada de No Abordabilidad
+                            </strong>
+                          </div>
+                          <p
+                            style={{
+                              margin: 0,
+                              fontSize: '13px',
+                              color: 'var(--color-text-dark, #2B2B2B)',
+                              lineHeight: 1.4,
+                            }}
+                          >
+                            {reporte.motivoNoAbordable ||
+                              'Motivo de no abordabilidad registrado en terreno.'}
+                          </p>
+                        </div>
+                      )}
+
+                      {reporte.resumenTecnico && (
+                        <div>
+                          <span className={styles.dataLabel}>
+                            Diagnóstico y Resumen Técnico del Siniestro:
+                          </span>
+                          <p
+                            style={{
+                              margin: '4px 0 0 0',
+                              fontSize: '14px',
+                              color: 'var(--color-text-dark, #2B2B2B)',
+                              lineHeight: 1.45,
+                            }}
+                          >
+                            {reporte.resumenTecnico}
+                          </p>
+                        </div>
+                      )}
+
+                      <div
+                        data-testid={`datos-verificacion-cierre-${reporte.id}`}
+                        style={{
+                          padding: '10px 12px',
+                          backgroundColor: 'var(--color-bg-light, #ECEFF3)',
+                          border: '1px solid var(--border-color-neutral, #DFE3E8)',
+                        }}
+                      >
+                        <div className={styles.dataGrid}>
+                          <div className={styles.dataItem}>
+                            <span className={styles.dataLabel}>Estado del Terreno</span>
+                            <span className={styles.dataValue} style={{ fontWeight: 700 }}>
+                              {formatearEstado(reporte.estadoTerreno)}
+                            </span>
+                          </div>
+
+                          <div className={styles.dataItem}>
+                            <span className={styles.dataLabel}>Personas Damnificadas</span>
+                            <div
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '6px',
+                                flexWrap: 'wrap',
+                                marginTop: '2px',
+                              }}
+                            >
+                              <span className={styles.dataValue} style={{ fontWeight: 700 }}>
+                                {reporte.personasAfectadas}
+                              </span>
+                              {comparativaPersonas?.fueModificado ? (
+                                <Chip
+                                  variant="warning"
+                                  size="sm"
+                                  data-testid="badge-personas-modificadas"
+                                  title="La cantidad de personas afectadas fue actualizada al cerrar la verificación respecto a la evaluación de prioridad"
+                                >
+                                  {comparativaPersonas.personasPrevias !== null
+                                    ? `Modificado respecto a prioridad (Antes: ${comparativaPersonas.personasPrevias})`
+                                    : 'Modificado al cierre'}
+                                </Chip>
+                              ) : comparativaPersonas && comparativaPersonas.personasPrevias !== null ? (
+                                <span
+                                  style={{
+                                    fontSize: '12px',
+                                    color: 'var(--color-text-muted, #5F676E)',
+                                  }}
+                                >
+                                  (Rescatado del reporte de prioridad sin cambios)
+                                </span>
+                              ) : null}
+                            </div>
+                          </div>
+
+                          <div className={styles.dataItem}>
+                            <span className={styles.dataLabel}>Daños Materiales Estimados</span>
+                            <span className={styles.dataValue}>
+                              {reporte.danosEstimados || 'Sin daños materiales adicionales especificados'}
+                            </span>
+                          </div>
+
+                          <div className={styles.dataItem}>
+                            <span className={styles.dataLabel}>Asistencia Social (Ficha FIBE)</span>
+                            <div style={{ marginTop: '2px' }}>
+                              <Chip
+                                variant={requiereFibeCierre ? 'warning' : 'neutral'}
+                                size="sm"
+                                icon={<HeartHandshake size={12} />}
+                                data-testid="chip-fibe-verificacion-cierre"
+                              >
+                                {requiereFibeCierre ? 'Requiere Ficha FIBE' : 'No requiere Ficha FIBE'}
+                              </Chip>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {(reporte.observaciones || evalNorm?.detallesAdicionales) && (
+                        <div>
+                          <span className={styles.dataLabel}>Observaciones Generales:</span>
+                          <p
+                            style={{
+                              margin: '4px 0 0 0',
+                              fontSize: '13px',
+                              color: 'var(--color-text-muted, #5F676E)',
+                              lineHeight: 1.4,
+                            }}
+                          >
+                            {reporte.observaciones || evalNorm?.detallesAdicionales}
+                          </p>
+                        </div>
+                      )}
+
+                      {/* Galería de Evidencias (preparada para HU-43) */}
+                      <MisionEvidenciasGallery adjuntos={reporte.adjuntos} preparadaParaH43={true} />
+                    </div>
+                  )}
+
+                  {estaAbierto && !esCierre && (
                     <div className={styles.reporteBody}>
                       {/* Bloque de Prioridad Sugerida vs. Confirmada y Justificación (HU-38) */}
                       {(reporte.prioridadSugerida ||
@@ -814,16 +1018,6 @@ export const MisionReportesSection: React.FC<MisionReportesSectionProps> = ({
                                             >
                                               {textoCompromiso}
                                             </Chip>
-                                            {f.requiereAsistenciaSocial && (
-                                              <Chip
-                                                variant="warning"
-                                                size="sm"
-                                                icon={<HeartHandshake size={11} />}
-                                                title="Familia vulnerable con derivación para levantamiento de Ficha Básica de Emergencia (FIBE)"
-                                              >
-                                                Requiere FIBE
-                                              </Chip>
-                                            )}
                                           </div>
                                         </div>
 
@@ -968,9 +1162,7 @@ export const MisionReportesSection: React.FC<MisionReportesSectionProps> = ({
                             )}
                           </div>
 
-                          {(riesgosLista.length > 0 ||
-                            evalNorm.requiereEvacuacion ||
-                            evalNorm.requiereAsistenciaSocial) && (
+                          {(riesgosLista.length > 0 || evalNorm.requiereEvacuacion) && (
                             <div
                               style={{
                                 marginTop: '10px',
@@ -1002,12 +1194,6 @@ export const MisionReportesSection: React.FC<MisionReportesSectionProps> = ({
                                     icon={<AlertTriangle size={12} />}
                                   >
                                     Requiere Evacuación
-                                  </Chip>
-                                )}
-
-                                {evalNorm.requiereAsistenciaSocial && (
-                                  <Chip variant="danger" size="sm">
-                                    Requiere Ficha FIBE
                                   </Chip>
                                 )}
 

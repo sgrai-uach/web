@@ -9,7 +9,13 @@ import {
   obtenerDetalleMision,
   DEFAULT_ENCARGADO_ID,
 } from '@/services/misionesService';
-import type { MisionDetalleCompleto, ReporteTerrenoDetalle } from '@/types/misiones';
+import type {
+  AdjuntoEvidencia,
+  DictamenAtencionTerreno,
+  MisionDetalleCompleto,
+  ReporteTerrenoDetalle,
+} from '@/types/misiones';
+import { esReporteVerificacionCierre } from '@/lib/utils/estadoUtils';
 import { MisionSkeletonLoader } from './MisionSkeletonLoader';
 import { MisionDetalleHeader } from './MisionDetalleHeader';
 import { MisionContextoSection } from './MisionContextoSection';
@@ -112,6 +118,26 @@ export const MisionDetalleModal: React.FC<MisionDetalleModalProps> = ({
         const nuevoReporte: ReporteTerrenoDetalle = {
           id: String(repRaw.id || `rep-${Date.now()}`),
           misionId,
+          tipoReporte:
+            typeof repRaw.tipoReporte === 'string' ? repRaw.tipoReporte : undefined,
+          dictamen:
+            repRaw.dictamen === 'REQUIERE_CUADRILLA' || repRaw.dictamen === 'NO_ABORDABLE'
+              ? (repRaw.dictamen as DictamenAtencionTerreno)
+              : undefined,
+          motivoNoAbordable:
+            typeof repRaw.motivoNoAbordable === 'string' ? repRaw.motivoNoAbordable : null,
+          requiereAsistenciaSocial:
+            typeof repRaw.requiereAsistenciaSocial === 'boolean'
+              ? repRaw.requiereAsistenciaSocial
+              : undefined,
+          personasAfectadasPrevias:
+            typeof repRaw.personasAfectadasPrevias === 'number'
+              ? repRaw.personasAfectadasPrevias
+              : null,
+          personasAfectadasModificadas:
+            typeof repRaw.personasAfectadasModificadas === 'boolean'
+              ? repRaw.personasAfectadasModificadas
+              : undefined,
           versionReporte: Number(repRaw.versionReporte ?? prev.reportesTerreno.length + 1),
           esRectificacion: Boolean(repRaw.esRectificacion ?? prev.reportesTerreno.length > 0),
           etiquetaReporte:
@@ -154,8 +180,11 @@ export const MisionDetalleModal: React.FC<MisionDetalleModalProps> = ({
                 ? repRaw.detallesAdicionales
                 : null,
           personasAfectadas: Number(repRaw.personasAfectadas ?? 0),
-          estadoTerreno: 'EN_PROGRESO',
-          adjuntos: [],
+          estadoTerreno:
+            typeof repRaw.estadoTerreno === 'string' ? repRaw.estadoTerreno : 'EN_PROGRESO',
+          adjuntos: Array.isArray(repRaw.adjuntos)
+            ? (repRaw.adjuntos as AdjuntoEvidencia[])
+            : [],
           creadoEn:
             typeof repRaw.creadoEn === 'string' ? repRaw.creadoEn : new Date().toISOString(),
           actualizadoEn:
@@ -168,8 +197,18 @@ export const MisionDetalleModal: React.FC<MisionDetalleModalProps> = ({
             ? prev.reportesTerreno.map((r, i) => (i === existeIdx ? nuevoReporte : r))
             : [nuevoReporte, ...prev.reportesTerreno];
 
+        const esCierre =
+          esReporteVerificacionCierre(nuevoReporte) || rawDatos?.nuevoEstado === 'NO_ABORDABLE';
+
         return {
           ...prev,
+          estado: esCierre ? 'COMPLETADA' : prev.estado,
+          fechaCierre:
+            esCierre && typeof rawDatos?.fechaCierre === 'string'
+              ? rawDatos.fechaCierre
+              : esCierre && !prev.fechaCierre
+                ? new Date().toISOString()
+                : prev.fechaCierre,
           prioridad:
             typeof rawDatos?.prioridad === 'string'
               ? (rawDatos.prioridad as MisionDetalleCompleto['prioridad'])
@@ -177,6 +216,16 @@ export const MisionDetalleModal: React.FC<MisionDetalleModalProps> = ({
           incidente: prev.incidente
             ? {
                 ...prev.incidente,
+                estado:
+                  typeof rawDatos?.nuevoEstado === 'string'
+                    ? rawDatos.nuevoEstado
+                    : prev.incidente.estado,
+                requiereAsistenciaSocial:
+                  typeof rawDatos?.requiereAsistenciaSocial === 'boolean'
+                    ? rawDatos.requiereAsistenciaSocial
+                    : typeof nuevoReporte.requiereAsistenciaSocial === 'boolean'
+                      ? nuevoReporte.requiereAsistenciaSocial
+                      : prev.incidente.requiereAsistenciaSocial,
                 prioridad:
                   typeof rawDatos?.prioridad === 'string'
                     ? rawDatos.prioridad
