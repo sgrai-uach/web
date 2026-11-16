@@ -7,8 +7,11 @@ import type {
   PrioridadIncidente,
   ReporteEvaluacionTerreno,
 } from '@/services/incidentesService';
+import type { DictamenAtencionTerreno } from '@/types/misiones';
 import {
   esJustificacionSinCambios,
+  esReporteVerificacionCierre,
+  formatearDictamenTerreno,
   formatearEstado,
   formatearPrioridad,
   fueTipologiaModificada,
@@ -43,6 +46,9 @@ export interface IncidenteActualizadoPayload {
     justificacionPrioridad?: string | null;
     requiereAsistenciaSocial?: boolean;
     verificado?: boolean;
+    dictamen?: DictamenAtencionTerreno | null;
+    motivoNoAbordable?: string | null;
+    fechaCierre?: string | null;
     tipoIncidenteId?: string;
     tipoAnterior?: string;
     tipoAfectacion?: string;
@@ -178,9 +184,43 @@ export function useEncargadoKanbanSocket({
           ? (rawDatos.reporteTerreno as ReporteEvaluacionTerreno)
           : undefined;
 
+      const dictamenRaw =
+        typeof rawDatos?.dictamen === 'string'
+          ? rawDatos.dictamen
+          : typeof rawDatos?.dictamenTerreno === 'string'
+            ? rawDatos.dictamenTerreno
+            : typeof rawReporte?.dictamen === 'string'
+              ? rawReporte.dictamen
+              : undefined;
+      const dictamen =
+        dictamenRaw === 'REQUIERE_CUADRILLA' || dictamenRaw === 'NO_ABORDABLE'
+          ? (dictamenRaw as DictamenAtencionTerreno)
+          : undefined;
+
+      const motivoNoAbordable =
+        typeof rawDatos?.motivoNoAbordable === 'string'
+          ? rawDatos.motivoNoAbordable
+          : typeof rawDatos?.motivo_no_abordable === 'string'
+            ? rawDatos.motivo_no_abordable
+            : typeof rawReporte?.motivoNoAbordable === 'string'
+              ? rawReporte.motivoNoAbordable
+              : undefined;
+
+      const fechaCierre =
+        typeof rawDatos?.fechaCierre === 'string'
+          ? rawDatos.fechaCierre
+          : typeof rawDatos?.fecha_cierre === 'string'
+            ? rawDatos.fecha_cierre
+            : undefined;
+
       const reporteKey = rawReporte?.id || rawReporte?.versionReporte || '';
       const tipoKey = typeof rawDatos?.tipoAfectacion === 'string' ? rawDatos.tipoAfectacion : '';
-      if (esEventoDuplicado(`inc-act:${id}:${nuevoEstado || 'VERIFICANDO'}:${reporteKey}:${tipoKey}`)) {
+      const dictamenKey = dictamen || '';
+      if (
+        esEventoDuplicado(
+          `inc-act:${id}:${nuevoEstado || 'VERIFICANDO'}:${reporteKey}:${tipoKey}:${dictamenKey}`
+        )
+      ) {
         return;
       }
 
@@ -198,6 +238,15 @@ export function useEncargadoKanbanSocket({
             ? (rawDatos.prioridad_sugerida as PrioridadIncidente)
             : (rawReporte?.prioridadSugerida as PrioridadIncidente | undefined) ?? undefined;
 
+      const requiereAsistenciaSocial =
+        typeof rawDatos?.requiereAsistenciaSocial === 'boolean'
+          ? rawDatos.requiereAsistenciaSocial
+          : typeof rawDatos?.requiere_asistencia_social === 'boolean'
+            ? rawDatos.requiere_asistencia_social
+            : typeof rawReporte?.requiereAsistenciaSocial === 'boolean'
+              ? rawReporte.requiereAsistenciaSocial
+              : undefined;
+
       const normalizedPayload: IncidenteActualizadoPayload = {
         evento: 'incidente:actualizado',
         datos: {
@@ -210,12 +259,12 @@ export function useEncargadoKanbanSocket({
               : ('MEDIA' as PrioridadIncidente),
           prioridadSugerida,
           justificacionPrioridad,
-          requiereAsistenciaSocial:
-            typeof rawDatos?.requiereAsistenciaSocial === 'boolean'
-              ? rawDatos.requiereAsistenciaSocial
-              : undefined,
+          requiereAsistenciaSocial,
           verificado:
             typeof rawDatos?.verificado === 'boolean' ? rawDatos.verificado : undefined,
+          dictamen,
+          motivoNoAbordable,
+          fechaCierre,
           tipoIncidenteId:
             typeof rawDatos?.tipoIncidenteId === 'string'
               ? rawDatos.tipoIncidenteId
@@ -245,7 +294,28 @@ export function useEncargadoKanbanSocket({
       };
 
       const prioridadLegible = formatearPrioridad(normalizedPayload.datos.prioridad);
-      if (normalizedPayload.datos.reporteTerreno) {
+      if (
+        normalizedPayload.datos.nuevoEstado === 'NO_ABORDABLE' ||
+        normalizedPayload.datos.dictamen === 'NO_ABORDABLE'
+      ) {
+        const motivoTexto = normalizedPayload.datos.motivoNoAbordable
+          ? `: ${normalizedPayload.datos.motivoNoAbordable}`
+          : '';
+        setUltimoEvento(
+          `Incidente ${normalizedPayload.datos.codigo || ''} declarado No Abordable en terreno${motivoTexto}`
+        );
+      } else if (
+        normalizedPayload.datos.dictamen === 'REQUIERE_CUADRILLA' ||
+        (normalizedPayload.datos.reporteTerreno &&
+          esReporteVerificacionCierre(normalizedPayload.datos.reporteTerreno))
+      ) {
+        const dictamenTexto = normalizedPayload.datos.dictamen
+          ? formatearDictamenTerreno(normalizedPayload.datos.dictamen)
+          : 'Requiere Cuadrilla';
+        setUltimoEvento(
+          `Verificación finalizada en ${normalizedPayload.datos.codigo || 'incidente'}: ${dictamenTexto} (Prioridad: ${prioridadLegible})`
+        );
+      } else if (normalizedPayload.datos.reporteTerreno) {
         const numVer = Number(normalizedPayload.datos.reporteTerreno.versionReporte || 1);
         const esRect = Boolean(
           normalizedPayload.datos.reporteTerreno.esRectificacion || numVer > 1

@@ -18,6 +18,8 @@ import {
 } from '@/hooks/useEncargadoKanbanSocket';
 import {
   esJustificacionSinCambios,
+  esReporteVerificacionCierre,
+  formatearDictamenTerreno,
   formatearPrioridad,
   formatearCompromisoVivienda,
   formatearEstado,
@@ -133,10 +135,23 @@ export const KanbanBoard: React.FC = () => {
 
       const numVersion = Number(rep.versionReporte || 1);
       const esRect = Boolean(rep.esRectificacion || numVersion > 1);
+      const esCierre =
+        esReporteVerificacionCierre(rep) ||
+        payload.datos.nuevoEstado === 'NO_ABORDABLE' ||
+        Boolean(payload.datos.dictamen);
+      const dictamenCierre =
+        payload.datos.dictamen ??
+        rep.dictamen ??
+        (payload.datos.nuevoEstado === 'NO_ABORDABLE' ? 'NO_ABORDABLE' : 'REQUIERE_CUADRILLA');
+
       const prioridadTexto = formatearPrioridad(payload.datos.prioridad);
-      const tituloToast = esRect
-        ? `Reporte #${numVersion} (Rectificación en Terreno)`
-        : 'Reporte #1 (Evaluación en Terreno)';
+      const tituloToast = esCierre
+        ? dictamenCierre === 'NO_ABORDABLE'
+          ? 'Incidente Declarado No Abordable'
+          : 'Informe de Verificación y Cierre'
+        : esRect
+          ? `Reporte #${numVersion} (Rectificación en Terreno)`
+          : 'Reporte #1 (Evaluación en Terreno)';
 
       const detallesToast: Array<{ label: string; value: string }> = [];
 
@@ -158,65 +173,93 @@ export const KanbanBoard: React.FC = () => {
         ? Number(rep.evaluacion.viviendasAfectadas)
         : null;
 
-      if (personas !== null || viviendas !== null || familiasCount !== null) {
-        const partesAfectacion: string[] = [];
-        if (familiasCount !== null) {
-          partesAfectacion.push(`${familiasCount} ${familiasCount === 1 ? 'familia' : 'familias'}`);
+      if (esCierre) {
+        detallesToast.push({
+          label: 'Dictamen',
+          value: formatearDictamenTerreno(dictamenCierre),
+        });
+        const motivoNoAbordable =
+          payload.datos.motivoNoAbordable || rep.motivoNoAbordable;
+        if (dictamenCierre === 'NO_ABORDABLE' && motivoNoAbordable) {
+          detallesToast.push({
+            label: 'Motivo técnico',
+            value: motivoNoAbordable,
+          });
+        }
+        if (rep.estadoTerreno) {
+          detallesToast.push({
+            label: 'Estado del terreno',
+            value: formatearEstado(rep.estadoTerreno),
+          });
         }
         if (personas !== null) {
-          partesAfectacion.push(`${personas} persona(s)`);
+          detallesToast.push({
+            label: 'Personas afectadas',
+            value: `${personas} persona(s)`,
+          });
         }
-        if (viviendas !== null) {
-          const compromisoTexto = rep.evaluacion?.nivelCompromisoVivienda
-            ? ` (${formatearCompromisoVivienda(String(rep.evaluacion.nivelCompromisoVivienda))})`
-            : '';
-          partesAfectacion.push(`${viviendas} vivienda(s)${compromisoTexto}`);
+        const requiereFibeCierre = Boolean(
+          payload.datos.requiereAsistenciaSocial ?? rep.requiereAsistenciaSocial
+        );
+        if (requiereFibeCierre) {
+          detallesToast.push({
+            label: 'Asistencia social',
+            value: 'Requiere levantamiento de Ficha FIBE',
+          });
         }
-        detallesToast.push({
-          label: 'Afectación',
-          value: partesAfectacion.join(' | '),
-        });
+      } else {
+        if (personas !== null || viviendas !== null || familiasCount !== null) {
+          const partesAfectacion: string[] = [];
+          if (familiasCount !== null) {
+            partesAfectacion.push(`${familiasCount} ${familiasCount === 1 ? 'familia' : 'familias'}`);
+          }
+          if (personas !== null) {
+            partesAfectacion.push(`${personas} persona(s)`);
+          }
+          if (viviendas !== null) {
+            const compromisoTexto = rep.evaluacion?.nivelCompromisoVivienda
+              ? ` (${formatearCompromisoVivienda(String(rep.evaluacion.nivelCompromisoVivienda))})`
+              : '';
+            partesAfectacion.push(`${viviendas} vivienda(s)${compromisoTexto}`);
+          }
+          detallesToast.push({
+            label: 'Afectación',
+            value: partesAfectacion.join(' | '),
+          });
+        }
+
+        // Prioridad evaluada / sugerida
+        if (
+          payload.datos.prioridadSugerida &&
+          payload.datos.prioridadSugerida !== payload.datos.prioridad
+        ) {
+          detallesToast.push({
+            label: 'Ajuste de prioridad',
+            value: `Asignada: ${prioridadTexto} (Sugerida por sistema: ${formatearPrioridad(payload.datos.prioridadSugerida)})`,
+          });
+        }
+
+        // Acciones realizadas (sin duplicar el string generado de personas/viviendas)
+        if (rep.accionesRealizadas && rep.accionesRealizadas.trim()) {
+          detallesToast.push({
+            label: 'Acciones realizadas',
+            value: rep.accionesRealizadas.trim(),
+          });
+        } else if (payload.datos.justificacion && payload.datos.justificacion.trim()) {
+          detallesToast.push({
+            label: 'Observación en terreno',
+            value: payload.datos.justificacion.trim(),
+          });
+        }
       }
 
-      // Asistencia Social / FIBE
-      const requiereFibe = Boolean(
-        evalData.requiereAsistenciaSocial ||
-          (familiasRaw && familiasRaw.some((f) => f.requiereAsistenciaSocial))
-      );
-      if (requiereFibe) {
-        detallesToast.push({
-          label: 'Asistencia social',
-          value: 'Requiere levantamiento de Ficha FIBE',
-        });
-      }
-
-      // Prioridad evaluada / sugerida
-      if (
-        payload.datos.prioridadSugerida &&
-        payload.datos.prioridadSugerida !== payload.datos.prioridad
-      ) {
-        detallesToast.push({
-          label: 'Ajuste de prioridad',
-          value: `Asignada: ${prioridadTexto} (Sugerida por sistema: ${formatearPrioridad(payload.datos.prioridadSugerida)})`,
-        });
-      }
-
-      // Acciones realizadas (sin duplicar el string generado de personas/viviendas)
-      if (rep.accionesRealizadas && rep.accionesRealizadas.trim()) {
-        detallesToast.push({
-          label: 'Acciones realizadas',
-          value: rep.accionesRealizadas.trim(),
-        });
-      } else if (payload.datos.justificacion && payload.datos.justificacion.trim()) {
-        detallesToast.push({
-          label: 'Observación en terreno',
-          value: payload.datos.justificacion.trim(),
-        });
-      }
-
-      const mensajeBase = `Se registró una ${
-        esRect ? 'rectificación' : 'evaluación inicial'
-      } para el incidente ${payload.datos.codigo || ''}.`;
+      const mensajeBase = esCierre
+        ? dictamenCierre === 'NO_ABORDABLE'
+          ? `La patrulla cerró el incidente ${payload.datos.codigo || ''} declarándolo No Abordable.`
+          : `La patrulla finalizó la verificación en ${payload.datos.codigo || ''}. Listo para despacho de cuadrilla.`
+        : `Se registró una ${
+            esRect ? 'rectificación' : 'evaluación inicial'
+          } para el incidente ${payload.datos.codigo || ''}.`;
 
       const toastOptions = {
         icon: 'reporte' as const,
@@ -229,7 +272,7 @@ export const KanbanBoard: React.FC = () => {
         },
       };
 
-      if (payload.datos.prioridad === 'CRITICA') {
+      if (dictamenCierre === 'NO_ABORDABLE' || payload.datos.prioridad === 'CRITICA') {
         showWarning(mensajeBase, tituloToast, toastOptions);
       } else {
         showInfo(mensajeBase, tituloToast, toastOptions);
@@ -292,12 +335,35 @@ export const KanbanBoard: React.FC = () => {
         return;
       }
 
-      const claveDedup = `act:${datos.id}:${datos.nuevoEstado}:${datos.tipoAfectacion || ''}`;
+      const claveDedup = `act:${datos.id}:${datos.nuevoEstado}:${datos.tipoAfectacion || ''}:${datos.dictamen || ''}`;
       if (esToastIncidenteDuplicado(claveDedup)) return;
 
+      const esNoAbordable =
+        datos.nuevoEstado === 'NO_ABORDABLE' || datos.dictamen === 'NO_ABORDABLE';
       const esEventoTipologia = Boolean(datos.tipoAfectacion && datos.justificacion);
 
-      if (esEventoTipologia) {
+      if (esNoAbordable) {
+        showWarning(
+          `El incidente ${datos.codigo || ''} fue declarado No Abordable en terreno.`,
+          'Incidente Declarado No Abordable',
+          {
+            icon: 'reporte',
+            codeBadge: datos.codigo,
+            priorityBadge: datos.prioridad,
+            dedupKey: claveDedup,
+            details: [
+              { label: 'Dictamen', value: 'No Abordable' },
+              ...(datos.motivoNoAbordable
+                ? [{ label: 'Motivo técnico', value: datos.motivoNoAbordable }]
+                : []),
+            ],
+            action: {
+              label: 'Ver incidente',
+              onClick: () => setIncidenteSeleccionadoId(datos.id),
+            },
+          }
+        );
+      } else if (esEventoTipologia) {
         const sinCambiosTipologia = datos.tipoAnterior
           ? !fueTipologiaModificada(datos.tipoAnterior, datos.tipoAfectacion)
           : esJustificacionSinCambios(datos.justificacion);
@@ -344,7 +410,7 @@ export const KanbanBoard: React.FC = () => {
 
       refrescarKpis(false);
     },
-    [showInfo, refrescarKpis, esToastIncidenteDuplicado]
+    [showInfo, showWarning, refrescarKpis, esToastIncidenteDuplicado]
   );
 
   const {

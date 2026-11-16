@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   listarIncidentes,
   DEFAULT_ENCARGADO_ID,
@@ -103,6 +103,11 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
     RESUELTO: [],
     NO_ABORDABLE: [],
   });
+
+  const columnasRef = useRef(columnas);
+  useEffect(() => {
+    columnasRef.current = columnas;
+  }, [columnas]);
 
   const [paginacionColumna, setPaginacionColumna] = useState<
     Record<EstadoIncidente, PaginacionMeta | null>
@@ -218,7 +223,11 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
         if (nuevasColumnas.REPORTADO && nuevasColumnas.REPORTADO.length > 0) {
           const aMoverAVerificando: IncidenteResumen[] = [];
           nuevasColumnas.REPORTADO = nuevasColumnas.REPORTADO.filter((inc) => {
-            if (inc.tieneMisionEnCurso) {
+            if (
+              inc.tieneMisionEnCurso &&
+              inc.estado !== 'NO_ABORDABLE' &&
+              inc.estado !== 'RESUELTO'
+            ) {
               aMoverAVerificando.push({ ...inc, estado: 'VERIFICANDO' });
               return false;
             }
@@ -372,6 +381,15 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
       let columnaOrigenDetectada: EstadoIncidente | null = null;
       let tipoAnteriorDetectado: string | undefined;
 
+      for (const est of ESTADOS_KANBAN) {
+        const incExistente = columnasRef.current[est].find((i) => i.id === datos.id);
+        if (incExistente) {
+          columnaOrigenDetectada = est;
+          tipoAnteriorDetectado = incExistente.tipoAfectacion;
+          break;
+        }
+      }
+
       setColumnas((prev) => {
         let incidenteEncontrado: IncidenteResumen | null = null;
         let columnaOrigen: EstadoIncidente | null = null;
@@ -415,6 +433,21 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
                 )
               : totalReportesPrevios;
 
+            const esCierreNoAbordable = datos.nuevoEstado === 'NO_ABORDABLE';
+            const dictamenResuelto =
+              datos.dictamen ??
+              datos.reporteTerreno?.dictamen ??
+              incActual.dictamenTerreno ??
+              (esCierreNoAbordable ? 'NO_ABORDABLE' : undefined);
+            const motivoNoAbordableResuelto =
+              datos.motivoNoAbordable !== undefined
+                ? datos.motivoNoAbordable
+                : datos.reporteTerreno?.motivoNoAbordable !== undefined
+                  ? datos.reporteTerreno.motivoNoAbordable
+                  : incActual.motivoNoAbordable;
+            const fechaCierreResuelta =
+              datos.fechaCierre !== undefined ? datos.fechaCierre : incActual.fechaCierre;
+
             incidenteEncontrado = {
               ...incActual,
               estado: datos.nuevoEstado,
@@ -428,7 +461,17 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
                   : incActual.requiereAsistenciaSocial,
               tipoAfectacion: nuevoTipo,
               tipoIncidenteId: datos.tipoIncidenteId || incActual.tipoIncidenteId,
-              verificado: true,
+              verificado:
+                datos.verificado !== undefined
+                  ? datos.verificado
+                  : payload.esSintetico
+                    ? Boolean(incActual.verificado)
+                    : true,
+              dictamenTerreno: dictamenResuelto,
+              motivoNoAbordable: motivoNoAbordableResuelto,
+              fechaCierre: fechaCierreResuelta,
+              tieneMisionEnCurso: esCierreNoAbordable ? false : incActual.tieneMisionEnCurso,
+              tieneMisionDespachada: esCierreNoAbordable ? false : incActual.tieneMisionDespachada,
               reclasificadoEnTerreno: reclasificado,
               justificacionReclasificacion:
                 datos.justificacion || incActual.justificacionReclasificacion,
@@ -451,12 +494,15 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
           return prev;
         }
 
-        // Si el estado no cambió de columna, solo actualizarlo in situ
+        // Si el estado no cambió de columna, solo actualizarlo in situ y mantener orden de verificación
         if (columnaOrigen === datos.nuevoEstado) {
           return {
             ...prev,
-            [columnaOrigen]: prev[columnaOrigen].map((i) =>
-              i.id === datos.id ? incidenteEncontrado! : i
+            [columnaOrigen]: ordenarIncidentesColumna(
+              prev[columnaOrigen].map((i) =>
+                i.id === datos.id ? incidenteEncontrado! : i
+              ),
+              columnaOrigen
             ),
           };
         }
