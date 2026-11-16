@@ -10,7 +10,12 @@ import type {
   DelegacionOpcion,
 } from '@/types/incidentesKpis';
 import { DELEGACIONES_VALDIVIA_DEFAULT } from '@/types/incidentesKpis';
-import type { FamiliaAfectadaMisionDetalle } from '@/types/misiones';
+import type {
+  AdjuntoEvidencia,
+  DictamenAtencionTerreno,
+  FamiliaAfectadaMisionDetalle,
+  TipoReporteTerreno,
+} from '@/types/misiones';
 
 export const DEFAULT_ENCARGADO_ID = '00000000-0000-4000-8000-000000000003';
 
@@ -52,6 +57,14 @@ export interface EvaluacionTerrenoDetalle {
 export interface ReporteEvaluacionTerreno {
   id: string;
   misionId: string;
+  tipoReporte?: TipoReporteTerreno | null;
+  dictamen?: DictamenAtencionTerreno | null;
+  motivoNoAbordable?: string | null;
+  estadoTerreno?: string | null;
+  requiereAsistenciaSocial?: boolean;
+  personasAfectadasPrevias?: number | null;
+  personasAfectadasModificadas?: boolean;
+  adjuntos?: AdjuntoEvidencia[];
   versionReporte: number;
   esRectificacion: boolean;
   etiquetaReporte: string;
@@ -97,6 +110,14 @@ export interface UltimoReporteIncidenteResumen {
   prioridadAsignada: 'BAJA' | 'MEDIA' | 'ALTA' | 'CRITICA' | null;
   versionReporte: number | null;
   esRectificacion: boolean;
+  tipoReporte?: TipoReporteTerreno | null;
+  dictamen?: DictamenAtencionTerreno | null;
+  motivoNoAbordable?: string | null;
+  estadoTerreno?: string | null;
+  requiereAsistenciaSocial?: boolean;
+  personasAfectadas?: number | null;
+  personasAfectadasPrevias?: number | null;
+  personasAfectadasModificadas?: boolean;
 }
 
 export type IncidenteResumen = ListarIncidentesResponse['data'][number] & {
@@ -106,6 +127,9 @@ export type IncidenteResumen = ListarIncidentesResponse['data'][number] & {
   totalReportesTerreno?: number;
   /** Indica si la patrulla verificadora completó el informe/diagnóstico en terreno */
   verificado?: boolean;
+  dictamenTerreno?: DictamenAtencionTerreno | null;
+  motivoNoAbordable?: string | null;
+  fechaCierre?: string | null;
   reclasificadoEnTerreno?: boolean;
   justificacionReclasificacion?: string | null;
   cambioPrioridadMotivo?: string | null;
@@ -118,6 +142,9 @@ export type IncidenteDetalle = IncidenteDetalleResponse['data'] & {
   justificacionPrioridad?: string | null;
   reportesEvaluacionTerreno?: ReporteEvaluacionTerreno[];
   verificado?: boolean;
+  dictamenTerreno?: DictamenAtencionTerreno | null;
+  motivoNoAbordable?: string | null;
+  fechaCierre?: string | null;
   reclasificadoEnTerreno?: boolean;
   justificacionReclasificacion?: string | null;
   cambioPrioridadMotivo?: string | null;

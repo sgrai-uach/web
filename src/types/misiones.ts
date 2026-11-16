@@ -64,9 +64,19 @@ export interface EvaluacionTerrenoMisionDetalle {
   [key: string]: unknown;
 }
 
+export type TipoReporteTerreno = 'EVALUACION_PRIORIDAD' | 'VERIFICACION_CIERRE' | string;
+
+export type DictamenAtencionTerreno = 'REQUIERE_CUADRILLA' | 'NO_ABORDABLE';
+
 export interface ReporteTerrenoDetalle {
   id: string;
   misionId: string;
+  tipoReporte?: TipoReporteTerreno | null;
+  dictamen?: DictamenAtencionTerreno | null;
+  motivoNoAbordable?: string | null;
+  requiereAsistenciaSocial?: boolean;
+  personasAfectadasPrevias?: number | null;
+  personasAfectadasModificadas?: boolean;
   versionReporte?: number;
   esRectificacion?: boolean;
   etiquetaReporte?: string;
