@@ -253,4 +253,39 @@ describe('IncidenteCard', () => {
     expect(badgeReportes).toBeDefined();
     expect(badgeReportes.textContent).toContain('2 reportes · Rectificado');
   });
+
+  it('debe mostrar chip "No Abordable" y motivo de descarte cuando el incidente está en estado NO_ABORDABLE (H39)', () => {
+    const incidenteNoAbordable: IncidenteResumen = {
+      ...mockIncidente,
+      estado: 'NO_ABORDABLE',
+      requiereAsistenciaSocial: false,
+      dictamenTerreno: 'NO_ABORDABLE',
+      motivoNoAbordable: 'Falsa alarma constatada en terreno por patrulla.',
+      verificado: true,
+    };
+
+    render(<IncidenteCard incidente={incidenteNoAbordable} onClick={vi.fn()} />);
+
+    expect(screen.getByText('No Abordable')).toBeDefined();
+    const motivoBox = screen.getByTestId('card-motivo-no-abordable');
+    expect(motivoBox.textContent).toContain('Falsa alarma constatada en terreno por patrulla.');
+    expect(screen.queryByText('Requiere Cuadrilla')).toBeNull();
+  });
+
+  it('debe mostrar chips Verificado, FIBE y Requiere Cuadrilla cuando el dictamen de cierre requiere cuadrilla (H39)', () => {
+    const incidenteListoCuadrilla: IncidenteResumen = {
+      ...mockIncidente,
+      estado: 'VERIFICANDO',
+      prioridad: 'ALTA',
+      verificado: true,
+      requiereAsistenciaSocial: true,
+      dictamenTerreno: 'REQUIERE_CUADRILLA',
+    };
+
+    render(<IncidenteCard incidente={incidenteListoCuadrilla} onClick={vi.fn()} />);
+
+    expect(screen.getByText('Verificado')).toBeDefined();
+    expect(screen.getByText('FIBE')).toBeDefined();
+    expect(screen.getByText('Requiere Cuadrilla')).toBeDefined();
+  });
 });

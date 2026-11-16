@@ -8,6 +8,9 @@ import {
   fueTipologiaModificada,
   esJustificacionSinCambios,
   esHitoTipologiaSinCambios,
+  formatearDictamenTerreno,
+  esReporteVerificacionCierre,
+  calcularComparativaPersonasAfectadas,
 } from '../estadoUtils';
 
 describe('formatearEstado', () => {
@@ -138,6 +141,79 @@ describe('fueTipologiaModificada y detección de ratificación sin cambios', () 
         metadatos: { tipoAnterior: 'Anegamiento', tipoNuevo: 'Inundación' },
       })
     ).toBe(false);
+  });
+});
+
+describe('H39: formatearDictamenTerreno, esReporteVerificacionCierre y comparativa de personas', () => {
+  it('formatea dictámenes operativos de verificación y cierre', () => {
+    expect(formatearDictamenTerreno('REQUIERE_CUADRILLA')).toBe('Requiere Cuadrilla');
+    expect(formatearDictamenTerreno('NO_ABORDABLE')).toBe('No Abordable');
+    expect(formatearDictamenTerreno(null)).toBe('No especificado');
+  });
+
+  it('formatea hitos de bitácora de cierre de verificación', () => {
+    expect(formatearHitoBitacora('REPORTE_VERIFICACION_CIERRE')).toBe(
+      'Informe técnico de verificación y cierre registrado'
+    );
+    expect(formatearHitoBitacora('INCIDENTE_NO_ABORDABLE')).toBe(
+      'Incidente declarado no abordable en terreno'
+    );
+  });
+
+  it('distingue reportes VERIFICACION_CIERRE de reportes de prioridad H38', () => {
+    expect(esReporteVerificacionCierre({ tipoReporte: 'VERIFICACION_CIERRE' })).toBe(true);
+    expect(esReporteVerificacionCierre({ dictamen: 'NO_ABORDABLE' })).toBe(true);
+    expect(esReporteVerificacionCierre({ dictamen: 'REQUIERE_CUADRILLA' })).toBe(true);
+    expect(esReporteVerificacionCierre({ tipoReporte: 'EVALUACION_PRIORIDAD' })).toBe(false);
+    expect(esReporteVerificacionCierre({ etiquetaReporte: 'Reporte #1 (Inicial)' })).toBe(false);
+  });
+
+  it('calcula comparativa de personas afectadas respecto al reporte previo de prioridad', () => {
+    const reportePrioridad = {
+      id: 'rep-prio-1',
+      misionId: 'm-1',
+      tipoReporte: 'EVALUACION_PRIORIDAD',
+      versionReporte: 1,
+      personasAfectadas: 4,
+      creadoEn: '2026-11-15T10:00:00Z',
+    };
+    const reporteCierreSinCambio = {
+      id: 'rep-cierre-1',
+      misionId: 'm-1',
+      tipoReporte: 'VERIFICACION_CIERRE',
+      dictamen: 'REQUIERE_CUADRILLA',
+      personasAfectadas: 4,
+      creadoEn: '2026-11-15T10:30:00Z',
+    };
+    const reporteCierreModificado = {
+      id: 'rep-cierre-2',
+      misionId: 'm-1',
+      tipoReporte: 'VERIFICACION_CIERRE',
+      dictamen: 'REQUIERE_CUADRILLA',
+      personasAfectadas: 6,
+      creadoEn: '2026-11-15T10:30:00Z',
+    };
+
+    expect(
+      calcularComparativaPersonasAfectadas(reporteCierreSinCambio, [
+        reporteCierreSinCambio,
+        reportePrioridad,
+      ])
+    ).toEqual({ personasPrevias: 4, fueModificado: false });
+
+    expect(
+      calcularComparativaPersonasAfectadas(reporteCierreModificado, [
+        reporteCierreModificado,
+        reportePrioridad,
+      ])
+    ).toEqual({ personasPrevias: 4, fueModificado: true });
+
+    expect(
+      calcularComparativaPersonasAfectadas({
+        personasAfectadas: 5,
+        personasAfectadasPrevias: 3,
+      })
+    ).toEqual({ personasPrevias: 3, fueModificado: true });
   });
 });
 

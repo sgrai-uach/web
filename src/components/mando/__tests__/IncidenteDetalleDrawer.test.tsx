@@ -728,7 +728,7 @@ describe('Componente IncidenteDetalleDrawer e integración HU-17', () => {
 
     const desgloseFamilias = screen.getByTestId('incidente-ultimo-reporte-familias-desglose');
     expect(desgloseFamilias.textContent).toContain('Familia Morales: 4 pers.');
-    expect(desgloseFamilias.textContent).toContain('FIBE');
+    expect(desgloseFamilias.textContent).not.toContain('FIBE');
     expect(desgloseFamilias.textContent).toContain('Familia Casa 2 Interior: 2 pers.');
   });
 
@@ -791,5 +791,171 @@ describe('Componente IncidenteDetalleDrawer e integración HU-17', () => {
     expect(seccionUltimo.textContent).toContain('Constatación en Terreno (Sin cambios)');
     expect(seccionUltimo.textContent).toContain('Deslizamiento (confirmada sin modificaciones por la patrulla)');
     expect(seccionUltimo.textContent).not.toContain('Deslizamiento → Deslizamiento');
+  });
+
+  it('muestra el informe VERIFICACION_CIERRE con dictamen REQUIERE_CUADRILLA, comparativa de personas afectadas y Ficha FIBE (H39)', async () => {
+    const mockIncidenteCierreCuadrilla: IncidenteDetalle = {
+      ...mockDetalleIncidente,
+      estado: 'VERIFICANDO',
+      requiereAsistenciaSocial: true,
+      verificado: true,
+      misiones: [
+        {
+          ...mockDetalleIncidente.misiones[0],
+          estado: 'COMPLETADA',
+        },
+      ],
+      ultimoReporte: {
+        origen: 'REPORTE_TERRENO',
+        reporteId: 'rep-cierre-39',
+        misionId: 'm1000000-0000-4000-8000-000000000001',
+        misionCodigo: 'MIS-2026-0001',
+        evaluadorNombre: 'Patrullero Vera',
+        creadoEn: '2026-11-15T14:00:00Z',
+        resumen: 'Árbol caído bloquea acceso a dos viviendas; requiere motosierrista.',
+        prioridadAsignada: 'ALTA',
+        versionReporte: 2,
+        esRectificacion: false,
+        tipoReporte: 'VERIFICACION_CIERRE',
+        dictamen: 'REQUIERE_CUADRILLA',
+        estadoTerreno: 'CRITICO',
+        requiereAsistenciaSocial: true,
+        personasAfectadas: 6,
+      },
+      reportesEvaluacionTerreno: [
+        {
+          id: 'rep-prio-38',
+          misionId: 'm1000000-0000-4000-8000-000000000001',
+          tipoReporte: 'EVALUACION_PRIORIDAD',
+          versionReporte: 1,
+          esRectificacion: false,
+          etiquetaReporte: 'Reporte de Evaluación #1 (Inicial)',
+          prioridadSugerida: 'MEDIA',
+          prioridadAsignada: 'ALTA',
+          justificacionPrioridad: 'Riesgo sobre acceso principal.',
+          resumenTecnico: 'Evaluación inicial de prioridad.',
+          accionesRealizadas: null,
+          danosEstimados: null,
+          observaciones: null,
+          personasAfectadas: 4,
+          requiereApoyoAdicional: false,
+          evaluacion: { nucleoFamiliarTotal: 4, familiasAfectadas: 1 },
+          evaluador: { id: 'u-p', nombre: 'Patrullero Vera' },
+          creadoEn: '2026-11-15T13:30:00Z',
+        },
+        {
+          id: 'rep-cierre-39',
+          misionId: 'm1000000-0000-4000-8000-000000000001',
+          tipoReporte: 'VERIFICACION_CIERRE',
+          dictamen: 'REQUIERE_CUADRILLA',
+          estadoTerreno: 'CRITICO',
+          requiereAsistenciaSocial: true,
+          versionReporte: 2,
+          esRectificacion: false,
+          etiquetaReporte: 'Informe Técnico de Verificación y Cierre',
+          prioridadSugerida: null,
+          prioridadAsignada: 'ALTA',
+          justificacionPrioridad: null,
+          resumenTecnico: 'Árbol caído bloquea acceso a dos viviendas; requiere motosierrista.',
+          accionesRealizadas: null,
+          danosEstimados: 'Cerco perimetral destruido',
+          observaciones: 'Se dejó perímetro demarcado.',
+          personasAfectadas: 6,
+          requiereApoyoAdicional: false,
+          evaluacion: {},
+          evaluador: { id: 'u-p', nombre: 'Patrullero Vera' },
+          creadoEn: '2026-11-15T14:00:00Z',
+        },
+      ],
+    };
+
+    vi.spyOn(incidentesService, 'obtenerDetalleIncidente').mockResolvedValueOnce({
+      exito: true,
+      datos: mockIncidenteCierreCuadrilla,
+      mensaje: 'OK',
+    });
+
+    render(
+      <IncidenteDetalleDrawer
+        incidenteId="i1000000-0000-4000-8000-000000000001"
+        incidenteCodigo="INC-2026-001"
+        userId="user-test"
+        onCerrar={vi.fn()}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Informe Técnico de Verificación y Cierre')).toBeDefined();
+    });
+
+    const seccionUltimo = screen.getByTestId('incidente-ultimo-reporte-section');
+    expect(seccionUltimo.textContent).toContain('Dictamen: Requiere Cuadrilla');
+    expect(seccionUltimo.textContent).toContain('Requiere Ficha FIBE');
+    expect(seccionUltimo.textContent).toContain('Critico');
+    expect(seccionUltimo.textContent).toContain('6 personas (Modificado; antes: 4)');
+    expect(screen.getByText('Despachar Cuadrilla')).toBeDefined();
+  });
+
+  it('muestra banner de cierre No Abordable y motivo técnico cuando dictamen es NO_ABORDABLE (H39)', async () => {
+    const mockIncidenteNoAbordable: IncidenteDetalle = {
+      ...mockDetalleIncidente,
+      estado: 'NO_ABORDABLE',
+      motivoNoAbordable: 'Predio privado inaccesible y sin riesgo hacia la vía pública.',
+      fechaCierre: '2026-11-15T15:10:00Z',
+      dictamenTerreno: 'NO_ABORDABLE',
+      reportesEvaluacionTerreno: [
+        {
+          id: 'rep-cierre-noab',
+          misionId: 'm1000000-0000-4000-8000-000000000001',
+          tipoReporte: 'VERIFICACION_CIERRE',
+          dictamen: 'NO_ABORDABLE',
+          motivoNoAbordable: 'Predio privado inaccesible y sin riesgo hacia la vía pública.',
+          estadoTerreno: 'SIN_ACCESO',
+          requiereAsistenciaSocial: false,
+          versionReporte: 1,
+          esRectificacion: false,
+          etiquetaReporte: 'Informe de Cierre — No Abordable',
+          prioridadSugerida: null,
+          prioridadAsignada: null,
+          justificacionPrioridad: null,
+          resumenTecnico: 'Se verifica portón cerrado en predio particular sin afectación externa.',
+          accionesRealizadas: null,
+          danosEstimados: 'Sin daños en espacio público',
+          observaciones: 'Se deja registro fotográfico del acceso.',
+          personasAfectadas: 0,
+          requiereApoyoAdicional: false,
+          evaluacion: {},
+          evaluador: { id: 'u-p', nombre: 'Patrullero Vera' },
+          creadoEn: '2026-11-15T15:10:00Z',
+        },
+      ],
+    };
+
+    vi.spyOn(incidentesService, 'obtenerDetalleIncidente').mockResolvedValueOnce({
+      exito: true,
+      datos: mockIncidenteNoAbordable,
+      mensaje: 'OK',
+    });
+
+    render(
+      <IncidenteDetalleDrawer
+        incidenteId="i1000000-0000-4000-8000-000000000001"
+        incidenteCodigo="INC-2026-001"
+        userId="user-test"
+        onCerrar={vi.fn()}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('banner-incidente-no-abordable')).toBeDefined();
+    });
+
+    const banner = screen.getByTestId('banner-incidente-no-abordable');
+    expect(banner.textContent).toContain('Caso cerrado en terreno como No Abordable');
+    expect(banner.textContent).toContain('Predio privado inaccesible y sin riesgo hacia la vía pública.');
+    expect(screen.queryByText('Despachar Cuadrilla')).toBeNull();
+    expect(screen.getByTestId('ultimo-reporte-motivo-no-abordable').textContent).toContain(
+      'Predio privado inaccesible y sin riesgo hacia la vía pública.'
+    );
   });
 });

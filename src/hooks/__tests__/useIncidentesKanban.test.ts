@@ -419,4 +419,188 @@ describe('useIncidentesKanban - HU-20 y BUG-04', () => {
     expect(incVerificando.codigo).toBe('INC-592395-562');
     expect(incVerificando.estado).toBe('VERIFICANDO');
   });
+
+  it('debe mover automáticamente a NO_ABORDABLE con motivo y fechaCierre al recibir dictamen NO_ABORDABLE (H39)', async () => {
+    const mockIncidenteVerificando: incidentesService.IncidenteResumen = {
+      id: 'inc-h39-noab',
+      codigo: 'INC-2026-390',
+      codigoSeguimiento: '20260390',
+      tipoAfectacion: 'Derrumbe',
+      descripcion: 'Posible deslizamiento en quebrada',
+      direccion: 'Parcela privada s/n',
+      latitud: -39.84,
+      longitud: -73.26,
+      estado: 'VERIFICANDO',
+      prioridad: 'MEDIA',
+      requiereAsistenciaSocial: false,
+      fuenteOrigen: 'LLAMADA_TELEFONICA',
+      informanteNombre: 'Rosa',
+      delegacionNombre: 'Sur',
+      totalMisiones: 1,
+      tieneMisionEnCurso: true,
+      creadoEn: '2026-11-15T09:00:00Z',
+      actualizadoEn: '2026-11-15T09:00:00Z',
+    };
+
+    vi.mocked(incidentesService.listarIncidentes).mockImplementation(async (query) => {
+      if (query.estado === 'VERIFICANDO') {
+        return {
+          exito: true,
+          incidentes: [mockIncidenteVerificando],
+          paginacion: {
+            total: 1,
+            pagina: 1,
+            limite: 20,
+            totalPaginas: 1,
+            tieneSiguiente: false,
+            tieneAnterior: false,
+          },
+          mensaje: 'OK',
+        };
+      }
+      return {
+        exito: true,
+        incidentes: [],
+        paginacion: {
+          total: 0,
+          pagina: 1,
+          limite: 20,
+          totalPaginas: 0,
+          tieneSiguiente: false,
+          tieneAnterior: false,
+        },
+        mensaje: 'OK',
+      };
+    });
+
+    const { result } = renderHook(() => useIncidentesKanban());
+
+    await waitFor(() => {
+      expect(result.current.columnas.VERIFICANDO.length).toBe(1);
+    });
+
+    act(() => {
+      socketCallbacks.onIncidenteActualizado?.({
+        evento: 'incidente:actualizado',
+        datos: {
+          id: 'inc-h39-noab',
+          codigo: 'INC-2026-390',
+          nuevoEstado: 'NO_ABORDABLE',
+          prioridad: 'MEDIA',
+          dictamen: 'NO_ABORDABLE',
+          motivoNoAbordable: 'Faja fiscal concesionada externa sin afectación municipal.',
+          fechaCierre: '2026-11-15T10:45:00Z',
+          verificado: true,
+          actualizadoEn: '2026-11-15T10:45:00Z',
+        },
+        emitidoEn: '2026-11-15T10:45:00Z',
+      });
+    });
+
+    expect(result.current.columnas.VERIFICANDO.length).toBe(0);
+    expect(result.current.columnas.NO_ABORDABLE.length).toBe(1);
+    const tarjetaNoAbordable = result.current.columnas.NO_ABORDABLE[0];
+    expect(tarjetaNoAbordable.estado).toBe('NO_ABORDABLE');
+    expect(tarjetaNoAbordable.dictamenTerreno).toBe('NO_ABORDABLE');
+    expect(tarjetaNoAbordable.motivoNoAbordable).toBe(
+      'Faja fiscal concesionada externa sin afectación municipal.'
+    );
+    expect(tarjetaNoAbordable.fechaCierre).toBe('2026-11-15T10:45:00Z');
+    expect(tarjetaNoAbordable.tieneMisionEnCurso).toBe(false);
+    expect(result.current.paginacionColumna.VERIFICANDO?.total).toBe(0);
+    expect(result.current.paginacionColumna.NO_ABORDABLE?.total).toBe(1);
+  });
+
+  it('debe mantener en VERIFICANDO al tope con verificado: true y FIBE al recibir dictamen REQUIERE_CUADRILLA (H39)', async () => {
+    const mockIncSinVerificar: incidentesService.IncidenteResumen = {
+      id: 'inc-sin-verif',
+      codigo: 'INC-2026-391',
+      codigoSeguimiento: '20260391',
+      tipoAfectacion: 'Anegamiento',
+      descripcion: 'Agua en patio',
+      direccion: 'Calle A 123',
+      latitud: -39.81,
+      longitud: -73.24,
+      estado: 'VERIFICANDO',
+      prioridad: 'BAJA',
+      requiereAsistenciaSocial: false,
+      fuenteOrigen: 'WEB',
+      informanteNombre: null,
+      delegacionNombre: 'Norte',
+      totalMisiones: 1,
+      verificado: false,
+      creadoEn: '2026-11-15T12:00:00Z',
+      actualizadoEn: '2026-11-15T12:00:00Z',
+    };
+
+    const mockIncACerrar: incidentesService.IncidenteResumen = {
+      ...mockIncSinVerificar,
+      id: 'inc-cierre-cuadrilla',
+      codigo: 'INC-2026-392',
+      codigoSeguimiento: '20260392',
+      creadoEn: '2026-11-15T08:00:00Z',
+    };
+
+    vi.mocked(incidentesService.listarIncidentes).mockImplementation(async (query) => {
+      if (query.estado === 'VERIFICANDO') {
+        return {
+          exito: true,
+          incidentes: [mockIncSinVerificar, mockIncACerrar],
+          paginacion: {
+            total: 2,
+            pagina: 1,
+            limite: 20,
+            totalPaginas: 1,
+            tieneSiguiente: false,
+            tieneAnterior: false,
+          },
+          mensaje: 'OK',
+        };
+      }
+      return {
+        exito: true,
+        incidentes: [],
+        paginacion: {
+          total: 0,
+          pagina: 1,
+          limite: 20,
+          totalPaginas: 0,
+          tieneSiguiente: false,
+          tieneAnterior: false,
+        },
+        mensaje: 'OK',
+      };
+    });
+
+    const { result } = renderHook(() => useIncidentesKanban());
+
+    await waitFor(() => {
+      expect(result.current.columnas.VERIFICANDO.length).toBe(2);
+    });
+
+    act(() => {
+      socketCallbacks.onIncidenteActualizado?.({
+        evento: 'incidente:actualizado',
+        datos: {
+          id: 'inc-cierre-cuadrilla',
+          codigo: 'INC-2026-392',
+          nuevoEstado: 'VERIFICANDO',
+          prioridad: 'ALTA',
+          verificado: true,
+          requiereAsistenciaSocial: true,
+          dictamen: 'REQUIERE_CUADRILLA',
+          actualizadoEn: '2026-11-15T12:30:00Z',
+        },
+        emitidoEn: '2026-11-15T12:30:00Z',
+      });
+    });
+
+    expect(result.current.columnas.VERIFICANDO.length).toBe(2);
+    const primero = result.current.columnas.VERIFICANDO[0];
+    expect(primero.id).toBe('inc-cierre-cuadrilla');
+    expect(primero.verificado).toBe(true);
+    expect(primero.prioridad).toBe('ALTA');
+    expect(primero.requiereAsistenciaSocial).toBe(true);
+    expect(primero.dictamenTerreno).toBe('REQUIERE_CUADRILLA');
+  });
 });
