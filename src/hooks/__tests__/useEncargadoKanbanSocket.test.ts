@@ -190,6 +190,8 @@ describe('useEncargadoKanbanSocket', () => {
     expect(socket.off).toHaveBeenCalledWith('disconnect', expect.any(Function));
     expect(socket.off).toHaveBeenCalledWith('incidente:creado', expect.any(Function));
     expect(socket.off).toHaveBeenCalledWith('incidente:actualizado', expect.any(Function));
+    expect(socket.off).toHaveBeenCalledWith('mision:rechazada', expect.any(Function));
+    expect(socket.off).toHaveBeenCalledWith('cuadrilla:actualizada', expect.any(Function));
     expect(socket.off).toHaveBeenCalledWith('notificacion:trazabilidad_actualizada', expect.any(Function));
     expect(socket.emit).toHaveBeenCalledWith('leave', 'encargado');
     expect(socket.emit).toHaveBeenCalledWith('salir', 'sala:encargados');
@@ -221,5 +223,69 @@ describe('useEncargadoKanbanSocket', () => {
     expect(onNotificacionTrazabilidadActualizada).not.toHaveBeenCalled();
     expect(result.current.ultimoEvento).toBeNull();
     expect(getTrazabilidadEstado('mis-invalido')).toBeUndefined();
+  });
+
+  it('HU-41: escucha mision:rechazada de cuadrilla, normaliza payload y deduplica emisiones concurrentes', () => {
+    const socket = getSocket();
+    const onMisionRechazada = vi.fn();
+
+    const { result } = renderHook(() =>
+      useEncargadoKanbanSocket({
+        onMisionRechazada,
+      })
+    );
+
+    const payload = {
+      misionId: '70000000-0000-4000-8000-000000000001',
+      codigo: 'MIS-2026-0005',
+      tipoMision: 'ATENCION_CUADRILLA',
+      motivo: 'Camión tolva presenta falla hidráulica en ruta de salida desde base.',
+      justificacionRechazo: 'Camión tolva presenta falla hidráulica en ruta de salida desde base.',
+      cuadrillaId: '50000000-0000-4000-8000-000000000001',
+      cuadrillaNombre: 'Cuadrilla Vías y Canales 1',
+      patrullaId: null,
+      patrullaNombre: null,
+      incidenteId: '30000000-0000-4000-8000-000000000001',
+      incidenteCodigo: 'INC-2026-0001',
+      rechazadoPorId: 'd0000000-0000-4000-8000-000000000001',
+      rechazadoEn: '2026-11-16T23:15:00.000Z',
+    };
+
+    act(() => {
+      const trigger = (socket as unknown as { _trigger: (ev: string, p: unknown) => void })._trigger;
+      trigger('mision:rechazada', payload);
+      trigger('mision:rechazada', payload);
+    });
+
+    expect(onMisionRechazada).toHaveBeenCalledTimes(1);
+    expect(onMisionRechazada).toHaveBeenCalledWith(payload);
+    expect(result.current.ultimoEvento).toBe('Misión rechazada: MIS-2026-0005');
+  });
+
+  it('HU-41: escucha cuadrilla:actualizada e invoca onCuadrillaActualizada cuando la cuadrilla vuelve a DISPONIBLE', () => {
+    const socket = getSocket();
+    const onCuadrillaActualizada = vi.fn();
+
+    renderHook(() =>
+      useEncargadoKanbanSocket({
+        onCuadrillaActualizada,
+      })
+    );
+
+    const payload = {
+      id: '50000000-0000-4000-8000-000000000001',
+      nombre: 'Cuadrilla Vías y Canales 1',
+      estado: 'DISPONIBLE',
+      delegacionId: '30000000-0000-4000-8000-000000000001',
+    };
+
+    act(() => {
+      (socket as unknown as { _trigger: (ev: string, p: unknown) => void })._trigger(
+        'cuadrilla:actualizada',
+        payload
+      );
+    });
+
+    expect(onCuadrillaActualizada).toHaveBeenCalledWith(payload);
   });
 });

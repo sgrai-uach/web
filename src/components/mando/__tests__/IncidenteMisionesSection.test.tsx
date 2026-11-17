@@ -255,4 +255,35 @@ describe('Componente IncidenteMisionesSection', () => {
       });
     });
   });
+
+  describe('HU-41: Rechazo de misión por cuadrilla operativa', () => {
+    it('debe mostrar aviso de reasignación y justificación de rechazo cuando una cuadrilla rechazó la misión', () => {
+      render(
+        <IncidenteMisionesSection
+          incidenteEstado="VERIFICANDO"
+          misiones={[
+            {
+              ...mockMisiones[0],
+              estado: 'RECHAZADA',
+              justificacionRechazo:
+                'Camión tolva presenta falla hidráulica en ruta de salida desde base.',
+              cuadrilla: {
+                id: 'c1',
+                nombre: 'Cuadrilla Vías y Canales 1',
+                estado: 'DISPONIBLE',
+              },
+            },
+          ]}
+        />
+      );
+
+      expect(screen.getByTestId('aviso-rechazo-cuadrilla-reasignacion')).toBeDefined();
+      expect(screen.getByText(/Motivo de Rechazo por la Cuadrilla:/i)).toBeDefined();
+      expect(
+        screen.getByText(
+          'Camión tolva presenta falla hidráulica en ruta de salida desde base.'
+        )
+      ).toBeDefined();
+    });
+  });
 });
