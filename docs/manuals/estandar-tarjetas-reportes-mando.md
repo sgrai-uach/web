@@ -17,17 +17,18 @@ Las tarjetas de reportes de terreno representan la evidencia técnica directa le
    - **Teal Institucional (`var(--color-primary-teal, #1B6F7D)`):** Informe técnico de reclasificación de tipología en terreno o reporte destacado / seleccionado.
    - **Ámbar / Naranja (`var(--color-warning, #E65100)`):** Reportes donde la patrulla ajustó manualmente la prioridad sugerida por el sistema.
    - **Gris neutro (`#DFE3E8` o `#CBD5E1`):** Reportes de versiones históricas previas.
-3. **Cabecera Interactiva Desplegable (`.reporteHeaderTrigger`):**
-   - Acción táctil / clic en toda la franja superior para colapsar y expandir.
-   - Identificación del autor: Ícono institucional (`User` o `ShieldCheck`), nombre legible del evaluador y su RUT entre paréntesis.
-   - Chips de clasificación técnica (`<Chip size="sm" />`):
-     - Etiqueta de versión: `Reporte #1 (Inicial)` o `Reporte #N (Rectificación)`.
-     - Etiqueta de vigencia: `Vigente` (variante `solid-teal`) o `Histórico` (variante `neutral`).
-     - Estado en terreno: `Verificado`, etc.
-   - Marca de tiempo con ícono `Clock` y formato legible (`DD mes AAAA, HH:MM`).
-   - Flecha de apertura / cierre `ChevronDown` con rotación CSS de 180°.
-4. **Comportamiento por Defecto de Apertura / Colapso:**
-   - Si existen múltiples reportes, **solo el más reciente (vigente) permanece abierto** al ingresar; los reportes históricos previos permanecen colapsados para priorizar la información actual y evitar saturación cognitiva.
+3. **Cabecera Interactiva Desplegable en 2 Filas (`.reporteHeaderTrigger` / `ReporteCardShell`):**
+   - **Fila Superior (`.reporteHeaderTop`):**
+     - Izquierda (`.evaluadorInfo`): Ícono institucional (`User` o `ShieldCheck`), nombre legible del evaluador o patrulla (sin duplicar el prefijo `"Patrulla"`) y su RUT o líder entre paréntesis.
+     - Derecha fija (`.reporteHeaderRight`): Marca de tiempo con ícono `Clock` y formato unificado (`DD mes AAAA, HH:MM`) + flecha `ChevronDown` con rotación CSS de 180°.
+   - **Fila Inferior de Etiquetas (`.reporteMetaTags`):**
+     - Chips de clasificación técnica (`<Chip size="sm" />`):
+       - Tipo / versión del reporte (`variant="teal"` o `"neutral"`): ej. `Evaluación en Terreno Realizada` (H37), `Reporte #1 (Inicial)` / `Reporte #N (Rectificación)` (H38).
+       - Vigencia: `Vigente` (`variant="solid-teal"`, reservado exclusivamente para el reporte más reciente del historial unificado) o `Histórico` (`variant="neutral"`).
+       - Estado o contexto específico: `Tipología sin cambios` / `Tipología reclasificada` (H37), `estadoTerreno` y `N hogares` (H38).
+4. **Comportamiento Unificado de Lista y Apertura:**
+   - Todos los reportes (H37 y H38) comparten fondo blanco (`#FFFFFF`), se ordenan cronológicamente en un mismo listado unificado y se contabilizan en el total de versiones registradas.
+   - **Solo el más reciente (vigente) permanece abierto** al ingresar; los reportes históricos previos permanecen colapsados para priorizar la información actual y evitar saturación cognitiva.
    - Si el usuario hace click en un reporte específico desde el panel lateral, dicho reporte se abre y resalta automáticamente (`reporteDestacadoId`).
 
 ---
@@ -36,7 +37,8 @@ Las tarjetas de reportes de terreno representan la evidencia técnica directa le
 
 ```
 ┌──────────────────────────────────────────────────────────────────────────┐
-│ [Icono] Nombre Evaluador (RUT)     [Reporte #1] [Vigente] [Hora]   [ v ] │ <-- Cabecera interactiva
+│ [Icono] Nombre Evaluador / Patrulla (RUT / Líder)     [Clock] Fecha [ v ]│
+│ [Tipo / Versión] [Vigente | Histórico] [Estado / Metadatos]              │ <-- Cabecera unificada de 2 filas
 ├──────────────────────────────────────────────────────────────────────────┤
 │ ┌─ Comparativa de Prioridad (si difiere o fue evaluada) ───────────────┐ │
 │ │ Prioridad sugerida: Media | Prioridad asignada: Alta                 │ │

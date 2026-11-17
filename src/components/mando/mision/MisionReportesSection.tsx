@@ -29,6 +29,7 @@ import {
   esReporteVerificacionCierre,
   formatearDictamenTerreno,
   formatearEstado,
+  formatearNombrePatrulla,
   formatearPrioridad,
   formatearCompromisoVivienda,
   fueTipologiaModificada,
@@ -191,6 +192,111 @@ function normalizarDetallesEvaluacion(
   };
 }
 
+interface ReporteCardShellProps {
+  toggleId: string;
+  testId: string;
+  reportId: string;
+  estaAbierto: boolean;
+  onToggle: () => void;
+  ariaLabel: string;
+  icono: React.ReactNode;
+  autorNombre: string;
+  autorSubtitulo?: string | null;
+  fechaFormateada: string;
+  chips: React.ReactNode;
+  borderLeftColor?: string;
+  esDestacado?: boolean;
+  children: React.ReactNode;
+}
+
+const ReporteCardShell: React.FC<ReporteCardShellProps> = ({
+  toggleId,
+  testId,
+  reportId,
+  estaAbierto,
+  onToggle,
+  ariaLabel,
+  icono,
+  autorNombre,
+  autorSubtitulo,
+  fechaFormateada,
+  chips,
+  borderLeftColor,
+  esDestacado = false,
+  children,
+}) => {
+  const cardStyle: React.CSSProperties | undefined = esDestacado
+    ? {
+        borderLeft: '4px solid var(--color-primary-teal, #1B6F7D)',
+        borderColor: 'var(--color-primary-teal, #1B6F7D)',
+      }
+    : borderLeftColor
+      ? { borderLeft: `4px solid ${borderLeftColor}` }
+      : undefined;
+
+  return (
+    <div
+      className={styles.reporteCard}
+      data-testid={testId}
+      data-report-id={reportId}
+      style={cardStyle}
+    >
+      <button
+        type="button"
+        className={styles.reporteHeaderTrigger}
+        data-testid={`toggle-reporte-${toggleId}`}
+        onClick={onToggle}
+        aria-expanded={estaAbierto}
+        aria-label={ariaLabel}
+      >
+        <div className={styles.reporteHeaderTop}>
+          <div className={styles.evaluadorInfo}>
+            {icono}
+            <div>
+              <span className={styles.evaluadorNombre}>{autorNombre}</span>
+              {autorSubtitulo && (
+                <>
+                  {' '}
+                  <span className={styles.evaluadorRut}>{autorSubtitulo}</span>
+                </>
+              )}
+            </div>
+          </div>
+
+          <div className={styles.reporteHeaderRight}>
+            {fechaFormateada && (
+              <span
+                style={{
+                  fontSize: '12px',
+                  color: 'var(--color-text-muted, #5F676E)',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                }}
+              >
+                <Clock size={12} aria-hidden="true" />
+                <span>{fechaFormateada}</span>
+              </span>
+            )}
+
+            <span
+              className={`${styles.reporteChevron} ${
+                estaAbierto ? styles.reporteChevronExpanded : ''
+              }`}
+            >
+              <ChevronDown size={18} aria-hidden="true" />
+            </span>
+          </div>
+        </div>
+
+        <div className={styles.reporteMetaTags}>{chips}</div>
+      </button>
+
+      {estaAbierto && <div className={styles.reporteBody}>{children}</div>}
+    </div>
+  );
+};
+
 export const MisionReportesSection: React.FC<MisionReportesSectionProps> = ({
   reportes,
   bitacora = [],
@@ -299,6 +405,33 @@ export const MisionReportesSection: React.FC<MisionReportesSectionProps> = ({
   const estaVerificacionAbierta =
     desplegados['verificacion-terreno'] ?? (idAbiertoPorDefecto === 'verificacion-terreno');
 
+  const itemsUnificados = useMemo(() => {
+    type ItemUnificado =
+      | { kind: 'reclasificacion'; id: string; timestamp: number }
+      | { kind: 'terreno'; id: string; timestamp: number; reporte: ReporteTerrenoDetalle };
+
+    const lista: ItemUnificado[] = reportesOrdenados.map((r) => ({
+      kind: 'terreno',
+      id: r.id,
+      timestamp: new Date(r.creadoEn).getTime() || 0,
+      reporte: r,
+    }));
+
+    if (hitoReclasificacion) {
+      const tsHito =
+        new Date(hitoReclasificacion.timestamp).getTime() ||
+        new Date(`${hitoReclasificacion.fecha}T${hitoReclasificacion.hora}`).getTime() ||
+        0;
+      lista.push({
+        kind: 'reclasificacion',
+        id: 'verificacion-terreno',
+        timestamp: tsHito,
+      });
+    }
+
+    return lista.sort((a, b) => b.timestamp - a.timestamp);
+  }, [reportesOrdenados, hitoReclasificacion]);
+
   return (
     <div
       ref={seccionRef}
@@ -312,9 +445,9 @@ export const MisionReportesSection: React.FC<MisionReportesSectionProps> = ({
             Informes Técnicos y Reportes de Terreno ({totalInformes})
           </Heading>
         </div>
-        {reportesOrdenados.length > 1 && (
+        {totalInformes > 1 && (
           <Chip variant="teal" size="sm">
-            {reportesOrdenados.length} versiones registradas
+            {totalInformes} versiones registradas
           </Chip>
         )}
       </div>
@@ -330,97 +463,94 @@ export const MisionReportesSection: React.FC<MisionReportesSectionProps> = ({
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3, 12px)' }}>
-            {/* Informe Técnico de Reclasificación / Verificación en Terreno */}
-            {hitoReclasificacion && (
-              <div
-                className={styles.reporteCard}
-                style={{
-                  borderLeft: '4px solid var(--color-primary-teal, #1B6F7D)',
-                  backgroundColor: 'var(--color-info-bg, #E0F2F1)',
-                }}
-                data-testid="reporte-verificacion-reclasificacion"
-                data-report-id={
-                  hitoReclasificacion.id
-                    ? `reclasificacion-${hitoReclasificacion.id}`
-                    : 'verificacion-terreno'
-                }
-              >
-                <button
-                  type="button"
-                  className={styles.reporteHeaderTrigger}
-                  onClick={() => toggleDesplegable('verificacion-terreno', estaVerificacionAbierta)}
-                  aria-expanded={estaVerificacionAbierta}
-                  aria-label={`${estaVerificacionAbierta ? 'Colapsar' : 'Desplegar'} informe de evaluación en terreno`}
-                >
-                  <div className={styles.evaluadorInfo}>
-                    <ShieldCheck size={18} color="var(--color-primary-teal, #1B6F7D)" />
+            {itemsUnificados.map((item, idxUnificado) => {
+              const esMasReciente = idxUnificado === 0;
+
+              if (item.kind === 'reclasificacion' && hitoReclasificacion) {
+                const tipoFinal = tipoNuevoMeta || incidente?.tipoAfectacion || '';
+                const sinCambios = tipoAnteriorMeta
+                  ? !fueTipologiaModificada(tipoAnteriorMeta, tipoFinal)
+                  : esJustificacionSinCambios(
+                      justificacionExtraida || hitoReclasificacion.descripcion
+                    );
+                const fechaHitoFormateada = formatFecha(
+                  hitoReclasificacion.timestamp ||
+                    `${hitoReclasificacion.fecha}T${hitoReclasificacion.hora}`
+                );
+
+                return (
+                  <ReporteCardShell
+                    key={item.id}
+                    toggleId="verificacion-terreno"
+                    testId="reporte-verificacion-reclasificacion"
+                    reportId={
+                      hitoReclasificacion.id
+                        ? `reclasificacion-${hitoReclasificacion.id}`
+                        : 'verificacion-terreno'
+                    }
+                    estaAbierto={estaVerificacionAbierta}
+                    onToggle={() =>
+                      toggleDesplegable('verificacion-terreno', estaVerificacionAbierta)
+                    }
+                    ariaLabel={`${estaVerificacionAbierta ? 'Colapsar' : 'Desplegar'} informe de evaluación en terreno`}
+                    icono={<ShieldCheck size={16} color="var(--color-primary-teal, #1B6F7D)" />}
+                    autorNombre={formatearNombrePatrulla(patrulla?.nombre)}
+                    autorSubtitulo={patrulla?.lider ? `(Líder: ${patrulla.lider.nombre})` : null}
+                    fechaFormateada={fechaHitoFormateada}
+                    borderLeftColor="var(--color-primary-teal, #1B6F7D)"
+                    esDestacado={esDestacadoReclasificacion}
+                    chips={
+                      <>
+                        <Chip
+                          variant="teal"
+                          size="sm"
+                          title="Constatación técnica presencial realizada por patrulla verificadora"
+                        >
+                          Evaluación en Terreno Realizada
+                        </Chip>
+                        {totalInformes > 1 && (
+                          <Chip variant={esMasReciente ? 'solid-teal' : 'neutral'} size="sm">
+                            {esMasReciente ? 'Vigente' : 'Histórico'}
+                          </Chip>
+                        )}
+                        <Chip variant={sinCambios ? 'success' : 'teal'} size="sm">
+                          {sinCambios ? 'Tipología sin cambios' : 'Tipología reclasificada'}
+                        </Chip>
+                      </>
+                    }
+                  >
                     <div>
-                      <span className={styles.evaluadorNombre}>
-                        {patrulla?.nombre ? `Patrulla ${patrulla.nombre}` : 'Patrulla Verificadora'}
-                      </span>{' '}
-                      {patrulla?.lider && (
-                        <span className={styles.evaluadorRut}>
-                          (Líder: {patrulla.lider.nombre})
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className={styles.reporteMetaTags}>
-                    <Chip
-                      variant="solid-teal"
-                      size="sm"
-                      title="Constatación técnica presencial realizada por patrulla verificadora"
-                    >
-                      Evaluación en Terreno Realizada
-                    </Chip>
-
-                    <span
-                      style={{
-                        fontSize: '12px',
-                        color: 'var(--color-text-muted, #5F676E)',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '4px',
-                      }}
-                    >
-                      <Clock size={12} />
-                      <span>{hitoReclasificacion.fecha} {hitoReclasificacion.hora}</span>
-                    </span>
-
-                    <span
-                      className={`${styles.reporteChevron} ${
-                        estaVerificacionAbierta ? styles.reporteChevronExpanded : ''
-                      }`}
-                    >
-                      <ChevronDown size={18} aria-hidden="true" />
-                    </span>
-                  </div>
-                </button>
-
-                {estaVerificacionAbierta && (
-                  <div className={styles.reporteBody}>
-                    <div>
-                      <span className={styles.dataLabel}>Diagnóstico Técnico y Tipología Constatada:</span>
-                      <p style={{ margin: '4px 0 0 0', fontSize: '15px', fontWeight: 700, color: 'var(--color-primary-teal-dark, #14505A)' }}>
-                        {(() => {
-                          const tipoFinal = tipoNuevoMeta || incidente?.tipoAfectacion || '';
-                          const sinCambios = tipoAnteriorMeta
-                            ? !fueTipologiaModificada(tipoAnteriorMeta, tipoFinal)
-                            : esJustificacionSinCambios(justificacionExtraida || hitoReclasificacion.descripcion);
-                          if (sinCambios && tipoFinal) {
-                            return `${tipoFinal} (confirmada sin modificaciones por la patrulla)`;
-                          }
-                          return tipoAnteriorMeta
+                      <span className={styles.dataLabel}>
+                        Diagnóstico Técnico y Tipología Constatada:
+                      </span>
+                      <p
+                        style={{
+                          margin: '4px 0 0 0',
+                          fontSize: '15px',
+                          fontWeight: 700,
+                          color: 'var(--color-primary-teal-dark, #14505A)',
+                        }}
+                      >
+                        {sinCambios && tipoFinal
+                          ? `${tipoFinal} (confirmada sin modificaciones por la patrulla)`
+                          : tipoAnteriorMeta
                             ? `${tipoAnteriorMeta} → ${tipoFinal || 'Tipología reclasificada en terreno'}`
-                            : tipoFinal || 'Tipología reclasificada en terreno';
-                        })()}
+                            : tipoFinal || 'Tipología reclasificada en terreno'}
                       </p>
                     </div>
 
                     <div>
-                      <span className={styles.dataLabel}>Justificación y Constatación Presencial:</span>
-                      <p style={{ margin: '4px 0 0 0', fontSize: '14px', color: 'var(--color-text-dark, #2B2B2B)', lineHeight: 1.4 }}>
+                      <span className={styles.dataLabel}>
+                        Justificación y Constatación Presencial:
+                      </span>
+                      <p
+                        style={{
+                          margin: '4px 0 0 0',
+                          fontSize: '14px',
+                          color: 'var(--color-text-dark, #2B2B2B)',
+                          lineHeight: 1.4,
+                        }}
+                      >
                         {justificacionExtraida || hitoReclasificacion.descripcion}
                       </p>
                     </div>
@@ -442,16 +572,14 @@ export const MisionReportesSection: React.FC<MisionReportesSectionProps> = ({
                         </div>
                       </div>
                     )}
-                  </div>
-                )}
-              </div>
-            )}
+                  </ReporteCardShell>
+                );
+              }
 
-            {/* Lista de Reportes de Terreno / Evaluación (Inicial y Rectificaciones) */}
-            {reportesOrdenados.map((reporte, idx) => {
+              const reporte = (item as { kind: 'terreno'; reporte: ReporteTerrenoDetalle }).reporte;
+              const idx = reportesOrdenados.findIndex((r) => r.id === reporte.id);
               const estaAbierto =
                 desplegados[reporte.id] ?? (idAbiertoPorDefecto === reporte.id);
-              const esMasReciente = idx === 0;
               const numVersion =
                 reporte.versionReporte ??
                 (reportesOrdenados.length > 1 ? reportesOrdenados.length - idx : 1);
@@ -501,55 +629,47 @@ export const MisionReportesSection: React.FC<MisionReportesSectionProps> = ({
               const requiereFibeCierre = Boolean(
                 reporte.requiereAsistenciaSocial ?? evalNorm?.requiereAsistenciaSocial
               );
+              const hogaresCount =
+                evalNorm?.familias && evalNorm.familias.length > 0
+                  ? evalNorm.familias.length
+                  : evalNorm?.familiasAfectadas;
 
-              const cardStyle: React.CSSProperties | undefined = esDestacado
-                ? {
-                    borderLeft: '4px solid var(--color-primary-teal, #1B6F7D)',
-                    borderColor: 'var(--color-primary-teal, #1B6F7D)',
-                  }
-                : esCierre
-                  ? {
-                      borderLeft:
-                        reporte.dictamen === 'NO_ABORDABLE'
-                          ? '4px solid var(--color-danger, #D32F2F)'
-                          : '4px solid var(--color-accent-mint, #4FAE9B)',
-                    }
-                  : undefined;
+              const borderLeftColor = esCierre
+                ? reporte.dictamen === 'NO_ABORDABLE'
+                  ? 'var(--color-danger, #D32F2F)'
+                  : 'var(--color-accent-mint, #4FAE9B)'
+                : prioridadModificada
+                  ? 'var(--color-warning, #E65100)'
+                  : 'var(--color-accent-mint, #4FAE9B)';
 
               return (
-                <div
+                <ReporteCardShell
                   key={reporte.id}
-                  className={styles.reporteCard}
-                  data-testid={
+                  toggleId={reporte.id}
+                  testId={
                     esCierre
                       ? `reporte-verificacion-cierre-${reporte.id}`
                       : `reporte-terreno-card-${reporte.id}`
                   }
-                  data-report-id={reporte.id}
-                  style={cardStyle}
-                >
-                  <button
-                    type="button"
-                    className={styles.reporteHeaderTrigger}
-                    data-testid={`toggle-reporte-${reporte.id}`}
-                    onClick={() => toggleDesplegable(reporte.id, estaAbierto)}
-                    aria-expanded={estaAbierto}
-                    aria-label={`${estaAbierto ? 'Colapsar' : 'Desplegar'} informe técnico de ${reporte.evaluador.nombre}`}
-                  >
-                    <div className={styles.evaluadorInfo}>
-                      <User size={16} color="var(--color-primary-teal, #1B6F7D)" />
-                      <div>
-                        <span className={styles.evaluadorNombre}>{reporte.evaluador.nombre}</span>{' '}
-                        <span className={styles.evaluadorRut}>
-                          {reporte.evaluador.rut ? `(RUT: ${reporte.evaluador.rut})` : `(${reporte.evaluador.email})`}
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className={styles.reporteMetaTags} style={{ flexWrap: 'wrap' }}>
+                  reportId={reporte.id}
+                  estaAbierto={estaAbierto}
+                  onToggle={() => toggleDesplegable(reporte.id, estaAbierto)}
+                  ariaLabel={`${estaAbierto ? 'Colapsar' : 'Desplegar'} informe técnico de ${reporte.evaluador.nombre}`}
+                  icono={<User size={16} color="var(--color-primary-teal, #1B6F7D)" />}
+                  autorNombre={reporte.evaluador.nombre}
+                  autorSubtitulo={
+                    reporte.evaluador.rut
+                      ? `(RUT: ${reporte.evaluador.rut})`
+                      : `(${reporte.evaluador.email})`
+                  }
+                  fechaFormateada={formatFecha(reporte.creadoEn)}
+                  borderLeftColor={borderLeftColor}
+                  esDestacado={esDestacado}
+                  chips={
+                    <>
                       {esCierre ? (
                         <>
-                          <Chip variant="solid-teal" size="sm">
+                          <Chip variant="teal" size="sm">
                             {reporte.etiquetaReporte || 'Informe de Verificación y Cierre'}
                           </Chip>
                           {reporte.dictamen && (
@@ -570,7 +690,7 @@ export const MisionReportesSection: React.FC<MisionReportesSectionProps> = ({
                         )
                       )}
 
-                      {reportesOrdenados.length > 1 && (
+                      {totalInformes > 1 && (
                         <Chip variant={esMasReciente ? 'solid-teal' : 'neutral'} size="sm">
                           {esMasReciente ? 'Vigente' : 'Histórico'}
                         </Chip>
@@ -580,19 +700,9 @@ export const MisionReportesSection: React.FC<MisionReportesSectionProps> = ({
                         {formatearEstado(reporte.estadoTerreno)}
                       </Chip>
 
-                      {!esCierre &&
-                        (evalNorm?.familias && evalNorm.familias.length > 0
-                          ? evalNorm.familias.length
-                          : evalNorm?.familiasAfectadas) ? (
+                      {!esCierre && hogaresCount ? (
                         <Chip variant="neutral" size="sm" title="Familias / Hogares evaluados en terreno">
-                          {evalNorm?.familias && evalNorm.familias.length > 0
-                            ? evalNorm.familias.length
-                            : evalNorm?.familiasAfectadas}{' '}
-                          {(evalNorm?.familias && evalNorm.familias.length > 0
-                            ? evalNorm.familias.length
-                            : evalNorm?.familiasAfectadas) === 1
-                            ? 'hogar'
-                            : 'hogares'}
+                          {hogaresCount} {hogaresCount === 1 ? 'hogar' : 'hogares'}
                         </Chip>
                       ) : null}
 
@@ -605,33 +715,11 @@ export const MisionReportesSection: React.FC<MisionReportesSectionProps> = ({
                           Requiere Apoyo
                         </Chip>
                       )}
-
-                      <span
-                        style={{
-                          fontSize: '12px',
-                          color: 'var(--color-text-muted, #5F676E)',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '4px',
-                        }}
-                      >
-                        <Clock size={12} />
-                        <span>{formatFecha(reporte.creadoEn)}</span>
-                      </span>
-
-                      <span
-                        className={`${styles.reporteChevron} ${
-                          estaAbierto ? styles.reporteChevronExpanded : ''
-                        }`}
-                      >
-                        <ChevronDown size={18} aria-hidden="true" />
-                      </span>
-                    </div>
-                  </button>
-
-                  {/* Contenido técnico desplegable */}
-                  {estaAbierto && esCierre && (
-                    <div className={styles.reporteBody}>
+                    </>
+                  }
+                >
+                  {esCierre ? (
+                    <>
                       {(reporte.dictamen === 'NO_ABORDABLE' || Boolean(reporte.motivoNoAbordable)) && (
                         <div
                           data-testid={`motivo-no-abordable-${reporte.id}`}
@@ -787,11 +875,9 @@ export const MisionReportesSection: React.FC<MisionReportesSectionProps> = ({
 
                       {/* Galería de Evidencias (preparada para HU-43) */}
                       <MisionEvidenciasGallery adjuntos={reporte.adjuntos} preparadaParaH43={true} />
-                    </div>
-                  )}
-
-                  {estaAbierto && !esCierre && (
-                    <div className={styles.reporteBody}>
+                    </>
+                  ) : (
+                    <>
                       {/* Bloque de Prioridad Sugerida vs. Confirmada y Justificación (HU-38) */}
                       {(reporte.prioridadSugerida ||
                         reporte.prioridadAsignada ||
@@ -1248,9 +1334,9 @@ export const MisionReportesSection: React.FC<MisionReportesSectionProps> = ({
 
                       {/* Galería de Evidencias */}
                       <MisionEvidenciasGallery adjuntos={reporte.adjuntos} />
-                    </div>
+                    </>
                   )}
-                </div>
+                </ReporteCardShell>
               );
             })}
           </div>

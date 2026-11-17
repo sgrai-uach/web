@@ -8,6 +8,7 @@ import {
   fueTipologiaModificada,
   esJustificacionSinCambios,
   esHitoTipologiaSinCambios,
+  formatearNombrePatrulla,
   formatearDictamenTerreno,
   esReporteVerificacionCierre,
   calcularComparativaPersonasAfectadas,
@@ -141,6 +142,12 @@ describe('fueTipologiaModificada y detección de ratificación sin cambios', () 
         metadatos: { tipoAnterior: 'Anegamiento', tipoNuevo: 'Inundación' },
       })
     ).toBe(false);
+  });
+
+  it('formatea nombres de patrulla sin duplicar el prefijo Patrulla', () => {
+    expect(formatearNombrePatrulla('Patrulla Lenteja')).toBe('Patrulla Lenteja');
+    expect(formatearNombrePatrulla('Alfa 1')).toBe('Patrulla Alfa 1');
+    expect(formatearNombrePatrulla(null)).toBe('Patrulla Verificadora');
   });
 });
 

@@ -366,6 +366,20 @@ export function esHitoTipologiaSinCambios(hito: {
 }
 
 /**
+ * Formatea el nombre de una patrulla verificadora evitando duplicar el prefijo
+ * "Patrulla" cuando el nombre registrado ya lo incluye (ej. "Patrulla Lenteja").
+ */
+export function formatearNombrePatrulla(
+  nombre?: string | null,
+  fallback = 'Patrulla Verificadora'
+): string {
+  if (!nombre || typeof nombre !== 'string') return fallback;
+  const limpio = nombre.trim();
+  if (!limpio) return fallback;
+  return /^patrulla\b/i.test(limpio) ? limpio : `Patrulla ${limpio}`;
+}
+
+/**
  * Formatea el dictamen operativo del informe de verificación y cierre (HU-39 / HU-86).
  */
 export function formatearDictamenTerreno(
