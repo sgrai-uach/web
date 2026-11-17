@@ -9,13 +9,22 @@ import {
   type PrioridadIncidente,
   type PaginacionMeta,
   type ListarIncidentesQuery,
+  type EstadoTrazabilidadNotificacion,
 } from '@/services/incidentesService';
+import { obtenerDetalleMision } from '@/services/misionesService';
 import {
   useEncargadoKanbanSocket,
   type IncidenteCreadoPayload,
   type IncidenteActualizadoPayload,
   type MisionRechazadaPayload,
+  type NotificacionTrazabilidadPayload,
 } from './useEncargadoKanbanSocket';
+import {
+  getIncidentePorMision,
+  getSnapshotTrazabilidadIncidentes,
+  subscribeTrazabilidad,
+  vincularMisionIncidente,
+} from '@/lib/socket/trazabilidadStore';
 
 export const ESTADOS_KANBAN: EstadoIncidente[] = [
   'REPORTADO',
@@ -132,6 +141,27 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
   });
 
   const [incidenteSeleccionadoId, setIncidenteSeleccionadoId] = useState<string | null>(null);
+  const [trazabilidadPorIncidente, setTrazabilidadPorIncidente] = useState<
+    Record<string, EstadoTrazabilidadNotificacion>
+  >({});
+
+  useEffect(() => {
+    let activo = true;
+    queueMicrotask(() => {
+      if (activo) {
+        setTrazabilidadPorIncidente(getSnapshotTrazabilidadIncidentes());
+      }
+    });
+    const unsubscribe = subscribeTrazabilidad(() => {
+      if (activo) {
+        setTrazabilidadPorIncidente(getSnapshotTrazabilidadIncidentes());
+      }
+    });
+    return () => {
+      activo = false;
+      unsubscribe();
+    };
+  }, []);
 
   // Columnas visibles según el filtro de Estado (permite ocultar columnas)
   const estadosVisibles: EstadoIncidente[] = useMemo(() => {
@@ -333,6 +363,7 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
         informanteNombre: null,
         delegacionNombre: null,
         totalMisiones: 0,
+        verificado: false,
         creadoEn: datos.creadoEn,
         actualizadoEn: datos.creadoEn,
       };
@@ -654,10 +685,30 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
     []
   );
 
+  const handleTrazabilidadActualizada = useCallback(
+    (payload: NotificacionTrazabilidadPayload) => {
+      if (!payload?.misionId || getIncidentePorMision(payload.misionId)) {
+        return;
+      }
+      void obtenerDetalleMision(payload.misionId, userId)
+        .then((res) => {
+          const incId = res.exito ? res.datos?.incidente?.id : undefined;
+          if (incId) {
+            vincularMisionIncidente(payload.misionId, incId);
+          }
+        })
+        .catch(() => {
+          // Ignorar fallo auxiliar de resolución de vínculo misión-incidente
+        });
+    },
+    [userId]
+  );
+
   const { conectado, ultimoEvento } = useEncargadoKanbanSocket({
     onIncidenteCreado: handleIncidenteCreado,
     onIncidenteActualizado: handleIncidenteActualizado,
     onMisionRechazada: handleMisionRechazada,
+    onNotificacionTrazabilidadActualizada: handleTrazabilidadActualizada,
     enabled: !esForbidden,
   });
 
@@ -688,5 +739,6 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
     totalIncidentesVisibles,
     incidenteSeleccionadoId,
     setIncidenteSeleccionadoId,
+    trazabilidadPorIncidente,
   };
 }

@@ -1,7 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, useMemo, useCallback } from 'react';
-import { getSocket } from '@/lib/socket/client';
+import React, { useEffect, useRef, useState, useMemo, useCallback } from 'react';
 import {
   obtenerDetalleIncidente,
   type IncidenteDetalle,
@@ -22,6 +21,19 @@ import { useOptionalToast } from '@/components/ui/Toast';
 import { usePuedeAsignarMision } from '@/hooks/usePuedeAsignarMision';
 import { fueTipologiaModificada } from '@/lib/utils/estadoUtils';
 import Button from '@/components/ui/Button';
+import { getSocket } from '@/lib/socket/client';
+import {
+  getTrazabilidadEstado,
+  setTrazabilidadEstado,
+  vincularMisionIncidente,
+} from '@/lib/socket/trazabilidadStore';
+import {
+  TRAZABILIDAD_CONFIG,
+  esPayloadTrazabilidadValido,
+  extraerEstadoInicialNotificacion,
+  resolverSiguienteEstadoTrazabilidad,
+} from '@/lib/socket/trazabilidadConfig';
+import { TrazabilidadIcon } from './TrazabilidadIcon';
 import InlineNotice from '@/components/ui/InlineNotice';
 import type { DespacharCuadrillaResponse, DespacharPatrullaResponseData } from '@/types/misiones';
 import type { EstadoIncidente } from '@/services/incidentesService';
@@ -33,6 +45,7 @@ export interface IncidenteDetalleDrawerProps {
   incidenteCodigo?: string | null;
   userId: string;
   onCerrar: () => void;
+  onSelectCuadrilla?: (cuadrillaId: string) => void;
   onIncidenteActualizado?: (incidenteId?: string, nuevoEstado?: EstadoIncidente) => void;
 }
 
@@ -41,6 +54,7 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
   incidenteCodigo = null,
   userId,
   onCerrar,
+  onSelectCuadrilla,
   onIncidenteActualizado,
 }) => {
   const toast = useOptionalToast();
@@ -55,6 +69,11 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
   const [modalCuadrillaAbierto, setModalCuadrillaAbierto] = useState<boolean>(false);
   const [modalAsignarPatrullaAbierto, setModalAsignarPatrullaAbierto] = useState<boolean>(false);
   const puedeAsignar = usePuedeAsignarMision();
+  const detalleRef = useRef<IncidenteDetalle | null>(null);
+
+  useEffect(() => {
+    detalleRef.current = detalle;
+  }, [detalle]);
 
   // Verificación de permisos RBAC ('misiones:asignar')
   const tienePermisoAsignar =
@@ -72,7 +91,16 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
     obtenerDetalleIncidente(incidenteId, userId)
       .then((res) => {
         if (res.exito && res.datos) {
-          setDetalle(res.datos);
+          const incId = res.datos.id;
+          const misionesHidratadas = res.datos.misiones.map((m) => {
+            vincularMisionIncidente(m.id, incId);
+            if (m.trazabilidadNotificacion) {
+              setTrazabilidadEstado(m.id, m.trazabilidadNotificacion, incId);
+            }
+            const consolidado = getTrazabilidadEstado(m.id) ?? m.trazabilidadNotificacion;
+            return consolidado ? { ...m, trazabilidadNotificacion: consolidado } : m;
+          });
+          setDetalle({ ...res.datos, misiones: misionesHidratadas });
         } else {
           setError(res.mensaje || 'Error al obtener el detalle del incidente.');
         }
@@ -156,11 +184,24 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
     onIncidenteActualizado?.();
   };
 
-  // Sincronización en tiempo real ante reclasificación o cambios mientras el drawer está abierto
+  // Sincronización en tiempo real ante reclasificación, cambios o trazabilidad mientras el drawer está abierto
   useEffect(() => {
     if (!incidenteId) return;
 
     const socket = getSocket();
+
+    const asegurarSalasEncargado = () => {
+      socket.emit('join', 'encargado');
+      socket.emit('unirse', 'sala:encargados');
+    };
+
+    if (!socket.connected && typeof socket.connect === 'function') {
+      socket.connect();
+    }
+    if (socket.connected) {
+      asegurarSalasEncargado();
+    }
+
     const handleActualizadoSocket = (payload: unknown) => {
       const p = payload as Record<string, unknown> | null | undefined;
       const rawDatos = (p?.datos || p?.data || p) as Record<string, unknown> | null | undefined;
@@ -254,13 +295,50 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
       }
     };
 
+    const handleTrazabilidad = (payload: unknown) => {
+      if (!esPayloadTrazabilidadValido(payload)) return;
+
+      const detalleActual = detalleRef.current;
+      if (!detalleActual || detalleActual.id !== incidenteId) return;
+
+      const perteneceAlIncidente = detalleActual.misiones.some(
+        (m) => m.id === payload.misionId
+      );
+      if (!perteneceAlIncidente) return;
+
+      setTrazabilidadEstado(payload.misionId, payload.estado, incidenteId);
+      setDetalle((prev) => {
+        if (!prev || prev.id !== incidenteId) return prev;
+        let cambio = false;
+        const misionesActualizadas = prev.misiones.map((m) => {
+          if (m.id !== payload.misionId) return m;
+          const siguiente = resolverSiguienteEstadoTrazabilidad(
+            m.trazabilidadNotificacion,
+            payload.estado
+          );
+          if (!siguiente) return m;
+          cambio = true;
+          return { ...m, trazabilidadNotificacion: siguiente };
+        });
+        return cambio ? { ...prev, misiones: misionesActualizadas } : prev;
+      });
+    };
+
     socket.on('incidente:actualizado', handleActualizadoSocket);
+    socket.on('connect', asegurarSalasEncargado);
+    socket.on('notificacion:trazabilidad_actualizada', handleTrazabilidad);
+
     return () => {
       socket.off('incidente:actualizado', handleActualizadoSocket);
+      socket.off('connect', asegurarSalasEncargado);
+      socket.off('notificacion:trazabilidad_actualizada', handleTrazabilidad);
     };
   }, [incidenteId]);
 
   const handleAsignacionExitosa = (data: DespacharPatrullaResponseData) => {
+    const estadoInicial = extraerEstadoInicialNotificacion(data);
+    setTrazabilidadEstado(data.mision.id, estadoInicial, data.incidente.id);
+
     setDetalle((prev) => {
       if (!prev) return prev;
       const nuevaMision = {
@@ -278,6 +356,7 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
           estado: data.patrulla.estado,
         },
         cuadrilla: null,
+        trazabilidadNotificacion: estadoInicial,
         fechaInicio: null,
         fechaCierre: null,
         creadoEn: new Date().toISOString(),
@@ -295,6 +374,14 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
 
   if (!incidenteId) return null;
 
+  const misionPatrullaActiva = detalle?.misiones.find(
+    (m) =>
+      Boolean(m.patrulla) &&
+      ['PLANIFICADA', 'DESPACHADA', 'EN_CURSO'].includes(m.estado)
+  );
+  const trazabilidadResumenCfg = misionPatrullaActiva?.trazabilidadNotificacion
+    ? TRAZABILIDAD_CONFIG[misionPatrullaActiva.trazabilidadNotificacion]
+    : undefined;
   const estaVerificadoConcluido = misionVerificacion?.estado === 'COMPLETADA';
 
   return (
@@ -419,6 +506,49 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
 
             {!cargando && detalle && (
               <>
+                {misionPatrullaActiva && (
+                  <div
+                    data-testid="drawer-trazabilidad-resumen"
+                    style={{
+                      marginBottom: 'var(--space-3, 12px)',
+                      padding: '8px 12px',
+                      borderRadius: 0,
+                      border: trazabilidadResumenCfg
+                        ? '1px solid currentColor'
+                        : '1px dashed #94A3B8',
+                      borderLeft: trazabilidadResumenCfg
+                        ? '4px solid currentColor'
+                        : '4px solid #94A3B8',
+                      backgroundColor: trazabilidadResumenCfg
+                        ? trazabilidadResumenCfg.bg
+                        : '#F8FAFC',
+                      color: trazabilidadResumenCfg
+                        ? trazabilidadResumenCfg.color
+                        : '#5F676E',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      flexWrap: 'wrap',
+                      gap: '8px',
+                      fontSize: '0.8rem',
+                    }}
+                  >
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontWeight: 700 }}>
+                      <TrazabilidadIcon
+                        estado={misionPatrullaActiva.trazabilidadNotificacion}
+                        size={15}
+                      />
+                      <span>
+                        {trazabilidadResumenCfg
+                          ? `${trazabilidadResumenCfg.etiquetaLectura}: ${trazabilidadResumenCfg.texto}`
+                          : 'SIN ACUSE: Lectura por patrulla aún no confirmada'}
+                      </span>
+                    </span>
+                    <span style={{ fontSize: '0.75rem', fontWeight: 600 }}>
+                      {misionPatrullaActiva.codigo} · {misionPatrullaActiva.patrulla?.nombre}
+                    </span>
+                  </div>
+                )}
                 <IncidenteResumenSection
                   detalle={detalle}
                   onVerReporteCambioAfectacion={(misionId, reporteId) => {
@@ -451,6 +581,7 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
                     setReporteDestacadoId(reporteId || null);
                     setMisionSeleccionadaId(misionId);
                   }}
+                  onVerDetalleCuadrilla={onSelectCuadrilla}
                   onAsignarPatrulla={() => setModalAsignarPatrullaAbierto(true)}
                   puedeAsignar={puedeAsignar}
                 />

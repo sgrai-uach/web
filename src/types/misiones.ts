@@ -190,6 +190,7 @@ export interface MisionItem {
   patrullaId?: string | null;
   patrullaNombre?: string | null;
   justificacionRechazo?: string | null;
+  trazabilidadNotificacion?: 'PENDIENTE_ENVIO' | 'ENVIADA' | 'RECIBIDA' | 'LEIDA';
   fechaInicio?: string | null;
   fechaCierre?: string | null;
   creadoEn: string;
@@ -220,6 +221,7 @@ export interface MisionDetalleCompleto {
   estado: EstadoMision;
   prioridad: PrioridadMision;
   justificacionRechazo: string | null;
+  trazabilidadNotificacion?: 'PENDIENTE_ENVIO' | 'ENVIADA' | 'RECIBIDA' | 'LEIDA';
   fechaInicio: string | null;
   fechaCierre: string | null;
   creadoEn: string;

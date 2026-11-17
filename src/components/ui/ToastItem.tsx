@@ -45,7 +45,7 @@ export default function ToastItem({ toast, onRemove }: ToastItemProps) {
 
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const remainingTimeRef = useRef<number>(toast.durationMs ?? 6000);
-  const startTimeRef = useRef<number>(Date.now());
+  const startTimeRef = useRef<number>(0);
 
   const startTimer = () => {
     if (remainingTimeRef.current <= 0) return;

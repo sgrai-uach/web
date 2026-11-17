@@ -336,11 +336,12 @@ export const MisionReportesSection: React.FC<MisionReportesSectionProps> = ({
     }
   };
 
-  const hitosReclasificacion = bitacora.filter((h) => h.hito === 'TIPOLOGIA_RECLASIFICADA');
-  const hitoReclasificacion =
-    hitosReclasificacion.length > 0
+  const hitoReclasificacion = useMemo(() => {
+    const hitosReclasificacion = bitacora.filter((h) => h.hito === 'TIPOLOGIA_RECLASIFICADA');
+    return hitosReclasificacion.length > 0
       ? hitosReclasificacion[hitosReclasificacion.length - 1]
       : undefined;
+  }, [bitacora]);
   const totalInformes = reportesOrdenados.length + (hitoReclasificacion ? 1 : 0);
 
   let justificacionExtraida: string | null = null;
