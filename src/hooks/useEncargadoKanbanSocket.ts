@@ -2,6 +2,8 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { getSocket } from '@/lib/socket/client';
+import { esPayloadTrazabilidadValido } from '@/lib/socket/trazabilidadConfig';
+import { setTrazabilidadEstado } from '@/lib/socket/trazabilidadStore';
 import type {
   EstadoIncidente,
   PrioridadIncidente,
@@ -73,21 +75,36 @@ export interface MisionRechazadaPayload {
   rechazadoEn?: string;
 }
 
+export interface NotificacionTrazabilidadPayload {
+  notificacionId: string;
+  misionId: string;
+  patrullaId: string;
+  estado: 'PENDIENTE_ENVIO' | 'ENVIADA' | 'RECIBIDA' | 'LEIDA';
+  intentosEnvio?: number;
+  creadaAt?: string;
+  enviadaAt?: string | null;
+  recibidaAt?: string | null;
+  leidaAt?: string | null;
+  actualizadoEn?: string;
+}
+
 export interface UseEncargadoKanbanSocketOptions {
   onIncidenteCreado?: (payload: IncidenteCreadoPayload) => void;
   onIncidenteActualizado?: (payload: IncidenteActualizadoPayload) => void;
   onMisionRechazada?: (payload: MisionRechazadaPayload) => void;
+  onNotificacionTrazabilidadActualizada?: (payload: NotificacionTrazabilidadPayload) => void;
   enabled?: boolean;
 }
 
 /**
  * Hook para la conexión en tiempo real del Encargado de Centro de Mando.
- * Se une a la sala 'sala:encargados' y escucha la creación y actualización de incidentes y rechazos de misiones.
+ * Se une a la sala 'sala:encargados' y escucha la creación y actualización de incidentes, rechazos y trazabilidad de misiones.
  */
 export function useEncargadoKanbanSocket({
   onIncidenteCreado,
   onIncidenteActualizado,
   onMisionRechazada,
+  onNotificacionTrazabilidadActualizada,
   enabled = true,
 }: UseEncargadoKanbanSocketOptions = {}) {
   const [conectado, setConectado] = useState(false);
@@ -96,6 +113,7 @@ export function useEncargadoKanbanSocket({
   const creadoRef = useRef(onIncidenteCreado);
   const actualizadoRef = useRef(onIncidenteActualizado);
   const rechazadaRef = useRef(onMisionRechazada);
+  const trazabilidadRef = useRef(onNotificacionTrazabilidadActualizada);
   const eventosProcesadosRef = useRef<Map<string, number>>(new Map());
 
   useEffect(() => {
@@ -109,6 +127,10 @@ export function useEncargadoKanbanSocket({
   useEffect(() => {
     rechazadaRef.current = onMisionRechazada;
   }, [onMisionRechazada]);
+
+  useEffect(() => {
+    trazabilidadRef.current = onNotificacionTrazabilidadActualizada;
+  }, [onNotificacionTrazabilidadActualizada]);
 
   useEffect(() => {
     if (!enabled) return;
@@ -446,6 +468,17 @@ export function useEncargadoKanbanSocket({
       }
     };
 
+    const handleTrazabilidad = (payload: unknown) => {
+      if (!esPayloadTrazabilidadValido(payload)) return;
+
+      const typedPayload = payload as NotificacionTrazabilidadPayload;
+      setTrazabilidadEstado(typedPayload.misionId, typedPayload.estado);
+      setUltimoEvento(`Trazabilidad misión: ${typedPayload.estado}`);
+      if (trazabilidadRef.current) {
+        trazabilidadRef.current(typedPayload);
+      }
+    };
+
     socket.on('connect', onConnect);
     socket.on('disconnect', onDisconnect);
     socket.on('incidente:creado', handleCreado);
@@ -453,6 +486,7 @@ export function useEncargadoKanbanSocket({
     socket.on('mision:creada', handleMisionEvent);
     socket.on('mision:actualizada', handleMisionEvent);
     socket.on('mision:rechazada', handleRechazada);
+    socket.on('notificacion:trazabilidad_actualizada', handleTrazabilidad);
 
     return () => {
       socket.off('connect', onConnect);
@@ -462,6 +496,7 @@ export function useEncargadoKanbanSocket({
       socket.off('mision:creada', handleMisionEvent);
       socket.off('mision:actualizada', handleMisionEvent);
       socket.off('mision:rechazada', handleRechazada);
+      socket.off('notificacion:trazabilidad_actualizada', handleTrazabilidad);
       socket.emit('leave', 'encargado');
       socket.emit('salir', 'sala:encargados');
       socket.emit('leave', 'mapa');

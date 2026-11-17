@@ -166,6 +166,7 @@ export const CUADRILLAS_FALLBACK: CuadrillaItem[] = [
       nombre: 'Carlos Delegado',
       email: 'carlos@valdivia.cl',
       rut: '15.111.222-3',
+      telefono: '+56 9 8111 2233',
     },
     recursos: [
       {
@@ -174,6 +175,13 @@ export const CUADRILLAS_FALLBACK: CuadrillaItem[] = [
         nombre: 'Camioneta de Rescate 4x4',
         cantidadAsignada: 1,
         esIndividual: true,
+        descripcion: 'Vehículo todoterreno para traslado de operarios y equipos',
+        especificaciones: {
+          patente: 'ABCD-12',
+          marca: 'Toyota',
+          modelo: 'Hilux 4x4',
+          anio: 2023,
+        },
       },
       {
         id: 'cd100000-0000-4000-8000-000000000002',
@@ -181,6 +189,12 @@ export const CUADRILLAS_FALLBACK: CuadrillaItem[] = [
         nombre: 'Motosierra Stihl MS-382',
         cantidadAsignada: 2,
         esIndividual: false,
+        descripcion: 'Herramienta de corte para despeje de ramas caídas y corte forestal',
+        especificaciones: {
+          marca: 'Stihl',
+          modelo: 'MS-382',
+          cilindrada: '72.2 cc',
+        },
       },
     ],
     trabajadores: [
@@ -192,6 +206,7 @@ export const CUADRILLAS_FALLBACK: CuadrillaItem[] = [
         rut: '16.222.333-4',
         cargo: 'Motosierrista',
         especialidad: 'Poda de Altura',
+        telefono: '+56 9 8765 4321',
         asignadoEn: '2026-10-24T12:00:00.000Z',
       },
       {
@@ -202,12 +217,14 @@ export const CUADRILLAS_FALLBACK: CuadrillaItem[] = [
         rut: '17.333.444-5',
         cargo: 'Operario',
         especialidad: 'Retiro de Escombros',
+        telefono: '+56 9 9123 4567',
         asignadoEn: '2026-10-24T12:00:00.000Z',
       },
     ],
     totalRecursos: 2,
     totalTrabajadores: 2,
     activo: true,
+    misionActiva: null,
     creadoEn: '2026-10-24T12:00:00.000Z',
     actualizadoEn: '2026-10-26T01:30:00.000Z',
   },
@@ -224,6 +241,7 @@ export const CUADRILLAS_FALLBACK: CuadrillaItem[] = [
       nombre: 'Matías Oyarzún Vera',
       email: 'matias.oyarzun@valdivia.cl',
       rut: '18.123.789-4',
+      telefono: '+56 9 8234 5678',
     },
     recursos: [
       {
@@ -232,6 +250,13 @@ export const CUADRILLAS_FALLBACK: CuadrillaItem[] = [
         nombre: 'Camión Tolva 10m3',
         cantidadAsignada: 1,
         esIndividual: true,
+        descripcion: 'Camión de carga pesada para remoción y traslado de ripio o escombros',
+        especificaciones: {
+          patente: 'GHJK-78',
+          marca: 'Mercedes-Benz',
+          modelo: 'Arocs 3342',
+          capacidad: '10 m3',
+        },
       },
     ],
     trabajadores: [
@@ -243,9 +268,27 @@ export const CUADRILLAS_FALLBACK: CuadrillaItem[] = [
         rut: '14.555.666-7',
         cargo: 'Conductor',
         especialidad: 'Maquinaria Pesada',
+        telefono: '+56 9 7654 3210',
         asignadoEn: '2026-10-25T08:00:00.000Z',
       },
     ],
+    misionActiva: {
+      id: 'mis-50000000-0000-4000-8000-000000000001',
+      codigo: 'MIS-2026-089',
+      titulo: 'Mitigación y despeje de cauce costero',
+      tipoMision: 'MITIGACION',
+      estado: 'EN_CURSO',
+      fechaDespacho: '2026-10-25T08:30:00.000Z',
+      tiempoTranscurridoMinutos: 85,
+      incidente: {
+        id: 'inc-00000000-0000-4000-8000-000000000002',
+        codigo: 'INC-2026-042',
+        tipo: 'Anegamiento de Vía Pública',
+        direccion: 'Av. Costanera Arturo Prat 1250',
+        latitud: -39.8142,
+        longitud: -73.2459,
+      },
+    },
     totalRecursos: 1,
     totalTrabajadores: 1,
     activo: true,
@@ -265,6 +308,7 @@ export const CUADRILLAS_FALLBACK: CuadrillaItem[] = [
       nombre: 'Sebastián Alarcón Toledo',
       email: 'sebastian.alarcon@valdivia.cl',
       rut: '15.987.654-2',
+      telefono: '+56 9 6543 2109',
     },
     recursos: [
       {
@@ -273,9 +317,16 @@ export const CUADRILLAS_FALLBACK: CuadrillaItem[] = [
         nombre: 'Motobomba de Achique 3"',
         cantidadAsignada: 2,
         esIndividual: false,
+        descripcion: 'Bomba de succión para anegamientos residenciales y colectores',
+        especificaciones: {
+          marca: 'Honda',
+          modelo: 'WT30X',
+          caudal: '1200 L/min',
+        },
       },
     ],
     trabajadores: [],
+    misionActiva: null,
     totalRecursos: 1,
     totalTrabajadores: 0,
     activo: true,
@@ -769,7 +820,7 @@ export const cuadrillasService = {
   /**
    * Obtiene el listado de cuadrillas operativas con soporte de filtros y paginación.
    */
-  async obtenerCuadrillas(filtros?: FiltrosCuadrillasState): Promise<{ cuadrillas: CuadrillaItem[]; meta: MetaPaginacionCuadrillas }> {
+  async obtenerCuadrillas(filtros?: Partial<FiltrosCuadrillasState>): Promise<{ cuadrillas: CuadrillaItem[]; meta: MetaPaginacionCuadrillas }> {
     const pagina = filtros?.pagina || 1;
     const limite = filtros?.limite || 10;
     const busqueda = filtros?.busqueda?.trim();
@@ -907,14 +958,59 @@ export const cuadrillasService = {
         },
       });
 
-      if (response && response.ok && data) {
-        const resp = data as DetalleCuadrillaApiResponse;
-        if (resp && resp.data) {
-          return resp.data as CuadrillaDetalle;
+      if (response) {
+        if (response.status === 403) {
+          throw new CuadrillaServiceError(
+            'No cuenta con privilegios suficientes para consultar el detalle de la cuadrilla (requiere permiso recursos:leer o rol Encargado).',
+            403,
+            'general',
+            'PERMISOS_INSUFICIENTES'
+          );
+        }
+
+        if (response.status === 401) {
+          throw new CuadrillaServiceError(
+            'Sesión no válida o expirada. Por favor inicie sesión nuevamente.',
+            401,
+            'general',
+            'NO_AUTORIZADO'
+          );
+        }
+
+        if (response.status === 404) {
+          throw new CuadrillaServiceError(
+            'La cuadrilla operativa especificada no existe.',
+            404,
+            'general',
+            'RECURSO_NO_ENCONTRADO'
+          );
+        }
+
+        if (!response.ok) {
+          const mensajeError =
+            response.status === 400
+              ? 'Solicitud incorrecta al consultar la cuadrilla.'
+              : 'Error interno del servidor al consultar la cuadrilla.';
+          throw new CuadrillaServiceError(
+            mensajeError,
+            response.status,
+            'general',
+            response.status >= 500 ? 'ERROR_SERVIDOR' : 'ERROR_SOLICITUD'
+          );
+        }
+
+        if (response.ok && data) {
+          const resp = data as DetalleCuadrillaApiResponse;
+          if (resp && resp.data) {
+            return resp.data as CuadrillaDetalle;
+          }
         }
       }
-    } catch {
-      // Continuar al fallback
+    } catch (err: unknown) {
+      if (err instanceof CuadrillaServiceError) {
+        throw err;
+      }
+      // Solo en caso de error de red estricto (offline/servidor apagado) se permite fallback
     }
 
     const cuadrillaLocal = CUADRILLAS_FALLBACK.find((c) => c.id === id);

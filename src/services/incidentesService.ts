@@ -153,11 +153,15 @@ export type IncidenteDetalle = IncidenteDetalleResponse['data'] & {
   tieneMisionDespachada?: boolean;
   tieneMisionEnCurso?: boolean;
 };
+
+export type MisionDetalle = IncidenteDetalleResponse['data']['misiones'][number];
+export type EstadoTrazabilidadNotificacion = NonNullable<
+  MisionDetalle['trazabilidadNotificacion']
+>;
 export type PaginacionMeta = ListarIncidentesResponse['paginacion'];
 export type EstadoIncidente = IncidenteResumen['estado'];
 export type PrioridadIncidente = IncidenteResumen['prioridad'];
-export type MisionDetalle = IncidenteDetalle['misiones'][number];
-export type RecursoAsociado = IncidenteDetalle['recursosAsociados'][number];
+export type RecursoAsociado = IncidenteDetalleResponse['data']['recursosAsociados'][number];
 
 export type ListarIncidentesQuery = NonNullable<
   paths['/api/incidentes']['get']['parameters']['query']
