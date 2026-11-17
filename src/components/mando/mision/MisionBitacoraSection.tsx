@@ -7,24 +7,13 @@ import type { MisionBitacoraHito } from '@/types/misiones';
 import {
   esHitoTipologiaSinCambios,
   formatearHitoBitacora,
+  limpiarDescripcionBitacora,
 } from '@/lib/utils/estadoUtils';
 import styles from '@/styles/mision-detalle.module.css';
 
 interface MisionBitacoraSectionProps {
   bitacora: MisionBitacoraHito[];
 }
-
-const limpiarDescripcion = (desc?: string | null): string => {
-  if (!desc) return '';
-  return desc
-    .replace(/\(EN_CURSO\)/gi, '(En curso)')
-    .replace(/\(DESPACHADA\)/gi, '(Despachada)')
-    .replace(/\(PLANIFICADA\)/gi, '(Planificada)')
-    .replace(/\(COMPLETADA\)/gi, '(Completada)')
-    .replace(/\(RECHAZADA\)/gi, '(Rechazada)')
-    .replace(/\(CANCELADA\)/gi, '(Cancelada)')
-    .replace(/\(EN_VERIFICACION\)/gi, '(En verificación)');
-};
 
 export const MisionBitacoraSection: React.FC<MisionBitacoraSectionProps> = ({ bitacora }) => {
   return (
@@ -50,7 +39,7 @@ export const MisionBitacoraSection: React.FC<MisionBitacoraSectionProps> = ({ bi
               const tituloHito = sinCambiosTipologia
                 ? 'Tipología constatada en terreno (sin cambios)'
                 : formatearHitoBitacora(hito.hito);
-              const descripcionLimpia = limpiarDescripcion(hito.descripcion);
+              const descripcionLimpia = limpiarDescripcionBitacora(hito.descripcion);
               const descripcionFinal = sinCambiosTipologia
                 ? descripcionLimpia.replace(
                     /^Tipolog[íi]a reclasificada en terreno a:/i,

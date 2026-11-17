@@ -823,4 +823,64 @@ describe('Componente MisionDetalleModal (HU-17)', () => {
       )
     ).toBeDefined();
   });
+
+  it('formatea bitácora cronológica con textos amigables sin enums crudos ni prefijos duplicados', async () => {
+    const mockMisionBitacoraAmigable: MisionDetalleCompleto = {
+      ...mockMision,
+      id: 'm-bitacora-amigable',
+      codigo: 'MIS-2026-0777',
+      bitacoraTiempos: [
+        {
+          id: 'h-1',
+          hito: 'MISION_DESPACHADA',
+          descripcion: 'Misión de verificación asignada y despachada a la patrulla Patrulla Lenteja.',
+          fecha: '2026-11-16',
+          hora: '21:30:15',
+          timestamp: '2026-11-16T21:30:15Z',
+        },
+        {
+          id: 'h-2',
+          hito: 'PRIORIDAD_ASIGNADA',
+          descripcion: 'Reporte de evaluación #1: Prioridad asignada en terreno a BAJA (Sugerida: CRITICA). Justificación: Ajuste presencial.',
+          fecha: '2026-11-16',
+          hora: '21:32:56',
+          timestamp: '2026-11-16T21:32:56Z',
+        },
+        {
+          id: 'h-3',
+          hito: 'VERIFICACION_COMPLETADA',
+          descripcion: 'Informe técnico enviado y misión cerrada. Dictamen: NO_ABORDABLE. Motivo: Predio privado cerrado.',
+          fecha: '2026-11-16',
+          hora: '23:30:33',
+          timestamp: '2026-11-16T23:30:33Z',
+        },
+      ],
+    };
+
+    vi.spyOn(misionesService, 'obtenerDetalleMision').mockResolvedValueOnce({
+      exito: true,
+      datos: mockMisionBitacoraAmigable,
+      mensaje: 'OK',
+    });
+
+    render(<MisionDetalleModal misionId="m-bitacora-amigable" onCerrar={vi.fn()} />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Verificación completada')).toBeDefined();
+    });
+
+    expect(
+      screen.getByText('Misión de verificación asignada y despachada a la Patrulla Lenteja.')
+    ).toBeDefined();
+    expect(
+      screen.getByText(
+        'Reporte de evaluación #1: Prioridad asignada en terreno a Baja (Sugerida: Crítica). Justificación: Ajuste presencial.'
+      )
+    ).toBeDefined();
+    expect(
+      screen.getByText(
+        'Informe técnico enviado y misión cerrada. Dictamen: No Abordable. Motivo: Predio privado cerrado.'
+      )
+    ).toBeDefined();
+  });
 });
