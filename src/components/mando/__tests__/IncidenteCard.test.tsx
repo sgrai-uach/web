@@ -183,7 +183,6 @@ describe('IncidenteCard', () => {
     expect(tagVerificado.parentElement?.getAttribute('title')).toContain(
       'Tipología reclasificada en terreno: Desborde de río constatado en terreno'
     );
-    expect(tagVerificado.parentElement?.getAttribute('title')).toContain('Prioridad ajustada: Alta');
   });
 
   it('NO debe renderizar botón "Asignar Patrulla" si el incidente tiene una misión en curso activa (tieneMisionEnCurso: true)', () => {

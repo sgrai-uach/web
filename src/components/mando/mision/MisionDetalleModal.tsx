@@ -182,13 +182,17 @@ export const MisionDetalleModal: React.FC<MisionDetalleModalProps> = ({
                     ? rawDatos.prioridad
                     : prev.incidente.prioridad,
                 prioridadSugerida:
-                  typeof rawDatos?.prioridadSugerida === 'string'
-                    ? rawDatos.prioridadSugerida
-                    : prev.incidente.prioridadSugerida,
+                  rawDatos?.prioridadSugerida === null
+                    ? null
+                    : typeof rawDatos?.prioridadSugerida === 'string'
+                      ? rawDatos.prioridadSugerida
+                      : prev.incidente.prioridadSugerida,
                 justificacionPrioridad:
-                  typeof rawDatos?.justificacionPrioridad === 'string'
-                    ? rawDatos.justificacionPrioridad
-                    : prev.incidente.justificacionPrioridad,
+                  rawDatos?.justificacionPrioridad === null
+                    ? null
+                    : typeof rawDatos?.justificacionPrioridad === 'string'
+                      ? rawDatos.justificacionPrioridad
+                      : prev.incidente.justificacionPrioridad,
               }
             : null,
           reportesTerreno: nuevosReportes,

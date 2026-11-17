@@ -34,8 +34,14 @@ export const IncidenteResumenSection: React.FC<IncidenteResumenSectionProps> = (
       };
     }
 
+    const justif = detalle.justificacionReclasificacion?.trim() || '';
+    const esGlosaSoloPrioridad = /^(?:Reporte de evaluaci[oó]n[^:]*:\s*)?Prioridad actualizada\b/i.test(
+      justif
+    );
+
     if (
-      (detalle.reclasificadoEnTerreno || detalle.justificacionReclasificacion) &&
+      (detalle.reclasificadoEnTerreno || (justif && !esGlosaSoloPrioridad)) &&
+      !esGlosaSoloPrioridad &&
       detalle.misiones.length > 0
     ) {
       const misionVerif =

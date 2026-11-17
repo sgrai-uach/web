@@ -1080,4 +1080,34 @@ it('BUG-H35-WEB-07: asegura conexión del socket y suscripción a sala:encargado
   );
   expect(mockSocket.emit).not.toHaveBeenCalledWith('salir', 'sala:encargados');
 });
+
+  it('BUG-H38-WEB-05: no muestra etiqueta Reclasificado cuando reclasificacionTipologia es null y la glosa es solo de prioridad', async () => {
+    const mockSoloPrioridad: incidentesService.IncidenteDetalle = {
+      ...mockDetalleIncidente,
+      reclasificadoEnTerreno: true,
+      reclasificacionTipologia: null,
+      justificacionReclasificacion:
+        'Reporte de evaluación #4 (Rectificación): Prioridad actualizada en terreno de BAJA a CRITICA (Sugerida: ALTA).',
+    };
+
+    vi.spyOn(incidentesService, 'obtenerDetalleIncidente').mockResolvedValueOnce({
+      exito: true,
+      datos: mockSoloPrioridad,
+      mensaje: 'OK',
+    });
+
+    render(
+      <IncidenteDetalleDrawer
+        incidenteId={mockDetalleIncidente.id}
+        userId="user-test"
+        onCerrar={vi.fn()}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('INC-2026-0042')).toBeDefined();
+    });
+
+    expect(screen.queryByTestId('btn-ver-cambio-afectacion')).toBeNull();
+  });
 });

@@ -40,7 +40,7 @@ export interface IncidenteActualizadoPayload {
     id: string;
     codigo: string;
     nuevoEstado: EstadoIncidente;
-    prioridad: PrioridadIncidente;
+    prioridad?: PrioridadIncidente;
     prioridadSugerida?: PrioridadIncidente | null;
     justificacionPrioridad?: string | null;
     requiereAsistenciaSocial?: boolean;
@@ -207,11 +207,17 @@ export function useEncargadoKanbanSocket({
       }
 
       const justificacionPrioridad =
-        typeof rawDatos?.justificacionPrioridad === 'string'
-          ? rawDatos.justificacionPrioridad
-          : typeof rawDatos?.justificacion_prioridad === 'string'
-            ? rawDatos.justificacion_prioridad
-            : rawReporte?.justificacionPrioridad ?? undefined;
+        rawDatos?.justificacionPrioridad === null
+          ? null
+          : typeof rawDatos?.justificacionPrioridad === 'string'
+            ? rawDatos.justificacionPrioridad
+            : rawDatos?.justificacion_prioridad === null
+              ? null
+              : typeof rawDatos?.justificacion_prioridad === 'string'
+                ? rawDatos.justificacion_prioridad
+                : rawReporte && 'justificacionPrioridad' in rawReporte
+                  ? rawReporte.justificacionPrioridad
+                  : undefined;
 
       const prioridadSugerida =
         typeof rawDatos?.prioridadSugerida === 'string'
@@ -255,7 +261,7 @@ export function useEncargadoKanbanSocket({
           justificacion:
             typeof rawDatos?.justificacion === 'string'
               ? rawDatos.justificacion
-              : justificacionPrioridad,
+              : justificacionPrioridad ?? undefined,
           reporteTerreno: rawReporte,
           actualizadoEn:
             typeof rawDatos?.actualizadoEn === 'string'
@@ -334,7 +340,9 @@ export function useEncargadoKanbanSocket({
               id: incidenteId,
               codigo: typeof raw?.incidenteCodigo === 'string' ? raw.incidenteCodigo : '',
               nuevoEstado: 'VERIFICANDO',
-              prioridad: (raw?.prioridad as PrioridadIncidente) || 'MEDIA',
+              ...(typeof raw?.prioridad === 'string'
+                ? { prioridad: raw.prioridad as PrioridadIncidente }
+                : {}),
               actualizadoEn:
                 typeof raw?.actualizadoEn === 'string'
                   ? raw.actualizadoEn

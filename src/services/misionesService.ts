@@ -8,6 +8,7 @@
 import apiClient from '@/lib/api/client';
 import { getAuthCookie } from '@/lib/utils/cookieUtils';
 import { catalogosService } from '@/services/catalogosService';
+import type { paths } from '@/types/api-generated';
 import type {
   FiltrosMisiones,
   MisionItem,
@@ -59,44 +60,50 @@ export const misionesService = {
     filtros: FiltrosMisiones,
     userId: string = DEFAULT_ENCARGADO_ID
   ): Promise<ResultadoListarMisiones> {
-    const searchParams = new URLSearchParams();
-    searchParams.set('page', String(filtros.page || 1));
-    searchParams.set('limit', String(filtros.limit || 10));
+    const queryParams: NonNullable<paths['/api/misiones']['get']['parameters']['query']> = {
+      page: filtros.page || 1,
+      limit: filtros.limit || 10,
+    };
 
     if (filtros.busqueda?.trim()) {
-      searchParams.set('busqueda', filtros.busqueda.trim());
+      queryParams.busqueda = filtros.busqueda.trim();
     }
 
     if (filtros.estado && filtros.estado !== 'TODOS') {
-      searchParams.set('estado', filtros.estado);
+      queryParams.estado = filtros.estado as NonNullable<typeof queryParams.estado>;
     }
 
     if (filtros.tipoMision && filtros.tipoMision !== 'TODOS') {
-      searchParams.set('tipoMision', filtros.tipoMision);
+      queryParams.tipoMision = filtros.tipoMision as NonNullable<typeof queryParams.tipoMision>;
     }
 
     if (filtros.prioridad) {
-      searchParams.set('prioridad', filtros.prioridad);
+      queryParams.prioridad = filtros.prioridad as NonNullable<typeof queryParams.prioridad>;
     }
 
     // Traducción transparente del nombre legible de delegación a UUID
     if (filtros.delegacion && filtros.delegacion !== 'TODAS') {
       const delegacionId = catalogosService.resolverDelegacionId(filtros.delegacion);
       if (delegacionId) {
-        searchParams.set('delegacionId', delegacionId);
+        queryParams.delegacionId = delegacionId;
       }
     }
 
     try {
-      const headers: Record<string, string> = {
-        'x-user-id': userId,
-      };
-
-      const res = await fetch(`/api/misiones?${searchParams.toString()}`, {
-        headers,
+      const token = typeof window !== 'undefined' ? getAuthCookie() : undefined;
+      const { data, error, response } = await apiClient.GET('/api/misiones', {
+        params: {
+          query: queryParams,
+          header: {
+            authorization: token ? `Bearer ${token}` : '',
+          },
+        },
+        headers: {
+          'x-user-id': userId,
+        },
       });
 
-      if (!res.ok) {
+      if (error || !response?.ok || !data) {
         return {
           exito: false,
           data: [],
@@ -108,23 +115,33 @@ export const misionesService = {
             hasNext: false,
             hasPrev: false,
           },
-          mensaje: `Error ${res.status} al consultar misiones.`,
+          mensaje: `Error ${response?.status || 500} al consultar misiones.`,
         };
       }
 
-      const json = await res.json();
-      const meta = json.meta || {
-        total: (json.data || []).length,
+      const lista = (data.data || []) as MisionItem[];
+      const metaRaw = (data as unknown as {
+        meta?: {
+          total?: number;
+          page?: number;
+          limit?: number;
+          totalPages?: number;
+          hasNext?: boolean;
+          hasPrev?: boolean;
+        };
+      }).meta;
+      const meta = metaRaw || {
+        total: lista.length,
         page: filtros.page,
         limit: filtros.limit,
-        totalPages: Math.ceil(((json.data || []).length || 1) / filtros.limit),
+        totalPages: Math.ceil((lista.length || 1) / filtros.limit),
         hasNext: false,
         hasPrev: false,
       };
 
       return {
         exito: true,
-        data: json.data || [],
+        data: lista,
         meta: {
           total: meta.total ?? 0,
           page: meta.page ?? filtros.page,
@@ -412,6 +429,14 @@ export const misionesService = {
           mensaje:
             (error as { message?: string })?.message ||
             `Error HTTP ${response.status} al despachar patrulla verificadora.`,
+        };
+      }
+
+      if (!('patrulla' in data.data)) {
+        return {
+          exito: false,
+          codigoError: 500,
+          mensaje: 'La respuesta de despacho no incluyó los datos de la patrulla verificadora.',
         };
       }
 

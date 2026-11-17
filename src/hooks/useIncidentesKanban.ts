@@ -415,7 +415,9 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
             columnaOrigenDetectada = est;
             const incActual = prev[est][idx];
             tipoAnteriorDetectado = incActual.tipoAfectacion;
-            const nuevaPrioridad = datos.prioridad || incActual.prioridad;
+            const esSintetico = Boolean(payload.esSintetico);
+            const nuevaPrioridad =
+              !esSintetico && datos.prioridad ? datos.prioridad : incActual.prioridad;
             const nuevaPrioridadSugerida =
               datos.prioridadSugerida !== undefined
                 ? datos.prioridadSugerida
@@ -425,10 +427,6 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
                 ? datos.justificacionPrioridad
                 : incActual.justificacionPrioridad;
             const nuevoTipo = datos.tipoAfectacion || incActual.tipoAfectacion;
-            const huboCambioPrioridad = Boolean(
-              (datos.prioridad && datos.prioridad !== incActual.prioridad) ||
-              (nuevaPrioridadSugerida && nuevaPrioridad !== nuevaPrioridadSugerida)
-            );
             const huboCambioTipologia = fueTipologiaModificada(
               incActual.tipoAfectacion,
               datos.tipoAfectacion
@@ -446,6 +444,23 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
                 )
               : totalReportesPrevios;
 
+            const nuevoVerificado =
+              datos.verificado !== undefined
+                ? datos.verificado
+                : esSintetico
+                  ? Boolean(incActual.verificado)
+                  : Boolean(
+                      incActual.verificado ||
+                        datos.reporteTerreno ||
+                        huboCambioTipologia ||
+                        datos.justificacion
+                    );
+
+            const nuevaJustificacionReclasificacion =
+              !esSintetico && !datos.reporteTerreno && (huboCambioTipologia || datos.justificacion)
+                ? datos.justificacion || incActual.justificacionReclasificacion
+                : incActual.justificacionReclasificacion;
+
             incidenteEncontrado = {
               ...incActual,
               estado: datos.nuevoEstado,
@@ -458,16 +473,9 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
                   ? datos.requiereAsistenciaSocial
                   : incActual.requiereAsistenciaSocial,
               tipoAfectacion: nuevoTipo,
-              tipoIncidenteId: datos.tipoIncidenteId || incActual.tipoIncidenteId,
-              verificado: true,
+              verificado: nuevoVerificado,
               reclasificadoEnTerreno: reclasificado,
-              justificacionReclasificacion:
-                datos.justificacion || incActual.justificacionReclasificacion,
-              cambioPrioridadMotivo: huboCambioPrioridad
-                ? nuevaJustificacionPrioridad ||
-                  datos.justificacion ||
-                  'Ajustada tras verificación presencial en terreno'
-                : incActual.cambioPrioridadMotivo,
+              justificacionReclasificacion: nuevaJustificacionReclasificacion,
               totalMisiones:
                 datos.nuevoEstado === 'VERIFICANDO' && est === 'REPORTADO'
                   ? Math.max(1, (incActual.totalMisiones || 0) + 1)

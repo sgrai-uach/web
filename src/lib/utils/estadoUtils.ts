@@ -412,7 +412,7 @@ export function limpiarDescripcionBitacora(desc?: string | null): string {
     .replace(/\bREQUIERE_CUADRILLA\b/g, 'Requiere Cuadrilla')
     // Prioridades exactas en mayúsculas dentro de frases técnicas
     .replace(
-      /\b(a|Sugerida:|Prioridad:|Prioridad sugerida:|Prioridad asignada:)\s+(BAJA|MEDIA|ALTA|CRITICA)\b/g,
+      /\b(a|de|Sugerida:|Prioridad:|Prioridad sugerida:|Prioridad asignada:)\s+(BAJA|MEDIA|ALTA|CRITICA)\b/g,
       (_match, prefijo: string, prio: string) => `${prefijo} ${mapaPrioridades[prio] || prio}`
     )
     // Evitar redundancia "a la patrulla Patrulla X"

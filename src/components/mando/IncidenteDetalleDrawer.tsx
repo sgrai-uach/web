@@ -230,29 +230,49 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
                 ? (rawDatos.estado as IncidenteDetalle['estado'])
                 : prev.estado;
           const justificacionPrioridad =
-            typeof rawDatos?.justificacionPrioridad === 'string'
-              ? rawDatos.justificacionPrioridad
-              : prev.justificacionPrioridad;
+            rawDatos?.justificacionPrioridad === null
+              ? null
+              : typeof rawDatos?.justificacionPrioridad === 'string'
+                ? rawDatos.justificacionPrioridad
+                : prev.justificacionPrioridad;
           const prioridadSugerida =
-            typeof rawDatos?.prioridadSugerida === 'string'
-              ? (rawDatos.prioridadSugerida as IncidenteDetalle['prioridadSugerida'])
-              : prev.prioridadSugerida;
+            rawDatos?.prioridadSugerida === null
+              ? null
+              : typeof rawDatos?.prioridadSugerida === 'string'
+                ? (rawDatos.prioridadSugerida as IncidenteDetalle['prioridadSugerida'])
+                : prev.prioridadSugerida;
+          const reporteEntrante =
+            rawDatos?.reporteTerreno && typeof rawDatos.reporteTerreno === 'object'
+              ? (rawDatos.reporteTerreno as ReporteEvaluacionTerreno)
+              : null;
           const justificacion =
-            typeof rawDatos?.justificacion === 'string'
+            !reporteEntrante && typeof rawDatos?.justificacion === 'string'
               ? rawDatos.justificacion
-              : justificacionPrioridad || prev.justificacionReclasificacion;
-          const huboCambioPrioridad = Boolean(
-            (rawDatos?.prioridad && rawDatos.prioridad !== prev.prioridad) ||
-              (prioridadSugerida && nuevaPrioridad !== prioridadSugerida)
-          );
+              : prev.justificacionReclasificacion;
 
           let nuevosReportes = prev.reportesEvaluacionTerreno || [];
-          if (rawDatos?.reporteTerreno && typeof rawDatos.reporteTerreno === 'object') {
-            const repentrante = rawDatos.reporteTerreno as ReporteEvaluacionTerreno;
-            const yaExiste = nuevosReportes.some((r) => r.id === repentrante.id);
+          let nuevoUltimoReporte = prev.ultimoReporte;
+          if (reporteEntrante) {
+            const yaExiste = nuevosReportes.some((r) => r.id === reporteEntrante.id);
             nuevosReportes = yaExiste
-              ? nuevosReportes.map((r) => (r.id === repentrante.id ? repentrante : r))
-              : [repentrante, ...nuevosReportes];
+              ? nuevosReportes.map((r) => (r.id === reporteEntrante.id ? reporteEntrante : r))
+              : [reporteEntrante, ...nuevosReportes];
+            const misionRef = prev.misiones.find((m) => m.id === reporteEntrante.misionId);
+            nuevoUltimoReporte = {
+              origen: 'REPORTE_TERRENO',
+              reporteId: reporteEntrante.id,
+              misionId: reporteEntrante.misionId,
+              misionCodigo: misionRef?.codigo || prev.ultimoReporte?.misionCodigo || '',
+              evaluadorNombre: reporteEntrante.evaluador.nombre,
+              creadoEn: reporteEntrante.creadoEn,
+              resumen:
+                reporteEntrante.accionesRealizadas ||
+                reporteEntrante.observaciones ||
+                reporteEntrante.resumenTecnico,
+              prioridadAsignada: reporteEntrante.prioridadAsignada,
+              versionReporte: reporteEntrante.versionReporte,
+              esRectificacion: reporteEntrante.esRectificacion,
+            };
           }
 
           return {
@@ -271,21 +291,13 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
                 ? rawDatos.requiereAsistenciaSocial
                 : prev.requiereAsistenciaSocial,
             estado: nuevoEstado,
-            tipoIncidenteId:
-              typeof rawDatos?.tipoIncidenteId === 'string'
-                ? rawDatos.tipoIncidenteId
-                : prev.tipoIncidenteId,
             reportesEvaluacionTerreno: nuevosReportes,
+            ultimoReporte: nuevoUltimoReporte,
             reclasificadoEnTerreno: Boolean(
               fueTipologiaModificada(prev.tipoAfectacion, nuevoTipo) ||
                 prev.reclasificadoEnTerreno
             ),
             justificacionReclasificacion: justificacion,
-            cambioPrioridadMotivo: huboCambioPrioridad
-              ? justificacionPrioridad ||
-                justificacion ||
-                'Ajustada tras verificación presencial en terreno'
-              : prev.cambioPrioridadMotivo,
             actualizadoEn:
               typeof rawDatos?.actualizadoEn === 'string'
                 ? rawDatos.actualizadoEn

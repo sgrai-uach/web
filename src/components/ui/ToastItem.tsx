@@ -19,6 +19,7 @@ import Button from './Button';
 import Chip from './Chip';
 import type { ToastMessage } from './Toast';
 import { obtenerVarianteChipPrioridad } from '@/lib/utils/chipVariants';
+import { formatearPrioridad } from '@/lib/utils/estadoUtils';
 
 interface ToastItemProps {
   toast: ToastMessage;
@@ -185,7 +186,7 @@ export default function ToastItem({ toast, onRemove }: ToastItemProps) {
             )}
             {toast.priorityBadge && (
               <Chip variant={obtenerVarianteChipPrioridad(toast.priorityBadge)} size="sm">
-                {toast.priorityBadge}
+                {formatearPrioridad(toast.priorityBadge, toast.priorityBadge)}
               </Chip>
             )}
           </div>

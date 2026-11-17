@@ -10,7 +10,6 @@ import type {
   DelegacionOpcion,
 } from '@/types/incidentesKpis';
 import { DELEGACIONES_VALDIVIA_DEFAULT } from '@/types/incidentesKpis';
-import type { FamiliaAfectadaMisionDetalle } from '@/types/misiones';
 
 export const DEFAULT_ENCARGADO_ID = '00000000-0000-4000-8000-000000000003';
 
@@ -25,109 +24,21 @@ export interface RiesgosActivosEvaluacion {
   aislamientoVial?: boolean;
 }
 
-export interface EvaluacionTerrenoDetalle {
-  familias?: FamiliaAfectadaMisionDetalle[];
-  nucleoFamiliarTotal?: number;
-  familiasAfectadas?: number;
-  cantidadNinos?: number;
-  cantidadAdultosMayores?: number;
-  personasDiscapacitadas?: number;
-  personasElectrodependientes?: number;
-  mascotasAfectadas?: number;
-  viviendasAfectadas?: number;
-  nivelCompromisoVivienda?: NivelCompromisoVivienda | string;
-  requiereEvacuacion?: boolean;
-  requiereAsistenciaSocial?: boolean;
-  requiereApoyoAdicional?: boolean;
-  riesgosActivos?: RiesgosActivosEvaluacion;
-  detallesAdicionales?: string | null;
-  accionesRealizadas?: string | null;
-  danosEstimados?: string | null;
-  puntajeTotal?: number;
-  factoresGatillantes?: string[];
-  [key: string]: unknown;
-}
-
-export interface ReporteEvaluacionTerreno {
-  id: string;
-  misionId: string;
-  versionReporte: number;
-  esRectificacion: boolean;
-  etiquetaReporte: string;
-  prioridadSugerida: 'BAJA' | 'MEDIA' | 'ALTA' | 'CRITICA' | null;
-  prioridadAsignada: 'BAJA' | 'MEDIA' | 'ALTA' | 'CRITICA' | null;
-  justificacionPrioridad: string | null;
-  resumenTecnico: string;
-  accionesRealizadas: string | null;
-  danosEstimados: string | null;
-  observaciones: string | null;
-  detallesAdicionales?: string | null;
-  personasAfectadas: number;
-  requiereApoyoAdicional: boolean;
-  evaluacion: EvaluacionTerrenoDetalle;
-  evaluador: {
-    id: string;
-    nombre: string;
-    email?: string | null;
-    rut?: string | null;
-  };
-  creadoEn: string;
-}
-
-export interface ReclasificacionTipologiaResumen {
-  hitoId: string;
-  misionId: string;
-  misionCodigo: string;
-  tipoAnterior: string | null;
-  tipoNuevo: string;
-  justificacion: string;
-  registradoPor: string | null;
-  creadoEn: string;
-}
-
-export interface UltimoReporteIncidenteResumen {
-  origen: 'REPORTE_TERRENO' | 'RECLASIFICACION';
-  reporteId: string;
-  misionId: string;
-  misionCodigo: string;
-  evaluadorNombre: string;
-  creadoEn: string;
-  resumen: string;
-  prioridadAsignada: 'BAJA' | 'MEDIA' | 'ALTA' | 'CRITICA' | null;
-  versionReporte: number | null;
-  esRectificacion: boolean;
-}
-
-export type IncidenteResumen = ListarIncidentesResponse['data'][number] & {
-  tipoIncidenteId?: string | null;
-  prioridadSugerida?: 'BAJA' | 'MEDIA' | 'ALTA' | 'CRITICA' | null;
-  justificacionPrioridad?: string | null;
-  totalReportesTerreno?: number;
-  /** Indica si la patrulla verificadora completó el informe/diagnóstico en terreno */
-  verificado?: boolean;
-  reclasificadoEnTerreno?: boolean;
-  justificacionReclasificacion?: string | null;
-  cambioPrioridadMotivo?: string | null;
-  tieneMisionDespachada?: boolean;
-  tieneMisionEnCurso?: boolean;
-};
-export type IncidenteDetalle = IncidenteDetalleResponse['data'] & {
-  tipoIncidenteId?: string | null;
-  prioridadSugerida?: 'BAJA' | 'MEDIA' | 'ALTA' | 'CRITICA' | null;
-  justificacionPrioridad?: string | null;
-  reportesEvaluacionTerreno?: ReporteEvaluacionTerreno[];
-  verificado?: boolean;
-  reclasificadoEnTerreno?: boolean;
-  justificacionReclasificacion?: string | null;
-  cambioPrioridadMotivo?: string | null;
-  reclasificacionTipologia?: ReclasificacionTipologiaResumen | null;
-  ultimoReporte?: UltimoReporteIncidenteResumen | null;
-  tieneMisionDespachada?: boolean;
-  tieneMisionEnCurso?: boolean;
-};
+export type IncidenteResumen = ListarIncidentesResponse['data'][number];
 export type MisionDetalle = IncidenteDetalleResponse['data']['misiones'][number];
+export type IncidenteDetalle = IncidenteDetalleResponse['data'];
 export type EstadoTrazabilidadNotificacion = NonNullable<
   MisionDetalle['trazabilidadNotificacion']
+>;
+export type ReporteEvaluacionTerreno = NonNullable<
+  IncidenteDetalle['reportesEvaluacionTerreno']
+>[number];
+export type EvaluacionTerrenoDetalle = ReporteEvaluacionTerreno['evaluacion'];
+export type ReclasificacionTipologiaResumen = NonNullable<
+  IncidenteDetalle['reclasificacionTipologia']
+>;
+export type UltimoReporteIncidenteResumen = NonNullable<
+  IncidenteDetalle['ultimoReporte']
 >;
 export type PaginacionMeta = ListarIncidentesResponse['paginacion'];
 export type EstadoIncidente = IncidenteResumen['estado'];
@@ -184,7 +95,6 @@ export const incidentesService = {
           query: query as unknown as NonNullable<
             paths['/api/incidentes']['get']['parameters']['query']
           >,
-          header: { 'x-user-id': userId },
         },
         headers: { 'x-user-id': userId },
       });
@@ -272,7 +182,6 @@ export const incidentesService = {
       const { data, error, response } = await apiClient.GET('/api/incidentes/{id}', {
         params: {
           path: { id: id.trim() },
-          header: { 'x-user-id': userId },
         },
         headers: { 'x-user-id': userId },
       });
@@ -332,24 +241,23 @@ export const incidentesService = {
     userId: string = DEFAULT_ENCARGADO_ID
   ): Promise<ResultadoKpisIncidentes> {
     try {
-      const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
-      const url = new URL('/api/incidentes/kpis', baseUrl);
+      const queryParams: paths['/api/incidentes/kpis']['get']['parameters']['query'] = {};
       if (query.fecha && query.fecha.trim()) {
-        url.searchParams.set('fecha', query.fecha.trim());
+        queryParams.fecha = query.fecha.trim();
       }
       if (query.delegacionId && query.delegacionId.trim()) {
-        url.searchParams.set('delegacionId', query.delegacionId.trim());
+        queryParams.delegacionId = query.delegacionId.trim();
       }
 
-      const res = await fetch(url.toString(), {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-user-id': userId,
+      const { data, error, response } = await apiClient.GET('/api/incidentes/kpis', {
+        params: {
+          query: queryParams,
+          header: { 'x-user-id': userId },
         },
+        headers: { 'x-user-id': userId },
       });
 
-      if (res.status === 403) {
+      if (response?.status === 403) {
         return {
           exito: false,
           codigoError: 403,
@@ -357,7 +265,7 @@ export const incidentesService = {
         };
       }
 
-      if (res.status === 401) {
+      if (response?.status === 401) {
         return {
           exito: false,
           codigoError: 401,
@@ -365,20 +273,19 @@ export const incidentesService = {
         };
       }
 
-      if (!res.ok) {
+      if (error || !response?.ok) {
         return {
           exito: false,
-          codigoError: res.status,
+          codigoError: response?.status || 500,
           mensaje: 'No fue posible cargar los contadores de incidentes del día.',
         };
       }
 
-      const json = await res.json();
-      if (json?.data) {
+      if (data?.data) {
         return {
           exito: true,
-          datos: json.data,
-          mensaje: json.message || 'Contadores obtenidos exitosamente.',
+          datos: data.data,
+          mensaje: data.message || 'Contadores obtenidos exitosamente.',
         };
       }
 
