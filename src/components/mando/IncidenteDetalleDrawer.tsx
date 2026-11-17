@@ -11,6 +11,7 @@ import { IncidenteUbicacionSection } from './drawer/IncidenteUbicacionSection';
 import { IncidenteInformanteSection } from './drawer/IncidenteInformanteSection';
 import { IncidenteMisionesSection } from './drawer/IncidenteMisionesSection';
 import { IncidenteRecursosSection } from './drawer/IncidenteRecursosSection';
+import { IncidenteEvidenciasSection } from './drawer/IncidenteEvidenciasSection';
 import { MisionDetalleModal } from './mision/MisionDetalleModal';
 import { ModalAsignarCuadrilla } from './ModalAsignarCuadrilla';
 import { AsignarPatrullaModal } from './patrullas/AsignarPatrullaModal';
@@ -32,7 +33,12 @@ import {
 } from '@/lib/socket/trazabilidadConfig';
 import { TrazabilidadIcon } from './TrazabilidadIcon';
 import InlineNotice from '@/components/ui/InlineNotice';
-import type { DespacharCuadrillaResponse, DespacharPatrullaResponseData } from '@/types/misiones';
+import {
+  esPayloadAdjuntoCreadoValido,
+  type AdjuntoEvidencia,
+  type DespacharCuadrillaResponse,
+  type DespacharPatrullaResponseData,
+} from '@/types/misiones';
 import type { EstadoIncidente } from '@/services/incidentesService';
 import { HardHat, CheckCircle2 } from 'lucide-react';
 import styles from '@/styles/mando.module.css';
@@ -246,16 +252,28 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
       }
     };
 
+    const handleAdjuntoCreado = (rawPayload: unknown) => {
+      const p = rawPayload as Record<string, unknown> | null | undefined;
+      const candidato = (p?.datos || p?.data || rawPayload) as unknown;
+      if (!esPayloadAdjuntoCreadoValido(candidato)) return;
+
+      if (candidato.incidenteId === incidenteId) {
+        cargarDetalle();
+      }
+    };
+
     socket.on('connect', asegurarSalasEncargado);
     socket.on('notificacion:trazabilidad_actualizada', handleTrazabilidad);
     socket.on('mision:rechazada', handleMisionRechazada);
     socket.on('incidente:actualizado', handleIncidenteActualizado);
+    socket.on('adjunto:creado', handleAdjuntoCreado);
 
     return () => {
       socket.off('connect', asegurarSalasEncargado);
       socket.off('notificacion:trazabilidad_actualizada', handleTrazabilidad);
       socket.off('mision:rechazada', handleMisionRechazada);
       socket.off('incidente:actualizado', handleIncidenteActualizado);
+      socket.off('adjunto:creado', handleAdjuntoCreado);
     };
   }, [incidenteId, cargarDetalle]);
 
@@ -481,6 +499,9 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
                   onVerDetalleCuadrilla={onSelectCuadrilla}
                   onAsignarPatrulla={() => setModalAsignarPatrullaAbierto(true)}
                   puedeAsignar={puedeAsignar}
+                />
+                <IncidenteEvidenciasSection
+                  adjuntos={(detalle as IncidenteDetalle & { adjuntos?: AdjuntoEvidencia[] }).adjuntos}
                 />
                 <IncidenteRecursosSection recursos={detalle.recursosAsociados} />
               </>

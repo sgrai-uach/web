@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Image as ImageIcon, FileText } from 'lucide-react';
+import { Image as ImageIcon, FileText, Film } from 'lucide-react';
 import type { AdjuntoEvidencia } from '@/types/misiones';
 import { MisionEvidenciaLightbox } from './MisionEvidenciaLightbox';
 import styles from '@/styles/mision-detalle.module.css';
@@ -46,6 +46,8 @@ export const MisionEvidenciasGallery: React.FC<MisionEvidenciasGalleryProps> = (
         {adjuntos.map((adj) => {
           const mediaUrl = adj.url.startsWith('http') ? adj.url : `${API_BASE}${adj.url}`;
           const esImagen = adj.tipoMime.startsWith('image/');
+          const esVideo = adj.tipoMime.startsWith('video/');
+          const esPdf = adj.tipoMime === 'application/pdf';
 
           return (
             <div
@@ -71,8 +73,16 @@ export const MisionEvidenciasGallery: React.FC<MisionEvidenciasGalleryProps> = (
                     className={styles.miniaturaImg}
                     loading="lazy"
                   />
+                ) : esVideo ? (
+                  <>
+                    <Film size={32} color="var(--color-charcoal, #3B3F45)" />
+                    <span className={styles.miniaturaTipoBadge}>VIDEO</span>
+                  </>
                 ) : (
-                  <FileText size={32} color="var(--color-charcoal, #3B3F45)" />
+                  <>
+                    <FileText size={32} color="var(--color-charcoal, #3B3F45)" />
+                    {esPdf && <span className={styles.miniaturaTipoBadge}>PDF</span>}
+                  </>
                 )}
               </div>
 

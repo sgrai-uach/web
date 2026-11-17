@@ -563,6 +563,19 @@
   color: var(--color-text-muted, #5F676E);
 }
 
+.miniaturaTipoBadge {
+  position: absolute;
+  bottom: 4px;
+  right: 4px;
+  background-color: var(--color-charcoal, #3B3F45);
+  color: var(--color-text-light, #FFFFFF);
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: var(--radius-none, 0px);
+  letter-spacing: 0.4px;
+}
+
 /* Visor Lightbox */
 .lightboxOverlay {
   position: fixed;
@@ -618,6 +631,20 @@
   object-fit: contain;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
   border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.lightboxVideo {
+  max-width: 100%;
+  max-height: 75vh;
+  background-color: #000000;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.lightboxPdf {
+  width: min(85vw, 900px);
+  height: 75vh;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background-color: #FFFFFF;
 }
 
 /* Empty States */

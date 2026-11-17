@@ -8,7 +8,12 @@ import {
   obtenerDetalleMision,
   DEFAULT_ENCARGADO_ID,
 } from '@/services/misionesService';
-import type { MisionDetalleCompleto } from '@/types/misiones';
+import { getSocket } from '@/lib/socket/client';
+import {
+  esPayloadAdjuntoCreadoValido,
+  type AdjuntoEvidencia,
+  type MisionDetalleCompleto,
+} from '@/types/misiones';
 import { MisionSkeletonLoader } from './MisionSkeletonLoader';
 import { MisionDetalleHeader } from './MisionDetalleHeader';
 import { MisionContextoSection } from './MisionContextoSection';
@@ -59,6 +64,88 @@ export const MisionDetalleModal: React.FC<MisionDetalleModalProps> = ({
 
     return () => {
       activo = false;
+    };
+  }, [misionId, userId]);
+
+  // Suscripción en tiempo real a adjunto:creado (HU-43)
+  useEffect(() => {
+    if (!misionId) return;
+
+    const socket = getSocket();
+
+    const asegurarSalasEncargado = () => {
+      socket.emit('join', 'encargado');
+      socket.emit('unirse', 'sala:encargados');
+    };
+
+    if (!socket.connected && typeof socket.connect === 'function') {
+      socket.connect();
+    }
+    if (socket.connected) {
+      asegurarSalasEncargado();
+    }
+
+    const handleAdjuntoCreado = (rawPayload: unknown) => {
+      const p = rawPayload as Record<string, unknown> | null | undefined;
+      const candidato = (p?.datos || p?.data || rawPayload) as unknown;
+      if (!esPayloadAdjuntoCreadoValido(candidato)) return;
+
+      const nuevoAdjunto: AdjuntoEvidencia = {
+        id: candidato.id,
+        nombreArchivo: candidato.nombreArchivo,
+        url: candidato.url,
+        tipoMime: candidato.tipoMime,
+        tamanoBytes: candidato.tamanoBytes,
+        creadoEn: candidato.creadoEn,
+      };
+
+      let requiereRecarga = false;
+
+      setMision((prev) => {
+        if (!prev || prev.id !== misionId) return prev;
+
+        if (candidato.reporteTerrenoId) {
+          const existeReporte = (prev.reportesTerreno || []).some(
+            (r) => r.id === candidato.reporteTerrenoId
+          );
+          if (existeReporte) {
+            return {
+              ...prev,
+              reportesTerreno: prev.reportesTerreno.map((rep) => {
+                if (rep.id !== candidato.reporteTerrenoId) return rep;
+                if (rep.adjuntos.some((a) => a.id === nuevoAdjunto.id)) return rep;
+                return {
+                  ...rep,
+                  adjuntos: [...rep.adjuntos, nuevoAdjunto],
+                };
+              }),
+            };
+          }
+          requiereRecarga = true;
+          return prev;
+        }
+
+        if (candidato.incidenteId && prev.incidente?.id === candidato.incidenteId) {
+          requiereRecarga = true;
+        }
+        return prev;
+      });
+
+      if (requiereRecarga) {
+        void obtenerDetalleMision(misionId, userId).then((res) => {
+          if (res.exito && res.datos) {
+            setMision(res.datos);
+          }
+        });
+      }
+    };
+
+    socket.on('connect', asegurarSalasEncargado);
+    socket.on('adjunto:creado', handleAdjuntoCreado);
+
+    return () => {
+      socket.off('connect', asegurarSalasEncargado);
+      socket.off('adjunto:creado', handleAdjuntoCreado);
     };
   }, [misionId, userId]);
 

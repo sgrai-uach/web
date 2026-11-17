@@ -16,6 +16,26 @@ export interface AdjuntoEvidencia {
   creadoEn: string;
 }
 
+export interface AdjuntoCreadoPayload extends AdjuntoEvidencia {
+  incidenteId: string | null;
+  reporteTerrenoId: string | null;
+}
+
+export function esPayloadAdjuntoCreadoValido(
+  payload: unknown
+): payload is AdjuntoCreadoPayload {
+  if (!payload || typeof payload !== 'object') return false;
+  const p = payload as Record<string, unknown>;
+  return (
+    typeof p.id === 'string' &&
+    typeof p.nombreArchivo === 'string' &&
+    typeof p.url === 'string' &&
+    typeof p.tipoMime === 'string' &&
+    typeof p.tamanoBytes === 'number' &&
+    typeof p.creadoEn === 'string'
+  );
+}
+
 export interface EvaluadorTerreno {
   id: string;
   nombre: string;
