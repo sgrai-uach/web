@@ -76,7 +76,7 @@ export async function obtenerTiposAfectacion(): Promise<string[]> {
     if (error || !data?.data || !Array.isArray(data.data) || data.data.length === 0) {
       return TIPOS_AFECTACION_DEFAULT;
     }
-    return data.data;
+    return data.data.map((t) => (typeof t === 'string' ? t : t.nombre));
   } catch {
     return TIPOS_AFECTACION_DEFAULT;
   }

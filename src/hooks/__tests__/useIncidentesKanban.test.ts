@@ -2,6 +2,19 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
 import { useIncidentesKanban } from '../useIncidentesKanban';
 import * as incidentesService from '@/services/incidentesService';
+import * as misionesService from '@/services/misionesService';
+import {
+  useEncargadoKanbanSocket,
+  type UseEncargadoKanbanSocketOptions,
+  type IncidenteCreadoPayload,
+  type IncidenteActualizadoPayload,
+  type MisionRechazadaPayload,
+} from '../useEncargadoKanbanSocket';
+import {
+  clearTrazabilidadCache,
+  getIncidentePorMision,
+  setTrazabilidadEstado,
+} from '@/lib/socket/trazabilidadStore';
 
 vi.mock('@/services/incidentesService', () => ({
   listarIncidentes: vi.fn(),
@@ -10,10 +23,14 @@ vi.mock('@/services/incidentesService', () => ({
 }));
 
 let socketCallbacks: {
-  onIncidenteCreado?: (p: any) => void;
-  onIncidenteActualizado?: (p: any) => void;
-  onMisionRechazada?: (p: any) => void;
+  onIncidenteCreado?: (p: IncidenteCreadoPayload) => void;
+  onIncidenteActualizado?: (p: IncidenteActualizadoPayload) => void;
+  onMisionRechazada?: (p: MisionRechazadaPayload) => void;
 } = {};
+
+vi.mock('@/services/misionesService', () => ({
+  obtenerDetalleMision: vi.fn(),
+}));
 
 vi.mock('../useEncargadoKanbanSocket', () => ({
   useEncargadoKanbanSocket: vi.fn((opts) => {
@@ -28,6 +45,7 @@ vi.mock('../useEncargadoKanbanSocket', () => ({
 describe('useIncidentesKanban - HU-20 y BUG-04', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    clearTrazabilidadCache();
   });
 
   it('debe mover de columna e incrementar totalMisiones y actualizar paginacionColumna dinámicamente', async () => {
@@ -195,9 +213,6 @@ describe('useIncidentesKanban - HU-20 y BUG-04', () => {
     expect(tarjetaActualizada.prioridad).toBe('ALTA');
     expect(tarjetaActualizada.reclasificadoEnTerreno).toBe(true);
     expect(tarjetaActualizada.justificacionReclasificacion).toBe(
-      'Tras evaluación presencial se constata desborde de cauce con ingreso de agua a viviendas.'
-    );
-    expect(tarjetaActualizada.cambioPrioridadMotivo).toBe(
       'Tras evaluación presencial se constata desborde de cauce con ingreso de agua a viviendas.'
     );
   });
@@ -418,5 +433,189 @@ describe('useIncidentesKanban - HU-20 y BUG-04', () => {
     const incVerificando = result.current.columnas.VERIFICANDO[0];
     expect(incVerificando.codigo).toBe('INC-592395-562');
     expect(incVerificando.estado).toBe('VERIFICANDO');
+  });
+
+  it('BUG-H35-WEB-07: resuelve el vínculo misión-incidente vía obtenerDetalleMision solo si la misión no estaba vinculada', async () => {
+    let socketOptions: UseEncargadoKanbanSocketOptions | undefined;
+    vi.mocked(useEncargadoKanbanSocket).mockImplementationOnce((opts) => {
+      socketOptions = opts;
+      return { conectado: true, ultimoEvento: null };
+    });
+
+    vi.mocked(incidentesService.listarIncidentes).mockResolvedValue({
+      exito: true,
+      incidentes: [],
+      paginacion: {
+        total: 0,
+        pagina: 1,
+        limite: 10,
+        totalPaginas: 0,
+        tieneSiguiente: false,
+        tieneAnterior: false,
+      },
+      mensaje: 'OK',
+    });
+
+    vi.mocked(misionesService.obtenerDetalleMision).mockResolvedValue({
+      exito: true,
+      datos: {
+        id: 'mis-nueva-99',
+        codigo: 'MIS-2026-0099',
+        titulo: 'Verificación en terreno',
+        descripcion: null,
+        tipoMision: 'VERIFICACION',
+        estado: 'DESPACHADA',
+        prioridad: 'ALTA',
+        justificacionRechazo: null,
+        fechaInicio: null,
+        fechaCierre: null,
+        creadoEn: '2026-11-12T10:00:00Z',
+        actualizadoEn: '2026-11-12T10:00:00Z',
+        creadoPor: null,
+        encargado: null,
+        incidente: {
+          id: 'inc-resuelto-99',
+          codigo: 'INC-2026-0099',
+          tipoAfectacion: 'Inundación',
+          direccion: 'Av. España 123',
+          estado: 'VERIFICANDO',
+          prioridad: 'ALTA',
+        },
+        prevencion: null,
+        cuadrilla: null,
+        patrulla: null,
+        bitacoraTiempos: [],
+        reportesTerreno: [],
+      },
+      mensaje: 'OK',
+    });
+
+    const { result } = renderHook(() => useIncidentesKanban());
+
+    await waitFor(() => {
+      expect(socketOptions?.onNotificacionTrazabilidadActualizada).toBeDefined();
+    });
+
+    act(() => {
+      setTrazabilidadEstado('mis-nueva-99', 'RECIBIDA');
+      socketOptions?.onNotificacionTrazabilidadActualizada?.({
+        notificacionId: 'notif-99',
+        misionId: 'mis-nueva-99',
+        patrullaId: 'pat-1',
+        estado: 'RECIBIDA',
+      });
+    });
+
+    await waitFor(() => {
+      expect(misionesService.obtenerDetalleMision).toHaveBeenCalledWith(
+        'mis-nueva-99',
+        '00000000-0000-4000-8000-000000000003'
+      );
+      expect(getIncidentePorMision('mis-nueva-99')).toBe('inc-resuelto-99');
+      expect(result.current.trazabilidadPorIncidente['inc-resuelto-99']).toBe('RECIBIDA');
+    });
+
+    // Segunda notificación para la misma misión ya vinculada no debe consultar nuevamente la API
+    vi.mocked(misionesService.obtenerDetalleMision).mockClear();
+    act(() => {
+      setTrazabilidadEstado('mis-nueva-99', 'LEIDA');
+      socketOptions?.onNotificacionTrazabilidadActualizada?.({
+        notificacionId: 'notif-99',
+        misionId: 'mis-nueva-99',
+        patrullaId: 'pat-1',
+        estado: 'LEIDA',
+      });
+    });
+
+    expect(misionesService.obtenerDetalleMision).not.toHaveBeenCalled();
+    await waitFor(() => {
+      expect(result.current.trazabilidadPorIncidente['inc-resuelto-99']).toBe('LEIDA');
+    });
+  });
+
+  it('BUG-H37-WEB-01: NO debe marcar verificado ni reclasificadoEnTerreno ni duplicar totalMisiones ante incidente:actualizado sin reclasificación', async () => {
+    const mockReportadoConMision: incidentesService.IncidenteResumen = {
+      id: 'inc-h37-01',
+      codigo: 'INC-2026-3701',
+      codigoSeguimiento: '37013701',
+      tipoAfectacion: 'Anegamiento',
+      descripcion: 'Agua en calle',
+      direccion: 'Calle Picarte 100',
+      latitud: -39.814,
+      longitud: -73.245,
+      estado: 'REPORTADO',
+      prioridad: 'MEDIA',
+      requiereAsistenciaSocial: false,
+      fuenteOrigen: 'WEB',
+      informanteNombre: 'Luis',
+      delegacionNombre: 'Centro',
+      totalMisiones: 1,
+      tieneMisionDespachada: true,
+      tieneMisionEnCurso: false,
+      verificado: false,
+      reclasificadoEnTerreno: false,
+      creadoEn: '2026-11-10T10:00:00Z',
+      actualizadoEn: '2026-11-10T10:00:00Z',
+    };
+
+    vi.mocked(incidentesService.listarIncidentes).mockImplementation(async (query) => {
+      if (query.estado === 'REPORTADO') {
+        return {
+          exito: true,
+          incidentes: [mockReportadoConMision],
+          paginacion: {
+            total: 1,
+            pagina: 1,
+            limite: 20,
+            totalPaginas: 1,
+            tieneSiguiente: false,
+            tieneAnterior: false,
+          },
+          mensaje: 'OK',
+        };
+      }
+      return {
+        exito: true,
+        incidentes: [],
+        paginacion: {
+          total: 0,
+          pagina: 1,
+          limite: 20,
+          totalPaginas: 0,
+          tieneSiguiente: false,
+          tieneAnterior: false,
+        },
+        mensaje: 'OK',
+      };
+    });
+
+    const { result } = renderHook(() => useIncidentesKanban());
+
+    await waitFor(() => {
+      expect(result.current.columnas.REPORTADO.length).toBe(1);
+    });
+
+    act(() => {
+      socketCallbacks.onIncidenteActualizado?.({
+        evento: 'incidente:actualizado',
+        datos: {
+          id: 'inc-h37-01',
+          codigo: 'INC-2026-3701',
+          nuevoEstado: 'VERIFICANDO',
+          prioridad: 'MEDIA',
+          actualizadoEn: '2026-11-10T10:05:00Z',
+        },
+        emitidoEn: '2026-11-10T10:05:00Z',
+      });
+    });
+
+    expect(result.current.columnas.REPORTADO.length).toBe(0);
+    expect(result.current.columnas.VERIFICANDO.length).toBe(1);
+    const movido = result.current.columnas.VERIFICANDO[0];
+    expect(movido.verificado).toBe(false);
+    expect(movido.reclasificadoEnTerreno).toBe(false);
+    expect(movido.tieneMisionDespachada).toBe(false);
+    expect(movido.tieneMisionEnCurso).toBe(true);
+    expect(movido.totalMisiones).toBe(1);
   });
 });

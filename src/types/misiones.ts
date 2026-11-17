@@ -138,6 +138,7 @@ export interface MisionItem {
   patrullaId?: string | null;
   patrullaNombre?: string | null;
   justificacionRechazo?: string | null;
+  trazabilidadNotificacion?: 'PENDIENTE_ENVIO' | 'ENVIADA' | 'RECIBIDA' | 'LEIDA';
   fechaInicio?: string | null;
   fechaCierre?: string | null;
   creadoEn: string;
@@ -168,6 +169,7 @@ export interface MisionDetalleCompleto {
   estado: EstadoMision;
   prioridad: PrioridadMision;
   justificacionRechazo: string | null;
+  trazabilidadNotificacion?: 'PENDIENTE_ENVIO' | 'ENVIADA' | 'RECIBIDA' | 'LEIDA';
   fechaInicio: string | null;
   fechaCierre: string | null;
   creadoEn: string;
@@ -186,16 +188,72 @@ export interface MisionDetalleResponse {
   message: string;
   data: MisionDetalleCompleto;
 }
+/** DTO de entrada para despachar cuadrilla operativa a un incidente (HU-21) */
+export interface DespacharCuadrillaDTO {
+  tipoMision: 'ATENCION_CUADRILLA';
+  incidenteId: string;
+  cuadrillaId: string;
+  titulo?: string;
+  descripcion?: string;
+  prioridad?: PrioridadMision;
+}
+
+/** Información de la patrulla verificadora liberada según regla ICS §3.2 (HU-21) */
+export interface PatrullaLiberadaInfo {
+  id: string;
+  nombre: string;
+  estado: string;
+  misionPreviaId?: string;
+}
+
+/** Respuesta de la API al despachar cuadrilla y liberar patrulla (HU-21) */
+export interface DespacharCuadrillaResponse {
+  message: string;
+  data: {
+    mision: {
+      id: string;
+      codigo: string;
+      tipoMision: TipoMision | string;
+      estado: EstadoMision | string;
+      fechaInicio: string | null;
+    };
+    cuadrilla: {
+      id: string;
+      nombre: string;
+      estado: string;
+    };
+    incidente: {
+      id: string;
+      codigo: string;
+      estado: string;
+      prioridad: string;
+    };
+    patrullaLiberada: PatrullaLiberadaInfo | null;
+    hitoCuadrilla?: {
+      hito: string;
+      descripcion: string;
+    };
+    hitoPatrulla?: {
+      hito: string;
+      descripcion: string;
+    };
+  };
+}
 
 export type CrearMisionRequestBody =
   paths['/api/misiones']['post']['requestBody']['content']['application/json'];
 export type CrearMisionResponse201 =
   paths['/api/misiones']['post']['responses'][201]['content']['application/json'];
 
-export type DespacharPatrullaPayload = Omit<CrearMisionRequestBody, 'tipoMision'> & {
-  tipoMision?: CrearMisionRequestBody['tipoMision'];
+type CrearMisionPatrullaBody = Extract<CrearMisionRequestBody, { patrullaId: string }>;
+
+export type DespacharPatrullaPayload = Omit<CrearMisionPatrullaBody, 'tipoMision'> & {
+  tipoMision?: CrearMisionPatrullaBody['tipoMision'];
 };
-export type DespacharPatrullaResponseData = CrearMisionResponse201['data'];
+export type DespacharPatrullaResponseData = Extract<
+  CrearMisionResponse201['data'],
+  { patrulla: unknown }
+>;
 export type DespacharPatrullaResponse = CrearMisionResponse201;
 
 export interface ResultadoDespacharPatrulla {
@@ -206,4 +264,3 @@ export interface ResultadoDespacharPatrulla {
   esConflicto?: boolean;
   esForbidden?: boolean;
 }
-

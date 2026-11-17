@@ -4,7 +4,6 @@ import React from 'react';
 import Heading from '@/components/ui/Heading';
 import { ShieldCheck } from 'lucide-react';
 import type { IncidenteDetalle } from '@/services/incidentesService';
-import { formatearPrioridad } from '@/lib/utils/estadoUtils';
 import styles from '@/styles/mando.module.css';
 
 interface IncidenteResumenSectionProps {
@@ -60,11 +59,6 @@ export const IncidenteResumenSection: React.FC<IncidenteResumenSectionProps> = (
           {detalle.justificacionReclasificacion && (
             <p style={{ margin: '0.2rem 0', fontSize: '0.8125rem', color: 'var(--color-charcoal, #3B3F45)' }}>
               <strong>Justificación de la patrulla:</strong> {detalle.justificacionReclasificacion}
-            </p>
-          )}
-          {detalle.cambioPrioridadMotivo && (
-            <p style={{ margin: '0.2rem 0', fontSize: '0.8125rem', color: 'var(--color-charcoal, #3B3F45)' }}>
-              <strong>Prioridad ajustada:</strong> {formatearPrioridad(detalle.prioridad)}
             </p>
           )}
         </div>

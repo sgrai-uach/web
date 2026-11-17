@@ -51,12 +51,14 @@ export const MisionReportesSection: React.FC<MisionReportesSectionProps> = ({
     }
   };
 
-  const hitoReclasificacion = bitacora.find((h) => h.hito === 'TIPOLOGIA_RECLASIFICADA');
+  const hitoReclasificacion = [...bitacora]
+    .reverse()
+    .find((h) => h.hito === 'TIPOLOGIA_RECLASIFICADA');
   const totalInformes = reportes.length + (hitoReclasificacion ? 1 : 0);
 
   let justificacionExtraida: string | null = null;
   if (hitoReclasificacion) {
-    const match = hitoReclasificacion.descripcion.match(/Justificación:\s*(.+)$/i);
+    const match = hitoReclasificacion.descripcion.match(/Justificación:\s*([\s\S]+)$/i);
     justificacionExtraida = match ? match[1].trim() : hitoReclasificacion.descripcion;
   }
 

@@ -171,19 +171,16 @@ describe('IncidenteCard', () => {
       prioridad: 'ALTA',
       reclasificadoEnTerreno: true,
       justificacionReclasificacion: 'Desborde de río constatado en terreno con anegamiento de viviendas.',
-      cambioPrioridadMotivo: 'Desborde de río constatado en terreno con anegamiento de viviendas.',
     };
 
     render(<IncidenteCard incidente={incidenteReclasificado} onClick={vi.fn()} />);
 
     expect(screen.getByText('Inundación')).toBeDefined();
     expect(screen.getByText('Alta')).toBeDefined();
-    const tagVerificado = screen.getByText('Verificado');
-    expect(tagVerificado).toBeDefined();
-    expect(tagVerificado.parentElement?.getAttribute('title')).toContain(
-      'Tipología reclasificada en terreno: Desborde de río constatado en terreno'
+    const tagVerificado = screen.getByTitle(
+      /Tipología reclasificada en terreno: Desborde de río constatado en terreno/i
     );
-    expect(tagVerificado.parentElement?.getAttribute('title')).toContain('Prioridad ajustada: Alta');
+    expect(tagVerificado).toBeDefined();
   });
 
   it('NO debe renderizar botón "Asignar Patrulla" si el incidente tiene una misión en curso activa (tieneMisionEnCurso: true)', () => {
@@ -223,7 +220,77 @@ describe('IncidenteCard', () => {
 
     render(<IncidenteCard incidente={incidenteVerificadoDesdeApi} onClick={vi.fn()} />);
 
-    const tagVerificado = screen.getByText('Verificado');
+    const tagVerificado = screen.getByTitle(/Tipología rectificada por patrulla en terreno/i);
     expect(tagVerificado).toBeDefined();
+  });
+
+  it('muestra el indicador directo de lectura/no lectura en la tarjeta Kanban según trazabilidadNotificacion', () => {
+    const { rerender } = render(
+      <IncidenteCard
+        incidente={{ ...mockIncidente, estado: 'VERIFICANDO' }}
+        onClick={vi.fn()}
+        trazabilidadNotificacion="PENDIENTE_ENVIO"
+      />
+    );
+
+    const cardOffline = screen.getByTestId('card-trazabilidad-inc-001');
+    expect(cardOffline.textContent).toContain('NO LEÍDA');
+    expect(cardOffline.textContent).toContain('Sin señal / offline');
+    expect(cardOffline.style.borderRadius).toBe('0px');
+
+    rerender(
+      <IncidenteCard
+        incidente={{ ...mockIncidente, estado: 'VERIFICANDO' }}
+        onClick={vi.fn()}
+        trazabilidadNotificacion="LEIDA"
+      />
+    );
+
+    const cardLeida = screen.getByTestId('card-trazabilidad-inc-001');
+    expect(cardLeida.textContent).toContain('LEÍDA');
+    expect(cardLeida.textContent).toContain('Leída por operador en terreno');
+    expect(/\p{Extended_Pictographic}/u.test(cardLeida.textContent || '')).toBe(false);
+  });
+
+  it('muestra aviso SIN ACUSE en tarjetas VERIFICANDO sin confirmación recibida aún', () => {
+    render(
+      <IncidenteCard
+        incidente={{ ...mockIncidente, estado: 'VERIFICANDO' }}
+        onClick={vi.fn()}
+      />
+    );
+
+    const aviso = screen.getByTestId('card-trazabilidad-pendiente-inc-001');
+    expect(aviso.textContent).toContain('SIN ACUSE');
+    expect(aviso.textContent).toContain('Lectura aún no confirmada');
+    expect(aviso.style.flexDirection).toBe('column');
+    expect(aviso.style.flexShrink).toBe('0');
+    expect(aviso.style.overflow).toBe('hidden');
+    expect(aviso.style.borderRadius).toBe('0px');
+  });
+
+  it('mantiene diseño apilado y contenido contenido dentro de la caja de trazabilidad ante direcciones extensas', () => {
+    const direccionLarga = 'a'.repeat(120);
+    render(
+      <IncidenteCard
+        incidente={{
+          ...mockIncidente,
+          estado: 'VERIFICANDO',
+          direccion: direccionLarga,
+        }}
+        onClick={vi.fn()}
+        trazabilidadNotificacion="RECIBIDA"
+      />
+    );
+
+    const cardBox = screen.getByTestId('card-trazabilidad-inc-001');
+    expect(cardBox.style.flexDirection).toBe('column');
+    expect(cardBox.style.flexShrink).toBe('0');
+    expect(cardBox.style.width).toBe('100%');
+    expect(cardBox.style.overflow).toBe('hidden');
+    expect(cardBox.style.borderRadius).toBe('0px');
+    expect(cardBox.textContent).toContain('RECIBIDA (SIN LEER)');
+    expect(cardBox.textContent).toContain('Recibida · pendiente lectura');
+    expect(screen.getByText(direccionLarga)).toBeDefined();
   });
 });

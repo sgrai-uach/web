@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   listarIncidentes,
   DEFAULT_ENCARGADO_ID,
@@ -9,13 +9,22 @@ import {
   type PrioridadIncidente,
   type PaginacionMeta,
   type ListarIncidentesQuery,
+  type EstadoTrazabilidadNotificacion,
 } from '@/services/incidentesService';
+import { obtenerDetalleMision } from '@/services/misionesService';
 import {
   useEncargadoKanbanSocket,
   type IncidenteCreadoPayload,
   type IncidenteActualizadoPayload,
   type MisionRechazadaPayload,
+  type NotificacionTrazabilidadPayload,
 } from './useEncargadoKanbanSocket';
+import {
+  getIncidentePorMision,
+  getSnapshotTrazabilidadIncidentes,
+  subscribeTrazabilidad,
+  vincularMisionIncidente,
+} from '@/lib/socket/trazabilidadStore';
 
 export const ESTADOS_KANBAN: EstadoIncidente[] = [
   'REPORTADO',
@@ -44,11 +53,36 @@ export interface UseIncidentesKanbanOptions {
   onMisionRechazada?: (payload: MisionRechazadaPayload) => void;
 }
 
-export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | string) {
-  const optionsObj: UseIncidentesKanbanOptions =
-    typeof options === 'string' ? { initialUserId: options } : options || {};
-  const initialUserId = optionsObj.initialUserId;
+/**
+ * Ordena incidentes para una columna del Kanban.
+ * En la columna 'VERIFICANDO', los incidentes ya verificados por patrulla
+ * aparecen siempre primero en la parte superior.
+ */
+function ordenarIncidentesColumna(
+  incidentes: IncidenteResumen[],
+  estado: EstadoIncidente
+): IncidenteResumen[] {
+  if (estado === 'VERIFICANDO') {
+    return [...incidentes].sort((a, b) => {
+      const aVerif = a.verificado ? 1 : 0;
+      const bVerif = b.verificado ? 1 : 0;
+      if (aVerif !== bVerif) {
+        return bVerif - aVerif; // Verificados (1) primero
+      }
+      return new Date(b.creadoEn).getTime() - new Date(a.creadoEn).getTime();
+    });
+  }
+  return incidentes;
+}
 
+export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | string) {
+  const initialUserId = typeof options === 'string' ? options : options?.initialUserId;
+  const onMisionRechazadaProp = typeof options === 'string' ? undefined : options?.onMisionRechazada;
+  const onMisionRechazadaRef = useRef(onMisionRechazadaProp);
+
+  useEffect(() => {
+    onMisionRechazadaRef.current = onMisionRechazadaProp;
+  }, [onMisionRechazadaProp]);
   let sessionUserId: string | undefined;
   let sessionSetUser: ((id: string) => void) | undefined;
   try {
@@ -105,6 +139,27 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
   });
 
   const [incidenteSeleccionadoId, setIncidenteSeleccionadoId] = useState<string | null>(null);
+  const [trazabilidadPorIncidente, setTrazabilidadPorIncidente] = useState<
+    Record<string, EstadoTrazabilidadNotificacion>
+  >({});
+
+  useEffect(() => {
+    let activo = true;
+    queueMicrotask(() => {
+      if (activo) {
+        setTrazabilidadPorIncidente(getSnapshotTrazabilidadIncidentes());
+      }
+    });
+    const unsubscribe = subscribeTrazabilidad(() => {
+      if (activo) {
+        setTrazabilidadPorIncidente(getSnapshotTrazabilidadIncidentes());
+      }
+    });
+    return () => {
+      activo = false;
+      unsubscribe();
+    };
+  }, []);
 
   // Columnas visibles según el filtro de Estado (permite ocultar columnas)
   const estadosVisibles: EstadoIncidente[] = useMemo(() => {
@@ -181,7 +236,7 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
         columnasAConsultar.forEach((estado, idx) => {
           const res = resultados[idx];
           if (res.exito) {
-            nuevasColumnas[estado] = res.incidentes;
+            nuevasColumnas[estado] = ordenarIncidentesColumna(res.incidentes, estado);
             nuevasPaginaciones[estado] = res.paginacion || null;
           }
         });
@@ -198,7 +253,26 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
             return true;
           });
           if (aMoverAVerificando.length > 0) {
-            nuevasColumnas.VERIFICANDO = [...aMoverAVerificando, ...nuevasColumnas.VERIFICANDO];
+            const idsEnVerificando = new Set(nuevasColumnas.VERIFICANDO.map((i) => i.id));
+            const nuevosEnVerificando = aMoverAVerificando.filter(
+              (inc) => !idsEnVerificando.has(inc.id)
+            );
+            nuevasColumnas.VERIFICANDO = ordenarIncidentesColumna(
+              [...nuevosEnVerificando, ...nuevasColumnas.VERIFICANDO],
+              'VERIFICANDO'
+            );
+            if (nuevasPaginaciones.REPORTADO) {
+              nuevasPaginaciones.REPORTADO = {
+                ...nuevasPaginaciones.REPORTADO,
+                total: Math.max(0, nuevasPaginaciones.REPORTADO.total - aMoverAVerificando.length),
+              };
+            }
+            if (nuevasPaginaciones.VERIFICANDO && nuevosEnVerificando.length > 0) {
+              nuevasPaginaciones.VERIFICANDO = {
+                ...nuevasPaginaciones.VERIFICANDO,
+                total: nuevasPaginaciones.VERIFICANDO.total + nuevosEnVerificando.length,
+              };
+            }
           }
         }
 
@@ -256,7 +330,7 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
         if (res.exito) {
           setColumnas((prev) => ({
             ...prev,
-            [estado]: [...prev[estado], ...res.incidentes],
+            [estado]: ordenarIncidentesColumna([...prev[estado], ...res.incidentes], estado),
           }));
           setPaginacionColumna((prev) => ({
             ...prev,
@@ -306,6 +380,7 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
         informanteNombre: null,
         delegacionNombre: null,
         totalMisiones: 0,
+        verificado: false,
         creadoEn: datos.creadoEn,
         actualizadoEn: datos.creadoEn,
       };
@@ -355,13 +430,16 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
             const incActual = prev[est][idx];
             const nuevaPrioridad = datos.prioridad || incActual.prioridad;
             const nuevoTipo = datos.tipoAfectacion || incActual.tipoAfectacion;
-            const huboCambioPrioridad = Boolean(datos.prioridad && datos.prioridad !== incActual.prioridad);
             const huboCambioTipologia = Boolean(datos.tipoAfectacion && datos.tipoAfectacion !== incActual.tipoAfectacion);
-            const reclasificado = Boolean(
-              huboCambioTipologia ||
+            const esEventoReclasificacion = Boolean(
               datos.justificacion ||
-              incActual.reclasificadoEnTerreno ||
-              incActual.verificado
+                datos.tipoIncidenteId ||
+                huboCambioTipologia
+            );
+            const esTransicionAVerificando =
+              datos.nuevoEstado === 'VERIFICANDO' && est === 'REPORTADO';
+            const yaContabaMision = Boolean(
+              incActual.tieneMisionDespachada || (incActual.totalMisiones || 0) > 0
             );
 
             incidenteEncontrado = {
@@ -369,17 +447,21 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
               estado: datos.nuevoEstado,
               prioridad: nuevaPrioridad,
               tipoAfectacion: nuevoTipo,
-              tipoIncidenteId: datos.tipoIncidenteId || incActual.tipoIncidenteId,
-              verificado: true,
-              reclasificadoEnTerreno: reclasificado,
+              verificado: esEventoReclasificacion ? true : Boolean(incActual.verificado),
+              reclasificadoEnTerreno: esEventoReclasificacion
+                ? true
+                : Boolean(incActual.reclasificadoEnTerreno),
               justificacionReclasificacion:
                 datos.justificacion || incActual.justificacionReclasificacion,
-              cambioPrioridadMotivo: huboCambioPrioridad
-                ? datos.justificacion || 'Ajustada tras verificación presencial en terreno'
-                : incActual.cambioPrioridadMotivo,
+              tieneMisionDespachada: esTransicionAVerificando
+                ? false
+                : incActual.tieneMisionDespachada,
+              tieneMisionEnCurso: esTransicionAVerificando
+                ? true
+                : incActual.tieneMisionEnCurso,
               totalMisiones:
-                datos.nuevoEstado === 'VERIFICANDO' && est === 'REPORTADO'
-                  ? Math.max(1, (incActual.totalMisiones || 0) + 1)
+                esTransicionAVerificando && !yaContabaMision
+                  ? 1
                   : incActual.totalMisiones,
               actualizadoEn: datos.actualizadoEn || new Date().toISOString(),
             };
@@ -405,7 +487,7 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
         return {
           ...prev,
           [columnaOrigen!]: prev[columnaOrigen!].filter((i) => i.id !== datos.id),
-          [datos.nuevoEstado]: [incidenteEncontrado, ...prev[datos.nuevoEstado]],
+          [datos.nuevoEstado]: ordenarIncidentesColumna([incidenteEncontrado, ...prev[datos.nuevoEstado]], datos.nuevoEstado),
         };
       });
 
@@ -560,9 +642,9 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
         }
       }
 
-      optionsObj.onMisionRechazada?.(payload);
+      onMisionRechazadaRef.current?.(payload);
     },
-    [optionsObj]
+    []
   );
 
   const marcarIncidenteMisionDespachada = useCallback(
@@ -577,10 +659,30 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
     []
   );
 
+  const handleTrazabilidadActualizada = useCallback(
+    (payload: NotificacionTrazabilidadPayload) => {
+      if (!payload?.misionId || getIncidentePorMision(payload.misionId)) {
+        return;
+      }
+      void obtenerDetalleMision(payload.misionId, userId)
+        .then((res) => {
+          const incId = res.exito ? res.datos?.incidente?.id : undefined;
+          if (incId) {
+            vincularMisionIncidente(payload.misionId, incId);
+          }
+        })
+        .catch(() => {
+          // Ignorar fallo auxiliar de resolución de vínculo misión-incidente
+        });
+    },
+    [userId]
+  );
+
   const { conectado, ultimoEvento } = useEncargadoKanbanSocket({
     onIncidenteCreado: handleIncidenteCreado,
     onIncidenteActualizado: handleIncidenteActualizado,
     onMisionRechazada: handleMisionRechazada,
+    onNotificacionTrazabilidadActualizada: handleTrazabilidadActualizada,
     enabled: !esForbidden,
   });
 
@@ -611,5 +713,6 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
     totalIncidentesVisibles,
     incidenteSeleccionadoId,
     setIncidenteSeleccionadoId,
+    trazabilidadPorIncidente,
   };
 }

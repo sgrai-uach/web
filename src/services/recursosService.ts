@@ -31,10 +31,8 @@ export async function crearRecurso(
 ): Promise<RecursoCreado> {
   try {
     const { data, error, response } = await apiClient.POST('/api/recursos', {
-      params: {
-        header: {
-          'x-user-id': userId,
-        },
+      headers: {
+        'x-user-id': userId,
       },
       body: payload,
     });
