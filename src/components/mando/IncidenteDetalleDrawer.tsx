@@ -223,14 +223,41 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
       });
     };
 
+    const handleMisionRechazada = (payload: unknown) => {
+      const p = payload as Record<string, unknown> | null | undefined;
+      const raw = (p?.datos || p?.data || p) as Record<string, unknown> | null | undefined;
+      const incId = typeof raw?.incidenteId === 'string' ? raw.incidenteId : undefined;
+      if (incId === incidenteId) {
+        cargarDetalle();
+      }
+    };
+
+    const handleIncidenteActualizado = (payload: unknown) => {
+      const p = payload as Record<string, unknown> | null | undefined;
+      const raw = (p?.datos || p?.data || p) as Record<string, unknown> | null | undefined;
+      const id =
+        typeof raw?.id === 'string'
+          ? raw.id
+          : typeof raw?.incidenteId === 'string'
+            ? raw.incidenteId
+            : undefined;
+      if (id === incidenteId) {
+        cargarDetalle();
+      }
+    };
+
     socket.on('connect', asegurarSalasEncargado);
     socket.on('notificacion:trazabilidad_actualizada', handleTrazabilidad);
+    socket.on('mision:rechazada', handleMisionRechazada);
+    socket.on('incidente:actualizado', handleIncidenteActualizado);
 
     return () => {
       socket.off('connect', asegurarSalasEncargado);
       socket.off('notificacion:trazabilidad_actualizada', handleTrazabilidad);
+      socket.off('mision:rechazada', handleMisionRechazada);
+      socket.off('incidente:actualizado', handleIncidenteActualizado);
     };
-  }, [incidenteId]);
+  }, [incidenteId, cargarDetalle]);
 
   const handleAsignacionExitosa = (data: DespacharPatrullaResponseData) => {
     const estadoInicial = extraerEstadoInicialNotificacion(data);

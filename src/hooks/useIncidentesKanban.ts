@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   listarIncidentes,
   DEFAULT_ENCARGADO_ID,
@@ -16,6 +16,8 @@ import {
   useEncargadoKanbanSocket,
   type IncidenteCreadoPayload,
   type IncidenteActualizadoPayload,
+  type MisionRechazadaPayload,
+  type CuadrillaActualizadaPayload,
   type NotificacionTrazabilidadPayload,
 } from './useEncargadoKanbanSocket';
 import {
@@ -69,7 +71,26 @@ function ordenarIncidentesColumna(
   return incidentes;
 }
 
-export function useIncidentesKanban(initialUserId?: string) {
+export interface UseIncidentesKanbanOptions {
+  initialUserId?: string;
+  onMisionRechazada?: (payload: MisionRechazadaPayload) => void;
+  onCuadrillaActualizada?: (payload: CuadrillaActualizadaPayload) => void;
+}
+
+export function useIncidentesKanban(options?: string | UseIncidentesKanbanOptions) {
+  const optionsObj: UseIncidentesKanbanOptions =
+    typeof options === 'string' ? { initialUserId: options } : options || {};
+  const initialUserId = optionsObj.initialUserId;
+
+  const onMisionRechazadaRef = useRef(optionsObj.onMisionRechazada);
+  useEffect(() => {
+    onMisionRechazadaRef.current = optionsObj.onMisionRechazada;
+  }, [optionsObj.onMisionRechazada]);
+
+  const onCuadrillaActualizadaRef = useRef(optionsObj.onCuadrillaActualizada);
+  useEffect(() => {
+    onCuadrillaActualizadaRef.current = optionsObj.onCuadrillaActualizada;
+  }, [optionsObj.onCuadrillaActualizada]);
   let sessionUserId: string | undefined;
   let sessionSetUser: ((id: string) => void) | undefined;
   try {
@@ -503,6 +524,97 @@ export function useIncidentesKanban(initialUserId?: string) {
     []
   );
 
+  const handleMisionRechazada = useCallback(
+    (payload: MisionRechazadaPayload) => {
+      if (payload.incidenteId) {
+        let columnaOrigenDetectada: EstadoIncidente | null = null;
+        let columnaDestinoDetectada: EstadoIncidente = 'REPORTADO';
+
+        setColumnas((prev) => {
+          let incidenteEncontrado: IncidenteResumen | null = null;
+          let columnaOrigen: EstadoIncidente | null = null;
+
+          for (const est of ESTADOS_KANBAN) {
+            const idx = prev[est].findIndex((i) => i.id === payload.incidenteId);
+            if (idx !== -1) {
+              const actual = prev[est][idx];
+              const esRechazoCuadrilla =
+                payload.tipoMision === 'ATENCION_CUADRILLA' ||
+                Boolean(payload.cuadrillaId || payload.cuadrillaNombre);
+
+              // Regla de Negocio H41: Si fue rechazado por cuadrilla y el incidente ya estaba verificado,
+              // retorna a VERIFICANDO; si no tenía verificación previa (o fue rechazo de patrulla), a REPORTADO.
+              const estadoDestino: EstadoIncidente =
+                esRechazoCuadrilla && actual.verificado ? 'VERIFICANDO' : 'REPORTADO';
+
+              columnaDestinoDetectada = estadoDestino;
+              incidenteEncontrado = {
+                ...actual,
+                estado: estadoDestino,
+                actualizadoEn: payload.rechazadoEn || new Date().toISOString(),
+              };
+              columnaOrigen = est;
+              columnaOrigenDetectada = est;
+              break;
+            }
+          }
+
+          if (!incidenteEncontrado || !columnaOrigen) return prev;
+
+          if (columnaOrigen === columnaDestinoDetectada) {
+            return {
+              ...prev,
+              [columnaDestinoDetectada]: prev[columnaDestinoDetectada].map((i) =>
+                i.id === payload.incidenteId ? incidenteEncontrado! : i
+              ),
+            };
+          }
+
+          return {
+            ...prev,
+            [columnaOrigen]: prev[columnaOrigen].filter((i) => i.id !== payload.incidenteId),
+            [columnaDestinoDetectada]: ordenarIncidentesColumna(
+              [incidenteEncontrado, ...prev[columnaDestinoDetectada]],
+              columnaDestinoDetectada
+            ),
+          };
+        });
+
+        setPaginacionColumna((prev) => {
+          if (!columnaOrigenDetectada || columnaOrigenDetectada === columnaDestinoDetectada) {
+            return prev;
+          }
+
+          return {
+            ...prev,
+            [columnaDestinoDetectada]: prev[columnaDestinoDetectada]
+              ? {
+                  ...prev[columnaDestinoDetectada]!,
+                  total: prev[columnaDestinoDetectada]!.total + 1,
+                }
+              : null,
+            [columnaOrigenDetectada]: prev[columnaOrigenDetectada]
+              ? {
+                  ...prev[columnaOrigenDetectada]!,
+                  total: Math.max(0, prev[columnaOrigenDetectada]!.total - 1),
+                }
+              : null,
+          };
+        });
+      }
+
+      onMisionRechazadaRef.current?.(payload);
+    },
+    []
+  );
+
+  const handleCuadrillaActualizada = useCallback(
+    (payload: CuadrillaActualizadaPayload) => {
+      onCuadrillaActualizadaRef.current?.(payload);
+    },
+    []
+  );
+
   const handleTrazabilidadActualizada = useCallback(
     (payload: NotificacionTrazabilidadPayload) => {
       if (!payload?.misionId || getIncidentePorMision(payload.misionId)) {
@@ -525,6 +637,8 @@ export function useIncidentesKanban(initialUserId?: string) {
   const { conectado, ultimoEvento } = useEncargadoKanbanSocket({
     onIncidenteCreado: handleIncidenteCreado,
     onIncidenteActualizado: handleIncidenteActualizado,
+    onMisionRechazada: handleMisionRechazada,
+    onCuadrillaActualizada: handleCuadrillaActualizada,
     onNotificacionTrazabilidadActualizada: handleTrazabilidadActualizada,
     enabled: !esForbidden,
   });

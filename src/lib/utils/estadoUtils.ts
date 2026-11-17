@@ -24,6 +24,7 @@ export const MAPA_ESTADOS_LEGIBLES: Record<string, string> = {
   PLANIFICADA: 'Planificada',
   COMPLETADA: 'Completada',
   CANCELADA: 'Cancelada',
+  RECHAZADA: 'Rechazada',
 
   // Personal y Funcionarios
   disponible: 'Disponible',
