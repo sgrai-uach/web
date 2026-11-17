@@ -89,21 +89,24 @@ Desglose cronológico de las evaluaciones emitidas por los funcionarios municipa
 
 ---
 
-## 4. Galería de Evidencia Multimedia y Visor Lightbox
+## 4. Galería de Evidencia Multimedia y Visor Lightbox (HU-17 / HU-43)
 
-Cada informe técnico emitido desde terreno incluye su galería de archivos adjuntos:
+Cada informe técnico emitido desde terreno (y el detalle del incidente cuando recibe adjuntos directos) incluye su galería de archivos adjuntos con **actualización automática en tiempo real**: cuando un Delegado de Cuadrilla o Patrulla carga evidencia desde terreno (`adjunto:creado`), las miniaturas aparecen de inmediato sin necesidad de recargar la página.
 
 1. **Miniaturas Clicables:**
-   - Para fotografías y videos (`.jpg`, `.png`, `.mp4`), se genera una previsualización gráfica optimizada.
-   - Para documentos técnicos o actas (`.pdf`, `.docx`), se muestra un ícono de documento con el nombre del archivo y su peso formateado (ej. `1.5 MB`).
+   - **Fotografías** (`image/jpeg`, `image/png`, `image/webp`): se muestra una miniatura de previsualización optimizada.
+   - **Videos** (`video/mp4`, `video/webm`, `video/quicktime`): se muestra un ícono de video con la etiqueta `VIDEO`, el nombre del archivo y su tamaño.
+   - **Documentos técnicos** (`application/pdf`): se muestra un ícono de documento con la etiqueta `PDF`, el nombre del archivo y su peso formateado (ej. `500 KB`).
 2. **Visor en Pantalla Completa (Lightbox):**
-   - Al hacer clic sobre cualquier fotografía, se abre un visor de alta fidelidad con fondo oscuro.
-   - Permite inspeccionar los detalles de la evidencia fotográfica sin distorsiones.
-   - Muestra el nombre oficial del archivo y tamaño en bytes.
+   - Al hacer clic sobre cualquier miniatura, se abre el visor de alta fidelidad con fondo oscuro:
+     - **Fotografías:** visualización ampliada sin distorsiones.
+     - **Videos:** reproductor integrado con controles y reproducción progresiva (*streaming* `HTTP 206 Partial Content`), más botón **"Descargar Video"**.
+     - **Documentos PDF:** vista previa embebida dentro del visor y botón **"Descargar PDF"**.
+   - Muestra el nombre oficial del archivo y su tamaño formateado.
 3. **Cierre del Visor:**
    - Presiona la **"×"** superior derecha del visor.
    - O presiona la tecla `Escape` en tu teclado.
-   - O haz clic fuera de la fotografía.
+   - O haz clic fuera del contenido del visor.
 
 ---
 
@@ -137,5 +140,5 @@ Al cerrarse el modal:
 
 ## 7. Relación con Otros Repositorios del Sistema
 
-- **`sgrai-api`:** Provee el endpoint REST `GET /api/misiones/{id}`, valida la autorización RBAC con la cabecera `X-User-Id` y resuelve la multimedia almacenada bajo `/uploads/evidencia/`.
-- **`sgrai-pwa`:** Es la aplicación móvil utilizada en terreno por Delegados de Cuadrilla y Líderes de Patrulla para enviar los reportes técnicos y capturas fotográficas que se visualizan en esta pantalla.
+- **`sgrai-api`:** Provee el endpoint REST `GET /api/misiones/{id}`, recibe los adjuntos vía `POST /api/evidencia/adjuntos` (permiso `reportes:crear`), sirve la multimedia bajo `/uploads/evidencia/` con soporte `HTTP 206 Partial Content` y emite el evento WebSocket `adjunto:creado`.
+- **`sgrai-pwa`:** Es la aplicación móvil utilizada en terreno por Delegados de Cuadrilla y Líderes de Patrulla para capturar y enviar reportes técnicos, fotografías, videos y documentos PDF (incluyendo cola de sincronización *offline* en IndexedDB) que se visualizan en tiempo real en esta pantalla.
