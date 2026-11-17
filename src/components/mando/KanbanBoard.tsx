@@ -12,6 +12,10 @@ import { useToast } from '@/components/ui/Toast';
 import type { EstadoIncidente, IncidenteResumen } from '@/services/incidentesService';
 import type { EventoPrevencionDTO } from '@/types/evento-prevencion';
 import type { EventoRecuperacionResponse } from '@/types/recuperacion';
+import type {
+  MisionRechazadaPayload,
+  CuadrillaActualizadaPayload,
+} from '@/hooks/useEncargadoKanbanSocket';
 import { KanbanHeader } from './KanbanHeader';
 import { KanbanFiltros } from './KanbanFiltros';
 import { KanbanColumn } from './KanbanColumn';
@@ -45,7 +49,7 @@ const TITULOS_COLUMNAS = {
 } as const;
 
 export const KanbanBoard: React.FC = () => {
-  const { showInfo } = useToast();
+  const { showInfo, showWarning } = useToast();
   const searchParams = useSearchParams();
   const [vistaActiva, setVistaActiva] = useState<'kanban' | 'mapa'>('kanban');
   const [misionesModalAbierto, setMisionesModalAbierto] = useState(false);
@@ -79,6 +83,69 @@ export const KanbanBoard: React.FC = () => {
     cargarCuadrillas();
   }, [cargarCuadrillas]);
 
+  const refrescarKpisRef = React.useRef<(silent?: boolean) => void>(() => {});
+  const ultimosToastsRechazoRef = React.useRef<Map<string, number>>(new Map());
+
+  const handleMisionRechazadaSocket = React.useCallback(
+    (payload: MisionRechazadaPayload) => {
+      const claveDedup = payload.misionId || payload.codigo;
+      const ahora = Date.now();
+      if (claveDedup) {
+        const ultimaVez = ultimosToastsRechazoRef.current.get(claveDedup);
+        if (ultimaVez && ahora - ultimaVez < 5000) {
+          return;
+        }
+        ultimosToastsRechazoRef.current.set(claveDedup, ahora);
+      }
+
+      const esCuadrilla =
+        payload.tipoMision === 'ATENCION_CUADRILLA' ||
+        Boolean(payload.cuadrillaId || payload.cuadrillaNombre);
+
+      const unidadTexto = esCuadrilla
+        ? payload.cuadrillaNombre
+          ? `La cuadrilla ${payload.cuadrillaNombre}`
+          : 'La cuadrilla operativa'
+        : payload.patrullaNombre
+          ? `La patrulla ${payload.patrullaNombre}`
+          : 'La patrulla verificadora';
+
+      const incidenteTexto = payload.incidenteCodigo
+        ? ` del incidente ${payload.incidenteCodigo}`
+        : '';
+      const motivoTexto =
+        payload.motivo || payload.justificacionRechazo || 'Sin justificación especificada';
+
+      showWarning(
+        `${unidadTexto} rechazó la misión ${payload.codigo}${incidenteTexto}. Motivo: "${motivoTexto}". La unidad volvió a estado Disponible y la emergencia quedó lista para reasignación.`,
+        esCuadrilla ? 'Misión Rechazada por Cuadrilla' : 'Misión Rechazada por Patrulla'
+      );
+
+      refrescarKpisRef.current(false);
+      cargarCuadrillas();
+    },
+    [showWarning, cargarCuadrillas]
+  );
+
+  const handleCuadrillaActualizadaSocket = React.useCallback(
+    (payload: CuadrillaActualizadaPayload) => {
+      setCuadrillasOperativas((prev) => {
+        const existe = prev.some((c) => c.id === payload.id);
+        if (!existe) return prev;
+        return prev.map((c) =>
+          c.id === payload.id
+            ? {
+                ...c,
+                estado: payload.estado as CuadrillaItem['estado'],
+                nombre: payload.nombre || c.nombre,
+              }
+            : c
+        );
+      });
+    },
+    []
+  );
+
   const {
     userId,
     setUserId,
@@ -101,7 +168,10 @@ export const KanbanBoard: React.FC = () => {
     incidenteSeleccionadoId,
     setIncidenteSeleccionadoId,
     trazabilidadPorIncidente,
-  } = useIncidentesKanban();
+  } = useIncidentesKanban({
+    onMisionRechazada: handleMisionRechazadaSocket,
+    onCuadrillaActualizada: handleCuadrillaActualizadaSocket,
+  });
 
 
   const [estadoEnfocado, setEstadoEnfocado] = useState<EstadoIncidente | null>(null);
@@ -130,6 +200,10 @@ export const KanbanBoard: React.FC = () => {
     refrescarKpis,
     conectado: conectadoKpis,
   } = useIncidentesKpis({ userId });
+
+  useEffect(() => {
+    refrescarKpisRef.current = refrescarKpis;
+  }, [refrescarKpis]);
 
   // Hook de tiempo real para eventos de prevención (HU-30)
   usePrevencionSocket({

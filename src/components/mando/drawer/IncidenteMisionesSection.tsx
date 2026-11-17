@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Check, Clock, Eye, ShieldCheck, Users, WifiOff } from 'lucide-react';
+import { AlertTriangle, Check, Clock, Eye, ShieldCheck, Users, WifiOff } from 'lucide-react';
 import Heading from '@/components/ui/Heading';
 import Button from '@/components/ui/Button';
 import type { IncidenteDetalle } from '@/services/incidentesService';
@@ -52,6 +52,21 @@ export const IncidenteMisionesSection: React.FC<IncidenteMisionesSectionProps> =
     Boolean(onAsignarPatrulla) &&
     puedeAsignar;
 
+  const tieneCuadrillaActiva = misiones.some(
+    (m) =>
+      (m.tipoMision === 'ATENCION_CUADRILLA' || Boolean(m.cuadrilla)) &&
+      ['PLANIFICADA', 'DESPACHADA', 'EN_CURSO'].includes(m.estado)
+  );
+
+  const tieneRechazoCuadrillaPendiente =
+    (incidenteEstado === 'VERIFICANDO' || incidenteEstado === 'REPORTADO') &&
+    !tieneCuadrillaActiva &&
+    misiones.some(
+      (m) =>
+        m.estado === 'RECHAZADA' &&
+        (m.tipoMision === 'ATENCION_CUADRILLA' || Boolean(m.cuadrilla))
+    );
+
   return (
     <div className={styles.drawerSection}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
@@ -89,6 +104,37 @@ export const IncidenteMisionesSection: React.FC<IncidenteMisionesSectionProps> =
             <ShieldCheck size={14} style={{ marginRight: '5px' }} />
             <span>Despachar Patrulla Verificadora</span>
           </Button>
+        </div>
+      )}
+
+      {tieneRechazoCuadrillaPendiente && (
+        <div
+          role="status"
+          data-testid="aviso-rechazo-cuadrilla-reasignacion"
+          style={{
+            backgroundColor: 'var(--color-warning-bg, #FFF3E0)',
+            border: '1px solid var(--color-warning, #E65100)',
+            borderLeft: '4px solid var(--color-warning, #E65100)',
+            padding: '10px 12px',
+            borderRadius: 0,
+            marginBottom: '0.75rem',
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: '8px',
+            fontSize: '0.8125rem',
+            color: 'var(--color-text-dark, #2B2B2B)',
+          }}
+        >
+          <AlertTriangle
+            size={16}
+            color="var(--color-warning, #E65100)"
+            aria-hidden="true"
+            style={{ flexShrink: 0, marginTop: '2px' }}
+          />
+          <span>
+            La cuadrilla asignada previamente rechazó la misión en terreno. Revise la justificación abajo y utilice{' '}
+            <strong>Despachar Cuadrilla</strong> para reasignar la emergencia de inmediato.
+          </span>
         </div>
       )}
 
@@ -357,7 +403,15 @@ export const IncidenteMisionesSection: React.FC<IncidenteMisionesSectionProps> =
           )}
           {mision.justificacionRechazo && (
             <div className={styles.misionRechazo}>
-              <strong>Motivo de Rechazo por la Cuadrilla:</strong> {mision.justificacionRechazo}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '2px' }}>
+                <AlertTriangle size={14} color="var(--color-danger, #D32F2F)" aria-hidden="true" />
+                <strong>
+                  {mision.patrulla && !mision.cuadrilla
+                    ? 'Motivo de Rechazo por la Patrulla:'
+                    : 'Motivo de Rechazo por la Cuadrilla:'}
+                </strong>
+              </div>
+              <span>{mision.justificacionRechazo}</span>
             </div>
           )}
 
