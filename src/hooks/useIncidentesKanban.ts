@@ -224,6 +224,18 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
           return;
         }
 
+        // Verificar si hubo errores de servidor/red (evitar mostrar tablero vacío silenciosamente)
+        const fallidos = resultados.filter((r) => !r.exito);
+        if (fallidos.length > 0) {
+          setError(
+            fallidos[0].mensaje ||
+              'Error al cargar los incidentes del tablero. Intente nuevamente.'
+          );
+          if (fallidos.length === resultados.length) {
+            return;
+          }
+        }
+
         const nuevasColumnas: Record<EstadoIncidente, IncidenteResumen[]> = {
           REPORTADO: [],
           VERIFICANDO: [],

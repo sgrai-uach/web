@@ -713,4 +713,22 @@ describe('useIncidentesKanban - HU-20 y BUG-04', () => {
       expect(result.current.trazabilidadPorIncidente['inc-resuelto-99']).toBe('LEIDA');
     });
   });
+
+  it('debe exponer el mensaje de error cuando listarIncidentes falla con error 500 en lugar de mostrar el tablero vacío silenciosamente', async () => {
+    vi.mocked(incidentesService.listarIncidentes).mockResolvedValue({
+      exito: false,
+      incidentes: [],
+      codigoError: 500,
+      mensaje: 'Error interno del servidor al listar incidentes',
+    });
+
+    const { result } = renderHook(() => useIncidentesKanban());
+
+    await waitFor(() => {
+      expect(result.current.cargando).toBe(false);
+    });
+
+    expect(result.current.esForbidden).toBe(false);
+    expect(result.current.error).toBe('Error interno del servidor al listar incidentes');
+  });
 });
