@@ -9,6 +9,7 @@ import {
   esJustificacionSinCambios,
   esHitoTipologiaSinCambios,
   formatearNombrePatrulla,
+  limpiarDescripcionBitacora,
   formatearDictamenTerreno,
   esReporteVerificacionCierre,
   calcularComparativaPersonasAfectadas,
@@ -148,6 +149,29 @@ describe('fueTipologiaModificada y detección de ratificación sin cambios', () 
     expect(formatearNombrePatrulla('Patrulla Lenteja')).toBe('Patrulla Lenteja');
     expect(formatearNombrePatrulla('Alfa 1')).toBe('Patrulla Alfa 1');
     expect(formatearNombrePatrulla(null)).toBe('Patrulla Verificadora');
+  });
+
+  it('limpia enums crudos y redundancias en descripciones de bitácora operativa', () => {
+    expect(formatearHitoBitacora('VERIFICACION_COMPLETADA')).toBe('Verificación completada');
+    expect(
+      limpiarDescripcionBitacora(
+        'Misión de verificación asignada y despachada a la patrulla Patrulla Lenteja.'
+      )
+    ).toBe('Misión de verificación asignada y despachada a la Patrulla Lenteja.');
+    expect(
+      limpiarDescripcionBitacora(
+        'Reporte de evaluación #1: Prioridad asignada en terreno a BAJA (Sugerida: CRITICA). Justificación: Ajuste en sitio'
+      )
+    ).toBe(
+      'Reporte de evaluación #1: Prioridad asignada en terreno a Baja (Sugerida: Crítica). Justificación: Ajuste en sitio'
+    );
+    expect(
+      limpiarDescripcionBitacora(
+        'Informe técnico enviado y misión cerrada. Dictamen: NO_ABORDABLE. Motivo: Sin acceso'
+      )
+    ).toBe(
+      'Informe técnico enviado y misión cerrada. Dictamen: No Abordable. Motivo: Sin acceso'
+    );
   });
 });
 

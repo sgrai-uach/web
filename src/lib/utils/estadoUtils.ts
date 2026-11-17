@@ -53,6 +53,9 @@ export const MAPA_ESTADOS_LEGIBLES: Record<string, string> = {
   REPORTE_VERIFICACION_CIERRE: 'Informe técnico de verificación y cierre registrado',
   CIERRE_VERIFICACION: 'Cierre de verificación en terreno',
   INCIDENTE_NO_ABORDABLE: 'Incidente declarado no abordable en terreno',
+  VERIFICACION_COMPLETADA: 'Verificación completada',
+  CUADRILLA_DESPACHADA: 'Cuadrilla despachada',
+  PATRULLA_LIBERADA: 'Patrulla verificadora liberada',
   MISION_COMPLETADA: 'Misión completada',
   MISION_RECHAZADA: 'Misión rechazada',
   MISION_CANCELADA: 'Misión cancelada',
@@ -512,6 +515,46 @@ export function calcularComparativaPersonasAfectadas(
         ? actualVal !== prevNucleo
         : Boolean(reporteActual.personasAfectadasModificadas),
   };
+}
+
+/**
+ * Reemplaza valores crudos de enums (estados, dictámenes, prioridades) y redundancias
+ * dentro de descripciones de la bitácora operativa por lenguaje natural institucional.
+ */
+export function limpiarDescripcionBitacora(desc?: string | null): string {
+  if (!desc || typeof desc !== 'string') return '';
+
+  const mapaPrioridades: Record<string, string> = {
+    BAJA: 'Baja',
+    MEDIA: 'Media',
+    ALTA: 'Alta',
+    CRITICA: 'Crítica',
+  };
+
+  return desc
+    // Estados entre paréntesis
+    .replace(/\(EN_CURSO\)/gi, '(En curso)')
+    .replace(/\(DESPACHADA\)/gi, '(Despachada)')
+    .replace(/\(PLANIFICADA\)/gi, '(Planificada)')
+    .replace(/\(COMPLETADA\)/gi, '(Completada)')
+    .replace(/\(RECHAZADA\)/gi, '(Rechazada)')
+    .replace(/\(CANCELADA\)/gi, '(Cancelada)')
+    .replace(/\(EN_VERIFICACION\)/gi, '(En verificación)')
+    .replace(/\(VERIFICANDO\)/gi, '(En verificación)')
+    .replace(/\(REPORTADO\)/gi, '(Reportado)')
+    .replace(/\(EN_ATENCION\)/gi, '(En atención)')
+    .replace(/\(RESUELTO\)/gi, '(Resuelto)')
+    .replace(/\(NO_ABORDABLE\)/gi, '(No abordable)')
+    // Dictámenes operativos
+    .replace(/\bNO_ABORDABLE\b/g, 'No Abordable')
+    .replace(/\bREQUIERE_CUADRILLA\b/g, 'Requiere Cuadrilla')
+    // Prioridades exactas en mayúsculas dentro de frases técnicas
+    .replace(
+      /\b(a|Sugerida:|Prioridad:|Prioridad sugerida:|Prioridad asignada:)\s+(BAJA|MEDIA|ALTA|CRITICA)\b/g,
+      (_match, prefijo: string, prio: string) => `${prefijo} ${mapaPrioridades[prio] || prio}`
+    )
+    // Evitar redundancia "a la patrulla Patrulla X"
+    .replace(/\bpatrulla\s+Patrulla\b/gi, 'Patrulla');
 }
 
 
