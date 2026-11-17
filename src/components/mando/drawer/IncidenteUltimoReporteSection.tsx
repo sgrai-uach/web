@@ -131,11 +131,6 @@ export const IncidenteUltimoReporteSection: React.FC<IncidenteUltimoReporteSecti
     );
   }, [esCierre, reporteTerrenoReciente, ultimoReporte, detalle.motivoNoAbordable]);
 
-  const estadoTerrenoCierre = React.useMemo(() => {
-    if (!esCierre) return null;
-    return reporteTerrenoReciente?.estadoTerreno ?? ultimoReporte?.estadoTerreno ?? null;
-  }, [esCierre, reporteTerrenoReciente, ultimoReporte]);
-
   const requiereFibeCierre = React.useMemo(() => {
     if (!esCierre) return false;
     return Boolean(
@@ -240,12 +235,6 @@ export const IncidenteUltimoReporteSection: React.FC<IncidenteUltimoReporteSecti
         : undefined;
 
     const itemsBasicos: Array<{ etiqueta: string; valor: string }> = [];
-    if (esCierre && estadoTerrenoCierre) {
-      itemsBasicos.push({
-        etiqueta: 'Estado del terreno',
-        valor: formatearEstado(estadoTerrenoCierre),
-      });
-    }
     if (typeof personas === 'number') {
       let textoPersonas = `${personas} ${personas === 1 ? 'persona' : 'personas'}`;
       if (esCierre && comparativaPersonasCierre?.fueModificado) {
@@ -337,7 +326,6 @@ export const IncidenteUltimoReporteSection: React.FC<IncidenteUltimoReporteSecti
     detalle.reclasificacionTipologia,
     reporteTerrenoReciente,
     esCierre,
-    estadoTerrenoCierre,
     comparativaPersonasCierre,
   ]);
 

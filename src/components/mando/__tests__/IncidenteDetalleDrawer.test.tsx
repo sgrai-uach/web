@@ -923,7 +923,6 @@ describe('Componente IncidenteDetalleDrawer e integración HU-17', () => {
     const seccionUltimo = screen.getByTestId('incidente-ultimo-reporte-section');
     expect(seccionUltimo.textContent).toContain('Dictamen: Requiere Cuadrilla');
     expect(seccionUltimo.textContent).toContain('Requiere Ficha FIBE');
-    expect(seccionUltimo.textContent).toContain('Critico');
     expect(seccionUltimo.textContent).toContain('6 personas (Modificado; antes: 4)');
     expect(screen.getByText('Despachar Cuadrilla')).toBeDefined();
   });
