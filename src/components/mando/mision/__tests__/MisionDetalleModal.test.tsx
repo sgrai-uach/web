@@ -1,13 +1,36 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import { MisionDetalleModal } from '../MisionDetalleModal';
 import * as misionesService from '@/services/misionesService';
 import type { MisionDetalleCompleto } from '@/types/misiones';
 
+let socketListeners: Record<string, ((...args: unknown[]) => void)[]> = {};
+
+const mockSocket = {
+  connected: true,
+  connect: vi.fn(),
+  emit: vi.fn(),
+  on: vi.fn((event: string, handler: (...args: unknown[]) => void) => {
+    if (!socketListeners[event]) socketListeners[event] = [];
+    socketListeners[event].push(handler);
+  }),
+  off: vi.fn((event: string, handler: (...args: unknown[]) => void) => {
+    if (socketListeners[event]) {
+      socketListeners[event] = socketListeners[event].filter((h) => h !== handler);
+    }
+  }),
+};
+
+vi.mock('@/lib/socket/client', () => ({
+  getSocket: () => mockSocket,
+}));
+
 describe('Componente MisionDetalleModal (HU-17)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    socketListeners = {};
+    mockSocket.connected = true;
   });
 
   const mockMision: MisionDetalleCompleto = {
@@ -409,5 +432,108 @@ describe('Componente MisionDetalleModal (HU-17)', () => {
     expect(
       screen.queryByLabelText('Visor de evidencia: evidencia_1.jpg')
     ).toBeNull();
+  });
+
+  it('HU-43: debe actualizar la galería inmediatamente al recibir evento WebSocket adjunto:creado', async () => {
+    vi.spyOn(misionesService, 'obtenerDetalleMision').mockResolvedValueOnce({
+      exito: true,
+      datos: mockMision,
+      mensaje: 'Detalle obtenido.',
+    });
+
+    render(
+      <MisionDetalleModal
+        misionId="m1000000-0000-4000-8000-000000000001"
+        onCerrar={vi.fn()}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('evidencia_1.jpg')).toBeDefined();
+    });
+
+    const handler = socketListeners['adjunto:creado']?.[0];
+    expect(handler).toBeDefined();
+
+    act(() => {
+      handler?.({
+        id: 'adj-ws-001',
+        nombreArchivo: 'acta_terreno.pdf',
+        url: '/uploads/evidencia/acta_terreno.pdf',
+        tipoMime: 'application/pdf',
+        tamanoBytes: 512000,
+        incidenteId: 'i001',
+        reporteTerrenoId: 'rep001',
+        creadoEn: '2026-10-02T15:10:00.000Z',
+      });
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText('acta_terreno.pdf')).toBeDefined();
+    });
+    expect(screen.getByText('PDF')).toBeDefined();
+  });
+
+  it('HU-43: debe renderizar visor de video (<video>) y vista previa PDF (<iframe>) en el lightbox', async () => {
+    const misionConMultimedia: MisionDetalleCompleto = {
+      ...mockMision,
+      reportesTerreno: [
+        {
+          ...mockMision.reportesTerreno[0],
+          adjuntos: [
+            {
+              id: 'adj-vid-1',
+              nombreArchivo: 'inspeccion.mp4',
+              url: '/uploads/evidencia/inspeccion.mp4',
+              tipoMime: 'video/mp4',
+              tamanoBytes: 2097152,
+              creadoEn: '2026-10-02T14:50:00.000Z',
+            },
+            {
+              id: 'adj-pdf-1',
+              nombreArchivo: 'informe.pdf',
+              url: '/uploads/evidencia/informe.pdf',
+              tipoMime: 'application/pdf',
+              tamanoBytes: 102400,
+              creadoEn: '2026-10-02T14:55:00.000Z',
+            },
+          ],
+        },
+      ],
+    };
+
+    vi.spyOn(misionesService, 'obtenerDetalleMision').mockResolvedValueOnce({
+      exito: true,
+      datos: misionConMultimedia,
+      mensaje: 'Detalle obtenido.',
+    });
+
+    render(
+      <MisionDetalleModal
+        misionId="m1000000-0000-4000-8000-000000000001"
+        onCerrar={vi.fn()}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('inspeccion.mp4')).toBeDefined();
+      expect(screen.getByText('informe.pdf')).toBeDefined();
+    });
+
+    expect(screen.getByText('VIDEO')).toBeDefined();
+    expect(screen.getByText('PDF')).toBeDefined();
+
+    // Abrir video en lightbox
+    fireEvent.click(screen.getByTitle(/Ver archivo inspeccion\.mp4/i));
+    const videoEl = screen.getByLabelText('inspeccion.mp4');
+    expect(videoEl.tagName).toBe('VIDEO');
+    expect(videoEl.getAttribute('controls')).not.toBeNull();
+
+    // Cerrar y abrir PDF en lightbox
+    fireEvent.click(screen.getByLabelText('Cerrar visor de evidencia'));
+    fireEvent.click(screen.getByTitle(/Ver archivo informe\.pdf/i));
+    const iframeEl = screen.getByTitle('informe.pdf');
+    expect(iframeEl.tagName).toBe('IFRAME');
+    expect(screen.getByText('Descargar PDF')).toBeDefined();
   });
 });

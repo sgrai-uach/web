@@ -701,6 +701,74 @@ describe('Componente IncidenteDetalleDrawer e integración HU-17', () => {
       'notificacion:trazabilidad_actualizada',
       expect.any(Function)
     );
+    expect(mockSocket.off).toHaveBeenCalledWith(
+      'adjunto:creado',
+      expect.any(Function)
+    );
     expect(mockSocket.emit).not.toHaveBeenCalledWith('salir', 'sala:encargados');
+  });
+
+  it('HU-43: debe recargar el incidente y mostrar la galería al recibir adjunto:creado para el incidenteId abierto', async () => {
+    const detalleConAdjunto = {
+      ...mockDetalleIncidente,
+      adjuntos: [
+        {
+          id: 'adj-inc-001',
+          nombreArchivo: 'foto_dano.webp',
+          url: '/uploads/evidencia/foto_dano.webp',
+          tipoMime: 'image/webp',
+          tamanoBytes: 120000,
+          creadoEn: '2026-10-02T15:30:00.000Z',
+        },
+      ],
+    };
+
+    const spyDetalle = vi
+      .spyOn(incidentesService, 'obtenerDetalleIncidente')
+      .mockResolvedValueOnce({
+        exito: true,
+        datos: mockDetalleIncidente,
+        mensaje: 'OK',
+      })
+      .mockResolvedValueOnce({
+        exito: true,
+        datos: detalleConAdjunto,
+        mensaje: 'OK',
+      });
+
+    render(
+      <IncidenteDetalleDrawer
+        incidenteId={mockDetalleIncidente.id}
+        userId="user-test"
+        onCerrar={vi.fn()}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('INC-2026-0042')).toBeDefined();
+    });
+    expect(screen.queryByTestId('incidente-evidencias-section')).toBeNull();
+
+    const handler = socketListeners['adjunto:creado']?.[0];
+    expect(handler).toBeDefined();
+
+    act(() => {
+      handler?.({
+        id: 'adj-inc-001',
+        nombreArchivo: 'foto_dano.webp',
+        url: '/uploads/evidencia/foto_dano.webp',
+        tipoMime: 'image/webp',
+        tamanoBytes: 120000,
+        incidenteId: mockDetalleIncidente.id,
+        reporteTerrenoId: null,
+        creadoEn: '2026-10-02T15:30:00.000Z',
+      });
+    });
+
+    await waitFor(() => {
+      expect(spyDetalle).toHaveBeenCalledTimes(2);
+      expect(screen.getByTestId('incidente-evidencias-section')).toBeDefined();
+      expect(screen.getByText('foto_dano.webp')).toBeDefined();
+    });
   });
 });
