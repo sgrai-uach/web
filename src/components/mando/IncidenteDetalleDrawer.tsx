@@ -4,19 +4,26 @@ import React, { useEffect, useRef, useState, useMemo, useCallback } from 'react'
 import {
   obtenerDetalleIncidente,
   type IncidenteDetalle,
+  type ReporteEvaluacionTerreno,
 } from '@/services/incidentesService';
 import { IncidenteDetalleHeader } from './drawer/IncidenteDetalleHeader';
 import { IncidenteResumenSection } from './drawer/IncidenteResumenSection';
+import { IncidenteUltimoReporteSection } from './drawer/IncidenteUltimoReporteSection';
 import { IncidenteUbicacionSection } from './drawer/IncidenteUbicacionSection';
 import { IncidenteInformanteSection } from './drawer/IncidenteInformanteSection';
 import { IncidenteMisionesSection } from './drawer/IncidenteMisionesSection';
 import { IncidenteRecursosSection } from './drawer/IncidenteRecursosSection';
+import { IncidenteEvidenciasSection } from './drawer/IncidenteEvidenciasSection';
 import { MisionDetalleModal } from './mision/MisionDetalleModal';
 import { ModalAsignarCuadrilla } from './ModalAsignarCuadrilla';
 import { AsignarPatrullaModal } from './patrullas/AsignarPatrullaModal';
 import { useOptionalAuth } from '@/context/AuthContext';
 import { useOptionalToast } from '@/components/ui/Toast';
 import { usePuedeAsignarMision } from '@/hooks/usePuedeAsignarMision';
+import {
+  esReporteVerificacionCierre,
+  fueTipologiaModificada,
+} from '@/lib/utils/estadoUtils';
 import Button from '@/components/ui/Button';
 import { getSocket } from '@/lib/socket/client';
 import {
@@ -32,13 +39,20 @@ import {
 } from '@/lib/socket/trazabilidadConfig';
 import { TrazabilidadIcon } from './TrazabilidadIcon';
 import InlineNotice from '@/components/ui/InlineNotice';
-import type { DespacharCuadrillaResponse, DespacharPatrullaResponseData } from '@/types/misiones';
+import {
+  esPayloadAdjuntoCreadoValido,
+  type AdjuntoEvidencia,
+  type DespacharCuadrillaResponse,
+  type DespacharPatrullaResponseData,
+  type DictamenAtencionTerreno,
+} from '@/types/misiones';
 import type { EstadoIncidente } from '@/services/incidentesService';
-import { HardHat, CheckCircle2 } from 'lucide-react';
+import { HardHat, CheckCircle2, Ban } from 'lucide-react';
 import styles from '@/styles/mando.module.css';
 
 export interface IncidenteDetalleDrawerProps {
   incidenteId: string | null;
+  incidenteCodigo?: string | null;
   userId: string;
   onCerrar: () => void;
   onSelectCuadrilla?: (cuadrillaId: string) => void;
@@ -47,6 +61,7 @@ export interface IncidenteDetalleDrawerProps {
 
 export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
   incidenteId,
+  incidenteCodigo = null,
   userId,
   onCerrar,
   onSelectCuadrilla,
@@ -59,6 +74,8 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
   const [cargando, setCargando] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [misionSeleccionadaId, setMisionSeleccionadaId] = useState<string | null>(null);
+  const [enfocarReportesMision, setEnfocarReportesMision] = useState<boolean>(false);
+  const [reporteDestacadoId, setReporteDestacadoId] = useState<string | null>(null);
   const [modalCuadrillaAbierto, setModalCuadrillaAbierto] = useState<boolean>(false);
   const [modalAsignarPatrullaAbierto, setModalAsignarPatrullaAbierto] = useState<boolean>(false);
   const puedeAsignar = usePuedeAsignarMision();
@@ -177,6 +194,7 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
     onIncidenteActualizado?.();
   };
 
+  // Sincronización en tiempo real ante reclasificación, trazabilidad o cambios mientras el drawer está abierto
   useEffect(() => {
     if (!incidenteId) return;
 
@@ -193,6 +211,148 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
     if (socket.connected) {
       asegurarSalasEncargado();
     }
+
+    const handleActualizadoSocket = (payload: unknown) => {
+      const p = payload as Record<string, unknown> | null | undefined;
+      const rawDatos = (p?.datos || p?.data || p) as Record<string, unknown> | null | undefined;
+      const id =
+        typeof rawDatos?.id === 'string'
+          ? rawDatos.id
+          : typeof rawDatos?.incidenteId === 'string'
+            ? rawDatos.incidenteId
+            : undefined;
+
+      if (id === incidenteId) {
+        setDetalle((prev) => {
+          if (!prev) return prev;
+          const nuevoTipo =
+            typeof rawDatos?.tipoAfectacion === 'string'
+              ? rawDatos.tipoAfectacion
+              : prev.tipoAfectacion;
+          const nuevaPrioridad =
+            typeof rawDatos?.prioridad === 'string'
+              ? (rawDatos.prioridad as IncidenteDetalle['prioridad'])
+              : prev.prioridad;
+          const nuevoEstado =
+            typeof rawDatos?.nuevoEstado === 'string'
+              ? (rawDatos.nuevoEstado as IncidenteDetalle['estado'])
+              : typeof rawDatos?.estado === 'string'
+                ? (rawDatos.estado as IncidenteDetalle['estado'])
+                : prev.estado;
+          const justificacionPrioridad =
+            typeof rawDatos?.justificacionPrioridad === 'string'
+              ? rawDatos.justificacionPrioridad
+              : prev.justificacionPrioridad;
+          const prioridadSugerida =
+            typeof rawDatos?.prioridadSugerida === 'string'
+              ? (rawDatos.prioridadSugerida as IncidenteDetalle['prioridadSugerida'])
+              : prev.prioridadSugerida;
+          const justificacion =
+            typeof rawDatos?.justificacion === 'string'
+              ? rawDatos.justificacion
+              : justificacionPrioridad || prev.justificacionReclasificacion;
+          const huboCambioPrioridad = Boolean(
+            (rawDatos?.prioridad && rawDatos.prioridad !== prev.prioridad) ||
+              (prioridadSugerida && nuevaPrioridad !== prioridadSugerida)
+          );
+
+          let nuevosReportes = prev.reportesEvaluacionTerreno || [];
+          let esCierreVerificacion = nuevoEstado === 'NO_ABORDABLE';
+          let reporteEntranteRef: ReporteEvaluacionTerreno | null = null;
+          if (rawDatos?.reporteTerreno && typeof rawDatos.reporteTerreno === 'object') {
+            const repentrante = rawDatos.reporteTerreno as ReporteEvaluacionTerreno;
+            reporteEntranteRef = repentrante;
+            if (esReporteVerificacionCierre(repentrante)) {
+              esCierreVerificacion = true;
+            }
+            const yaExiste = nuevosReportes.some((r) => r.id === repentrante.id);
+            nuevosReportes = yaExiste
+              ? nuevosReportes.map((r) => (r.id === repentrante.id ? repentrante : r))
+              : [repentrante, ...nuevosReportes];
+          }
+
+          const dictamenEntrante =
+            typeof rawDatos?.dictamen === 'string'
+              ? (rawDatos.dictamen as DictamenAtencionTerreno)
+              : reporteEntranteRef?.dictamen ?? prev.dictamenTerreno;
+
+          const motivoNoAbordableEntrante =
+            typeof rawDatos?.motivoNoAbordable === 'string'
+              ? rawDatos.motivoNoAbordable
+              : typeof rawDatos?.motivo_no_abordable === 'string'
+                ? rawDatos.motivo_no_abordable
+                : reporteEntranteRef?.motivoNoAbordable ?? prev.motivoNoAbordable;
+
+          const fechaCierreEntrante =
+            typeof rawDatos?.fechaCierre === 'string'
+              ? rawDatos.fechaCierre
+              : typeof rawDatos?.fecha_cierre === 'string'
+                ? rawDatos.fecha_cierre
+                : prev.fechaCierre;
+
+          return {
+            ...prev,
+            tipoAfectacion: nuevoTipo,
+            misiones: prev.misiones.map((m) => {
+              if (m.tipoMision === 'VERIFICACION') {
+                const tituloAct =
+                  nuevoTipo && prev.codigo
+                    ? `Verificación: ${nuevoTipo} - ${prev.codigo}`
+                    : m.titulo;
+                if (esCierreVerificacion) {
+                  return {
+                    ...m,
+                    titulo: tituloAct,
+                    estado: 'COMPLETADA',
+                    fechaCierre: fechaCierreEntrante || m.fechaCierre || new Date().toISOString(),
+                  };
+                }
+                return { ...m, titulo: tituloAct };
+              }
+              return m;
+            }),
+            prioridad: nuevaPrioridad,
+            prioridadSugerida,
+            justificacionPrioridad,
+            requiereAsistenciaSocial:
+              typeof rawDatos?.requiereAsistenciaSocial === 'boolean'
+                ? rawDatos.requiereAsistenciaSocial
+                : reporteEntranteRef?.requiereAsistenciaSocial !== undefined
+                  ? reporteEntranteRef.requiereAsistenciaSocial
+                  : prev.requiereAsistenciaSocial,
+            verificado:
+              typeof rawDatos?.verificado === 'boolean'
+                ? rawDatos.verificado
+                : esCierreVerificacion
+                  ? true
+                  : prev.verificado,
+            dictamenTerreno: dictamenEntrante,
+            motivoNoAbordable: motivoNoAbordableEntrante,
+            fechaCierre: fechaCierreEntrante,
+            estado: nuevoEstado,
+            tipoIncidenteId:
+              typeof rawDatos?.tipoIncidenteId === 'string'
+                ? rawDatos.tipoIncidenteId
+                : prev.tipoIncidenteId,
+            reportesEvaluacionTerreno: nuevosReportes,
+            reclasificadoEnTerreno: Boolean(
+              fueTipologiaModificada(prev.tipoAfectacion, nuevoTipo) ||
+                prev.reclasificadoEnTerreno
+            ),
+            justificacionReclasificacion: justificacion,
+            cambioPrioridadMotivo: huboCambioPrioridad
+              ? justificacionPrioridad ||
+                justificacion ||
+                'Ajustada tras verificación presencial en terreno'
+              : prev.cambioPrioridadMotivo,
+            actualizadoEn:
+              typeof rawDatos?.actualizadoEn === 'string'
+                ? rawDatos.actualizadoEn
+                : new Date().toISOString(),
+          };
+        });
+      }
+    };
 
     const handleTrazabilidad = (payload: unknown) => {
       if (!esPayloadTrazabilidadValido(payload)) return;
@@ -223,14 +383,55 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
       });
     };
 
+    const handleMisionRechazada = (payload: unknown) => {
+      const p = payload as Record<string, unknown> | null | undefined;
+      const raw = (p?.datos || p?.data || p) as Record<string, unknown> | null | undefined;
+      const incId = typeof raw?.incidenteId === 'string' ? raw.incidenteId : undefined;
+      if (incId === incidenteId) {
+        cargarDetalle();
+      }
+    };
+
+    const handleIncidenteActualizado = (payload: unknown) => {
+      const p = payload as Record<string, unknown> | null | undefined;
+      const raw = (p?.datos || p?.data || p) as Record<string, unknown> | null | undefined;
+      const id =
+        typeof raw?.id === 'string'
+          ? raw.id
+          : typeof raw?.incidenteId === 'string'
+            ? raw.incidenteId
+            : undefined;
+      if (id === incidenteId) {
+        cargarDetalle();
+      }
+    };
+
+    const handleAdjuntoCreado = (rawPayload: unknown) => {
+      const p = rawPayload as Record<string, unknown> | null | undefined;
+      const candidato = (p?.datos || p?.data || rawPayload) as unknown;
+      if (!esPayloadAdjuntoCreadoValido(candidato)) return;
+
+      if (candidato.incidenteId === incidenteId) {
+        cargarDetalle();
+      }
+    };
+
     socket.on('connect', asegurarSalasEncargado);
+    socket.on('incidente:actualizado', handleActualizadoSocket);
     socket.on('notificacion:trazabilidad_actualizada', handleTrazabilidad);
+    socket.on('mision:rechazada', handleMisionRechazada);
+    socket.on('incidente:actualizado', handleIncidenteActualizado);
+    socket.on('adjunto:creado', handleAdjuntoCreado);
 
     return () => {
       socket.off('connect', asegurarSalasEncargado);
+      socket.off('incidente:actualizado', handleActualizadoSocket);
       socket.off('notificacion:trazabilidad_actualizada', handleTrazabilidad);
+      socket.off('mision:rechazada', handleMisionRechazada);
+      socket.off('incidente:actualizado', handleIncidenteActualizado);
+      socket.off('adjunto:creado', handleAdjuntoCreado);
     };
-  }, [incidenteId]);
+  }, [incidenteId, cargarDetalle]);
 
   const handleAsignacionExitosa = (data: DespacharPatrullaResponseData) => {
     const estadoInicial = extraerEstadoInicialNotificacion(data);
@@ -260,13 +461,13 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
       };
       return {
         ...prev,
-        estado: 'VERIFICANDO',
+        estado: 'REPORTADO',
         misiones: [nuevaMision, ...prev.misiones],
       };
     });
 
-    // Notificar al tablero Kanban para mover la tarjeta de inmediato
-    onIncidenteActualizado?.(data.incidente.id, 'VERIFICANDO');
+    // Mantener en estado REPORTADO hasta que la patrulla acepte en terreno
+    onIncidenteActualizado?.(data.incidente.id, 'REPORTADO');
   };
 
   if (!incidenteId) return null;
@@ -293,10 +494,62 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
         <div className={styles.drawerContent} onClick={(e) => e.stopPropagation()}>
           <IncidenteDetalleHeader
             detalle={detalle}
+            codigoInicial={incidenteCodigo}
+            incidenteId={incidenteId}
             onCerrar={onCerrar}
             onAsignarPatrulla={() => setModalAsignarPatrullaAbierto(true)}
             puedeAsignar={puedeAsignar}
           />
+
+          {/* Banner informativo de cierre por No Abordabilidad en terreno (HU-39 / HU-86) */}
+          {detalle && detalle.estado === 'NO_ABORDABLE' && (
+            <div
+              data-testid="banner-incidente-no-abordable"
+              role="alert"
+              style={{
+                backgroundColor: 'var(--color-danger-bg, #FFEBEE)',
+                padding: 'var(--space-3, 12px) var(--space-4, 16px)',
+                borderBottom: '2px solid #FFCDD2',
+                borderLeft: '4px solid var(--color-danger, #D32F2F)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '4px',
+              }}
+            >
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  flexWrap: 'wrap',
+                  gap: '6px',
+                }}
+              >
+                <strong
+                  style={{
+                    fontSize: '0.875rem',
+                    color: 'var(--color-danger, #D32F2F)',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                  }}
+                >
+                  <Ban size={15} aria-hidden="true" />
+                  <span>Caso cerrado en terreno como No Abordable</span>
+                </strong>
+                {detalle.fechaCierre && (
+                  <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted, #5F676E)' }}>
+                    Cierre: {new Date(detalle.fechaCierre).toLocaleString('es-CL')}
+                  </span>
+                )}
+              </div>
+              {detalle.motivoNoAbordable && (
+                <p style={{ margin: 0, fontSize: '0.8125rem', color: 'var(--color-text-dark, #2B2B2B)' }}>
+                  <strong>Motivo de no abordabilidad:</strong> {detalle.motivoNoAbordable}
+                </p>
+              )}
+            </div>
+          )}
 
           {/* Barra táctica de despacho de cuadrilla operativa (HU-21 / Regla ICS §3.2) */}
           {puedeDespacharCuadrilla && detalle && (
@@ -444,16 +697,44 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
                     </span>
                   </div>
                 )}
-                <IncidenteResumenSection detalle={detalle} />
+                <IncidenteResumenSection
+                  detalle={detalle}
+                  onVerReporteCambioAfectacion={(misionId, reporteId) => {
+                    setEnfocarReportesMision(true);
+                    setReporteDestacadoId(reporteId);
+                    setMisionSeleccionadaId(misionId);
+                  }}
+                />
+                <IncidenteUltimoReporteSection
+                  detalle={detalle}
+                  onVerDetalleReporte={(misionId, reporteId) => {
+                    setEnfocarReportesMision(true);
+                    setReporteDestacadoId(reporteId);
+                    setMisionSeleccionadaId(misionId);
+                  }}
+                />
                 <IncidenteUbicacionSection detalle={detalle} />
                 <IncidenteInformanteSection detalle={detalle} />
                 <IncidenteMisionesSection
                   misiones={detalle.misiones}
+                  reportesEvaluacionTerreno={detalle.reportesEvaluacionTerreno}
                   incidenteEstado={detalle.estado}
-                  onVerDetalleMision={(misionId) => setMisionSeleccionadaId(misionId)}
+                  onVerDetalleMision={(misionId) => {
+                    setEnfocarReportesMision(false);
+                    setReporteDestacadoId(null);
+                    setMisionSeleccionadaId(misionId);
+                  }}
+                  onVerReportesMision={(misionId, reporteId) => {
+                    setEnfocarReportesMision(true);
+                    setReporteDestacadoId(reporteId || null);
+                    setMisionSeleccionadaId(misionId);
+                  }}
                   onVerDetalleCuadrilla={onSelectCuadrilla}
                   onAsignarPatrulla={() => setModalAsignarPatrullaAbierto(true)}
                   puedeAsignar={puedeAsignar}
+                />
+                <IncidenteEvidenciasSection
+                  adjuntos={(detalle as IncidenteDetalle & { adjuntos?: AdjuntoEvidencia[] }).adjuntos}
                 />
                 <IncidenteRecursosSection recursos={detalle.recursosAsociados} />
               </>
@@ -462,10 +743,17 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
         </div>
       </div>
 
+      {/* Modal de Detalle de Misión (HU-17 / HU-38) con preservación del contexto del incidente y tablero */}
       <MisionDetalleModal
         misionId={misionSeleccionadaId}
         userId={userId}
-        onCerrar={() => setMisionSeleccionadaId(null)}
+        enfocarReportes={enfocarReportesMision}
+        reporteDestacadoId={reporteDestacadoId}
+        onCerrar={() => {
+          setMisionSeleccionadaId(null);
+          setEnfocarReportesMision(false);
+          setReporteDestacadoId(null);
+        }}
       />
 
       {modalCuadrillaAbierto && detalle && (
