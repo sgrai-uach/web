@@ -28,6 +28,21 @@
   color: var(--color-text-light, #FFFFFF);
 }
 
+.actionBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3, 12px);
+  padding: var(--space-3, 12px) var(--space-5, 20px);
+  background-color: var(--color-bg-light, #ECEFF3);
+  border-bottom: 1px solid var(--border-color-neutral, #DFE3E8);
+}
+
+.actionBarHint {
+  font-size: var(--font-size-xs, 0.75rem);
+  color: var(--color-text-muted, #5F676E);
+}
+
 .headerMeta {
   display: flex;
   flex-direction: column;

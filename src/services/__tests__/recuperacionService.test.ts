@@ -3,6 +3,7 @@ import {
   crearEventoRecuperacion,
   listarOperativosRecuperacion,
   obtenerDetalleOperativoRecuperacion,
+  editarOperativoRecuperacion,
   RecuperacionServiceError,
 } from '../recuperacionService';
 import apiClient from '@/lib/api/client';
@@ -16,6 +17,7 @@ vi.mock('@/lib/api/client', () => ({
   default: {
     POST: vi.fn(),
     GET: vi.fn(),
+    PATCH: vi.fn(),
   },
 }));
 
@@ -341,6 +343,150 @@ describe('recuperacionService (HU-73)', () => {
     ).rejects.toMatchObject({
       statusCode: 404,
       message: 'Operativo no encontrado',
+    });
+  });
+});
+
+describe('recuperacionService (HU-74: editarOperativoRecuperacion)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  const operativoId = 'e4f8b9a1-0000-4000-8000-000000000001';
+
+  it('debe retornar 200 OK con el operativo actualizado cuando PATCH es exitoso', async () => {
+    const mockPatch = vi.mocked(
+      (apiClient as unknown as { PATCH: ReturnType<typeof vi.fn> }).PATCH
+    );
+    const mockResponseData = {
+      message: 'Planificación actualizada.',
+      data: {
+        id: operativoId,
+        codigo: 'REC-2026-0001',
+        nombre: 'Operativo Collico',
+        descripcion: 'Nueva descripción operativa',
+        sector: 'Collico',
+        direccionTexto: null,
+        prioridad: 'ALTA',
+        contactoNombre: null,
+        contactoTelefono: null,
+        latitud: -39.8142,
+        longitud: -73.2459,
+        estado: 'EN_EJECUCION',
+        familiasAfectadas: 4,
+        delegacion: null,
+        mision: {
+          id: 'm1',
+          codigo: 'MIS-2026-0001',
+          titulo: 'Operativo Collico',
+          estado: 'DESPACHADA',
+          tipoMision: 'RECUPERACION',
+        },
+        patrulla: {
+          id: 'p2',
+          nombre: 'Patrulla Costa-2',
+          estado: 'EN_RECUPERACION',
+        },
+        recursos: [
+          {
+            recursoId: '80000000-0000-4000-8000-000000000001',
+            nombre: 'Kit Techumbre',
+            cantidadAsignada: 12,
+          },
+        ],
+        creadoPorId: DEFAULT_ENCARGADO_ID,
+        fechaEstimadaFin: '2026-11-20T18:00:00.000Z',
+        actualizadoPorId: DEFAULT_ENCARGADO_ID,
+        creadoEn: '2026-11-18T01:00:00.000Z',
+        actualizadoEn: '2026-11-18T03:00:00.000Z',
+      },
+    };
+
+    mockPatch.mockResolvedValueOnce({
+      data: mockResponseData,
+      error: undefined,
+      response: { ok: true, status: 200 } as Response,
+    });
+
+    const result = await editarOperativoRecuperacion(operativoId, {
+      descripcion: 'Nueva descripción operativa',
+      patrullaId: 'p2',
+    });
+
+    expect(mockPatch).toHaveBeenCalledWith('/api/eventos-atp/recuperacion/{id}', {
+      params: {
+        path: { id: operativoId },
+        header: { 'x-user-id': DEFAULT_ENCARGADO_ID },
+      },
+      body: {
+        descripcion: 'Nueva descripción operativa',
+        patrullaId: 'p2',
+      },
+    });
+    expect(result).toEqual(mockResponseData);
+  });
+
+  it('debe lanzar RecuperacionServiceError 409 ESTADO_BLOQUEADO en operativo COMPLETADA o CANCELADA', async () => {
+    const mockPatch = vi.mocked(
+      (apiClient as unknown as { PATCH: ReturnType<typeof vi.fn> }).PATCH
+    );
+
+    mockPatch.mockResolvedValueOnce({
+      data: undefined,
+      error: {
+        message: 'No se puede editar un operativo en estado COMPLETADA.',
+      },
+      response: { ok: false, status: 409 } as Response,
+    });
+
+    await expect(
+      editarOperativoRecuperacion(operativoId, { descripcion: 'Intento de edición' })
+    ).rejects.toMatchObject({
+      statusCode: 409,
+      tipoConflicto: 'ESTADO_BLOQUEADO',
+      message: 'No se puede editar un operativo en estado COMPLETADA.',
+    });
+  });
+
+  it('debe lanzar RecuperacionServiceError 409 STOCK_INSUFICIENTE cuando falta stock en bodega', async () => {
+    const mockPatch = vi.mocked(
+      (apiClient as unknown as { PATCH: ReturnType<typeof vi.fn> }).PATCH
+    );
+
+    mockPatch.mockResolvedValueOnce({
+      data: undefined,
+      error: {
+        message: 'Stock insuficiente en bodega para el recurso solicitado.',
+      },
+      response: { ok: false, status: 409 } as Response,
+    });
+
+    await expect(
+      editarOperativoRecuperacion(operativoId, {
+        recursos: [{ recursoId: '80000000-0000-4000-8000-000000000001', cantidad: 999 }],
+      })
+    ).rejects.toMatchObject({
+      statusCode: 409,
+      tipoConflicto: 'STOCK_INSUFICIENTE',
+    });
+  });
+
+  it('debe lanzar RecuperacionServiceError 403 cuando falta el permiso recuperacion:editar', async () => {
+    const mockPatch = vi.mocked(
+      (apiClient as unknown as { PATCH: ReturnType<typeof vi.fn> }).PATCH
+    );
+
+    mockPatch.mockResolvedValueOnce({
+      data: undefined,
+      error: { message: 'Forbidden' },
+      response: { ok: false, status: 403 } as Response,
+    });
+
+    await expect(
+      editarOperativoRecuperacion(operativoId, { descripcion: 'Cambio' })
+    ).rejects.toMatchObject({
+      statusCode: 403,
+      message: expect.stringContaining('recuperacion:editar'),
     });
   });
 });

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   X,
   Info,
@@ -8,16 +8,23 @@ import {
   Package,
   Clock,
   Loader2,
+  Pencil,
 } from 'lucide-react';
 import Heading from '@/components/ui/Heading';
 import Button from '@/components/ui/Button';
 import InlineNotice from '@/components/ui/InlineNotice';
 import { useOptionalToast } from '@/components/ui/Toast';
+import { usePuedeEditarRecuperacion } from '@/hooks/usePuedeEditarRecuperacion';
+import { useRecuperacionSocket } from '@/hooks/useRecuperacionSocket';
 import {
   obtenerDetalleOperativoRecuperacion,
   RecuperacionServiceError,
 } from '@/services/recuperacionService';
-import type { OperativoRecuperacionDetalle } from '@/types/recuperacion';
+import type {
+  EditarOperativoRecuperacionData,
+  OperativoRecuperacionDetalle,
+} from '@/types/recuperacion';
+import { ModalEditarOperativoRecuperacion } from './ModalEditarOperativoRecuperacion';
 import {
   ETIQUETA_ESTADO_RECUPERACION,
   ETIQUETA_PRIORIDAD_RECUPERACION,
@@ -28,13 +35,18 @@ import styles from './OperativoRecuperacionDrawer.module.css';
 export interface OperativoRecuperacionDrawerProps {
   operativoId: string | null;
   onCerrar: () => void;
+  onOperativoActualizado?: () => void;
 }
 
 export const OperativoRecuperacionDrawer: React.FC<OperativoRecuperacionDrawerProps> = ({
   operativoId,
   onCerrar,
+  onOperativoActualizado,
 }) => {
   const toast = useOptionalToast();
+  const puedeEditar = usePuedeEditarRecuperacion();
+  const [modalEditarAbierto, setModalEditarAbierto] = useState(false);
+  const [reloadNonce, setReloadNonce] = useState(0);
   const [estadoCarga, setEstadoCarga] = useState<{
     id: string | null;
     detalle: OperativoRecuperacionDetalle | null;
@@ -46,6 +58,9 @@ export const OperativoRecuperacionDrawer: React.FC<OperativoRecuperacionDrawerPr
     operativoId && estadoCarga.id === operativoId ? estadoCarga.detalle : null;
   const error =
     operativoId && estadoCarga.id === operativoId ? estadoCarga.error : null;
+
+  const esEstadoBloqueado =
+    detalle?.estado === 'COMPLETADA' || detalle?.estado === 'CANCELADA';
 
   useEffect(() => {
     if (!operativoId) return;
@@ -79,18 +94,51 @@ export const OperativoRecuperacionDrawer: React.FC<OperativoRecuperacionDrawerPr
     return () => {
       activo = false;
     };
-  }, [operativoId, onCerrar, toast]);
+  }, [operativoId, reloadNonce, onCerrar, toast]);
+
+  useRecuperacionSocket({
+    enabled: Boolean(operativoId),
+    onRecuperacionActualizada: useCallback(
+      (actualizado: EditarOperativoRecuperacionData) => {
+        if (actualizado.id === operativoId) {
+          setReloadNonce((prev) => prev + 1);
+        }
+      },
+      [operativoId]
+    ),
+  });
 
   useEffect(() => {
     if (!operativoId) return;
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
+      if (event.key === 'Escape' && !modalEditarAbierto) {
         onCerrar();
       }
     };
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [operativoId, onCerrar]);
+  }, [operativoId, modalEditarAbierto, onCerrar]);
+
+  const handleEdicionExitosa = (actualizado: EditarOperativoRecuperacionData) => {
+    setEstadoCarga((prev) => {
+      if (!prev.detalle || prev.id !== actualizado.id) return prev;
+      return {
+        ...prev,
+        detalle: {
+          ...prev.detalle,
+          descripcion: actualizado.descripcion,
+          fechaEstimadaFin: actualizado.fechaEstimadaFin,
+          actualizadoPorId: actualizado.actualizadoPorId,
+          actualizadoEn: actualizado.actualizadoEn,
+          patrulla: actualizado.patrulla,
+          mision: actualizado.mision,
+          recursos: actualizado.recursos,
+        },
+      };
+    });
+    setReloadNonce((prev) => prev + 1);
+    onOperativoActualizado?.();
+  };
 
   if (!operativoId) return null;
 
@@ -123,6 +171,31 @@ export const OperativoRecuperacionDrawer: React.FC<OperativoRecuperacionDrawerPr
             <X size={16} />
           </Button>
         </header>
+
+        {!cargando && !error && detalle && puedeEditar && (
+          <div className={styles.actionBar}>
+            <span className={styles.actionBarHint}>
+              {esEstadoBloqueado
+                ? 'Edición bloqueada: el operativo está finalizado o cancelado.'
+                : 'Planificación activa editable'}
+            </span>
+            <Button
+              type="button"
+              variant="primary"
+              size="sm"
+              disabled={esEstadoBloqueado}
+              title={
+                esEstadoBloqueado
+                  ? 'No se permite editar operativos en estado COMPLETADA o CANCELADA.'
+                  : 'Editar planificación del operativo'
+              }
+              onClick={() => setModalEditarAbierto(true)}
+            >
+              <Pencil size={14} style={{ marginRight: '6px' }} />
+              <span>Editar Planificación</span>
+            </Button>
+          </div>
+        )}
 
         <div className={styles.body}>
           {cargando && (
@@ -178,6 +251,12 @@ export const OperativoRecuperacionDrawer: React.FC<OperativoRecuperacionDrawerPr
                     <span className={styles.infoLabel}>Fecha de registro</span>
                     <span className={styles.infoValue}>
                       {formatearFechaChilena(detalle.creadoEn)}
+                    </span>
+                  </div>
+                  <div className={styles.infoItem}>
+                    <span className={styles.infoLabel}>Fecha estimada de término</span>
+                    <span className={styles.infoValue}>
+                      {formatearFechaChilena(detalle.fechaEstimadaFin)}
                     </span>
                   </div>
                   <div className={styles.infoItem}>
@@ -298,6 +377,15 @@ export const OperativoRecuperacionDrawer: React.FC<OperativoRecuperacionDrawerPr
           )}
         </div>
       </aside>
+
+      {detalle && (
+        <ModalEditarOperativoRecuperacion
+          isOpen={modalEditarAbierto}
+          operativo={detalle}
+          onClose={() => setModalEditarAbierto(false)}
+          onSuccess={handleEdicionExitosa}
+        />
+      )}
     </div>
   );
 };

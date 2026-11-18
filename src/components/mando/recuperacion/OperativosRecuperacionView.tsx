@@ -158,6 +158,7 @@ export const OperativosRecuperacionView: React.FC<OperativosRecuperacionViewProp
       <OperativoRecuperacionDrawer
         operativoId={operativoSeleccionadoId}
         onCerrar={() => setOperativoSeleccionadoId(null)}
+        onOperativoActualizado={recargar}
       />
     </section>
   );

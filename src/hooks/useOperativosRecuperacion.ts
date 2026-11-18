@@ -139,6 +139,9 @@ export function useOperativosRecuperacion({
     onRecuperacionCreada: () => {
       setRefreshTrigger((prev) => prev + 1);
     },
+    onRecuperacionActualizada: () => {
+      setRefreshTrigger((prev) => prev + 1);
+    },
   });
 
   const setFiltros = useCallback(

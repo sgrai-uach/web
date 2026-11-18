@@ -143,3 +143,19 @@ export type OperativoRecuperacionRecursoDetalle =
 
 export type OperativoRecuperacionHistorialItem =
   OperativoRecuperacionDetalle['historial'][number];
+
+/* -------------------------------------------------------------------------- */
+/* HU-74: Edición de planificación de operativos de recuperación               */
+/* Derivados directamente del spec OpenAPI generado (api-generated.d.ts)       */
+/* -------------------------------------------------------------------------- */
+
+export type EditarOperativoRecuperacionInput = NonNullable<
+  paths['/api/eventos-atp/recuperacion/{id}']['patch']['requestBody']
+>['content']['application/json'];
+
+export type EditarOperativoRecuperacionApiResponse =
+  paths['/api/eventos-atp/recuperacion/{id}']['patch']['responses'][200]['content']['application/json'];
+
+export type EditarOperativoRecuperacionData =
+  EditarOperativoRecuperacionApiResponse['data'];
+
