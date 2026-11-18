@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import { MisionDetalleModal } from '../MisionDetalleModal';
 import * as misionesService from '@/services/misionesService';
 import type { MisionDetalleCompleto } from '@/types/misiones';
@@ -409,5 +409,74 @@ describe('Componente MisionDetalleModal (HU-17)', () => {
     expect(
       screen.queryByLabelText('Visor de evidencia: evidencia_1.jpg')
     ).toBeNull();
+  });
+
+  it('HU-42: inserta reactivamente LLEGADA_TERRENO en la bitácora, muestra coordenadas, delegado y actualiza badge a En Trabajos de Terreno', async () => {
+    const {
+      clearMisionesRealtimeStore,
+      registrarHitoMisionTiempoReal,
+    } = await import('@/lib/socket/misionesStore');
+    clearMisionesRealtimeStore();
+
+    const misionDespachada = {
+      ...mockMision,
+      estado: 'DESPACHADA' as const,
+      bitacoraTiempos: [
+        {
+          hito: 'Misión Creada',
+          fecha: '17/11/2026',
+          hora: '18:30:00',
+          timestamp: '2026-11-17T21:30:00.000Z',
+          descripcion: 'Misión generada desde Centro de Mando',
+        },
+      ],
+    };
+
+    vi.spyOn(misionesService, 'obtenerDetalleMision').mockResolvedValueOnce({
+      exito: true,
+      datos: misionDespachada,
+      mensaje: 'Detalle obtenido.',
+    });
+
+    const onUbicarEnMapa = vi.fn();
+
+    render(
+      <MisionDetalleModal
+        misionId="m1000000-0000-4000-8000-000000000001"
+        onCerrar={vi.fn()}
+        onUbicarEnMapa={onUbicarEnMapa}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Despachada')).toBeDefined();
+    });
+
+    act(() => {
+      registrarHitoMisionTiempoReal({
+        misionId: 'm1000000-0000-4000-8000-000000000001',
+        codigoMision: 'MIS-2026-0001',
+        hitoId: 'hito-llegada-1',
+        hito: 'LLEGADA_TERRENO',
+        descripcion: 'Cuadrilla reportó llegada a terreno en coordenadas (-39.81422, -73.24589)',
+        latitud: -39.81422,
+        longitud: -73.24589,
+        registradoPor: { id: 'usr-del-1', nombre: 'Carlos Muñoz' },
+        registradoEn: '2026-11-17T22:00:00.000Z',
+        nuevoEstadoMision: 'EN_CURSO',
+      });
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText('Llegada a Terreno')).toBeDefined();
+      expect(screen.getByText('En Trabajos de Terreno')).toBeDefined();
+    });
+
+    expect(screen.getByText(/Reportado por: Carlos Muñoz/)).toBeDefined();
+    expect(screen.getByText('-39.81422, -73.24589')).toBeDefined();
+
+    const btnMapa = screen.getByRole('button', { name: /Ubicar en mapa/i });
+    fireEvent.click(btnMapa);
+    expect(onUbicarEnMapa).toHaveBeenCalledWith(-39.81422, -73.24589, 'Llegada a Terreno');
   });
 });

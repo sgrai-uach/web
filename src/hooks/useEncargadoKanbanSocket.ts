@@ -4,7 +4,20 @@ import { useEffect, useState, useRef } from 'react';
 import { getSocket } from '@/lib/socket/client';
 import { esPayloadTrazabilidadValido } from '@/lib/socket/trazabilidadConfig';
 import { setTrazabilidadEstado } from '@/lib/socket/trazabilidadStore';
+import {
+  actualizarEstadoMisionTiempoReal,
+  registrarHitoMisionTiempoReal,
+} from '@/lib/socket/misionesStore';
+import {
+  normalizarPayloadHitoMision,
+  normalizarPayloadMisionActualizada,
+  obtenerConfigHito,
+} from '@/lib/utils/misionHitos';
 import type { EstadoIncidente, PrioridadIncidente } from '@/services/incidentesService';
+import type {
+  MisionActualizadaPayload,
+  MisionHitoRegistradoPayload,
+} from '@/types/misiones';
 
 export interface IncidenteCreadoPayload {
   evento: 'incidente:creado';
@@ -51,17 +64,21 @@ export interface UseEncargadoKanbanSocketOptions {
   onIncidenteCreado?: (payload: IncidenteCreadoPayload) => void;
   onIncidenteActualizado?: (payload: IncidenteActualizadoPayload) => void;
   onNotificacionTrazabilidadActualizada?: (payload: NotificacionTrazabilidadPayload) => void;
+  onMisionHitoRegistrado?: (payload: MisionHitoRegistradoPayload) => void;
+  onMisionActualizada?: (payload: MisionActualizadaPayload) => void;
   enabled?: boolean;
 }
 
 /**
  * Hook para la conexión en tiempo real del Encargado de Centro de Mando.
- * Se une a la sala 'sala:encargados' y escucha la creación y actualización de incidentes.
+ * Se une a la sala 'sala:encargados' y escucha la creación y actualización de incidentes y misiones.
  */
 export function useEncargadoKanbanSocket({
   onIncidenteCreado,
   onIncidenteActualizado,
   onNotificacionTrazabilidadActualizada,
+  onMisionHitoRegistrado,
+  onMisionActualizada,
   enabled = true,
 }: UseEncargadoKanbanSocketOptions = {}) {
   const [conectado, setConectado] = useState(false);
@@ -70,6 +87,8 @@ export function useEncargadoKanbanSocket({
   const creadoRef = useRef(onIncidenteCreado);
   const actualizadoRef = useRef(onIncidenteActualizado);
   const trazabilidadRef = useRef(onNotificacionTrazabilidadActualizada);
+  const misionHitoRef = useRef(onMisionHitoRegistrado);
+  const misionActualizadaRef = useRef(onMisionActualizada);
 
   useEffect(() => {
     creadoRef.current = onIncidenteCreado;
@@ -82,6 +101,14 @@ export function useEncargadoKanbanSocket({
   useEffect(() => {
     trazabilidadRef.current = onNotificacionTrazabilidadActualizada;
   }, [onNotificacionTrazabilidadActualizada]);
+
+  useEffect(() => {
+    misionHitoRef.current = onMisionHitoRegistrado;
+  }, [onMisionHitoRegistrado]);
+
+  useEffect(() => {
+    misionActualizadaRef.current = onMisionActualizada;
+  }, [onMisionActualizada]);
 
   useEffect(() => {
     if (!enabled) return;
@@ -176,11 +203,40 @@ export function useEncargadoKanbanSocket({
       }
     };
 
+    const handleMisionHitoRegistrado = (payload: unknown) => {
+      const normalized = normalizarPayloadHitoMision(payload);
+      if (!normalized) return;
+
+      registrarHitoMisionTiempoReal(normalized);
+      const config = obtenerConfigHito(normalized.hito);
+      setUltimoEvento(
+        `${config.etiqueta}: ${normalized.codigoMision || normalized.misionId}`
+      );
+      if (misionHitoRef.current) {
+        misionHitoRef.current(normalized);
+      }
+    };
+
+    const handleMisionActualizada = (payload: unknown) => {
+      const normalized = normalizarPayloadMisionActualizada(payload);
+      if (!normalized) return;
+
+      actualizarEstadoMisionTiempoReal(normalized);
+      setUltimoEvento(
+        `Misión actualizada: ${normalized.codigo || normalized.misionId} → ${normalized.estado}`
+      );
+      if (misionActualizadaRef.current) {
+        misionActualizadaRef.current(normalized);
+      }
+    };
+
     socket.on('connect', onConnect);
     socket.on('disconnect', onDisconnect);
     socket.on('incidente:creado', handleCreado);
     socket.on('incidente:actualizado', handleActualizado);
     socket.on('notificacion:trazabilidad_actualizada', handleTrazabilidad);
+    socket.on('mision:hito_registrado', handleMisionHitoRegistrado);
+    socket.on('mision:actualizada', handleMisionActualizada);
 
     return () => {
       socket.off('connect', onConnect);
@@ -188,6 +244,8 @@ export function useEncargadoKanbanSocket({
       socket.off('incidente:creado', handleCreado);
       socket.off('incidente:actualizado', handleActualizado);
       socket.off('notificacion:trazabilidad_actualizada', handleTrazabilidad);
+      socket.off('mision:hito_registrado', handleMisionHitoRegistrado);
+      socket.off('mision:actualizada', handleMisionActualizada);
       socket.emit('leave', 'encargado');
       socket.emit('salir', 'sala:encargados');
       socket.emit('leave', 'mapa');

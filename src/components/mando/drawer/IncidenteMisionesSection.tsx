@@ -43,7 +43,7 @@ export const IncidenteMisionesSection: React.FC<IncidenteMisionesSectionProps> =
   const tieneVerificacionActiva = misiones.some(
     (m) =>
       m.tipoMision === 'VERIFICACION' &&
-      ['PLANIFICADA', 'DESPACHADA', 'EN_CURSO'].includes(m.estado)
+      ['PLANIFICADA', 'DESPACHADA', 'EN_CURSO', 'EN_PROCESO'].includes(m.estado)
   );
 
   const mostrarBotonDespacho =
@@ -329,7 +329,7 @@ export const IncidenteMisionesSection: React.FC<IncidenteMisionesSectionProps> =
             })()
           ) : (
             mision.patrulla &&
-            ['PLANIFICADA', 'DESPACHADA', 'EN_CURSO'].includes(mision.estado) && (
+            ['PLANIFICADA', 'DESPACHADA', 'EN_CURSO', 'EN_PROCESO'].includes(mision.estado) && (
               <div
                 data-testid={`aviso-trazabilidad-sin-acuse-${mision.id}`}
                 style={{

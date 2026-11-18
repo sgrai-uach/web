@@ -24,6 +24,9 @@ import {
   subscribeTrazabilidad,
   vincularMisionIncidente,
 } from '@/lib/socket/trazabilidadStore';
+import { obtenerConfigHito } from '@/lib/utils/misionHitos';
+import { useOptionalToast } from '@/components/ui/Toast';
+import type { MisionHitoRegistradoPayload } from '@/types/misiones';
 
 export const ESTADOS_KANBAN: EstadoIncidente[] = [
   'REPORTADO',
@@ -70,6 +73,7 @@ function ordenarIncidentesColumna(
 }
 
 export function useIncidentesKanban(initialUserId?: string) {
+  const toast = useOptionalToast();
   let sessionUserId: string | undefined;
   let sessionSetUser: ((id: string) => void) | undefined;
   try {
@@ -522,10 +526,25 @@ export function useIncidentesKanban(initialUserId?: string) {
     [userId]
   );
 
+  const handleMisionHitoRegistrado = useCallback(
+    (payload: MisionHitoRegistradoPayload) => {
+      const config = obtenerConfigHito(payload.hito);
+      if (!config.esLlegadaTerreno) return;
+
+      const etiquetaMision = payload.codigoMision?.trim() || payload.misionId;
+      toast?.showInfo(
+        `La cuadrilla ha reportado su llegada a terreno para la misión ${etiquetaMision}.`,
+        'Llegada a Terreno'
+      );
+    },
+    [toast]
+  );
+
   const { conectado, ultimoEvento } = useEncargadoKanbanSocket({
     onIncidenteCreado: handleIncidenteCreado,
     onIncidenteActualizado: handleIncidenteActualizado,
     onNotificacionTrazabilidadActualizada: handleTrazabilidadActualizada,
+    onMisionHitoRegistrado: handleMisionHitoRegistrado,
     enabled: !esForbidden,
   });
 

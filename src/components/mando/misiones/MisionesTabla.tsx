@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import type { MisionItem } from '@/types/misiones';
+import type { EstadoMision, MisionItem } from '@/types/misiones';
 import type { EstadoTrazabilidadNotificacion } from '@/services/incidentesService';
 import {
   TRAZABILIDAD_CONFIG,
@@ -11,6 +11,11 @@ import {
   getSnapshotTrazabilidadMisiones,
   subscribeTrazabilidad,
 } from '@/lib/socket/trazabilidadStore';
+import {
+  getSnapshotEstadosMisiones,
+  subscribeMisionesRealtime,
+} from '@/lib/socket/misionesStore';
+import { obtenerBadgeEstadoMision } from '@/lib/utils/misionHitos';
 import { TrazabilidadIcon } from '../TrazabilidadIcon';
 import { AlertTriangle, Users, ShieldAlert } from 'lucide-react';
 import Button from '@/components/ui/Button';
@@ -21,15 +26,6 @@ interface MisionesTablaProps {
   hayFiltrosActivos: boolean;
   onLimpiarFiltros: () => void;
 }
-
-const BADGE_ESTADO: Record<string, { bg: string; color: string; label: string }> = {
-  PLANIFICADA: { bg: 'var(--color-bg-light, #ECEFF3)', color: 'var(--color-text-dark, #2B2B2B)', label: 'Planificada' },
-  DESPACHADA: { bg: 'var(--color-info-bg, #E0F2F1)', color: 'var(--color-primary-teal, #1B6F7D)', label: 'Despachada' },
-  EN_CURSO: { bg: 'var(--color-warning-bg, #FFF3E0)', color: 'var(--color-warning, #E65100)', label: 'En Curso' },
-  COMPLETADA: { bg: 'var(--color-success-bg, #E8F5E9)', color: 'var(--color-success, #2E7D32)', label: 'Completada' },
-  CANCELADA: { bg: 'var(--color-bg-light, #ECEFF3)', color: 'var(--color-text-muted, #5F676E)', label: 'Cancelada' },
-  RECHAZADA: { bg: 'var(--color-danger-bg, #FFEBEE)', color: 'var(--color-danger, #D32F2F)', label: 'Rechazada' },
-};
 
 const BADGE_PRIORIDAD: Record<string, { color: string; label: string }> = {
   CRITICA: { color: 'var(--color-danger, #D32F2F)', label: 'Crítica' },
@@ -47,22 +43,32 @@ export const MisionesTabla: React.FC<MisionesTablaProps> = ({
   const [trazabilidadMisiones, setTrazabilidadMisiones] = useState<
     Record<string, EstadoTrazabilidadNotificacion>
   >({});
+  const [estadosTiempoReal, setEstadosTiempoReal] = useState<
+    Record<string, EstadoMision>
+  >({});
 
   useEffect(() => {
     let activo = true;
     queueMicrotask(() => {
       if (activo) {
         setTrazabilidadMisiones(getSnapshotTrazabilidadMisiones());
+        setEstadosTiempoReal(getSnapshotEstadosMisiones());
       }
     });
-    const unsubscribe = subscribeTrazabilidad(() => {
+    const unsubscribeTrazabilidad = subscribeTrazabilidad(() => {
       if (activo) {
         setTrazabilidadMisiones(getSnapshotTrazabilidadMisiones());
       }
     });
+    const unsubscribeMisiones = subscribeMisionesRealtime(() => {
+      if (activo) {
+        setEstadosTiempoReal(getSnapshotEstadosMisiones());
+      }
+    });
     return () => {
       activo = false;
-      unsubscribe();
+      unsubscribeTrazabilidad();
+      unsubscribeMisiones();
     };
   }, []);
 
@@ -124,11 +130,8 @@ export const MisionesTabla: React.FC<MisionesTablaProps> = ({
         </thead>
         <tbody>
           {misiones.map((mision) => {
-            const badge = BADGE_ESTADO[mision.estado] || {
-              bg: 'var(--color-bg-light, #ECEFF3)',
-              color: 'var(--color-text-dark, #2B2B2B)',
-              label: mision.estado,
-            };
+            const estadoActual = estadosTiempoReal[mision.id] ?? mision.estado;
+            const badge = obtenerBadgeEstadoMision(estadoActual);
             const prioridadInfo = BADGE_PRIORIDAD[mision.prioridad] || {
               color: 'var(--color-text-muted, #5F676E)',
               label: mision.prioridad,

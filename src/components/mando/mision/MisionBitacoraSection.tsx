@@ -1,16 +1,36 @@
 'use client';
 
 import React from 'react';
-import { History, Calendar, Clock } from 'lucide-react';
+import {
+  History,
+  Calendar,
+  Clock,
+  MapPinCheck,
+  MapPin,
+  UserCheck,
+  AlertTriangle,
+  FileCheck,
+} from 'lucide-react';
 import Heading from '@/components/ui/Heading';
+import Button from '@/components/ui/Button';
+import {
+  formatearFechaHoraChile,
+  obtenerConfigHito,
+} from '@/lib/utils/misionHitos';
 import type { MisionBitacoraHito } from '@/types/misiones';
 import styles from '@/styles/mision-detalle.module.css';
 
 interface MisionBitacoraSectionProps {
   bitacora: MisionBitacoraHito[];
+  delegadoNombreFallback?: string | null;
+  onUbicarEnMapa?: (latitud: number, longitud: number, etiqueta?: string) => void;
 }
 
-export const MisionBitacoraSection: React.FC<MisionBitacoraSectionProps> = ({ bitacora }) => {
+export const MisionBitacoraSection: React.FC<MisionBitacoraSectionProps> = ({
+  bitacora,
+  delegadoNombreFallback,
+  onUbicarEnMapa,
+}) => {
   return (
     <div className={styles.seccionBloque}>
       <div className={styles.seccionHeader}>
@@ -29,21 +49,102 @@ export const MisionBitacoraSection: React.FC<MisionBitacoraSectionProps> = ({ bi
           </p>
         ) : (
           <div className={styles.timelineList}>
-            {bitacora.map((hito, index) => (
-              <div key={`${hito.timestamp}-${index}`} className={styles.timelineItem}>
-                <div className={styles.timelineDot} />
-                <div className={styles.timelineHeader}>
-                  <span className={styles.timelineHito}>{hito.hito}</span>
-                  <span className={styles.timelineDate}>
-                    <Calendar size={12} />
-                    <span>{hito.fecha}</span>
-                    <Clock size={12} style={{ marginLeft: '4px' }} />
-                    <span>{hito.hora}</span>
-                  </span>
+            {bitacora.map((hito, index) => {
+              const config = obtenerConfigHito(hito.codigoHito || hito.hito);
+              const { fecha, hora } = hito.timestamp
+                ? formatearFechaHoraChile(hito.timestamp)
+                : { fecha: hito.fecha, hora: hito.hora };
+              const fechaVisible = hito.timestamp && fecha !== hito.timestamp ? fecha : hito.fecha;
+              const horaVisible = hito.timestamp && hora ? hora : hito.hora;
+
+              const tieneCoordenadas =
+                typeof hito.latitud === 'number' &&
+                typeof hito.longitud === 'number' &&
+                Number.isFinite(hito.latitud) &&
+                Number.isFinite(hito.longitud);
+
+              const responsable =
+                hito.registradoPorNombre ||
+                (config.esLlegadaTerreno ? delegadoNombreFallback : null);
+
+              return (
+                <div
+                  key={`${hito.id || hito.timestamp}-${index}`}
+                  className={`${styles.timelineItem} ${
+                    config.esLlegadaTerreno ? styles.timelineItemLlegada : ''
+                  }`}
+                >
+                  {config.esLlegadaTerreno ? (
+                    <div className={styles.timelineDotIcon} aria-hidden="true">
+                      <MapPinCheck size={12} />
+                    </div>
+                  ) : config.esRechazo ? (
+                    <div
+                      className={`${styles.timelineDotIcon} ${styles.timelineDotRechazo}`}
+                      aria-hidden="true"
+                    >
+                      <AlertTriangle size={12} />
+                    </div>
+                  ) : config.esReporteTerreno ? (
+                    <div className={styles.timelineDotIcon} aria-hidden="true">
+                      <FileCheck size={12} />
+                    </div>
+                  ) : (
+                    <div className={styles.timelineDot} />
+                  )}
+
+                  <div className={styles.timelineHeader}>
+                    <span className={styles.timelineHito}>{config.etiqueta}</span>
+                    <span className={styles.timelineDate}>
+                      <Calendar size={12} aria-hidden="true" />
+                      <span>{fechaVisible}</span>
+                      <Clock size={12} style={{ marginLeft: '4px' }} aria-hidden="true" />
+                      <span>{horaVisible}</span>
+                    </span>
+                  </div>
+
+                  {hito.descripcion && (
+                    <p className={styles.timelineDesc}>{hito.descripcion}</p>
+                  )}
+
+                  {(responsable || tieneCoordenadas) && (
+                    <div className={styles.timelineMetaRow}>
+                      {responsable && (
+                        <span className={styles.timelineMetaItem}>
+                          <UserCheck size={13} aria-hidden="true" />
+                          <span>Reportado por: {responsable}</span>
+                        </span>
+                      )}
+
+                      {tieneCoordenadas && (
+                        <span className={styles.timelineMetaItem}>
+                          <MapPin size={13} aria-hidden="true" />
+                          <span className={styles.timelineCoords}>
+                            {hito.latitud!.toFixed(5)}, {hito.longitud!.toFixed(5)}
+                          </span>
+                          {onUbicarEnMapa && (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() =>
+                                onUbicarEnMapa(
+                                  hito.latitud!,
+                                  hito.longitud!,
+                                  config.etiqueta
+                                )
+                              }
+                            >
+                              Ubicar en mapa
+                            </Button>
+                          )}
+                        </span>
+                      )}
+                    </div>
+                  )}
                 </div>
-                <p className={styles.timelineDesc}>{hito.descripcion}</p>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

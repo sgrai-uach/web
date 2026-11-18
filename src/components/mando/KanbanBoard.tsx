@@ -388,6 +388,14 @@ export const KanbanBoard: React.FC = () => {
             misionId={misionSeleccionadaId}
             onCerrar={() => setMisionSeleccionadaId(null)}
             userId={userId}
+            onUbicarEnMapa={(lat, lng, etiqueta) => {
+              setMisionSeleccionadaId(null);
+              setVistaActiva('mapa');
+              showInfo(
+                `Coordenadas ${etiqueta ? `(${etiqueta})` : ''}: ${lat.toFixed(5)}, ${lng.toFixed(5)}`,
+                'Ubicación en Mapa Operativo'
+              );
+            }}
           />
 
           <ModalCrearEventoPrevencion

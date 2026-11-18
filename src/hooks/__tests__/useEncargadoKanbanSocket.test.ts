@@ -191,6 +191,8 @@ describe('useEncargadoKanbanSocket', () => {
     expect(socket.off).toHaveBeenCalledWith('incidente:creado', expect.any(Function));
     expect(socket.off).toHaveBeenCalledWith('incidente:actualizado', expect.any(Function));
     expect(socket.off).toHaveBeenCalledWith('notificacion:trazabilidad_actualizada', expect.any(Function));
+    expect(socket.off).toHaveBeenCalledWith('mision:hito_registrado', expect.any(Function));
+    expect(socket.off).toHaveBeenCalledWith('mision:actualizada', expect.any(Function));
     expect(socket.emit).toHaveBeenCalledWith('leave', 'encargado');
     expect(socket.emit).toHaveBeenCalledWith('salir', 'sala:encargados');
     expect(socket.emit).toHaveBeenCalledWith('leave', 'mapa');
@@ -221,5 +223,60 @@ describe('useEncargadoKanbanSocket', () => {
     expect(onNotificacionTrazabilidadActualizada).not.toHaveBeenCalled();
     expect(result.current.ultimoEvento).toBeNull();
     expect(getTrazabilidadEstado('mis-invalido')).toBeUndefined();
+  });
+
+  it('HU-42: escucha mision:hito_registrado y mision:actualizada actualizando misionesStore', async () => {
+    const {
+      clearMisionesRealtimeStore,
+      getEstadoTiempoRealMision,
+      getHitosTiempoRealMision,
+    } = await import('@/lib/socket/misionesStore');
+    clearMisionesRealtimeStore();
+
+    const socket = getSocket();
+    const onMisionHitoRegistrado = vi.fn();
+    const onMisionActualizada = vi.fn();
+
+    const { result } = renderHook(() =>
+      useEncargadoKanbanSocket({
+        onMisionHitoRegistrado,
+        onMisionActualizada,
+      })
+    );
+
+    const trigger = (socket as unknown as { _trigger: (ev: string, p: unknown) => void })._trigger;
+
+    act(() => {
+      trigger('mision:hito_registrado', {
+        misionId: 'mis-h42-1',
+        codigoMision: 'MIS-2026-0042',
+        hito: 'LLEGADA_TERRENO',
+        descripcion: 'Cuadrilla reportó llegada a terreno en coordenadas (-39.81422, -73.24589)',
+        latitud: -39.81422,
+        longitud: -73.24589,
+        registradoPor: { id: 'usr-1', nombre: 'Juan Pérez' },
+        registradoEn: '2026-11-17T22:00:00.000Z',
+        nuevoEstadoMision: 'EN_CURSO',
+      });
+    });
+
+    expect(onMisionHitoRegistrado).toHaveBeenCalledTimes(1);
+    expect(result.current.ultimoEvento).toBe('Llegada a Terreno: MIS-2026-0042');
+    expect(getEstadoTiempoRealMision('mis-h42-1')).toBe('EN_CURSO');
+    const hitos = getHitosTiempoRealMision('mis-h42-1');
+    expect(hitos).toHaveLength(1);
+    expect(hitos[0].hito).toBe('Llegada a Terreno');
+    expect(hitos[0].registradoPorNombre).toBe('Juan Pérez');
+
+    act(() => {
+      trigger('mision:actualizada', {
+        misionId: 'mis-h42-1',
+        codigo: 'MIS-2026-0042',
+        estado: 'EN_PROCESO',
+      });
+    });
+
+    expect(onMisionActualizada).toHaveBeenCalledTimes(1);
+    expect(getEstadoTiempoRealMision('mis-h42-1')).toBe('EN_PROCESO');
   });
 });

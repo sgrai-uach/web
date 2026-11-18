@@ -163,4 +163,48 @@ describe('MisionesModal y MisionesFiltros', () => {
     expect(badgeActualizado.textContent).toContain('LEÍDA');
     expect(badgeActualizado.textContent).toContain('Leída por operador en terreno');
   });
+
+  it('HU-42: actualiza reactivamente el estado de la misión en MisionesTabla a En Trabajos de Terreno ante evento en vivo', async () => {
+    const {
+      clearMisionesRealtimeStore,
+      actualizarEstadoMisionTiempoReal,
+    } = await import('@/lib/socket/misionesStore');
+    clearMisionesRealtimeStore();
+
+    const misionesMock: MisionItem[] = [
+      {
+        id: 'mis-tabla-h42',
+        codigo: 'MIS-2026-0042',
+        titulo: 'Atención de inundación sector Las Ánimas',
+        tipoMision: 'ATENCION_CUADRILLA',
+        estado: 'DESPACHADA',
+        prioridad: 'ALTA',
+        delegacionNombre: 'Norte',
+        cuadrillaNombre: 'Cuadrilla Norte 1',
+        creadoEn: '2026-11-17T21:00:00.000Z',
+      },
+    ];
+
+    render(
+      <MisionesTabla
+        misiones={misionesMock}
+        cargando={false}
+        hayFiltrosActivos={false}
+        onLimpiarFiltros={vi.fn()}
+      />
+    );
+
+    expect(screen.getByText('Despachada')).toBeDefined();
+
+    await act(async () => {
+      actualizarEstadoMisionTiempoReal({
+        misionId: 'mis-tabla-h42',
+        codigo: 'MIS-2026-0042',
+        estado: 'EN_CURSO',
+      });
+      await Promise.resolve();
+    });
+
+    expect(screen.getByText('En Trabajos de Terreno')).toBeDefined();
+  });
 });

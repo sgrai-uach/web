@@ -3,6 +3,7 @@
 import React from 'react';
 import { X, Calendar, Clock } from 'lucide-react';
 import type { MisionDetalleCompleto, EstadoMision, PrioridadMision } from '@/types/misiones';
+import { obtenerBadgeEstadoMision } from '@/lib/utils/misionHitos';
 import styles from '@/styles/mision-detalle.module.css';
 
 interface MisionDetalleHeaderProps {
@@ -21,6 +22,7 @@ export const MisionDetalleHeader: React.FC<MisionDetalleHeaderProps> = ({
       case 'DESPACHADA':
         return styles.estadoDespachada;
       case 'EN_CURSO':
+      case 'EN_PROCESO':
         return styles.estadoEnCurso;
       case 'COMPLETADA':
         return styles.estadoCompletada;
@@ -77,7 +79,7 @@ export const MisionDetalleHeader: React.FC<MisionDetalleHeaderProps> = ({
             className={`${styles.badgeEstado} ${getEstadoClass(mision.estado)}`}
             title={`Estado operativo: ${mision.estado}`}
           >
-            {mision.estado.replace(/_/g, ' ')}
+            {obtenerBadgeEstadoMision(mision.estado).label}
           </span>
           <span
             className={`${styles.badgePrioridad} ${getPrioridadClass(mision.prioridad)}`}

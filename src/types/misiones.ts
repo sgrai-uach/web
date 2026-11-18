@@ -40,11 +40,41 @@ export interface ReporteTerrenoDetalle {
 }
 
 export interface MisionBitacoraHito {
+  id?: string;
   hito: string;
+  codigoHito?: string;
   fecha: string;
   hora: string;
   timestamp: string;
   descripcion: string;
+  latitud?: number | null;
+  longitud?: number | null;
+  registradoPorId?: string | null;
+  registradoPorNombre?: string | null;
+}
+
+export interface MisionHitoRegistradoPayload {
+  misionId: string;
+  codigoMision?: string;
+  hitoId?: string;
+  hito: string;
+  descripcion: string;
+  latitud?: number | null;
+  longitud?: number | null;
+  registradoPor?: {
+    id: string;
+    nombre: string;
+  } | null;
+  registradoEn: string;
+  nuevoEstadoMision?: string;
+}
+
+export interface MisionActualizadaPayload {
+  misionId: string;
+  codigo?: string;
+  estado: string;
+  cuadrillaId?: string | null;
+  actualizadoEn?: string;
 }
 
 export interface IncidenteMisionResumen {
@@ -115,6 +145,7 @@ export type EstadoMision =
   | 'PLANIFICADA'
   | 'DESPACHADA'
   | 'EN_CURSO'
+  | 'EN_PROCESO'
   | 'COMPLETADA'
   | 'CANCELADA'
   | 'RECHAZADA';

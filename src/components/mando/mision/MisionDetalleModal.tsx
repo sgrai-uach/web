@@ -8,6 +8,19 @@ import {
   obtenerDetalleMision,
   DEFAULT_ENCARGADO_ID,
 } from '@/services/misionesService';
+import { getSocket } from '@/lib/socket/client';
+import {
+  actualizarEstadoMisionTiempoReal,
+  getEstadoTiempoRealMision,
+  getHitosTiempoRealMision,
+  registrarHitoMisionTiempoReal,
+  subscribeMisionesRealtime,
+} from '@/lib/socket/misionesStore';
+import {
+  combinarBitacoraConTiempoReal,
+  normalizarPayloadHitoMision,
+  normalizarPayloadMisionActualizada,
+} from '@/lib/utils/misionHitos';
 import type { MisionDetalleCompleto } from '@/types/misiones';
 import { MisionSkeletonLoader } from './MisionSkeletonLoader';
 import { MisionDetalleHeader } from './MisionDetalleHeader';
@@ -21,17 +34,20 @@ interface MisionDetalleModalProps {
   misionId: string | null;
   userId?: string;
   onCerrar: () => void;
+  onUbicarEnMapa?: (latitud: number, longitud: number, etiqueta?: string) => void;
 }
 
 export const MisionDetalleModal: React.FC<MisionDetalleModalProps> = ({
   misionId,
   userId = DEFAULT_ENCARGADO_ID,
   onCerrar,
+  onUbicarEnMapa,
 }) => {
   const [mision, setMision] = useState<MisionDetalleCompleto | null>(null);
   const [cargando, setCargando] = useState<boolean>(Boolean(misionId));
   const [error, setError] = useState<string | null>(null);
   const [codigoError, setCodigoError] = useState<number | undefined>(undefined);
+  const [, setRealtimeTick] = useState(0);
 
   useEffect(() => {
     let activo = true;
@@ -61,6 +77,71 @@ export const MisionDetalleModal: React.FC<MisionDetalleModalProps> = ({
       activo = false;
     };
   }, [misionId, userId]);
+
+  // Suscripción reactiva en tiempo real a hitos y cambios de estado de la misión activa
+  useEffect(() => {
+    if (!misionId) return;
+
+    const unsubscribeStore = subscribeMisionesRealtime(() => {
+      setRealtimeTick((t) => t + 1);
+    });
+
+    let socket: ReturnType<typeof getSocket> | null = null;
+    try {
+      socket = getSocket();
+    } catch {
+      socket = null;
+    }
+
+    if (!socket) {
+      return () => {
+        unsubscribeStore();
+      };
+    }
+
+    if (!socket.connected) {
+      socket.connect();
+    }
+
+    const misionRoom = `mision:${misionId}`;
+    socket.emit('join', misionRoom);
+    socket.emit('unirse', misionRoom);
+
+    const handleHito = (raw: unknown) => {
+      const normalized = normalizarPayloadHitoMision(raw);
+      if (!normalized || normalized.misionId !== misionId) return;
+      registrarHitoMisionTiempoReal(normalized);
+    };
+
+    const handleActualizada = (raw: unknown) => {
+      const normalized = normalizarPayloadMisionActualizada(raw);
+      if (!normalized || normalized.misionId !== misionId) return;
+      actualizarEstadoMisionTiempoReal(normalized);
+    };
+
+    socket.on('mision:hito_registrado', handleHito);
+    socket.on('mision:actualizada', handleActualizada);
+
+    return () => {
+      unsubscribeStore();
+      socket?.off('mision:hito_registrado', handleHito);
+      socket?.off('mision:actualizada', handleActualizada);
+      socket?.emit('leave', misionRoom);
+      socket?.emit('salir', misionRoom);
+    };
+  }, [misionId]);
+
+  const misionConTiempoReal =
+    mision && misionId
+      ? {
+          ...mision,
+          estado: getEstadoTiempoRealMision(misionId) ?? mision.estado,
+          bitacoraTiempos: combinarBitacoraConTiempoReal(
+            mision.bitacoraTiempos || [],
+            getHitosTiempoRealMision(misionId)
+          ),
+        }
+      : mision;
 
   // Manejo de tecla Escape
   useEffect(() => {
@@ -130,13 +211,13 @@ export const MisionDetalleModal: React.FC<MisionDetalleModalProps> = ({
           </div>
         )}
 
-        {!cargando && !error && mision && (
+        {!cargando && !error && misionConTiempoReal && (
           <>
-            <MisionDetalleHeader mision={mision} onCerrar={onCerrar} />
+            <MisionDetalleHeader mision={misionConTiempoReal} onCerrar={onCerrar} />
 
             <div className={styles.modalBody}>
               {/* Banner de Rechazo si aplica */}
-              {mision.estado === 'RECHAZADA' && mision.justificacionRechazo && (
+              {misionConTiempoReal.estado === 'RECHAZADA' && misionConTiempoReal.justificacionRechazo && (
                 <div className={styles.bannerRechazo} role="alert">
                   <AlertTriangle className={styles.bannerRechazoIcon} size={20} />
                   <div>
@@ -144,7 +225,7 @@ export const MisionDetalleModal: React.FC<MisionDetalleModalProps> = ({
                       Misión Rechazada por la Unidad en Terreno
                     </strong>
                     <span style={{ fontSize: '13px' }}>
-                      <strong>Motivo indicado:</strong> {mision.justificacionRechazo}
+                      <strong>Motivo indicado:</strong> {misionConTiempoReal.justificacionRechazo}
                     </span>
                   </div>
                 </div>
@@ -152,22 +233,26 @@ export const MisionDetalleModal: React.FC<MisionDetalleModalProps> = ({
 
               {/* Contexto: Incidente o Prevención */}
               <MisionContextoSection
-                incidente={mision.incidente}
-                prevencion={mision.prevencion}
-                descripcionMision={mision.descripcion}
+                incidente={misionConTiempoReal.incidente}
+                prevencion={misionConTiempoReal.prevencion}
+                descripcionMision={misionConTiempoReal.descripcion}
               />
 
               {/* Unidad y Recursos Asignados */}
               <MisionEquipoSection
-                cuadrilla={mision.cuadrilla}
-                patrulla={mision.patrulla}
+                cuadrilla={misionConTiempoReal.cuadrilla}
+                patrulla={misionConTiempoReal.patrulla}
               />
 
               {/* Bitácora de Tiempos */}
-              <MisionBitacoraSection bitacora={mision.bitacoraTiempos || []} />
+              <MisionBitacoraSection
+                bitacora={misionConTiempoReal.bitacoraTiempos || []}
+                delegadoNombreFallback={misionConTiempoReal.cuadrilla?.delegado?.nombre}
+                onUbicarEnMapa={onUbicarEnMapa}
+              />
 
               {/* Reportes de Terreno y Evidencia */}
-              <MisionReportesSection reportes={mision.reportesTerreno || []} />
+              <MisionReportesSection reportes={misionConTiempoReal.reportesTerreno || []} />
             </div>
 
             <footer className={styles.modalFooter}>
