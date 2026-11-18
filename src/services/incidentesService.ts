@@ -241,7 +241,9 @@ export const incidentesService = {
     userId: string = DEFAULT_ENCARGADO_ID
   ): Promise<ResultadoKpisIncidentes> {
     try {
-      const queryParams: paths['/api/incidentes/kpis']['get']['parameters']['query'] = {};
+      const queryParams: NonNullable<
+        paths['/api/incidentes/kpis']['get']['parameters']['query']
+      > = {};
       if (query.fecha && query.fecha.trim()) {
         queryParams.fecha = query.fecha.trim();
       }

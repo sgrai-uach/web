@@ -4,7 +4,6 @@ import React, { useMemo } from 'react';
 import { Truck } from 'lucide-react';
 import type { RecursoItem } from '@/types/recurso';
 import InlineNotice from '@/components/ui/InlineNotice';
-import { formatearEstado } from '@/lib/utils/estadoUtils';
 import styles from './PatrullaForm.module.css';
 
 export interface PatrullaResumenAsignacion {

@@ -1082,32 +1082,40 @@ it('BUG-H35-WEB-07: asegura conexión del socket y suscripción a sala:encargado
 });
 
   it('BUG-H38-WEB-05: no muestra etiqueta Reclasificado cuando reclasificacionTipologia es null y la glosa es solo de prioridad', async () => {
-    const mockSoloPrioridad: incidentesService.IncidenteDetalle = {
-      ...mockDetalleIncidente,
-      reclasificadoEnTerreno: true,
-      reclasificacionTipologia: null,
-      justificacionReclasificacion:
-        'Reporte de evaluación #4 (Rectificación): Prioridad actualizada en terreno de BAJA a CRITICA (Sugerida: ALTA).',
-    };
+    const casosSoloPrioridad: Array<string | null> = [
+      'Reporte de evaluación #1: Prioridad asignada en terreno a CRITICA (Sugerida: ALTA).',
+      'Reporte de evaluación #4 (Rectificación): Prioridad actualizada en terreno de BAJA a CRITICA (Sugerida: ALTA).',
+      null,
+    ];
 
-    vi.spyOn(incidentesService, 'obtenerDetalleIncidente').mockResolvedValueOnce({
-      exito: true,
-      datos: mockSoloPrioridad,
-      mensaje: 'OK',
-    });
+    for (const justificacionReclasificacion of casosSoloPrioridad) {
+      const mockSoloPrioridad: incidentesService.IncidenteDetalle = {
+        ...mockDetalleIncidente,
+        reclasificadoEnTerreno: true,
+        reclasificacionTipologia: null,
+        justificacionReclasificacion,
+      };
 
-    render(
-      <IncidenteDetalleDrawer
-        incidenteId={mockDetalleIncidente.id}
-        userId="user-test"
-        onCerrar={vi.fn()}
-      />
-    );
+      vi.spyOn(incidentesService, 'obtenerDetalleIncidente').mockResolvedValueOnce({
+        exito: true,
+        datos: mockSoloPrioridad,
+        mensaje: 'OK',
+      });
 
-    await waitFor(() => {
-      expect(screen.getByText('INC-2026-0042')).toBeDefined();
-    });
+      const { unmount } = render(
+        <IncidenteDetalleDrawer
+          incidenteId={mockDetalleIncidente.id}
+          userId="user-test"
+          onCerrar={vi.fn()}
+        />
+      );
 
-    expect(screen.queryByTestId('btn-ver-cambio-afectacion')).toBeNull();
+      await waitFor(() => {
+        expect(screen.getByText('INC-2026-0042')).toBeDefined();
+      });
+
+      expect(screen.queryByTestId('btn-ver-cambio-afectacion')).toBeNull();
+      unmount();
+    }
   });
 });

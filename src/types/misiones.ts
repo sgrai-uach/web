@@ -7,21 +7,15 @@
 import type { paths } from './api-generated';
 import type { PaginationMeta } from './common';
 
-export interface AdjuntoEvidencia {
-  id: string;
-  nombreArchivo: string;
-  url: string;
-  tipoMime: string;
-  tamanoBytes: number;
-  creadoEn: string;
-}
+type ListarMisiones200 =
+  paths['/api/misiones']['get']['responses'][200]['content']['application/json'];
+type MisionDetalle200 =
+  paths['/api/misiones/{id}']['get']['responses'][200]['content']['application/json'];
+type MisionDetalleDataOpenApi = MisionDetalle200['data'];
+type ReporteTerrenoOpenApi = MisionDetalleDataOpenApi['reportesTerreno'][number];
 
-export interface EvaluadorTerreno {
-  id: string;
-  nombre: string;
-  email: string;
-  rut?: string | null;
-}
+export type AdjuntoEvidencia = ReporteTerrenoOpenApi['adjuntos'][number];
+export type EvaluadorTerreno = ReporteTerrenoOpenApi['evaluador'];
 
 export interface FamiliaAfectadaMisionDetalle {
   id?: string;
@@ -64,138 +58,35 @@ export interface EvaluacionTerrenoMisionDetalle {
   [key: string]: unknown;
 }
 
-export interface ReporteTerrenoDetalle {
-  id: string;
-  misionId: string;
-  versionReporte?: number;
-  esRectificacion?: boolean;
-  etiquetaReporte?: string;
-  prioridadSugerida?: 'BAJA' | 'MEDIA' | 'ALTA' | 'CRITICA' | null;
-  prioridadAsignada?: 'BAJA' | 'MEDIA' | 'ALTA' | 'CRITICA' | null;
-  justificacionPrioridad?: string | null;
+export type ReporteTerrenoDetalle = Omit<ReporteTerrenoOpenApi, 'detallesEvaluacion'> & {
   detallesEvaluacion?: EvaluacionTerrenoMisionDetalle;
-  evaluador: EvaluadorTerreno;
-  resumenTecnico: string;
-  accionesRealizadas: string | null;
-  requiereApoyoAdicional: boolean;
-  danosEstimados: string | null;
-  observaciones: string | null;
-  personasAfectadas: number;
-  estadoTerreno: string;
-  adjuntos: AdjuntoEvidencia[];
-  creadoEn: string;
-  actualizadoEn: string;
-}
+};
 
-export interface MisionBitacoraHito {
-  id?: string;
-  hito: string;
-  fecha: string;
-  hora: string;
-  timestamp: string;
-  descripcion: string;
+export type MisionBitacoraHito = MisionDetalleDataOpenApi['bitacoraTiempos'][number] & {
   metadatos?: Record<string, unknown> | null;
-}
+};
 
-export interface IncidenteMisionResumen {
-  id: string;
-  codigo: string;
-  codigoSeguimiento: string;
-  tipoAfectacion: string;
-  descripcion: string | null;
-  direccion: string;
-  latitud: number;
-  longitud: number;
-  estado: string;
-  prioridad: string;
+export type IncidenteMisionResumen = NonNullable<MisionDetalleDataOpenApi['incidente']> & {
   prioridadSugerida?: string | null;
   justificacionPrioridad?: string | null;
-  requiereAsistenciaSocial: boolean;
-  delegacionNombre: string | null;
-}
+};
 
-export interface PrevencionMisionResumen {
-  id: string;
-  codigo: string;
-  nombre: string;
-  descripcion: string | null;
-  latitud: number;
-  longitud: number;
-  delegacionNombre: string | null;
-}
+export type PrevencionMisionResumen = NonNullable<MisionDetalleDataOpenApi['prevencion']>;
+export type CuadrillaMisionDetalle = NonNullable<MisionDetalleDataOpenApi['cuadrilla']>;
+export type RecursoAsignadoMision = CuadrillaMisionDetalle['recursos'][number];
+export type PatrullaMisionDetalle = NonNullable<MisionDetalleDataOpenApi['patrulla']>;
 
-export interface RecursoAsignadoMision {
-  id: string;
-  nombre: string;
-  tipo: string;
-  cantidadAsignada: number;
-}
-
-export interface CuadrillaMisionDetalle {
-  id: string;
-  nombre: string;
-  estado: string;
-  delegacionNombre: string | null;
-  delegado: {
-    id: string;
-    nombre: string;
-    email: string;
-  } | null;
-  recursos: RecursoAsignadoMision[];
-}
-
-export interface PatrullaMisionDetalle {
-  id: string;
-  nombre: string;
-  estado: string;
-  delegacionNombre: string | null;
-  lider: {
-    id: string;
-    nombre: string;
-    email: string;
-  } | null;
-}
-
-export type TipoMision =
-  | 'VERIFICACION'
-  | 'ATENCION_CUADRILLA'
-  | 'PREVENCION'
-  | 'RECUPERACION'
-  | 'ASISTENCIA_SOCIAL';
-
-export type EstadoMision =
-  | 'PLANIFICADA'
-  | 'DESPACHADA'
-  | 'EN_CURSO'
-  | 'COMPLETADA'
-  | 'CANCELADA'
-  | 'RECHAZADA';
-
-export type PrioridadMision = 'BAJA' | 'MEDIA' | 'ALTA' | 'CRITICA';
-
-export interface MisionItem {
-  id: string;
-  codigo: string;
-  titulo: string;
+export type MisionItem = Omit<
+  ListarMisiones200['data'][number],
+  'descripcion' | 'actualizadoEn'
+> & {
   descripcion?: string | null;
-  tipoMision: TipoMision;
-  estado: EstadoMision;
-  prioridad: PrioridadMision;
-  delegacionId?: string | null;
-  delegacionNombre?: string | null;
-  incidenteId?: string | null;
-  incidenteCodigo?: string | null;
-  cuadrillaId?: string | null;
-  cuadrillaNombre?: string | null;
-  patrullaId?: string | null;
-  patrullaNombre?: string | null;
-  justificacionRechazo?: string | null;
-  trazabilidadNotificacion?: 'PENDIENTE_ENVIO' | 'ENVIADA' | 'RECIBIDA' | 'LEIDA';
-  fechaInicio?: string | null;
-  fechaCierre?: string | null;
-  creadoEn: string;
   actualizadoEn?: string;
-}
+};
+
+export type TipoMision = MisionItem['tipoMision'];
+export type EstadoMision = MisionItem['estado'];
+export type PrioridadMision = MisionItem['prioridad'];
 
 export interface FiltrosMisiones {
   busqueda: string;
@@ -212,34 +103,18 @@ export interface ListarMisionesResponse {
   meta: PaginationMeta;
 }
 
-export interface MisionDetalleCompleto {
-  id: string;
-  codigo: string;
-  titulo: string;
-  descripcion: string | null;
-  tipoMision: TipoMision;
-  estado: EstadoMision;
-  prioridad: PrioridadMision;
-  justificacionRechazo: string | null;
-  trazabilidadNotificacion?: 'PENDIENTE_ENVIO' | 'ENVIADA' | 'RECIBIDA' | 'LEIDA';
-  fechaInicio: string | null;
-  fechaCierre: string | null;
-  creadoEn: string;
-  actualizadoEn: string;
-  creadoPor: { id: string; nombre: string; email: string } | null;
-  encargado: { id: string; nombre: string; email: string } | null;
+export type MisionDetalleCompleto = Omit<
+  MisionDetalleDataOpenApi,
+  'incidente' | 'bitacoraTiempos' | 'reportesTerreno'
+> & {
   incidente: IncidenteMisionResumen | null;
-  prevencion: PrevencionMisionResumen | null;
-  cuadrilla: CuadrillaMisionDetalle | null;
-  patrulla: PatrullaMisionDetalle | null;
   bitacoraTiempos: MisionBitacoraHito[];
   reportesTerreno: ReporteTerrenoDetalle[];
-}
+};
 
-export interface MisionDetalleResponse {
-  message: string;
+export type MisionDetalleResponse = Omit<MisionDetalle200, 'data'> & {
   data: MisionDetalleCompleto;
-}
+};
 /** DTO de entrada para despachar cuadrilla operativa a un incidente (HU-21) */
 export interface DespacharCuadrillaDTO {
   tipoMision: 'ATENCION_CUADRILLA';

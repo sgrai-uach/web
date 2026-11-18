@@ -13,11 +13,13 @@ import type {
   FiltrosMisiones,
   MisionItem,
   MisionDetalleCompleto,
-  MisionDetalleResponse,
   DespacharCuadrillaDTO,
   DespacharCuadrillaResponse,
   DespacharPatrullaPayload,
   ResultadoDespacharPatrulla,
+  EstadoMision,
+  TipoMision,
+  PrioridadMision,
 } from '@/types/misiones';
 
 export const DEFAULT_ENCARGADO_ID = '00000000-0000-4000-8000-000000000003';
@@ -60,50 +62,69 @@ export const misionesService = {
     filtros: FiltrosMisiones,
     userId: string = DEFAULT_ENCARGADO_ID
   ): Promise<ResultadoListarMisiones> {
-    const queryParams: NonNullable<paths['/api/misiones']['get']['parameters']['query']> = {
+    type ListarMisionesQuery = NonNullable<
+      paths['/api/misiones']['get']['parameters']['query']
+    >;
+    type ListarMisionesHeader =
+      paths['/api/misiones']['get']['parameters']['header'];
+
+    const query: ListarMisionesQuery = {
       page: filtros.page || 1,
       limit: filtros.limit || 10,
     };
 
     if (filtros.busqueda?.trim()) {
-      queryParams.busqueda = filtros.busqueda.trim();
+      query.busqueda = filtros.busqueda.trim();
     }
 
     if (filtros.estado && filtros.estado !== 'TODOS') {
-      queryParams.estado = filtros.estado as NonNullable<typeof queryParams.estado>;
+      query.estado = filtros.estado as EstadoMision;
     }
 
     if (filtros.tipoMision && filtros.tipoMision !== 'TODOS') {
-      queryParams.tipoMision = filtros.tipoMision as NonNullable<typeof queryParams.tipoMision>;
+      query.tipoMision = filtros.tipoMision as TipoMision;
     }
 
     if (filtros.prioridad) {
-      queryParams.prioridad = filtros.prioridad as NonNullable<typeof queryParams.prioridad>;
+      query.prioridad = filtros.prioridad as PrioridadMision;
     }
 
     // Traducción transparente del nombre legible de delegación a UUID
     if (filtros.delegacion && filtros.delegacion !== 'TODAS') {
       const delegacionId = catalogosService.resolverDelegacionId(filtros.delegacion);
       if (delegacionId) {
-        queryParams.delegacionId = delegacionId;
+        query.delegacionId = delegacionId;
       }
     }
 
     try {
-      const token = typeof window !== 'undefined' ? getAuthCookie() : undefined;
+      const token =
+        getAuthCookie() ||
+        (typeof window !== 'undefined'
+          ? localStorage.getItem('sgrai_auth_token') || localStorage.getItem('token')
+          : null);
+
       const { data, error, response } = await apiClient.GET('/api/misiones', {
         params: {
-          query: queryParams,
-          header: {
-            authorization: token ? `Bearer ${token}` : '',
-          },
+          query,
+          header: (token
+            ? { authorization: `Bearer ${token}` }
+            : {}) as ListarMisionesHeader,
         },
         headers: {
           'x-user-id': userId,
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
       });
 
-      if (error || !response?.ok || !data) {
+      if (error || !response?.ok) {
+        const status = response?.status || 500;
+        const msg =
+          status === 401
+            ? 'Sesión no válida o expirada al consultar misiones.'
+            : status === 403
+              ? 'No tienes permisos suficientes para listar misiones operativas.'
+              : `Error ${status} al consultar misiones.`;
         return {
           exito: false,
           data: [],
@@ -115,22 +136,12 @@ export const misionesService = {
             hasNext: false,
             hasPrev: false,
           },
-          mensaje: `Error ${response?.status || 500} al consultar misiones.`,
+          mensaje: msg,
         };
       }
 
-      const lista = (data.data || []) as MisionItem[];
-      const metaRaw = (data as unknown as {
-        meta?: {
-          total?: number;
-          page?: number;
-          limit?: number;
-          totalPages?: number;
-          hasNext?: boolean;
-          hasPrev?: boolean;
-        };
-      }).meta;
-      const meta = metaRaw || {
+      const lista = Array.isArray(data?.data) ? data.data : [];
+      const meta = data?.meta || {
         total: lista.length,
         page: filtros.page,
         limit: filtros.limit,
@@ -150,7 +161,7 @@ export const misionesService = {
           hasNext: Boolean(meta.hasNext),
           hasPrev: Boolean(meta.hasPrev),
         },
-        mensaje: 'Misiones obtenidas exitosamente.',
+        mensaje: data?.message || 'Misiones obtenidas exitosamente.',
       };
     } catch {
       return {
@@ -190,20 +201,7 @@ export const misionesService = {
     }
 
     try {
-      // Usamos el cliente tipado con casteo controlado para soportar el endpoint OpenAPI
-      const { data, error, response } = await (apiClient as unknown as {
-        GET: (
-          url: string,
-          options: {
-            params?: { path?: Record<string, string>; header?: Record<string, string> };
-            headers?: Record<string, string>;
-          }
-        ) => Promise<{
-          data?: MisionDetalleResponse;
-          error?: unknown;
-          response?: Response;
-        }>;
-      }).GET('/api/misiones/{id}', {
+      const { data, error, response } = await apiClient.GET('/api/misiones/{id}', {
         params: {
           path: { id: idLimpio },
           header: { 'x-user-id': userId },

@@ -364,7 +364,7 @@ export const KanbanBoard: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    cargarCuadrillas();
+    return cargarCuadrillas();
   }, [cargarCuadrillas]);
 
   const {

@@ -35,15 +35,12 @@ export const IncidenteResumenSection: React.FC<IncidenteResumenSectionProps> = (
     }
 
     const justif = detalle.justificacionReclasificacion?.trim() || '';
-    const esGlosaSoloPrioridad = /^(?:Reporte de evaluaci[oó]n[^:]*:\s*)?Prioridad actualizada\b/i.test(
-      justif
-    );
+    const esGlosaSoloPrioridad =
+      /^(?:Reporte de evaluaci[oó]n[^:]*:\s*)?Prioridad (?:actualizada|asignada)\b/i.test(
+        justif
+      );
 
-    if (
-      (detalle.reclasificadoEnTerreno || (justif && !esGlosaSoloPrioridad)) &&
-      !esGlosaSoloPrioridad &&
-      detalle.misiones.length > 0
-    ) {
+    if (justif.length > 0 && !esGlosaSoloPrioridad && detalle.misiones.length > 0) {
       const misionVerif =
         detalle.misiones.find((m) => m.tipoMision === 'VERIFICACION') || detalle.misiones[0];
       return {
