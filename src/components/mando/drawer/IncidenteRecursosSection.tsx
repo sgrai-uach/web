@@ -1,8 +1,9 @@
 'use client';
 
 import React from 'react';
-import Heading from '@/components/ui/Heading';
+import { Truck } from 'lucide-react';
 import type { IncidenteDetalle } from '@/services/incidentesService';
+import { DrawerSectionHeader } from './DrawerSectionHeader';
 import styles from '@/styles/mando.module.css';
 
 interface IncidenteRecursosSectionProps {
@@ -12,9 +13,10 @@ interface IncidenteRecursosSectionProps {
 export const IncidenteRecursosSection: React.FC<IncidenteRecursosSectionProps> = ({ recursos }) => {
   return (
     <div className={styles.drawerSection}>
-      <Heading as="h3" variant="h4" color="teal" style={{ marginBottom: '0.75rem' }}>
-        Recursos Logísticos Desplegados ({recursos.length})
-      </Heading>
+      <DrawerSectionHeader
+        icono={<Truck size={18} />}
+        titulo={`Recursos Logísticos Desplegados (${recursos.length})`}
+      />
       {recursos.length === 0 ? (
         <p style={{ color: 'var(--color-text-muted, #5F676E)', fontSize: '0.85rem', margin: 0 }}>
           No hay vehículos, maquinaria ni insumos asignados a través de cuadrillas.

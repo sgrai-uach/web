@@ -8,9 +8,13 @@ import styles from '@/styles/mision-detalle.module.css';
 
 interface MisionEvidenciasGalleryProps {
   adjuntos: AdjuntoEvidencia[];
+  preparadaParaH43?: boolean;
 }
 
-export const MisionEvidenciasGallery: React.FC<MisionEvidenciasGalleryProps> = ({ adjuntos }) => {
+export const MisionEvidenciasGallery: React.FC<MisionEvidenciasGalleryProps> = ({
+  adjuntos,
+  preparadaParaH43 = false,
+}) => {
   const [adjuntoSeleccionado, setAdjuntoSeleccionado] = useState<AdjuntoEvidencia | null>(null);
 
   const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
@@ -23,7 +27,7 @@ export const MisionEvidenciasGallery: React.FC<MisionEvidenciasGalleryProps> = (
 
   if (!adjuntos || adjuntos.length === 0) {
     return (
-      <div className={styles.galeriaContenedor}>
+      <div className={styles.galeriaContenedor} data-testid="seccion-evidencias-h43">
         <span className={styles.galeriaTitulo}>
           <ImageIcon size={14} />
           <span>Evidencia Adjunta:</span>
@@ -31,12 +35,17 @@ export const MisionEvidenciasGallery: React.FC<MisionEvidenciasGalleryProps> = (
         <p style={{ margin: 0, fontSize: '13px', color: 'var(--color-text-muted, #5F676E)', fontStyle: 'italic' }}>
           Sin evidencias fotográficas adjuntas
         </p>
+        {preparadaParaH43 && (
+          <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: 'var(--color-text-muted, #5F676E)' }}>
+            Sección de galería preparada para adjuntos fotográficos en terreno (HU-43).
+          </p>
+        )}
       </div>
     );
   }
 
   return (
-    <div className={styles.galeriaContenedor}>
+    <div className={styles.galeriaContenedor} data-testid="seccion-evidencias-h43">
       <span className={styles.galeriaTitulo}>
         <ImageIcon size={14} />
         <span>Evidencias y Documentación en Terreno ({adjuntos.length}):</span>
