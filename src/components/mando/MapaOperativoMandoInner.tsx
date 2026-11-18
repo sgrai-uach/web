@@ -5,13 +5,13 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import type { IncidenteResumen } from '@/services/incidentesService';
 import type { EventoPrevencionDTO } from '@/types/evento-prevencion';
-import type { EventoRecuperacionResponse } from '@/types/recuperacion';
+import type { EventoRecuperacionResponse, DetalleEventoRecuperacionResponse } from '@/types/recuperacion';
 import type { CuadrillaItem } from '@/types/cuadrilla';
 
 interface MapaOperativoMandoInnerProps {
   incidentes?: IncidenteResumen[];
   eventosPrevencion?: EventoPrevencionDTO[];
-  eventosRecuperacion?: EventoRecuperacionResponse[];
+  eventosRecuperacion?: (EventoRecuperacionResponse | DetalleEventoRecuperacionResponse)[];
   cuadrillas?: CuadrillaItem[];
 
   onSelectIncidente?: (id: string) => void;

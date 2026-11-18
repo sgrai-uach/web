@@ -14,6 +14,28 @@ export interface RecursoOpcionItem {
   estado?: string;
 }
 
+/**
+ * Evalúa si un insumo o activo logístico está inhabilitado para despacho operativo:
+ * - Activos individuales en estado EN_MANTENCION, NO_DISPONIBLE o ASIGNADO.
+ * - Insumos a granel sin stock remanente disponible en bodega (stock <= 0).
+ */
+export function esRecursoDeshabilitado(item: RecursoOpcionItem): boolean {
+  const stock =
+    item.cantidadDisponible !== undefined
+      ? item.cantidadDisponible
+      : (item.cantidadInventario ?? 0) - (item.cantidadEnUso ?? 0);
+
+  if (item.esIndividual) {
+    return (
+      item.estado === 'EN_MANTENCION' ||
+      item.estado === 'NO_DISPONIBLE' ||
+      item.estado === 'ASIGNADO'
+    );
+  }
+
+  return stock <= 0;
+}
+
 export interface BuscadorRecursosSelectProps {
   recursos: RecursoOpcionItem[];
   value: string;
@@ -130,7 +152,9 @@ export const BuscadorRecursosSelect: React.FC<BuscadorRecursosSelectProps> = ({
               (r) => r.id === val || (val.trim() && r.nombre.toLowerCase() === val.trim().toLowerCase())
             );
             if (recursoExacto) {
-              onChange(recursoExacto.id);
+              if (!esRecursoDeshabilitado(recursoExacto)) {
+                onChange(recursoExacto.id);
+              }
             } else {
               if (!abierto) setAbierto(true);
             }
@@ -162,12 +186,7 @@ export const BuscadorRecursosSelect: React.FC<BuscadorRecursosSelectProps> = ({
                   ? item.cantidadDisponible
                   : (item.cantidadInventario ?? 0) - (item.cantidadEnUso ?? 0);
 
-              const estaDeshabilitado = Boolean(
-                (item.esIndividual &&
-                  (item.estado === 'EN_MANTENCION' || item.estado === 'NO_DISPONIBLE')) ||
-                  (!item.esIndividual && stock <= 0)
-              );
-
+              const estaDeshabilitado = esRecursoDeshabilitado(item);
               const esElSeleccionado = item.id === value;
 
               return (
@@ -210,6 +229,10 @@ export const BuscadorRecursosSelect: React.FC<BuscadorRecursosSelectProps> = ({
                     ) : item.esIndividual && item.estado === 'NO_DISPONIBLE' ? (
                       <span style={{ fontSize: '11px', color: '#D32F2F', fontWeight: 600 }}>
                         No Disponible
+                      </span>
+                    ) : item.esIndividual && item.estado === 'ASIGNADO' ? (
+                      <span style={{ fontSize: '11px', color: '#D32F2F', fontWeight: 600 }}>
+                        Asignado
                       </span>
                     ) : (
                       <span className={styles.recursoStockBadge}>Disp: {stock}</span>

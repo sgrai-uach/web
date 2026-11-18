@@ -137,7 +137,7 @@ export const ModalCrearEventoRecuperacion: React.FC<ModalCrearEventoRecuperacion
       try {
         const [resCatalogos, resRecursos, resPatrullas] = await Promise.all([
           getCatalogos().catch(() => ({ delegaciones: [], roles: [], especialidades: [], cargos: [] })),
-          getRecursos({ pagina: 1, limite: 100, estado: 'DISPONIBLE' }, userId).catch(() => ({
+          getRecursos({ pagina: 1, limite: 100 }, userId).catch(() => ({
             data: [],
             meta: { total: 0, pagina: 1, limite: 100, totalPaginas: 1 },
           })),

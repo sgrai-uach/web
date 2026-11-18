@@ -107,13 +107,14 @@ describe('DetalleEventoRecuperacionClient (HU-32)', () => {
           nombre: 'Patrulla Rápida Costa-1',
           estado: 'EN_RECUPERACION',
         },
-        recursos: [
-          {
-            recursoId: 'rec-frazadas',
-            nombre: 'Frazadas de Lana',
-            cantidadAsignada: 12,
-          },
-        ],
+      },
+    ],
+    recursosAsignados: [
+      {
+        recursoId: 'rec-frazadas',
+        nombre: 'Frazadas de Lana',
+        cantidadAsignada: 12,
+        misionId: 'mis-10',
       },
     ],
     recursos: [
@@ -121,6 +122,7 @@ describe('DetalleEventoRecuperacionClient (HU-32)', () => {
         recursoId: 'rec-frazadas',
         nombre: 'Frazadas de Lana',
         cantidadAsignada: 12,
+        misionId: 'mis-10',
       },
     ],
     creadoEn: '2026-10-04T22:00:00.000Z',

@@ -5,6 +5,7 @@ import type {
   CrearEventoRecuperacionInput,
   EventoRecuperacionResponse,
   DetalleEventoRecuperacionResponse,
+  DetalleEventoRecuperacionDTO,
   AsignarRecursosRecuperacionInput,
   AsignarRecursosRecuperacionResponse,
 } from '@/types/recuperacion';
@@ -160,12 +161,113 @@ export async function crearEventoRecuperacion(
   }
 }
 
-interface UntypedApiClient {
-  GET: (url: string, init?: unknown) => Promise<{ data?: unknown; error?: unknown; response: Response }>;
-  POST: (url: string, init?: unknown) => Promise<{ data?: unknown; error?: unknown; response: Response }>;
+/**
+ * Parámetros de consulta para listar eventos de recuperación (HU-73 / HU-32 / HU-5)
+ */
+export interface ListarEventosRecuperacionParams {
+  pagina?: number;
+  limite?: number;
+  delegacionId?: string;
+  estado?: 'PLANIFICADA' | 'EN_CURSO' | 'EN_EJECUCION' | 'COMPLETADA' | 'CANCELADA';
+  prioridad?: 'BAJA' | 'MEDIA' | 'ALTA' | 'CRITICA';
+  busqueda?: string;
 }
 
-const rawApiClient = apiClient as unknown as UntypedApiClient;
+export interface ListarEventosRecuperacionResponse {
+  data: DetalleEventoRecuperacionResponse[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+/**
+ * Lista los eventos u operativos de recuperación comunal registrados (HU-73 / HU-32).
+ * Consume: GET /api/eventos-atp/recuperacion
+ */
+export async function listarEventosRecuperacion(
+  params?: ListarEventosRecuperacionParams,
+  userId: string = DEFAULT_ENCARGADO_ID
+): Promise<ListarEventosRecuperacionResponse> {
+  try {
+    const { data, error, response } = await apiClient.GET('/api/eventos-atp/recuperacion', {
+      params: {
+        query: {
+          page: params?.pagina,
+          limit: params?.limite,
+          pagina: params?.pagina,
+          limite: params?.limite,
+          delegacionId: params?.delegacionId,
+          estado: params?.estado,
+          prioridad: params?.prioridad,
+          busqueda: params?.busqueda,
+        },
+        header: {
+          'x-user-id': userId,
+        },
+      },
+    });
+
+    if (response.status === 200 && data) {
+      const items = (data.data || []).map((ev) => {
+        const misiones = (ev.misiones || []).map((m) => ({
+          ...m,
+          creadoEn: '',
+          patrulla: m.patrulla ?? null,
+        }));
+        const primeraMision = misiones[0] || null;
+        const patrulla = primeraMision?.patrulla ?? null;
+        const recursosAsignados = ev.recursosAsignados || [];
+
+        return {
+          ...ev,
+          descripcion: ev.descripcion ?? null,
+          familiasAfectadas: ev.familiasAfectadas ?? 0,
+          mision: primeraMision
+            ? {
+                id: primeraMision.id,
+                codigo: primeraMision.codigo,
+                titulo: primeraMision.titulo,
+                estado: primeraMision.estado,
+                tipoMision: primeraMision.tipoMision,
+              }
+            : null,
+          misiones,
+          patrulla,
+          recursosAsignados,
+          recursos: recursosAsignados,
+        };
+      }) as DetalleEventoRecuperacionResponse[];
+
+      return {
+        data: items,
+        total: data.total ?? items.length,
+        page: data.page ?? 1,
+        limit: data.limit ?? 100,
+        totalPages: data.totalPages ?? 1,
+      };
+    }
+
+    const status = response.status;
+    const errorData = (error || {}) as { message?: string; error?: string };
+    const mensajeError =
+      errorData.message || errorData.error || `Error HTTP ${status} al listar los eventos de recuperación.`;
+
+    throw new RecuperacionServiceError(mensajeError, {
+      statusCode: status,
+      apiDetails: errorData,
+    });
+  } catch (err: unknown) {
+    if (err instanceof RecuperacionServiceError) {
+      throw err;
+    }
+    const formatted = formatApiError(err);
+    throw new RecuperacionServiceError(formatted.message || 'Error inesperado al listar eventos de recuperación', {
+      statusCode: formatted.statusCode,
+      apiDetails: formatted,
+    });
+  }
+}
 
 /**
  * Consulta la información consolidada de un evento de recuperación comunal (HU-32).
@@ -176,7 +278,7 @@ export async function obtenerEventoRecuperacion(
   userId: string = DEFAULT_ENCARGADO_ID
 ): Promise<DetalleEventoRecuperacionResponse> {
   try {
-    const { data, error, response } = await rawApiClient.GET('/api/eventos-atp/recuperacion/{id}', {
+    const { data, error, response } = await apiClient.GET('/api/eventos-atp/recuperacion/{id}', {
       params: {
         path: { id },
         header: {
@@ -186,11 +288,43 @@ export async function obtenerEventoRecuperacion(
     });
 
     if (response.status === 200 && data) {
-      const result =
+      const raw =
         typeof data === 'object' && data !== null && 'data' in data
-          ? (data as { data: DetalleEventoRecuperacionResponse }).data
-          : data;
-      return result as DetalleEventoRecuperacionResponse;
+          ? (data as { data: DetalleEventoRecuperacionDTO }).data
+          : (data as DetalleEventoRecuperacionDTO);
+
+      const recursosAsignados = raw.recursosAsignados || [];
+      const misiones = (raw.misiones || []).map((m) => ({
+        ...m,
+        patrulla: m.patrulla ?? null,
+      }));
+      const primeraMision = misiones[0] || null;
+      const patrulla = primeraMision?.patrulla ?? null;
+
+      const normalizado: DetalleEventoRecuperacionResponse = {
+        ...raw,
+        descripcion: raw.descripcion ?? null,
+        direccionTexto: raw.direccionTexto ?? null,
+        contactoNombre: raw.contactoNombre ?? null,
+        contactoTelefono: raw.contactoTelefono ?? null,
+        delegacion: raw.delegacion ?? null,
+        familiasAfectadas: raw.familiasAfectadas ?? 0,
+        mision: primeraMision
+          ? {
+              id: primeraMision.id,
+              codigo: primeraMision.codigo,
+              titulo: primeraMision.titulo,
+              estado: primeraMision.estado,
+              tipoMision: primeraMision.tipoMision,
+            }
+          : null,
+        misiones,
+        patrulla,
+        recursosAsignados,
+        recursos: recursosAsignados,
+      };
+
+      return normalizado;
     }
 
     const status = response.status;
@@ -238,14 +372,14 @@ export async function asignarRecursosRecuperacion(
   userId: string = DEFAULT_ENCARGADO_ID
 ): Promise<AsignarRecursosRecuperacionResponse> {
   try {
-    const { data, error, response } = await rawApiClient.POST('/api/eventos-atp/recuperacion/{id}/asignar', {
+    const { data, error, response } = await apiClient.POST('/api/eventos-atp/recuperacion/{id}/asignar', {
       params: {
         path: { id },
         header: {
           'x-user-id': userId,
         },
       },
-      body: input as unknown as Record<string, unknown>,
+      body: input,
     });
 
     if ((response.status === 200 || response.status === 201) && data) {

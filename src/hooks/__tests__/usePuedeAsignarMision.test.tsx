@@ -6,14 +6,30 @@ import { SimulatedSessionContext } from '@/context/SimulatedSessionContext';
 import { AuthContext } from '@/context/AuthContext';
 
 describe('usePuedeAsignarMision', () => {
-  it('retorna true por defecto si no hay providers en el árbol (fallback defensivo)', () => {
+  it('retorna false por defecto si no hay providers en el árbol (política Fail-Closed)', () => {
     const { result } = renderHook(() => usePuedeAsignarMision());
-    expect(result.current).toBe(true);
+    expect(result.current).toBe(false);
+  });
+
+  it('retorna false si AuthContext está en estado de carga (cargando: true)', () => {
+    const mockAuth = {
+      estaAutenticado: false,
+      cargando: true,
+      tienePermiso: () => true,
+    } as unknown as Parameters<typeof AuthContext>[0]['value'];
+
+    const wrapper = ({ children }: { children: React.ReactNode }) => (
+      <AuthContext value={mockAuth}>{children}</AuthContext>
+    );
+
+    const { result } = renderHook(() => usePuedeAsignarMision(), { wrapper });
+    expect(result.current).toBe(false);
   });
 
   it('retorna true si el usuario de AuthContext tiene el permiso misiones:asignar', () => {
     const mockAuth = {
       estaAutenticado: true,
+      cargando: false,
       tienePermiso: (codigo: string) => codigo === 'misiones:asignar',
     } as unknown as Parameters<typeof AuthContext>[0]['value'];
 
@@ -23,6 +39,21 @@ describe('usePuedeAsignarMision', () => {
 
     const { result } = renderHook(() => usePuedeAsignarMision(), { wrapper });
     expect(result.current).toBe(true);
+  });
+
+  it('retorna false si el usuario de AuthContext está autenticado pero no tiene el permiso', () => {
+    const mockAuth = {
+      estaAutenticado: true,
+      cargando: false,
+      tienePermiso: () => false,
+    } as unknown as Parameters<typeof AuthContext>[0]['value'];
+
+    const wrapper = ({ children }: { children: React.ReactNode }) => (
+      <AuthContext value={mockAuth}>{children}</AuthContext>
+    );
+
+    const { result } = renderHook(() => usePuedeAsignarMision(), { wrapper });
+    expect(result.current).toBe(false);
   });
 
   it('retorna true si el usuario de SimulatedSessionContext tiene el permiso o es admin', () => {

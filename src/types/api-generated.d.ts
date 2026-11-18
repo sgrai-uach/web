@@ -4787,7 +4787,106 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /**
+         * Listar operativos de recuperación post-desastre (H73 / H32)
+         * @description Retorna una lista paginada y filtrable de todos los operativos de recuperación registrados para seguimiento del Encargado.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description Número de página (inicia en 1) */
+                    page?: number;
+                    /** @description Cantidad de elementos por página (máximo 100) */
+                    limit?: number;
+                    /** @description Alias legado de 'page' */
+                    pagina?: number;
+                    /** @description Alias legado de 'limit' */
+                    limite?: number;
+                    /** @description Filtrar por identificador de la delegación territorial correspondiente */
+                    delegacionId?: string;
+                    /** @description Filtrar por estado del ciclo de vida del operativo */
+                    estado?: "PLANIFICADA" | "EN_CURSO" | "EN_EJECUCION" | "COMPLETADA" | "CANCELADA";
+                    /** @description Filtrar por nivel de urgencia o prioridad operativa */
+                    prioridad?: "BAJA" | "MEDIA" | "ALTA" | "CRITICA";
+                    /** @description Búsqueda textual por código, título o sector */
+                    busqueda?: string;
+                };
+                header?: {
+                    /** @description Token Bearer JWT de sesión institucional */
+                    authorization?: string;
+                    /** @description UUID del usuario autenticado */
+                    "x-user-id"?: string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Listado de operativos de recuperación obtenido exitosamente */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            message?: string;
+                            data: Array<{
+                                id: string;
+                                codigo: string;
+                                nombre: string;
+                                descripcion?: string | null;
+                                sector: string;
+                                direccionTexto?: string | null;
+                                prioridad: "BAJA" | "MEDIA" | "ALTA" | "CRITICA";
+                                latitud: number;
+                                longitud: number;
+                                estado: "PLANIFICADA" | "EN_CURSO" | "EN_EJECUCION" | "COMPLETADA" | "CANCELADA";
+                                familiasAfectadas?: number;
+                                contactoNombre?: string | null;
+                                contactoTelefono?: string | null;
+                                delegacion?: {
+                                    id: string;
+                                    codigo: string;
+                                    nombre: string;
+                                } | null;
+                                misiones?: Array<{
+                                    id: string;
+                                    codigo: string;
+                                    titulo: string;
+                                    estado: string;
+                                    tipoMision: string;
+                                    patrulla?: {
+                                        id: string;
+                                        nombre: string;
+                                        estado: string;
+                                    } | null;
+                                }>;
+                                recursosAsignados?: Array<{
+                                    recursoId: string;
+                                    nombre: string;
+                                    cantidadAsignada: number;
+                                    misionId: string | null;
+                                }>;
+                                creadoPorId?: string;
+                                creadoEn: string;
+                                actualizadoEn: string;
+                            }>;
+                            total: number;
+                            page: number;
+                            limit: number;
+                            totalPages: number;
+                        };
+                    };
+                };
+                /** @description Error interno del servidor */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
         put?: never;
         /**
          * Crear evento de recuperación y despachar patrulla con recursos logísticos (HU-29)
@@ -5027,6 +5126,295 @@ export interface paths {
                     content?: never;
                 };
                 /** @description Conflicto operativo: Patrulla no disponible o stock insuficiente en bodega */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Error interno del servidor */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/eventos-atp/recuperacion/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Obtener detalle completo de evento de recuperación (HU-32)
+         * @description Retorna la información consolidada de un evento de recuperación comunal, misiones tácticas y recursos asignados.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: {
+                    /** @description Token Bearer JWT de sesión institucional */
+                    authorization?: string;
+                    /** @description UUID del usuario autenticado */
+                    "x-user-id"?: string;
+                };
+                path: {
+                    /** @description UUID del evento de recuperación */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Detalle del evento de recuperación obtenido exitosamente */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            message?: string;
+                            data: {
+                                id: string;
+                                codigo: string;
+                                nombre: string;
+                                descripcion?: string | null;
+                                sector: string;
+                                direccionTexto?: string | null;
+                                prioridad: "BAJA" | "MEDIA" | "ALTA" | "CRITICA";
+                                latitud: number;
+                                longitud: number;
+                                estado: "PLANIFICADA" | "EN_CURSO" | "EN_EJECUCION" | "COMPLETADA" | "CANCELADA";
+                                familiasAfectadas?: number;
+                                contactoNombre?: string | null;
+                                contactoTelefono?: string | null;
+                                delegacion?: {
+                                    id: string;
+                                    codigo: string;
+                                    nombre: string;
+                                } | null;
+                                misiones: Array<{
+                                    id: string;
+                                    codigo: string;
+                                    titulo: string;
+                                    estado: string;
+                                    tipoMision: string;
+                                    creadoEn: string;
+                                    patrulla?: {
+                                        id: string;
+                                        nombre: string;
+                                        estado: string;
+                                    } | null;
+                                }>;
+                                recursosAsignados: Array<{
+                                    recursoId: string;
+                                    nombre: string;
+                                    cantidadAsignada: number;
+                                    misionId: string | null;
+                                }>;
+                                creadoPorId?: string;
+                                creadoEn: string;
+                                actualizadoEn: string;
+                            };
+                        };
+                    };
+                };
+                /** @description Parámetro UUID inválido */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description No autenticado */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Acceso denegado */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Evento de recuperación no encontrado */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Error interno del servidor */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/eventos-atp/recuperacion/{id}/asignar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Asignar patrulla y recursos a un evento de recuperación (HU-32)
+         * @description Asigna atómicamente una patrulla verificadora disponible y materiales de bodega a un evento de recuperación existente.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: {
+                    /** @description Token Bearer JWT de sesión institucional */
+                    authorization?: string;
+                    /** @description UUID del usuario autenticado (Encargado o Administrador) */
+                    "x-user-id"?: string;
+                };
+                path: {
+                    /** @description UUID del evento de recuperación */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** @description UUID de la patrulla verificadora disponible */
+                        patrullaId: string;
+                        /** @description Lista de recursos logísticos solicitados */
+                        recursos: Array<{
+                            recursoId: string;
+                            cantidad: number;
+                        }>;
+                    };
+                };
+            };
+            responses: {
+                /** @description Recursos y patrulla asignados exitosamente */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            message: string;
+                            data: {
+                                evento: {
+                                    id: string;
+                                    codigo: string;
+                                    nombre: string;
+                                    estado: string;
+                                };
+                                mision: {
+                                    id: string;
+                                    codigo: string;
+                                    titulo: string;
+                                    estado: string;
+                                    tipoMision: string;
+                                };
+                                patrulla: {
+                                    id: string;
+                                    nombre: string;
+                                    estado: string;
+                                };
+                                recursos: Array<{
+                                    recursoId: string;
+                                    nombre: string;
+                                    cantidadAsignada: number;
+                                }>;
+                            };
+                        };
+                    };
+                };
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            message: string;
+                            data: {
+                                evento: {
+                                    id: string;
+                                    codigo: string;
+                                    nombre: string;
+                                    estado: string;
+                                };
+                                mision: {
+                                    id: string;
+                                    codigo: string;
+                                    titulo: string;
+                                    estado: string;
+                                    tipoMision: string;
+                                };
+                                patrulla: {
+                                    id: string;
+                                    nombre: string;
+                                    estado: string;
+                                };
+                                recursos: Array<{
+                                    recursoId: string;
+                                    nombre: string;
+                                    cantidadAsignada: number;
+                                }>;
+                            };
+                        };
+                    };
+                };
+                /** @description Datos de entrada inválidos */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description No autenticado */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Acceso denegado. Se requiere permiso 'misiones:asignar' */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Evento, patrulla o recurso no encontrado */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Conflicto: patrulla ocupada, stock insuficiente o activo no disponible */
                 409: {
                     headers: {
                         [name: string]: unknown;

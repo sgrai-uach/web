@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useContext, useRef } from 'react';
 import Link from 'next/link';
 import Heading from '@/components/ui/Heading';
 import Button from '@/components/ui/Button';
@@ -12,6 +12,8 @@ import LocationPickerMap from '@/components/maps/LocationPickerMap';
 import { BuscadorRecursosSelect } from '@/components/common/BuscadorRecursosSelect';
 import { usePuedeAsignarMision } from '@/hooks/usePuedeAsignarMision';
 import { useRecuperacionSocket } from '@/hooks/useRecuperacionSocket';
+import { AuthContext } from '@/context/AuthContext';
+import { SimulatedSessionContext } from '@/context/SimulatedSessionContext';
 import {
   obtenerEventoRecuperacion,
   asignarRecursosRecuperacion,
@@ -52,9 +54,12 @@ export interface DetalleEventoRecuperacionClientProps {
 
 export const DetalleEventoRecuperacionClient: React.FC<DetalleEventoRecuperacionClientProps> = ({
   id,
-  userId = DEFAULT_ENCARGADO_ID,
+  userId: propUserId,
 }) => {
   const { showSuccess, showError, showInfo } = useToast();
+  const auth = useContext(AuthContext);
+  const session = useContext(SimulatedSessionContext);
+  const userId = propUserId || auth?.usuario?.id || session?.usuarioActivo?.id || DEFAULT_ENCARGADO_ID;
   const puedeAsignar = usePuedeAsignarMision();
 
   // Estados del evento principal
@@ -91,13 +96,19 @@ export const DetalleEventoRecuperacionClient: React.FC<DetalleEventoRecuperacion
     }
   }, [id, userId]);
 
+  const recursoDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   // Carga de patrullas e inventario disponible
   const cargarCatalogosOperativos = useCallback(async () => {
     try {
       const [resPatrullas, resRecursos] = await Promise.all([
         patrullasService.listar({ estado: 'DISPONIBLE', limit: 100 }, userId),
-        getRecursos({ estado: 'DISPONIBLE', limite: 100, pagina: 1 }, userId),
+        getRecursos({ limite: 100, pagina: 1 }, userId),
       ]);
+
+      if (resPatrullas && !resPatrullas.exito) {
+        showError(resPatrullas.mensaje || 'Error al consultar la disponibilidad de patrullas verificadoras.');
+      }
 
       const listaPatrullas = resPatrullas.data || [];
       const listaRecursos = resRecursos.data || [];
@@ -107,7 +118,7 @@ export const DetalleEventoRecuperacionClient: React.FC<DetalleEventoRecuperacion
     } catch {
       // Fallback silencioso para no bloquear la vista de lectura
     }
-  }, [userId]);
+  }, [userId, showError]);
 
   useEffect(() => {
     let isMounted = true;
@@ -117,10 +128,13 @@ export const DetalleEventoRecuperacionClient: React.FC<DetalleEventoRecuperacion
         const [data, resPatrullas, resRecursos] = await Promise.all([
           obtenerEventoRecuperacion(id, userId),
           patrullasService.listar({ estado: 'DISPONIBLE', limit: 100 }, userId),
-          getRecursos({ estado: 'DISPONIBLE', limite: 100, pagina: 1 }, userId),
+          getRecursos({ limite: 100, pagina: 1 }, userId),
         ]);
 
         if (!isMounted) return;
+        if (resPatrullas && !resPatrullas.exito) {
+          showError(resPatrullas.mensaje || 'Error al consultar la disponibilidad de patrullas verificadoras.');
+        }
         setEvento(data);
         setPatrullas(resPatrullas.data || []);
         setInventario(resRecursos.data || []);
@@ -143,8 +157,11 @@ export const DetalleEventoRecuperacionClient: React.FC<DetalleEventoRecuperacion
 
     return () => {
       isMounted = false;
+      if (recursoDebounceRef.current) {
+        clearTimeout(recursoDebounceRef.current);
+      }
     };
-  }, [id, userId]);
+  }, [id, userId, showError]);
 
   // Sincronización en tiempo real vía WebSockets (HU-32)
   useRecuperacionSocket({
@@ -155,7 +172,12 @@ export const DetalleEventoRecuperacionClient: React.FC<DetalleEventoRecuperacion
       showInfo('El evento de recuperación fue actualizado en vivo con una nueva misión.');
     },
     onRecursoActualizado: () => {
-      cargarCatalogosOperativos();
+      if (recursoDebounceRef.current) {
+        clearTimeout(recursoDebounceRef.current);
+      }
+      recursoDebounceRef.current = setTimeout(() => {
+        cargarCatalogosOperativos();
+      }, 300);
     },
     onPatrullaActualizada: () => {
       cargarCatalogosOperativos();
@@ -255,12 +277,16 @@ export const DetalleEventoRecuperacionClient: React.FC<DetalleEventoRecuperacion
       const recursoInfo = inventarioMap.get(fila.recursoId);
       if (!recursoInfo) continue;
 
-      // Si es individual, prohibir si está en mantención o no disponible
+      // Si es individual, prohibir si está en mantención, no disponible o asignado
       if (recursoInfo.esIndividual) {
-        if (recursoInfo.estado === 'EN_MANTENCION' || recursoInfo.estado === 'NO_DISPONIBLE') {
+        if (
+          recursoInfo.estado === 'EN_MANTENCION' ||
+          recursoInfo.estado === 'NO_DISPONIBLE' ||
+          recursoInfo.estado === 'ASIGNADO'
+        ) {
           return {
             valido: false,
-            mensaje: `El activo individual "${recursoInfo.nombre}" no está disponible o se encuentra en mantención`,
+            mensaje: `El activo individual "${recursoInfo.nombre}" no está disponible, se encuentra asignado o en mantención`,
           };
         }
         if (fila.cantidad !== 1) {
@@ -330,11 +356,15 @@ export const DetalleEventoRecuperacionClient: React.FC<DetalleEventoRecuperacion
           } else if (err.tipoConflicto === 'EVENTO_CERRADO') {
             setBannerConflicto('No se pueden asignar misiones ni recursos a un evento de recuperación cerrado.');
             showError('Evento de recuperación completado o cancelado.');
+            cargarDetalleEvento();
           } else {
             setBannerConflicto(err.message);
             showError(err.message);
           }
           cargarCatalogosOperativos();
+          if (err.tipoConflicto === 'EVENTO_CERRADO') {
+            cargarDetalleEvento();
+          }
         } else if (err.statusCode === 403) {
           setErrorForm('No cuentas con el permiso institucional requerido (misiones:asignar).');
           showError('Permisos insuficientes para despachar misiones.');
@@ -696,19 +726,18 @@ export const DetalleEventoRecuperacionClient: React.FC<DetalleEventoRecuperacion
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {evento.misiones.map((mision: MisionRecuperacionItem) => (
-                <div key={mision.id} className={styles.misionItem}>
-                  <div className={styles.misionHeader}>
-                    <div>
-                      <span className={styles.misionCodigo}>{mision.codigo}</span>
-                      <span style={{ margin: '0 8px', color: '#CCD2D9' }}>|</span>
-                      <strong>{mision.titulo || 'Atención en terreno'}</strong>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span className={styles.misionPatrulla}>
-                        <Truck size={14} color="var(--color-primary-teal, #1B6F7D)" />
-                        {mision.patrulla?.nombre || 'Patrulla no asignada'}
-                      </span>
+              {/* Bloque resumen para recursos asignados sin misión (ej. entrega inicial o pre-migración 041) */}
+              {(() => {
+                const recursosSinMision = (evento.recursosAsignados || evento.recursos || []).filter(
+                  (rec) => !rec.misionId
+                );
+                if (recursosSinMision.length === 0) return null;
+                return (
+                  <div className={styles.misionItem} style={{ borderLeft: '4px solid var(--color-primary-teal, #1B6F7D)' }}>
+                    <div className={styles.misionHeader}>
+                      <div>
+                        <strong>Despacho Logístico Inicial / Previo</strong>
+                      </div>
                       <span
                         style={{
                           fontSize: '11px',
@@ -718,12 +747,9 @@ export const DetalleEventoRecuperacionClient: React.FC<DetalleEventoRecuperacion
                           color: '#1B6F7D',
                         }}
                       >
-                        {mision.estado}
+                        ASIGNACIÓN DIRECTA
                       </span>
                     </div>
-                  </div>
-
-                  {mision.recursos && mision.recursos.length > 0 && (
                     <div>
                       <span
                         style={{
@@ -738,17 +764,78 @@ export const DetalleEventoRecuperacionClient: React.FC<DetalleEventoRecuperacion
                         Materiales y equipamiento entregado:
                       </span>
                       <div className={styles.misionRecursosList}>
-                        {mision.recursos.map((rec, i) => (
-                          <span key={`${rec.recursoId}-${i}`} className={styles.misionRecursoChip}>
+                        {recursosSinMision.map((rec, i) => (
+                          <span key={`sin-mision-${rec.recursoId}-${i}`} className={styles.misionRecursoChip}>
                             <Boxes size={12} color="var(--color-primary-teal, #1B6F7D)" />
                             <strong>{rec.nombre}</strong>: {rec.cantidadAsignada} un.
                           </span>
                         ))}
                       </div>
                     </div>
-                  )}
-                </div>
-              ))}
+                  </div>
+                );
+              })()}
+
+              {evento.misiones.map((mision: MisionRecuperacionItem) => {
+                const todosRecursos = evento.recursosAsignados || evento.recursos || [];
+                const recursosDeEstaMision = todosRecursos.filter((rec) => rec.misionId === mision.id);
+                const recursosAMostrar =
+                  recursosDeEstaMision.length > 0 ? recursosDeEstaMision : mision.recursos || [];
+
+                return (
+                  <div key={mision.id} className={styles.misionItem}>
+                    <div className={styles.misionHeader}>
+                      <div>
+                        <span className={styles.misionCodigo}>{mision.codigo}</span>
+                        <span style={{ margin: '0 8px', color: '#CCD2D9' }}>|</span>
+                        <strong>{mision.titulo || 'Atención en terreno'}</strong>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span className={styles.misionPatrulla}>
+                          <Truck size={14} color="var(--color-primary-teal, #1B6F7D)" />
+                          {mision.patrulla?.nombre || 'Patrulla no asignada'}
+                        </span>
+                        <span
+                          style={{
+                            fontSize: '11px',
+                            fontWeight: 700,
+                            padding: '2px 6px',
+                            backgroundColor: '#E0F2F1',
+                            color: '#1B6F7D',
+                          }}
+                        >
+                          {mision.estado}
+                        </span>
+                      </div>
+                    </div>
+
+                    {recursosAMostrar && recursosAMostrar.length > 0 && (
+                      <div>
+                        <span
+                          style={{
+                            fontSize: '12px',
+                            fontWeight: 700,
+                            textTransform: 'uppercase',
+                            color: 'var(--color-text-muted, #5F676E)',
+                            display: 'block',
+                            marginBottom: '6px',
+                          }}
+                        >
+                          Materiales y equipamiento entregado:
+                        </span>
+                        <div className={styles.misionRecursosList}>
+                          {recursosAMostrar.map((rec, i) => (
+                            <span key={`${rec.recursoId}-${i}`} className={styles.misionRecursoChip}>
+                              <Boxes size={12} color="var(--color-primary-teal, #1B6F7D)" />
+                              <strong>{rec.nombre}</strong>: {rec.cantidadAsignada} un.
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>

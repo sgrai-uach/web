@@ -3,6 +3,7 @@ import {
   crearEventoRecuperacion,
   obtenerEventoRecuperacion,
   asignarRecursosRecuperacion,
+  listarEventosRecuperacion,
   RecuperacionServiceError,
 } from '../recuperacionService';
 import apiClient from '@/lib/api/client';
@@ -254,11 +255,20 @@ describe('recuperacionService (HU-29)', () => {
           ],
         },
       ],
+      recursosAsignados: [
+        {
+          recursoId: 'e1000000-0000-4000-8000-000000000004',
+          nombre: 'Sacos de Arena 25kg',
+          cantidadAsignada: 10,
+          misionId: '6b45c230-2b3c-4d5e-9f0a-1234567890bc',
+        },
+      ],
       recursos: [
         {
           recursoId: 'e1000000-0000-4000-8000-000000000004',
           nombre: 'Sacos de Arena 25kg',
           cantidadAsignada: 10,
+          misionId: '6b45c230-2b3c-4d5e-9f0a-1234567890bc',
         },
       ],
       creadoEn: '2026-10-04T22:30:00.000Z',
@@ -396,6 +406,28 @@ describe('recuperacionService (HU-29)', () => {
       await expect(
         asignarRecursosRecuperacion('evento-uuid', payloadAsignacion)
       ).rejects.toThrow('No posee el permiso requerido: misiones:asignar');
+    });
+  });
+
+  describe('listarEventosRecuperacion (HU-73 / HU-32)', () => {
+    it('debe listar eventos de recuperación exitosamente (200 OK)', async () => {
+      vi.mocked(apiClient.GET).mockResolvedValueOnce({
+        data: {
+          message: 'Operativos listados',
+          data: [],
+          total: 0,
+          page: 1,
+          limit: 10,
+          totalPages: 1,
+        } as unknown as never,
+        error: undefined,
+        response: { ok: true, status: 200 } as Response,
+      });
+
+      const res = await listarEventosRecuperacion({ pagina: 1, limite: 10 }, DEFAULT_ENCARGADO_ID);
+      expect(apiClient.GET).toHaveBeenCalledWith('/api/eventos-atp/recuperacion', expect.any(Object));
+      expect(res.data).toEqual([]);
+      expect(res.total).toBe(0);
     });
   });
 });

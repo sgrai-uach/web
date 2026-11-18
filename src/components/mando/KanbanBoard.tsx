@@ -11,7 +11,7 @@ import { useRecuperacionSocket } from '@/hooks/useRecuperacionSocket';
 import { useToast } from '@/components/ui/Toast';
 import type { EstadoIncidente, IncidenteResumen } from '@/services/incidentesService';
 import type { EventoPrevencionDTO } from '@/types/evento-prevencion';
-import type { EventoRecuperacionResponse } from '@/types/recuperacion';
+import type { EventoRecuperacionResponse, DetalleEventoRecuperacionResponse } from '@/types/recuperacion';
 import { KanbanHeader } from './KanbanHeader';
 import { KanbanFiltros } from './KanbanFiltros';
 import { KanbanColumn } from './KanbanColumn';
@@ -28,6 +28,7 @@ import { MapaOperativoMando } from './MapaOperativoMando';
 import { KanbanViewSwitcher } from './KanbanViewSwitcher';
 import CuadrillaDetalleDrawer from '@/components/admin/cuadrillas/CuadrillaDetalleDrawer';
 import { cuadrillasService } from '@/services/cuadrillasService';
+import { listarEventosRecuperacion } from '@/services/recuperacionService';
 import type { CuadrillaItem } from '@/types/cuadrilla';
 import { Zap } from 'lucide-react';
 import { usePuedeAsignarMision } from '@/hooks/usePuedeAsignarMision';
@@ -54,7 +55,9 @@ export const KanbanBoard: React.FC = () => {
   const [modalPrevencionAbierto, setModalPrevencionAbierto] = useState(false);
   const [modalRecuperacionAbierto, setModalRecuperacionAbierto] = useState(false);
   const [eventosPrevencion, setEventosPrevencion] = useState<EventoPrevencionDTO[]>([]);
-  const [eventosRecuperacion, setEventosRecuperacion] = useState<EventoRecuperacionResponse[]>([]);
+  const [eventosRecuperacion, setEventosRecuperacion] = useState<
+    (EventoRecuperacionResponse | DetalleEventoRecuperacionResponse)[]
+  >([]);
   const [cuadrillaSeleccionadaId, setCuadrillaSeleccionadaId] = useState<string | null>(null);
   const [cuadrillasOperativas, setCuadrillasOperativas] = useState<CuadrillaItem[]>([]);
   const [incidenteParaAsignar, setIncidenteParaAsignar] = useState<IncidenteResumen | null>(null);
@@ -75,9 +78,28 @@ export const KanbanBoard: React.FC = () => {
     };
   }, []);
 
+  const cargarEventosRecuperacion = useCallback(() => {
+    let isMounted = true;
+    listarEventosRecuperacion({ limite: 100 })
+      .then((res) => {
+        if (isMounted && res.data) {
+          setEventosRecuperacion(res.data);
+        }
+      })
+      .catch(() => {});
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   useEffect(() => {
-    return cargarCuadrillas();
-  }, [cargarCuadrillas]);
+    const cancelCuadrillas = cargarCuadrillas();
+    const cancelRecuperacion = cargarEventosRecuperacion();
+    return () => {
+      cancelCuadrillas?.();
+      cancelRecuperacion?.();
+    };
+  }, [cargarCuadrillas, cargarEventosRecuperacion]);
 
   const {
     userId,
@@ -146,7 +168,7 @@ export const KanbanBoard: React.FC = () => {
     },
   });
 
-  // Hook de tiempo real para eventos de recuperación (HU-29)
+  // Hook de tiempo real para eventos de recuperación (HU-29 / HU-32)
   useRecuperacionSocket({
     onRecuperacionCreada: (nuevoEvento) => {
       setEventosRecuperacion((prev) => {
@@ -158,6 +180,23 @@ export const KanbanBoard: React.FC = () => {
         `Nuevo evento de recuperación en ${nuevoEvento.sector}: ${nuevoEvento.codigo}`,
         'Operación Territorial en Vivo'
       );
+    },
+    onRecuperacionActualizada: (payload) => {
+      const obj = payload && typeof payload === 'object' ? (payload as Record<string, unknown>) : null;
+      const eventoObj =
+        obj && 'evento' in obj && typeof obj.evento === 'object' && obj.evento !== null
+          ? (obj.evento as Record<string, unknown>)
+          : null;
+      const dataObj =
+        obj && 'data' in obj && typeof obj.data === 'object' && obj.data !== null
+          ? (obj.data as Record<string, unknown>)
+          : null;
+      const ev = (eventoObj || dataObj || obj) as EventoRecuperacionResponse | null;
+      if (ev?.id) {
+        setEventosRecuperacion((prev) =>
+          prev.map((item) => (item.id === ev.id ? { ...item, ...ev } : item))
+        );
+      }
     },
   });
 
@@ -213,6 +252,7 @@ export const KanbanBoard: React.FC = () => {
     refrescarKpis(true);
     recargar();
     cargarCuadrillas();
+    cargarEventosRecuperacion();
   };
 
   const contadoresPorEstado = useMemo(() => {

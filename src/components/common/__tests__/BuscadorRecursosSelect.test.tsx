@@ -175,4 +175,56 @@ describe('BuscadorRecursosSelect', () => {
     fireEvent.click(clearButton);
     expect(handleChange).toHaveBeenCalledWith('');
   });
+
+  it('no debe seleccionar un recurso deshabilitado al escribir su nombre exacto en el input (BUG-H32-WEB-04)', () => {
+    const handleChange = vi.fn();
+    render(
+      <BuscadorRecursosSelect
+        recursos={mockRecursos}
+        value=""
+        onChange={handleChange}
+      />
+    );
+
+    const input = screen.getByRole('combobox');
+    fireEvent.change(input, { target: { value: 'Camión Aljibe Mercedes Benz' } });
+
+    // Camión Aljibe está en EN_MANTENCION, por lo que no debe auto-seleccionarse
+    expect(handleChange).not.toHaveBeenCalled();
+  });
+
+  it('no debe permitir seleccionar un activo individual en estado ASIGNADO (BUG-H32-WEB-04)', () => {
+    const handleChange = vi.fn();
+    const recursosConAsignado: RecursoOpcionItem[] = [
+      ...mockRecursos,
+      {
+        id: 'rec-asignado',
+        nombre: 'Bomba Sumergible Honda',
+        cantidadDisponible: 0,
+        cantidadInventario: 1,
+        cantidadEnUso: 1,
+        esIndividual: true,
+        estado: 'ASIGNADO',
+      },
+    ];
+
+    render(
+      <BuscadorRecursosSelect
+        recursos={recursosConAsignado}
+        value=""
+        onChange={handleChange}
+      />
+    );
+
+    const input = screen.getByRole('combobox');
+    fireEvent.focus(input);
+
+    const opcionAsignado = screen.getByText(/Bomba Sumergible Honda/i);
+    fireEvent.click(opcionAsignado);
+    expect(handleChange).not.toHaveBeenCalled();
+
+    // Tampoco por teclado
+    fireEvent.change(input, { target: { value: 'Bomba Sumergible Honda' } });
+    expect(handleChange).not.toHaveBeenCalled();
+  });
 });

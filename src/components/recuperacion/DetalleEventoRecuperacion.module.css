@@ -224,7 +224,7 @@
 
 .recursosTableContainer {
   width: 100%;
-  overflow-x: auto;
+  overflow: visible;
   border: 1px solid var(--border-color-neutral, #DFE3E8);
   background-color: #FFFFFF;
 }

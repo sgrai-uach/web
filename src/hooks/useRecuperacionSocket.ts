@@ -60,6 +60,8 @@ export function useRecuperacionSocket({
 
     const unirseSalas = () => {
       setConectado(true);
+      socket.emit('unirse', 'encargado');
+      socket.emit('join', 'encargado');
       socket.emit('unirse', 'sala:encargados');
       socket.emit('join', 'sala:encargados');
       socket.emit('unirse', 'mapa');
@@ -91,12 +93,20 @@ export function useRecuperacionSocket({
 
     const handleRecuperacionActualizada = (payload: unknown) => {
       const obj = payload && typeof payload === 'object' ? (payload as Record<string, unknown>) : null;
-      const dataObj = obj && 'data' in obj && typeof obj.data === 'object' ? (obj.data as Record<string, unknown>) : null;
-      const evento = dataObj || obj;
+      const eventoObj =
+        obj && 'evento' in obj && typeof obj.evento === 'object' && obj.evento !== null
+          ? (obj.evento as Record<string, unknown>)
+          : null;
+      const dataObj =
+        obj && 'data' in obj && typeof obj.data === 'object' && obj.data !== null
+          ? (obj.data as Record<string, unknown>)
+          : null;
+      const evento = eventoObj || dataObj || obj;
       const targetId = evento && ('id' in evento ? String(evento.id) : null);
+      const targetCodigo = evento && ('codigo' in evento ? String(evento.codigo) : null);
 
-      if (!eventoId || (targetId && targetId === eventoId)) {
-        const codigo = evento && 'codigo' in evento ? String(evento.codigo) : 'Evento';
+      if (!eventoId || (targetId && targetId === eventoId) || (targetCodigo && targetCodigo === eventoId)) {
+        const codigo = targetCodigo || (evento && 'codigo' in evento ? String(evento.codigo) : 'Evento');
         setUltimoEvento(`Recuperación actualizada: ${codigo}`);
         if (callbackActualizadaRef.current) {
           callbackActualizadaRef.current(payload);
@@ -130,6 +140,8 @@ export function useRecuperacionSocket({
       socket.off('recuperacion:actualizada', handleRecuperacionActualizada);
       socket.off('recurso:actualizado', handleRecursoActualizado);
       socket.off('patrulla:actualizada', handlePatrullaActualizada);
+      socket.emit('salir', 'encargado');
+      socket.emit('leave', 'encargado');
       socket.emit('salir', 'sala:encargados');
       socket.emit('leave', 'sala:encargados');
       socket.emit('salir', 'mapa');

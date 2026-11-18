@@ -5,7 +5,7 @@
 
 export type PrioridadRecuperacion = 'BAJA' | 'MEDIA' | 'ALTA' | 'CRITICA';
 
-export type EstadoRecuperacion = 'PLANIFICADA' | 'EN_EJECUCION' | 'COMPLETADA' | 'CANCELADA';
+export type EstadoRecuperacion = 'PLANIFICADA' | 'EN_EJECUCION' | 'EN_CURSO' | 'COMPLETADA' | 'CANCELADA';
 
 export interface ItemRecursoSolicitado {
   recursoId: string; // UUID
@@ -32,6 +32,7 @@ export interface RecursoAsignadoItem {
   recursoId: string;
   nombre: string;
   cantidadAsignada: number;
+  misionId?: string | null;
 }
 
 export interface EventoRecuperacionResponse {
@@ -48,25 +49,27 @@ export interface EventoRecuperacionResponse {
   longitud: number;
   estado: EstadoRecuperacion;
   familiasAfectadas: number;
-  delegacion: {
+  delegacion?: {
     id: string;
     codigo: string;
     nombre: string;
   } | null;
-  mision: {
+  mision?: {
     id: string;
     codigo: string;
     titulo: string;
     estado: string;
     tipoMision: string;
-  };
-  patrulla: {
+  } | null;
+  misiones?: MisionRecuperacionItem[];
+  patrulla?: {
     id: string;
     nombre: string;
     estado: string;
-  };
+  } | null;
   recursos: RecursoAsignadoItem[];
-  creadoPorId: string;
+  recursosAsignados?: RecursoAsignadoItem[];
+  creadoPorId?: string;
   creadoEn: string;
   actualizadoEn: string;
 }
@@ -102,9 +105,24 @@ export const PATRULLAS_OFICIALES_SEED: PatrullaVerificadoraItem[] = [
   },
 ];
 
+import type { paths } from '@/types/api-generated';
+
 /**
  * Modelos para Detalle y Asignación de Recursos a Evento de Recuperación (HU-32).
  */
+export type DetalleEventoRecuperacionDTO =
+  paths['/api/eventos-atp/recuperacion/{id}']['get']['responses'][200]['content']['application/json']['data'];
+
+export type AsignarRecursosRecuperacionInputDTO =
+  paths['/api/eventos-atp/recuperacion/{id}/asignar']['post']['requestBody']['content']['application/json'];
+
+export type AsignarRecursosRecuperacionResponseDTO =
+  paths['/api/eventos-atp/recuperacion/{id}/asignar']['post']['responses'][200]['content']['application/json'];
+
+export type ListarEventosRecuperacionQuery = NonNullable<
+  paths['/api/eventos-atp/recuperacion']['get']['parameters']['query']
+>;
+
 export interface MisionRecuperacionItem {
   id: string;
   codigo: string;
@@ -112,7 +130,7 @@ export interface MisionRecuperacionItem {
   estado: string;
   tipoMision: string;
   creadoEn: string;
-  patrulla: {
+  patrulla?: {
     id: string;
     nombre: string;
     estado: string;
@@ -128,22 +146,35 @@ export interface DetalleEventoRecuperacionResponse {
   id: string;
   codigo: string;
   nombre: string;
-  descripcion: string | null;
+  descripcion?: string | null;
   sector: string;
-  direccionTexto: string | null;
+  direccionTexto?: string | null;
   prioridad: PrioridadRecuperacion;
-  contactoNombre: string | null;
-  contactoTelefono: string | null;
+  contactoNombre?: string | null;
+  contactoTelefono?: string | null;
   latitud: number;
   longitud: number;
   estado: EstadoRecuperacion;
   familiasAfectadas: number;
-  delegacion: {
+  delegacion?: {
     id: string;
     codigo: string;
     nombre: string;
   } | null;
+  mision?: {
+    id: string;
+    codigo: string;
+    titulo: string;
+    estado: string;
+    tipoMision: string;
+  } | null;
   misiones: MisionRecuperacionItem[];
+  patrulla?: {
+    id: string;
+    nombre: string;
+    estado: string;
+  } | null;
+  recursosAsignados: RecursoAsignadoItem[];
   recursos: RecursoAsignadoItem[];
   creadoPorId?: string;
   creadoEn: string;
