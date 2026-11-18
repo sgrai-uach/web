@@ -4787,7 +4787,95 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /**
+         * Listar operativos de recuperación post-desastre (H73)
+         * @description Retorna una lista paginada y filtrable de todos los operativos de recuperación registrados para seguimiento del Encargado. Responde bajo el estándar de contratos H34 (page, limit, total, totalPages) e incluye el desglose de insumos asignados.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description Número de página (inicia en 1) */
+                    page?: number;
+                    /** @description Cantidad de elementos por página (máximo 100) */
+                    limit?: number;
+                    /** @description Alias legado de 'page' */
+                    pagina?: number;
+                    /** @description Alias legado de 'limit' */
+                    limite?: number;
+                    /** @description Filtrar por identificador de la delegación territorial correspondiente */
+                    delegacionId?: string;
+                    /** @description Filtrar por estado del ciclo de vida del operativo */
+                    estado?: "PLANIFICADA" | "EN_EJECUCION" | "COMPLETADA" | "CANCELADA";
+                    /** @description Filtrar por nivel de urgencia o prioridad operativa */
+                    prioridad?: "BAJA" | "MEDIA" | "ALTA" | "CRITICA";
+                    /** @description Búsqueda textual insensible a mayúsculas por código (REC-XXXX), título o sector */
+                    busqueda?: string;
+                    /** @description Fecha mínima de registro (filtro temporal ISO 8601) */
+                    fechaDesde?: string;
+                    /** @description Fecha máxima de registro (filtro temporal ISO 8601) */
+                    fechaHasta?: string;
+                    /** @description Campo de ordenamiento */
+                    ordenarPor?: "codigo" | "prioridad" | "creadoEn" | "familiasAfectadas";
+                    /** @description Dirección de ordenamiento */
+                    orden?: "asc" | "desc";
+                };
+                header?: {
+                    authorization?: string;
+                    "x-user-id"?: string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data: {
+                                id: string;
+                                codigo: string;
+                                nombre: string;
+                                descripcion: string | null;
+                                sector: string;
+                                direccionTexto: string | null;
+                                prioridad: "BAJA" | "MEDIA" | "ALTA" | "CRITICA";
+                                estado: "PLANIFICADA" | "EN_EJECUCION" | "COMPLETADA" | "CANCELADA";
+                                familiasAfectadas: number;
+                                delegacion: {
+                                    id: string;
+                                    codigo: string;
+                                    nombre: string;
+                                } | null;
+                                cantidadInsumosAsignados: number;
+                                totalTiposInsumos: number;
+                                recursosResumen: {
+                                    recursoId: string;
+                                    nombre: string;
+                                    cantidadAsignada: number;
+                                }[];
+                                creadoEn: string;
+                                actualizadoEn: string;
+                                fechaCierre?: string | null;
+                            }[];
+                            meta: {
+                                total: number;
+                                page: number;
+                                limit: number;
+                                totalPages: number;
+                                hasNext: boolean;
+                                hasPrev: boolean;
+                            };
+                        };
+                    };
+                };
+                400: { headers: { [name: string]: unknown }; content?: never };
+                401: { headers: { [name: string]: unknown }; content?: never };
+                403: { headers: { [name: string]: unknown }; content?: never };
+            };
+        };
         put?: never;
         /**
          * Crear evento de recuperación y despachar patrulla con recursos logísticos (HU-29)
@@ -5042,6 +5130,112 @@ export interface paths {
                 };
             };
         };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/eventos-atp/recuperacion/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Obtener detalle completo de operativo para drawer lateral (H73)
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: {
+                    authorization?: string;
+                    "x-user-id"?: string;
+                };
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            message: string;
+                            data: {
+                                id: string;
+                                codigo: string;
+                                nombre: string;
+                                descripcion: string | null;
+                                sector: string;
+                                direccionTexto: string | null;
+                                prioridad: "BAJA" | "MEDIA" | "ALTA" | "CRITICA";
+                                contactoNombre: string | null;
+                                contactoTelefono: string | null;
+                                latitud: number;
+                                longitud: number;
+                                estado: "PLANIFICADA" | "EN_EJECUCION" | "COMPLETADA" | "CANCELADA";
+                                familiasAfectadas: number;
+                                delegacion: {
+                                    id: string;
+                                    codigo: string;
+                                    nombre: string;
+                                } | null;
+                                creadoPor: {
+                                    id: string;
+                                    nombre: string;
+                                } | null;
+                                mision: {
+                                    id: string;
+                                    codigo: string;
+                                    titulo: string;
+                                    estado: string;
+                                    tipoMision: string;
+                                } | null;
+                                patrulla: {
+                                    id: string;
+                                    nombre: string;
+                                    estado: string;
+                                } | null;
+                                recursos: {
+                                    recursoId: string;
+                                    nombre: string;
+                                    cantidadAsignada: number;
+                                }[];
+                                cantidadInsumosAsignados: number;
+                                totalTiposInsumos: number;
+                                historial: {
+                                    id: string;
+                                    tipo: "CREACION" | "HITO_MISION" | "REPORTE_TERRENO" | "ESTADO_OPERATIVO";
+                                    titulo: string;
+                                    descripcion: string | null;
+                                    registradoPor: {
+                                        id: string;
+                                        nombre: string;
+                                    } | null;
+                                    creadoEn: string;
+                                }[];
+                                creadoEn: string;
+                                actualizadoEn: string;
+                                fechaCierre?: string | null;
+                                observacionesCierre?: string | null;
+                            };
+                        };
+                    };
+                };
+                400: { headers: { [name: string]: unknown }; content?: never };
+                401: { headers: { [name: string]: unknown }; content?: never };
+                403: { headers: { [name: string]: unknown }; content?: never };
+                404: { headers: { [name: string]: unknown }; content?: never };
+            };
+        };
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
