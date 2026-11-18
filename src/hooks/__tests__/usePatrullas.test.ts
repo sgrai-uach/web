@@ -272,4 +272,39 @@ describe('Hook usePatrullas (HU-16: Patrullas en Tiempo Real)', () => {
     expect(result.current.meta.total).toBe(1);
     expect(result.current.ultimoEvento).toContain('Patrulla dada de baja');
   });
+
+  it('debe deduplicar eventos repetidos de patrulla:actualizada y patrulla:liberada', async () => {
+    vi.mocked(patrullasService.listar).mockResolvedValueOnce({
+      exito: true,
+      data: mockPatrullas,
+      meta: { total: 2, page: 1, limit: 20, totalPages: 1, hasNext: false, hasPrev: false },
+      mensaje: 'OK',
+    });
+
+    const { result } = renderHook(() => usePatrullas());
+
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 10));
+    });
+
+    act(() => {
+      const trigger = (getSocket() as unknown as { _trigger: (ev: string, data: unknown) => void })._trigger;
+      trigger('patrulla:actualizada', {
+        patrullaId: 'p-1',
+        nombre: 'Patrulla Rápida Costa-1',
+        estado: 'EN_VERIFICACION',
+        misionActivaId: 'm-99',
+      });
+      // Simular emisión duplicada por otra sala o evento solapado
+      trigger('patrulla:actualizada', {
+        patrullaId: 'p-1',
+        nombre: 'Patrulla Rápida Costa-1',
+        estado: 'EN_VERIFICACION',
+        misionActivaId: 'm-99',
+      });
+    });
+
+    expect(result.current.patrullas[0].estado).toBe('EN_VERIFICACION');
+    expect(result.current.ultimoEvento).toContain('EN_VERIFICACION');
+  });
 });
