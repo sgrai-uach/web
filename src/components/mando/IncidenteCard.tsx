@@ -64,19 +64,7 @@ export const IncidenteCard: React.FC<IncidenteCardProps> = ({
       aria-label={`Ver detalles del incidente ${incidente.codigo} tipo ${incidente.tipoAfectacion}`}
     >
       <div className={styles.cardTopRow}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', flexWrap: 'wrap' }}>
-          <span className={styles.cardCodigo}>{incidente.codigo}</span>
-          {estaVerificado && (
-            <span
-              className={styles.badgeVerificado}
-              title="Diagnóstico técnico en terreno finalizado por patrulla"
-              data-testid="badge-verificado"
-            >
-              <CheckCircle2 size={11} aria-hidden="true" />
-              <span>Verificado</span>
-            </span>
-          )}
-        </div>
+        <span className={styles.cardCodigo}>{incidente.codigo}</span>
         <span
           className={`${styles.badgePrioridad} ${getPrioridadClass(incidente.prioridad)}`}
           title={`Prioridad: ${formatearPrioridad(incidente.prioridad)}`}
@@ -104,8 +92,9 @@ export const IncidenteCard: React.FC<IncidenteCardProps> = ({
               FIBE
             </span>
           )}
-          {(incidente.reclasificadoEnTerreno || incidente.verificado) && (
+          {(estaVerificado || Boolean(incidente.reclasificadoEnTerreno)) && (
             <span
+              data-testid="badge-verificado"
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',

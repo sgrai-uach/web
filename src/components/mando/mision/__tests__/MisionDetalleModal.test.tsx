@@ -514,4 +514,82 @@ describe('Componente MisionDetalleModal (HU-17)', () => {
     expect(triggerToggle.getAttribute('aria-expanded')).toBe('true');
     expect(screen.getByText('Se constata rotura de matriz con suspensión de suministro.')).toBeDefined();
   });
+
+  it('BUG-H37-WEB-05: selecciona el hito TIPOLOGIA_RECLASIFICADA más reciente y extrae justificaciones multilínea con saltos de línea', async () => {
+    const mockMisionDosReclasificaciones: MisionDetalleCompleto = {
+      ...mockMision,
+      id: 'm1000000-0000-4000-8000-000000000771',
+      codigo: 'MIS-2026-7701',
+      tipoMision: 'VERIFICACION',
+      estado: 'EN_CURSO',
+      prioridad: 'ALTA',
+      patrulla: {
+        id: 'pat-1',
+        nombre: 'Patrulla Norte',
+        estado: 'EN_VERIFICACION',
+        delegacionNombre: 'Las Ánimas',
+        lider: {
+          id: 'u-lider',
+          nombre: 'Inspector Terreno',
+          email: 'inspector@valdivia.cl',
+        },
+      },
+      cuadrilla: null,
+      incidente: {
+        id: 'inc-771',
+        codigo: 'INC-2026-0771',
+        codigoSeguimiento: '77100001',
+        tipoAfectacion: 'Inundación',
+        descripcion: 'Desborde constatado',
+        direccion: 'Av. España 123',
+        latitud: -39.81,
+        longitud: -73.24,
+        estado: 'VERIFICANDO',
+        prioridad: 'ALTA',
+        requiereAsistenciaSocial: false,
+        delegacionNombre: 'Las Ánimas',
+      },
+      bitacoraTiempos: [
+        {
+          hito: 'TIPOLOGIA_RECLASIFICADA',
+          fecha: '2026-11-10',
+          hora: '05:00:00',
+          timestamp: '2026-11-10T05:00:00.000Z',
+          descripcion:
+            'Tipología reclasificada en terreno a: Anegamiento. Justificación: Justificación antigua descartada.',
+        },
+        {
+          hito: 'TIPOLOGIA_RECLASIFICADA',
+          fecha: '2026-11-10',
+          hora: '05:25:00',
+          timestamp: '2026-11-10T05:25:00.000Z',
+          descripcion:
+            'Tipología reclasificada en terreno a: Inundación. Justificación: Primera línea de constatación.\nSegunda línea con detalle de anegamiento.',
+        },
+      ],
+      reportesTerreno: [],
+    };
+
+    vi.spyOn(misionesService, 'obtenerDetalleMision').mockResolvedValueOnce({
+      exito: true,
+      datos: mockMisionDosReclasificaciones,
+      mensaje: 'OK',
+    });
+
+    render(
+      <MisionDetalleModal
+        misionId="m1000000-0000-4000-8000-000000000771"
+        onCerrar={vi.fn()}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('MIS-2026-7701')).toBeDefined();
+    });
+
+    const cardInforme = screen.getByTestId('reporte-verificacion-reclasificacion');
+    expect(cardInforme.textContent).toContain('Primera línea de constatación.');
+    expect(cardInforme.textContent).toContain('Segunda línea con detalle de anegamiento.');
+    expect(cardInforme.textContent).not.toContain('Justificación antigua descartada');
+  });
 });

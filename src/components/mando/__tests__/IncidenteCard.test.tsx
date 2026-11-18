@@ -177,6 +177,8 @@ describe('IncidenteCard', () => {
 
     expect(screen.getByText('Inundación')).toBeDefined();
     expect(screen.getByText('Alta')).toBeDefined();
+    expect(screen.getAllByText('Verificado')).toHaveLength(1);
+    expect(screen.getByTestId('badge-verificado')).toBeDefined();
     const tagVerificado = screen.getByTitle(
       /Tipología reclasificada en terreno: Desborde de río constatado en terreno/i
     );
@@ -211,17 +213,38 @@ describe('IncidenteCard', () => {
     expect(btnPendiente).toBeNull();
   });
 
-  it('debe exhibir la etiqueta "Verificado" cuando verificado es true al cargar desde el servidor (paginación/refresco)', () => {
+  it('debe exhibir un único distintivo "Verificado" cuando verificado es true al cargar desde el servidor (con o sin reclasificadoEnTerreno) (BUG-H37-WEB-06)', () => {
     const incidenteVerificadoDesdeApi: IncidenteResumen = {
       ...mockIncidente,
       verificado: true,
       reclasificadoEnTerreno: false,
     };
 
-    render(<IncidenteCard incidente={incidenteVerificadoDesdeApi} onClick={vi.fn()} />);
+    const { rerender } = render(
+      <IncidenteCard incidente={incidenteVerificadoDesdeApi} onClick={vi.fn()} />
+    );
 
-    const tagVerificado = screen.getByTitle(/Tipología rectificada por patrulla en terreno/i);
-    expect(tagVerificado).toBeDefined();
+    expect(screen.getAllByText('Verificado')).toHaveLength(1);
+    expect(screen.getByTestId('badge-verificado')).toBeDefined();
+    expect(
+      screen.getByTitle(/Tipología rectificada por patrulla en terreno/i)
+    ).toBeDefined();
+
+    rerender(
+      <IncidenteCard
+        incidente={{
+          ...incidenteVerificadoDesdeApi,
+          reclasificadoEnTerreno: true,
+          justificacionReclasificacion: 'Inundación verificada presencialmente por patrulla.',
+        }}
+        onClick={vi.fn()}
+      />
+    );
+
+    expect(screen.getAllByText('Verificado')).toHaveLength(1);
+    expect(
+      screen.getByTitle(/Tipología reclasificada en terreno: Inundación verificada presencialmente/i)
+    ).toBeDefined();
   });
 
   it('muestra el indicador directo de lectura/no lectura en la tarjeta Kanban según trazabilidadNotificacion', () => {
