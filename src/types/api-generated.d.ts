@@ -4,50 +4,6 @@
  */
 
 export interface paths {
-    "/api/health": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Verificar estado operativo de la API
-         * @description Endpoint de health check para monitoreo de disponibilidad y liveness probe.
-         */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description Servicio operativo */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            /** @example ok */
-                            status: string;
-                            /** Format: date-time */
-                            timestamp: string;
-                        };
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/recursos": {
         parameters: {
             query?: never;
@@ -197,7 +153,10 @@ export interface paths {
         post: {
             parameters: {
                 query?: never;
-                header?: never;
+                header: {
+                    /** @description ID del usuario administrador autenticado */
+                    "x-user-id": string;
+                };
                 path?: never;
                 cookie?: never;
             };
@@ -286,7 +245,7 @@ export interface paths {
                     };
                     content?: never;
                 };
-                /** @description No autenticado / token Bearer ausente o inválido */
+                /** @description No autenticado / cabecera X-User-Id ausente */
                 401: {
                     headers: {
                         [name: string]: unknown;
@@ -514,7 +473,10 @@ export interface paths {
         get: {
             parameters: {
                 query?: never;
-                header?: never;
+                header: {
+                    /** @description UUID del usuario administrador autenticado */
+                    "x-user-id": string;
+                };
                 path?: never;
                 cookie?: never;
             };
@@ -529,7 +491,7 @@ export interface paths {
                         "application/json": components["schemas"]["ListarRolesResponse"];
                     };
                 };
-                /** @description Token de autenticación Bearer ausente o inválido */
+                /** @description Cabecera de autenticación X-User-Id ausente o usuario no válido */
                 401: {
                     headers: {
                         [name: string]: unknown;
@@ -567,7 +529,10 @@ export interface paths {
         get: {
             parameters: {
                 query?: never;
-                header?: never;
+                header: {
+                    /** @description UUID del usuario administrador autenticado */
+                    "x-user-id": string;
+                };
                 path: {
                     /** @description UUID del rol/perfil a consultar */
                     id: string;
@@ -592,7 +557,7 @@ export interface paths {
                     };
                     content?: never;
                 };
-                /** @description Token de autenticación Bearer ausente o inválido */
+                /** @description Cabecera de autenticación X-User-Id ausente o usuario no válido */
                 401: {
                     headers: {
                         [name: string]: unknown;
@@ -637,7 +602,10 @@ export interface paths {
         get: {
             parameters: {
                 query?: never;
-                header?: never;
+                header: {
+                    /** @description UUID del usuario administrador autenticado */
+                    "x-user-id": string;
+                };
                 path?: never;
                 cookie?: never;
             };
@@ -652,7 +620,7 @@ export interface paths {
                         "application/json": components["schemas"]["ListarPermisosResponse"];
                     };
                 };
-                /** @description Token de autenticación Bearer ausente o inválido */
+                /** @description Cabecera de autenticación X-User-Id ausente o usuario no válido */
                 401: {
                     headers: {
                         [name: string]: unknown;
@@ -691,7 +659,10 @@ export interface paths {
         put: {
             parameters: {
                 query?: never;
-                header?: never;
+                header: {
+                    /** @description UUID del usuario administrador autenticado */
+                    "x-user-id": string;
+                };
                 path: {
                     /** @description UUID del rol/perfil a actualizar */
                     id: string;
@@ -721,7 +692,7 @@ export interface paths {
                     };
                     content?: never;
                 };
-                /** @description Token de autenticación Bearer ausente o inválido */
+                /** @description Cabecera de autenticación X-User-Id ausente o usuario no válido */
                 401: {
                     headers: {
                         [name: string]: unknown;
@@ -765,7 +736,10 @@ export interface paths {
         get: {
             parameters: {
                 query?: never;
-                header?: never;
+                header: {
+                    /** @description UUID del usuario autenticado */
+                    "x-user-id": string;
+                };
                 path?: never;
                 cookie?: never;
             };
@@ -780,7 +754,7 @@ export interface paths {
                         "application/json": components["schemas"]["UsuarioActivoResponse"];
                     };
                 };
-                /** @description Token de autenticación Bearer ausente o usuario no registrado */
+                /** @description Cabecera de autenticación ausente o usuario no registrado */
                 401: {
                     headers: {
                         [name: string]: unknown;
@@ -1237,7 +1211,10 @@ export interface paths {
         post: {
             parameters: {
                 query?: never;
-                header?: never;
+                header: {
+                    /** @description UUID del operador autenticado */
+                    "x-user-id": string;
+                };
                 path?: never;
                 cookie?: never;
             };
@@ -1340,7 +1317,7 @@ export interface paths {
                     };
                     content?: never;
                 };
-                /** @description No autenticado / token Bearer ausente o inválido */
+                /** @description No autenticado / cabecera X-User-Id ausente */
                 401: {
                     headers: {
                         [name: string]: unknown;
@@ -1392,7 +1369,10 @@ export interface paths {
         post: {
             parameters: {
                 query?: never;
-                header?: never;
+                header: {
+                    /** @description UUID del operador autenticado */
+                    "x-user-id": string;
+                };
                 path?: never;
                 cookie?: never;
             };
@@ -1452,7 +1432,7 @@ export interface paths {
                     };
                     content?: never;
                 };
-                /** @description No autenticado / token Bearer ausente o inválido */
+                /** @description No autenticado / cabecera X-User-Id ausente */
                 401: {
                     headers: {
                         [name: string]: unknown;
@@ -1651,7 +1631,10 @@ export interface paths {
                     /** @description Filtrar únicamente incidentes registrados en el día actual (zona horaria Chile) */
                     soloHoy?: boolean | null;
                 };
-                header?: never;
+                header: {
+                    /** @description ID del usuario Encargado o Administrador autenticado */
+                    "x-user-id": string;
+                };
                 path?: never;
                 cookie?: never;
             };
@@ -1760,7 +1743,7 @@ export interface paths {
                     };
                     content?: never;
                 };
-                /** @description No autenticado / token Bearer ausente o inválido */
+                /** @description No autenticado / cabecera X-User-Id ausente o inválida */
                 401: {
                     headers: {
                         [name: string]: unknown;
@@ -1805,7 +1788,10 @@ export interface paths {
         get: {
             parameters: {
                 query?: never;
-                header?: never;
+                header: {
+                    /** @description ID del usuario Encargado o Administrador autenticado */
+                    "x-user-id": string;
+                };
                 path: {
                     /** @description Identificador UUID del incidente */
                     id: string;
@@ -3287,8 +3273,8 @@ export interface paths {
         };
         put?: never;
         /**
-         * Despachar misión operativa a patrulla verificadora (HU-20) o cuadrilla operativa (HU-21)
-         * @description Crea y despacha una misión en estado DESPACHADA. Si recibe `patrullaId` (HU-20), despacha una patrulla verificadora disponible sobre un incidente REPORTADO (cambiando el incidente a VERIFICANDO y la patrulla a EN_VERIFICACION). Si recibe `cuadrillaId` o `tipoMision: 'ATENCION_CUADRILLA'` (HU-21), despacha una cuadrilla disponible cambiando el incidente a EN_ATENCION y aplicando la Regla §3.2 ICS para concluir la verificación previa y liberar la patrulla a DISPONIBLE.
+         * Asignar y despachar patrulla verificadora a un incidente (HU-20)
+         * @description Despacha una patrulla verificadora disponible a un incidente formal en estado REPORTADO. Ejecuta una transacción atómica que: (1) crea la misión con tipo VERIFICACION y estado DESPACHADA, (2) actualiza el incidente a estado VERIFICANDO, (3) actualiza la patrulla a estado EN_VERIFICACION, y (4) registra el hito inicial en mision_hito. Emite eventos WebSocket a las salas 'patrulla:{id}', 'encargado' y 'mapa'. Requiere permiso 'misiones:asignar'.
          */
         post: {
             parameters: {
@@ -3296,7 +3282,7 @@ export interface paths {
                 header?: {
                     /** @description Token Bearer JWT de sesión */
                     authorization?: string;
-                    /** @description UUID del usuario autenticado con permiso misiones:asignar (entorno pruebas) */
+                    /** @description UUID del usuario autenticado (entorno pruebas) */
                     "x-user-id"?: string;
                 };
                 path?: never;
@@ -3304,17 +3290,17 @@ export interface paths {
             };
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["CrearMisionVerificacionInput"] | components["schemas"]["AsignarCuadrillaMisionInput"];
+                    "application/json": components["schemas"]["CrearMisionVerificacionInput"];
                 };
             };
             responses: {
-                /** @description Misión despachada exitosamente (verificación por patrulla o atención por cuadrilla) */
+                /** @description Misión de verificación creada y patrulla despachada exitosamente */
                 201: {
                     headers: {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["CrearMisionResponse"] | components["schemas"]["AsignarCuadrillaMisionResponse"];
+                        "application/json": components["schemas"]["CrearMisionResponse"];
                     };
                 };
                 /** @description Datos de entrada inválidos o formato JSON malformado */
@@ -3326,7 +3312,7 @@ export interface paths {
                         "application/json": components["schemas"]["MensajeGenericoResponse"];
                     };
                 };
-                /** @description No autenticado / token ausente o inválido */
+                /** @description No autenticado o token ausente */
                 401: {
                     headers: {
                         [name: string]: unknown;
@@ -3335,7 +3321,7 @@ export interface paths {
                         "application/json": components["schemas"]["MensajeGenericoResponse"];
                     };
                 };
-                /** @description Permisos insuficientes (requiere misiones:asignar) */
+                /** @description Acceso denegado. Se requiere permiso 'misiones:asignar'. */
                 403: {
                     headers: {
                         [name: string]: unknown;
@@ -3344,7 +3330,7 @@ export interface paths {
                         "application/json": components["schemas"]["MensajeGenericoResponse"];
                     };
                 };
-                /** @description Incidente, patrulla o cuadrilla no encontrados */
+                /** @description Incidente o patrulla no encontrado */
                 404: {
                     headers: {
                         [name: string]: unknown;
@@ -3353,7 +3339,7 @@ export interface paths {
                         "application/json": components["schemas"]["MensajeGenericoResponse"];
                     };
                 };
-                /** @description Conflicto: la patrulla o cuadrilla no está disponible o el incidente no se encuentra en estado compatible */
+                /** @description Conflicto: la patrulla seleccionada ya no se encuentra DISPONIBLE o el incidente no está en estado REPORTADO */
                 409: {
                     headers: {
                         [name: string]: unknown;
@@ -3362,7 +3348,7 @@ export interface paths {
                         "application/json": components["schemas"]["MensajeGenericoResponse"];
                     };
                 };
-                /** @description Error interno del servidor al procesar la misión */
+                /** @description Error interno del servidor al crear y despachar la misión */
                 500: {
                     headers: {
                         [name: string]: unknown;
@@ -4828,15 +4814,13 @@ export interface paths {
                     fechaDesde?: string;
                     /** @description Fecha máxima de registro (filtro temporal ISO 8601) */
                     fechaHasta?: string;
-                    /** @description Criterio de ordenamiento */
-                    ordenarPor?: "creadoEn" | "codigo" | "prioridad" | "familiasAfectadas";
-                    /** @description Sentido del ordenamiento */
+                    /** @description Campo de ordenamiento */
+                    ordenarPor?: "codigo" | "prioridad" | "creadoEn" | "familiasAfectadas";
+                    /** @description Dirección de ordenamiento */
                     orden?: "asc" | "desc";
                 };
                 header?: {
-                    /** @description Token Bearer JWT de sesión institucional */
                     authorization?: string;
-                    /** @description UUID del usuario autenticado (Encargado, Administrador o Supervisor) */
                     "x-user-id"?: string;
                 };
                 path?: never;
@@ -4844,130 +4828,52 @@ export interface paths {
             };
             requestBody?: never;
             responses: {
-                /** @description Listado de operativos de recuperación obtenido exitosamente */
                 200: {
                     headers: {
                         [name: string]: unknown;
                     };
                     content: {
                         "application/json": {
-                            /** @example Listado de operativos de recuperación obtenido exitosamente */
-                            message: string;
                             data: {
-                                /**
-                                 * Format: uuid
-                                 * @description Identificador único UUID del operativo de recuperación
-                                 */
                                 id: string;
-                                /**
-                                 * @description Código oficial del operativo (ej. REC-2026-0001)
-                                 * @example REC-2026-0001
-                                 */
                                 codigo: string;
-                                /**
-                                 * @description Título descriptivo del despliegue
-                                 * @example Entrega de frazadas y techumbre en Sector Collico
-                                 */
                                 nombre: string;
-                                /** @example Familias afectadas por temporal de viento */
                                 descripcion: string | null;
-                                /** @example Collico */
                                 sector: string;
-                                /** @example Calle Balmaceda 1245 con Las Palmeras */
                                 direccionTexto: string | null;
-                                /**
-                                 * @example ALTA
-                                 * @enum {string}
-                                 */
                                 prioridad: "BAJA" | "MEDIA" | "ALTA" | "CRITICA";
-                                /**
-                                 * @example PLANIFICADA
-                                 * @enum {string}
-                                 */
                                 estado: "PLANIFICADA" | "EN_EJECUCION" | "COMPLETADA" | "CANCELADA";
-                                /** @example 4 */
                                 familiasAfectadas: number;
-                                /** @description Delegación municipal territorial asociada */
                                 delegacion: {
-                                    /** Format: uuid */
                                     id: string;
                                     codigo: string;
                                     nombre: string;
                                 } | null;
-                                /**
-                                 * @description Cantidad total de unidades de insumos asignadas a la operación
-                                 * @example 15
-                                 */
                                 cantidadInsumosAsignados: number;
-                                /**
-                                 * @description Cantidad de tipos de insumo distintos asignados
-                                 * @example 2
-                                 */
                                 totalTiposInsumos: number;
-                                /** @description Desglose de recursos asignados por tipo y cantidad */
                                 recursosResumen: {
-                                    /**
-                                     * Format: uuid
-                                     * @example 00000000-0000-4000-8000-000000000001
-                                     */
                                     recursoId: string;
-                                    /** @example Frazadas Térmicas */
                                     nombre: string;
-                                    /** @example 10 */
                                     cantidadAsignada: number;
                                 }[];
-                                /** @description Fecha de registro ISO 8601 */
                                 creadoEn: string;
-                                /** @description Fecha de última modificación ISO 8601 */
                                 actualizadoEn: string;
-                                /** @description Fecha de cierre o finalización si concluyó */
                                 fechaCierre?: string | null;
                             }[];
                             meta: {
-                                /** @description Total de registros coincidentes */
                                 total: number;
-                                /** @description Página actual */
                                 page: number;
-                                /** @description Elementos por página */
                                 limit: number;
-                                /** @description Total de páginas */
                                 totalPages: number;
-                                /** @description ¿Existe página siguiente? */
                                 hasNext: boolean;
-                                /** @description ¿Existe página anterior? */
                                 hasPrev: boolean;
                             };
                         };
                     };
                 };
-                /** @description Parámetros de consulta o paginación inválidos */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-                /** @description No autenticado / sesión ausente o expirada */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-                /** @description Acceso denegado. Se requiere permiso 'recuperacion:leer' */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-                /** @description Error interno del servidor al procesar la consulta */
-                500: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
+                400: { headers: { [name: string]: unknown }; content?: never };
+                401: { headers: { [name: string]: unknown }; content?: never };
+                403: { headers: { [name: string]: unknown }; content?: never };
             };
         };
         put?: never;
@@ -5239,196 +5145,93 @@ export interface paths {
         };
         /**
          * Obtener detalle completo de operativo para drawer lateral (H73)
-         * @description Retorna la información exhaustiva de un operativo de recuperación: recursos detallados asignados, misión táctica, patrulla en terreno y la línea de tiempo unificada del historial.
          */
         get: {
             parameters: {
                 query?: never;
                 header?: {
-                    /** @description Token Bearer JWT de sesión institucional */
                     authorization?: string;
-                    /** @description UUID del usuario autenticado */
                     "x-user-id"?: string;
                 };
                 path: {
-                    /** @description UUID del operativo de recuperación a consultar */
                     id: string;
                 };
                 cookie?: never;
             };
             requestBody?: never;
             responses: {
-                /** @description Detalle del operativo de recuperación obtenido exitosamente */
                 200: {
                     headers: {
                         [name: string]: unknown;
                     };
                     content: {
                         "application/json": {
-                            /** @example Detalle de operativo de recuperación obtenido exitosamente */
                             message: string;
                             data: {
-                                /**
-                                 * Format: uuid
-                                 * @example 70000000-0000-4000-8000-000000000001
-                                 */
                                 id: string;
-                                /** @example REC-2026-0001 */
                                 codigo: string;
-                                /** @example Entrega de frazadas y techumbre en Sector Collico */
                                 nombre: string;
-                                /** @example Familias afectadas por temporal de viento */
                                 descripcion: string | null;
-                                /** @example Collico */
                                 sector: string;
-                                /** @example Calle Balmaceda 1245 con Las Palmeras */
                                 direccionTexto: string | null;
-                                /**
-                                 * @example ALTA
-                                 * @enum {string}
-                                 */
                                 prioridad: "BAJA" | "MEDIA" | "ALTA" | "CRITICA";
-                                /** @example Juan Pérez (Presidente JJVV) */
                                 contactoNombre: string | null;
-                                /** @example +56912345678 */
                                 contactoTelefono: string | null;
-                                /** @example -39.8142 */
                                 latitud: number;
-                                /** @example -73.2459 */
                                 longitud: number;
-                                /**
-                                 * @example PLANIFICADA
-                                 * @enum {string}
-                                 */
                                 estado: "PLANIFICADA" | "EN_EJECUCION" | "COMPLETADA" | "CANCELADA";
-                                /** @example 4 */
                                 familiasAfectadas: number;
-                                /** @description Delegación territorial asignada */
                                 delegacion: {
-                                    /** Format: uuid */
                                     id: string;
                                     codigo: string;
                                     nombre: string;
                                 } | null;
-                                /** @description Funcionario que creó el evento */
                                 creadoPor: {
-                                    /** Format: uuid */
                                     id: string;
                                     nombre: string;
                                 } | null;
-                                /** @description Misión táctica despachada a terreno */
                                 mision: {
-                                    /**
-                                     * Format: uuid
-                                     * @example 60000000-0000-4000-8000-000000000001
-                                     */
                                     id: string;
-                                    /** @example MIS-2026-0042 */
                                     codigo: string;
-                                    /** @example Entrega de frazadas y techumbre en Sector Collico */
                                     titulo: string;
-                                    /** @example DESPACHADA */
                                     estado: string;
-                                    /** @example RECUPERACION */
                                     tipoMision: string;
                                 } | null;
-                                /** @description Patrulla asignada a la operación */
                                 patrulla: {
-                                    /**
-                                     * Format: uuid
-                                     * @example 50000000-0000-4000-8000-000000000001
-                                     */
                                     id: string;
-                                    /** @example Patrulla Verificadora Alfa */
                                     nombre: string;
-                                    /** @example EN_RECUPERACION */
                                     estado: string;
                                 } | null;
-                                /** @description Detalle completo de recursos e insumos asignados */
                                 recursos: {
-                                    /**
-                                     * Format: uuid
-                                     * @example 00000000-0000-4000-8000-000000000001
-                                     */
                                     recursoId: string;
-                                    /** @example Sacos de Arena 25kg */
                                     nombre: string;
-                                    /** @example 10 */
                                     cantidadAsignada: number;
                                 }[];
-                                /** @example 15 */
                                 cantidadInsumosAsignados: number;
-                                /** @example 2 */
                                 totalTiposInsumos: number;
-                                /** @description Línea de tiempo cronológica de hitos y avances */
                                 historial: {
-                                    /** @example h-001 */
                                     id: string;
-                                    /**
-                                     * @example CREACION
-                                     * @enum {string}
-                                     */
                                     tipo: "CREACION" | "HITO_MISION" | "REPORTE_TERRENO" | "ESTADO_OPERATIVO";
-                                    /** @example Operativo Planificado y Despachado */
                                     titulo: string;
-                                    /** @example Se despacha patrulla verificadora con insumos */
                                     descripcion: string | null;
-                                    /** @description Funcionario responsable del registro */
                                     registradoPor: {
-                                        /** Format: uuid */
                                         id: string;
                                         nombre: string;
                                     } | null;
-                                    /** @description Marca de tiempo ISO 8601 del evento */
                                     creadoEn: string;
                                 }[];
-                                /** @description Fecha de registro ISO 8601 */
                                 creadoEn: string;
-                                /** @description Fecha de última modificación ISO 8601 */
                                 actualizadoEn: string;
-                                /** @description Fecha de finalización de entrega */
                                 fechaCierre?: string | null;
-                                /** @description Observaciones finales de cierre */
                                 observacionesCierre?: string | null;
                             };
                         };
                     };
                 };
-                /** @description Identificador UUID de operativo inválido */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-                /** @description No autenticado / sesión ausente o expirada */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-                /** @description Acceso denegado. Se requiere permiso 'recuperacion:leer' */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-                /** @description Operativo de recuperación no encontrado */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-                /** @description Error interno del servidor al consultar el operativo */
-                500: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
+                400: { headers: { [name: string]: unknown }; content?: never };
+                401: { headers: { [name: string]: unknown }; content?: never };
+                403: { headers: { [name: string]: unknown }; content?: never };
+                404: { headers: { [name: string]: unknown }; content?: never };
             };
         };
         put?: never;
@@ -7121,244 +6924,6 @@ export interface paths {
         /**
          * Actualizar estado operativo y/o geolocalización de una patrulla (HU-16)
          * @description Modifica el estado operativo canónico (DISPONIBLE, EN_VERIFICACION, EN_PREVENCION, EN_RECUPERACION, EN_MISION, NO_DISPONIBLE) y/o las coordenadas de la patrulla, notificando en tiempo real a las salas WebSocket 'encargado' y 'supervisor'.
-         */
-        patch: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    /** @description Identificador único UUID de la patrulla verificadora */
-                    id: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: {
-                content: {
-                    "application/json": {
-                        /**
-                         * @description Nuevo estado operativo canónico
-                         * @example DISPONIBLE
-                         * @enum {string}
-                         */
-                        estado: "DISPONIBLE" | "EN_VERIFICACION" | "EN_PREVENCION" | "EN_RECUPERACION" | "EN_MISION" | "NO_DISPONIBLE";
-                        /** @description Justificación o motivo operacional del cambio de estado */
-                        motivo?: string;
-                        /**
-                         * @description Nueva coordenada de latitud WGS84
-                         * @example -39.819588
-                         */
-                        latitud?: number;
-                        /**
-                         * @description Nueva coordenada de longitud WGS84
-                         * @example -73.245209
-                         */
-                        longitud?: number;
-                    };
-                };
-            };
-            responses: {
-                /** @description Estado de la patrulla actualizado exitosamente */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            /** @description Mensaje de confirmación */
-                            message: string;
-                            /** @description Patrulla verificadora con estado actualizado */
-                            data: {
-                                /**
-                                 * Format: uuid
-                                 * @description UUID de la patrulla verificadora
-                                 */
-                                id: string;
-                                /** @description Código identificador único de la patrulla (ej. PV-NORTE-01) */
-                                codigo?: string;
-                                /** @description Nombre identificador de la patrulla */
-                                nombre: string;
-                                /**
-                                 * @description Estado operativo canónico de la patrulla
-                                 * @enum {string}
-                                 */
-                                estado: "DISPONIBLE" | "EN_VERIFICACION" | "EN_PREVENCION" | "EN_RECUPERACION" | "EN_MISION" | "NO_DISPONIBLE";
-                                /** @description Coordenada latitud WGS84 actual de la patrulla */
-                                latitud: number | null;
-                                /** @description Coordenada longitud WGS84 actual de la patrulla */
-                                longitud: number | null;
-                                /** @description Timestamp ISO de última actualización de coordenadas */
-                                ultimaActualizacionUbicacion: string | null;
-                                /** @description Delegación territorial asignada */
-                                delegacion: {
-                                    /** Format: uuid */
-                                    id: string;
-                                    nombre: string;
-                                    codigo: string | null;
-                                } | null;
-                                /** @description Vehículo institucional individual asignado */
-                                vehiculo?: {
-                                    /**
-                                     * Format: uuid
-                                     * @description UUID del recurso vehicular asignado
-                                     */
-                                    id: string;
-                                    /** @description Nombre o descripción del vehículo */
-                                    nombre: string;
-                                    /** @description Metadatos técnicos como patente */
-                                    detalles?: {
-                                        [key: string]: unknown;
-                                    };
-                                    /** @description Estado de disponibilidad del vehículo */
-                                    estado: string;
-                                } | null;
-                                /** @description Funcionario líder responsable de la patrulla (usuario_lider_id) */
-                                lider: {
-                                    /** Format: uuid */
-                                    id: string;
-                                    nombre: string;
-                                    /** Format: email */
-                                    email: string;
-                                    telefono: string | null;
-                                    rut: string | null;
-                                } | null;
-                                /** @description Lista de funcionarios de terreno conformando la patrulla */
-                                integrantes: {
-                                    /**
-                                     * Format: uuid
-                                     * @description UUID de ficha en tabla personal
-                                     */
-                                    id: string;
-                                    /**
-                                     * Format: uuid
-                                     * @description UUID de usuario en tabla usuario
-                                     */
-                                    usuarioId: string;
-                                    /** @description Nombre completo del funcionario */
-                                    nombre: string;
-                                    /**
-                                     * Format: email
-                                     * @description Correo institucional
-                                     */
-                                    email: string;
-                                    /** @description Teléfono de contacto o móvil de terreno */
-                                    telefono: string | null;
-                                    /** @description RUT del funcionario */
-                                    rut: string | null;
-                                    /** @description Cargo del funcionario */
-                                    cargo: string | null;
-                                    /** @description Especialidad técnica */
-                                    especialidad: string | null;
-                                    /** @description Rol dentro de la patrulla (ej. OPERATIVO, LIDER, CONDUCTOR) */
-                                    rolEnPatrulla: string;
-                                    /** @description Estado operativo individual del personal */
-                                    estadoOperativo: string;
-                                }[];
-                                /** @description Misión táctica e incidente en curso actualmente atendido por la patrulla */
-                                misionActiva: {
-                                    /**
-                                     * Format: uuid
-                                     * @description UUID de la misión activa
-                                     */
-                                    id: string;
-                                    /** @description Código oficial de la misión (ej. MIS-2026-0001) */
-                                    codigo: string;
-                                    /** @description Título de la misión */
-                                    titulo: string;
-                                    /** @description Tipo de misión (VERIFICACION, PREVENCION, etc.) */
-                                    tipoMision: string;
-                                    /** @description Estado de la misión (PLANIFICADA, DESPACHADA, EN_CURSO) */
-                                    estado: string;
-                                    /** @description Prioridad del incidente o misión */
-                                    prioridad: string;
-                                    /**
-                                     * Format: uuid
-                                     * @description UUID del incidente formal asociado
-                                     */
-                                    incidenteId: string | null;
-                                    /** @description Código del incidente formal (ej. INC-2026-0001) */
-                                    incidenteCodigo: string | null;
-                                    /** @description Folio de seguimiento del incidente */
-                                    incidenteFolio: string | null;
-                                    /** @description Tipo de afectación del incidente */
-                                    incidenteTipoAfectacion: string | null;
-                                    /** @description Dirección o ubicación del incidente */
-                                    incidenteDireccion: string | null;
-                                } | null;
-                                /** @description Fecha ISO de conformación de la patrulla */
-                                creadoEn: string;
-                                /** @description Fecha ISO de última actualización */
-                                actualizadoEn: string;
-                                /**
-                                 * @description Indica si la patrulla se encuentra activa operacionalmente
-                                 * @default true
-                                 */
-                                activo: boolean;
-                                /** @description Timestamp ISO de baja lógica si fue desactivada */
-                                eliminadoEn?: string | null;
-                                /**
-                                 * Format: uuid
-                                 * @description UUID del usuario que realizó la baja lógica
-                                 */
-                                eliminadoPorId?: string | null;
-                            };
-                        };
-                    };
-                };
-                /** @description Datos de entrada o identificador inválidos */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-                /** @description No autenticado o token inválido */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-                /** @description Acceso denegado. Se requiere permiso 'misiones:leer' */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-                /** @description Patrulla verificadora no encontrada */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-                /** @description Error interno del servidor */
-                500: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-            };
-        };
-        trace?: never;
-    };
-    "/api/patrullas/{id}/estado": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        /**
-         * Actualizar estado operativo de una patrulla (alias directo)
-         * @description Alias directo hacia PATCH /api/patrullas/{id} para mutación de estado operativo y/o geolocalización de una patrulla verificadora.
          */
         patch: {
             parameters: {
@@ -12237,228 +11802,6 @@ export interface components {
             /** @example 1 */
             totalPaginas: number;
         };
-        CrearMisionVerificacionInput: {
-            /**
-             * Format: uuid
-             * @description Identificador único UUID del incidente a verificar
-             * @example 50000000-0000-4000-8000-000000000001
-             */
-            incidenteId: string;
-            /**
-             * Format: uuid
-             * @description Identificador único UUID de la patrulla verificadora disponible
-             * @example f1000000-0000-4000-8000-000000000001
-             */
-            patrullaId: string;
-            /**
-             * @description Tipo de misión operativa a despachar (fijo en VERIFICACION para evaluación preliminar)
-             * @default VERIFICACION
-             * @example VERIFICACION
-             * @enum {string}
-             */
-            tipoMision: "VERIFICACION";
-            /**
-             * @description Título descriptivo opcional para la misión de verificación
-             * @example Verificación en terreno: Aniego en Las Ánimas
-             */
-            titulo?: string;
-            /**
-             * @description Instrucciones tácticas preliminares para la patrulla
-             * @example Evaluar anegamiento en calzada y riesgo de ingreso a viviendas.
-             */
-            descripcion?: string | null;
-            /**
-             * @description Nivel de prioridad o urgencia táctica (si se omite, hereda la del incidente)
-             * @example ALTA
-             * @enum {string}
-             */
-            prioridad?: "BAJA" | "MEDIA" | "ALTA" | "CRITICA";
-        };
-        CrearMisionResponse: {
-            /** @example Misión de verificación creada y patrulla despachada exitosamente. */
-            message: string;
-            data: {
-                mision: components["schemas"]["MisionCreadaResumen"];
-                incidente: {
-                    /** Format: uuid */
-                    id: string;
-                    codigo: string;
-                    estado: string;
-                };
-                patrulla: {
-                    /** Format: uuid */
-                    id: string;
-                    nombre: string;
-                    estado: string;
-                };
-                hitoInicial: {
-                    /** Format: uuid */
-                    id: string;
-                    hito: string;
-                    descripcion: string;
-                    creadoEn: string;
-                };
-                /**
-                 * NotificacionMisionDetalle
-                 * @description Trazabilidad completa de la notificación de misión despachada
-                 */
-                notificacion?: {
-                    /**
-                     * Format: uuid
-                     * @description Identificador único de la notificación
-                     */
-                    id: string;
-                    /**
-                     * Format: uuid
-                     * @description Identificador de la misión asociada
-                     */
-                    misionId: string;
-                    /**
-                     * Format: uuid
-                     * @description Identificador de la patrulla destinataria
-                     */
-                    patrullaId: string;
-                    /**
-                     * @description Estado actual del ciclo de vida de la notificación
-                     * @enum {string}
-                     */
-                    estado: "PENDIENTE_ENVIO" | "ENVIADA" | "RECIBIDA" | "LEIDA";
-                    /**
-                     * @description Contador de emisiones hacia la patrulla
-                     * @example 1
-                     */
-                    intentosEnvio: number;
-                    /** @description Marca temporal UTC de registro en base de datos */
-                    creadaAt: string;
-                    /** @description Marca temporal UTC de emisión hacia la sala de la patrulla */
-                    enviadaAt: string | null;
-                    /** @description Marca temporal UTC del acuse de recibo técnico automático */
-                    recibidaAt: string | null;
-                    /** @description Marca temporal UTC del acuse de lectura operativa */
-                    leidaAt: string | null;
-                };
-            };
-        };
-        MisionCreadaResumen: {
-            /** Format: uuid */
-            id: string;
-            /** @example MIS-2026-0005 */
-            codigo: string;
-            titulo: string;
-            descripcion: string | null;
-            /** @enum {string} */
-            tipoMision: "VERIFICACION" | "ATENCION_CUADRILLA" | "PREVENCION" | "RECUPERACION" | "ASISTENCIA_SOCIAL";
-            /**
-             * @example DESPACHADA
-             * @enum {string}
-             */
-            estado: "PLANIFICADA" | "DESPACHADA" | "EN_CURSO" | "COMPLETADA" | "CANCELADA" | "RECHAZADA";
-            /** @enum {string} */
-            prioridad: "BAJA" | "MEDIA" | "ALTA" | "CRITICA";
-            /** Format: uuid */
-            incidenteId: string;
-            /** Format: uuid */
-            patrullaId?: string | null;
-            /** Format: uuid */
-            cuadrillaId?: string | null;
-            /** Format: uuid */
-            encargadoId: string | null;
-            /** Format: uuid */
-            creadoPorId?: string | null;
-            fechaInicio?: string | null;
-            creadoEn: string;
-        };
-        AsignarCuadrillaMisionInput: {
-            /**
-             * @description Tipo de misión táctica a despachar
-             * @example ATENCION_CUADRILLA
-             * @enum {string}
-             */
-            tipoMision: "ATENCION_CUADRILLA";
-            /**
-             * Format: uuid
-             * @description UUID del incidente en estado REPORTADO o VERIFICANDO a atender
-             * @example 30000000-0000-4000-8000-000000000001
-             */
-            incidenteId: string;
-            /**
-             * Format: uuid
-             * @description UUID de la cuadrilla operativa disponible a despachar
-             * @example 50000000-0000-4000-8000-000000000001
-             */
-            cuadrillaId: string;
-            /**
-             * @description Título descriptivo de la misión operativa (se autogenera si se omite)
-             * @example Atención y despeje táctico - Incidente INC-2026-001
-             */
-            titulo?: string;
-            /**
-             * @description Instrucciones tácticas u observaciones impartidas a la cuadrilla
-             * @example Despejar ramas caídas sobre tendido eléctrico en sector Las Ánimas.
-             */
-            descripcion?: string;
-            /**
-             * @description Nivel de prioridad. Si se omite, se hereda de la misión de verificación activa de la patrulla o del incidente.
-             * @example ALTA
-             * @enum {string}
-             */
-            prioridad?: "BAJA" | "MEDIA" | "ALTA" | "CRITICA";
-        };
-        AsignarCuadrillaMisionResponse: {
-            /** @example Cuadrilla asignada y despachada exitosamente al incidente. Patrulla verificadora liberada. */
-            message: string;
-            data: {
-                mision: components["schemas"]["MisionCreadaResumen"];
-                cuadrilla: {
-                    /** Format: uuid */
-                    id: string;
-                    nombre: string;
-                    /** @example EN_MISION */
-                    estado: string;
-                    /** Format: uuid */
-                    delegacionId?: string | null;
-                };
-                incidente: {
-                    /** Format: uuid */
-                    id: string;
-                    codigo: string;
-                    /** @example EN_ATENCION */
-                    estado: string;
-                    prioridad: string;
-                };
-                patrullaLiberada: components["schemas"]["PatrullaLiberada"];
-                hitoCuadrilla: {
-                    /** Format: uuid */
-                    id: string;
-                    /** Format: uuid */
-                    misionId: string;
-                    /** @example CUADRILLA_DESPACHADA */
-                    hito: string;
-                    descripcion: string;
-                    creadoEn: string;
-                };
-                hitoPatrulla?: {
-                    /** Format: uuid */
-                    id: string;
-                    /** Format: uuid */
-                    misionId: string;
-                    /** @example VERIFICACION_FINALIZADA */
-                    hito: string;
-                    descripcion: string;
-                    creadoEn: string;
-                } | null;
-            };
-        };
-        /** @description Datos de la patrulla verificadora previa que fue liberada automáticamente (null si no había patrulla) */
-        PatrullaLiberada: {
-            /** Format: uuid */
-            id: string;
-            nombre: string;
-            /** @example DISPONIBLE */
-            estado: string;
-            /** Format: uuid */
-            misionPreviaId?: string | null;
-        } | null;
         AceptarMisionInput: {
             /**
              * @description Coordenada GPS opcional de latitud (WGS84) al momento de aceptar la misión desde la PWA
@@ -12900,416 +12243,6 @@ export interface components {
                 creadoEn: string;
                 /** @description Fecha de actualización ISO 8601 */
                 actualizadoEn: string;
-            };
-        };
-        OperativoRecuperacionItem: {
-            /**
-             * Format: uuid
-             * @description Identificador único UUID del operativo de recuperación
-             */
-            id: string;
-            /**
-             * @description Código oficial del operativo (ej. REC-2026-0001)
-             * @example REC-2026-0001
-             */
-            codigo: string;
-            /**
-             * @description Título descriptivo del despliegue
-             * @example Entrega de frazadas y techumbre en Sector Collico
-             */
-            nombre: string;
-            /** @example Familias afectadas por temporal de viento */
-            descripcion: string | null;
-            /** @example Collico */
-            sector: string;
-            /** @example Calle Balmaceda 1245 con Las Palmeras */
-            direccionTexto: string | null;
-            /**
-             * @example ALTA
-             * @enum {string}
-             */
-            prioridad: "BAJA" | "MEDIA" | "ALTA" | "CRITICA";
-            /**
-             * @example PLANIFICADA
-             * @enum {string}
-             */
-            estado: "PLANIFICADA" | "EN_EJECUCION" | "COMPLETADA" | "CANCELADA";
-            /** @example 4 */
-            familiasAfectadas: number;
-            /** @description Delegación municipal territorial asociada */
-            delegacion: {
-                /** Format: uuid */
-                id: string;
-                codigo: string;
-                nombre: string;
-            } | null;
-            /**
-             * @description Cantidad total de unidades de insumos asignadas a la operación
-             * @example 15
-             */
-            cantidadInsumosAsignados: number;
-            /**
-             * @description Cantidad de tipos de insumo distintos asignados
-             * @example 2
-             */
-            totalTiposInsumos: number;
-            /** @description Desglose de recursos asignados por tipo y cantidad */
-            recursosResumen: {
-                /**
-                 * Format: uuid
-                 * @example 00000000-0000-4000-8000-000000000001
-                 */
-                recursoId: string;
-                /** @example Frazadas Térmicas */
-                nombre: string;
-                /** @example 10 */
-                cantidadAsignada: number;
-            }[];
-            /** @description Fecha de registro ISO 8601 */
-            creadoEn: string;
-            /** @description Fecha de última modificación ISO 8601 */
-            actualizadoEn: string;
-            /** @description Fecha de cierre o finalización si concluyó */
-            fechaCierre?: string | null;
-        };
-        ListarRecuperacionesResponse: {
-            /** @example Listado de operativos de recuperación obtenido exitosamente */
-            message: string;
-            data: {
-                /**
-                 * Format: uuid
-                 * @description Identificador único UUID del operativo de recuperación
-                 */
-                id: string;
-                /**
-                 * @description Código oficial del operativo (ej. REC-2026-0001)
-                 * @example REC-2026-0001
-                 */
-                codigo: string;
-                /**
-                 * @description Título descriptivo del despliegue
-                 * @example Entrega de frazadas y techumbre en Sector Collico
-                 */
-                nombre: string;
-                /** @example Familias afectadas por temporal de viento */
-                descripcion: string | null;
-                /** @example Collico */
-                sector: string;
-                /** @example Calle Balmaceda 1245 con Las Palmeras */
-                direccionTexto: string | null;
-                /**
-                 * @example ALTA
-                 * @enum {string}
-                 */
-                prioridad: "BAJA" | "MEDIA" | "ALTA" | "CRITICA";
-                /**
-                 * @example PLANIFICADA
-                 * @enum {string}
-                 */
-                estado: "PLANIFICADA" | "EN_EJECUCION" | "COMPLETADA" | "CANCELADA";
-                /** @example 4 */
-                familiasAfectadas: number;
-                /** @description Delegación municipal territorial asociada */
-                delegacion: {
-                    /** Format: uuid */
-                    id: string;
-                    codigo: string;
-                    nombre: string;
-                } | null;
-                /**
-                 * @description Cantidad total de unidades de insumos asignadas a la operación
-                 * @example 15
-                 */
-                cantidadInsumosAsignados: number;
-                /**
-                 * @description Cantidad de tipos de insumo distintos asignados
-                 * @example 2
-                 */
-                totalTiposInsumos: number;
-                /** @description Desglose de recursos asignados por tipo y cantidad */
-                recursosResumen: {
-                    /**
-                     * Format: uuid
-                     * @example 00000000-0000-4000-8000-000000000001
-                     */
-                    recursoId: string;
-                    /** @example Frazadas Térmicas */
-                    nombre: string;
-                    /** @example 10 */
-                    cantidadAsignada: number;
-                }[];
-                /** @description Fecha de registro ISO 8601 */
-                creadoEn: string;
-                /** @description Fecha de última modificación ISO 8601 */
-                actualizadoEn: string;
-                /** @description Fecha de cierre o finalización si concluyó */
-                fechaCierre?: string | null;
-            }[];
-            meta: {
-                /** @description Total de registros coincidentes */
-                total: number;
-                /** @description Página actual */
-                page: number;
-                /** @description Elementos por página */
-                limit: number;
-                /** @description Total de páginas */
-                totalPages: number;
-                /** @description ¿Existe página siguiente? */
-                hasNext: boolean;
-                /** @description ¿Existe página anterior? */
-                hasPrev: boolean;
-            };
-        };
-        RecuperacionDetalleResponse: {
-            /**
-             * Format: uuid
-             * @example 70000000-0000-4000-8000-000000000001
-             */
-            id: string;
-            /** @example REC-2026-0001 */
-            codigo: string;
-            /** @example Entrega de frazadas y techumbre en Sector Collico */
-            nombre: string;
-            /** @example Familias afectadas por temporal de viento */
-            descripcion: string | null;
-            /** @example Collico */
-            sector: string;
-            /** @example Calle Balmaceda 1245 con Las Palmeras */
-            direccionTexto: string | null;
-            /**
-             * @example ALTA
-             * @enum {string}
-             */
-            prioridad: "BAJA" | "MEDIA" | "ALTA" | "CRITICA";
-            /** @example Juan Pérez (Presidente JJVV) */
-            contactoNombre: string | null;
-            /** @example +56912345678 */
-            contactoTelefono: string | null;
-            /** @example -39.8142 */
-            latitud: number;
-            /** @example -73.2459 */
-            longitud: number;
-            /**
-             * @example PLANIFICADA
-             * @enum {string}
-             */
-            estado: "PLANIFICADA" | "EN_EJECUCION" | "COMPLETADA" | "CANCELADA";
-            /** @example 4 */
-            familiasAfectadas: number;
-            /** @description Delegación territorial asignada */
-            delegacion: {
-                /** Format: uuid */
-                id: string;
-                codigo: string;
-                nombre: string;
-            } | null;
-            /** @description Funcionario que creó el evento */
-            creadoPor: {
-                /** Format: uuid */
-                id: string;
-                nombre: string;
-            } | null;
-            /** @description Misión táctica despachada a terreno */
-            mision: {
-                /**
-                 * Format: uuid
-                 * @example 60000000-0000-4000-8000-000000000001
-                 */
-                id: string;
-                /** @example MIS-2026-0042 */
-                codigo: string;
-                /** @example Entrega de frazadas y techumbre en Sector Collico */
-                titulo: string;
-                /** @example DESPACHADA */
-                estado: string;
-                /** @example RECUPERACION */
-                tipoMision: string;
-            } | null;
-            /** @description Patrulla asignada a la operación */
-            patrulla: {
-                /**
-                 * Format: uuid
-                 * @example 50000000-0000-4000-8000-000000000001
-                 */
-                id: string;
-                /** @example Patrulla Verificadora Alfa */
-                nombre: string;
-                /** @example EN_RECUPERACION */
-                estado: string;
-            } | null;
-            /** @description Detalle completo de recursos e insumos asignados */
-            recursos: {
-                /**
-                 * Format: uuid
-                 * @example 00000000-0000-4000-8000-000000000001
-                 */
-                recursoId: string;
-                /** @example Sacos de Arena 25kg */
-                nombre: string;
-                /** @example 10 */
-                cantidadAsignada: number;
-            }[];
-            /** @example 15 */
-            cantidadInsumosAsignados: number;
-            /** @example 2 */
-            totalTiposInsumos: number;
-            /** @description Línea de tiempo cronológica de hitos y avances */
-            historial: {
-                /** @example h-001 */
-                id: string;
-                /**
-                 * @example CREACION
-                 * @enum {string}
-                 */
-                tipo: "CREACION" | "HITO_MISION" | "REPORTE_TERRENO" | "ESTADO_OPERATIVO";
-                /** @example Operativo Planificado y Despachado */
-                titulo: string;
-                /** @example Se despacha patrulla verificadora con insumos */
-                descripcion: string | null;
-                /** @description Funcionario responsable del registro */
-                registradoPor: {
-                    /** Format: uuid */
-                    id: string;
-                    nombre: string;
-                } | null;
-                /** @description Marca de tiempo ISO 8601 del evento */
-                creadoEn: string;
-            }[];
-            /** @description Fecha de registro ISO 8601 */
-            creadoEn: string;
-            /** @description Fecha de última modificación ISO 8601 */
-            actualizadoEn: string;
-            /** @description Fecha de finalización de entrega */
-            fechaCierre?: string | null;
-            /** @description Observaciones finales de cierre */
-            observacionesCierre?: string | null;
-        };
-        ObtenerRecuperacionDetalleResponse: {
-            /** @example Detalle de operativo de recuperación obtenido exitosamente */
-            message: string;
-            data: {
-                /**
-                 * Format: uuid
-                 * @example 70000000-0000-4000-8000-000000000001
-                 */
-                id: string;
-                /** @example REC-2026-0001 */
-                codigo: string;
-                /** @example Entrega de frazadas y techumbre en Sector Collico */
-                nombre: string;
-                /** @example Familias afectadas por temporal de viento */
-                descripcion: string | null;
-                /** @example Collico */
-                sector: string;
-                /** @example Calle Balmaceda 1245 con Las Palmeras */
-                direccionTexto: string | null;
-                /**
-                 * @example ALTA
-                 * @enum {string}
-                 */
-                prioridad: "BAJA" | "MEDIA" | "ALTA" | "CRITICA";
-                /** @example Juan Pérez (Presidente JJVV) */
-                contactoNombre: string | null;
-                /** @example +56912345678 */
-                contactoTelefono: string | null;
-                /** @example -39.8142 */
-                latitud: number;
-                /** @example -73.2459 */
-                longitud: number;
-                /**
-                 * @example PLANIFICADA
-                 * @enum {string}
-                 */
-                estado: "PLANIFICADA" | "EN_EJECUCION" | "COMPLETADA" | "CANCELADA";
-                /** @example 4 */
-                familiasAfectadas: number;
-                /** @description Delegación territorial asignada */
-                delegacion: {
-                    /** Format: uuid */
-                    id: string;
-                    codigo: string;
-                    nombre: string;
-                } | null;
-                /** @description Funcionario que creó el evento */
-                creadoPor: {
-                    /** Format: uuid */
-                    id: string;
-                    nombre: string;
-                } | null;
-                /** @description Misión táctica despachada a terreno */
-                mision: {
-                    /**
-                     * Format: uuid
-                     * @example 60000000-0000-4000-8000-000000000001
-                     */
-                    id: string;
-                    /** @example MIS-2026-0042 */
-                    codigo: string;
-                    /** @example Entrega de frazadas y techumbre en Sector Collico */
-                    titulo: string;
-                    /** @example DESPACHADA */
-                    estado: string;
-                    /** @example RECUPERACION */
-                    tipoMision: string;
-                } | null;
-                /** @description Patrulla asignada a la operación */
-                patrulla: {
-                    /**
-                     * Format: uuid
-                     * @example 50000000-0000-4000-8000-000000000001
-                     */
-                    id: string;
-                    /** @example Patrulla Verificadora Alfa */
-                    nombre: string;
-                    /** @example EN_RECUPERACION */
-                    estado: string;
-                } | null;
-                /** @description Detalle completo de recursos e insumos asignados */
-                recursos: {
-                    /**
-                     * Format: uuid
-                     * @example 00000000-0000-4000-8000-000000000001
-                     */
-                    recursoId: string;
-                    /** @example Sacos de Arena 25kg */
-                    nombre: string;
-                    /** @example 10 */
-                    cantidadAsignada: number;
-                }[];
-                /** @example 15 */
-                cantidadInsumosAsignados: number;
-                /** @example 2 */
-                totalTiposInsumos: number;
-                /** @description Línea de tiempo cronológica de hitos y avances */
-                historial: {
-                    /** @example h-001 */
-                    id: string;
-                    /**
-                     * @example CREACION
-                     * @enum {string}
-                     */
-                    tipo: "CREACION" | "HITO_MISION" | "REPORTE_TERRENO" | "ESTADO_OPERATIVO";
-                    /** @example Operativo Planificado y Despachado */
-                    titulo: string;
-                    /** @example Se despacha patrulla verificadora con insumos */
-                    descripcion: string | null;
-                    /** @description Funcionario responsable del registro */
-                    registradoPor: {
-                        /** Format: uuid */
-                        id: string;
-                        nombre: string;
-                    } | null;
-                    /** @description Marca de tiempo ISO 8601 del evento */
-                    creadoEn: string;
-                }[];
-                /** @description Fecha de registro ISO 8601 */
-                creadoEn: string;
-                /** @description Fecha de última modificación ISO 8601 */
-                actualizadoEn: string;
-                /** @description Fecha de finalización de entrega */
-                fechaCierre?: string | null;
-                /** @description Observaciones finales de cierre */
-                observacionesCierre?: string | null;
             };
         };
         CrearEventoPrevencionInput: {
@@ -14485,6 +13418,228 @@ export interface components {
              * @example Valdivia2026!
              */
             confirmacionPassword: string;
+        };
+        AsignarCuadrillaMisionResponse: {
+            /** @example Cuadrilla asignada y despachada exitosamente al incidente. Patrulla verificadora liberada. */
+            message: string;
+            data: {
+                mision: components["schemas"]["MisionCreadaResumen"];
+                cuadrilla: {
+                    /** Format: uuid */
+                    id: string;
+                    nombre: string;
+                    /** @example EN_MISION */
+                    estado: string;
+                    /** Format: uuid */
+                    delegacionId?: string | null;
+                };
+                incidente: {
+                    /** Format: uuid */
+                    id: string;
+                    codigo: string;
+                    /** @example EN_ATENCION */
+                    estado: string;
+                    prioridad: string;
+                };
+                patrullaLiberada: components["schemas"]["PatrullaLiberada"];
+                hitoCuadrilla: {
+                    /** Format: uuid */
+                    id: string;
+                    /** Format: uuid */
+                    misionId: string;
+                    /** @example CUADRILLA_DESPACHADA */
+                    hito: string;
+                    descripcion: string;
+                    creadoEn: string;
+                };
+                hitoPatrulla?: {
+                    /** Format: uuid */
+                    id: string;
+                    /** Format: uuid */
+                    misionId: string;
+                    /** @example VERIFICACION_FINALIZADA */
+                    hito: string;
+                    descripcion: string;
+                    creadoEn: string;
+                } | null;
+            };
+        };
+        MisionCreadaResumen: {
+            /** Format: uuid */
+            id: string;
+            /** @example MIS-2026-0005 */
+            codigo: string;
+            titulo: string;
+            descripcion: string | null;
+            /** @enum {string} */
+            tipoMision: "VERIFICACION" | "ATENCION_CUADRILLA" | "PREVENCION" | "RECUPERACION" | "ASISTENCIA_SOCIAL";
+            /**
+             * @example DESPACHADA
+             * @enum {string}
+             */
+            estado: "PLANIFICADA" | "DESPACHADA" | "EN_CURSO" | "COMPLETADA" | "CANCELADA" | "RECHAZADA";
+            /** @enum {string} */
+            prioridad: "BAJA" | "MEDIA" | "ALTA" | "CRITICA";
+            /** Format: uuid */
+            incidenteId: string;
+            /** Format: uuid */
+            patrullaId?: string | null;
+            /** Format: uuid */
+            cuadrillaId?: string | null;
+            /** Format: uuid */
+            encargadoId: string | null;
+            /** Format: uuid */
+            creadoPorId?: string | null;
+            fechaInicio?: string | null;
+            creadoEn: string;
+        };
+        /** @description Datos de la patrulla verificadora previa que fue liberada automáticamente (null si no había patrulla) */
+        PatrullaLiberada: {
+            /** Format: uuid */
+            id: string;
+            nombre: string;
+            /** @example DISPONIBLE */
+            estado: string;
+            /** Format: uuid */
+            misionPreviaId?: string | null;
+        } | null;
+        AsignarCuadrillaMisionInput: {
+            /**
+             * @description Tipo de misión táctica a despachar
+             * @example ATENCION_CUADRILLA
+             * @enum {string}
+             */
+            tipoMision: "ATENCION_CUADRILLA";
+            /**
+             * Format: uuid
+             * @description UUID del incidente en estado REPORTADO o VERIFICANDO a atender
+             * @example 30000000-0000-4000-8000-000000000001
+             */
+            incidenteId: string;
+            /**
+             * Format: uuid
+             * @description UUID de la cuadrilla operativa disponible a despachar
+             * @example 50000000-0000-4000-8000-000000000001
+             */
+            cuadrillaId: string;
+            /**
+             * @description Título descriptivo de la misión operativa (se autogenera si se omite)
+             * @example Atención y despeje táctico - Incidente INC-2026-001
+             */
+            titulo?: string;
+            /**
+             * @description Instrucciones tácticas u observaciones impartidas a la cuadrilla
+             * @example Despejar ramas caídas sobre tendido eléctrico en sector Las Ánimas.
+             */
+            descripcion?: string;
+            /**
+             * @description Nivel de prioridad. Si se omite, se hereda de la misión de verificación activa de la patrulla o del incidente.
+             * @example ALTA
+             * @enum {string}
+             */
+            prioridad?: "BAJA" | "MEDIA" | "ALTA" | "CRITICA";
+        };
+        CrearMisionResponse: {
+            /** @example Misión de verificación creada y patrulla despachada exitosamente. */
+            message: string;
+            data: {
+                mision: components["schemas"]["MisionCreadaResumen"];
+                incidente: {
+                    /** Format: uuid */
+                    id: string;
+                    codigo: string;
+                    estado: string;
+                };
+                patrulla: {
+                    /** Format: uuid */
+                    id: string;
+                    nombre: string;
+                    estado: string;
+                };
+                hitoInicial: {
+                    /** Format: uuid */
+                    id: string;
+                    hito: string;
+                    descripcion: string;
+                    creadoEn: string;
+                };
+                /**
+                 * NotificacionMisionDetalle
+                 * @description Trazabilidad completa de la notificación de misión despachada
+                 */
+                notificacion?: {
+                    /**
+                     * Format: uuid
+                     * @description Identificador único de la notificación
+                     */
+                    id: string;
+                    /**
+                     * Format: uuid
+                     * @description Identificador de la misión asociada
+                     */
+                    misionId: string;
+                    /**
+                     * Format: uuid
+                     * @description Identificador de la patrulla destinataria
+                     */
+                    patrullaId: string;
+                    /**
+                     * @description Estado actual del ciclo de vida de la notificación
+                     * @enum {string}
+                     */
+                    estado: "PENDIENTE_ENVIO" | "ENVIADA" | "RECIBIDA" | "LEIDA";
+                    /**
+                     * @description Contador de emisiones hacia la patrulla
+                     * @example 1
+                     */
+                    intentosEnvio: number;
+                    /** @description Marca temporal UTC de registro en base de datos */
+                    creadaAt: string;
+                    /** @description Marca temporal UTC de emisión hacia la sala de la patrulla */
+                    enviadaAt: string | null;
+                    /** @description Marca temporal UTC del acuse de recibo técnico automático */
+                    recibidaAt: string | null;
+                    /** @description Marca temporal UTC del acuse de lectura operativa */
+                    leidaAt: string | null;
+                };
+            };
+        };
+        CrearMisionVerificacionInput: {
+            /**
+             * Format: uuid
+             * @description Identificador único UUID del incidente a verificar
+             * @example 50000000-0000-4000-8000-000000000001
+             */
+            incidenteId: string;
+            /**
+             * Format: uuid
+             * @description Identificador único UUID de la patrulla verificadora disponible
+             * @example f1000000-0000-4000-8000-000000000001
+             */
+            patrullaId: string;
+            /**
+             * @description Tipo de misión operativa a despachar (fijo en VERIFICACION para evaluación preliminar)
+             * @default VERIFICACION
+             * @example VERIFICACION
+             * @enum {string}
+             */
+            tipoMision: "VERIFICACION";
+            /**
+             * @description Título descriptivo opcional para la misión de verificación
+             * @example Verificación en terreno: Aniego en Las Ánimas
+             */
+            titulo?: string;
+            /**
+             * @description Instrucciones tácticas preliminares para la patrulla
+             * @example Evaluar anegamiento en calzada y riesgo de ingreso a viviendas.
+             */
+            descripcion?: string | null;
+            /**
+             * @description Nivel de prioridad o urgencia táctica (si se omite, hereda la del incidente)
+             * @example ALTA
+             * @enum {string}
+             */
+            prioridad?: "BAJA" | "MEDIA" | "ALTA" | "CRITICA";
         };
     };
     responses: never;
