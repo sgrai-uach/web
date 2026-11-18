@@ -5,14 +5,19 @@ import { PackagePlus, RefreshCw, Loader2, Package } from 'lucide-react';
 import Heading from '@/components/ui/Heading';
 import Button from '@/components/ui/Button';
 import InlineNotice from '@/components/ui/InlineNotice';
+import { useOptionalToast } from '@/components/ui/Toast';
 import AccesoDenegadoState from '@/components/common/AccesoDenegadoState';
 import EmptyState from '@/components/common/EmptyState';
 import Pagination from '@/components/common/Pagination';
 import { useOperativosRecuperacion } from '@/hooks/useOperativosRecuperacion';
+import { usePuedeEditarRecuperacion } from '@/hooks/usePuedeEditarRecuperacion';
+import { obtenerDetalleOperativoRecuperacion } from '@/services/recuperacionService';
+import type { OperativoRecuperacionDetalle } from '@/types/recuperacion';
 import type { DelegacionOpcion } from '@/types/incidentesKpis';
 import { OperativosRecuperacionFiltros } from './OperativosRecuperacionFiltros';
 import { OperativosRecuperacionTabla } from './OperativosRecuperacionTabla';
 import { OperativoRecuperacionDrawer } from './OperativoRecuperacionDrawer';
+import { ModalEditarOperativoRecuperacion } from './ModalEditarOperativoRecuperacion';
 import styles from './OperativosRecuperacion.module.css';
 
 export interface OperativosRecuperacionViewProps {
@@ -44,7 +49,28 @@ export const OperativosRecuperacionView: React.FC<OperativosRecuperacionViewProp
     recargar,
   } = useOperativosRecuperacion({ enabled: true });
 
+  const toast = useOptionalToast();
+  const puedeEditar = usePuedeEditarRecuperacion();
   const [operativoSeleccionadoId, setOperativoSeleccionadoId] = useState<string | null>(null);
+  const [operativoEditando, setOperativoEditando] =
+    useState<OperativoRecuperacionDetalle | null>(null);
+  const [cargandoEdicionId, setCargandoEdicionId] = useState<string | null>(null);
+
+  const handleAbrirEdicionDirecta = async (id: string) => {
+    setCargandoEdicionId(id);
+    try {
+      const detalle = await obtenerDetalleOperativoRecuperacion(id);
+      setOperativoEditando(detalle);
+    } catch (err: unknown) {
+      toast?.showError(
+        err instanceof Error
+          ? err.message
+          : 'No fue posible cargar el operativo para editar.'
+      );
+    } finally {
+      setCargandoEdicionId(null);
+    }
+  };
 
   if (esForbidden) {
     return (
@@ -140,6 +166,9 @@ export const OperativosRecuperacionView: React.FC<OperativosRecuperacionViewProp
             orden={orden}
             onToggleOrden={toggleOrden}
             onSelectOperativo={(id) => setOperativoSeleccionadoId(id)}
+            puedeEditar={puedeEditar}
+            cargandoEdicionId={cargandoEdicionId}
+            onEditarOperativo={handleAbrirEdicionDirecta}
           />
 
           <Pagination
@@ -160,6 +189,18 @@ export const OperativosRecuperacionView: React.FC<OperativosRecuperacionViewProp
         onCerrar={() => setOperativoSeleccionadoId(null)}
         onOperativoActualizado={recargar}
       />
+
+      {operativoEditando && (
+        <ModalEditarOperativoRecuperacion
+          isOpen={true}
+          operativo={operativoEditando}
+          onClose={() => setOperativoEditando(null)}
+          onSuccess={() => {
+            setOperativoEditando(null);
+            recargar();
+          }}
+        />
+      )}
     </section>
   );
 };

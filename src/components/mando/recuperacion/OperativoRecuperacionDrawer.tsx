@@ -315,11 +315,11 @@ export const OperativoRecuperacionDrawer: React.FC<OperativoRecuperacionDrawerPr
                 <div className={styles.sectionTitleRow}>
                   <Package size={16} />
                   <Heading as="h3" variant="h4" color="teal">
-                    Recursos e insumos asignados ({detalle.recursos.length})
+                    Recursos e insumos asignados ({(detalle.recursos ?? []).length})
                   </Heading>
                 </div>
 
-                {detalle.recursos.length === 0 ? (
+                {(detalle.recursos ?? []).length === 0 ? (
                   <p className={styles.infoLabel}>No hay insumos registrados en este operativo.</p>
                 ) : (
                   <table className={styles.recursosTable}>
@@ -330,7 +330,7 @@ export const OperativoRecuperacionDrawer: React.FC<OperativoRecuperacionDrawerPr
                       </tr>
                     </thead>
                     <tbody>
-                      {detalle.recursos.map((rec) => (
+                      {(detalle.recursos ?? []).map((rec) => (
                         <tr key={rec.recursoId}>
                           <td>{rec.nombre}</td>
                           <td>{rec.cantidadAsignada}</td>
@@ -346,15 +346,15 @@ export const OperativoRecuperacionDrawer: React.FC<OperativoRecuperacionDrawerPr
                 <div className={styles.sectionTitleRow}>
                   <Clock size={16} />
                   <Heading as="h3" variant="h4" color="teal">
-                    Historial del operativo ({detalle.historial.length})
+                    Historial del operativo ({(detalle.historial ?? []).length})
                   </Heading>
                 </div>
 
-                {detalle.historial.length === 0 ? (
+                {(detalle.historial ?? []).length === 0 ? (
                   <p className={styles.infoLabel}>Sin hitos registrados.</p>
                 ) : (
                   <div className={styles.timeline}>
-                    {detalle.historial.map((hito) => (
+                    {(detalle.historial ?? []).map((hito) => (
                       <div key={hito.id} className={styles.timelineItem}>
                         <div className={styles.timelineHeader}>
                           <span className={styles.timelineTitle}>{hito.titulo}</span>

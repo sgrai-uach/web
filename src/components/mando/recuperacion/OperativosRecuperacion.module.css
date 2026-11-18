@@ -248,6 +248,13 @@
   color: var(--color-text-muted, #5F676E);
 }
 
+.accionesGroup {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: nowrap;
+}
+
 .loadingState {
   padding: var(--space-8, 32px);
   display: flex;

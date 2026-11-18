@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { ArrowUpDown, ArrowUp, ArrowDown, Eye } from 'lucide-react';
+import { ArrowUpDown, ArrowUp, ArrowDown, Eye, Pencil } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import type {
   OperativoRecuperacionListadoItem,
@@ -22,6 +22,9 @@ export interface OperativosRecuperacionTablaProps {
   orden: DireccionOrdenRecuperacion;
   onToggleOrden: (campo: OrdenarPorRecuperacion) => void;
   onSelectOperativo: (id: string) => void;
+  puedeEditar?: boolean;
+  cargandoEdicionId?: string | null;
+  onEditarOperativo?: (id: string) => void;
 }
 
 export const OperativosRecuperacionTabla: React.FC<OperativosRecuperacionTablaProps> = ({
@@ -31,6 +34,9 @@ export const OperativosRecuperacionTabla: React.FC<OperativosRecuperacionTablaPr
   orden,
   onToggleOrden,
   onSelectOperativo,
+  puedeEditar = false,
+  cargandoEdicionId = null,
+  onEditarOperativo,
 }) => {
   const renderSortIcon = (campo: OrdenarPorRecuperacion) => {
     if (ordenarPor !== campo) {
@@ -137,16 +143,48 @@ export const OperativosRecuperacionTabla: React.FC<OperativosRecuperacionTablaPr
                   className={styles.td}
                   onClick={(e) => e.stopPropagation()}
                 >
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => onSelectOperativo(item.id)}
-                    aria-label={`Ver detalle de ${item.codigo}`}
-                  >
-                    <Eye size={14} style={{ marginRight: '4px' }} />
-                    <span>Detalle</span>
-                  </Button>
+                  <div className={styles.accionesGroup}>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => onSelectOperativo(item.id)}
+                      aria-label={`Ver detalle de ${item.codigo}`}
+                    >
+                      <Eye size={14} style={{ marginRight: '4px' }} />
+                      <span>Detalle</span>
+                    </Button>
+
+                    {puedeEditar && onEditarOperativo && (
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        size="sm"
+                        disabled={
+                          item.estado === 'COMPLETADA' ||
+                          item.estado === 'CANCELADA' ||
+                          cargandoEdicionId === item.id
+                        }
+                        title={
+                          item.estado === 'COMPLETADA' || item.estado === 'CANCELADA'
+                            ? 'No se permite editar operativos en estado COMPLETADA o CANCELADA.'
+                            : `Editar ${item.codigo}`
+                        }
+                        onClick={() => onEditarOperativo(item.id)}
+                        aria-label={`Editar ${item.codigo}`}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          backgroundColor: 'var(--color-primary-teal)',
+                          color: 'var(--color-white)',
+                        }}
+                      >
+                        <Pencil size={13} aria-hidden="true" />
+                        <span>{cargandoEdicionId === item.id ? 'Cargando...' : 'Editar'}</span>
+                      </Button>
+                    )}
+                  </div>
                 </td>
               </tr>
             );
