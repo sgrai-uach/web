@@ -2,6 +2,12 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import { MisionesModal } from '../MisionesModal';
 import { MisionesFiltros } from '../MisionesFiltros';
+import { MisionesTabla } from '../MisionesTabla';
+import {
+  clearTrazabilidadCache,
+  setTrazabilidadEstado,
+} from '@/lib/socket/trazabilidadStore';
+import type { MisionItem } from '@/types/misiones';
 
 vi.mock('@/hooks/useCatalogos', () => ({
   useCatalogos: () => ({
@@ -44,6 +50,7 @@ vi.mock('@/services/misionesService', () => ({
 describe('MisionesModal y MisionesFiltros', () => {
   beforeEach(() => {
     vi.useFakeTimers();
+    clearTrazabilidadCache();
   });
 
   afterEach(() => {
@@ -105,5 +112,55 @@ describe('MisionesModal y MisionesFiltros', () => {
     const selectDelegacion = screen.getByLabelText(/Delegación Territorial/i);
     fireEvent.change(selectDelegacion, { target: { value: 'Costa' } });
     expect(handleFiltrosChange).toHaveBeenCalledWith({ delegacion: 'Costa' });
+  });
+
+  it('BUG-H35-WEB-07: renderiza etiqueta de trazabilidad en MisionesTabla y reacciona al store sin emojis ni esquinas redondeadas', async () => {
+    const misionesMock: MisionItem[] = [
+      {
+        id: 'mis-tabla-1',
+        codigo: 'MIS-2026-0777',
+        titulo: 'Verificación Sector Norte',
+        descripcion: 'Evaluar anegamiento',
+        tipoMision: 'VERIFICACION',
+        estado: 'DESPACHADA',
+        prioridad: 'ALTA',
+        delegacionNombre: 'Norte',
+        cuadrillaNombre: null,
+        patrullaNombre: 'Patrulla Alfa',
+        incidenteId: 'inc-777',
+        incidenteCodigo: 'INC-2026-0777',
+        justificacionRechazo: null,
+        trazabilidadNotificacion: 'PENDIENTE_ENVIO',
+        fechaInicio: null,
+        fechaCierre: null,
+        creadoEn: '2026-11-12T10:00:00Z',
+        actualizadoEn: '2026-11-12T10:00:00Z',
+      },
+    ];
+
+    render(
+      <MisionesTabla
+        misiones={misionesMock}
+        cargando={false}
+        hayFiltrosActivos={false}
+        onLimpiarFiltros={vi.fn()}
+      />
+    );
+
+    const badgeInicial = screen.getByTestId('tabla-trazabilidad-mis-tabla-1');
+    expect(badgeInicial.textContent).toContain('NO LEÍDA');
+    expect(badgeInicial.textContent).toContain('Sin señal / offline');
+    expect(badgeInicial.style.borderRadius).toBe('0px');
+    expect(/\p{Extended_Pictographic}/u.test(badgeInicial.textContent || '')).toBe(false);
+
+    // Simular actualización en vivo vía WebSocket -> trazabilidadStore supera el estado inicial
+    await act(async () => {
+      setTrazabilidadEstado('mis-tabla-1', 'LEIDA', 'inc-777');
+      await Promise.resolve();
+    });
+
+    const badgeActualizado = screen.getByTestId('tabla-trazabilidad-mis-tabla-1');
+    expect(badgeActualizado.textContent).toContain('LEÍDA');
+    expect(badgeActualizado.textContent).toContain('Leída por operador en terreno');
   });
 });

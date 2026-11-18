@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import type { Metadata } from 'next';
 import { KanbanBoard } from '@/components/mando/KanbanBoard';
 
@@ -8,5 +9,9 @@ export const metadata: Metadata = {
 };
 
 export default function CentroIncidentesPage() {
-  return <KanbanBoard />;
+  return (
+    <Suspense fallback={null}>
+      <KanbanBoard />
+    </Suspense>
+  );
 }
