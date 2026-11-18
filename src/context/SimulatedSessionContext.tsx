@@ -103,6 +103,9 @@ function obtenerPermisosFallback(rol: string, esAdmin: boolean): Set<string> {
       'personal:gestionar',
       'asistencia_social:crear',
       'asistencia_social:leer',
+      'recuperacion:leer',
+      'recuperacion:crear',
+      'recuperacion:editar',
     ]);
   }
 
@@ -122,6 +125,9 @@ function obtenerPermisosFallback(rol: string, esAdmin: boolean): Set<string> {
       'recursos:leer',
       'asistencia_social:crear',
       'asistencia_social:leer',
+      'recuperacion:leer',
+      'recuperacion:crear',
+      'recuperacion:editar',
     ]);
   }
 
@@ -130,7 +136,7 @@ function obtenerPermisosFallback(rol: string, esAdmin: boolean): Set<string> {
   }
 
   if (rol === 'Supervisor Estratégico' || rol === 'Supervisor') {
-    return new Set(['recursos:leer']);
+    return new Set(['recursos:leer', 'recuperacion:leer']);
   }
 
   return new Set();

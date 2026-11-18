@@ -25,7 +25,8 @@ import { PanelPatrullasModal } from './patrullas/PanelPatrullasModal';
 import { ModalCrearEventoPrevencion } from './ModalCrearEventoPrevencion';
 import { ModalCrearEventoRecuperacion } from './ModalCrearEventoRecuperacion';
 import { MapaOperativoMando } from './MapaOperativoMando';
-import { KanbanViewSwitcher } from './KanbanViewSwitcher';
+import { KanbanViewSwitcher, type VistaCentroIncidentes } from './KanbanViewSwitcher';
+import { OperativosRecuperacionView } from './recuperacion/OperativosRecuperacionView';
 import CuadrillaDetalleDrawer from '@/components/admin/cuadrillas/CuadrillaDetalleDrawer';
 import { cuadrillasService } from '@/services/cuadrillasService';
 import type { CuadrillaItem } from '@/types/cuadrilla';
@@ -47,7 +48,10 @@ const TITULOS_COLUMNAS = {
 export const KanbanBoard: React.FC = () => {
   const { showInfo } = useToast();
   const searchParams = useSearchParams();
-  const [vistaActiva, setVistaActiva] = useState<'kanban' | 'mapa'>('kanban');
+  const vistaInicial = searchParams.get('vista');
+  const [vistaActiva, setVistaActiva] = useState<VistaCentroIncidentes>(
+    vistaInicial === 'recuperacion' || vistaInicial === 'mapa' ? vistaInicial : 'kanban'
+  );
   const [misionesModalAbierto, setMisionesModalAbierto] = useState(false);
   const [patrullasModalAbierto, setPatrullasModalAbierto] = useState(false);
   const [misionSeleccionadaId, setMisionSeleccionadaId] = useState<string | null>(null);
@@ -242,26 +246,30 @@ export const KanbanBoard: React.FC = () => {
         <AccesoDenegado />
       ) : (
         <>
-          <IncidentesKpiCards
-            kpis={kpis}
-            cargando={cargandoKpis}
-            delegacionId={delegacionId}
-            onDelegacionChange={handleDelegacionChange}
-            delegaciones={delegaciones}
-            onRefrescar={handleRefrescoCompleto}
-            estadoSeleccionado={estadoEnfocado}
-            onSelectEstado={handleSelectEstado}
-            conectado={conectadoKpis || conectado}
-          />
+          {vistaActiva !== 'recuperacion' && (
+            <>
+              <IncidentesKpiCards
+                kpis={kpis}
+                cargando={cargandoKpis}
+                delegacionId={delegacionId}
+                onDelegacionChange={handleDelegacionChange}
+                delegaciones={delegaciones}
+                onRefrescar={handleRefrescoCompleto}
+                estadoSeleccionado={estadoEnfocado}
+                onSelectEstado={handleSelectEstado}
+                conectado={conectadoKpis || conectado}
+              />
 
-          <KanbanFiltros
-            filtros={filtros}
-            onFiltrosChange={setFiltros}
-            onLimpiarFiltros={limpiarFiltros}
-            onRecargar={handleRefrescoCompleto}
-            contadoresPorEstado={contadoresPorEstado}
-            cargando={cargando}
-          />
+              <KanbanFiltros
+                filtros={filtros}
+                onFiltrosChange={setFiltros}
+                onLimpiarFiltros={limpiarFiltros}
+                onRecargar={handleRefrescoCompleto}
+                contadoresPorEstado={contadoresPorEstado}
+                cargando={cargando}
+              />
+            </>
+          )}
 
           {ultimoEvento && (
             <div
@@ -318,7 +326,7 @@ export const KanbanBoard: React.FC = () => {
                 ))}
               </div>
             </main>
-          ) : (
+          ) : vistaActiva === 'mapa' ? (
             <main style={{ marginTop: 'var(--space-4, 16px)' }}>
               <MapaOperativoMando
                 incidentes={todosLosIncidentes}
@@ -328,6 +336,13 @@ export const KanbanBoard: React.FC = () => {
                 onSelectIncidente={(incId) => setIncidenteSeleccionadoId(incId)}
                 onSelectCuadrilla={(cuadrillaId) => setCuadrillaSeleccionadaId(cuadrillaId)}
                 onCrearPrevencion={() => setModalPrevencionAbierto(true)}
+                onCrearRecuperacion={() => setModalRecuperacionAbierto(true)}
+              />
+            </main>
+          ) : (
+            <main style={{ marginTop: 'var(--space-4, 16px)' }}>
+              <OperativosRecuperacionView
+                delegaciones={delegaciones}
                 onCrearRecuperacion={() => setModalRecuperacionAbierto(true)}
               />
             </main>
