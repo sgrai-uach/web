@@ -75,3 +75,20 @@ export function obtenerVarianteChipDictamen(dictamen?: string | null): ChipVaria
   }
 }
 
+export function obtenerVarianteChipEstadoTerreno(estadoTerreno?: string | null): ChipVariant {
+  const norm = (estadoTerreno || '').trim().toUpperCase();
+  switch (norm) {
+    case 'CONTROLADO':
+    case 'ESTABLE':
+    case 'FINALIZADO':
+      return 'success';
+    case 'REQUIERE_SEGUIMIENTO':
+      return 'warning';
+    case 'CRITICO':
+    case 'INACCESIBLE':
+      return 'danger';
+    default:
+      return 'neutral';
+  }
+}
+

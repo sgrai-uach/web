@@ -4,14 +4,25 @@
  * el uso de valores crudos de enums en mayúsculas o variables de código.
  */
 
+import type { MaterialConsumidoDetalle } from '@/types/misiones';
+
 export const MAPA_ESTADOS_LEGIBLES: Record<string, string> = {
   // Recursos y Vehículos
   DISPONIBLE: 'Disponible',
   ASIGNADO: 'Asignado',
   EN_USO: 'En uso',
   EN_MANTENCION: 'En mantención',
+  BAJO_STOCK: 'Bajo stock',
   NO_DISPONIBLE: 'No disponible',
   BAJA_DEFINITIVA: 'Dado de baja',
+
+  // Estados Finales de Terreno (H68)
+  CONTROLADO: 'Controlado',
+  ESTABLE: 'Estable',
+  FINALIZADO: 'Finalizado',
+  REQUIERE_SEGUIMIENTO: 'Requiere seguimiento',
+  CRITICO: 'Crítico',
+  INACCESIBLE: 'Inaccesible',
 
   // Estados de Incidentes
   REPORTADO: 'Reportado',
@@ -56,6 +67,9 @@ export const MAPA_ESTADOS_LEGIBLES: Record<string, string> = {
   VERIFICACION_COMPLETADA: 'Verificación completada',
   CUADRILLA_DESPACHADA: 'Cuadrilla despachada',
   PATRULLA_LIBERADA: 'Patrulla verificadora liberada',
+  REPORTE_CUADRILLA: 'Informe técnico final de cuadrilla',
+  CIERRE_CUADRILLA: 'Cierre técnico de cuadrilla registrado',
+  CUADRILLA_LIBERADA: 'Cuadrilla liberada y disponible',
   MISION_COMPLETADA: 'Misión completada',
   MISION_RECHAZADA: 'Misión rechazada',
   MISION_CANCELADA: 'Misión cancelada',
@@ -423,6 +437,127 @@ export function esReporteVerificacionCierre(
   return false;
 }
 
+/**
+ * Determina si un reporte de terreno corresponde al informe técnico final de cierre de cuadrilla (HU-68).
+ */
+export function esReporteCierreCuadrilla(
+  reporte?: {
+    tipoReporte?: string | null;
+    dictamen?: string | null;
+    etiquetaReporte?: string | null;
+    horasHombre?: number | null;
+    materialesConsumidos?: unknown;
+  } | null
+): boolean {
+  if (!reporte) return false;
+  if (
+    typeof reporte.tipoReporte === 'string' &&
+    reporte.tipoReporte.trim().toUpperCase() === 'REPORTE_CUADRILLA'
+  ) {
+    return true;
+  }
+  if (esReporteVerificacionCierre(reporte)) {
+    return false;
+  }
+  if (
+    typeof reporte.etiquetaReporte === 'string' &&
+    /informe\s+t[eé]cnico\s+final\s+de\s+cuadrilla/i.test(reporte.etiquetaReporte)
+  ) {
+    return true;
+  }
+  if (typeof reporte.horasHombre === 'number' || Array.isArray(reporte.materialesConsumidos)) {
+    return true;
+  }
+  return false;
+}
+
+/**
+ * Retorna peso jerárquico para ordenar cronológicamente/semánticamente reportes de terreno:
+ * REPORTE_CUADRILLA (2) > VERIFICACION_CIERRE (1) > Evaluación inicial / rectificación (0).
+ */
+export function obtenerPesoOrdenReporte(
+  reporte?: {
+    tipoReporte?: string | null;
+    dictamen?: string | null;
+    etiquetaReporte?: string | null;
+    horasHombre?: number | null;
+    materialesConsumidos?: unknown;
+  } | null
+): number {
+  if (esReporteCierreCuadrilla(reporte)) return 2;
+  if (esReporteVerificacionCierre(reporte)) return 1;
+  return 0;
+}
+
+/**
+ * Formatea el estado final del terreno constatado por la cuadrilla al cierre de la misión (HU-68).
+ */
+export function formatearEstadoTerreno(
+  estado?: string | null,
+  fallback = 'No especificado'
+): string {
+  return formatearEstado(estado, fallback);
+}
+
+/**
+ * Formatea la cantidad de horas hombre invertidas en faenas de cuadrilla (HU-68).
+ */
+export function formatearHorasHombre(horas?: number | null): string {
+  if (horas === null || horas === undefined || Number.isNaN(Number(horas))) {
+    return 'No registrado';
+  }
+  const num = Number(horas);
+  if (num === 1) return '1 hora hombre';
+  const textoNumero = Number.isInteger(num)
+    ? String(num)
+    : num.toLocaleString('es-CL', { maximumFractionDigits: 2 });
+  return `${textoNumero} horas hombre`;
+}
+
+/**
+ * Normaliza la lista de materiales consumidos aceptando tanto camelCase como snake_case desde API o WebSocket.
+ */
+export function normalizarMaterialesConsumidos(raw: unknown): MaterialConsumidoDetalle[] {
+  if (!Array.isArray(raw)) return [];
+  const resultado: MaterialConsumidoDetalle[] = [];
+
+  for (const item of raw) {
+    if (!item || typeof item !== 'object') continue;
+    const obj = item as Record<string, unknown>;
+    const recursoIdRaw = obj.recursoId ?? obj.recurso_id;
+    const cantidadRaw = obj.cantidad;
+    const cantidadNum = typeof cantidadRaw === 'number' ? cantidadRaw : Number(cantidadRaw);
+
+    if (typeof recursoIdRaw !== 'string' || !recursoIdRaw.trim()) continue;
+    if (!Number.isFinite(cantidadNum) || cantidadNum <= 0) continue;
+
+    const nombreRaw = obj.nombre ?? obj.recursoNombre ?? obj.nombre_recurso;
+    const unidadRaw = obj.unidad;
+    const obsRaw = obj.observacion;
+
+    resultado.push({
+      recursoId: recursoIdRaw.trim(),
+      nombre: typeof nombreRaw === 'string' && nombreRaw.trim() ? nombreRaw.trim() : null,
+      cantidad: cantidadNum,
+      unidad: typeof unidadRaw === 'string' && unidadRaw.trim() ? unidadRaw.trim() : null,
+      observacion: typeof obsRaw === 'string' && obsRaw.trim() ? obsRaw.trim() : null,
+    });
+  }
+
+  return resultado;
+}
+
+/**
+ * Formatea una cantidad material acompañada de su unidad o unidad genérica.
+ */
+export function formatearCantidadMaterial(cantidad: number, unidad?: string | null): string {
+  const unidadLimpia = unidad?.trim();
+  if (unidadLimpia) {
+    return `${cantidad} ${unidadLimpia}`;
+  }
+  return `${cantidad} ${cantidad === 1 ? 'unidad' : 'unidades'}`;
+}
+
 export interface ReporteComparativaPersonasInput {
   id?: string;
   misionId?: string;
@@ -473,7 +608,7 @@ export function calcularComparativaPersonasAfectadas(
       if (r.misionId && reporteActual.misionId && r.misionId !== reporteActual.misionId) {
         return false;
       }
-      return !esReporteVerificacionCierre(r);
+      return !esReporteVerificacionCierre(r) && !esReporteCierreCuadrilla(r);
     })
     .sort((a, b) => {
       const verA = Number(a.versionReporte ?? 0);
@@ -545,16 +680,24 @@ export function limpiarDescripcionBitacora(desc?: string | null): string {
     .replace(/\(EN_ATENCION\)/gi, '(En atención)')
     .replace(/\(RESUELTO\)/gi, '(Resuelto)')
     .replace(/\(NO_ABORDABLE\)/gi, '(No abordable)')
-    // Dictámenes operativos
+    // Dictámenes operativos y estados de terreno final
     .replace(/\bNO_ABORDABLE\b/g, 'No Abordable')
     .replace(/\bREQUIERE_CUADRILLA\b/g, 'Requiere Cuadrilla')
+    .replace(/\bREQUIERE_SEGUIMIENTO\b/g, 'Requiere seguimiento')
+    .replace(/\bINACCESIBLE\b/g, 'Inaccesible')
+    .replace(/\bCONTROLADO\b/g, 'Controlado')
+    .replace(/\bESTABLE\b/g, 'Estable')
+    .replace(/\bFINALIZADO\b/g, 'Finalizado')
+    .replace(/\bCRITICO\b/g, 'Crítico')
+    .replace(/\bDISPONIBLE\b/g, 'Disponible')
     // Prioridades exactas en mayúsculas dentro de frases técnicas
     .replace(
       /\b(a|Sugerida:|Prioridad:|Prioridad sugerida:|Prioridad asignada:)\s+(BAJA|MEDIA|ALTA|CRITICA)\b/g,
       (_match, prefijo: string, prio: string) => `${prefijo} ${mapaPrioridades[prio] || prio}`
     )
-    // Evitar redundancia "a la patrulla Patrulla X"
-    .replace(/\bpatrulla\s+Patrulla\b/gi, 'Patrulla');
+    // Evitar redundancias "a la patrulla Patrulla X" / "cuadrilla Cuadrilla X"
+    .replace(/\bpatrulla\s+Patrulla\b/gi, 'Patrulla')
+    .replace(/\bcuadrilla\s+Cuadrilla\b/gi, 'Cuadrilla');
 }
 
 
