@@ -109,7 +109,7 @@ export const KanbanBoard: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    cargarCuadrillas();
+    return cargarCuadrillas();
   }, [cargarCuadrillas]);
 
   const ultimosToastsReporteRef = React.useRef<Map<string, number>>(new Map());
