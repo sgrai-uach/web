@@ -12,12 +12,16 @@ import type {
 import type { DictamenAtencionTerreno } from '@/types/misiones';
 import {
   esJustificacionSinCambios,
+  esReporteCierreCuadrilla,
   esReporteVerificacionCierre,
   formatearDictamenTerreno,
   formatearEstado,
+  formatearEstadoTerreno,
   formatearPrioridad,
   fueTipologiaModificada,
+  normalizarMaterialesConsumidos,
 } from '@/lib/utils/estadoUtils';
+import type { EstadoRecurso } from '@/types/recurso';
 
 export interface IncidenteCreadoPayload {
   evento: 'incidente:creado';
@@ -84,6 +88,33 @@ export interface CuadrillaActualizadaPayload {
   delegacionId?: string | null;
 }
 
+export interface MisionActualizadaPayload {
+  id: string;
+  misionId: string;
+  codigo: string;
+  tipoMision?: string;
+  estado: string;
+  fechaCierre?: string | null;
+  hito?: string | null;
+  incidenteId?: string | null;
+  incidenteCodigo?: string | null;
+  cuadrillaId?: string | null;
+  cuadrillaNombre?: string | null;
+  reporteTerreno?: ReporteEvaluacionTerreno | null;
+}
+
+export interface RecursoActualizadoPayload {
+  id: string;
+  nombre?: string;
+  estado: EstadoRecurso | string;
+  cantidadInventario?: number;
+  cantidadEnUso?: number;
+  cantidadDisponible?: number;
+  cantidadMinima?: number;
+  esIndividual?: boolean;
+  delegacionId?: string | null;
+}
+
 export interface NotificacionTrazabilidadPayload {
   notificacionId: string;
   misionId: string;
@@ -101,7 +132,9 @@ export interface UseEncargadoKanbanSocketOptions {
   onIncidenteCreado?: (payload: IncidenteCreadoPayload) => void;
   onIncidenteActualizado?: (payload: IncidenteActualizadoPayload) => void;
   onMisionRechazada?: (payload: MisionRechazadaPayload) => void;
+  onMisionActualizada?: (payload: MisionActualizadaPayload) => void;
   onCuadrillaActualizada?: (payload: CuadrillaActualizadaPayload) => void;
+  onRecursoActualizado?: (payload: RecursoActualizadoPayload) => void;
   onNotificacionTrazabilidadActualizada?: (payload: NotificacionTrazabilidadPayload) => void;
   enabled?: boolean;
 }
@@ -109,13 +142,15 @@ export interface UseEncargadoKanbanSocketOptions {
 /**
  * Hook para la conexión en tiempo real del Encargado de Centro de Mando.
  * Se une a la sala 'sala:encargados' y escucha la creación y actualización de incidentes,
- * rechazos y trazabilidad de misiones y disponibilidad de cuadrillas.
+ * rechazos, cierres y trazabilidad de misiones, disponibilidad de cuadrillas e inventario.
  */
 export function useEncargadoKanbanSocket({
   onIncidenteCreado,
   onIncidenteActualizado,
   onMisionRechazada,
+  onMisionActualizada,
   onCuadrillaActualizada,
+  onRecursoActualizado,
   onNotificacionTrazabilidadActualizada,
   enabled = true,
 }: UseEncargadoKanbanSocketOptions = {}) {
@@ -125,7 +160,9 @@ export function useEncargadoKanbanSocket({
   const creadoRef = useRef(onIncidenteCreado);
   const actualizadoRef = useRef(onIncidenteActualizado);
   const rechazadaRef = useRef(onMisionRechazada);
+  const misionActualizadaRef = useRef(onMisionActualizada);
   const cuadrillaActualizadaRef = useRef(onCuadrillaActualizada);
+  const recursoActualizadoRef = useRef(onRecursoActualizado);
   const trazabilidadRef = useRef(onNotificacionTrazabilidadActualizada);
   const eventosProcesadosRef = useRef<Map<string, number>>(new Map());
 
@@ -142,8 +179,16 @@ export function useEncargadoKanbanSocket({
   }, [onMisionRechazada]);
 
   useEffect(() => {
+    misionActualizadaRef.current = onMisionActualizada;
+  }, [onMisionActualizada]);
+
+  useEffect(() => {
     cuadrillaActualizadaRef.current = onCuadrillaActualizada;
   }, [onCuadrillaActualizada]);
+
+  useEffect(() => {
+    recursoActualizadoRef.current = onRecursoActualizado;
+  }, [onRecursoActualizado]);
 
   useEffect(() => {
     trazabilidadRef.current = onNotificacionTrazabilidadActualizada;
@@ -218,10 +263,43 @@ export function useEncargadoKanbanSocket({
             : undefined;
       if (!id) return;
 
-      const rawReporte =
+      const rawReporteObj =
         rawDatos?.reporteTerreno && typeof rawDatos.reporteTerreno === 'object'
-          ? (rawDatos.reporteTerreno as ReporteEvaluacionTerreno)
+          ? (rawDatos.reporteTerreno as Record<string, unknown>)
           : undefined;
+
+      const rawReporte: ReporteEvaluacionTerreno | undefined = rawReporteObj
+        ? ({
+            ...(rawReporteObj as unknown as ReporteEvaluacionTerreno),
+            resumenTecnico:
+              typeof rawReporteObj.resumenTecnico === 'string'
+                ? rawReporteObj.resumenTecnico
+                : typeof rawReporteObj.resumenFaenas === 'string'
+                  ? rawReporteObj.resumenFaenas
+                  : typeof rawReporteObj.resumen_faenas === 'string'
+                    ? rawReporteObj.resumen_faenas
+                    : '',
+            resumenFaenas:
+              typeof rawReporteObj.resumenFaenas === 'string'
+                ? rawReporteObj.resumenFaenas
+                : typeof rawReporteObj.resumen_faenas === 'string'
+                  ? rawReporteObj.resumen_faenas
+                  : undefined,
+            horasHombre:
+              typeof rawReporteObj.horasHombre === 'number'
+                ? rawReporteObj.horasHombre
+                : typeof rawReporteObj.horas_hombre === 'number'
+                  ? rawReporteObj.horas_hombre
+                  : undefined,
+            materialesConsumidos: normalizarMaterialesConsumidos(
+              rawReporteObj.materialesConsumidos ?? rawReporteObj.materiales_consumidos
+            ),
+            etiquetaReporte:
+              typeof rawReporteObj.etiquetaReporte === 'string'
+                ? rawReporteObj.etiquetaReporte
+                : (rawReporteObj as unknown as ReporteEvaluacionTerreno).etiquetaReporte,
+          })
+        : undefined;
 
       const dictamenRaw =
         typeof rawDatos?.dictamen === 'string'
@@ -253,11 +331,14 @@ export function useEncargadoKanbanSocket({
             : undefined;
 
       const reporteKey = rawReporte?.id || rawReporte?.versionReporte || '';
+      const tipoReporteKey = rawReporte?.tipoReporte || '';
       const tipoKey = typeof rawDatos?.tipoAfectacion === 'string' ? rawDatos.tipoAfectacion : '';
       const dictamenKey = dictamen || '';
+      const estadoFallback =
+        rawReporte && esReporteCierreCuadrilla(rawReporte) ? 'EN_ATENCION' : 'VERIFICANDO';
       if (
         esEventoDuplicado(
-          `inc-act:${id}:${nuevoEstado || 'VERIFICANDO'}:${reporteKey}:${tipoKey}:${dictamenKey}`
+          `inc-act:${id}:${nuevoEstado || estadoFallback}:${tipoReporteKey}:${reporteKey}:${tipoKey}:${dictamenKey}`
         )
       ) {
         return;
@@ -291,7 +372,7 @@ export function useEncargadoKanbanSocket({
         datos: {
           id,
           codigo: typeof rawDatos?.codigo === 'string' ? rawDatos.codigo : '',
-          nuevoEstado: (nuevoEstado as EstadoIncidente) || 'VERIFICANDO',
+          nuevoEstado: (nuevoEstado as EstadoIncidente) || estadoFallback,
           prioridad:
             typeof rawDatos?.prioridad === 'string'
               ? (rawDatos.prioridad as PrioridadIncidente)
@@ -344,6 +425,16 @@ export function useEncargadoKanbanSocket({
           `Incidente ${normalizedPayload.datos.codigo || ''} declarado No Abordable en terreno${motivoTexto}`
         );
       } else if (
+        normalizedPayload.datos.reporteTerreno &&
+        esReporteCierreCuadrilla(normalizedPayload.datos.reporteTerreno)
+      ) {
+        const terrenoTexto = formatearEstadoTerreno(
+          normalizedPayload.datos.reporteTerreno.estadoTerreno
+        );
+        setUltimoEvento(
+          `Informe final de cuadrilla recibido en ${normalizedPayload.datos.codigo || 'incidente'}: Terreno ${terrenoTexto}`
+        );
+      } else if (
         normalizedPayload.datos.dictamen === 'REQUIERE_CUADRILLA' ||
         (normalizedPayload.datos.reporteTerreno &&
           esReporteVerificacionCierre(normalizedPayload.datos.reporteTerreno))
@@ -392,6 +483,12 @@ export function useEncargadoKanbanSocket({
     const handleMisionEvent = (payload: unknown) => {
       const p = payload as Record<string, unknown> | null | undefined;
       const raw = (p?.datos || p?.data || p) as Record<string, unknown> | null | undefined;
+      const misionId =
+        typeof raw?.misionId === 'string'
+          ? raw.misionId
+          : typeof raw?.id === 'string'
+            ? raw.id
+            : '';
       const incidenteId =
         typeof raw?.incidenteId === 'string'
           ? raw.incidenteId
@@ -433,6 +530,58 @@ export function useEncargadoKanbanSocket({
             actualizadoRef.current(syntheticIncPayload);
           }
           setUltimoEvento(`Misión ${codigoMision} aceptada: Incidente en verificación`);
+        }
+      }
+
+      // H68: Emitir callback dedicado para mision:actualizada COMPLETADA sin sintetizar incidente:actualizado
+      if (estadoMision === 'COMPLETADA') {
+        const claveComp = misionId || codigoMision || incidenteId;
+        if (claveComp && esEventoDuplicado(`mision-comp:${claveComp}:${estadoMision}`)) {
+          return;
+        }
+        const repRaw =
+          raw?.reporteTerreno && typeof raw.reporteTerreno === 'object'
+            ? (raw.reporteTerreno as ReporteEvaluacionTerreno)
+            : null;
+        const misionPayload: MisionActualizadaPayload = {
+          id: misionId || codigoMision,
+          misionId: misionId || codigoMision,
+          codigo: codigoMision,
+          tipoMision,
+          estado: estadoMision,
+          fechaCierre:
+            typeof raw?.fechaCierre === 'string'
+              ? raw.fechaCierre
+              : typeof raw?.fecha_cierre === 'string'
+                ? raw.fecha_cierre
+                : null,
+          hito: typeof raw?.hito === 'string' ? raw.hito : null,
+          incidenteId: incidenteId ?? null,
+          incidenteCodigo:
+            typeof raw?.incidenteCodigo === 'string'
+              ? raw.incidenteCodigo
+              : typeof raw?.incidente_codigo === 'string'
+                ? raw.incidente_codigo
+                : null,
+          cuadrillaId:
+            typeof raw?.cuadrillaId === 'string'
+              ? raw.cuadrillaId
+              : typeof raw?.cuadrilla_id === 'string'
+                ? raw.cuadrilla_id
+                : null,
+          cuadrillaNombre:
+            typeof raw?.cuadrillaNombre === 'string'
+              ? raw.cuadrillaNombre
+              : typeof raw?.cuadrilla_nombre === 'string'
+                ? raw.cuadrilla_nombre
+                : null,
+          reporteTerreno: repRaw,
+        };
+        if (codigoMision) {
+          setUltimoEvento(`Misión ${codigoMision} completada`);
+        }
+        if (misionActualizadaRef.current) {
+          misionActualizadaRef.current(misionPayload);
         }
       }
     };
@@ -490,7 +639,14 @@ export function useEncargadoKanbanSocket({
     const handleCuadrillaActualizada = (payload: unknown) => {
       const p = payload as Record<string, unknown> | null | undefined;
       const raw = (p?.datos || p?.data || p) as Record<string, unknown> | null | undefined;
-      const id = typeof raw?.id === 'string' ? raw.id : '';
+      const id =
+        typeof raw?.id === 'string'
+          ? raw.id
+          : typeof raw?.cuadrillaId === 'string'
+            ? raw.cuadrillaId
+            : typeof raw?.cuadrilla_id === 'string'
+              ? raw.cuadrilla_id
+              : '';
       const estado = typeof raw?.estado === 'string' ? raw.estado : '';
       if (!id || !estado) return;
 
@@ -498,11 +654,87 @@ export function useEncargadoKanbanSocket({
         id,
         nombre: typeof raw?.nombre === 'string' ? raw.nombre : undefined,
         estado,
-        delegacionId: typeof raw?.delegacionId === 'string' ? raw.delegacionId : null,
+        delegacionId:
+          typeof raw?.delegacionId === 'string'
+            ? raw.delegacionId
+            : typeof raw?.delegacion_id === 'string'
+              ? raw.delegacion_id
+              : null,
       };
+
+      if (estado.toUpperCase() === 'DISPONIBLE') {
+        setUltimoEvento(
+          `Cuadrilla ${normalizedPayload.nombre || id} volvió a estado Disponible`
+        );
+      }
 
       if (cuadrillaActualizadaRef.current) {
         cuadrillaActualizadaRef.current(normalizedPayload);
+      }
+    };
+
+    const handleRecursoActualizado = (payload: unknown) => {
+      const p = payload as Record<string, unknown> | null | undefined;
+      const raw = (p?.datos || p?.data || p) as Record<string, unknown> | null | undefined;
+      const id =
+        typeof raw?.id === 'string'
+          ? raw.id
+          : typeof raw?.recursoId === 'string'
+            ? raw.recursoId
+            : typeof raw?.recurso_id === 'string'
+              ? raw.recurso_id
+              : '';
+      const estado = typeof raw?.estado === 'string' ? raw.estado : '';
+      if (!id || !estado) return;
+
+      const cantInvRaw = raw?.cantidadInventario ?? raw?.cantidad_inventario;
+      const cantUsoRaw = raw?.cantidadEnUso ?? raw?.cantidad_en_uso;
+      const cantDispRaw = raw?.cantidadDisponible ?? raw?.cantidad_disponible;
+      const cantMinRaw = raw?.cantidadMinima ?? raw?.cantidad_minima;
+
+      const cantidadInventario =
+        typeof cantInvRaw === 'number' ? cantInvRaw : undefined;
+      const cantidadEnUso = typeof cantUsoRaw === 'number' ? cantUsoRaw : undefined;
+      const cantidadDisponible =
+        typeof cantDispRaw === 'number'
+          ? cantDispRaw
+          : cantidadInventario !== undefined && cantidadEnUso !== undefined
+            ? Math.max(0, cantidadInventario - cantidadEnUso)
+            : undefined;
+      const cantidadMinima = typeof cantMinRaw === 'number' ? cantMinRaw : undefined;
+
+      if (
+        esEventoDuplicado(
+          `rec-act:${id}:${estado}:${cantidadInventario ?? ''}:${cantidadEnUso ?? ''}`
+        )
+      ) {
+        return;
+      }
+
+      const normalizedPayload: RecursoActualizadoPayload = {
+        id,
+        nombre: typeof raw?.nombre === 'string' ? raw.nombre : undefined,
+        estado,
+        cantidadInventario,
+        cantidadEnUso,
+        cantidadDisponible,
+        cantidadMinima,
+        esIndividual:
+          typeof raw?.esIndividual === 'boolean'
+            ? raw.esIndividual
+            : typeof raw?.es_individual === 'boolean'
+              ? raw.es_individual
+              : undefined,
+        delegacionId:
+          typeof raw?.delegacionId === 'string'
+            ? raw.delegacionId
+            : typeof raw?.delegacion_id === 'string'
+              ? raw.delegacion_id
+              : null,
+      };
+
+      if (recursoActualizadoRef.current) {
+        recursoActualizadoRef.current(normalizedPayload);
       }
     };
 
@@ -525,6 +757,7 @@ export function useEncargadoKanbanSocket({
     socket.on('mision:actualizada', handleMisionEvent);
     socket.on('mision:rechazada', handleRechazada);
     socket.on('cuadrilla:actualizada', handleCuadrillaActualizada);
+    socket.on('recurso:actualizado', handleRecursoActualizado);
     socket.on('notificacion:trazabilidad_actualizada', handleTrazabilidad);
 
     return () => {
@@ -536,6 +769,7 @@ export function useEncargadoKanbanSocket({
       socket.off('mision:actualizada', handleMisionEvent);
       socket.off('mision:rechazada', handleRechazada);
       socket.off('cuadrilla:actualizada', handleCuadrillaActualizada);
+      socket.off('recurso:actualizado', handleRecursoActualizado);
       socket.off('notificacion:trazabilidad_actualizada', handleTrazabilidad);
       socket.emit('leave', 'encargado');
       socket.emit('salir', 'sala:encargados');

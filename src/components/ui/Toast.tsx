@@ -10,6 +10,8 @@ export type ToastIconType =
   | 'reclasificacion'
   | 'incidente'
   | 'patrulla'
+  | 'cuadrilla'
+  | 'inventario'
   | 'rechazo'
   | 'operativo';
 

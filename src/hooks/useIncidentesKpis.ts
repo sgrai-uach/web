@@ -148,6 +148,7 @@ export function useIncidentesKpis(options: UseIncidentesKpisOptions = {}) {
     socket.on('disconnect', handleDisconnect);
     socket.on('incidente:creado', handleActualizacionIncidente);
     socket.on('incidente:actualizado', handleActualizacionIncidente);
+    socket.on('mision:actualizada', handleActualizacionIncidente);
     socket.on('mision:rechazada', handleActualizacionIncidente);
     socket.on('mision:asignada', handleActualizacionIncidente);
 
@@ -160,6 +161,7 @@ export function useIncidentesKpis(options: UseIncidentesKpisOptions = {}) {
       socket.off('disconnect', handleDisconnect);
       socket.off('incidente:creado', handleActualizacionIncidente);
       socket.off('incidente:actualizado', handleActualizacionIncidente);
+      socket.off('mision:actualizada', handleActualizacionIncidente);
       socket.off('mision:rechazada', handleActualizacionIncidente);
       socket.off('mision:asignada', handleActualizacionIncidente);
     };

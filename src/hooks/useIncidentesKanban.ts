@@ -17,7 +17,9 @@ import {
   type IncidenteCreadoPayload,
   type IncidenteActualizadoPayload,
   type MisionRechazadaPayload,
+  type MisionActualizadaPayload,
   type CuadrillaActualizadaPayload,
+  type RecursoActualizadoPayload,
   type NotificacionTrazabilidadPayload,
 } from './useEncargadoKanbanSocket';
 import {
@@ -37,7 +39,7 @@ export const ESTADOS_KANBAN: EstadoIncidente[] = [
 
 import { catalogosService } from '@/services/catalogosService';
 import { useSimulatedSession } from '@/context/SimulatedSessionContext';
-import { fueTipologiaModificada } from '@/lib/utils/estadoUtils';
+import { esReporteCierreCuadrilla, fueTipologiaModificada } from '@/lib/utils/estadoUtils';
 
 export interface FiltrosKanban {
   busqueda: string;
@@ -53,7 +55,9 @@ export interface FiltrosKanban {
 export interface UseIncidentesKanbanOptions {
   initialUserId?: string;
   onMisionRechazada?: (payload: MisionRechazadaPayload) => void;
+  onMisionActualizada?: (payload: MisionActualizadaPayload) => void;
   onCuadrillaActualizada?: (payload: CuadrillaActualizadaPayload) => void;
+  onRecursoActualizado?: (payload: RecursoActualizadoPayload) => void;
   onReporteTerrenoRecibido?: (payload: IncidenteActualizadoPayload) => void;
   onIncidenteCreadoSocket?: (payload: IncidenteCreadoPayload) => void;
   onIncidenteActualizadoSocket?: (payload: IncidenteActualizadoPayload) => void;
@@ -97,6 +101,16 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
   useEffect(() => {
     onCuadrillaActualizadaRef.current = optionsObj.onCuadrillaActualizada;
   }, [optionsObj.onCuadrillaActualizada]);
+
+  const onMisionActualizadaRef = useRef(optionsObj.onMisionActualizada);
+  useEffect(() => {
+    onMisionActualizadaRef.current = optionsObj.onMisionActualizada;
+  }, [optionsObj.onMisionActualizada]);
+
+  const onRecursoActualizadoRef = useRef(optionsObj.onRecursoActualizado);
+  useEffect(() => {
+    onRecursoActualizadoRef.current = optionsObj.onRecursoActualizado;
+  }, [optionsObj.onRecursoActualizado]);
   let sessionUserId: string | undefined;
   let sessionSetUser: ((id: string) => void) | undefined;
   try {
@@ -489,6 +503,12 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
               : totalReportesPrevios;
 
             const esCierreNoAbordable = datos.nuevoEstado === 'NO_ABORDABLE';
+            const esCierreCuadrilla = esReporteCierreCuadrilla(datos.reporteTerreno);
+            // H68: El cierre de cuadrilla nunca cierra automáticamente el incidente a RESUELTO (espera H86)
+            const estadoDestinoResuelto: EstadoIncidente =
+              esCierreCuadrilla && datos.nuevoEstado === 'RESUELTO'
+                ? (incActual.estado === 'EN_ATENCION' ? 'EN_ATENCION' : incActual.estado)
+                : datos.nuevoEstado;
             const dictamenResuelto =
               datos.dictamen ??
               datos.reporteTerreno?.dictamen ??
@@ -501,11 +521,15 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
                   ? datos.reporteTerreno.motivoNoAbordable
                   : incActual.motivoNoAbordable;
             const fechaCierreResuelta =
-              datos.fechaCierre !== undefined ? datos.fechaCierre : incActual.fechaCierre;
+              esCierreCuadrilla
+                ? incActual.fechaCierre
+                : datos.fechaCierre !== undefined
+                  ? datos.fechaCierre
+                  : incActual.fechaCierre;
 
             incidenteEncontrado = {
               ...incActual,
-              estado: datos.nuevoEstado,
+              estado: estadoDestinoResuelto,
               prioridad: nuevaPrioridad,
               prioridadSugerida: nuevaPrioridadSugerida,
               justificacionPrioridad: nuevaJustificacionPrioridad,
@@ -513,7 +537,9 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
               requiereAsistenciaSocial:
                 datos.requiereAsistenciaSocial !== undefined
                   ? datos.requiereAsistenciaSocial
-                  : incActual.requiereAsistenciaSocial,
+                  : datos.reporteTerreno?.requiereAsistenciaSocial !== undefined
+                    ? datos.reporteTerreno.requiereAsistenciaSocial
+                    : incActual.requiereAsistenciaSocial,
               tipoAfectacion: nuevoTipo,
               tipoIncidenteId: datos.tipoIncidenteId || incActual.tipoIncidenteId,
               verificado:
@@ -522,10 +548,20 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
                   : payload.esSintetico
                     ? Boolean(incActual.verificado)
                     : true,
+              faenasCuadrillaCompletadas: esCierreCuadrilla
+                ? true
+                : incActual.faenasCuadrillaCompletadas,
+              estadoTerrenoFinal: esCierreCuadrilla
+                ? datos.reporteTerreno?.estadoTerreno ?? incActual.estadoTerrenoFinal
+                : incActual.estadoTerrenoFinal,
+              horasHombreRegistradas: esCierreCuadrilla
+                ? datos.reporteTerreno?.horasHombre ?? incActual.horasHombreRegistradas
+                : incActual.horasHombreRegistradas,
               dictamenTerreno: dictamenResuelto,
               motivoNoAbordable: motivoNoAbordableResuelto,
               fechaCierre: fechaCierreResuelta,
-              tieneMisionEnCurso: esCierreNoAbordable ? false : incActual.tieneMisionEnCurso,
+              tieneMisionEnCurso:
+                esCierreNoAbordable || esCierreCuadrilla ? false : incActual.tieneMisionEnCurso,
               tieneMisionDespachada: esCierreNoAbordable ? false : incActual.tieneMisionDespachada,
               reclasificadoEnTerreno: reclasificado,
               justificacionReclasificacion:
@@ -536,7 +572,7 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
                   'Ajustada tras verificación presencial en terreno'
                 : incActual.cambioPrioridadMotivo,
               totalMisiones:
-                datos.nuevoEstado === 'VERIFICANDO' && est === 'REPORTADO'
+                estadoDestinoResuelto === 'VERIFICANDO' && est === 'REPORTADO'
                   ? Math.max(1, (incActual.totalMisiones || 0) + 1)
                   : incActual.totalMisiones,
               actualizadoEn: datos.actualizadoEn || new Date().toISOString(),
@@ -549,8 +585,10 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
           return prev;
         }
 
+        const estadoFinalColumna = incidenteEncontrado.estado;
+
         // Si el estado no cambió de columna, solo actualizarlo in situ y mantener orden de verificación
-        if (columnaOrigen === datos.nuevoEstado) {
+        if (columnaOrigen === estadoFinalColumna) {
           return {
             ...prev,
             [columnaOrigen]: ordenarIncidentesColumna(
@@ -566,21 +604,25 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
         return {
           ...prev,
           [columnaOrigen!]: prev[columnaOrigen!].filter((i) => i.id !== datos.id),
-          [datos.nuevoEstado]: ordenarIncidentesColumna([incidenteEncontrado, ...prev[datos.nuevoEstado]], datos.nuevoEstado),
+          [estadoFinalColumna]: ordenarIncidentesColumna([incidenteEncontrado, ...prev[estadoFinalColumna]], estadoFinalColumna),
         };
       });
 
       // Actualizar dinámicamente paginacionColumna si cambió de columna
-      if (columnaOrigenDetectada && columnaOrigenDetectada !== datos.nuevoEstado) {
+      const estadoObjetivo =
+        esReporteCierreCuadrilla(datos.reporteTerreno) && datos.nuevoEstado === 'RESUELTO'
+          ? 'EN_ATENCION'
+          : datos.nuevoEstado;
+      if (columnaOrigenDetectada && columnaOrigenDetectada !== estadoObjetivo) {
         setPaginacionColumna((prev) => {
           const metaOrigen = prev[columnaOrigenDetectada!];
-          const metaDestino = prev[datos.nuevoEstado];
+          const metaDestino = prev[estadoObjetivo];
           return {
             ...prev,
             [columnaOrigenDetectada!]: metaOrigen
               ? { ...metaOrigen, total: Math.max(0, metaOrigen.total - 1) }
               : null,
-            [datos.nuevoEstado]: metaDestino
+            [estadoObjetivo]: metaDestino
               ? { ...metaDestino, total: metaDestino.total + 1 }
               : null,
           };
@@ -772,6 +814,20 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
     []
   );
 
+  const handleMisionActualizada = useCallback(
+    (payload: MisionActualizadaPayload) => {
+      onMisionActualizadaRef.current?.(payload);
+    },
+    []
+  );
+
+  const handleRecursoActualizado = useCallback(
+    (payload: RecursoActualizadoPayload) => {
+      onRecursoActualizadoRef.current?.(payload);
+    },
+    []
+  );
+
   const marcarIncidenteMisionDespachada = useCallback(
     (incidenteId: string, despachada: boolean = true) => {
       setColumnas((prev) => ({
@@ -807,7 +863,9 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
     onIncidenteCreado: handleIncidenteCreado,
     onIncidenteActualizado: handleIncidenteActualizado,
     onMisionRechazada: handleMisionRechazada,
+    onMisionActualizada: handleMisionActualizada,
     onCuadrillaActualizada: handleCuadrillaActualizada,
+    onRecursoActualizado: handleRecursoActualizado,
     onNotificacionTrazabilidadActualizada: handleTrazabilidadActualizada,
     enabled: !esForbidden,
   });

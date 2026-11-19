@@ -14,18 +14,25 @@ import type { EventoPrevencionDTO } from '@/types/evento-prevencion';
 import type { EventoRecuperacionResponse } from '@/types/recuperacion';
 import type {
   MisionRechazadaPayload,
+  MisionActualizadaPayload,
   CuadrillaActualizadaPayload,
+  RecursoActualizadoPayload,
   IncidenteActualizadoPayload,
   IncidenteCreadoPayload,
 } from '@/hooks/useEncargadoKanbanSocket';
 import {
   esJustificacionSinCambios,
+  esReporteCierreCuadrilla,
   esReporteVerificacionCierre,
+  formatearCantidadMaterial,
   formatearDictamenTerreno,
+  formatearEstadoTerreno,
+  formatearHorasHombre,
   formatearPrioridad,
   formatearCompromisoVivienda,
   formatearEstado,
   fueTipologiaModificada,
+  normalizarMaterialesConsumidos,
 } from '@/lib/utils/estadoUtils';
 import { KanbanHeader } from './KanbanHeader';
 import { KanbanFiltros } from './KanbanFiltros';
@@ -44,7 +51,6 @@ import { KanbanViewSwitcher } from './KanbanViewSwitcher';
 import CuadrillaDetalleDrawer from '@/components/admin/cuadrillas/CuadrillaDetalleDrawer';
 import { cuadrillasService } from '@/services/cuadrillasService';
 import type { CuadrillaItem } from '@/types/cuadrilla';
-import { Zap } from 'lucide-react';
 import { usePuedeAsignarMision } from '@/hooks/usePuedeAsignarMision';
 import { extraerEstadoInicialNotificacion } from '@/lib/socket/trazabilidadConfig';
 import { setTrazabilidadEstado } from '@/lib/socket/trazabilidadStore';
@@ -60,7 +66,7 @@ const TITULOS_COLUMNAS = {
 } as const;
 
 export const KanbanBoard: React.FC = () => {
-  const { showInfo, showWarning } = useToast();
+  const { showInfo, showWarning, showSuccess } = useToast();
   const searchParams = useSearchParams();
   const [vistaActiva, setVistaActiva] = useState<'kanban' | 'mapa'>('kanban');
   const [misionesModalAbierto, setMisionesModalAbierto] = useState(false);
@@ -74,6 +80,25 @@ export const KanbanBoard: React.FC = () => {
   const [cuadrillasOperativas, setCuadrillasOperativas] = useState<CuadrillaItem[]>([]);
   const [incidenteParaAsignar, setIncidenteParaAsignar] = useState<IncidenteResumen | null>(null);
   const puedeAsignar = usePuedeAsignarMision();
+
+  const cargarCuadrillas = useCallback(() => {
+    let isMounted = true;
+    cuadrillasService
+      .obtenerCuadrillas({ pagina: 1, limite: 100 })
+      .then((res) => {
+        if (isMounted && res.cuadrillas) {
+          setCuadrillasOperativas(res.cuadrillas);
+        }
+      })
+      .catch(() => {});
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    cargarCuadrillas();
+  }, [cargarCuadrillas]);
 
   const ultimosToastsReporteRef = React.useRef<Map<string, number>>(new Map());
 
@@ -89,6 +114,85 @@ export const KanbanBoard: React.FC = () => {
         return;
       }
       ultimosToastsReporteRef.current.set(claveDedup, ahora);
+
+      const esCierreCuadrilla = esReporteCierreCuadrilla(rep);
+      if (esCierreCuadrilla) {
+        const materiales = normalizarMaterialesConsumidos(rep.materialesConsumidos);
+        const resumenMateriales =
+          materiales.length > 0
+            ? materiales
+                .slice(0, 2)
+                .map((m) => `${m.nombre || 'Insumo'} (${formatearCantidadMaterial(m.cantidad, m.unidad)})`)
+                .join(', ') + (materiales.length > 2 ? ` y ${materiales.length - 2} más` : '')
+            : 'Sin consumo de insumos';
+
+        const estadoTerrenoNorm = (rep.estadoTerreno || '').trim().toUpperCase();
+        const requiereAlerta =
+          estadoTerrenoNorm === 'CRITICO' ||
+          estadoTerrenoNorm === 'INACCESIBLE' ||
+          Boolean(rep.requiereApoyoAdicional);
+
+        const detallesCuadrilla: Array<{ label: string; value: string }> = [
+          {
+            label: 'Estado final del terreno',
+            value: formatearEstadoTerreno(rep.estadoTerreno),
+          },
+        ];
+        if (typeof rep.horasHombre === 'number') {
+          detallesCuadrilla.push({
+            label: 'Horas hombre',
+            value: formatearHorasHombre(rep.horasHombre),
+          });
+        }
+        detallesCuadrilla.push({
+          label: 'Materiales consumidos',
+          value: resumenMateriales,
+        });
+        if (payload.datos.requiereAsistenciaSocial ?? rep.requiereAsistenciaSocial) {
+          detallesCuadrilla.push({
+            label: 'Asistencia social',
+            value: 'Requiere levantamiento de Ficha FIBE',
+          });
+        }
+        if (rep.requiereApoyoAdicional) {
+          detallesCuadrilla.push({
+            label: 'Apoyo adicional',
+            value: 'Solicitado en terreno',
+          });
+        }
+
+        const toastCuadrillaOptions = {
+          icon: 'cuadrilla' as const,
+          codeBadge: payload.datos.codigo,
+          priorityBadge: payload.datos.prioridad,
+          dedupKey: `cierre-cuadrilla:${payload.datos.id}:${rep.id || '1'}`,
+          details: detallesCuadrilla,
+          action: {
+            label: 'Ver incidente',
+            onClick: () => setIncidenteSeleccionadoId(payload.datos.id),
+          },
+        };
+
+        const mensajeCuadrilla = `La cuadrilla completó la misión en ${payload.datos.codigo || 'el incidente'}. La unidad volvió a estado Disponible; el incidente permanece En Atención para evaluación final.`;
+
+        if (requiereAlerta) {
+          showWarning(
+            mensajeCuadrilla,
+            'Cierre de Cuadrilla — Atención Requerida',
+            toastCuadrillaOptions
+          );
+        } else {
+          showSuccess(
+            mensajeCuadrilla,
+            'Informe Final de Cuadrilla Recibido',
+            toastCuadrillaOptions
+          );
+        }
+
+        refrescarKpisRef.current(false);
+        cargarCuadrillas();
+        return;
+      }
 
       const numVersion = Number(rep.versionReporte || 1);
       const esRect = Boolean(rep.esRectificacion || numVersion > 1);
@@ -231,7 +335,7 @@ export const KanbanBoard: React.FC = () => {
 
       refrescarKpisRef.current(false);
     },
-    [showInfo, showWarning]
+    [showInfo, showWarning, showSuccess, cargarCuadrillas]
   );
 
   const ultimosToastsIncidenteRef = React.useRef<Map<string, number>>(new Map());
@@ -364,25 +468,6 @@ export const KanbanBoard: React.FC = () => {
     [showInfo, showWarning, esToastIncidenteDuplicado]
   );
 
-  const cargarCuadrillas = useCallback(() => {
-    let isMounted = true;
-    cuadrillasService
-      .obtenerCuadrillas({ pagina: 1, limite: 100 })
-      .then((res) => {
-        if (isMounted && res.cuadrillas) {
-          setCuadrillasOperativas(res.cuadrillas);
-        }
-      })
-      .catch(() => {});
-    return () => {
-      isMounted = false;
-    };
-  }, []);
-
-  useEffect(() => {
-    cargarCuadrillas();
-  }, [cargarCuadrillas]);
-
   const refrescarKpisRef = React.useRef<(silent?: boolean) => void>(() => {});
   const ultimosToastsRechazoRef = React.useRef<Map<string, number>>(new Map());
 
@@ -429,6 +514,7 @@ export const KanbanBoard: React.FC = () => {
 
   const handleCuadrillaActualizadaSocket = React.useCallback(
     (payload: CuadrillaActualizadaPayload) => {
+      const esDisponible = payload.estado.toUpperCase() === 'DISPONIBLE';
       setCuadrillasOperativas((prev) => {
         const existe = prev.some((c) => c.id === payload.id);
         if (!existe) return prev;
@@ -438,12 +524,53 @@ export const KanbanBoard: React.FC = () => {
                 ...c,
                 estado: payload.estado as CuadrillaItem['estado'],
                 nombre: payload.nombre || c.nombre,
+                misionActiva: esDisponible ? null : c.misionActiva,
               }
             : c
         );
       });
+      if (esDisponible) {
+        cargarCuadrillas();
+      }
     },
-    []
+    [cargarCuadrillas]
+  );
+
+  const handleMisionActualizadaSocket = React.useCallback(
+    (payload: MisionActualizadaPayload) => {
+      if (payload.estado.toUpperCase() === 'COMPLETADA') {
+        refrescarKpisRef.current(false);
+        cargarCuadrillas();
+      }
+    },
+    [cargarCuadrillas]
+  );
+
+  const handleRecursoActualizadoSocket = React.useCallback(
+    (payload: RecursoActualizadoPayload) => {
+      const estadoNorm = (payload.estado || '').toUpperCase();
+      if (estadoNorm === 'BAJO_STOCK' || estadoNorm === 'NO_DISPONIBLE') {
+        const nombreRecurso = payload.nombre || 'Recurso del inventario';
+        const detalleStock =
+          typeof payload.cantidadDisponible === 'number'
+            ? `${payload.cantidadDisponible} disponible(s)`
+            : `Estado: ${formatearEstado(estadoNorm)}`;
+
+        showWarning(
+          `El recurso "${nombreRecurso}" pasó a estado ${formatearEstado(estadoNorm)} tras consumo reportado en terreno.`,
+          estadoNorm === 'BAJO_STOCK' ? 'Alerta de Bajo Stock' : 'Recurso Sin Disponibilidad',
+          {
+            icon: 'inventario',
+            dedupKey: `recurso-alerta:${payload.id}:${estadoNorm}`,
+            details: [
+              { label: 'Recurso', value: nombreRecurso },
+              { label: 'Disponibilidad', value: detalleStock },
+            ],
+          }
+        );
+      }
+    },
+    [showWarning]
   );
 
   const {
@@ -471,7 +598,9 @@ export const KanbanBoard: React.FC = () => {
     trazabilidadPorIncidente,
   } = useIncidentesKanban({
     onMisionRechazada: handleMisionRechazadaSocket,
+    onMisionActualizada: handleMisionActualizadaSocket,
     onCuadrillaActualizada: handleCuadrillaActualizadaSocket,
+    onRecursoActualizado: handleRecursoActualizadoSocket,
     onReporteTerrenoRecibido: handleReporteTerrenoRecibido,
     onIncidenteCreadoSocket: handleIncidenteCreadoSocket,
     onIncidenteActualizadoSocket: handleIncidenteActualizadoSocket,

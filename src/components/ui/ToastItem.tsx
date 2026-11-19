@@ -14,6 +14,8 @@ import {
   UserX,
   Shield,
   ArrowRight,
+  HardHat,
+  Package,
 } from 'lucide-react';
 import Button from './Button';
 import Chip from './Chip';
@@ -90,6 +92,10 @@ export default function ToastItem({ toast, onRemove }: ToastItemProps) {
             return <BellRing size={18} color={iconColors.color} />;
           case 'patrulla':
             return <ShieldCheck size={18} color={iconColors.color} />;
+          case 'cuadrilla':
+            return <HardHat size={18} color={iconColors.color} />;
+          case 'inventario':
+            return <Package size={18} color={iconColors.color} />;
           case 'rechazo':
             return <UserX size={18} color={iconColors.color} />;
           case 'operativo':

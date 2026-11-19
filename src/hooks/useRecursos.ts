@@ -39,6 +39,11 @@ export function useRecursos(
   const [statusCode, setStatusCode] = useState<number | null>(null);
 
   const abortControllerRef = useRef<AbortController | null>(null);
+  const filtrosRef = useRef(filtros);
+  const fetchDataRef = useRef<() => Promise<void>>(async () => {});
+  useEffect(() => {
+    filtrosRef.current = filtros;
+  }, [filtros]);
 
   const fetchData = useCallback(async () => {
     if (abortControllerRef.current) {
@@ -106,6 +111,10 @@ export function useRecursos(
     };
   }, [fetchData]);
 
+  useEffect(() => {
+    fetchDataRef.current = fetchData;
+  }, [fetchData]);
+
   const actualizarRecursoEnLista = useCallback((recursoActualizado: RecursoItem) => {
     if (!recursoActualizado || !recursoActualizado.id) return;
     setData((prev) => {
@@ -142,28 +151,112 @@ export function useRecursos(
     });
   }, []);
 
-  // Suscripción en tiempo real vía WebSockets (Socket.io)
+  // Suscripción en tiempo real vía WebSockets (Socket.io) a salas encargado y supervisor (H68)
   useEffect(() => {
-    const socket = getSocket();
+    try {
+      const socket = getSocket();
+      if (!socket || typeof socket.on !== 'function') return;
 
-    function handleRecursoActualizado(recursoActualizado: RecursoItem) {
-      actualizarRecursoEnLista(recursoActualizado);
-    }
+      const unirseSalas = () => {
+        socket.emit('join', 'encargado');
+        socket.emit('unirse', 'encargado');
+        socket.emit('join', 'supervisor');
+        socket.emit('unirse', 'supervisor');
+      };
 
-    function handleRecursoEliminado(payload: { id: string; nombre?: string }) {
-      if (payload?.id) {
-        removerRecursoDeLista(payload.id);
+      if (!socket.connected && typeof socket.connect === 'function') {
+        socket.connect();
       }
+      if (socket.connected) {
+        unirseSalas();
+      }
+
+      const handleRecursoActualizado = (rawPayload: unknown) => {
+        const p = rawPayload as Record<string, unknown> | null | undefined;
+        const raw = (p?.datos || p?.data || rawPayload) as Record<string, unknown> | null | undefined;
+        if (!raw || typeof raw !== 'object') return;
+
+        const id =
+          typeof raw.id === 'string'
+            ? raw.id
+            : typeof raw.recursoId === 'string'
+              ? raw.recursoId
+              : typeof raw.recurso_id === 'string'
+                ? raw.recurso_id
+                : '';
+        if (!id) return;
+
+        const cantInv = raw.cantidadInventario ?? raw.cantidad_inventario;
+        const cantUso = raw.cantidadEnUso ?? raw.cantidad_en_uso;
+        const cantDisp = raw.cantidadDisponible ?? raw.cantidad_disponible;
+        const cantMin = raw.cantidadMinima ?? raw.cantidad_minima;
+
+        const cantidadInventario = typeof cantInv === 'number' ? cantInv : undefined;
+        const cantidadEnUso = typeof cantUso === 'number' ? cantUso : undefined;
+        const cantidadDisponible =
+          typeof cantDisp === 'number'
+            ? cantDisp
+            : cantidadInventario !== undefined && cantidadEnUso !== undefined
+              ? Math.max(0, cantidadInventario - cantidadEnUso)
+              : undefined;
+
+        const parcial: Partial<RecursoItem> & { id: string } = { id };
+        if (typeof raw.nombre === 'string') parcial.nombre = raw.nombre;
+        if (typeof raw.estado === 'string') parcial.estado = raw.estado as RecursoItem['estado'];
+        if (cantidadInventario !== undefined) parcial.cantidadInventario = cantidadInventario;
+        if (cantidadEnUso !== undefined) parcial.cantidadEnUso = cantidadEnUso;
+        if (cantidadDisponible !== undefined) parcial.cantidadDisponible = cantidadDisponible;
+        if (typeof cantMin === 'number') parcial.cantidadMinima = cantMin;
+
+        setData((prev) => {
+          if (!prev) return prev;
+          const index = prev.data.findIndex((r) => r.id === id);
+          if (index === -1) return prev;
+          const updatedList = [...prev.data];
+          const actual = updatedList[index];
+          const nuevoInv = parcial.cantidadInventario ?? actual.cantidadInventario;
+          const nuevoUso = parcial.cantidadEnUso ?? actual.cantidadEnUso;
+          const nuevoDisp =
+            parcial.cantidadDisponible ?? Math.max(0, nuevoInv - nuevoUso);
+          updatedList[index] = {
+            ...actual,
+            ...parcial,
+            cantidadDisponible: nuevoDisp,
+          };
+          return {
+            ...prev,
+            data: updatedList,
+          };
+        });
+
+        if (filtrosRef.current.estado && parcial.estado && parcial.estado !== filtrosRef.current.estado) {
+          void fetchDataRef.current();
+        }
+      };
+
+      const handleRecursoEliminado = (payload: { id: string; nombre?: string }) => {
+        if (payload?.id) {
+          removerRecursoDeLista(payload.id);
+        }
+      };
+
+      socket.on('connect', unirseSalas);
+      socket.on('recurso:actualizado', handleRecursoActualizado);
+      socket.on('recurso:eliminado', handleRecursoEliminado);
+
+      return () => {
+        socket.off('connect', unirseSalas);
+        socket.off('recurso:actualizado', handleRecursoActualizado);
+        socket.off('recurso:eliminado', handleRecursoEliminado);
+        socket.emit('leave', 'encargado');
+        socket.emit('salir', 'encargado');
+        socket.emit('leave', 'supervisor');
+        socket.emit('salir', 'supervisor');
+      };
+    } catch {
+      // Ignorar fallo de inicialización de socket en entornos de prueba
     }
-
-    socket.on('recurso:actualizado', handleRecursoActualizado);
-    socket.on('recurso:eliminado', handleRecursoEliminado);
-
-    return () => {
-      socket.off('recurso:actualizado', handleRecursoActualizado);
-      socket.off('recurso:eliminado', handleRecursoEliminado);
-    };
-  }, [actualizarRecursoEnLista, removerRecursoDeLista]);
+  }, [removerRecursoDeLista]);
 
   const metaRaw = data?.meta as Record<string, unknown> | undefined;
   const metaNormalizado = {

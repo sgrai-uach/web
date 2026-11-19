@@ -9,6 +9,7 @@ import Textarea from '@/components/ui/Textarea';
 import InlineNotice from '@/components/ui/InlineNotice';
 import { cuadrillasService } from '@/services/cuadrillasService';
 import { misionesService } from '@/services/misionesService';
+import { getSocket } from '@/lib/socket/client';
 import type { IncidenteDetalle } from '@/services/incidentesService';
 import type { CuadrillaItem } from '@/types/cuadrilla';
 import type { PrioridadMision, DespacharCuadrillaResponse } from '@/types/misiones';
@@ -102,6 +103,66 @@ export const ModalAsignarCuadrilla: React.FC<ModalAsignarCuadrillaProps> = ({
     return () => {
       isMounted = false;
     };
+  }, [isOpen, incidente]);
+
+  // Refrescar lista de cuadrillas disponibles en vivo cuando alguna pasa a DISPONIBLE (H68)
+  useEffect(() => {
+    if (!isOpen || !incidente) return;
+    let isMounted = true;
+
+    try {
+      const socket = getSocket();
+      if (!socket || typeof socket.on !== 'function') return;
+
+      const unirseSalas = () => {
+        socket.emit('join', 'encargado');
+        socket.emit('unirse', 'sala:encargados');
+      };
+
+      if (!socket.connected && typeof socket.connect === 'function') {
+        socket.connect();
+      }
+      if (socket.connected) {
+        unirseSalas();
+      }
+
+      const handleCuadrillaActualizada = (rawPayload: unknown) => {
+        const p = rawPayload as Record<string, unknown> | null | undefined;
+        const raw = (p?.datos || p?.data || rawPayload) as Record<string, unknown> | null | undefined;
+        const estado = typeof raw?.estado === 'string' ? raw.estado.toUpperCase() : '';
+        const id =
+          typeof raw?.id === 'string'
+            ? raw.id
+            : typeof raw?.cuadrillaId === 'string'
+              ? raw.cuadrillaId
+              : '';
+        if (estado === 'DISPONIBLE' || id) {
+          void cuadrillasService
+            .obtenerCuadrillas({ pagina: 1, limite: 100, estado: 'DISPONIBLE' })
+            .then((res) => {
+              if (isMounted && res?.cuadrillas) {
+                setCuadrillasDisponibles(res.cuadrillas);
+              }
+            })
+            .catch(() => {
+              // Ignorar error silencioso en refresco en vivo
+            });
+        }
+      };
+
+      socket.on('connect', unirseSalas);
+      socket.on('cuadrilla:actualizada', handleCuadrillaActualizada);
+
+      return () => {
+        isMounted = false;
+        socket.off('connect', unirseSalas);
+        socket.off('cuadrilla:actualizada', handleCuadrillaActualizada);
+      };
+    } catch {
+      return () => {
+        isMounted = false;
+      };
+    }
   }, [isOpen, incidente]);
 
   if (!isOpen || !incidente) return null;
