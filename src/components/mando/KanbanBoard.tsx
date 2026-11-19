@@ -25,7 +25,8 @@ import { PanelPatrullasModal } from './patrullas/PanelPatrullasModal';
 import { ModalCrearEventoPrevencion } from './ModalCrearEventoPrevencion';
 import { ModalCrearEventoRecuperacion } from './ModalCrearEventoRecuperacion';
 import { MapaOperativoMando } from './MapaOperativoMando';
-import { KanbanViewSwitcher } from './KanbanViewSwitcher';
+import { KanbanViewSwitcher, type VistaCentroIncidentes } from './KanbanViewSwitcher';
+import EventosPrevencionView from './prevencion/EventosPrevencionView';
 import CuadrillaDetalleDrawer from '@/components/admin/cuadrillas/CuadrillaDetalleDrawer';
 import { cuadrillasService } from '@/services/cuadrillasService';
 import type { CuadrillaItem } from '@/types/cuadrilla';
@@ -47,7 +48,8 @@ const TITULOS_COLUMNAS = {
 export const KanbanBoard: React.FC = () => {
   const { showInfo } = useToast();
   const searchParams = useSearchParams();
-  const [vistaActiva, setVistaActiva] = useState<'kanban' | 'mapa'>('kanban');
+  const tabInicial: VistaCentroIncidentes = searchParams?.get('tab') === 'prevencion' ? 'prevencion' : 'kanban';
+  const [vistaActiva, setVistaActiva] = useState<VistaCentroIncidentes>(tabInicial);
   const [misionesModalAbierto, setMisionesModalAbierto] = useState(false);
   const [patrullasModalAbierto, setPatrullasModalAbierto] = useState(false);
   const [misionSeleccionadaId, setMisionSeleccionadaId] = useState<string | null>(null);
@@ -318,7 +320,7 @@ export const KanbanBoard: React.FC = () => {
                 ))}
               </div>
             </main>
-          ) : (
+          ) : vistaActiva === 'mapa' ? (
             <main style={{ marginTop: 'var(--space-4, 16px)' }}>
               <MapaOperativoMando
                 incidentes={todosLosIncidentes}
@@ -329,6 +331,12 @@ export const KanbanBoard: React.FC = () => {
                 onSelectCuadrilla={(cuadrillaId) => setCuadrillaSeleccionadaId(cuadrillaId)}
                 onCrearPrevencion={() => setModalPrevencionAbierto(true)}
                 onCrearRecuperacion={() => setModalRecuperacionAbierto(true)}
+              />
+            </main>
+          ) : (
+            <main style={{ marginTop: 'var(--space-4, 16px)' }}>
+              <EventosPrevencionView
+                onAbrirCrearPrevencion={() => setModalPrevencionAbierto(true)}
               />
             </main>
           )}

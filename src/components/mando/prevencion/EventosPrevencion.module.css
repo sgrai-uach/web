@@ -1,0 +1,243 @@
+/* ==========================================================================
+   EventosPrevencion.module.css
+   Estilos institucionales para el Listado y Supervisión de Prevención (HU-76)
+   Conforme a GEMINI.md: Noto Sans, paleta Valdivia, esquinas 0px, sin sombras pesadas
+   ========================================================================== */
+
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4, 16px);
+  width: 100%;
+  padding: var(--space-2, 8px) 0;
+  font-family: var(--font-noto-sans, sans-serif);
+}
+
+/* Panel superior de filtros (Estándar H34) */
+.filtrosCard {
+  background-color: var(--color-white, #FFFFFF);
+  border: 1px solid var(--border-color-neutral, #DFE3E8);
+  padding: var(--space-4, 16px) var(--space-5, 20px);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3, 12px);
+  border-radius: 0;
+}
+
+.filtrosRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3, 12px);
+}
+
+.filtrosInputs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3, 12px);
+  flex: 1;
+}
+
+.busquedaWrapper {
+  position: relative;
+  min-width: 280px;
+  max-width: 380px;
+  flex: 1;
+}
+
+.busquedaIcon {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--color-text-muted, #5F676E);
+  pointer-events: none;
+}
+
+.busquedaInput {
+  width: 100%;
+  height: 38px;
+  padding: 0 var(--space-8, 32px) 0 34px;
+  border: 1px solid var(--border-color-neutral-dark, #CCD2D9);
+  background-color: #FFFFFF;
+  color: var(--color-text-dark, #2B2B2B);
+  font-size: var(--font-size-base, 14px);
+  font-family: inherit;
+  border-radius: 0;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.busquedaInput:focus {
+  border-color: var(--color-primary-teal, #1B6F7D);
+}
+
+.btnLimpiarBusqueda {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: var(--color-text-muted, #5F676E);
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btnLimpiarBusqueda:hover {
+  color: var(--color-text-dark, #2B2B2B);
+}
+
+.selectorFiltro {
+  min-width: 180px;
+  height: 38px;
+}
+
+.chipsContainer {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2, 8px);
+  padding-top: var(--space-2, 8px);
+  border-top: 1px dashed var(--border-color-neutral, #DFE3E8);
+}
+
+.chipFiltro {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background-color: var(--color-bg-light, #ECEFF3);
+  color: var(--color-charcoal, #3B3F45);
+  font-size: var(--font-size-xs, 12px);
+  font-weight: 600;
+  padding: 3px 8px;
+  border: 1px solid var(--border-color-neutral-dark, #CCD2D9);
+  border-radius: 0;
+}
+
+/* Tabla de Eventos Preventivos */
+.tableContainer {
+  background-color: var(--color-white, #FFFFFF);
+  border: 1px solid var(--border-color-neutral, #DFE3E8);
+  overflow-x: auto;
+  border-radius: 0;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: var(--font-size-base, 14px);
+}
+
+.table th {
+  background-color: var(--color-primary-teal-dark, #14505A);
+  color: #FFFFFF;
+  padding: 12px 16px;
+  font-size: var(--font-size-xs, 12px);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border: none;
+  white-space: nowrap;
+}
+
+.table td {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border-color-neutral, #DFE3E8);
+  vertical-align: middle;
+  color: var(--color-text-dark, #2B2B2B);
+}
+
+.tableRow {
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.tableRow:hover {
+  background-color: #F8FAFB;
+}
+
+.tableRowSelected {
+  background-color: #F0FDF4 !important;
+}
+
+.codigoLink {
+  color: var(--color-primary-teal, #1B6F7D);
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  text-decoration: none;
+}
+
+.codigoLink:hover {
+  text-decoration: underline;
+}
+
+/* Badges de Estado */
+.badgeEstado {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--font-size-xs, 12px);
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.badgeDot {
+  width: 7px;
+  height: 7px;
+  border-radius: var(--radius-round, 9999px);
+}
+
+/* Badges de Prioridad */
+.badgePrioridad {
+  font-size: var(--font-size-xs, 12px);
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 0;
+  text-transform: uppercase;
+}
+
+.sinAsignar {
+  color: var(--color-text-muted, #5F676E);
+  font-style: italic;
+  font-size: var(--font-size-xs, 12px);
+}
+
+/* Estados Vacíos y de Error */
+.emptyState {
+  padding: 48px 24px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3, 12px);
+  color: var(--color-text-muted, #5F676E);
+}
+
+.loadingSkeleton {
+  padding: 40px;
+  text-align: center;
+  color: var(--color-text-muted, #5F676E);
+  font-size: var(--font-size-sm, 13px);
+}
+
+.paginationWrapper {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background-color: var(--color-white, #FFFFFF);
+  border: 1px solid var(--border-color-neutral, #DFE3E8);
+  border-top: none;
+}
