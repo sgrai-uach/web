@@ -62,8 +62,8 @@ describe('Servicio incidentes-manuales', () => {
       expect(mockPost).toHaveBeenCalledWith(
         '/api/incidentes/verificar-duplicado',
         expect.objectContaining({
-          params: expect.objectContaining({
-            header: { 'x-user-id': 'operador-uuid-123' },
+          headers: expect.objectContaining({
+            'x-user-id': 'operador-uuid-123',
           }),
         })
       );

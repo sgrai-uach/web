@@ -407,6 +407,21 @@ describe('Servicio API Misiones - listar y obtenerDetalle (Contrato OpenAPI + JW
       limit: 10,
     });
 
+    expect(apiClient.GET).toHaveBeenCalledWith(
+      '/api/misiones',
+      expect.objectContaining({
+        params: {
+          query: {
+            page: 1,
+            limit: 10,
+          },
+          header: {},
+        },
+        headers: {
+          'x-user-id': DEFAULT_ENCARGADO_ID,
+        },
+      })
+    );
     expect(res.exito).toBe(false);
     expect(res.data).toEqual([]);
     expect(res.mensaje).toContain('Sesión no válida');
