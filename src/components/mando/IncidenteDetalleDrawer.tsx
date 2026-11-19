@@ -21,9 +21,14 @@ import { useOptionalAuth } from '@/context/AuthContext';
 import { useOptionalToast } from '@/components/ui/Toast';
 import { usePuedeAsignarMision } from '@/hooks/usePuedeAsignarMision';
 import {
+  esReporteCierreCuadrilla,
   esReporteVerificacionCierre,
+  formatearEstadoTerreno,
+  formatearHorasHombre,
   fueTipologiaModificada,
 } from '@/lib/utils/estadoUtils';
+import { obtenerVarianteChipEstadoTerreno } from '@/lib/utils/chipVariants';
+import Chip from '@/components/ui/Chip';
 import Button from '@/components/ui/Button';
 import { getSocket } from '@/lib/socket/client';
 import {
@@ -178,6 +183,40 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
     );
   }, [detalle]);
 
+  // Cierre de faenas de cuadrilla con incidente aún en EN_ATENCION (espera H86)
+  const misionCuadrillaCompletada = useMemo(() => {
+    if (!detalle || detalle.estado !== 'EN_ATENCION') return null;
+    const tieneActiva = detalle.misiones.some(
+      (m) =>
+        (m.tipoMision === 'ATENCION_CUADRILLA' || Boolean(m.cuadrilla)) &&
+        ['PLANIFICADA', 'DESPACHADA', 'EN_CURSO'].includes(m.estado)
+    );
+    if (tieneActiva) return null;
+    return (
+      detalle.misiones.find(
+        (m) => m.tipoMision === 'ATENCION_CUADRILLA' && m.estado === 'COMPLETADA'
+      ) || null
+    );
+  }, [detalle]);
+
+  const ultimoReporteCuadrilla = useMemo(() => {
+    if (!detalle?.reportesEvaluacionTerreno) return null;
+    return (
+      detalle.reportesEvaluacionTerreno.find((r) => esReporteCierreCuadrilla(r)) || null
+    );
+  }, [detalle]);
+
+  const mostrarBannerFaenasCompletadas = Boolean(
+    detalle &&
+      detalle.estado === 'EN_ATENCION' &&
+      (misionCuadrillaCompletada || ultimoReporteCuadrilla) &&
+      !detalle.misiones.some(
+        (m) =>
+          (m.tipoMision === 'ATENCION_CUADRILLA' || Boolean(m.cuadrilla)) &&
+          ['PLANIFICADA', 'DESPACHADA', 'EN_CURSO'].includes(m.estado)
+      )
+  );
+
   const handleDespachoExitoso = (resultado: DespacharCuadrillaResponse['data']) => {
     if (resultado.patrullaLiberada) {
       toast?.showSuccess(
@@ -258,11 +297,14 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
 
           let nuevosReportes = prev.reportesEvaluacionTerreno || [];
           let esCierreVerificacion = nuevoEstado === 'NO_ABORDABLE';
+          let esCierreCuadrilla = false;
           let reporteEntranteRef: ReporteEvaluacionTerreno | null = null;
           if (rawDatos?.reporteTerreno && typeof rawDatos.reporteTerreno === 'object') {
             const repentrante = rawDatos.reporteTerreno as ReporteEvaluacionTerreno;
             reporteEntranteRef = repentrante;
-            if (esReporteVerificacionCierre(repentrante)) {
+            if (esReporteCierreCuadrilla(repentrante)) {
+              esCierreCuadrilla = true;
+            } else if (esReporteVerificacionCierre(repentrante)) {
               esCierreVerificacion = true;
             }
             const yaExiste = nuevosReportes.some((r) => r.id === repentrante.id);
@@ -290,10 +332,31 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
                 ? rawDatos.fecha_cierre
                 : prev.fechaCierre;
 
+          const estadoFinal =
+            esCierreCuadrilla && nuevoEstado === 'RESUELTO'
+              ? prev.estado
+              : nuevoEstado;
+
           return {
             ...prev,
             tipoAfectacion: nuevoTipo,
             misiones: prev.misiones.map((m) => {
+              if (esCierreCuadrilla && m.tipoMision === 'ATENCION_CUADRILLA') {
+                const coincide =
+                  (reporteEntranteRef?.misionId && m.id === reporteEntranteRef.misionId) ||
+                  ['PLANIFICADA', 'DESPACHADA', 'EN_CURSO'].includes(m.estado);
+                if (coincide) {
+                  return {
+                    ...m,
+                    estado: 'COMPLETADA',
+                    fechaCierre:
+                      fechaCierreEntrante || m.fechaCierre || new Date().toISOString(),
+                    cuadrilla: m.cuadrilla
+                      ? { ...m.cuadrilla, estado: 'DISPONIBLE' }
+                      : m.cuadrilla,
+                  };
+                }
+              }
               if (m.tipoMision === 'VERIFICACION') {
                 const tituloAct =
                   nuevoTipo && prev.codigo
@@ -326,10 +389,19 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
                 : esCierreVerificacion
                   ? true
                   : prev.verificado,
+            faenasCuadrillaCompletadas: esCierreCuadrilla
+              ? true
+              : prev.faenasCuadrillaCompletadas,
+            estadoTerrenoFinal: esCierreCuadrilla
+              ? reporteEntranteRef?.estadoTerreno ?? prev.estadoTerrenoFinal
+              : prev.estadoTerrenoFinal,
+            horasHombreRegistradas: esCierreCuadrilla
+              ? reporteEntranteRef?.horasHombre ?? prev.horasHombreRegistradas
+              : prev.horasHombreRegistradas,
             dictamenTerreno: dictamenEntrante,
             motivoNoAbordable: motivoNoAbordableEntrante,
-            fechaCierre: fechaCierreEntrante,
-            estado: nuevoEstado,
+            fechaCierre: esCierreCuadrilla ? prev.fechaCierre : fechaCierreEntrante,
+            estado: estadoFinal,
             tipoIncidenteId:
               typeof rawDatos?.tipoIncidenteId === 'string'
                 ? rawDatos.tipoIncidenteId
@@ -406,12 +478,43 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
       }
     };
 
+    const handleMisionActualizada = (rawPayload: unknown) => {
+      const p = rawPayload as Record<string, unknown> | null | undefined;
+      const raw = (p?.datos || p?.data || p) as Record<string, unknown> | null | undefined;
+      const incId =
+        typeof raw?.incidenteId === 'string'
+          ? raw.incidenteId
+          : typeof raw?.incidente_id === 'string'
+            ? raw.incidente_id
+            : undefined;
+      const misId =
+        typeof raw?.misionId === 'string'
+          ? raw.misionId
+          : typeof raw?.id === 'string'
+            ? raw.id
+            : undefined;
+      const pertenece =
+        incId === incidenteId ||
+        (misId && detalleRef.current?.misiones.some((m) => m.id === misId));
+      if (pertenece) {
+        cargarDetalle();
+      }
+    };
+
     const handleAdjuntoCreado = (rawPayload: unknown) => {
       const p = rawPayload as Record<string, unknown> | null | undefined;
       const candidato = (p?.datos || p?.data || rawPayload) as unknown;
       if (!esPayloadAdjuntoCreadoValido(candidato)) return;
 
-      if (candidato.incidenteId === incidenteId) {
+      const coincideReporte =
+        Boolean(candidato.reporteTerrenoId) &&
+        Boolean(
+          detalleRef.current?.reportesEvaluacionTerreno?.some(
+            (r) => r.id === candidato.reporteTerrenoId
+          )
+        );
+
+      if (candidato.incidenteId === incidenteId || coincideReporte) {
         cargarDetalle();
       }
     };
@@ -419,6 +522,7 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
     socket.on('connect', asegurarSalasEncargado);
     socket.on('incidente:actualizado', handleActualizadoSocket);
     socket.on('notificacion:trazabilidad_actualizada', handleTrazabilidad);
+    socket.on('mision:actualizada', handleMisionActualizada);
     socket.on('mision:rechazada', handleMisionRechazada);
     socket.on('incidente:actualizado', handleIncidenteActualizado);
     socket.on('adjunto:creado', handleAdjuntoCreado);
@@ -427,6 +531,7 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
       socket.off('connect', asegurarSalasEncargado);
       socket.off('incidente:actualizado', handleActualizadoSocket);
       socket.off('notificacion:trazabilidad_actualizada', handleTrazabilidad);
+      socket.off('mision:actualizada', handleMisionActualizada);
       socket.off('mision:rechazada', handleMisionRechazada);
       socket.off('incidente:actualizado', handleIncidenteActualizado);
       socket.off('adjunto:creado', handleAdjuntoCreado);
@@ -547,6 +652,72 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
                 <p style={{ margin: 0, fontSize: '0.8125rem', color: 'var(--color-text-dark, #2B2B2B)' }}>
                   <strong>Motivo de no abordabilidad:</strong> {detalle.motivoNoAbordable}
                 </p>
+              )}
+            </div>
+          )}
+
+          {/* Banner informativo de cierre de faenas por Cuadrilla (permanece en EN_ATENCION hasta H86) */}
+          {mostrarBannerFaenasCompletadas && (
+            <div
+              data-testid="banner-faenas-cuadrilla-completadas"
+              role="status"
+              style={{
+                backgroundColor: 'var(--color-info-bg, #E0F2F1)',
+                padding: 'var(--space-3, 12px) var(--space-4, 16px)',
+                borderBottom: '2px solid #B2DFDB',
+                borderLeft: '4px solid var(--color-accent-mint, #4FAE9B)',
+                borderRadius: 0,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '6px',
+              }}
+            >
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  flexWrap: 'wrap',
+                  gap: '6px',
+                }}
+              >
+                <strong
+                  style={{
+                    fontSize: '0.875rem',
+                    color: 'var(--color-primary-teal-dark, #14505A)',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                  }}
+                >
+                  <HardHat size={15} aria-hidden="true" />
+                  <span>Faenas de cuadrilla finalizadas — Cuadrilla liberada</span>
+                </strong>
+                {misionCuadrillaCompletada?.fechaCierre && (
+                  <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted, #5F676E)' }}>
+                    Cierre faena: {new Date(misionCuadrillaCompletada.fechaCierre).toLocaleString('es-CL')}
+                  </span>
+                )}
+              </div>
+              <p style={{ margin: 0, fontSize: '0.8125rem', color: 'var(--color-text-dark, #2B2B2B)' }}>
+                La cuadrilla completó los trabajos en terreno y volvió a estado{' '}
+                <strong>Disponible</strong>. El incidente permanece{' '}
+                <strong>En Atención</strong> para evaluación y decreto de resolución final del Encargado (H86).
+              </p>
+              {ultimoReporteCuadrilla && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                  <Chip
+                    variant={obtenerVarianteChipEstadoTerreno(ultimoReporteCuadrilla.estadoTerreno)}
+                    size="sm"
+                  >
+                    Terreno: {formatearEstadoTerreno(ultimoReporteCuadrilla.estadoTerreno)}
+                  </Chip>
+                  {typeof ultimoReporteCuadrilla.horasHombre === 'number' && (
+                    <Chip variant="neutral" size="sm">
+                      {formatearHorasHombre(ultimoReporteCuadrilla.horasHombre)}
+                    </Chip>
+                  )}
+                </div>
               )}
             </div>
           )}

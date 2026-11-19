@@ -1,22 +1,28 @@
 'use client';
 
 import React from 'react';
-import { Ban, ClipboardList, Clock, ExternalLink, HeartHandshake, User, Wrench } from 'lucide-react';
+import { Ban, ClipboardList, Clock, ExternalLink, HeartHandshake, Package, User, Wrench } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import { Chip } from '@/components/ui/Chip';
 import {
   obtenerVarianteChipDictamen,
+  obtenerVarianteChipEstadoTerreno,
   obtenerVarianteChipPrioridad,
 } from '@/lib/utils/chipVariants';
 import {
   calcularComparativaPersonasAfectadas,
   esJustificacionSinCambios,
+  esReporteCierreCuadrilla,
   esReporteVerificacionCierre,
+  formatearCantidadMaterial,
   formatearDictamenTerreno,
-  formatearEstado,
+  formatearEstadoTerreno,
+  formatearHorasHombre,
   formatearPrioridad,
   formatearCompromisoVivienda,
   fueTipologiaModificada,
+  normalizarMaterialesConsumidos,
+  obtenerPesoOrdenReporte,
 } from '@/lib/utils/estadoUtils';
 import type { IncidenteDetalle } from '@/services/incidentesService';
 import { DrawerSectionHeader } from './DrawerSectionHeader';
@@ -45,9 +51,9 @@ export const IncidenteUltimoReporteSection: React.FC<IncidenteUltimoReporteSecti
       if (porId) return porId;
     }
     const ordenados = [...lista].sort((a, b) => {
-      const cierreA = esReporteVerificacionCierre(a) ? 1 : 0;
-      const cierreB = esReporteVerificacionCierre(b) ? 1 : 0;
-      if (cierreA !== cierreB) return cierreB - cierreA;
+      const pesoA = obtenerPesoOrdenReporte(a);
+      const pesoB = obtenerPesoOrdenReporte(b);
+      if (pesoA !== pesoB) return pesoB - pesoA;
       const tB = new Date(b.creadoEn).getTime();
       const tA = new Date(a.creadoEn).getTime();
       if (tB !== tA) return tB - tA;
@@ -81,7 +87,11 @@ export const IncidenteUltimoReporteSection: React.FC<IncidenteUltimoReporteSecti
         dictamen: top.dictamen,
         motivoNoAbordable: top.motivoNoAbordable,
         estadoTerreno: top.estadoTerreno,
+        etiquetaReporte: top.etiquetaReporte,
         requiereAsistenciaSocial: top.requiereAsistenciaSocial,
+        requiereApoyoAdicional: top.requiereApoyoAdicional,
+        horasHombre: top.horasHombre,
+        materialesConsumidos: top.materialesConsumidos,
         personasAfectadas: top.personasAfectadas,
         personasAfectadasPrevias: top.personasAfectadasPrevias,
         personasAfectadasModificadas: top.personasAfectadasModificadas,
@@ -107,10 +117,51 @@ export const IncidenteUltimoReporteSection: React.FC<IncidenteUltimoReporteSecti
     return null;
   }, [detalle, reporteTerrenoReciente]);
 
-  const esCierre = React.useMemo(() => {
+  const esCierreCuadrilla = React.useMemo(() => {
     if (!ultimoReporte || ultimoReporte.origen === 'RECLASIFICACION') return false;
-    return esReporteVerificacionCierre(reporteTerrenoReciente || ultimoReporte);
+    return esReporteCierreCuadrilla(reporteTerrenoReciente || ultimoReporte);
   }, [ultimoReporte, reporteTerrenoReciente]);
+
+  const esCierre = React.useMemo(() => {
+    if (!ultimoReporte || ultimoReporte.origen === 'RECLASIFICACION' || esCierreCuadrilla) {
+      return false;
+    }
+    return esReporteVerificacionCierre(reporteTerrenoReciente || ultimoReporte);
+  }, [ultimoReporte, reporteTerrenoReciente, esCierreCuadrilla]);
+
+  const estadoTerrenoCuadrilla = React.useMemo(() => {
+    if (!esCierreCuadrilla) return null;
+    return reporteTerrenoReciente?.estadoTerreno ?? ultimoReporte?.estadoTerreno ?? null;
+  }, [esCierreCuadrilla, reporteTerrenoReciente, ultimoReporte]);
+
+  const horasHombreCuadrilla = React.useMemo(() => {
+    if (!esCierreCuadrilla) return null;
+    const h = reporteTerrenoReciente?.horasHombre ?? ultimoReporte?.horasHombre;
+    return typeof h === 'number' ? h : null;
+  }, [esCierreCuadrilla, reporteTerrenoReciente, ultimoReporte]);
+
+  const materialesCuadrilla = React.useMemo(() => {
+    if (!esCierreCuadrilla) return [];
+    return normalizarMaterialesConsumidos(
+      reporteTerrenoReciente?.materialesConsumidos ?? ultimoReporte?.materialesConsumidos
+    );
+  }, [esCierreCuadrilla, reporteTerrenoReciente, ultimoReporte]);
+
+  const requiereFibeCuadrilla = React.useMemo(() => {
+    if (!esCierreCuadrilla) return false;
+    return Boolean(
+      reporteTerrenoReciente?.requiereAsistenciaSocial ??
+        ultimoReporte?.requiereAsistenciaSocial
+    );
+  }, [esCierreCuadrilla, reporteTerrenoReciente, ultimoReporte]);
+
+  const requiereApoyoCuadrilla = React.useMemo(() => {
+    if (!esCierreCuadrilla) return false;
+    return Boolean(
+      reporteTerrenoReciente?.requiereApoyoAdicional ??
+        ultimoReporte?.requiereApoyoAdicional
+    );
+  }, [esCierreCuadrilla, reporteTerrenoReciente, ultimoReporte]);
 
   const dictamenCierre = React.useMemo(() => {
     if (!esCierre) return null;
@@ -165,6 +216,13 @@ export const IncidenteUltimoReporteSection: React.FC<IncidenteUltimoReporteSecti
         : false;
       return sinCambios ? 'Constatación en Terreno (Sin cambios)' : 'Reclasificación en Terreno';
     }
+    if (esCierreCuadrilla) {
+      return (
+        reporteTerrenoReciente?.etiquetaReporte ||
+        ultimoReporte.etiquetaReporte ||
+        'Informe Técnico Final de Cuadrilla (Cierre de Misión)'
+      );
+    }
     if (esCierre) {
       return reporteTerrenoReciente?.etiquetaReporte || 'Informe de Verificación y Cierre';
     }
@@ -172,7 +230,7 @@ export const IncidenteUltimoReporteSection: React.FC<IncidenteUltimoReporteSecti
     return ultimoReporte.esRectificacion || ver > 1
       ? `Reporte #${ver} (Rectificación)`
       : 'Reporte #1 (Inicial)';
-  }, [ultimoReporte, detalle.reclasificacionTipologia, esCierre, reporteTerrenoReciente]);
+  }, [ultimoReporte, detalle.reclasificacionTipologia, esCierre, esCierreCuadrilla, reporteTerrenoReciente]);
 
   const fechaLegible = React.useMemo(() => {
     if (!ultimoReporte?.creadoEn) return '';
@@ -210,6 +268,45 @@ export const IncidenteUltimoReporteSection: React.FC<IncidenteUltimoReporteSecti
         ],
         accionesTexto: r.justificacion || ultimoReporte.resumen || null,
         etiquetaAcciones: 'Constatación en terreno',
+      };
+    }
+
+    if (esCierreCuadrilla) {
+      const itemsCuadrilla: Array<{ etiqueta: string; valor: string }> = [
+        {
+          etiqueta: 'Estado final del terreno',
+          valor: formatearEstadoTerreno(estadoTerrenoCuadrilla),
+        },
+        {
+          etiqueta: 'Horas hombre invertidas',
+          valor: formatearHorasHombre(horasHombreCuadrilla),
+        },
+        {
+          etiqueta: 'Materiales consumidos',
+          valor:
+            materialesCuadrilla.length > 0
+              ? `${materialesCuadrilla.length} ${materialesCuadrilla.length === 1 ? 'ítem' : 'ítems'}`
+              : 'Sin consumo de insumos',
+        },
+      ];
+      if (reporteTerrenoReciente?.danosEstimados) {
+        itemsCuadrilla.push({
+          etiqueta: 'Daños estimados',
+          valor: reporteTerrenoReciente.danosEstimados,
+        });
+      }
+      const resumenFaenas =
+        reporteTerrenoReciente?.resumenTecnico?.trim() ||
+        reporteTerrenoReciente?.resumenFaenas?.trim() ||
+        ultimoReporte.resumen?.trim() ||
+        reporteTerrenoReciente?.observaciones?.trim() ||
+        null;
+
+      return {
+        itemsBasicos: itemsCuadrilla,
+        familiasDesglose: null,
+        accionesTexto: resumenFaenas,
+        etiquetaAcciones: 'Resumen de faenas ejecutadas',
       };
     }
 
@@ -326,6 +423,10 @@ export const IncidenteUltimoReporteSection: React.FC<IncidenteUltimoReporteSecti
     detalle.reclasificacionTipologia,
     reporteTerrenoReciente,
     esCierre,
+    esCierreCuadrilla,
+    estadoTerrenoCuadrilla,
+    horasHombreCuadrilla,
+    materialesCuadrilla.length,
     comparativaPersonasCierre,
   ]);
 
@@ -372,6 +473,40 @@ export const IncidenteUltimoReporteSection: React.FC<IncidenteUltimoReporteSecti
               <Chip variant="teal" size="sm">
                 {etiquetaTipo}
               </Chip>
+              {esCierreCuadrilla && estadoTerrenoCuadrilla && (
+                <Chip
+                  variant={obtenerVarianteChipEstadoTerreno(estadoTerrenoCuadrilla)}
+                  size="sm"
+                  data-testid="ultimo-reporte-badge-estado-terreno"
+                >
+                  Terreno: {formatearEstadoTerreno(estadoTerrenoCuadrilla)}
+                </Chip>
+              )}
+              {esCierreCuadrilla && horasHombreCuadrilla !== null && (
+                <Chip
+                  variant="neutral"
+                  size="sm"
+                  icon={<Clock size={11} />}
+                  data-testid="ultimo-reporte-badge-horas-hombre"
+                >
+                  {formatearHorasHombre(horasHombreCuadrilla)}
+                </Chip>
+              )}
+              {esCierreCuadrilla && requiereFibeCuadrilla && (
+                <Chip
+                  variant="warning"
+                  size="sm"
+                  icon={<HeartHandshake size={11} />}
+                  data-testid="ultimo-reporte-badge-fibe"
+                >
+                  Requiere Ficha FIBE
+                </Chip>
+              )}
+              {esCierreCuadrilla && requiereApoyoCuadrilla && (
+                <Chip variant="warning" size="sm">
+                  Requiere Apoyo
+                </Chip>
+              )}
               {esCierre && dictamenCierre && (
                 <Chip
                   variant={obtenerVarianteChipDictamen(dictamenCierre)}
@@ -542,6 +677,49 @@ export const IncidenteUltimoReporteSection: React.FC<IncidenteUltimoReporteSecti
                     </div>
                   </div>
                 ))}
+              </div>
+            </div>
+          )}
+
+          {/* 2.2 Resumen compacto de materiales consumidos en cierre de cuadrilla (H68) */}
+          {esCierreCuadrilla && materialesCuadrilla.length > 0 && (
+            <div
+              data-testid="ultimo-reporte-materiales-resumen"
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '4px',
+                padding: '6px 8px',
+                backgroundColor: 'var(--color-white, #FFFFFF)',
+                border: '1px solid #E2E8F0',
+              }}
+            >
+              <span
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  fontSize: '0.68rem',
+                  fontWeight: 700,
+                  textTransform: 'uppercase',
+                  color: 'var(--color-primary-teal-dark, #14505A)',
+                  letterSpacing: '0.02em',
+                }}
+              >
+                <Package size={11} aria-hidden="true" />
+                <span>Insumos consumidos en terreno:</span>
+              </span>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                {materialesCuadrilla.slice(0, 4).map((mat, idx) => (
+                  <Chip key={`${mat.recursoId}-${idx}`} variant="neutral" size="sm">
+                    {mat.nombre || 'Recurso'}: {formatearCantidadMaterial(mat.cantidad, mat.unidad)}
+                  </Chip>
+                ))}
+                {materialesCuadrilla.length > 4 && (
+                  <Chip variant="teal" size="sm">
+                    +{materialesCuadrilla.length - 4} más
+                  </Chip>
+                )}
               </div>
             </div>
           )}

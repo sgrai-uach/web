@@ -16,7 +16,11 @@ import {
   type MisionDetalleCompleto,
   type ReporteTerrenoDetalle,
 } from '@/types/misiones';
-import { esReporteVerificacionCierre } from '@/lib/utils/estadoUtils';
+import {
+  esReporteCierreCuadrilla,
+  esReporteVerificacionCierre,
+  normalizarMaterialesConsumidos,
+} from '@/lib/utils/estadoUtils';
 import { MisionSkeletonLoader } from './MisionSkeletonLoader';
 import { MisionDetalleHeader } from './MisionDetalleHeader';
 import { MisionContextoSection } from './MisionContextoSection';
@@ -182,6 +186,8 @@ export const MisionDetalleModal: React.FC<MisionDetalleModalProps> = ({
       const repRaw = rawDatos?.reporteTerreno as Record<string, unknown> | undefined;
       if (!repRaw || repRaw.misionId !== misionId) return;
 
+      let requiereRecargaPorCierreCuadrilla = false;
+
       setMision((prev) => {
         if (!prev) return prev;
         const nuevoReporte: ReporteTerrenoDetalle = {
@@ -237,7 +243,15 @@ export const MisionDetalleModal: React.FC<MisionDetalleModalProps> = ({
                       : null,
                 }
               : { id: 'patrulla', nombre: 'Patrulla en Terreno', email: '' },
-          resumenTecnico: String(repRaw.resumenTecnico || ''),
+          resumenTecnico: String(
+            repRaw.resumenTecnico || repRaw.resumenFaenas || repRaw.resumen_faenas || ''
+          ),
+          resumenFaenas:
+            typeof repRaw.resumenFaenas === 'string'
+              ? repRaw.resumenFaenas
+              : typeof repRaw.resumen_faenas === 'string'
+                ? repRaw.resumen_faenas
+                : null,
           accionesRealizadas:
             typeof repRaw.accionesRealizadas === 'string' ? repRaw.accionesRealizadas : null,
           requiereApoyoAdicional: Boolean(repRaw.requiereApoyoAdicional),
@@ -251,6 +265,15 @@ export const MisionDetalleModal: React.FC<MisionDetalleModalProps> = ({
           personasAfectadas: Number(repRaw.personasAfectadas ?? 0),
           estadoTerreno:
             typeof repRaw.estadoTerreno === 'string' ? repRaw.estadoTerreno : 'EN_PROGRESO',
+          horasHombre:
+            typeof repRaw.horasHombre === 'number'
+              ? repRaw.horasHombre
+              : typeof repRaw.horas_hombre === 'number'
+                ? repRaw.horas_hombre
+                : null,
+          materialesConsumidos: normalizarMaterialesConsumidos(
+            repRaw.materialesConsumidos ?? repRaw.materiales_consumidos
+          ),
           adjuntos: Array.isArray(repRaw.adjuntos)
             ? (repRaw.adjuntos as AdjuntoEvidencia[])
             : [],
@@ -266,8 +289,15 @@ export const MisionDetalleModal: React.FC<MisionDetalleModalProps> = ({
             ? prev.reportesTerreno.map((r, i) => (i === existeIdx ? nuevoReporte : r))
             : [nuevoReporte, ...prev.reportesTerreno];
 
+        const esCierreCuadrilla = esReporteCierreCuadrilla(nuevoReporte);
         const esCierre =
-          esReporteVerificacionCierre(nuevoReporte) || rawDatos?.nuevoEstado === 'NO_ABORDABLE';
+          esReporteVerificacionCierre(nuevoReporte) ||
+          esCierreCuadrilla ||
+          rawDatos?.nuevoEstado === 'NO_ABORDABLE';
+
+        if (esCierreCuadrilla) {
+          requiereRecargaPorCierreCuadrilla = true;
+        }
 
         return {
           ...prev,
@@ -282,6 +312,17 @@ export const MisionDetalleModal: React.FC<MisionDetalleModalProps> = ({
             typeof rawDatos?.prioridad === 'string'
               ? (rawDatos.prioridad as MisionDetalleCompleto['prioridad'])
               : prev.prioridad,
+          cuadrilla:
+            esCierreCuadrilla && prev.cuadrilla
+              ? { ...prev.cuadrilla, estado: 'DISPONIBLE' }
+              : prev.cuadrilla,
+          evaluaciones: esCierreCuadrilla
+            ? {
+                ...(prev.evaluaciones || {}),
+                reporteCuadrillaEnviado: true,
+                reporteCuadrillaEnviadoEn: nuevoReporte.creadoEn,
+              }
+            : prev.evaluaciones,
           incidente: prev.incidente
             ? {
                 ...prev.incidente,
@@ -312,15 +353,45 @@ export const MisionDetalleModal: React.FC<MisionDetalleModalProps> = ({
           reportesTerreno: nuevosReportes,
         };
       });
+
+      if (requiereRecargaPorCierreCuadrilla) {
+        void obtenerDetalleMision(misionId, userId).then((res) => {
+          if (res.exito && res.datos) {
+            setMision(res.datos);
+          }
+        });
+      }
+    };
+
+    const handleMisionActualizada = (rawPayload: unknown) => {
+      const p = rawPayload as Record<string, unknown> | null | undefined;
+      const raw = (p?.datos || p?.data || rawPayload) as Record<string, unknown> | null | undefined;
+      if (!raw || typeof raw !== 'object') return;
+      const evMisionId =
+        typeof raw.misionId === 'string'
+          ? raw.misionId
+          : typeof raw.id === 'string'
+            ? raw.id
+            : '';
+      const evEstado = typeof raw.estado === 'string' ? raw.estado.toUpperCase() : '';
+      if (evMisionId === misionId && evEstado === 'COMPLETADA') {
+        void obtenerDetalleMision(misionId, userId).then((res) => {
+          if (res.exito && res.datos) {
+            setMision(res.datos);
+          }
+        });
+      }
     };
 
     socket.on('connect', asegurarSalasEncargado);
     socket.on('adjunto:creado', handleAdjuntoCreado);
     socket.on('incidente:actualizado', handleIncidenteActualizado);
+    socket.on('mision:actualizada', handleMisionActualizada);
     return () => {
       socket.off('connect', asegurarSalasEncargado);
       socket.off('adjunto:creado', handleAdjuntoCreado);
       socket.off('incidente:actualizado', handleIncidenteActualizado);
+      socket.off('mision:actualizada', handleMisionActualizada);
     };
   }, [misionId, userId]);
 
@@ -434,6 +505,7 @@ export const MisionDetalleModal: React.FC<MisionDetalleModalProps> = ({
                 reportes={mision.reportesTerreno || []}
                 bitacora={mision.bitacoraTiempos || []}
                 patrulla={mision.patrulla}
+                cuadrilla={mision.cuadrilla}
                 incidente={mision.incidente}
                 reporteDestacadoId={reporteDestacadoId}
                 seccionRef={seccionReportesRef}

@@ -13,6 +13,8 @@ import {
   Users,
   HeartHandshake,
   Ban,
+  HardHat,
+  Package,
 } from 'lucide-react';
 import Heading from '@/components/ui/Heading';
 import Chip from '@/components/ui/Chip';
@@ -20,22 +22,32 @@ import type {
   ReporteTerrenoDetalle,
   MisionBitacoraHito,
   PatrullaMisionDetalle,
+  CuadrillaMisionDetalle,
   IncidenteMisionResumen,
   EvaluacionTerrenoMisionDetalle,
 } from '@/types/misiones';
 import {
   calcularComparativaPersonasAfectadas,
   esJustificacionSinCambios,
+  esReporteCierreCuadrilla,
   esReporteVerificacionCierre,
+  formatearCantidadMaterial,
   formatearDictamenTerreno,
   formatearEstado,
+  formatearEstadoTerreno,
+  formatearHorasHombre,
   formatearNombrePatrulla,
   formatearPrioridad,
   formatearCompromisoVivienda,
   fueTipologiaModificada,
+  normalizarMaterialesConsumidos,
+  obtenerPesoOrdenReporte,
   obtenerVarianteCompromisoVivienda,
 } from '@/lib/utils/estadoUtils';
-import { obtenerVarianteChipDictamen } from '@/lib/utils/chipVariants';
+import {
+  obtenerVarianteChipDictamen,
+  obtenerVarianteChipEstadoTerreno,
+} from '@/lib/utils/chipVariants';
 import { MisionEvidenciasGallery } from './MisionEvidenciasGallery';
 import styles from '@/styles/mision-detalle.module.css';
 
@@ -43,6 +55,7 @@ interface MisionReportesSectionProps {
   reportes: ReporteTerrenoDetalle[];
   bitacora?: MisionBitacoraHito[];
   patrulla?: PatrullaMisionDetalle | null;
+  cuadrilla?: CuadrillaMisionDetalle | null;
   incidente?: IncidenteMisionResumen | null;
   reporteDestacadoId?: string | null;
   seccionRef?: React.RefObject<HTMLDivElement | null>;
@@ -301,19 +314,20 @@ export const MisionReportesSection: React.FC<MisionReportesSectionProps> = ({
   reportes,
   bitacora = [],
   patrulla,
+  cuadrilla,
   incidente,
   reporteDestacadoId,
   seccionRef,
 }) => {
   const [desplegados, setDesplegados] = useState<Record<string, boolean>>({});
 
-  // Ordenar reportes dejando la versión más reciente primero (vigente) y priorizando VERIFICACION_CIERRE al cierre
+  // Ordenar reportes dejando la versión más reciente primero (vigente) y priorizando REPORTE_CUADRILLA / VERIFICACION_CIERRE
   const reportesOrdenados = useMemo(() => {
     if (reportes.length <= 1) return reportes;
     return [...reportes].sort((a, b) => {
-      const cierreA = esReporteVerificacionCierre(a) ? 1 : 0;
-      const cierreB = esReporteVerificacionCierre(b) ? 1 : 0;
-      if (cierreA !== cierreB) return cierreB - cierreA;
+      const pesoA = obtenerPesoOrdenReporte(a);
+      const pesoB = obtenerPesoOrdenReporte(b);
+      if (pesoA !== pesoB) return pesoB - pesoA;
       const verA = Number(a.versionReporte ?? 0);
       const verB = Number(b.versionReporte ?? 0);
       if (verA !== verB) return verB - verA;
@@ -622,7 +636,15 @@ export const MisionReportesSection: React.FC<MisionReportesSectionProps> = ({
               }
 
               const esDestacado = reporteDestacadoId === reporte.id;
-              const esCierre = esReporteVerificacionCierre(reporte);
+              const esCierreCuadrilla = esReporteCierreCuadrilla(reporte);
+              const esCierre = !esCierreCuadrilla && esReporteVerificacionCierre(reporte);
+              const materialesConsumidos = esCierreCuadrilla
+                ? normalizarMaterialesConsumidos(reporte.materialesConsumidos)
+                : [];
+              const estadoTerrenoNorm = (reporte.estadoTerreno || '').trim().toUpperCase();
+              const esTerrenoCritico =
+                estadoTerrenoNorm === 'CRITICO' || estadoTerrenoNorm === 'INACCESIBLE';
+              const esTerrenoSeguimiento = estadoTerrenoNorm === 'REQUIERE_SEGUIMIENTO';
               const comparativaPersonas = esCierre
                 ? calcularComparativaPersonasAfectadas(reporte, reportesOrdenados)
                 : null;
@@ -634,40 +656,82 @@ export const MisionReportesSection: React.FC<MisionReportesSectionProps> = ({
                   ? evalNorm.familias.length
                   : evalNorm?.familiasAfectadas;
 
-              const borderLeftColor = esCierre
-                ? reporte.dictamen === 'NO_ABORDABLE'
+              const borderLeftColor = esCierreCuadrilla
+                ? esTerrenoCritico
                   ? 'var(--color-danger, #D32F2F)'
-                  : 'var(--color-accent-mint, #4FAE9B)'
-                : prioridadModificada
-                  ? 'var(--color-warning, #E65100)'
-                  : 'var(--color-accent-mint, #4FAE9B)';
+                  : esTerrenoSeguimiento || reporte.requiereApoyoAdicional
+                    ? 'var(--color-warning, #E65100)'
+                    : 'var(--color-accent-mint, #4FAE9B)'
+                : esCierre
+                  ? reporte.dictamen === 'NO_ABORDABLE'
+                    ? 'var(--color-danger, #D32F2F)'
+                    : 'var(--color-accent-mint, #4FAE9B)'
+                  : prioridadModificada
+                    ? 'var(--color-warning, #E65100)'
+                    : 'var(--color-accent-mint, #4FAE9B)';
 
               return (
                 <ReporteCardShell
                   key={reporte.id}
                   toggleId={reporte.id}
                   testId={
-                    esCierre
-                      ? `reporte-verificacion-cierre-${reporte.id}`
-                      : `reporte-terreno-card-${reporte.id}`
+                    esCierreCuadrilla
+                      ? `reporte-cierre-cuadrilla-${reporte.id}`
+                      : esCierre
+                        ? `reporte-verificacion-cierre-${reporte.id}`
+                        : `reporte-terreno-card-${reporte.id}`
                   }
                   reportId={reporte.id}
                   estaAbierto={estaAbierto}
                   onToggle={() => toggleDesplegable(reporte.id, estaAbierto)}
                   ariaLabel={`${estaAbierto ? 'Colapsar' : 'Desplegar'} informe técnico de ${reporte.evaluador.nombre}`}
-                  icono={<User size={16} color="var(--color-primary-teal, #1B6F7D)" />}
+                  icono={
+                    esCierreCuadrilla ? (
+                      <HardHat size={16} color="var(--color-primary-teal, #1B6F7D)" />
+                    ) : (
+                      <User size={16} color="var(--color-primary-teal, #1B6F7D)" />
+                    )
+                  }
                   autorNombre={reporte.evaluador.nombre}
                   autorSubtitulo={
-                    reporte.evaluador.rut
-                      ? `(RUT: ${reporte.evaluador.rut})`
-                      : `(${reporte.evaluador.email})`
+                    esCierreCuadrilla && cuadrilla?.nombre
+                      ? `(${cuadrilla.nombre}${reporte.evaluador.rut ? ` · RUT: ${reporte.evaluador.rut}` : ''})`
+                      : reporte.evaluador.rut
+                        ? `(RUT: ${reporte.evaluador.rut})`
+                        : `(${reporte.evaluador.email})`
                   }
                   fechaFormateada={formatFecha(reporte.creadoEn)}
                   borderLeftColor={borderLeftColor}
                   esDestacado={esDestacado}
                   chips={
                     <>
-                      {esCierre ? (
+                      {esCierreCuadrilla ? (
+                        <>
+                          <Chip variant="teal" size="sm">
+                            {reporte.etiquetaReporte ||
+                              'Informe Técnico Final de Cuadrilla (Cierre de Misión)'}
+                          </Chip>
+                          {reporte.estadoTerreno && (
+                            <Chip
+                              data-testid={`badge-estado-terreno-${reporte.id}`}
+                              variant={obtenerVarianteChipEstadoTerreno(reporte.estadoTerreno)}
+                              size="sm"
+                            >
+                              Estado terreno: {formatearEstadoTerreno(reporte.estadoTerreno)}
+                            </Chip>
+                          )}
+                          {typeof reporte.horasHombre === 'number' && (
+                            <Chip
+                              data-testid={`badge-horas-hombre-${reporte.id}`}
+                              variant="neutral"
+                              size="sm"
+                              icon={<Clock size={11} />}
+                            >
+                              {formatearHorasHombre(reporte.horasHombre)}
+                            </Chip>
+                          )}
+                        </>
+                      ) : esCierre ? (
                         <>
                           <Chip variant="teal" size="sm">
                             {reporte.etiquetaReporte || 'Informe de Verificación y Cierre'}
@@ -696,7 +760,7 @@ export const MisionReportesSection: React.FC<MisionReportesSectionProps> = ({
                         </Chip>
                       )}
 
-                      {!esCierre && hogaresCount ? (
+                      {!esCierreCuadrilla && !esCierre && hogaresCount ? (
                         <Chip variant="neutral" size="sm" title="Familias / Hogares evaluados en terreno">
                           {hogaresCount} {hogaresCount === 1 ? 'hogar' : 'hogares'}
                         </Chip>
@@ -714,7 +778,206 @@ export const MisionReportesSection: React.FC<MisionReportesSectionProps> = ({
                     </>
                   }
                 >
-                  {esCierre ? (
+                  {esCierreCuadrilla ? (
+                    <>
+                      {(esTerrenoCritico || esTerrenoSeguimiento) && (
+                        <div
+                          data-testid={`alerta-terreno-cuadrilla-${reporte.id}`}
+                          style={{
+                            padding: '10px 12px',
+                            backgroundColor: esTerrenoCritico
+                              ? 'var(--color-danger-bg, #FFEBEE)'
+                              : 'var(--color-warning-bg, #FFF3E0)',
+                            border: `1px solid ${esTerrenoCritico ? '#FFCDD2' : '#FFCC80'}`,
+                            borderLeft: `4px solid ${
+                              esTerrenoCritico
+                                ? 'var(--color-danger, #D32F2F)'
+                                : 'var(--color-warning, #E65100)'
+                            }`,
+                          }}
+                        >
+                          <div
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '6px',
+                              marginBottom: '2px',
+                            }}
+                          >
+                            <AlertTriangle
+                              size={14}
+                              color={
+                                esTerrenoCritico
+                                  ? 'var(--color-danger, #D32F2F)'
+                                  : 'var(--color-warning, #E65100)'
+                              }
+                              aria-hidden="true"
+                            />
+                            <strong
+                              style={{
+                                fontSize: '13px',
+                                color: esTerrenoCritico
+                                  ? 'var(--color-danger, #D32F2F)'
+                                  : 'var(--color-warning, #E65100)',
+                              }}
+                            >
+                              Condición Final del Terreno: {formatearEstadoTerreno(reporte.estadoTerreno)}
+                            </strong>
+                          </div>
+                          <p
+                            style={{
+                              margin: 0,
+                              fontSize: '13px',
+                              color: 'var(--color-text-dark, #2B2B2B)',
+                              lineHeight: 1.4,
+                            }}
+                          >
+                            El estado constatado al concluir las faenas requiere evaluación o seguimiento adicional del Encargado antes de decretar el cierre del incidente (H86).
+                          </p>
+                        </div>
+                      )}
+
+                      {(reporte.resumenTecnico || reporte.resumenFaenas) && (
+                        <div>
+                          <span className={styles.dataLabel}>Resumen de Faenas Ejecutadas:</span>
+                          <p
+                            style={{
+                              margin: '4px 0 0 0',
+                              fontSize: '14px',
+                              color: 'var(--color-text-dark, #2B2B2B)',
+                              lineHeight: 1.45,
+                            }}
+                          >
+                            {reporte.resumenTecnico || reporte.resumenFaenas}
+                          </p>
+                        </div>
+                      )}
+
+                      <div
+                        data-testid={`datos-cierre-cuadrilla-${reporte.id}`}
+                        style={{
+                          padding: '10px 12px',
+                          backgroundColor: 'var(--color-bg-light, #ECEFF3)',
+                          border: '1px solid var(--border-color-neutral, #DFE3E8)',
+                        }}
+                      >
+                        <div className={styles.dataGrid}>
+                          <div className={styles.dataItem}>
+                            <span className={styles.dataLabel}>Estado Final del Terreno</span>
+                            <span className={styles.dataValue} style={{ fontWeight: 700 }}>
+                              {formatearEstadoTerreno(reporte.estadoTerreno)}
+                            </span>
+                          </div>
+
+                          <div className={styles.dataItem}>
+                            <span className={styles.dataLabel}>Horas Hombre Invertidas</span>
+                            <span className={styles.dataValue} style={{ fontWeight: 700 }}>
+                              {formatearHorasHombre(reporte.horasHombre)}
+                            </span>
+                          </div>
+
+                          <div className={styles.dataItem}>
+                            <span className={styles.dataLabel}>Daños Materiales Estimados</span>
+                            <span className={styles.dataValue}>
+                              {reporte.danosEstimados || 'Sin daños materiales adicionales especificados'}
+                            </span>
+                          </div>
+
+                          {typeof reporte.requiereAsistenciaSocial === 'boolean' && (
+                            <div className={styles.dataItem}>
+                              <span className={styles.dataLabel}>Asistencia Social (Ficha FIBE)</span>
+                              <div style={{ marginTop: '2px' }}>
+                                <Chip
+                                  variant={requiereFibeCierre ? 'warning' : 'neutral'}
+                                  size="sm"
+                                  icon={<HeartHandshake size={12} />}
+                                  data-testid={`chip-fibe-cuadrilla-${reporte.id}`}
+                                >
+                                  {requiereFibeCierre ? 'Requiere Ficha FIBE' : 'No requiere Ficha FIBE'}
+                                </Chip>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Tabla de Materiales e Insumos Consumidos (HU-68) */}
+                      <div data-testid={`tabla-materiales-consumidos-${reporte.id}`}>
+                        <span
+                          className={styles.dataLabel}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '5px',
+                            marginBottom: '6px',
+                            color: 'var(--color-primary-teal-dark, #14505A)',
+                          }}
+                        >
+                          <Package size={14} aria-hidden="true" />
+                          <span>
+                            Materiales e Insumos Consumidos ({materialesConsumidos.length}):
+                          </span>
+                        </span>
+
+                        {materialesConsumidos.length > 0 ? (
+                          <div className={styles.recursosTableContainer}>
+                            <table className={styles.recursosTable}>
+                              <thead>
+                                <tr>
+                                  <th>Material / Insumo</th>
+                                  <th style={{ textAlign: 'right' }}>Cantidad Consumida</th>
+                                  <th>Observación</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {materialesConsumidos.map((mat, matIdx) => (
+                                  <tr key={`${mat.recursoId}-${matIdx}`}>
+                                    <td style={{ fontWeight: 600 }}>
+                                      {mat.nombre || `Recurso (${mat.recursoId.slice(0, 8)})`}
+                                    </td>
+                                    <td style={{ textAlign: 'right', fontWeight: 700 }}>
+                                      {formatearCantidadMaterial(mat.cantidad, mat.unidad)}
+                                    </td>
+                                    <td>{mat.observacion || 'Sin observaciones'}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        ) : (
+                          <p
+                            style={{
+                              margin: '4px 0 0 0',
+                              fontSize: '13px',
+                              color: 'var(--color-text-muted, #5F676E)',
+                              fontStyle: 'italic',
+                            }}
+                          >
+                            No se registró consumo de insumos materiales durante esta faena.
+                          </p>
+                        )}
+                      </div>
+
+                      {reporte.observaciones && (
+                        <div>
+                          <span className={styles.dataLabel}>Observaciones Generales:</span>
+                          <p
+                            style={{
+                              margin: '4px 0 0 0',
+                              fontSize: '13px',
+                              color: 'var(--color-text-muted, #5F676E)',
+                              lineHeight: 1.4,
+                            }}
+                          >
+                            {reporte.observaciones}
+                          </p>
+                        </div>
+                      )}
+
+                      {/* Galería de Evidencias (HU-43) */}
+                      <MisionEvidenciasGallery adjuntos={reporte.adjuntos} />
+                    </>
+                  ) : esCierre ? (
                     <>
                       {(reporte.dictamen === 'NO_ABORDABLE' || Boolean(reporte.motivoNoAbordable)) && (
                         <div
