@@ -289,7 +289,6 @@ describe('recuperacionService (HU-29)', () => {
       expect(apiClient.GET).toHaveBeenCalledWith('/api/eventos-atp/recuperacion/{id}', {
         params: {
           path: { id: mockDetalle.id },
-          header: { 'x-user-id': DEFAULT_ENCARGADO_ID },
         },
       });
       expect(res.codigo).toBe('REC-2026-0001');
@@ -344,10 +343,16 @@ describe('recuperacionService (HU-29)', () => {
           },
         } as unknown as never,
         error: undefined,
-        response: { ok: true, status: 201 } as Response,
+        response: { ok: true, status: 200 } as Response,
       });
 
       const res = await asignarRecursosRecuperacion('evento-uuid', payloadAsignacion);
+      expect(apiClient.POST).toHaveBeenCalledWith('/api/eventos-atp/recuperacion/{id}/asignar', {
+        params: {
+          path: { id: 'evento-uuid' },
+        },
+        body: payloadAsignacion,
+      });
       expect(res.data.mision.codigo).toBe('MIS-2026-0002');
       expect(res.data.patrulla.estado).toBe('EN_RECUPERACION');
     });

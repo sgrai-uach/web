@@ -5,7 +5,7 @@
 
 export type PrioridadRecuperacion = 'BAJA' | 'MEDIA' | 'ALTA' | 'CRITICA';
 
-export type EstadoRecuperacion = 'PLANIFICADA' | 'EN_EJECUCION' | 'EN_CURSO' | 'COMPLETADA' | 'CANCELADA';
+export type EstadoRecuperacion = 'PLANIFICADA' | 'EN_EJECUCION' | 'COMPLETADA' | 'CANCELADA';
 
 export interface ItemRecursoSolicitado {
   recursoId: string; // UUID
@@ -124,10 +124,6 @@ export type EventoRecuperacionListadoItemDTO =
 
 export type EventoRecuperacionListadoResponseDTO =
   paths['/api/eventos-atp/recuperacion']['get']['responses'][200]['content']['application/json'];
-
-export type ListarEventosRecuperacionQuery = NonNullable<
-  paths['/api/eventos-atp/recuperacion']['get']['parameters']['query']
->;
 
 export interface MisionRecuperacionItem {
   id: string;

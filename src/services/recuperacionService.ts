@@ -1,6 +1,7 @@
 import apiClient from '@/lib/api/client';
 import { DEFAULT_ENCARGADO_ID } from '@/services/incidentesService';
 import { formatApiError } from '@/lib/utils/errorUtils';
+import { getAuthCookie } from '@/lib/utils/cookieUtils';
 import type {
   CrearEventoRecuperacionInput,
   EventoRecuperacionResponse,
@@ -169,7 +170,7 @@ export interface ListarEventosRecuperacionParams {
   pagina?: number;
   limite?: number;
   delegacionId?: string;
-  estado?: 'PLANIFICADA' | 'EN_CURSO' | 'EN_EJECUCION' | 'COMPLETADA' | 'CANCELADA';
+  estado?: 'PLANIFICADA' | 'EN_EJECUCION' | 'COMPLETADA' | 'CANCELADA';
   prioridad?: 'BAJA' | 'MEDIA' | 'ALTA' | 'CRITICA';
   busqueda?: string;
 }
@@ -188,23 +189,15 @@ export interface ListarEventosRecuperacionResponse {
  */
 export async function listarEventosRecuperacion(
   params?: ListarEventosRecuperacionParams,
-  userId: string = DEFAULT_ENCARGADO_ID
+  _userId: string = DEFAULT_ENCARGADO_ID
 ): Promise<ListarEventosRecuperacionResponse> {
+  void _userId;
   try {
+    const token = typeof window !== 'undefined' ? getAuthCookie() : null;
     const { data, error, response } = await apiClient.GET('/api/eventos-atp/recuperacion', {
       params: {
-        query: {
-          page: params?.pagina,
-          limit: params?.limite,
-          pagina: params?.pagina,
-          limite: params?.limite,
-          delegacionId: params?.delegacionId,
-          estado: params?.estado,
-          prioridad: params?.prioridad,
-          busqueda: params?.busqueda,
-        },
         header: {
-          'x-user-id': userId,
+          authorization: token ? `Bearer ${token}` : '',
         },
       },
     });
@@ -289,15 +282,13 @@ export async function listarEventosRecuperacion(
  */
 export async function obtenerEventoRecuperacion(
   id: string,
-  userId: string = DEFAULT_ENCARGADO_ID
+  _userId: string = DEFAULT_ENCARGADO_ID
 ): Promise<DetalleEventoRecuperacionResponse> {
+  void _userId;
   try {
     const { data, error, response } = await apiClient.GET('/api/eventos-atp/recuperacion/{id}', {
       params: {
         path: { id },
-        header: {
-          'x-user-id': userId,
-        },
       },
     });
 
@@ -383,21 +374,19 @@ export async function obtenerEventoRecuperacion(
 export async function asignarRecursosRecuperacion(
   id: string,
   input: AsignarRecursosRecuperacionInput,
-  userId: string = DEFAULT_ENCARGADO_ID
+  _userId: string = DEFAULT_ENCARGADO_ID
 ): Promise<AsignarRecursosRecuperacionResponse> {
+  void _userId;
   try {
     const { data, error, response } = await apiClient.POST('/api/eventos-atp/recuperacion/{id}/asignar', {
       params: {
         path: { id },
-        header: {
-          'x-user-id': userId,
-        },
       },
       body: input,
     });
 
-    if ((response.status === 200 || response.status === 201) && data) {
-      return data as AsignarRecursosRecuperacionResponse;
+    if (response.status === 200 && data) {
+      return data;
     }
 
     const status = response.status;

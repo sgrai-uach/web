@@ -4788,91 +4788,144 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Listar operativos de recuperación post-desastre (H73 / H32)
-         * @description Retorna una lista paginada y filtrable de todos los operativos de recuperación registrados para seguimiento del Encargado.
+         * Listar eventos de recuperación territorial para el mapa operativo
+         * @description Consulta todos los eventos de recuperación comunales registrados con sus misiones tácticas desplegadas, patrullas asignadas y recursos para su renderizado táctico georreferenciado en el mapa operativo.
          */
         get: {
             parameters: {
-                query?: {
-                    /** @description Número de página (inicia en 1) */
-                    page?: number;
-                    /** @description Cantidad de elementos por página (máximo 100) */
-                    limit?: number;
-                    /** @description Alias legado de 'page' */
-                    pagina?: number;
-                    /** @description Alias legado de 'limit' */
-                    limite?: number;
-                    /** @description Filtrar por identificador de la delegación territorial correspondiente */
-                    delegacionId?: string;
-                    /** @description Filtrar por estado del ciclo de vida del operativo */
-                    estado?: "PLANIFICADA" | "EN_CURSO" | "EN_EJECUCION" | "COMPLETADA" | "CANCELADA";
-                    /** @description Filtrar por nivel de urgencia o prioridad operativa */
-                    prioridad?: "BAJA" | "MEDIA" | "ALTA" | "CRITICA";
-                    /** @description Búsqueda textual por código, título o sector */
-                    busqueda?: string;
-                };
-                header?: {
-                    /** @description Token Bearer JWT de sesión institucional */
-                    authorization?: string;
-                    /** @description UUID del usuario autenticado */
-                    "x-user-id"?: string;
+                query?: never;
+                header: {
+                    /** @description Token JWT en formato 'Bearer <token>' */
+                    authorization: string;
                 };
                 path?: never;
                 cookie?: never;
             };
             requestBody?: never;
             responses: {
-                /** @description Listado de operativos de recuperación obtenido exitosamente */
+                /** @description Listado de eventos de recuperación obtenido exitosamente */
                 200: {
                     headers: {
                         [name: string]: unknown;
                     };
                     content: {
                         "application/json": {
-                            message?: string;
+                            /** @example Eventos de recuperación obtenidos exitosamente. */
+                            message: string;
+                            /** @example 4 */
                             total: number;
                             data: Array<{
+                                /**
+                                 * Format: uuid
+                                 * @description Identificador único UUID del evento de recuperación
+                                 */
                                 id: string;
+                                /**
+                                 * @description Código oficial único del evento (ej. REC-2026-0001)
+                                 * @example REC-2026-0001
+                                 */
                                 codigo: string;
+                                /** @example Entrega de frazadas y techumbre en Sector Collico */
                                 nombre: string;
-                                descripcion?: string | null;
+                                /** @example Familias afectadas por temporal de viento */
+                                descripcion: string | null;
+                                /** @example Collico */
                                 sector: string;
-                                direccionTexto?: string | null;
+                                /** @example Calle Balmaceda 1245 con Las Palmeras */
+                                direccionTexto: string | null;
+                                /**
+                                 * @example ALTA
+                                 * @enum {string}
+                                 */
                                 prioridad: "BAJA" | "MEDIA" | "ALTA" | "CRITICA";
+                                /** @example Juan Pérez (Presidente JJVV) */
+                                contactoNombre: string | null;
+                                /** @example +56912345678 */
+                                contactoTelefono: string | null;
+                                /** @example -39.8142 */
                                 latitud: number;
+                                /** @example -73.2459 */
                                 longitud: number;
-                                estado: "PLANIFICADA" | "EN_CURSO" | "EN_EJECUCION" | "COMPLETADA" | "CANCELADA";
-                                familiasAfectadas?: number;
-                                contactoNombre?: string | null;
-                                contactoTelefono?: string | null;
-                                delegacion?: {
+                                /**
+                                 * @example PLANIFICADA
+                                 * @enum {string}
+                                 */
+                                estado: "PLANIFICADA" | "EN_EJECUCION" | "COMPLETADA" | "CANCELADA";
+                                /** @example 4 */
+                                familiasAfectadas: number;
+                                /** @description Delegación territorial asignada */
+                                delegacion: {
+                                    /** Format: uuid */
                                     id: string;
                                     codigo: string;
                                     nombre: string;
                                 } | null;
-                                mision?: {
+                                /** @description Misión táctica despachada a terreno */
+                                mision: {
+                                    /**
+                                     * Format: uuid
+                                     * @example 60000000-0000-4000-8000-000000000001
+                                     */
                                     id: string;
+                                    /** @example MIS-2026-0042 */
                                     codigo: string;
+                                    /** @example Entrega de frazadas y techumbre en Sector Collico */
                                     titulo: string;
+                                    /** @example DESPACHADA */
                                     estado: string;
+                                    /** @example RECUPERACION */
                                     tipoMision: string;
-                                } | null;
-                                patrulla?: {
+                                };
+                                /** @description Patrulla asignada a la operación */
+                                patrulla: {
+                                    /**
+                                     * Format: uuid
+                                     * @example 50000000-0000-4000-8000-000000000001
+                                     */
                                     id: string;
+                                    /** @example Patrulla Verificadora Alfa */
                                     nombre: string;
+                                    /** @example EN_RECUPERACION */
                                     estado: string;
-                                } | null;
-                                recursos?: Array<{
+                                };
+                                /** @description Recursos reservados o descontados para la entrega */
+                                recursos: Array<{
+                                    /**
+                                     * Format: uuid
+                                     * @example 00000000-0000-4000-8000-000000000001
+                                     */
                                     recursoId: string;
+                                    /** @example Sacos de Arena 25kg */
                                     nombre: string;
+                                    /** @example 10 */
                                     cantidadAsignada: number;
                                 }>;
-                                creadoPorId?: string;
+                                /**
+                                 * Format: uuid
+                                 * @description Identificador del Encargado que creó el evento
+                                 */
+                                creadoPorId: string;
+                                /** @description Fecha de registro ISO 8601 */
                                 creadoEn: string;
+                                /** @description Fecha de actualización ISO 8601 */
                                 actualizadoEn: string;
                             }>;
                         };
                     };
+                };
+                /** @description No autenticado o token inválido */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Acceso denegado. Se requiere permiso 'misiones:leer', 'recuperacion:crear' o 'misiones:asignar' */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
                 };
                 /** @description Error interno del servidor */
                 500: {
@@ -5157,12 +5210,7 @@ export interface paths {
         get: {
             parameters: {
                 query?: never;
-                header?: {
-                    /** @description Token Bearer JWT de sesión institucional */
-                    authorization?: string;
-                    /** @description UUID del usuario autenticado */
-                    "x-user-id"?: string;
-                };
+                header?: never;
                 path: {
                     /** @description UUID del evento de recuperación */
                     id: string;
@@ -5189,7 +5237,7 @@ export interface paths {
                                 prioridad: "BAJA" | "MEDIA" | "ALTA" | "CRITICA";
                                 latitud: number;
                                 longitud: number;
-                                estado: "PLANIFICADA" | "EN_CURSO" | "EN_EJECUCION" | "COMPLETADA" | "CANCELADA";
+                                estado: "PLANIFICADA" | "EN_EJECUCION" | "COMPLETADA" | "CANCELADA";
                                 familiasAfectadas?: number;
                                 contactoNombre?: string | null;
                                 contactoTelefono?: string | null;
@@ -5291,19 +5339,14 @@ export interface paths {
         post: {
             parameters: {
                 query?: never;
-                header?: {
-                    /** @description Token Bearer JWT de sesión institucional */
-                    authorization?: string;
-                    /** @description UUID del usuario autenticado (Encargado o Administrador) */
-                    "x-user-id"?: string;
-                };
+                header?: never;
                 path: {
                     /** @description UUID del evento de recuperación */
                     id: string;
                 };
                 cookie?: never;
             };
-            requestBody: {
+            requestBody?: {
                 content: {
                     "application/json": {
                         /** @description UUID de la patrulla verificadora disponible */
