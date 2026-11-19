@@ -1,13 +1,38 @@
 import type { Metadata, Viewport } from "next";
-import { Noto_Sans } from "next/font/google";
+import localFont from "next/font/local";
 import "@/styles/globals.css";
 import { ToastProvider } from "@/components/ui/Toast";
 import { AuthProvider } from "@/context/AuthContext";
 import { SimulatedSessionProvider } from "@/context/SimulatedSessionContext";
 
-const notoSans = Noto_Sans({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700", "800"],
+const notoSans = localFont({
+  src: [
+    {
+      path: "../fonts/NotoSans-Regular.woff2",
+      weight: "400",
+      style: "normal",
+    },
+    {
+      path: "../fonts/NotoSans-Regular.woff2",
+      weight: "500",
+      style: "normal",
+    },
+    {
+      path: "../fonts/NotoSans-Bold.woff2",
+      weight: "600",
+      style: "normal",
+    },
+    {
+      path: "../fonts/NotoSans-Bold.woff2",
+      weight: "700",
+      style: "normal",
+    },
+    {
+      path: "../fonts/NotoSans-Bold.woff2",
+      weight: "800",
+      style: "normal",
+    },
+  ],
   variable: "--font-noto-sans",
   display: "swap",
 });
