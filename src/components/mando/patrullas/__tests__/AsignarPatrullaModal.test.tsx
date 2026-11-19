@@ -178,7 +178,17 @@ describe('AsignarPatrullaModal (HU-20: Despacho de Patrulla Verificadora)', () =
     expect(onCloseMock).toHaveBeenCalled();
     expect(mockShowSuccess).toHaveBeenCalledWith(
       expect.stringContaining('MIS-2026-8341'),
-      'Despacho Confirmado'
+      'Despacho Confirmado',
+      expect.objectContaining({
+        icon: 'patrulla',
+        codeBadge: 'INC-2026-1042',
+        priorityBadge: 'ALTA',
+        dedupKey: 'despacho-patrulla:mis-50',
+        details: [
+          { label: 'Patrulla', value: 'Patrulla Ánimas Norte 1' },
+          { label: 'Misión', value: 'MIS-2026-8341' },
+        ],
+      })
     );
   });
 

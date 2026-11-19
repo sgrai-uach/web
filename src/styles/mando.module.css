@@ -346,6 +346,11 @@
   border-left: 4px solid var(--color-success, #2E7D32) !important;
 }
 
+/* Indicador de faenas operativas finalizadas en En Atención (HU-68 / H86) */
+.incidenteFaenasFinalizadas {
+  border-left: 4px solid var(--color-accent-mint, #4FAE9B) !important;
+}
+
 .badgeVerificado {
   display: inline-flex;
   align-items: center;

@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { getSocket } from '@/lib/socket/client';
+import { suscribirSalasSocket } from '@/lib/socket/roomManager';
 import { esPayloadTrazabilidadValido } from '@/lib/socket/trazabilidadConfig';
 import { setTrazabilidadEstado } from '@/lib/socket/trazabilidadStore';
 import type {
@@ -203,12 +204,14 @@ export function useEncargadoKanbanSocket({
       socket.connect();
     }
 
+    const desuscribirSalas = suscribirSalasSocket(socket, [
+      { sala: 'encargado', eventosJoin: ['join'], eventosLeave: ['leave'] },
+      { sala: 'sala:encargados', eventosJoin: ['unirse'], eventosLeave: ['salir'] },
+      { sala: 'mapa', eventosJoin: ['join', 'unirse'], eventosLeave: ['leave', 'salir'] },
+    ]);
+
     const onConnect = () => {
       setConectado(true);
-      socket.emit('join', 'encargado');
-      socket.emit('unirse', 'sala:encargados');
-      socket.emit('join', 'mapa');
-      socket.emit('unirse', 'mapa');
     };
 
     const onDisconnect = () => {
@@ -216,10 +219,6 @@ export function useEncargadoKanbanSocket({
     };
 
     if (socket.connected) {
-      socket.emit('join', 'encargado');
-      socket.emit('unirse', 'sala:encargados');
-      socket.emit('join', 'mapa');
-      socket.emit('unirse', 'mapa');
       queueMicrotask(() => {
         setConectado(true);
       });
@@ -771,10 +770,7 @@ export function useEncargadoKanbanSocket({
       socket.off('cuadrilla:actualizada', handleCuadrillaActualizada);
       socket.off('recurso:actualizado', handleRecursoActualizado);
       socket.off('notificacion:trazabilidad_actualizada', handleTrazabilidad);
-      socket.emit('leave', 'encargado');
-      socket.emit('salir', 'sala:encargados');
-      socket.emit('leave', 'mapa');
-      socket.emit('salir', 'mapa');
+      desuscribirSalas();
     };
   }, [enabled]);
 

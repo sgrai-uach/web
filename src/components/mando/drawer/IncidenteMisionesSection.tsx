@@ -710,15 +710,6 @@ export const IncidenteMisionesSection: React.FC<IncidenteMisionesSectionProps> =
                       {formatearHorasHombre(ultimoReporte.horasHombre)}
                     </Chip>
                   )}
-                  {requiereFibeCierre && (
-                    <Chip
-                      variant="warning"
-                      size="sm"
-                      icon={<HeartHandshake size={11} />}
-                    >
-                      Requiere Ficha FIBE
-                    </Chip>
-                  )}
                   {ultimoReporte.requiereApoyoAdicional && (
                     <Chip variant="warning" size="sm">
                       Requiere Apoyo

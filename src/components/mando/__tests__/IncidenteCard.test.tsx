@@ -369,8 +369,9 @@ describe('IncidenteCard', () => {
       totalReportesTerreno: 3,
     };
 
-    render(<IncidenteCard incidente={incidenteCuadrillaCerrada} onClick={vi.fn()} />);
+    const { container } = render(<IncidenteCard incidente={incidenteCuadrillaCerrada} onClick={vi.fn()} />);
 
+    expect((container.firstChild as HTMLElement).className).toContain('incidenteFaenasFinalizadas');
     expect(screen.getByTestId('badge-faenas-finalizadas').textContent).toContain('Faenas finalizadas');
     expect(screen.getByTestId('badge-estado-terreno-card').textContent).toContain(
       'Terreno: Requiere seguimiento'

@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { cuadrillasService } from '@/services/cuadrillasService';
 import { getSocket } from '@/lib/socket/client';
+import { suscribirSalasSocket } from '@/lib/socket/roomManager';
 import type {
   CuadrillaItem,
   FiltrosCuadrillasState,
@@ -102,25 +103,31 @@ export function useCuadrillas(filtros: FiltrosCuadrillasState): UseCuadrillasRet
     }));
   }, []);
 
+  const cargarDatosRef = useRef(cargarDatos);
+  useEffect(() => {
+    cargarDatosRef.current = cargarDatos;
+  }, [cargarDatos]);
+
+  const actualizarCuadrillaEnListaRef = useRef(actualizarCuadrillaEnLista);
+  useEffect(() => {
+    actualizarCuadrillaEnListaRef.current = actualizarCuadrillaEnLista;
+  }, [actualizarCuadrillaEnLista]);
+
   // Suscripción WebSocket para reflejar cuadrillas creadas, actualizadas o desactivadas en vivo
   useEffect(() => {
     try {
       const socket = getSocket();
       if (!socket || typeof socket.on !== 'function') return;
 
-      const unirseSalas = () => {
-        socket.emit('join', 'encargado');
-        socket.emit('unirse', 'sala:encargados');
-        socket.emit('join', 'mapa');
-        socket.emit('unirse', 'mapa');
-      };
-
       if (!socket.connected && typeof socket.connect === 'function') {
         socket.connect();
       }
-      if (socket.connected) {
-        unirseSalas();
-      }
+
+      const desuscribirSalas = suscribirSalasSocket(socket, [
+        { sala: 'encargado', eventosJoin: ['join'], eventosLeave: ['leave'] },
+        { sala: 'sala:encargados', eventosJoin: ['unirse'], eventosLeave: ['salir'] },
+        { sala: 'mapa', eventosJoin: ['join', 'unirse'], eventosLeave: ['leave', 'salir'] },
+      ]);
 
       const handleCuadrillaActualizada = (rawPayload: unknown) => {
         const p = rawPayload as Record<string, unknown> | null | undefined;
@@ -145,45 +152,40 @@ export function useCuadrillas(filtros: FiltrosCuadrillasState): UseCuadrillasRet
           parcial.estado = raw.estado as CuadrillaItem['estado'];
         }
 
-        actualizarCuadrillaEnLista(parcial);
+        actualizarCuadrillaEnListaRef.current(parcial);
 
         const estadoNorm = typeof raw.estado === 'string' ? raw.estado.toUpperCase() : '';
         if (filtrosRef.current.estado || estadoNorm === 'DISPONIBLE') {
-          void cargarDatos();
+          void cargarDatosRef.current();
         }
       };
 
       const handleCuadrillaCreada = (cuadrilla: CuadrillaItem) => {
         if (cuadrilla && cuadrilla.id) {
-          void cargarDatos();
+          void cargarDatosRef.current();
         }
       };
 
       const handleCuadrillaDesactivada = (data: { id: string } | CuadrillaItem) => {
         if (data && data.id) {
-          void cargarDatos();
+          void cargarDatosRef.current();
         }
       };
 
-      socket.on('connect', unirseSalas);
       socket.on('cuadrilla:actualizada', handleCuadrillaActualizada);
       socket.on('cuadrilla:creada', handleCuadrillaCreada);
       socket.on('cuadrilla:desactivada', handleCuadrillaDesactivada);
 
       return () => {
-        socket.off('connect', unirseSalas);
         socket.off('cuadrilla:actualizada', handleCuadrillaActualizada);
         socket.off('cuadrilla:creada', handleCuadrillaCreada);
         socket.off('cuadrilla:desactivada', handleCuadrillaDesactivada);
-        socket.emit('leave', 'encargado');
-        socket.emit('salir', 'sala:encargados');
-        socket.emit('leave', 'mapa');
-        socket.emit('salir', 'mapa');
+        desuscribirSalas();
       };
     } catch {
       // Ignorar fallo de inicialización de socket en entornos de prueba
     }
-  }, [actualizarCuadrillaEnLista, cargarDatos]);
+  }, []);
 
   return {
     cuadrillas,

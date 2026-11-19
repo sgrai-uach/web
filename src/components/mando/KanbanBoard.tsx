@@ -68,10 +68,22 @@ const TITULOS_COLUMNAS = {
 export const KanbanBoard: React.FC = () => {
   const { showInfo, showWarning, showSuccess } = useToast();
   const searchParams = useSearchParams();
+  const incidenteIdParam = searchParams?.get('incidenteId') ?? null;
   const [vistaActiva, setVistaActiva] = useState<'kanban' | 'mapa'>('kanban');
   const [misionesModalAbierto, setMisionesModalAbierto] = useState(false);
   const [patrullasModalAbierto, setPatrullasModalAbierto] = useState(false);
   const [misionSeleccionadaId, setMisionSeleccionadaId] = useState<string | null>(null);
+  const [incidenteSeleccionadoId, setIncidenteSeleccionadoId] = useState<string | null>(
+    incidenteIdParam
+  );
+  const [prevIncidenteIdParam, setPrevIncidenteIdParam] = useState<string | null>(incidenteIdParam);
+  if (incidenteIdParam !== prevIncidenteIdParam) {
+    setPrevIncidenteIdParam(incidenteIdParam);
+    if (incidenteIdParam) {
+      setIncidenteSeleccionadoId(incidenteIdParam);
+    }
+  }
+  const [kpiRefreshTick, setKpiRefreshTick] = useState(0);
   const [modalPrevencionAbierto, setModalPrevencionAbierto] = useState(false);
   const [modalRecuperacionAbierto, setModalRecuperacionAbierto] = useState(false);
   const [eventosPrevencion, setEventosPrevencion] = useState<EventoPrevencionDTO[]>([]);
@@ -102,6 +114,99 @@ export const KanbanBoard: React.FC = () => {
 
   const ultimosToastsReporteRef = React.useRef<Map<string, number>>(new Map());
 
+  const mostrarToastCierreCuadrilla = React.useCallback(
+    (params: {
+      incidenteId: string;
+      codigo?: string | null;
+      prioridad?: IncidenteResumen['prioridad'];
+      reporte?: IncidenteActualizadoPayload['datos']['reporteTerreno'];
+      misionId?: string;
+    }) => {
+      const { incidenteId, codigo, prioridad, reporte, misionId } = params;
+      const repId = reporte?.id || misionId || '1';
+      const ahora = Date.now();
+      const claveDedup = `cierre-cuadrilla:${incidenteId}:${repId}`;
+      const ultimaVez = ultimosToastsReporteRef.current.get(claveDedup);
+      if (ultimaVez && ahora - ultimaVez < 4000) {
+        return;
+      }
+      ultimosToastsReporteRef.current.set(claveDedup, ahora);
+
+      const materiales = normalizarMaterialesConsumidos(reporte?.materialesConsumidos);
+      const resumenMateriales =
+        materiales.length > 0
+          ? materiales
+              .slice(0, 2)
+              .map(
+                (m) =>
+                  `${m.nombre || 'Insumo'} (${formatearCantidadMaterial(m.cantidad, m.unidad)})`
+              )
+              .join(', ') +
+            (materiales.length > 2 ? ` y ${materiales.length - 2} más` : '')
+          : 'Sin consumo de insumos';
+
+      const estadoTerrenoNorm = (reporte?.estadoTerreno || '').trim().toUpperCase();
+      const requiereAlerta =
+        estadoTerrenoNorm === 'CRITICO' ||
+        estadoTerrenoNorm === 'INACCESIBLE' ||
+        estadoTerrenoNorm === 'REQUIERE_SEGUIMIENTO' ||
+        Boolean(reporte?.requiereApoyoAdicional) ||
+        prioridad === 'CRITICA';
+
+      const detallesCuadrilla: Array<{ label: string; value: string }> = [
+        {
+          label: 'Estado final del terreno',
+          value: formatearEstadoTerreno(reporte?.estadoTerreno),
+        },
+      ];
+      if (typeof reporte?.horasHombre === 'number') {
+        detallesCuadrilla.push({
+          label: 'Horas hombre',
+          value: formatearHorasHombre(reporte.horasHombre),
+        });
+      }
+      detallesCuadrilla.push({
+        label: 'Materiales consumidos',
+        value: resumenMateriales,
+      });
+      if (reporte?.requiereApoyoAdicional) {
+        detallesCuadrilla.push({
+          label: 'Apoyo adicional',
+          value: 'Solicitado en terreno',
+        });
+      }
+
+      const toastCuadrillaOptions = {
+        icon: 'cuadrilla' as const,
+        codeBadge: codigo || undefined,
+        priorityBadge: prioridad,
+        dedupKey: claveDedup,
+        details: detallesCuadrilla,
+        action: {
+          label: 'Ver incidente',
+          onClick: () => setIncidenteSeleccionadoId(incidenteId),
+        },
+      };
+
+      const mensajeCuadrilla = `La cuadrilla completó la misión en ${codigo || 'el incidente'}. La unidad volvió a estado Disponible; el incidente permanece En Atención para evaluación final.`;
+
+      if (requiereAlerta) {
+        showWarning(
+          mensajeCuadrilla,
+          'Cierre de Cuadrilla — Atención Requerida',
+          toastCuadrillaOptions
+        );
+      } else {
+        showSuccess(
+          mensajeCuadrilla,
+          'Informe Final de Cuadrilla Recibido',
+          toastCuadrillaOptions
+        );
+      }
+    },
+    [showWarning, showSuccess]
+  );
+
   const handleReporteTerrenoRecibido = React.useCallback(
     (payload: IncidenteActualizadoPayload) => {
       const rep = payload.datos.reporteTerreno;
@@ -117,79 +222,15 @@ export const KanbanBoard: React.FC = () => {
 
       const esCierreCuadrilla = esReporteCierreCuadrilla(rep);
       if (esCierreCuadrilla) {
-        const materiales = normalizarMaterialesConsumidos(rep.materialesConsumidos);
-        const resumenMateriales =
-          materiales.length > 0
-            ? materiales
-                .slice(0, 2)
-                .map((m) => `${m.nombre || 'Insumo'} (${formatearCantidadMaterial(m.cantidad, m.unidad)})`)
-                .join(', ') + (materiales.length > 2 ? ` y ${materiales.length - 2} más` : '')
-            : 'Sin consumo de insumos';
-
-        const estadoTerrenoNorm = (rep.estadoTerreno || '').trim().toUpperCase();
-        const requiereAlerta =
-          estadoTerrenoNorm === 'CRITICO' ||
-          estadoTerrenoNorm === 'INACCESIBLE' ||
-          Boolean(rep.requiereApoyoAdicional);
-
-        const detallesCuadrilla: Array<{ label: string; value: string }> = [
-          {
-            label: 'Estado final del terreno',
-            value: formatearEstadoTerreno(rep.estadoTerreno),
-          },
-        ];
-        if (typeof rep.horasHombre === 'number') {
-          detallesCuadrilla.push({
-            label: 'Horas hombre',
-            value: formatearHorasHombre(rep.horasHombre),
-          });
-        }
-        detallesCuadrilla.push({
-          label: 'Materiales consumidos',
-          value: resumenMateriales,
+        mostrarToastCierreCuadrilla({
+          incidenteId: payload.datos.id,
+          codigo: payload.datos.codigo,
+          prioridad: payload.datos.prioridad,
+          reporte: rep,
+          misionId: rep.misionId,
         });
-        if (payload.datos.requiereAsistenciaSocial ?? rep.requiereAsistenciaSocial) {
-          detallesCuadrilla.push({
-            label: 'Asistencia social',
-            value: 'Requiere levantamiento de Ficha FIBE',
-          });
-        }
-        if (rep.requiereApoyoAdicional) {
-          detallesCuadrilla.push({
-            label: 'Apoyo adicional',
-            value: 'Solicitado en terreno',
-          });
-        }
 
-        const toastCuadrillaOptions = {
-          icon: 'cuadrilla' as const,
-          codeBadge: payload.datos.codigo,
-          priorityBadge: payload.datos.prioridad,
-          dedupKey: `cierre-cuadrilla:${payload.datos.id}:${rep.id || '1'}`,
-          details: detallesCuadrilla,
-          action: {
-            label: 'Ver incidente',
-            onClick: () => setIncidenteSeleccionadoId(payload.datos.id),
-          },
-        };
-
-        const mensajeCuadrilla = `La cuadrilla completó la misión en ${payload.datos.codigo || 'el incidente'}. La unidad volvió a estado Disponible; el incidente permanece En Atención para evaluación final.`;
-
-        if (requiereAlerta) {
-          showWarning(
-            mensajeCuadrilla,
-            'Cierre de Cuadrilla — Atención Requerida',
-            toastCuadrillaOptions
-          );
-        } else {
-          showSuccess(
-            mensajeCuadrilla,
-            'Informe Final de Cuadrilla Recibido',
-            toastCuadrillaOptions
-          );
-        }
-
-        refrescarKpisRef.current(false);
+        setKpiRefreshTick((prev) => prev + 1);
         cargarCuadrillas();
         return;
       }
@@ -320,6 +361,7 @@ export const KanbanBoard: React.FC = () => {
         icon: 'reporte' as const,
         codeBadge: payload.datos.codigo,
         priorityBadge: payload.datos.prioridad,
+        dedupKey: `reporte-terreno:${payload.datos.id}:${rep.id || numVersion}`,
         details: detallesToast,
         action: {
           label: 'Ver incidente',
@@ -333,9 +375,9 @@ export const KanbanBoard: React.FC = () => {
         showInfo(mensajeBase, tituloToast, toastOptions);
       }
 
-      refrescarKpisRef.current(false);
+      setKpiRefreshTick((prev) => prev + 1);
     },
-    [showInfo, showWarning, showSuccess, cargarCuadrillas]
+    [mostrarToastCierreCuadrilla, showInfo, showWarning, cargarCuadrillas]
   );
 
   const ultimosToastsIncidenteRef = React.useRef<Map<string, number>>(new Map());
@@ -375,7 +417,7 @@ export const KanbanBoard: React.FC = () => {
         }
       );
 
-      refrescarKpisRef.current(false);
+      setKpiRefreshTick((prev) => prev + 1);
     },
     [showInfo, esToastIncidenteDuplicado]
   );
@@ -386,7 +428,7 @@ export const KanbanBoard: React.FC = () => {
       if (!datos) return;
 
       if (payload.esSintetico) {
-        refrescarKpisRef.current(false);
+        setKpiRefreshTick((prev) => prev + 1);
         return;
       }
 
@@ -463,12 +505,11 @@ export const KanbanBoard: React.FC = () => {
         );
       }
 
-      refrescarKpisRef.current(false);
+      setKpiRefreshTick((prev) => prev + 1);
     },
     [showInfo, showWarning, esToastIncidenteDuplicado]
   );
 
-  const refrescarKpisRef = React.useRef<(silent?: boolean) => void>(() => {});
   const ultimosToastsRechazoRef = React.useRef<Map<string, number>>(new Map());
 
   const handleMisionRechazadaSocket = React.useCallback(
@@ -502,11 +543,34 @@ export const KanbanBoard: React.FC = () => {
         payload.motivo || payload.justificacionRechazo || 'Sin justificación especificada';
 
       showWarning(
-        `${unidadTexto} rechazó la misión ${payload.codigo}${incidenteTexto}. Motivo: "${motivoTexto}". La unidad volvió a estado Disponible y la emergencia quedó lista para reasignación.`,
-        esCuadrilla ? 'Misión Rechazada por Cuadrilla' : 'Misión Rechazada por Patrulla'
+        `${unidadTexto} rechazó la misión ${payload.codigo}${incidenteTexto}. La unidad volvió a estado Disponible y la emergencia quedó lista para reasignación.`,
+        esCuadrilla ? 'Misión Rechazada por Cuadrilla' : 'Misión Rechazada por Patrulla',
+        {
+          icon: 'rechazo',
+          codeBadge: payload.incidenteCodigo || payload.codigo,
+          dedupKey: `mision-rechazada:${payload.misionId || payload.codigo}`,
+          details: [
+            {
+              label: esCuadrilla ? 'Cuadrilla' : 'Patrulla',
+              value:
+                (esCuadrilla ? payload.cuadrillaNombre : payload.patrullaNombre) ||
+                unidadTexto,
+            },
+            { label: 'Misión', value: payload.codigo },
+            { label: 'Motivo', value: motivoTexto },
+          ],
+          ...(payload.incidenteId
+            ? {
+                action: {
+                  label: 'Ver incidente',
+                  onClick: () => setIncidenteSeleccionadoId(payload.incidenteId!),
+                },
+              }
+            : {}),
+        }
       );
 
-      refrescarKpisRef.current(false);
+      setKpiRefreshTick((prev) => prev + 1);
       cargarCuadrillas();
     },
     [showWarning, cargarCuadrillas]
@@ -539,11 +603,23 @@ export const KanbanBoard: React.FC = () => {
   const handleMisionActualizadaSocket = React.useCallback(
     (payload: MisionActualizadaPayload) => {
       if (payload.estado.toUpperCase() === 'COMPLETADA') {
-        refrescarKpisRef.current(false);
+        if (
+          payload.tipoMision === 'ATENCION_CUADRILLA' &&
+          payload.incidenteId &&
+          payload.reporteTerreno
+        ) {
+          mostrarToastCierreCuadrilla({
+            incidenteId: payload.incidenteId,
+            codigo: payload.incidenteCodigo,
+            reporte: payload.reporteTerreno,
+            misionId: payload.misionId || payload.id,
+          });
+        }
+        setKpiRefreshTick((prev) => prev + 1);
         cargarCuadrillas();
       }
     },
-    [cargarCuadrillas]
+    [cargarCuadrillas, mostrarToastCierreCuadrilla]
   );
 
   const handleRecursoActualizadoSocket = React.useCallback(
@@ -593,8 +669,6 @@ export const KanbanBoard: React.FC = () => {
     conectado,
     ultimoEvento,
     totalIncidentesVisibles,
-    incidenteSeleccionadoId,
-    setIncidenteSeleccionadoId,
     trazabilidadPorIncidente,
   } = useIncidentesKanban({
     onMisionRechazada: handleMisionRechazadaSocket,
@@ -607,14 +681,6 @@ export const KanbanBoard: React.FC = () => {
   });
 
   const [estadoEnfocado, setEstadoEnfocado] = useState<EstadoIncidente | null>(null);
-
-  // CA-5 (BUG-H22-WEB-03): Abrir incidente automáticamente si se accede con ?incidenteId=...
-  const incidenteIdParam = searchParams?.get('incidenteId');
-  useEffect(() => {
-    if (incidenteIdParam) {
-      setIncidenteSeleccionadoId(incidenteIdParam);
-    }
-  }, [incidenteIdParam, setIncidenteSeleccionadoId]);
 
   // Actualizar cuadrillas operativas ante eventos socket en tiempo real (BUG-H22-WEB-04)
   useEffect(() => {
@@ -634,8 +700,10 @@ export const KanbanBoard: React.FC = () => {
   } = useIncidentesKpis({ userId });
 
   useEffect(() => {
-    refrescarKpisRef.current = refrescarKpis;
-  }, [refrescarKpis]);
+    if (kpiRefreshTick > 0) {
+      refrescarKpis(false);
+    }
+  }, [kpiRefreshTick, refrescarKpis]);
 
   // Hook de tiempo real para eventos de prevención (HU-30)
   usePrevencionSocket({

@@ -9,6 +9,7 @@ import {
 import type { IncidentesKpisData, DelegacionOpcion } from '@/types/incidentesKpis';
 import { DELEGACIONES_VALDIVIA_DEFAULT } from '@/types/incidentesKpis';
 import { getSocket } from '@/lib/socket/client';
+import { suscribirSalasSocket } from '@/lib/socket/roomManager';
 import { useSimulatedSession } from '@/context/SimulatedSessionContext';
 
 export interface UseIncidentesKpisOptions {
@@ -114,17 +115,13 @@ export function useIncidentesKpis(options: UseIncidentesKpisOptions = {}) {
 
     const socket = getSocket();
 
-    const unirseSala = () => {
-      setConectado(true);
-      // Enfoque defensivo: emitir tanto 'join' como 'unirse' para asegurar compatibilidad con salas de encargados
-      socket.emit('join', 'sala:encargados');
-      socket.emit('unirse', 'sala:encargados');
-      socket.emit('join', 'encargado');
-      socket.emit('unirse', 'encargado');
-    };
+    const desuscribirSalas = suscribirSalasSocket(socket, [
+      { sala: 'sala:encargados', eventosJoin: ['join', 'unirse'], eventosLeave: ['leave', 'salir'] },
+      { sala: 'encargado', eventosJoin: ['join', 'unirse'], eventosLeave: ['leave', 'salir'] },
+    ]);
 
     const handleConnect = () => {
-      unirseSala();
+      setConectado(true);
     };
 
     const handleDisconnect = () => {
@@ -139,7 +136,9 @@ export function useIncidentesKpis(options: UseIncidentesKpisOptions = {}) {
     };
 
     if (socket.connected) {
-      unirseSala();
+      queueMicrotask(() => {
+        setConectado(true);
+      });
     } else {
       socket.connect();
     }
@@ -153,10 +152,7 @@ export function useIncidentesKpis(options: UseIncidentesKpisOptions = {}) {
     socket.on('mision:asignada', handleActualizacionIncidente);
 
     return () => {
-      socket.emit('leave', 'sala:encargados');
-      socket.emit('salir', 'sala:encargados');
-      socket.emit('leave', 'encargado');
-      socket.emit('salir', 'encargado');
+      desuscribirSalas();
       socket.off('connect', handleConnect);
       socket.off('disconnect', handleDisconnect);
       socket.off('incidente:creado', handleActualizacionIncidente);

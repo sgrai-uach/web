@@ -82,6 +82,16 @@ function ordenarIncidentesColumna(
       return new Date(b.creadoEn).getTime() - new Date(a.creadoEn).getTime();
     });
   }
+  if (estado === 'EN_ATENCION') {
+    return [...incidentes].sort((a, b) => {
+      const aFin = a.faenasCuadrillaCompletadas ? 1 : 0;
+      const bFin = b.faenasCuadrillaCompletadas ? 1 : 0;
+      if (aFin !== bFin) {
+        return bFin - aFin; // Faenas finalizadas (1) primero
+      }
+      return new Date(b.creadoEn).getTime() - new Date(a.creadoEn).getTime();
+    });
+  }
   return incidentes;
 }
 
@@ -143,6 +153,8 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
   useEffect(() => {
     columnasRef.current = columnas;
   }, [columnas]);
+
+  const reportesContadosRef = useRef<Set<string>>(new Set());
 
   const [paginacionColumna, setPaginacionColumna] = useState<
     Record<EstadoIncidente, PaginacionMeta | null>
@@ -447,6 +459,16 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
       const { datos } = payload;
       if (!datos || !datos.id) return;
 
+      const reporteIdClave = datos.reporteTerreno?.id
+        ? `${datos.id}:${datos.reporteTerreno.id}`
+        : null;
+      const yaContado = reporteIdClave
+        ? reportesContadosRef.current.has(reporteIdClave)
+        : false;
+      if (reporteIdClave) {
+        reportesContadosRef.current.add(reporteIdClave);
+      }
+
       let columnaOrigenDetectada: EstadoIncidente | null = null;
       let tipoAnteriorDetectado: string | undefined;
 
@@ -496,10 +518,15 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
 
             const totalReportesPrevios = Number(incActual.totalReportesTerreno ?? 0);
             const nuevoTotalReportes = datos.reporteTerreno
-              ? Math.max(
-                  Number(datos.reporteTerreno.versionReporte || 1),
-                  totalReportesPrevios + 1
-                )
+              ? yaContado
+                ? Math.max(
+                    Number(datos.reporteTerreno.versionReporte || 1),
+                    totalReportesPrevios
+                  )
+                : Math.max(
+                    Number(datos.reporteTerreno.versionReporte || 1),
+                    totalReportesPrevios + 1
+                  )
               : totalReportesPrevios;
 
             const esCierreNoAbordable = datos.nuevoEstado === 'NO_ABORDABLE';
@@ -816,6 +843,54 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
 
   const handleMisionActualizada = useCallback(
     (payload: MisionActualizadaPayload) => {
+      if (
+        payload.estado?.toUpperCase() === 'COMPLETADA' &&
+        payload.tipoMision === 'ATENCION_CUADRILLA' &&
+        payload.incidenteId
+      ) {
+        const repIdClave = payload.reporteTerreno?.id
+          ? `${payload.incidenteId}:${payload.reporteTerreno.id}`
+          : null;
+        const yaContado = repIdClave
+          ? reportesContadosRef.current.has(repIdClave)
+          : false;
+        if (repIdClave) {
+          reportesContadosRef.current.add(repIdClave);
+        }
+
+        setColumnas((prev) => {
+          const idx = prev.EN_ATENCION.findIndex(
+            (i) => i.id === payload.incidenteId
+          );
+          if (idx === -1) return prev;
+          const actual = prev.EN_ATENCION[idx];
+          const prevReportes = Number(actual.totalReportesTerreno ?? 0);
+          const actualizado: IncidenteResumen = {
+            ...actual,
+            faenasCuadrillaCompletadas: true,
+            tieneMisionEnCurso: false,
+            estadoTerrenoFinal:
+              payload.reporteTerreno?.estadoTerreno ?? actual.estadoTerrenoFinal,
+            horasHombreRegistradas:
+              typeof payload.reporteTerreno?.horasHombre === 'number'
+                ? payload.reporteTerreno.horasHombre
+                : actual.horasHombreRegistradas,
+            totalReportesTerreno: yaContado
+              ? Math.max(1, prevReportes)
+              : actual.faenasCuadrillaCompletadas
+                ? prevReportes
+                : Math.max(1, prevReportes + 1),
+            actualizadoEn: payload.fechaCierre || new Date().toISOString(),
+          };
+          const nuevaLista = prev.EN_ATENCION.map((item, i) =>
+            i === idx ? actualizado : item
+          );
+          return {
+            ...prev,
+            EN_ATENCION: ordenarIncidentesColumna(nuevaLista, 'EN_ATENCION'),
+          };
+        });
+      }
       onMisionActualizadaRef.current?.(payload);
     },
     []

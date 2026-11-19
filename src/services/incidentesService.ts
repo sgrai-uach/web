@@ -147,7 +147,10 @@ export type IncidenteResumen = ListarIncidentesResponse['data'][number] & {
   tieneMisionDespachada?: boolean;
   tieneMisionEnCurso?: boolean;
 };
-export type IncidenteDetalle = IncidenteDetalleResponse['data'] & {
+export type IncidenteDetalle = Omit<
+  IncidenteDetalleResponse['data'],
+  'reportesEvaluacionTerreno' | 'ultimoReporte'
+> & {
   tipoIncidenteId?: string | null;
   prioridadSugerida?: 'BAJA' | 'MEDIA' | 'ALTA' | 'CRITICA' | null;
   justificacionPrioridad?: string | null;

@@ -47,6 +47,9 @@ export const IncidenteCard: React.FC<IncidenteCardProps> = ({
     ? TRAZABILIDAD_CONFIG[estadoTrazabilidad]
     : undefined;
   const estaVerificado = Boolean(incidente.verificado);
+  const tieneFaenasFinalizadas = Boolean(
+    incidente.estado === 'EN_ATENCION' && incidente.faenasCuadrillaCompletadas
+  );
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' || e.key === ' ') {
@@ -78,7 +81,7 @@ export const IncidenteCard: React.FC<IncidenteCardProps> = ({
 
   return (
     <div
-      className={`${styles.incidenteCard} ${estaVerificado ? styles.incidenteVerificado : ''}`}
+      className={`${styles.incidenteCard} ${estaVerificado ? styles.incidenteVerificado : ''} ${tieneFaenasFinalizadas ? styles.incidenteFaenasFinalizadas : ''}`}
       onClick={() => onClick(incidente)}
       onKeyDown={handleKeyDown}
       role="button"

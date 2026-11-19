@@ -147,14 +147,6 @@ export const IncidenteUltimoReporteSection: React.FC<IncidenteUltimoReporteSecti
     );
   }, [esCierreCuadrilla, reporteTerrenoReciente, ultimoReporte]);
 
-  const requiereFibeCuadrilla = React.useMemo(() => {
-    if (!esCierreCuadrilla) return false;
-    return Boolean(
-      reporteTerrenoReciente?.requiereAsistenciaSocial ??
-        ultimoReporte?.requiereAsistenciaSocial
-    );
-  }, [esCierreCuadrilla, reporteTerrenoReciente, ultimoReporte]);
-
   const requiereApoyoCuadrilla = React.useMemo(() => {
     if (!esCierreCuadrilla) return false;
     return Boolean(
@@ -490,16 +482,6 @@ export const IncidenteUltimoReporteSection: React.FC<IncidenteUltimoReporteSecti
                   data-testid="ultimo-reporte-badge-horas-hombre"
                 >
                   {formatearHorasHombre(horasHombreCuadrilla)}
-                </Chip>
-              )}
-              {esCierreCuadrilla && requiereFibeCuadrilla && (
-                <Chip
-                  variant="warning"
-                  size="sm"
-                  icon={<HeartHandshake size={11} />}
-                  data-testid="ultimo-reporte-badge-fibe"
-                >
-                  Requiere Ficha FIBE
                 </Chip>
               )}
               {esCierreCuadrilla && requiereApoyoCuadrilla && (

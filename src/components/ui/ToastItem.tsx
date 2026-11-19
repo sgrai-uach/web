@@ -21,6 +21,7 @@ import Button from './Button';
 import Chip from './Chip';
 import type { ToastMessage } from './Toast';
 import { obtenerVarianteChipPrioridad } from '@/lib/utils/chipVariants';
+import { formatearPrioridad } from '@/lib/utils/estadoUtils';
 
 interface ToastItemProps {
   toast: ToastMessage;
@@ -47,7 +48,7 @@ export default function ToastItem({ toast, onRemove }: ToastItemProps) {
 
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const remainingTimeRef = useRef<number>(toast.durationMs ?? 6000);
-  const startTimeRef = useRef<number>(Date.now());
+  const startTimeRef = useRef<number>(0);
 
   const startTimer = () => {
     if (remainingTimeRef.current <= 0) return;
@@ -191,7 +192,7 @@ export default function ToastItem({ toast, onRemove }: ToastItemProps) {
             )}
             {toast.priorityBadge && (
               <Chip variant={obtenerVarianteChipPrioridad(toast.priorityBadge)} size="sm">
-                {toast.priorityBadge}
+                {formatearPrioridad(toast.priorityBadge)}
               </Chip>
             )}
           </div>

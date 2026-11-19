@@ -6,6 +6,7 @@ import { DEFAULT_ADMIN_USER_ID } from '@/lib/api/client';
 import { getRecursos, RecursoServiceError } from '@/services/recursosService';
 import { getErrorMessage } from '@/lib/utils/errorUtils';
 import { getSocket } from '@/lib/socket/client';
+import { suscribirSalasSocket } from '@/lib/socket/roomManager';
 import { catalogosService, DELEGACIONES_FALLBACK } from '@/services/catalogosService';
 
 export const DELEGACIONES_MUNICIPALES = DELEGACIONES_FALLBACK;
@@ -157,19 +158,14 @@ export function useRecursos(
       const socket = getSocket();
       if (!socket || typeof socket.on !== 'function') return;
 
-      const unirseSalas = () => {
-        socket.emit('join', 'encargado');
-        socket.emit('unirse', 'encargado');
-        socket.emit('join', 'supervisor');
-        socket.emit('unirse', 'supervisor');
-      };
-
       if (!socket.connected && typeof socket.connect === 'function') {
         socket.connect();
       }
-      if (socket.connected) {
-        unirseSalas();
-      }
+
+      const desuscribirSalas = suscribirSalasSocket(socket, [
+        { sala: 'encargado', eventosJoin: ['join', 'unirse'], eventosLeave: ['leave', 'salir'] },
+        { sala: 'supervisor', eventosJoin: ['join', 'unirse'], eventosLeave: ['leave', 'salir'] },
+      ]);
 
       const handleRecursoActualizado = (rawPayload: unknown) => {
         const p = rawPayload as Record<string, unknown> | null | undefined;
@@ -240,18 +236,13 @@ export function useRecursos(
         }
       };
 
-      socket.on('connect', unirseSalas);
       socket.on('recurso:actualizado', handleRecursoActualizado);
       socket.on('recurso:eliminado', handleRecursoEliminado);
 
       return () => {
-        socket.off('connect', unirseSalas);
         socket.off('recurso:actualizado', handleRecursoActualizado);
         socket.off('recurso:eliminado', handleRecursoEliminado);
-        socket.emit('leave', 'encargado');
-        socket.emit('salir', 'encargado');
-        socket.emit('leave', 'supervisor');
-        socket.emit('salir', 'supervisor');
+        desuscribirSalas();
       };
     } catch {
       // Ignorar fallo de inicialización de socket en entornos de prueba

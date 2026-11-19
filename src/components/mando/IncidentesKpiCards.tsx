@@ -114,11 +114,11 @@ export const IncidentesKpiCards: React.FC<IncidentesKpiCardsProps> = ({
   onSelectEstado,
   conectado,
 }) => {
-  const [isMounted, setIsMounted] = React.useState(false);
-
-  React.useEffect(() => {
-    setIsMounted(true);
-  }, []);
+  const isMounted = React.useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false
+  );
 
   const estaCargando = isMounted && cargando;
 

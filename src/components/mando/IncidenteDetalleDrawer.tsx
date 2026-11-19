@@ -218,17 +218,28 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
   );
 
   const handleDespachoExitoso = (resultado: DespacharCuadrillaResponse['data']) => {
+    const detallesDespacho: Array<{ label: string; value: string }> = [
+      { label: 'Cuadrilla', value: resultado.cuadrilla.nombre },
+      { label: 'Misión', value: resultado.mision.codigo },
+    ];
     if (resultado.patrullaLiberada) {
-      toast?.showSuccess(
-        `Cuadrilla despachada exitosamente. La patrulla ${resultado.patrullaLiberada.nombre} ha sido liberada y ya se encuentra DISPONIBLE para nuevas asignaciones.`,
-        'Despacho Táctico Confirmado'
-      );
-    } else {
-      toast?.showSuccess(
-        `Cuadrilla '${resultado.cuadrilla.nombre}' despachada exitosamente al incidente ${resultado.incidente.codigo}.`,
-        'Despacho Táctico Confirmado'
-      );
+      detallesDespacho.push({
+        label: 'Patrulla liberada',
+        value: `${resultado.patrullaLiberada.nombre} (Disponible)`,
+      });
     }
+    toast?.showSuccess(
+      resultado.patrullaLiberada
+        ? `Cuadrilla "${resultado.cuadrilla.nombre}" despachada al incidente ${resultado.incidente.codigo}. Patrulla ${resultado.patrullaLiberada.nombre} liberada.`
+        : `Cuadrilla "${resultado.cuadrilla.nombre}" despachada exitosamente al incidente ${resultado.incidente.codigo}.`,
+      'Despacho Táctico Confirmado',
+      {
+        icon: 'cuadrilla',
+        codeBadge: resultado.incidente.codigo,
+        dedupKey: `despacho-cuadrilla:${resultado.incidente.id}:${resultado.cuadrilla.id}`,
+        details: detallesDespacho,
+      }
+    );
     cargarDetalle();
     onIncidenteActualizado?.();
   };
