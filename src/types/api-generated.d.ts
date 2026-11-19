@@ -4787,7 +4787,155 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /**
+         * Listar eventos de recuperación territorial para el mapa operativo
+         * @description Consulta todos los eventos de recuperación comunales registrados con sus misiones tácticas desplegadas, patrullas asignadas y recursos para su renderizado táctico georreferenciado en el mapa operativo.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header: {
+                    /** @description Token JWT en formato 'Bearer <token>' */
+                    authorization: string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Listado de eventos de recuperación obtenido exitosamente */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example Eventos de recuperación obtenidos exitosamente. */
+                            message: string;
+                            /** @example 4 */
+                            total: number;
+                            data: Array<{
+                                /**
+                                 * Format: uuid
+                                 * @description Identificador único UUID del evento de recuperación
+                                 */
+                                id: string;
+                                /**
+                                 * @description Código oficial único del evento (ej. REC-2026-0001)
+                                 * @example REC-2026-0001
+                                 */
+                                codigo: string;
+                                /** @example Entrega de frazadas y techumbre en Sector Collico */
+                                nombre: string;
+                                /** @example Familias afectadas por temporal de viento */
+                                descripcion: string | null;
+                                /** @example Collico */
+                                sector: string;
+                                /** @example Calle Balmaceda 1245 con Las Palmeras */
+                                direccionTexto: string | null;
+                                /**
+                                 * @example ALTA
+                                 * @enum {string}
+                                 */
+                                prioridad: "BAJA" | "MEDIA" | "ALTA" | "CRITICA";
+                                /** @example Juan Pérez (Presidente JJVV) */
+                                contactoNombre: string | null;
+                                /** @example +56912345678 */
+                                contactoTelefono: string | null;
+                                /** @example -39.8142 */
+                                latitud: number;
+                                /** @example -73.2459 */
+                                longitud: number;
+                                /**
+                                 * @example PLANIFICADA
+                                 * @enum {string}
+                                 */
+                                estado: "PLANIFICADA" | "EN_EJECUCION" | "COMPLETADA" | "CANCELADA";
+                                /** @example 4 */
+                                familiasAfectadas: number;
+                                /** @description Delegación territorial asignada */
+                                delegacion: {
+                                    /** Format: uuid */
+                                    id: string;
+                                    codigo: string;
+                                    nombre: string;
+                                } | null;
+                                /** @description Misión táctica despachada a terreno */
+                                mision: {
+                                    /**
+                                     * Format: uuid
+                                     * @example 60000000-0000-4000-8000-000000000001
+                                     */
+                                    id: string;
+                                    /** @example MIS-2026-0042 */
+                                    codigo: string;
+                                    /** @example Entrega de frazadas y techumbre en Sector Collico */
+                                    titulo: string;
+                                    /** @example DESPACHADA */
+                                    estado: string;
+                                    /** @example RECUPERACION */
+                                    tipoMision: string;
+                                };
+                                /** @description Patrulla asignada a la operación */
+                                patrulla: {
+                                    /**
+                                     * Format: uuid
+                                     * @example 50000000-0000-4000-8000-000000000001
+                                     */
+                                    id: string;
+                                    /** @example Patrulla Verificadora Alfa */
+                                    nombre: string;
+                                    /** @example EN_RECUPERACION */
+                                    estado: string;
+                                };
+                                /** @description Recursos reservados o descontados para la entrega */
+                                recursos: Array<{
+                                    /**
+                                     * Format: uuid
+                                     * @example 00000000-0000-4000-8000-000000000001
+                                     */
+                                    recursoId: string;
+                                    /** @example Sacos de Arena 25kg */
+                                    nombre: string;
+                                    /** @example 10 */
+                                    cantidadAsignada: number;
+                                }>;
+                                /**
+                                 * Format: uuid
+                                 * @description Identificador del Encargado que creó el evento
+                                 */
+                                creadoPorId: string;
+                                /** @description Fecha de registro ISO 8601 */
+                                creadoEn: string;
+                                /** @description Fecha de actualización ISO 8601 */
+                                actualizadoEn: string;
+                            }>;
+                        };
+                    };
+                };
+                /** @description No autenticado o token inválido */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Acceso denegado. Se requiere permiso 'misiones:leer', 'recuperacion:crear' o 'misiones:asignar' */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Error interno del servidor */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
         put?: never;
         /**
          * Crear evento de recuperación y despachar patrulla con recursos logísticos (HU-29)
@@ -5027,6 +5175,298 @@ export interface paths {
                     content?: never;
                 };
                 /** @description Conflicto operativo: Patrulla no disponible o stock insuficiente en bodega */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Error interno del servidor */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/eventos-atp/recuperacion/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Obtener detalle completo de evento de recuperación (HU-32)
+         * @description Retorna la información consolidada de un evento de recuperación comunal, misiones tácticas y recursos asignados.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description UUID del evento de recuperación */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Detalle del evento de recuperación obtenido exitosamente */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            message?: string;
+                            data: {
+                                id: string;
+                                codigo: string;
+                                nombre: string;
+                                descripcion?: string | null;
+                                sector: string;
+                                direccionTexto?: string | null;
+                                prioridad: "BAJA" | "MEDIA" | "ALTA" | "CRITICA";
+                                latitud: number;
+                                longitud: number;
+                                estado: "PLANIFICADA" | "EN_EJECUCION" | "COMPLETADA" | "CANCELADA";
+                                familiasAfectadas?: number;
+                                contactoNombre?: string | null;
+                                contactoTelefono?: string | null;
+                                delegacion?: {
+                                    id: string;
+                                    codigo: string;
+                                    nombre: string;
+                                } | null;
+                                misiones: Array<{
+                                    id: string;
+                                    codigo: string;
+                                    titulo: string;
+                                    estado: string;
+                                    tipoMision: string;
+                                    creadoEn: string;
+                                    patrulla?: {
+                                        id: string;
+                                        nombre: string;
+                                        estado: string;
+                                    } | null;
+                                }>;
+                                recursosAsignados: Array<{
+                                    /** Format: uuid */
+                                    id: string;
+                                    /** Format: uuid */
+                                    recursoId: string;
+                                    nombre: string;
+                                    esIndividual: boolean;
+                                    cantidadAsignada: number;
+                                    /** Format: uuid */
+                                    misionId?: string | null;
+                                    creadoEn: string;
+                                }>;
+                                creadoPorId?: string;
+                                creadoEn: string;
+                                actualizadoEn: string;
+                            };
+                        };
+                    };
+                };
+                /** @description Parámetro UUID inválido */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description No autenticado */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Acceso denegado */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Evento de recuperación no encontrado */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Error interno del servidor */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/eventos-atp/recuperacion/{id}/asignar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Asignar patrulla y recursos a un evento de recuperación (HU-32)
+         * @description Asigna atómicamente una patrulla verificadora disponible y materiales de bodega a un evento de recuperación existente.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description UUID del evento de recuperación */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        /** @description UUID de la patrulla verificadora disponible */
+                        patrullaId: string;
+                        /** @description Lista de recursos logísticos solicitados */
+                        recursos: Array<{
+                            recursoId: string;
+                            cantidad: number;
+                        }>;
+                    };
+                };
+            };
+            responses: {
+                /** @description Patrulla y recursos logísticos asignados exitosamente al evento de recuperación */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example Patrulla y recursos logísticos asignados exitosamente al evento de recuperación. */
+                            message: string;
+                            data: {
+                                evento: {
+                                    /**
+                                     * Format: uuid
+                                     * @example 70000000-0000-4000-8000-000000000001
+                                     */
+                                    id: string;
+                                    /** @example REC-2026-0001 */
+                                    codigo: string;
+                                    /** @example Entrega de frazadas y techumbre en Sector Collico */
+                                    nombre: string;
+                                    /**
+                                     * @example PLANIFICADA
+                                     * @enum {string}
+                                     */
+                                    estado: "PLANIFICADA" | "EN_EJECUCION" | "COMPLETADA" | "CANCELADA";
+                                };
+                                /** @description Misión táctica despachada a terreno */
+                                mision: {
+                                    /**
+                                     * Format: uuid
+                                     * @example 60000000-0000-4000-8000-000000000001
+                                     */
+                                    id: string;
+                                    /** @example MIS-2026-0042 */
+                                    codigo: string;
+                                    /** @example Entrega de frazadas y techumbre en Sector Collico */
+                                    titulo: string;
+                                    /** @example DESPACHADA */
+                                    estado: string;
+                                    /** @example RECUPERACION */
+                                    tipoMision: string;
+                                };
+                                /** @description Patrulla transicionada a EN_RECUPERACION */
+                                patrulla: {
+                                    /**
+                                     * Format: uuid
+                                     * @example 50000000-0000-4000-8000-000000000001
+                                     */
+                                    id: string;
+                                    /** @example Patrulla Verificadora Alfa */
+                                    nombre: string;
+                                    /** @example EN_RECUPERACION */
+                                    estado: string;
+                                };
+                                /** @description Recursos asignados con stock en uso actualizado */
+                                recursos: Array<{
+                                    /**
+                                     * Format: uuid
+                                     * @example 00000000-0000-4000-8000-000000000001
+                                     */
+                                    recursoId: string;
+                                    /** @example Sacos de Arena 25kg */
+                                    nombre: string;
+                                    /** @example false */
+                                    esIndividual: boolean;
+                                    /** @example 10 */
+                                    cantidadAsignada: number;
+                                    /** @example 10 */
+                                    cantidadEnUso: number;
+                                    /** @example DISPONIBLE */
+                                    estadoRecurso: string;
+                                }>;
+                                /** @description Fecha de asignación ISO 8601 */
+                                asignadoEn: string;
+                            };
+                        };
+                    };
+                };
+                /** @description Datos de entrada inválidos */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description No autenticado */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Acceso denegado. Se requiere permiso 'misiones:asignar' */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Evento, patrulla o recurso no encontrado */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Conflicto: patrulla ocupada, stock insuficiente o activo no disponible */
                 409: {
                     headers: {
                         [name: string]: unknown;
