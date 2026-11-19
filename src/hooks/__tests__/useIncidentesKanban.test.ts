@@ -910,4 +910,121 @@ describe('useIncidentesKanban - HU-20 y BUG-04', () => {
     expect(result.current.paginacionColumna.EN_ATENCION?.total).toBe(0);
     expect(result.current.paginacionColumna.REPORTADO?.total).toBe(1);
   });
+
+  it('HU-68: mantiene el incidente en EN_ATENCION al recibir REPORTE_CUADRILLA y marca faenasCuadrillaCompletadas', async () => {
+    let socketOptions: UseEncargadoKanbanSocketOptions | undefined;
+    vi.mocked(useEncargadoKanbanSocket).mockImplementation((opts) => {
+      socketOptions = opts;
+      return { conectado: true, ultimoEvento: null };
+    });
+
+    const mockEnAtencion: incidentesService.IncidenteResumen = {
+      id: 'inc-h68-1',
+      codigo: 'INC-2026-0068',
+      codigoSeguimiento: '68686868',
+      tipoAfectacion: 'Anegamiento',
+      descripcion: 'Anegamiento de pasaje',
+      direccion: 'Pasaje Los Robles 120',
+      latitud: -39.81,
+      longitud: -73.24,
+      estado: 'EN_ATENCION',
+      prioridad: 'ALTA',
+      requiereAsistenciaSocial: false,
+      fuenteOrigen: 'WEB',
+      informanteNombre: 'Laura',
+      delegacionNombre: 'Norte',
+      totalMisiones: 2,
+      verificado: true,
+      tieneMisionEnCurso: true,
+      creadoEn: '2026-11-18T10:00:00Z',
+      actualizadoEn: '2026-11-18T10:00:00Z',
+    };
+
+    vi.mocked(incidentesService.listarIncidentes).mockImplementation(async (query) => {
+      if (query.estado === 'EN_ATENCION') {
+        return {
+          exito: true,
+          incidentes: [mockEnAtencion],
+          paginacion: {
+            total: 1,
+            pagina: 1,
+            limite: 20,
+            totalPaginas: 1,
+            tieneSiguiente: false,
+            tieneAnterior: false,
+          },
+          mensaje: 'OK',
+        };
+      }
+      return {
+        exito: true,
+        incidentes: [],
+        paginacion: {
+          total: 0,
+          pagina: 1,
+          limite: 20,
+          totalPaginas: 0,
+          tieneSiguiente: false,
+          tieneAnterior: false,
+        },
+        mensaje: 'OK',
+      };
+    });
+
+    const onReporteTerrenoRecibido = vi.fn();
+    const { result } = renderHook(() =>
+      useIncidentesKanban({ onReporteTerrenoRecibido })
+    );
+
+    await waitFor(() => {
+      expect(result.current.columnas.EN_ATENCION.length).toBe(1);
+    });
+
+    act(() => {
+      socketOptions?.onIncidenteActualizado?.({
+        evento: 'incidente:actualizado',
+        emitidoEn: '2026-11-18T18:00:00Z',
+        datos: {
+          id: 'inc-h68-1',
+          codigo: 'INC-2026-0068',
+          nuevoEstado: 'EN_ATENCION',
+          prioridad: 'ALTA',
+          requiereAsistenciaSocial: true,
+          reporteTerreno: {
+            id: 'rep-cuad-1',
+            misionId: 'mis-cuad-1',
+            tipoReporte: 'REPORTE_CUADRILLA',
+            etiquetaReporte: 'Informe Técnico Final de Cuadrilla (Cierre de Misión)',
+            estadoTerreno: 'CONTROLADO',
+            horasHombre: 5,
+            materialesConsumidos: [{ recursoId: 'rec-1', nombre: 'Sacos', cantidad: 15, unidad: 'sacos' }],
+            versionReporte: 1,
+            esRectificacion: false,
+            prioridadSugerida: null,
+            prioridadAsignada: null,
+            justificacionPrioridad: null,
+            resumenTecnico: 'Despeje de sumidero y contención con sacos.',
+            accionesRealizadas: null,
+            danosEstimados: null,
+            observaciones: null,
+            personasAfectadas: 0,
+            requiereApoyoAdicional: false,
+            evaluacion: {},
+            evaluador: { id: 'u-del', nombre: 'Delegado' },
+            creadoEn: '2026-11-18T18:00:00Z',
+          },
+          actualizadoEn: '2026-11-18T18:00:00Z',
+        },
+      });
+    });
+
+    expect(result.current.columnas.EN_ATENCION.length).toBe(1);
+    expect(result.current.columnas.RESUELTO.length).toBe(0);
+    expect(result.current.columnas.EN_ATENCION[0].faenasCuadrillaCompletadas).toBe(true);
+    expect(result.current.columnas.EN_ATENCION[0].estadoTerrenoFinal).toBe('CONTROLADO');
+    expect(result.current.columnas.EN_ATENCION[0].horasHombreRegistradas).toBe(5);
+    expect(result.current.columnas.EN_ATENCION[0].tieneMisionEnCurso).toBe(false);
+    expect(result.current.columnas.EN_ATENCION[0].requiereAsistenciaSocial).toBe(true);
+    expect(onReporteTerrenoRecibido).toHaveBeenCalledTimes(1);
+  });
 });

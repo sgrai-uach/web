@@ -186,5 +186,45 @@ describe('useCuadrillas hook (H80)', () => {
     expect(result.current.error).toBe('No tiene permisos suficientes');
     expect(result.current.errorStatus).toBe(403);
   });
+
+  it('HU-68: se une a salas encargado/mapa, limpia misionActiva al recibir DISPONIBLE y recarga con filtro activo', async () => {
+    vi.mocked(cuadrillasService.obtenerCuadrillas).mockResolvedValue({
+      cuadrillas: [{ ...mockCuadrilla2 }],
+      meta: { total: 1, pagina: 1, limite: 10, paginasTotales: 1 },
+    });
+
+    const socket = getSocket() as unknown as {
+      emit: ReturnType<typeof vi.fn>;
+      _trigger: (ev: string, data: unknown) => void;
+    };
+
+    const { result, unmount } = renderHook(() =>
+      useCuadrillas({ pagina: 1, limite: 10, estado: 'EN_MISION' })
+    );
+
+    await waitFor(() => {
+      expect(result.current.cargando).toBe(false);
+    });
+
+    expect(socket.emit).toHaveBeenCalledWith('join', 'encargado');
+    expect(socket.emit).toHaveBeenCalledWith('unirse', 'sala:encargados');
+    expect(socket.emit).toHaveBeenCalledWith('join', 'mapa');
+
+    act(() => {
+      socket._trigger('cuadrilla:actualizada', {
+        id: 'cuadrilla-2',
+        estado: 'DISPONIBLE',
+      });
+    });
+
+    expect(result.current.cuadrillas[0].estado).toBe('DISPONIBLE');
+    expect(result.current.cuadrillas[0].misionActiva).toBeNull();
+    await waitFor(() => {
+      expect(cuadrillasService.obtenerCuadrillas).toHaveBeenCalledTimes(2);
+    });
+
+    unmount();
+    expect(socket.emit).toHaveBeenCalledWith('leave', 'mapa');
+  });
 });
 

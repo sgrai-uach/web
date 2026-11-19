@@ -67,4 +67,22 @@ describe('proxy middleware (sgrai-web)', () => {
     const resSw = proxy(reqSw);
     expect(resSw.status).toBe(200);
   });
+
+  it('HU-68: debe redirigir a /terreno si DELEGADO_CUADRILLA intenta acceder a /gestion/admin/recursos o /gestion/admin/cuadrillas', () => {
+    const token = crearJwtMock({ sub: 'u-cuad', rolCodigo: 'DELEGADO_CUADRILLA' });
+
+    const reqRecursos = new NextRequest('http://localhost:3000/gestion/admin/recursos', {
+      headers: { cookie: `${AUTH_COOKIE_NAME}=${token}` },
+    });
+    const resRecursos = proxy(reqRecursos);
+    expect(resRecursos.status).toBe(307);
+    expect(resRecursos.headers.get('location')).toBe('http://localhost:3000/terreno');
+
+    const reqCuadrillas = new NextRequest('http://localhost:3000/gestion/admin/cuadrillas', {
+      headers: { cookie: `${AUTH_COOKIE_NAME}=${token}` },
+    });
+    const resCuadrillas = proxy(reqCuadrillas);
+    expect(resCuadrillas.status).toBe(307);
+    expect(resCuadrillas.headers.get('location')).toBe('http://localhost:3000/terreno');
+  });
 });
