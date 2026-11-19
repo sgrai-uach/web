@@ -2,11 +2,13 @@
 
 import React from 'react';
 import Button from '@/components/ui/Button';
-import { Kanban, MapPin } from 'lucide-react';
+import { Kanban, MapPin, ShieldAlert } from 'lucide-react';
+
+export type VistaCentroIncidentes = 'kanban' | 'mapa' | 'prevencion';
 
 interface KanbanViewSwitcherProps {
-  vistaActiva: 'kanban' | 'mapa';
-  onCambiarVista: (vista: 'kanban' | 'mapa') => void;
+  vistaActiva: VistaCentroIncidentes;
+  onCambiarVista: (vista: VistaCentroIncidentes) => void;
   className?: string;
 }
 
@@ -80,6 +82,29 @@ export const KanbanViewSwitcher: React.FC<KanbanViewSwitcherProps> = ({
         >
           <MapPin size={14} style={{ marginRight: '6px' }} />
           <span>Mapa Operativo</span>
+        </Button>
+
+        <Button
+          type="button"
+          variant={vistaActiva === 'prevencion' ? 'secondary' : 'ghost'}
+          size="sm"
+          onClick={() => onCambiarVista('prevencion')}
+          aria-pressed={vistaActiva === 'prevencion'}
+          style={{
+            backgroundColor:
+              vistaActiva === 'prevencion'
+                ? 'var(--color-charcoal, #3B3F45)'
+                : 'transparent',
+            color:
+              vistaActiva === 'prevencion'
+                ? '#FFFFFF'
+                : 'var(--color-charcoal, #3B3F45)',
+            borderRadius: 0,
+            border: 'none',
+          }}
+        >
+          <ShieldAlert size={14} style={{ marginRight: '6px' }} />
+          <span>Eventos Preventivos</span>
         </Button>
       </div>
     </div>

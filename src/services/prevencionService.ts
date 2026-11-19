@@ -10,6 +10,10 @@ import { getAuthCookie } from '@/lib/utils/cookieUtils';
 import type {
   CrearEventoPrevencionPayload,
   EventoPrevencionDTO,
+  ListarEventosPrevencionParams,
+  ListarEventosPrevencionResponse,
+  EventoPrevencionListItemDTO,
+  PaginacionMetaH34,
 } from '@/types/evento-prevencion';
 
 import type { paths } from '@/types/api-generated';
@@ -181,5 +185,132 @@ export async function crearEventoPrevencion(
       statusCode: formatted.statusCode,
       apiDetails: formatted,
     });
+  }
+}
+
+/**
+ * Lista los eventos y misiones preventivas desplegadas en puntos críticos (HU-76).
+ * Consume: GET /api/eventos-atp/prevencion con filtros y paginación H34.
+ */
+export async function listarEventosPrevencion(
+  params?: ListarEventosPrevencionParams,
+  explicitToken?: string
+): Promise<ListarEventosPrevencionResponse> {
+  try {
+    const token =
+      explicitToken ||
+      getAuthCookie() ||
+      (typeof window !== 'undefined'
+        ? localStorage.getItem('sgrai_auth_token') || localStorage.getItem('token')
+        : null);
+
+    const { data, error, response } = await apiClient.GET('/api/eventos-atp/prevencion', {
+      params: {
+        query: {
+          page: params?.page,
+          limit: params?.limit,
+          delegacionId: params?.delegacionId,
+          estado: params?.estado,
+          busqueda: params?.busqueda,
+        },
+      },
+      headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+    });
+
+    if (response?.status === 200 && data && 'data' in data) {
+      const items = (data.data || []).map((ev) => ({
+        ...ev,
+        descripcion: ev.descripcion ?? null,
+        sector: ev.sector ?? null,
+        direccionTexto: ev.direccionTexto ?? null,
+        puntoCritico: ev.puntoCritico
+          ? {
+              ...ev.puntoCritico,
+              descripcion: ev.puntoCritico.descripcion ?? null,
+              tipoRiesgo: ev.puntoCritico.tipoRiesgo ?? null,
+              prioridad: ev.puntoCritico.prioridad ?? null,
+              ubicacionGeoJson: ev.puntoCritico.ubicacionGeoJson ?? null,
+            }
+          : null,
+        patrulla: ev.patrulla ?? null,
+        cuadrilla: ev.cuadrilla ?? null,
+        mision: ev.mision
+          ? {
+              ...ev.mision,
+              fechaInicio: ev.mision.fechaInicio ?? null,
+              fechaCierre: ev.mision.fechaCierre ?? null,
+            }
+          : null,
+        ubicacionGeoJson: ev.ubicacionGeoJson ?? null,
+      })) as EventoPrevencionListItemDTO[];
+
+      const meta: PaginacionMetaH34 = data.meta || {
+        total: items.length,
+        page: params?.page ?? 1,
+        limit: params?.limit ?? (items.length || 20),
+        totalPages: 1,
+        hasNext: false,
+        hasPrev: false,
+      };
+
+      return {
+        message: data.message || 'Eventos de prevención listados exitosamente',
+        data: items,
+        meta,
+      };
+    }
+
+    const status = response?.status ?? 500;
+    const errorData = (error || {}) as {
+      message?: string;
+      error?: string;
+      errors?: Record<string, string[]>;
+    };
+
+    const mensajeError =
+      errorData.message || errorData.error || `Error HTTP ${status} al listar los eventos de prevención.`;
+
+    if (status === 401) {
+      throw new PrevencionServiceError('Token de sesión inválido o expirado.', {
+        statusCode: 401,
+        apiDetails: errorData,
+      });
+    }
+
+    if (status === 403) {
+      throw new PrevencionServiceError(
+        'Acceso denegado. Se requiere el permiso "prevencion:eventos:leer".',
+        {
+          statusCode: 403,
+          apiDetails: errorData,
+        }
+      );
+    }
+
+    if (status === 400) {
+      throw new PrevencionServiceError(mensajeError, {
+        statusCode: 400,
+        apiDetails: errorData,
+      });
+    }
+
+    throw new PrevencionServiceError(mensajeError, {
+      statusCode: status,
+      apiDetails: errorData,
+    });
+  } catch (err: unknown) {
+    if (err instanceof PrevencionServiceError) {
+      throw err;
+    }
+    const formatted = formatApiError(err);
+    throw new PrevencionServiceError(
+      formatted.message || 'Error inesperado de comunicación con el servidor',
+      {
+        statusCode: formatted.statusCode,
+        apiDetails: formatted,
+      }
+    );
   }
 }
