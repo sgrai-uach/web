@@ -11,7 +11,11 @@ import { useRecuperacionSocket } from '@/hooks/useRecuperacionSocket';
 import { useToast } from '@/components/ui/Toast';
 import type { EstadoIncidente, IncidenteResumen } from '@/services/incidentesService';
 import type { EventoPrevencionDTO } from '@/types/evento-prevencion';
-import type { EventoRecuperacionResponse, DetalleEventoRecuperacionResponse } from '@/types/recuperacion';
+import type {
+  EventoRecuperacionResponse,
+  DetalleEventoRecuperacionResponse,
+  RecursoAsignadoItem,
+} from '@/types/recuperacion';
 import { KanbanHeader } from './KanbanHeader';
 import { KanbanFiltros } from './KanbanFiltros';
 import { KanbanColumn } from './KanbanColumn';
@@ -193,8 +197,26 @@ export const KanbanBoard: React.FC = () => {
           : null;
       const ev = (eventoObj || dataObj || obj) as EventoRecuperacionResponse | null;
       if (ev?.id) {
+        const rootMision = obj?.mision ?? (dataObj?.mision as unknown);
+        const rootPatrulla = obj?.patrulla ?? (dataObj?.patrulla as unknown);
+        const rootRecursos = (obj?.recursos ?? dataObj?.recursos ?? obj?.recursosAsignados) as RecursoAsignadoItem[] | undefined;
+
         setEventosRecuperacion((prev) =>
-          prev.map((item) => (item.id === ev.id ? { ...item, ...ev } : item))
+          prev.map((item) => {
+            if (item.id !== ev.id) return item;
+            const updated = { ...item, ...ev };
+            if (rootMision !== undefined) {
+              updated.mision = rootMision as EventoRecuperacionResponse['mision'];
+            }
+            if (rootPatrulla !== undefined) {
+              updated.patrulla = rootPatrulla as EventoRecuperacionResponse['patrulla'];
+            }
+            if (rootRecursos !== undefined && Array.isArray(rootRecursos)) {
+              updated.recursos = rootRecursos;
+              updated.recursosAsignados = rootRecursos;
+            }
+            return updated;
+          })
         );
       }
     },

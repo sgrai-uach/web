@@ -4830,6 +4830,7 @@ export interface paths {
                     content: {
                         "application/json": {
                             message?: string;
+                            total: number;
                             data: Array<{
                                 id: string;
                                 codigo: string;
@@ -4849,32 +4850,27 @@ export interface paths {
                                     codigo: string;
                                     nombre: string;
                                 } | null;
-                                misiones?: Array<{
+                                mision?: {
                                     id: string;
                                     codigo: string;
                                     titulo: string;
                                     estado: string;
                                     tipoMision: string;
-                                    patrulla?: {
-                                        id: string;
-                                        nombre: string;
-                                        estado: string;
-                                    } | null;
-                                }>;
-                                recursosAsignados?: Array<{
+                                } | null;
+                                patrulla?: {
+                                    id: string;
+                                    nombre: string;
+                                    estado: string;
+                                } | null;
+                                recursos?: Array<{
                                     recursoId: string;
                                     nombre: string;
                                     cantidadAsignada: number;
-                                    misionId: string | null;
                                 }>;
                                 creadoPorId?: string;
                                 creadoEn: string;
                                 actualizadoEn: string;
                             }>;
-                            total: number;
-                            page: number;
-                            limit: number;
-                            totalPages: number;
                         };
                     };
                 };
@@ -5216,10 +5212,16 @@ export interface paths {
                                     } | null;
                                 }>;
                                 recursosAsignados: Array<{
+                                    /** Format: uuid */
+                                    id: string;
+                                    /** Format: uuid */
                                     recursoId: string;
                                     nombre: string;
+                                    esIndividual: boolean;
                                     cantidadAsignada: number;
-                                    misionId: string | null;
+                                    /** Format: uuid */
+                                    misionId?: string | null;
+                                    creadoEn: string;
                                 }>;
                                 creadoPorId?: string;
                                 creadoEn: string;
@@ -5315,73 +5317,80 @@ export interface paths {
                 };
             };
             responses: {
-                /** @description Recursos y patrulla asignados exitosamente */
+                /** @description Patrulla y recursos logísticos asignados exitosamente al evento de recuperación */
                 200: {
                     headers: {
                         [name: string]: unknown;
                     };
                     content: {
                         "application/json": {
+                            /** @example Patrulla y recursos logísticos asignados exitosamente al evento de recuperación. */
                             message: string;
                             data: {
                                 evento: {
+                                    /**
+                                     * Format: uuid
+                                     * @example 70000000-0000-4000-8000-000000000001
+                                     */
                                     id: string;
+                                    /** @example REC-2026-0001 */
                                     codigo: string;
+                                    /** @example Entrega de frazadas y techumbre en Sector Collico */
                                     nombre: string;
-                                    estado: string;
+                                    /**
+                                     * @example PLANIFICADA
+                                     * @enum {string}
+                                     */
+                                    estado: "PLANIFICADA" | "EN_EJECUCION" | "COMPLETADA" | "CANCELADA";
                                 };
+                                /** @description Misión táctica despachada a terreno */
                                 mision: {
+                                    /**
+                                     * Format: uuid
+                                     * @example 60000000-0000-4000-8000-000000000001
+                                     */
                                     id: string;
+                                    /** @example MIS-2026-0042 */
                                     codigo: string;
+                                    /** @example Entrega de frazadas y techumbre en Sector Collico */
                                     titulo: string;
+                                    /** @example DESPACHADA */
                                     estado: string;
+                                    /** @example RECUPERACION */
                                     tipoMision: string;
                                 };
+                                /** @description Patrulla transicionada a EN_RECUPERACION */
                                 patrulla: {
+                                    /**
+                                     * Format: uuid
+                                     * @example 50000000-0000-4000-8000-000000000001
+                                     */
                                     id: string;
+                                    /** @example Patrulla Verificadora Alfa */
                                     nombre: string;
+                                    /** @example EN_RECUPERACION */
                                     estado: string;
                                 };
+                                /** @description Recursos asignados con stock en uso actualizado */
                                 recursos: Array<{
+                                    /**
+                                     * Format: uuid
+                                     * @example 00000000-0000-4000-8000-000000000001
+                                     */
                                     recursoId: string;
+                                    /** @example Sacos de Arena 25kg */
                                     nombre: string;
+                                    /** @example false */
+                                    esIndividual: boolean;
+                                    /** @example 10 */
                                     cantidadAsignada: number;
+                                    /** @example 10 */
+                                    cantidadEnUso: number;
+                                    /** @example DISPONIBLE */
+                                    estadoRecurso: string;
                                 }>;
-                            };
-                        };
-                    };
-                };
-                201: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            message: string;
-                            data: {
-                                evento: {
-                                    id: string;
-                                    codigo: string;
-                                    nombre: string;
-                                    estado: string;
-                                };
-                                mision: {
-                                    id: string;
-                                    codigo: string;
-                                    titulo: string;
-                                    estado: string;
-                                    tipoMision: string;
-                                };
-                                patrulla: {
-                                    id: string;
-                                    nombre: string;
-                                    estado: string;
-                                };
-                                recursos: Array<{
-                                    recursoId: string;
-                                    nombre: string;
-                                    cantidadAsignada: number;
-                                }>;
+                                /** @description Fecha de asignación ISO 8601 */
+                                asignadoEn: string;
                             };
                         };
                     };

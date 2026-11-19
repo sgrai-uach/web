@@ -114,10 +114,16 @@ export type DetalleEventoRecuperacionDTO =
   paths['/api/eventos-atp/recuperacion/{id}']['get']['responses'][200]['content']['application/json']['data'];
 
 export type AsignarRecursosRecuperacionInputDTO =
-  paths['/api/eventos-atp/recuperacion/{id}/asignar']['post']['requestBody']['content']['application/json'];
+  NonNullable<paths['/api/eventos-atp/recuperacion/{id}/asignar']['post']['requestBody']>['content']['application/json'];
 
 export type AsignarRecursosRecuperacionResponseDTO =
   paths['/api/eventos-atp/recuperacion/{id}/asignar']['post']['responses'][200]['content']['application/json'];
+
+export type EventoRecuperacionListadoItemDTO =
+  paths['/api/eventos-atp/recuperacion']['get']['responses'][200]['content']['application/json']['data'][number];
+
+export type EventoRecuperacionListadoResponseDTO =
+  paths['/api/eventos-atp/recuperacion']['get']['responses'][200]['content']['application/json'];
 
 export type ListarEventosRecuperacionQuery = NonNullable<
   paths['/api/eventos-atp/recuperacion']['get']['parameters']['query']
@@ -186,36 +192,8 @@ export interface GetEventoRecuperacionApiResponse {
   data: DetalleEventoRecuperacionResponse;
 }
 
-export interface AsignarRecursoItemInput {
-  recursoId: string;
-  cantidad: number;
-}
+export type AsignarRecursoItemInput = AsignarRecursosRecuperacionInputDTO['recursos'][number];
 
-export interface AsignarRecursosRecuperacionInput {
-  patrullaId: string;
-  recursos: AsignarRecursoItemInput[];
-}
+export type AsignarRecursosRecuperacionInput = AsignarRecursosRecuperacionInputDTO;
 
-export interface AsignarRecursosRecuperacionResponse {
-  message: string;
-  data: {
-    mision: {
-      id: string;
-      codigo: string;
-      titulo: string;
-      estado: string;
-      tipoMision: string;
-    };
-    patrulla: {
-      id: string;
-      nombre: string;
-      estado: string;
-    };
-    recursos: Array<{
-      recursoId: string;
-      nombre: string;
-      cantidadAsignada: number;
-    }>;
-    evento?: DetalleEventoRecuperacionResponse;
-  };
-}
+export type AsignarRecursosRecuperacionResponse = AsignarRecursosRecuperacionResponseDTO;

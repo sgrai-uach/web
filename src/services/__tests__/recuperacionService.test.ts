@@ -410,15 +410,51 @@ describe('recuperacionService (HU-29)', () => {
   });
 
   describe('listarEventosRecuperacion (HU-73 / HU-32)', () => {
-    it('debe listar eventos de recuperación exitosamente (200 OK)', async () => {
+    it('debe listar eventos de recuperación y mapear correctamente mision, patrulla y recursos reales (200 OK)', async () => {
+      const mockItemApi = {
+        id: 'rec-001',
+        codigo: 'REC-2026-0001',
+        nombre: 'Entrega de frazadas y techumbre en Sector Collico',
+        descripcion: 'Familias afectadas por temporal de viento',
+        sector: 'Collico',
+        direccionTexto: 'Calle Balmaceda 1245',
+        prioridad: 'ALTA' as const,
+        contactoNombre: 'Juan Pérez',
+        contactoTelefono: '+56912345678',
+        latitud: -39.8142,
+        longitud: -73.2459,
+        estado: 'PLANIFICADA' as const,
+        familiasAfectadas: 4,
+        delegacion: { id: 'del-01', codigo: 'DEL-SUR', nombre: 'Delegación Sur' },
+        mision: {
+          id: 'mis-001',
+          codigo: 'MIS-2026-0042',
+          titulo: 'Despacho techumbre',
+          estado: 'DESPACHADA',
+          tipoMision: 'RECUPERACION',
+        },
+        patrulla: {
+          id: 'pat-001',
+          nombre: 'Patrulla Rápida 1',
+          estado: 'EN_RECUPERACION',
+        },
+        recursos: [
+          {
+            recursoId: 'rec-mat-001',
+            nombre: 'Sacos de Arena 25kg',
+            cantidadAsignada: 10,
+          },
+        ],
+        creadoPorId: 'user-encargado-1',
+        creadoEn: '2026-11-18T10:00:00.000Z',
+        actualizadoEn: '2026-11-18T10:05:00.000Z',
+      };
+
       vi.mocked(apiClient.GET).mockResolvedValueOnce({
         data: {
-          message: 'Operativos listados',
-          data: [],
-          total: 0,
-          page: 1,
-          limit: 10,
-          totalPages: 1,
+          message: 'Listado de operativos de recuperación obtenido exitosamente',
+          total: 1,
+          data: [mockItemApi],
         } as unknown as never,
         error: undefined,
         response: { ok: true, status: 200 } as Response,
@@ -426,8 +462,55 @@ describe('recuperacionService (HU-29)', () => {
 
       const res = await listarEventosRecuperacion({ pagina: 1, limite: 10 }, DEFAULT_ENCARGADO_ID);
       expect(apiClient.GET).toHaveBeenCalledWith('/api/eventos-atp/recuperacion', expect.any(Object));
+      expect(res.total).toBe(1);
+      expect(res.data).toHaveLength(1);
+
+      const evento = res.data[0];
+      expect(evento.id).toBe('rec-001');
+      expect(evento.mision).toEqual({
+        id: 'mis-001',
+        codigo: 'MIS-2026-0042',
+        titulo: 'Despacho techumbre',
+        estado: 'DESPACHADA',
+        tipoMision: 'RECUPERACION',
+      });
+      expect(evento.patrulla).toEqual({
+        id: 'pat-001',
+        nombre: 'Patrulla Rápida 1',
+        estado: 'EN_RECUPERACION',
+      });
+      expect(evento.recursos).toHaveLength(1);
+      expect(evento.recursos[0].nombre).toBe('Sacos de Arena 25kg');
+      expect(evento.recursosAsignados).toHaveLength(1);
+      expect(evento.recursosAsignados[0].recursoId).toBe('rec-mat-001');
+      expect(evento.misiones).toHaveLength(1);
+      expect(evento.misiones[0].codigo).toBe('MIS-2026-0042');
+    });
+
+    it('debe manejar listado vacío correctamente (200 OK)', async () => {
+      vi.mocked(apiClient.GET).mockResolvedValueOnce({
+        data: {
+          message: 'Operativos listados',
+          total: 0,
+          data: [],
+        } as unknown as never,
+        error: undefined,
+        response: { ok: true, status: 200 } as Response,
+      });
+
+      const res = await listarEventosRecuperacion({ pagina: 1, limite: 10 }, DEFAULT_ENCARGADO_ID);
       expect(res.data).toEqual([]);
       expect(res.total).toBe(0);
+    });
+
+    it('debe arrojar RecuperacionServiceError ante error de servidor (500)', async () => {
+      vi.mocked(apiClient.GET).mockResolvedValueOnce({
+        data: undefined,
+        error: { message: 'Falla interna en base de datos' } as unknown as never,
+        response: { ok: false, status: 500 } as Response,
+      });
+
+      await expect(listarEventosRecuperacion()).rejects.toThrow(RecuperacionServiceError);
     });
   });
 });

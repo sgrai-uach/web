@@ -6,6 +6,7 @@ import type {
   EventoRecuperacionResponse,
   DetalleEventoRecuperacionResponse,
   DetalleEventoRecuperacionDTO,
+  MisionRecuperacionItem,
   AsignarRecursosRecuperacionInput,
   AsignarRecursosRecuperacionResponse,
 } from '@/types/recuperacion';
@@ -210,41 +211,54 @@ export async function listarEventosRecuperacion(
 
     if (response.status === 200 && data) {
       const items = (data.data || []).map((ev) => {
-        const misiones = (ev.misiones || []).map((m) => ({
-          ...m,
-          creadoEn: '',
-          patrulla: m.patrulla ?? null,
+        const mision = ev.mision ?? null;
+        const patrulla = ev.patrulla ?? null;
+        const recursos = (ev.recursos || []).map((r) => ({
+          id: r.recursoId,
+          recursoId: r.recursoId,
+          nombre: r.nombre,
+          cantidadAsignada: r.cantidadAsignada,
+          esIndividual: false,
+          misionId: mision?.id ?? null,
+          creadoEn: ev.creadoEn,
         }));
-        const primeraMision = misiones[0] || null;
-        const patrulla = primeraMision?.patrulla ?? null;
-        const recursosAsignados = ev.recursosAsignados || [];
+        const misiones: MisionRecuperacionItem[] = mision
+          ? [
+              {
+                id: mision.id,
+                codigo: mision.codigo,
+                titulo: mision.titulo,
+                estado: mision.estado,
+                tipoMision: mision.tipoMision,
+                creadoEn: ev.creadoEn,
+                patrulla,
+                recursos,
+              },
+            ]
+          : [];
 
         return {
           ...ev,
           descripcion: ev.descripcion ?? null,
+          direccionTexto: ev.direccionTexto ?? null,
+          contactoNombre: ev.contactoNombre ?? null,
+          contactoTelefono: ev.contactoTelefono ?? null,
           familiasAfectadas: ev.familiasAfectadas ?? 0,
-          mision: primeraMision
-            ? {
-                id: primeraMision.id,
-                codigo: primeraMision.codigo,
-                titulo: primeraMision.titulo,
-                estado: primeraMision.estado,
-                tipoMision: primeraMision.tipoMision,
-              }
-            : null,
+          delegacion: ev.delegacion ?? null,
+          mision,
           misiones,
           patrulla,
-          recursosAsignados,
-          recursos: recursosAsignados,
-        };
-      }) as DetalleEventoRecuperacionResponse[];
+          recursos,
+          recursosAsignados: recursos,
+        } as DetalleEventoRecuperacionResponse;
+      });
 
       return {
         data: items,
         total: data.total ?? items.length,
-        page: data.page ?? 1,
-        limit: data.limit ?? 100,
-        totalPages: data.totalPages ?? 1,
+        page: params?.pagina ?? 1,
+        limit: params?.limite ?? (items.length || 100),
+        totalPages: params?.limite ? Math.ceil((data.total ?? items.length) / params.limite) : 1,
       };
     }
 
