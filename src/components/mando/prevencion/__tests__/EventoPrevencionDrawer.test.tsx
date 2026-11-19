@@ -133,4 +133,49 @@ describe('EventoPrevencionDrawer (HU-76)', () => {
 
     expect(onClose).toHaveBeenCalled();
   });
+
+  it('debe mostrar el botón "Editar Preventivo" cuando tiene permiso y el estado es activo (H77)', () => {
+    const onEditarEvento = vi.fn();
+    render(
+      <EventoPrevencionDrawer
+        evento={mockEventoConPuntoCritico}
+        isOpen={true}
+        onClose={vi.fn()}
+        puedeEditar={true}
+        onEditarEvento={onEditarEvento}
+      />
+    );
+
+    const btnEditar = screen.getByRole('button', { name: /Editar Preventivo/i });
+    expect(btnEditar).toBeInTheDocument();
+
+    fireEvent.click(btnEditar);
+    expect(onEditarEvento).toHaveBeenCalledWith(mockEventoConPuntoCritico);
+  });
+
+  it('debe ocultar el botón "Editar Preventivo" cuando el evento está COMPLETADA o CANCELADA (H77)', () => {
+    const { rerender } = render(
+      <EventoPrevencionDrawer
+        evento={{ ...mockEventoConPuntoCritico, estado: 'COMPLETADA' }}
+        isOpen={true}
+        onClose={vi.fn()}
+        puedeEditar={true}
+        onEditarEvento={vi.fn()}
+      />
+    );
+
+    expect(screen.queryByRole('button', { name: /Editar Preventivo/i })).not.toBeInTheDocument();
+
+    rerender(
+      <EventoPrevencionDrawer
+        evento={{ ...mockEventoConPuntoCritico, estado: 'CANCELADA' }}
+        isOpen={true}
+        onClose={vi.fn()}
+        puedeEditar={true}
+        onEditarEvento={vi.fn()}
+      />
+    );
+
+    expect(screen.queryByRole('button', { name: /Editar Preventivo/i })).not.toBeInTheDocument();
+  });
 });

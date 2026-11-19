@@ -2,12 +2,16 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { usePathname, useSearchParams } from 'next/navigation';
+import { ShieldPlus, RefreshCw } from 'lucide-react';
+import Heading from '@/components/ui/Heading';
+import Button from '@/components/ui/Button';
 import { useSimulatedSession } from '@/context/SimulatedSessionContext';
 import { getCatalogos, DELEGACIONES_FALLBACK } from '@/services/catalogosService';
 import type { CatalogoItem } from '@/types/catalogos';
 import type {
   FiltrosEventosPrevencionState,
   EstadoEventoPrevencion,
+  EventoPrevencionListItemDTO,
 } from '@/types/evento-prevencion';
 import { useEventosPrevencion } from '@/hooks/useEventosPrevencion';
 import Pagination from '@/components/common/Pagination';
@@ -15,13 +19,16 @@ import AccesoDenegadoState from '@/components/common/AccesoDenegadoState';
 import EventosPrevencionFiltros from './EventosPrevencionFiltros';
 import EventosPrevencionTabla from './EventosPrevencionTabla';
 import EventoPrevencionDrawer from './EventoPrevencionDrawer';
+import ModalEditarEventoPrevencion from './ModalEditarEventoPrevencion';
 import styles from './EventosPrevencion.module.css';
 
 export interface EventosPrevencionViewProps {
   onAbrirCrearPrevencion?: () => void;
 }
 
-export const EventosPrevencionView: React.FC<EventosPrevencionViewProps> = () => {
+export const EventosPrevencionView: React.FC<EventosPrevencionViewProps> = ({
+  onAbrirCrearPrevencion,
+}) => {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const { usuarioActivo, hasPermission, isMounted } = useSimulatedSession();
@@ -37,6 +44,13 @@ export const EventosPrevencionView: React.FC<EventosPrevencionViewProps> = () =>
         hasPermission('incidentes:kanban') ||
         esAdmin)
   );
+
+  const puedeEditar = Boolean(
+    isMounted &&
+      (hasPermission('prevencion:eventos:crear') || esAdmin)
+  );
+
+  const [eventoAEditar, setEventoAEditar] = useState<EventoPrevencionListItemDTO | null>(null);
 
   // Delegaciones para el selector
   const [delegaciones, setDelegaciones] = useState<CatalogoItem[]>(DELEGACIONES_FALLBACK);
@@ -90,6 +104,7 @@ export const EventosPrevencionView: React.FC<EventosPrevencionViewProps> = () =>
     cambiarPagina,
     cambiarLimite,
     limpiarFiltros,
+    recargar,
   } = useEventosPrevencion({
     initialFiltros,
     autoLoad: true,
@@ -151,7 +166,47 @@ export const EventosPrevencionView: React.FC<EventosPrevencionViewProps> = () =>
   }
 
   return (
-    <div className={styles.container}>
+    <section className={styles.container} aria-label="Listado de eventos de prevención">
+      <div className={styles.toolbarRow}>
+        <div className={styles.toolbarTitleGroup}>
+          <Heading as="h2" variant="h3" color="teal">
+            Eventos y Operativos de Prevención
+          </Heading>
+        </div>
+
+        <div className={styles.toolbarActions}>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              void recargar();
+            }}
+            disabled={cargando}
+          >
+            <RefreshCw
+              size={14}
+              style={{ marginRight: '6px' }}
+              className={cargando ? styles.spinIcon : undefined}
+              aria-hidden="true"
+            />
+            <span>Actualizar</span>
+          </Button>
+
+          {onAbrirCrearPrevencion && puedeEditar && (
+            <Button
+              type="button"
+              variant="primary"
+              size="sm"
+              onClick={onAbrirCrearPrevencion}
+            >
+              <ShieldPlus size={14} style={{ marginRight: '6px' }} aria-hidden="true" />
+              <span>Nuevo Evento de Prevención</span>
+            </Button>
+          )}
+        </div>
+      </div>
+
       {/* Barra de Filtros H34 */}
       <EventosPrevencionFiltros
         busqueda={filtros.busqueda}
@@ -186,6 +241,8 @@ export const EventosPrevencionView: React.FC<EventosPrevencionViewProps> = () =>
         eventos={eventos}
         eventoSeleccionadoId={eventoSeleccionado?.id}
         onSeleccionarEvento={(ev) => setEventoSeleccionado(ev)}
+        puedeEditar={puedeEditar}
+        onEditarEvento={(ev) => setEventoAEditar(ev)}
         cargando={cargando}
       />
 
@@ -213,8 +270,24 @@ export const EventosPrevencionView: React.FC<EventosPrevencionViewProps> = () =>
         evento={eventoSeleccionado}
         isOpen={Boolean(eventoSeleccionado)}
         onClose={() => setEventoSeleccionado(null)}
+        puedeEditar={puedeEditar}
+        onEditarEvento={(ev) => setEventoAEditar(ev)}
       />
-    </div>
+
+      {/* Modal de Edición de Evento Preventivo (H77) */}
+      {eventoAEditar && (
+        <ModalEditarEventoPrevencion
+          key={eventoAEditar.id}
+          isOpen={Boolean(eventoAEditar)}
+          evento={eventoAEditar}
+          onClose={() => setEventoAEditar(null)}
+          onSuccess={() => {
+            void recargar();
+          }}
+          userId={usuarioActivo?.id}
+        />
+      )}
+    </section>
   );
 };
 

@@ -9,6 +9,7 @@ import { formatApiError } from '@/lib/utils/errorUtils';
 import { getAuthCookie } from '@/lib/utils/cookieUtils';
 import type {
   CrearEventoPrevencionPayload,
+  EditarEventoPrevencionPayload,
   EventoPrevencionDTO,
   ListarEventosPrevencionParams,
   ListarEventosPrevencionResponse,
@@ -22,7 +23,48 @@ type PrevencionRequestBody = NonNullable<
   NonNullable<paths['/api/eventos-atp/prevencion']['post']['requestBody']>['content']
 >['application/json'];
 
-export type TipoConflictoPrevencion = 'PATRULLA_OCUPADA' | 'STOCK_INSUFICIENTE' | 'OTRO';
+type EditarPrevencionRequestBody = NonNullable<
+  NonNullable<paths['/api/eventos-atp/prevencion/{id}']['patch']['requestBody']>['content']
+>['application/json'];
+
+export type TipoConflictoPrevencion =
+  | 'PATRULLA_OCUPADA'
+  | 'STOCK_INSUFICIENTE'
+  | 'ESTADO_BLOQUEADO'
+  | 'OTRO';
+
+function resolveAuthToken(explicitToken?: string): string | null {
+  return (
+    explicitToken ||
+    getAuthCookie() ||
+    (typeof window !== 'undefined'
+      ? localStorage.getItem('sgrai_auth_token') || localStorage.getItem('token')
+      : null)
+  );
+}
+
+function parseFieldErrors400(errorData: {
+  details?: Record<string, string[]>;
+  errors?: Array<{ campo?: string; field?: string; mensaje?: string; message?: string }> | Record<string, string[]>;
+}): Record<string, string> {
+  const fieldErrors: Record<string, string> = {};
+  if (Array.isArray(errorData.errors)) {
+    for (const err of errorData.errors) {
+      const field = err.campo || err.field;
+      const msg = err.mensaje || err.message;
+      if (field && msg) {
+        fieldErrors[field] = msg;
+      }
+    }
+  } else if (errorData.details && typeof errorData.details === 'object') {
+    for (const [key, msgs] of Object.entries(errorData.details)) {
+      if (Array.isArray(msgs) && msgs.length > 0) {
+        fieldErrors[key] = msgs.join('. ');
+      }
+    }
+  }
+  return fieldErrors;
+}
 
 export class PrevencionServiceError extends Error {
   public statusCode?: number;
@@ -244,6 +286,10 @@ export async function listarEventosPrevencion(
             }
           : null,
         ubicacionGeoJson: ev.ubicacionGeoJson ?? null,
+        recursos: ev.recursos ?? [],
+        fechaEstimadaFin: ev.fechaEstimadaFin ?? null,
+        creadoPorId: ev.creadoPorId,
+        actualizadoPorId: ev.actualizadoPorId ?? null,
       })) as EventoPrevencionListItemDTO[];
 
       const meta: PaginacionMetaH34 = data.meta || {
@@ -294,6 +340,130 @@ export async function listarEventosPrevencion(
         statusCode: 400,
         apiDetails: errorData,
       });
+    }
+
+    throw new PrevencionServiceError(mensajeError, {
+      statusCode: status,
+      apiDetails: errorData,
+    });
+  } catch (err: unknown) {
+    if (err instanceof PrevencionServiceError) {
+      throw err;
+    }
+    const formatted = formatApiError(err);
+    throw new PrevencionServiceError(
+      formatted.message || 'Error inesperado de comunicación con el servidor',
+      {
+        statusCode: formatted.statusCode,
+        apiDetails: formatted,
+      }
+    );
+  }
+}
+
+/**
+ * Actualiza planificación, fechas estimadas y dotación de recursos materiales
+ * de un evento de prevención activo (HU-77).
+ * Consume: PATCH /api/eventos-atp/prevencion/{id}.
+ */
+export async function editarEventoPrevencion(
+  id: string,
+  payload: EditarEventoPrevencionPayload,
+  userId: string = DEFAULT_ENCARGADO_ID,
+  explicitToken?: string
+): Promise<EventoPrevencionDTO> {
+  try {
+    const token = resolveAuthToken(explicitToken);
+
+    const body: EditarPrevencionRequestBody = {
+      ...(payload.nombre !== undefined ? { nombre: payload.nombre } : {}),
+      ...(payload.descripcion !== undefined ? { descripcion: payload.descripcion } : {}),
+      ...(payload.prioridad !== undefined ? { prioridad: payload.prioridad } : {}),
+      ...(payload.fechaEstimadaFin !== undefined ? { fechaEstimadaFin: payload.fechaEstimadaFin } : {}),
+      ...(payload.recursos !== undefined ? { recursos: payload.recursos } : {}),
+    };
+
+    const { data, error, response } = await apiClient.PATCH('/api/eventos-atp/prevencion/{id}', {
+      params: {
+        path: { id },
+      },
+      body,
+      headers: {
+        'x-user-id': userId,
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+    });
+
+    if (response?.status === 200 && data && 'data' in data) {
+      return data.data as EventoPrevencionDTO;
+    }
+
+    const status = response?.status ?? 500;
+    const errorData = (error || {}) as {
+      message?: string;
+      error?: string;
+      details?: Record<string, string[]>;
+      errors?: Array<{ campo?: string; field?: string; mensaje?: string; message?: string }>;
+    };
+
+    const mensajeError =
+      errorData.message || errorData.error || `Error HTTP ${status} al actualizar el evento de prevención.`;
+
+    if (status === 409) {
+      const lower = mensajeError.toLowerCase();
+      let tipoConflicto: TipoConflictoPrevencion = 'OTRO';
+
+      if (lower.includes('stock') || lower.includes('bodega') || lower.includes('insuficiente')) {
+        tipoConflicto = 'STOCK_INSUFICIENTE';
+      } else if (
+        lower.includes('completada') ||
+        lower.includes('cancelada') ||
+        lower.includes('estado') ||
+        lower.includes('inactivo')
+      ) {
+        tipoConflicto = 'ESTADO_BLOQUEADO';
+      }
+
+      throw new PrevencionServiceError(mensajeError, {
+        statusCode: 409,
+        tipoConflicto,
+        apiDetails: errorData,
+      });
+    }
+
+    if (status === 400) {
+      throw new PrevencionServiceError(mensajeError, {
+        statusCode: 400,
+        fieldErrors: parseFieldErrors400(errorData),
+        apiDetails: errorData,
+      });
+    }
+
+    if (status === 401) {
+      throw new PrevencionServiceError('Token de sesión inválido o expirado.', {
+        statusCode: 401,
+        apiDetails: errorData,
+      });
+    }
+
+    if (status === 403) {
+      throw new PrevencionServiceError(
+        'Acceso denegado. Se requiere el permiso "prevencion:eventos:crear".',
+        {
+          statusCode: 403,
+          apiDetails: errorData,
+        }
+      );
+    }
+
+    if (status === 404) {
+      throw new PrevencionServiceError(
+        mensajeError || 'El evento de prevención solicitado no fue encontrado.',
+        {
+          statusCode: 404,
+          apiDetails: errorData,
+        }
+      );
     }
 
     throw new PrevencionServiceError(mensajeError, {

@@ -13,6 +13,50 @@
   font-family: var(--font-noto-sans, sans-serif);
 }
 
+/* Cabecera Toolbar estilo H73/H74 */
+.toolbarRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3, 12px);
+  padding-bottom: var(--space-2, 8px);
+  border-bottom: 2px solid var(--color-primary-teal, #1B6F7D);
+}
+
+.toolbarTitleGroup {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2, 8px);
+}
+
+.toolbarActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2, 8px);
+}
+
+.accionesGroup {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-2, 8px);
+}
+
+.spinIcon {
+  animation: prevencionSpin 1s linear infinite;
+}
+
+@keyframes prevencionSpin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 /* Panel superior de filtros (Estándar H34) */
 .filtrosCard {
   background-color: var(--color-white, #FFFFFF);

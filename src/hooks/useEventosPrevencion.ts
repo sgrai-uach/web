@@ -137,6 +137,9 @@ export function useEventosPrevencion(options: UseEventosPrevencionOptions = {}) 
     onEventoCreado: () => {
       recargar();
     },
+    onEventoActualizado: () => {
+      recargar();
+    },
     enabled: autoLoad,
   });
 

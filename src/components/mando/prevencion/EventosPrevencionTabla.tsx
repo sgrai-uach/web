@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { ShieldAlert, MapPin, Eye, Calendar } from 'lucide-react';
+import { ShieldAlert, MapPin, Eye, Calendar, Pencil } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import type { EventoPrevencionListItemDTO } from '@/types/evento-prevencion';
 import { ESTADOS_PREVENCION } from '@/types/evento-prevencion';
@@ -11,6 +11,8 @@ interface EventosPrevencionTablaProps {
   eventos: EventoPrevencionListItemDTO[];
   eventoSeleccionadoId?: string | null;
   onSeleccionarEvento: (evento: EventoPrevencionListItemDTO) => void;
+  puedeEditar?: boolean;
+  onEditarEvento?: (evento: EventoPrevencionListItemDTO) => void;
   cargando?: boolean;
 }
 
@@ -34,6 +36,8 @@ export const EventosPrevencionTabla: React.FC<EventosPrevencionTablaProps> = ({
   eventos,
   eventoSeleccionadoId,
   onSeleccionarEvento,
+  puedeEditar = false,
+  onEditarEvento,
   cargando,
 }) => {
   if (cargando) {
@@ -205,20 +209,45 @@ export const EventosPrevencionTabla: React.FC<EventosPrevencionTablaProps> = ({
                 </td>
 
                 {/* Acciones */}
-                <td style={{ textAlign: 'right' }}>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onSeleccionarEvento(ev);
-                    }}
-                    title={`Abrir panel de detalle para ${ev.codigo}`}
-                  >
-                    <Eye size={13} style={{ marginRight: '4px' }} />
-                    <span>Detalle</span>
-                  </Button>
+                <td style={{ textAlign: 'right' }} onClick={(e) => e.stopPropagation()}>
+                  <div className={styles.accionesGroup}>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => onSeleccionarEvento(ev)}
+                      title={`Abrir panel de detalle para ${ev.codigo}`}
+                    >
+                      <Eye size={13} style={{ marginRight: '4px' }} />
+                      <span>Detalle</span>
+                    </Button>
+
+                    {puedeEditar && onEditarEvento && (
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        size="sm"
+                        disabled={ev.estado === 'COMPLETADA' || ev.estado === 'CANCELADA'}
+                        title={
+                          ev.estado === 'COMPLETADA' || ev.estado === 'CANCELADA'
+                            ? 'No se permite editar eventos en estado COMPLETADA o CANCELADA.'
+                            : `Editar ${ev.codigo}`
+                        }
+                        onClick={() => onEditarEvento(ev)}
+                        aria-label={`Editar ${ev.codigo}`}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          backgroundColor: 'var(--color-primary-teal)',
+                          color: 'var(--color-white)',
+                        }}
+                      >
+                        <Pencil size={13} aria-hidden="true" />
+                        <span>Editar</span>
+                      </Button>
+                    )}
+                  </div>
                 </td>
               </tr>
             );

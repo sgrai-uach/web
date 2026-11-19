@@ -11,8 +11,11 @@ import {
   Compass,
   Truck,
   Users,
+  Pencil,
+  Boxes,
 } from 'lucide-react';
 import Heading from '@/components/ui/Heading';
+import Button from '@/components/ui/Button';
 import type { EventoPrevencionListItemDTO } from '@/types/evento-prevencion';
 import { ESTADOS_PREVENCION } from '@/types/evento-prevencion';
 import styles from './EventoPrevencionDrawer.module.css';
@@ -21,6 +24,8 @@ interface EventoPrevencionDrawerProps {
   evento: EventoPrevencionListItemDTO | null;
   isOpen: boolean;
   onClose: () => void;
+  puedeEditar?: boolean;
+  onEditarEvento?: (evento: EventoPrevencionListItemDTO) => void;
 }
 
 function formatearFecha(fechaIso?: string | null): string {
@@ -43,6 +48,8 @@ export const EventoPrevencionDrawer: React.FC<EventoPrevencionDrawerProps> = ({
   evento,
   isOpen,
   onClose,
+  puedeEditar = false,
+  onEditarEvento,
 }) => {
   // Manejo de tecla Escape para cerrar
   useEffect(() => {
@@ -136,6 +143,24 @@ export const EventoPrevencionDrawer: React.FC<EventoPrevencionDrawerProps> = ({
               Prioridad: {evento.prioridad}
             </span>
           </div>
+
+          {/* Barra de Acciones Operativas (H77) */}
+          {puedeEditar &&
+            onEditarEvento &&
+            evento.estado !== 'COMPLETADA' &&
+            evento.estado !== 'CANCELADA' && (
+              <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                <Button
+                  type="button"
+                  variant="primary"
+                  size="sm"
+                  onClick={() => onEditarEvento(evento)}
+                >
+                  <Pencil size={14} style={{ marginRight: '6px' }} aria-hidden="true" />
+                  Editar Preventivo
+                </Button>
+              </div>
+            )}
 
           {/* Sección 1: Información del Punto Crítico (o Fallback) */}
           <section className={styles.section} aria-labelledby="section-punto-critico-title">
@@ -315,7 +340,31 @@ export const EventoPrevencionDrawer: React.FC<EventoPrevencionDrawerProps> = ({
             </div>
           </section>
 
-          {/* Sección 4: Instrucciones y Trazabilidad */}
+          {/* Sección 4: Recursos Materiales Vinculados */}
+          <section className={styles.section} aria-labelledby="section-recursos-title">
+            <div className={styles.sectionHeader}>
+              <h3 id="section-recursos-title" className={styles.sectionTitle}>
+                <Boxes size={16} />
+                <span>Recursos Materiales Vinculados</span>
+              </h3>
+            </div>
+
+            {evento.recursos && evento.recursos.length > 0 ? (
+              <ul style={{ margin: 0, paddingLeft: '18px', display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '13px' }}>
+                {evento.recursos.map((rec) => (
+                  <li key={rec.recursoId}>
+                    <strong>{rec.nombre}</strong> — Cantidad asignada: {rec.cantidadAsignada}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <span className={styles.sinAsignar}>
+                Sin recursos materiales vinculados actualmente.
+              </span>
+            )}
+          </section>
+
+          {/* Sección 5: Instrucciones y Trazabilidad */}
           <section className={styles.section} aria-labelledby="section-trazabilidad-title">
             <div className={styles.sectionHeader}>
               <h3 id="section-trazabilidad-title" className={styles.sectionTitle}>
@@ -334,6 +383,11 @@ export const EventoPrevencionDrawer: React.FC<EventoPrevencionDrawerProps> = ({
             )}
 
             <div className={styles.infoGrid} style={{ marginTop: '4px' }}>
+              <div className={styles.infoField}>
+                <span className={styles.label}>Fecha Estimada de Fin</span>
+                <span className={styles.value}>{formatearFecha(evento.fechaEstimadaFin)}</span>
+              </div>
+
               <div className={styles.infoField}>
                 <span className={styles.label}>Fecha de Creación</span>
                 <span className={styles.value}>{formatearFecha(evento.creadoEn)}</span>

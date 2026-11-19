@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import {
   crearEventoPrevencion,
   listarEventosPrevencion,
+  editarEventoPrevencion,
   PrevencionServiceError,
 } from '../prevencionService';
 import apiClient from '@/lib/api/client';
@@ -17,6 +18,7 @@ vi.mock('@/lib/api/client', () => ({
   default: {
     POST: vi.fn(),
     GET: vi.fn(),
+    PATCH: vi.fn(),
   },
 }));
 
@@ -418,5 +420,108 @@ describe('listarEventosPrevencion (HU-76)', () => {
     await expect(
       listarEventosPrevencion({ delegacionId: 'invalido' })
     ).rejects.toThrow('El parámetro delegacionId debe ser un UUID válido.');
+  });
+});
+
+describe('prevencionService - editarEventoPrevencion (HU-77)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  const eventoId = '91d99083-b0a4-4a23-a269-1df58dd60dbb';
+
+  it('debe enviar PATCH /api/eventos-atp/prevencion/{id} y retornar el evento actualizado en 200 OK', async () => {
+    const mockActualizado = {
+      id: eventoId,
+      codigo: 'PREV-2026-0001',
+      nombre: 'Limpieza urgente de colectores',
+      descripcion: 'Despeje prioritario de rejillas antes del frente de lluvia.',
+      prioridad: 'CRITICA',
+      estado: 'EN_CURSO',
+      fechaEstimadaFin: '2026-11-26T20:00:00.000Z',
+      actualizadoPorId: DEFAULT_ENCARGADO_ID,
+    } as unknown as EventoPrevencionDTO;
+
+    vi.mocked(apiClient.PATCH).mockResolvedValueOnce({
+      data: {
+        message: 'Evento de prevención actualizado exitosamente.',
+        data: mockActualizado,
+      } as unknown as never,
+      error: undefined,
+      response: { ok: true, status: 200 } as Response,
+    });
+
+    const resultado = await editarEventoPrevencion(eventoId, {
+      descripcion: 'Despeje prioritario de rejillas antes del frente de lluvia.',
+      prioridad: 'CRITICA',
+      fechaEstimadaFin: '2026-11-26T20:00:00.000Z',
+    });
+
+    expect(apiClient.PATCH).toHaveBeenCalledWith('/api/eventos-atp/prevencion/{id}', {
+      params: { path: { id: eventoId } },
+      body: {
+        descripcion: 'Despeje prioritario de rejillas antes del frente de lluvia.',
+        prioridad: 'CRITICA',
+        fechaEstimadaFin: '2026-11-26T20:00:00.000Z',
+      },
+      headers: {
+        'x-user-id': DEFAULT_ENCARGADO_ID,
+        Authorization: 'Bearer mock-jwt-token',
+      },
+    });
+    expect(resultado.prioridad).toBe('CRITICA');
+    expect(resultado.fechaEstimadaFin).toBe('2026-11-26T20:00:00.000Z');
+  });
+
+  it('debe clasificar 409 Conflict como ESTADO_BLOQUEADO cuando el evento está COMPLETADA o CANCELADA', async () => {
+    vi.mocked(apiClient.PATCH).mockResolvedValueOnce({
+      data: undefined,
+      error: {
+        message: 'No se puede editar un evento de prevención en estado COMPLETADA.',
+      } as unknown as never,
+      response: { ok: false, status: 409 } as Response,
+    });
+
+    await expect(
+      editarEventoPrevencion(eventoId, { descripcion: 'Nueva descripción de tareas.' })
+    ).rejects.toMatchObject({
+      statusCode: 409,
+      tipoConflicto: 'ESTADO_BLOQUEADO',
+      message: 'No se puede editar un evento de prevención en estado COMPLETADA.',
+    });
+  });
+
+  it('debe clasificar 409 Conflict como STOCK_INSUFICIENTE cuando no hay stock en bodega', async () => {
+    vi.mocked(apiClient.PATCH).mockResolvedValueOnce({
+      data: undefined,
+      error: {
+        message: 'Stock insuficiente en bodega para el recurso Sacos de Arena.',
+      } as unknown as never,
+      response: { ok: false, status: 409 } as Response,
+    });
+
+    await expect(
+      editarEventoPrevencion(eventoId, {
+        recursos: [{ recursoId: 'rec-1', cantidad: 500 }],
+      })
+    ).rejects.toMatchObject({
+      statusCode: 409,
+      tipoConflicto: 'STOCK_INSUFICIENTE',
+    });
+  });
+
+  it('debe arrojar PrevencionServiceError 403 cuando falta el permiso prevencion:eventos:crear', async () => {
+    vi.mocked(apiClient.PATCH).mockResolvedValueOnce({
+      data: undefined,
+      error: { message: 'Forbidden' } as unknown as never,
+      response: { ok: false, status: 403 } as Response,
+    });
+
+    await expect(
+      editarEventoPrevencion(eventoId, { nombre: 'Nuevo nombre válido' })
+    ).rejects.toMatchObject({
+      statusCode: 403,
+      message: 'Acceso denegado. Se requiere el permiso "prevencion:eventos:crear".',
+    });
   });
 });

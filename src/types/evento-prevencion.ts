@@ -109,8 +109,25 @@ export interface EventoPrevencionListItemDTO {
   patrulla: { id: string; nombre: string; estado: string } | null;
   cuadrilla: CuadrillaPrevencionResumenDTO | null;
   mision: MisionPrevencionDetalleDTO | null;
+  recursos?: RecursoAsignadoPrevencionDTO[];
+  fechaEstimadaFin?: string | null;
+  creadoPorId?: string;
+  actualizadoPorId?: string | null;
   creadoEn: string;
   actualizadoEn: string;
+}
+
+export interface EditarEventoPrevencionPayload {
+  nombre?: string;
+  descripcion?: string;
+  prioridad?: PrioridadEventoPrevencion;
+  fechaEstimadaFin?: string | null;
+  recursos?: ItemRecursoSolicitadoPrevencion[];
+}
+
+export interface EditarEventoPrevencionResponse {
+  message: string;
+  data: EventoPrevencionDTO;
 }
 
 export interface PaginacionMetaH34 {
@@ -160,7 +177,9 @@ export interface EventoPrevencionDTO {
   mision: MisionPrevencionResumenDTO;
   patrulla: PatrullaPrevencionResumenDTO;
   recursos: RecursoAsignadoPrevencionDTO[];
+  fechaEstimadaFin?: string | null;
   creadoPorId: string;
+  actualizadoPorId?: string | null;
   creadoEn: string;
   actualizadoEn: string;
 }

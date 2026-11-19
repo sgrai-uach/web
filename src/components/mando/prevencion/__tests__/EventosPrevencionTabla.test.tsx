@@ -121,4 +121,32 @@ describe('EventosPrevencionTabla (HU-76)', () => {
 
     expect(screen.getByText(/Cargando eventos preventivos en terreno.../i)).toBeInTheDocument();
   });
+
+  it('debe mostrar el botón Editar en la columna de acciones cuando puedeEditar es true y deshabilitarlo en COMPLETADA/CANCELADA (H77)', () => {
+    const onEditarEvento = vi.fn();
+    const onSeleccionarEvento = vi.fn();
+    const eventosConCerrado = [
+      mockEventos[0],
+      { ...mockEventos[1], estado: 'COMPLETADA' as const },
+    ];
+
+    render(
+      <EventosPrevencionTabla
+        eventos={eventosConCerrado}
+        onSeleccionarEvento={onSeleccionarEvento}
+        puedeEditar={true}
+        onEditarEvento={onEditarEvento}
+      />
+    );
+
+    const btnEditarActivo = screen.getByRole('button', { name: `Editar ${mockEventos[0].codigo}` });
+    const btnEditarCerrado = screen.getByRole('button', { name: `Editar ${mockEventos[1].codigo}` });
+
+    expect(btnEditarActivo).not.toBeDisabled();
+    expect(btnEditarCerrado).toBeDisabled();
+
+    fireEvent.click(btnEditarActivo);
+    expect(onEditarEvento).toHaveBeenCalledWith(mockEventos[0]);
+    expect(onSeleccionarEvento).not.toHaveBeenCalled();
+  });
 });

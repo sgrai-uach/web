@@ -142,7 +142,29 @@ describe('usePrevencionSocket (HU-30)', () => {
     expect(socket.off).toHaveBeenCalledWith('connect', expect.any(Function));
     expect(socket.off).toHaveBeenCalledWith('disconnect', expect.any(Function));
     expect(socket.off).toHaveBeenCalledWith('prevencion:creada', expect.any(Function));
+    expect(socket.off).toHaveBeenCalledWith('prevencion:actualizada', expect.any(Function));
     expect(socket.emit).toHaveBeenCalledWith('salir', 'sala:encargados');
     expect(socket.emit).toHaveBeenCalledWith('salir', 'mapa');
+  });
+
+  it('debe escuchar el evento prevencion:actualizada y disparar onEventoActualizado (H77)', () => {
+    const socket = getSocket();
+    const onEventoActualizado = vi.fn();
+
+    const { result } = renderHook(() =>
+      usePrevencionSocket({
+        onEventoActualizado,
+      })
+    );
+
+    act(() => {
+      (socket as unknown as { _trigger: (ev: string, p: unknown) => void })._trigger(
+        'prevencion:actualizada',
+        mockEvento
+      );
+    });
+
+    expect(onEventoActualizado).toHaveBeenCalledWith(mockEvento);
+    expect(result.current.ultimoEvento).toContain('Prevención actualizada: PREV-2026-0001');
   });
 });
