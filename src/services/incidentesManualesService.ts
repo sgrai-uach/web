@@ -47,7 +47,7 @@ export async function obtenerTiposAfectacion(): Promise<string[]> {
     if (error || !data?.data || !Array.isArray(data.data) || data.data.length === 0) {
       return TIPOS_AFECTACION_FALLBACK;
     }
-    return data.data;
+    return data.data.map((t) => (typeof t === 'string' ? t : t.nombre));
   } catch {
     return TIPOS_AFECTACION_FALLBACK;
   }
@@ -63,10 +63,8 @@ export async function verificarDuplicado(
 ): Promise<{ hayDuplicados: boolean; coincidencias: DuplicadoItem[] }> {
   try {
     const { data, error, response } = await apiClient.POST('/api/incidentes/verificar-duplicado', {
-      params: {
-        header: {
-          'x-user-id': operadorId,
-        },
+      headers: {
+        'x-user-id': operadorId,
       },
       body: payload,
     });
@@ -132,10 +130,8 @@ export async function crearIncidenteManual(
 ): Promise<ResultadoCreacionManual> {
   try {
     const { data, error, response } = await apiClient.POST('/api/incidentes/manual', {
-      params: {
-        header: {
-          'x-user-id': operadorId,
-        },
+      headers: {
+        'x-user-id': operadorId,
       },
       body: payload,
     });

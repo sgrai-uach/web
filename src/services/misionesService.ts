@@ -428,6 +428,14 @@ export const misionesService = {
         };
       }
 
+      if (!('patrulla' in data.data)) {
+        return {
+          exito: false,
+          codigoError: 500,
+          mensaje: 'La respuesta de despacho no incluyó los datos de la patrulla verificadora.',
+        };
+      }
+
       return {
         exito: true,
         data: data.data,

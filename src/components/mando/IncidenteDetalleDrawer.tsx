@@ -78,6 +78,7 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
 
   const cargarDetalle = useCallback(() => {
     if (!incidenteId) return;
+    setDetalle(null);
     setCargando(true);
     setError(null);
 
@@ -95,10 +96,12 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
           });
           setDetalle({ ...res.datos, misiones: misionesHidratadas });
         } else {
+          setDetalle(null);
           setError(res.mensaje || 'Error al obtener el detalle del incidente.');
         }
       })
       .catch(() => {
+        setDetalle(null);
         setError('Error de comunicación con el servidor al cargar el incidente.');
       })
       .finally(() => {
@@ -232,6 +235,74 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
     };
   }, [incidenteId]);
 
+  // Sincronización en tiempo real ante reclasificación o cambios mientras el drawer está abierto
+  useEffect(() => {
+    if (!incidenteId) return;
+
+    const socket = getSocket();
+    const handleActualizadoSocket = (payload: unknown) => {
+      const p = payload as Record<string, unknown> | null | undefined;
+      const rawDatos = (p?.datos || p?.data || p) as Record<string, unknown> | null | undefined;
+      const id =
+        typeof rawDatos?.id === 'string'
+          ? rawDatos.id
+          : typeof rawDatos?.incidenteId === 'string'
+            ? rawDatos.incidenteId
+            : undefined;
+
+      if (id === incidenteId) {
+        setDetalle((prev) => {
+          if (!prev) return prev;
+          const nuevoTipo =
+            typeof rawDatos?.tipoAfectacion === 'string'
+              ? rawDatos.tipoAfectacion
+              : prev.tipoAfectacion;
+          const nuevaPrioridad =
+            typeof rawDatos?.prioridad === 'string'
+              ? (rawDatos.prioridad as IncidenteDetalle['prioridad'])
+              : prev.prioridad;
+          const nuevoEstado =
+            typeof rawDatos?.nuevoEstado === 'string'
+              ? (rawDatos.nuevoEstado as IncidenteDetalle['estado'])
+              : typeof rawDatos?.estado === 'string'
+                ? (rawDatos.estado as IncidenteDetalle['estado'])
+                : prev.estado;
+          const justificacion =
+            typeof rawDatos?.justificacion === 'string'
+              ? rawDatos.justificacion
+              : prev.justificacionReclasificacion;
+          const esEventoReclasificacion = Boolean(
+            (typeof rawDatos?.justificacion === 'string' && rawDatos.justificacion.trim()) ||
+              typeof rawDatos?.tipoIncidenteId === 'string' ||
+              (typeof rawDatos?.tipoAfectacion === 'string' &&
+                rawDatos.tipoAfectacion !== prev.tipoAfectacion)
+          );
+
+          return {
+            ...prev,
+            tipoAfectacion: nuevoTipo,
+            prioridad: nuevaPrioridad,
+            estado: nuevoEstado,
+            verificado: esEventoReclasificacion ? true : prev.verificado,
+            reclasificadoEnTerreno: esEventoReclasificacion
+              ? true
+              : prev.reclasificadoEnTerreno,
+            justificacionReclasificacion: justificacion,
+            actualizadoEn:
+              typeof rawDatos?.actualizadoEn === 'string'
+                ? rawDatos.actualizadoEn
+                : new Date().toISOString(),
+          };
+        });
+      }
+    };
+
+    socket.on('incidente:actualizado', handleActualizadoSocket);
+    return () => {
+      socket.off('incidente:actualizado', handleActualizadoSocket);
+    };
+  }, [incidenteId]);
+
   const handleAsignacionExitosa = (data: DespacharPatrullaResponseData) => {
     const estadoInicial = extraerEstadoInicialNotificacion(data);
     setTrazabilidadEstado(data.mision.id, estadoInicial, data.incidente.id);
@@ -260,13 +331,13 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
       };
       return {
         ...prev,
-        estado: 'VERIFICANDO',
+        estado: 'REPORTADO',
         misiones: [nuevaMision, ...prev.misiones],
       };
     });
 
-    // Notificar al tablero Kanban para mover la tarjeta de inmediato
-    onIncidenteActualizado?.(data.incidente.id, 'VERIFICANDO');
+    // Mantener en estado REPORTADO hasta que la patrulla acepte en terreno
+    onIncidenteActualizado?.(data.incidente.id, 'REPORTADO');
   };
 
   if (!incidenteId) return null;
@@ -448,6 +519,7 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
                 <IncidenteUbicacionSection detalle={detalle} />
                 <IncidenteInformanteSection detalle={detalle} />
                 <IncidenteMisionesSection
+                  key={detalle.id}
                   misiones={detalle.misiones}
                   incidenteEstado={detalle.estado}
                   onVerDetalleMision={(misionId) => setMisionSeleccionadaId(misionId)}

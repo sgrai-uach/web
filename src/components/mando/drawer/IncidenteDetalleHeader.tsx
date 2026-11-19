@@ -5,6 +5,7 @@ import Heading from '@/components/ui/Heading';
 import Button from '@/components/ui/Button';
 import { X, ShieldCheck } from 'lucide-react';
 import type { IncidenteDetalle } from '@/services/incidentesService';
+import { formatearEstado, formatearPrioridad } from '@/lib/utils/estadoUtils';
 import styles from '@/styles/mando.module.css';
 
 interface IncidenteDetalleHeaderProps {
@@ -29,10 +30,10 @@ export const IncidenteDetalleHeader: React.FC<IncidenteDetalleHeaderProps> = ({
         {detalle && (
           <div className={styles.drawerBadgesRow}>
             <span className={styles.badgePrioridad} style={{ backgroundColor: 'var(--color-primary-teal-dark, #14505A)' }}>
-              Estado: {detalle.estado}
+              Estado: {formatearEstado(detalle.estado)}
             </span>
             <span className={styles.badgePrioridad} style={{ backgroundColor: 'var(--color-primary-teal, #1B6F7D)' }}>
-              Prioridad: {detalle.prioridad}
+              Prioridad: {formatearPrioridad(detalle.prioridad)}
             </span>
             {detalle.requiereAsistenciaSocial && (
               <span className={styles.tagAsistenciaSocial}>

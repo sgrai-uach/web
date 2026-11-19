@@ -13,7 +13,20 @@ export const MAPA_ESTADOS_LEGIBLES: Record<string, string> = {
   NO_DISPONIBLE: 'No disponible',
   BAJA_DEFINITIVA: 'Dado de baja',
 
-  // Patrullas Verificadoras y Cuadrillas
+  // Estados de Incidentes
+  REPORTADO: 'Reportado',
+  VERIFICANDO: 'En verificación',
+  EN_ATENCION: 'En atención',
+  RESUELTO: 'Resuelto',
+  NO_ABORDABLE: 'No abordable',
+
+  // Prioridades
+  CRITICA: 'Crítica',
+  ALTA: 'Alta',
+  MEDIA: 'Media',
+  BAJA: 'Baja',
+
+  // Patrullas Verificadoras, Cuadrillas y Misiones
   EN_VERIFICACION: 'En verificación',
   EN_MISION: 'En misión',
   EN_PREVENCION: 'En prevención',
@@ -21,9 +34,23 @@ export const MAPA_ESTADOS_LEGIBLES: Record<string, string> = {
   DESACTIVADA: 'Desactivada',
   INACTIVA: 'Inactiva',
   DESPACHADA: 'Despachada',
+  EN_CURSO: 'En curso',
   PLANIFICADA: 'Planificada',
   COMPLETADA: 'Completada',
   CANCELADA: 'Cancelada',
+  RECHAZADA: 'Rechazada',
+
+  // Hitos de Bitácora Operativa
+  TIPOLOGIA_RECLASIFICADA: 'Tipología reclasificada en terreno',
+  MISION_DESPACHADA: 'Misión despachada',
+  MISION_ACEPTADA: 'Misión aceptada',
+  EN_RUTA: 'En ruta al sitio',
+  LLEGADA_A_SITIO: 'Llegada al lugar',
+  EVALUACION_INICIADA: 'Evaluación iniciada',
+  EVALUACION_FINALIZADA: 'Evaluación finalizada',
+  MISION_COMPLETADA: 'Misión completada',
+  MISION_RECHAZADA: 'Misión rechazada',
+  MISION_CANCELADA: 'Misión cancelada',
 
   // Personal y Funcionarios
   disponible: 'Disponible',
@@ -62,10 +89,153 @@ export function formatearEstado(
     return MAPA_ESTADOS_LEGIBLES[enMinusculas];
   }
 
+  // Si ya es un texto natural con espacios y formato mixto, preservarlo
+  if (limpio.includes(' ') && limpio !== enMayusculas && !limpio.includes('_')) {
+    return limpio;
+  }
+
   // Fallback: convertir formato SNAKE_CASE a oración capitalizada
   return limpio
     .toLowerCase()
     .replace(/_/g, ' ')
     .replace(/^./, (c) => c.toUpperCase());
 }
+
+/**
+ * Retorna la denominación amigable institucional de la prioridad de un incidente o misión.
+ */
+export function formatearPrioridad(
+  prioridad?: string | null,
+  fallback = 'Media'
+): string {
+  if (!prioridad || typeof prioridad !== 'string' || prioridad.trim() === '') {
+    return fallback;
+  }
+
+  const limpio = prioridad.trim().toUpperCase();
+  const mapaPrioridades: Record<string, string> = {
+    CRITICA: 'Crítica',
+    ALTA: 'Alta',
+    MEDIA: 'Media',
+    BAJA: 'Baja',
+  };
+
+  return mapaPrioridades[limpio] || formatearEstado(prioridad, fallback);
+}
+
+/**
+ * Retorna la denominación amigable de un hito cronológico de la bitácora operativa.
+ */
+export function formatearHitoBitacora(
+  hito?: string | null,
+  fallback = 'Evento registrado'
+): string {
+  if (!hito || typeof hito !== 'string' || hito.trim() === '') {
+    return fallback;
+  }
+
+  const limpio = hito.trim();
+  if (MAPA_ESTADOS_LEGIBLES[limpio]) {
+    return MAPA_ESTADOS_LEGIBLES[limpio];
+  }
+
+  const enMayusculas = limpio.toUpperCase();
+  if (MAPA_ESTADOS_LEGIBLES[enMayusculas]) {
+    return MAPA_ESTADOS_LEGIBLES[enMayusculas];
+  }
+
+  return formatearEstado(hito, fallback);
+}
+
+/**
+ * Retorna la denominación amigable del tipo táctico de misión.
+ */
+export function formatearTipoMision(
+  tipo?: string | null,
+  fallback = 'Misión operativa'
+): string {
+  if (!tipo || typeof tipo !== 'string' || tipo.trim() === '') {
+    return fallback;
+  }
+
+  const limpio = tipo.trim().toUpperCase();
+  const mapaTipos: Record<string, string> = {
+    VERIFICACION: 'Verificación en terreno',
+    ATENCION_CUADRILLA: 'Atención de cuadrilla',
+    PREVENCION: 'Operación preventiva',
+    RECUPERACION: 'Recuperación de infraestructura',
+    ASISTENCIA_SOCIAL: 'Asistencia social (FIBE)',
+    EVALUACION_INICIAL: 'Evaluación inicial',
+  };
+
+  return mapaTipos[limpio] || formatearEstado(tipo, fallback);
+}
+
+export interface ChipEstadoMision {
+  label: string;
+  color: string;
+  bg: string;
+  borderColor: string;
+}
+
+/**
+ * Retorna la configuración de estilos institucionales y texto legible
+ * para chips/badges de estado de misiones en tarjetas y vistas de detalle.
+ */
+export function obtenerChipEstadoMision(estado?: string | null): ChipEstadoMision {
+  const limpio = (estado || '').trim().toUpperCase();
+
+  switch (limpio) {
+    case 'EN_CURSO':
+      return {
+        label: 'En curso',
+        color: 'var(--color-warning, #E65100)',
+        bg: 'var(--color-warning-bg, #FFF3E0)',
+        borderColor: 'var(--color-warning, #E65100)',
+      };
+    case 'DESPACHADA':
+      return {
+        label: 'Despachada',
+        color: 'var(--color-primary-teal, #1B6F7D)',
+        bg: 'var(--color-info-bg, #E0F2F1)',
+        borderColor: 'var(--color-primary-teal, #1B6F7D)',
+      };
+    case 'COMPLETADA':
+      return {
+        label: 'Completada',
+        color: 'var(--color-success, #2E7D32)',
+        bg: 'var(--color-success-bg, #E8F5E9)',
+        borderColor: 'var(--color-success, #2E7D32)',
+      };
+    case 'RECHAZADA':
+      return {
+        label: 'Rechazada',
+        color: 'var(--color-danger, #D32F2F)',
+        bg: 'var(--color-danger-bg, #FFEBEE)',
+        borderColor: 'var(--color-danger, #D32F2F)',
+      };
+    case 'PLANIFICADA':
+      return {
+        label: 'Planificada',
+        color: 'var(--color-charcoal, #3B3F45)',
+        bg: 'var(--color-bg-light, #ECEFF3)',
+        borderColor: '#CBD5E1',
+      };
+    case 'CANCELADA':
+      return {
+        label: 'Cancelada',
+        color: 'var(--color-text-muted, #5F676E)',
+        bg: 'var(--color-bg-light, #ECEFF3)',
+        borderColor: '#CBD5E1',
+      };
+    default:
+      return {
+        label: formatearEstado(estado, 'Desconocido'),
+        color: 'var(--color-charcoal, #3B3F45)',
+        bg: 'var(--color-bg-light, #ECEFF3)',
+        borderColor: '#CBD5E1',
+      };
+  }
+}
+
 
