@@ -37,7 +37,7 @@ export function useEventosPrevencion(options: UseEventosPrevencionOptions = {}) 
 
   const [eventos, setEventos] = useState<EventoPrevencionListItemDTO[]>([]);
   const [meta, setMeta] = useState<PaginacionMetaH34>(META_INICIAL);
-  const [cargando, setCargando] = useState<boolean>(false);
+  const [cargando, setCargando] = useState<boolean>(autoLoad);
   const [error, setError] = useState<string | null>(null);
   const [esForbidden, setEsForbidden] = useState<boolean>(false);
   const [eventoSeleccionado, setEventoSeleccionado] = useState<EventoPrevencionListItemDTO | null>(null);
