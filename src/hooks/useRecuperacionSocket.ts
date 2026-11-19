@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { getSocket } from '@/lib/socket/client';
+import { suscribirSalasSocket } from '@/lib/socket/roomManager';
 import type { EventoRecuperacionResponse } from '@/types/recuperacion';
 
 export interface UseRecuperacionSocketOptions {
@@ -35,16 +36,13 @@ export function useRecuperacionSocket({
       socket.connect();
     }
 
-    const unirseSalas = () => {
-      setConectado(true);
-      socket.emit('unirse', 'sala:encargados');
-      socket.emit('join', 'sala:encargados');
-      socket.emit('unirse', 'mapa');
-      socket.emit('join', 'mapa');
-    };
+    const desuscribirSalas = suscribirSalasSocket(socket, [
+      { sala: 'sala:encargados', eventosJoin: ['unirse', 'join'], eventosLeave: ['salir', 'leave'] },
+      { sala: 'mapa', eventosJoin: ['unirse', 'join'], eventosLeave: ['salir', 'leave'] },
+    ]);
 
     const onConnect = () => {
-      unirseSalas();
+      setConectado(true);
     };
 
     const onDisconnect = () => {
@@ -52,7 +50,9 @@ export function useRecuperacionSocket({
     };
 
     if (socket.connected) {
-      unirseSalas();
+      queueMicrotask(() => {
+        setConectado(true);
+      });
     }
 
     const handleRecuperacionCreada = (payload: EventoRecuperacionResponse | { data: EventoRecuperacionResponse }) => {
@@ -74,10 +74,7 @@ export function useRecuperacionSocket({
       socket.off('connect', onConnect);
       socket.off('disconnect', onDisconnect);
       socket.off('recuperacion:creada', handleRecuperacionCreada);
-      socket.emit('salir', 'sala:encargados');
-      socket.emit('leave', 'sala:encargados');
-      socket.emit('salir', 'mapa');
-      socket.emit('leave', 'mapa');
+      desuscribirSalas();
     };
   }, [enabled]);
 

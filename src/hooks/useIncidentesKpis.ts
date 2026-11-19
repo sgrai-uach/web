@@ -9,6 +9,7 @@ import {
 import type { IncidentesKpisData, DelegacionOpcion } from '@/types/incidentesKpis';
 import { DELEGACIONES_VALDIVIA_DEFAULT } from '@/types/incidentesKpis';
 import { getSocket } from '@/lib/socket/client';
+import { suscribirSalasSocket } from '@/lib/socket/roomManager';
 import { useSimulatedSession } from '@/context/SimulatedSessionContext';
 
 export interface UseIncidentesKpisOptions {
@@ -114,15 +115,13 @@ export function useIncidentesKpis(options: UseIncidentesKpisOptions = {}) {
 
     const socket = getSocket();
 
-    const unirseSala = () => {
-      setConectado(true);
-      // Enfoque defensivo: emitir tanto 'join' como 'unirse' para asegurar compatibilidad
-      socket.emit('join', 'sala:encargados');
-      socket.emit('unirse', 'sala:encargados');
-    };
+    const desuscribirSalas = suscribirSalasSocket(socket, [
+      { sala: 'sala:encargados', eventosJoin: ['join', 'unirse'], eventosLeave: ['leave', 'salir'] },
+      { sala: 'encargado', eventosJoin: ['join', 'unirse'], eventosLeave: ['leave', 'salir'] },
+    ]);
 
     const handleConnect = () => {
-      unirseSala();
+      setConectado(true);
     };
 
     const handleDisconnect = () => {
@@ -137,7 +136,9 @@ export function useIncidentesKpis(options: UseIncidentesKpisOptions = {}) {
     };
 
     if (socket.connected) {
-      unirseSala();
+      queueMicrotask(() => {
+        setConectado(true);
+      });
     } else {
       socket.connect();
     }
@@ -146,14 +147,19 @@ export function useIncidentesKpis(options: UseIncidentesKpisOptions = {}) {
     socket.on('disconnect', handleDisconnect);
     socket.on('incidente:creado', handleActualizacionIncidente);
     socket.on('incidente:actualizado', handleActualizacionIncidente);
+    socket.on('mision:actualizada', handleActualizacionIncidente);
+    socket.on('mision:rechazada', handleActualizacionIncidente);
+    socket.on('mision:asignada', handleActualizacionIncidente);
 
     return () => {
-      socket.emit('leave', 'sala:encargados');
-      socket.emit('salir', 'sala:encargados');
+      desuscribirSalas();
       socket.off('connect', handleConnect);
       socket.off('disconnect', handleDisconnect);
       socket.off('incidente:creado', handleActualizacionIncidente);
       socket.off('incidente:actualizado', handleActualizacionIncidente);
+      socket.off('mision:actualizada', handleActualizacionIncidente);
+      socket.off('mision:rechazada', handleActualizacionIncidente);
+      socket.off('mision:asignada', handleActualizacionIncidente);
     };
   }, [enabled]);
 

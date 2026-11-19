@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { cuadrillasService } from '@/services/cuadrillasService';
 import { getSocket } from '@/lib/socket/client';
+import { suscribirSalasSocket } from '@/lib/socket/roomManager';
 import type {
   CuadrillaItem,
   FiltrosCuadrillasState,
@@ -65,17 +66,34 @@ export function useCuadrillas(filtros: FiltrosCuadrillasState): UseCuadrillasRet
     return () => clearTimeout(timer);
   }, [cargarDatos, filtros.pagina, filtros.limite, filtros.busqueda, filtros.delegacionId, filtros.estado]);
 
-  const actualizarCuadrillaEnLista = useCallback((cuadrillaActualizada: CuadrillaItem) => {
-    setCuadrillas((prev) => {
-      const index = prev.findIndex((c) => c.id === cuadrillaActualizada.id);
-      if (index === -1) {
-        return [cuadrillaActualizada, ...prev];
-      }
-      const copia = [...prev];
-      copia[index] = { ...copia[index], ...cuadrillaActualizada };
-      return copia;
-    });
-  }, []);
+  const actualizarCuadrillaEnLista = useCallback(
+    (cuadrillaActualizada: Partial<CuadrillaItem> & { id: string }) => {
+      setCuadrillas((prev) => {
+        const index = prev.findIndex((c) => c.id === cuadrillaActualizada.id);
+        if (index === -1) {
+          if (cuadrillaActualizada.delegacion && cuadrillaActualizada.delegado) {
+            return [cuadrillaActualizada as CuadrillaItem, ...prev];
+          }
+          return prev;
+        }
+        const copia = [...prev];
+        const actual = copia[index];
+        const estadoNorm = (cuadrillaActualizada.estado || actual.estado || '').toUpperCase();
+        copia[index] = {
+          ...actual,
+          ...cuadrillaActualizada,
+          misionActiva:
+            estadoNorm === 'DISPONIBLE'
+              ? null
+              : cuadrillaActualizada.misionActiva !== undefined
+                ? cuadrillaActualizada.misionActiva
+                : actual.misionActiva,
+        };
+        return copia;
+      });
+    },
+    []
+  );
 
   const removerCuadrillaDeLista = useCallback((id: string) => {
     setCuadrillas((prev) => prev.filter((c) => c.id !== id));
@@ -85,27 +103,72 @@ export function useCuadrillas(filtros: FiltrosCuadrillasState): UseCuadrillasRet
     }));
   }, []);
 
+  const cargarDatosRef = useRef(cargarDatos);
+  useEffect(() => {
+    cargarDatosRef.current = cargarDatos;
+  }, [cargarDatos]);
+
+  const actualizarCuadrillaEnListaRef = useRef(actualizarCuadrillaEnLista);
+  useEffect(() => {
+    actualizarCuadrillaEnListaRef.current = actualizarCuadrillaEnLista;
+  }, [actualizarCuadrillaEnLista]);
+
   // Suscripción WebSocket para reflejar cuadrillas creadas, actualizadas o desactivadas en vivo
   useEffect(() => {
     try {
       const socket = getSocket();
-      if (!socket) return;
+      if (!socket || typeof socket.on !== 'function') return;
 
-      const handleCuadrillaActualizada = (cuadrilla: CuadrillaItem) => {
-        if (cuadrilla && cuadrilla.id) {
-          actualizarCuadrillaEnLista(cuadrilla);
+      if (!socket.connected && typeof socket.connect === 'function') {
+        socket.connect();
+      }
+
+      const desuscribirSalas = suscribirSalasSocket(socket, [
+        { sala: 'encargado', eventosJoin: ['join'], eventosLeave: ['leave'] },
+        { sala: 'sala:encargados', eventosJoin: ['unirse'], eventosLeave: ['salir'] },
+        { sala: 'mapa', eventosJoin: ['join', 'unirse'], eventosLeave: ['leave', 'salir'] },
+      ]);
+
+      const handleCuadrillaActualizada = (rawPayload: unknown) => {
+        const p = rawPayload as Record<string, unknown> | null | undefined;
+        const raw = (p?.datos || p?.data || rawPayload) as Record<string, unknown> | null | undefined;
+        if (!raw || typeof raw !== 'object') return;
+
+        const id =
+          typeof raw.id === 'string'
+            ? raw.id
+            : typeof raw.cuadrillaId === 'string'
+              ? raw.cuadrillaId
+              : typeof raw.cuadrilla_id === 'string'
+                ? raw.cuadrilla_id
+                : '';
+        if (!id) return;
+
+        const parcial: Partial<CuadrillaItem> & { id: string } = {
+          ...(raw as Partial<CuadrillaItem>),
+          id,
+        };
+        if (typeof raw.estado === 'string') {
+          parcial.estado = raw.estado as CuadrillaItem['estado'];
+        }
+
+        actualizarCuadrillaEnListaRef.current(parcial);
+
+        const estadoNorm = typeof raw.estado === 'string' ? raw.estado.toUpperCase() : '';
+        if (filtrosRef.current.estado || estadoNorm === 'DISPONIBLE') {
+          void cargarDatosRef.current();
         }
       };
 
       const handleCuadrillaCreada = (cuadrilla: CuadrillaItem) => {
         if (cuadrilla && cuadrilla.id) {
-          cargarDatos();
+          void cargarDatosRef.current();
         }
       };
 
       const handleCuadrillaDesactivada = (data: { id: string } | CuadrillaItem) => {
         if (data && data.id) {
-          cargarDatos();
+          void cargarDatosRef.current();
         }
       };
 
@@ -117,11 +180,12 @@ export function useCuadrillas(filtros: FiltrosCuadrillasState): UseCuadrillasRet
         socket.off('cuadrilla:actualizada', handleCuadrillaActualizada);
         socket.off('cuadrilla:creada', handleCuadrillaCreada);
         socket.off('cuadrilla:desactivada', handleCuadrillaDesactivada);
+        desuscribirSalas();
       };
     } catch {
       // Ignorar fallo de inicialización de socket en entornos de prueba
     }
-  }, [actualizarCuadrillaEnLista, cargarDatos]);
+  }, []);
 
   return {
     cuadrillas,

@@ -9,6 +9,16 @@ import {
 } from '@/lib/socket/trazabilidadStore';
 import type { MisionItem } from '@/types/misiones';
 
+vi.mock('@/lib/socket/client', () => ({
+  getSocket: () => ({
+    connected: true,
+    connect: vi.fn(),
+    emit: vi.fn(),
+    on: vi.fn(),
+    off: vi.fn(),
+  }),
+}));
+
 vi.mock('@/hooks/useCatalogos', () => ({
   useCatalogos: () => ({
     nombresDelegaciones: ['Norte', 'Sur', 'Costa', 'Calle Calle'],

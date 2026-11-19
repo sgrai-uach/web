@@ -170,7 +170,8 @@ describe('Componente IncidenteDetalleDrawer e integración HU-17', () => {
     // Esperar a que cargue el incidente
     await waitFor(() => {
       expect(screen.getByText('INC-2026-0042')).toBeDefined();
-      expect(screen.getByText('MIS-2026-0001: Despeje de cables')).toBeDefined();
+      expect(screen.getByText('MIS-2026-0001')).toBeDefined();
+      expect(screen.getByText('Despeje de cables')).toBeDefined();
     });
 
     // Clic en el botón "Ver Detalles" de la misión
@@ -407,6 +408,586 @@ describe('Componente IncidenteDetalleDrawer e integración HU-17', () => {
     // En estado EN_ATENCION, no debe estar el botón
     const btnDespachar = screen.queryByRole('button', { name: /Despachar Patrulla/i });
     expect(btnDespachar).toBeNull();
+  });
+
+  it('renderiza estados y prioridades legibles sin mostrar el antiguo recuadro de reclasificación técnica (reemplazado por Último Reporte e ícono de afectación)', async () => {
+    const mockIncidenteReclasificado: IncidenteDetalle = {
+      ...mockDetalleIncidente,
+      tipoAfectacion: 'Inundación Mayor',
+      prioridad: 'CRITICA',
+      reclasificadoEnTerreno: true,
+      justificacionReclasificacion: 'Desborde de río constatado con riesgo inminente a personas.',
+      cambioPrioridadMotivo: 'Desborde de río constatado con riesgo inminente a personas.',
+    };
+
+    vi.spyOn(incidentesService, 'obtenerDetalleIncidente').mockResolvedValueOnce({
+      exito: true,
+      datos: mockIncidenteReclasificado,
+      mensaje: 'OK',
+    });
+
+    render(
+      <IncidenteDetalleDrawer
+        incidenteId="i1000000-0000-4000-8000-000000000001"
+        userId="user-test"
+        onCerrar={vi.fn()}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('INC-2026-0042')).toBeDefined();
+    });
+
+    // Validar strings legibles y sin enums en crudo
+    expect(screen.getByText('Estado: En atención')).toBeDefined();
+    expect(screen.getByText('Prioridad: Crítica')).toBeDefined();
+
+    // El antiguo recuadro de reclasificación en el resumen ya no se renderiza
+    expect(screen.queryByTestId('bloque-reclasificacion-terreno')).toBeNull();
+    // Se muestra el botón clickeable de cambio de afectación y la sección Último Reporte de Terreno
+    expect(screen.getByTestId('btn-ver-cambio-afectacion')).toBeDefined();
+    expect(screen.getByTestId('incidente-ultimo-reporte-section')).toBeDefined();
+  });
+
+  it('muestra el acceso rápido al último reporte de las misiones activas y permite abrir todos los reportes de la misión en MisionDetalleModal (HU-38)', async () => {
+    const mockIncidenteConReportes: IncidenteDetalle = {
+      ...mockDetalleIncidente,
+      prioridad: 'CRITICA',
+      prioridadSugerida: 'ALTA',
+      justificacionPrioridad: 'Riesgo eléctrico activo junto a anegamiento de dormitorio.',
+      reportesEvaluacionTerreno: [
+        {
+          id: 'rep-m1-2',
+          misionId: 'm1000000-0000-4000-8000-000000000001',
+          versionReporte: 2,
+          esRectificacion: true,
+          etiquetaReporte: 'Reporte de Evaluación #2 (Rectificación)',
+          prioridadSugerida: 'ALTA',
+          prioridadAsignada: 'CRITICA',
+          justificacionPrioridad: 'Riesgo eléctrico activo junto a anegamiento de dormitorio.',
+          resumenTecnico: 'Segundo reporte rectificado desde terreno.',
+          accionesRealizadas: 'Aislamiento preventivo.',
+          danosEstimados: 'Pérdida de enseres.',
+          observaciones: 'Se solicita apoyo.',
+          personasAfectadas: 4,
+          requiereApoyoAdicional: true,
+          evaluacion: {
+            nucleoFamiliarTotal: 4,
+            cantidadNinos: 2,
+            mascotasAfectadas: 1,
+            nivelCompromisoVivienda: 'MODERADO',
+          },
+          evaluador: {
+            id: 'u-eval-1',
+            nombre: 'Patrulla Verificadora',
+            email: 'patrulla@valdivia.cl',
+          },
+          creadoEn: '2026-11-11T11:00:00Z',
+        },
+        {
+          id: 'rep-m1-1',
+          misionId: 'm1000000-0000-4000-8000-000000000001',
+          versionReporte: 1,
+          esRectificacion: false,
+          etiquetaReporte: 'Reporte de Evaluación #1 (Inicial)',
+          prioridadSugerida: 'MEDIA',
+          prioridadAsignada: 'ALTA',
+          justificacionPrioridad: 'Agua sube por patio.',
+          resumenTecnico: 'Reporte inicial de evaluación.',
+          accionesRealizadas: null,
+          danosEstimados: null,
+          observaciones: null,
+          personasAfectadas: 4,
+          requiereApoyoAdicional: false,
+          evaluacion: {
+            nucleoFamiliarTotal: 4,
+          },
+          evaluador: {
+            id: 'u-eval-1',
+            nombre: 'Patrulla Verificadora',
+            email: 'patrulla@valdivia.cl',
+          },
+          creadoEn: '2026-11-11T10:30:00Z',
+        },
+      ],
+    };
+
+    vi.spyOn(incidentesService, 'obtenerDetalleIncidente').mockResolvedValueOnce({
+      exito: true,
+      datos: mockIncidenteConReportes,
+      mensaje: 'OK',
+    });
+
+    vi.spyOn(misionesService, 'obtenerDetalleMision').mockResolvedValueOnce({
+      exito: true,
+      datos: mockMisionDetalle,
+      mensaje: 'Mision OK',
+    });
+
+    render(
+      <IncidenteDetalleDrawer
+        incidenteId="i1000000-0000-4000-8000-000000000001"
+        userId="user-test"
+        onCerrar={vi.fn()}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('INC-2026-0042')).toBeDefined();
+    });
+
+    // Verificar badge de prioridad sugerida vs asignada en el header del drawer
+    expect(screen.getByText('Prioridad: Crítica')).toBeDefined();
+    expect(screen.getByText('Sugerida: Alta')).toBeDefined();
+
+    // Verificar que se renderiza el bloque del último reporte de la misión activa
+    const bloqueUltimo = screen.getByTestId(
+      'ultimo-reporte-mision-m1000000-0000-4000-8000-000000000001'
+    );
+    expect(bloqueUltimo).toBeDefined();
+    expect(bloqueUltimo.textContent).toContain('Reporte #2 — Rectificación Vigente');
+    expect(bloqueUltimo.textContent).toContain('Segundo reporte rectificado desde terreno.');
+
+    // Clic en "Ver Todos los Reportes (2)" para abrir el detalle de la misión enfocado en reportes
+    const btnVerTodos = screen.getByRole('button', {
+      name: /Ver todos los reportes de la misión MIS-2026-0001/i,
+    });
+    fireEvent.click(btnVerTodos);
+
+    await waitFor(() => {
+      expect(misionesService.obtenerDetalleMision).toHaveBeenCalledWith(
+        'm1000000-0000-4000-8000-000000000001',
+        'user-test'
+      );
+      expect(screen.getByTestId('mision-reportes-section')).toBeDefined();
+    });
+  });
+
+  it('muestra el código del incidente en la cabecera, origen amigable, ícono clickeable de cambio de afectación, sección Último Reporte y botón de mapa desplegable', async () => {
+    const mockIncidenteCompleto: IncidenteDetalle = {
+      ...mockDetalleIncidente,
+      codigo: 'INC-592395-562',
+      tipoAfectacion: 'Corte de agua potable',
+      fuenteOrigen: 'LLAMADA_TELEFONICA',
+      reclasificadoEnTerreno: true,
+      reclasificacionTipologia: {
+        hitoId: 'hito-reclas-1',
+        misionId: 'm1000000-0000-4000-8000-000000000001',
+        misionCodigo: 'MIS-2026-0001',
+        tipoAnterior: 'Anegamiento',
+        tipoNuevo: 'Corte de agua potable',
+        justificacion: 'Rotura de matriz principal de agua potable.',
+        registradoPor: 'Cabo Patrulla',
+        creadoEn: '2026-11-11T10:15:00Z',
+      },
+      ultimoReporte: {
+        origen: 'REPORTE_TERRENO',
+        reporteId: 'rep-m1-2',
+        misionId: 'm1000000-0000-4000-8000-000000000001',
+        misionCodigo: 'MIS-2026-0001',
+        evaluadorNombre: 'Cabo Patrulla',
+        creadoEn: '2026-11-11T11:00:00Z',
+        resumen: 'Corte de suministro en toda la cuadra.',
+        prioridadAsignada: 'ALTA',
+        versionReporte: 2,
+        esRectificacion: true,
+      },
+    };
+
+    vi.spyOn(incidentesService, 'obtenerDetalleIncidente').mockResolvedValueOnce({
+      exito: true,
+      datos: mockIncidenteCompleto,
+      mensaje: 'OK',
+    });
+
+    vi.spyOn(misionesService, 'obtenerDetalleMision').mockResolvedValue({
+      exito: true,
+      datos: {
+        ...mockMisionDetalle,
+        bitacoraTiempos: [
+          {
+            id: 'hito-reclas-1',
+            hito: 'TIPOLOGIA_RECLASIFICADA',
+            fecha: '2026-11-11',
+            hora: '10:15:00',
+            timestamp: '2026-11-11T10:15:00Z',
+            descripcion: 'Tipología reclasificada en terreno a: Corte de agua potable. Justificación: Rotura de matriz principal de agua potable.',
+            metadatos: {
+              tipoAnterior: 'Anegamiento',
+              tipoNuevo: 'Corte de agua potable',
+              justificacion: 'Rotura de matriz principal de agua potable.',
+            },
+          },
+        ],
+      },
+      mensaje: 'Mision OK',
+    });
+
+    render(
+      <IncidenteDetalleDrawer
+        incidenteId="i1000000-0000-4000-8000-000000000001"
+        incidenteCodigo="INC-592395-562"
+        userId="user-test"
+        onCerrar={vi.fn()}
+      />
+    );
+
+    // El identificador del incidente se muestra inmediatamente en la cabecera superior
+    expect(screen.getByTestId('incidente-header-codigo').textContent).toBe(
+      'INC-592395-562'
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Central Telefónica')).toBeDefined();
+    });
+
+    // Verificar sección "Último Reporte de Terreno" y su botón "Ver detalle"
+    const seccionUltimo = screen.getByTestId('incidente-ultimo-reporte-section');
+    expect(seccionUltimo.textContent).toContain('Corte de suministro en toda la cuadra.');
+    expect(screen.getByTestId('btn-ver-detalle-ultimo-reporte')).toBeDefined();
+
+    // Verificar botón de mapa desplegable en "Ubicación Territorial"
+    const btnMapa = screen.getByTestId('btn-toggle-mapa-ubicacion');
+    expect(btnMapa.getAttribute('aria-expanded')).toBe('false');
+    fireEvent.click(btnMapa);
+    expect(btnMapa.getAttribute('aria-expanded')).toBe('true');
+    expect(screen.getByTestId('contenedor-mini-mapa-incidente')).toBeDefined();
+
+    // Verificar ícono clickeable al costado del tipo de afectación cambiado
+    const btnCambioAfectacion = screen.getByTestId('btn-ver-cambio-afectacion');
+    expect(btnCambioAfectacion.textContent).toContain('Antes: Anegamiento');
+    fireEvent.click(btnCambioAfectacion);
+
+    await waitFor(() => {
+      expect(misionesService.obtenerDetalleMision).toHaveBeenCalledWith(
+        'm1000000-0000-4000-8000-000000000001',
+        'user-test'
+      );
+      expect(screen.getByTestId('reporte-verificacion-reclasificacion')).toBeDefined();
+    });
+  });
+
+  it('despliega métricas de familias y desglose de hogares en la sección de Último Reporte', async () => {
+    const mockIncidenteConFamilias: IncidenteDetalle = {
+      ...mockDetalleIncidente,
+      codigo: 'INC-777888-999',
+      tipoAfectacion: 'Inundación',
+      ultimoReporte: {
+        origen: 'REPORTE_TERRENO',
+        reporteId: 'rep-familias-1',
+        misionId: 'm1000000-0000-4000-8000-000000000001',
+        misionCodigo: 'MIS-2026-0001',
+        evaluadorNombre: 'Patrullero Castro',
+        creadoEn: '2026-11-12T11:00:00Z',
+        resumen: 'Dos viviendas anegadas con familias afectadas.',
+        prioridadAsignada: 'CRITICA',
+        versionReporte: 1,
+        esRectificacion: false,
+      },
+      reportesEvaluacionTerreno: [
+        {
+          id: 'rep-familias-1',
+          misionId: 'm1000000-0000-4000-8000-000000000001',
+          versionReporte: 1,
+          esRectificacion: false,
+          etiquetaReporte: 'Reporte de Evaluación #1 (Inicial)',
+          prioridadSugerida: 'ALTA',
+          prioridadAsignada: 'CRITICA',
+          justificacionPrioridad: 'Riesgo grave para personas vulnerables.',
+          resumenTecnico: 'Constatación en terreno.',
+          accionesRealizadas: 'Demarcación preventiva.',
+          danosEstimados: null,
+          observaciones: null,
+          personasAfectadas: 6,
+          requiereApoyoAdicional: false,
+          evaluacion: {
+            nucleoFamiliarTotal: 6,
+            familiasAfectadas: 2,
+            viviendasAfectadas: 2,
+            nivelCompromisoVivienda: 'GRAVE_INHABITABLE',
+            requiereAsistenciaSocial: true,
+            familias: [
+              {
+                id: 'f-1',
+                referencia: 'Familia Morales',
+                nucleoFamiliarTotal: 4,
+                nivelCompromisoVivienda: 'GRAVE_INHABITABLE',
+                requiereAsistenciaSocial: true,
+              },
+              {
+                id: 'f-2',
+                referencia: 'Casa 2 Interior',
+                nucleoFamiliarTotal: 2,
+                nivelCompromisoVivienda: 'LEVE_HABITABLE',
+                requiereAsistenciaSocial: false,
+              },
+            ],
+          },
+          evaluador: {
+            id: 'u-eval-1',
+            nombre: 'Patrullero Castro',
+            email: 'castro@valdivia.cl',
+          },
+          creadoEn: '2026-11-12T11:00:00Z',
+        },
+      ],
+    };
+
+    vi.spyOn(incidentesService, 'obtenerDetalleIncidente').mockResolvedValueOnce({
+      exito: true,
+      datos: mockIncidenteConFamilias,
+      mensaje: 'OK',
+    });
+
+    render(
+      <IncidenteDetalleDrawer
+        incidenteId="i1000000-0000-4000-8000-000000000001"
+        incidenteCodigo="INC-777888-999"
+        userId="user-test"
+        onCerrar={vi.fn()}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('INC-777888-999')).toBeDefined();
+    });
+
+    const seccionUltimo = screen.getByTestId('incidente-ultimo-reporte-section');
+    expect(seccionUltimo.textContent).toContain('2 familias');
+    expect(seccionUltimo.textContent).toContain('6 personas');
+    expect(seccionUltimo.textContent).toContain('2 viviendas');
+    expect(seccionUltimo.textContent).toContain('Grave / Inhabitable');
+
+    const desgloseFamilias = screen.getByTestId('incidente-ultimo-reporte-familias-desglose');
+    expect(desgloseFamilias.textContent).toContain('Familia Morales: 4 pers.');
+    expect(desgloseFamilias.textContent).not.toContain('FIBE');
+    expect(desgloseFamilias.textContent).toContain('Familia Casa 2 Interior: 2 pers.');
+  });
+
+  it('indica explícitamente cuando la tipología no fue modificada por la patrulla en Resumen y Último Reporte', async () => {
+    const mockIncidenteRatificado: IncidenteDetalle = {
+      ...mockDetalleIncidente,
+      codigo: 'INC-948888-846',
+      tipoAfectacion: 'Deslizamiento',
+      reclasificadoEnTerreno: false,
+      reclasificacionTipologia: {
+        hitoId: 'hito-rat-1',
+        misionId: 'm1000000-0000-4000-8000-000000000001',
+        misionCodigo: 'MIS-2026-0001',
+        tipoAnterior: 'Deslizamiento',
+        tipoNuevo: 'Deslizamiento',
+        justificacion: 'Tipología constatada y ratificada en terreno sin variaciones.',
+        registradoPor: 'Cristóbal Felipe Veas',
+        creadoEn: '2026-11-13T15:21:38Z',
+      },
+      ultimoReporte: {
+        origen: 'RECLASIFICACION',
+        reporteId: 'reclasificacion-hito-rat-1',
+        misionId: 'm1000000-0000-4000-8000-000000000001',
+        misionCodigo: 'MIS-2026-0001',
+        evaluadorNombre: 'Cristóbal Felipe Veas',
+        creadoEn: '2026-11-13T15:21:38Z',
+        resumen: 'Tipología constatada y ratificada en terreno sin variaciones.',
+        prioridadAsignada: null,
+        versionReporte: null,
+        esRectificacion: false,
+      },
+    };
+
+    vi.spyOn(incidentesService, 'obtenerDetalleIncidente').mockResolvedValueOnce({
+      exito: true,
+      datos: mockIncidenteRatificado,
+      mensaje: 'OK',
+    });
+
+    render(
+      <IncidenteDetalleDrawer
+        incidenteId="i1000000-0000-4000-8000-000000000001"
+        incidenteCodigo="INC-948888-846"
+        userId="user-test"
+        onCerrar={vi.fn()}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('INC-948888-846')).toBeDefined();
+    });
+
+    // Imagen 1: Resumen no debe decir "Antes: Deslizamiento"
+    const btnCambio = screen.getByTestId('btn-ver-cambio-afectacion');
+    expect(btnCambio.textContent).toContain('Confirmada sin cambios');
+    expect(btnCambio.textContent).not.toContain('Antes:');
+
+    // Imagen 2: Último reporte no debe mostrar "Deslizamiento → Deslizamiento"
+    const seccionUltimo = screen.getByTestId('incidente-ultimo-reporte-section');
+    expect(seccionUltimo.textContent).toContain('Constatación en Terreno (Sin cambios)');
+    expect(seccionUltimo.textContent).toContain('Deslizamiento (confirmada sin modificaciones por la patrulla)');
+    expect(seccionUltimo.textContent).not.toContain('Deslizamiento → Deslizamiento');
+  });
+
+  it('muestra el informe VERIFICACION_CIERRE con dictamen REQUIERE_CUADRILLA, comparativa de personas afectadas y Ficha FIBE (H39)', async () => {
+    const mockIncidenteCierreCuadrilla: IncidenteDetalle = {
+      ...mockDetalleIncidente,
+      estado: 'VERIFICANDO',
+      requiereAsistenciaSocial: true,
+      verificado: true,
+      misiones: [
+        {
+          ...mockDetalleIncidente.misiones[0],
+          estado: 'COMPLETADA',
+        },
+      ],
+      ultimoReporte: {
+        origen: 'REPORTE_TERRENO',
+        reporteId: 'rep-cierre-39',
+        misionId: 'm1000000-0000-4000-8000-000000000001',
+        misionCodigo: 'MIS-2026-0001',
+        evaluadorNombre: 'Patrullero Vera',
+        creadoEn: '2026-11-15T14:00:00Z',
+        resumen: 'Árbol caído bloquea acceso a dos viviendas; requiere motosierrista.',
+        prioridadAsignada: 'ALTA',
+        versionReporte: 2,
+        esRectificacion: false,
+        tipoReporte: 'VERIFICACION_CIERRE',
+        dictamen: 'REQUIERE_CUADRILLA',
+        estadoTerreno: 'CRITICO',
+        requiereAsistenciaSocial: true,
+        personasAfectadas: 6,
+      },
+      reportesEvaluacionTerreno: [
+        {
+          id: 'rep-prio-38',
+          misionId: 'm1000000-0000-4000-8000-000000000001',
+          tipoReporte: 'EVALUACION_PRIORIDAD',
+          versionReporte: 1,
+          esRectificacion: false,
+          etiquetaReporte: 'Reporte de Evaluación #1 (Inicial)',
+          prioridadSugerida: 'MEDIA',
+          prioridadAsignada: 'ALTA',
+          justificacionPrioridad: 'Riesgo sobre acceso principal.',
+          resumenTecnico: 'Evaluación inicial de prioridad.',
+          accionesRealizadas: null,
+          danosEstimados: null,
+          observaciones: null,
+          personasAfectadas: 4,
+          requiereApoyoAdicional: false,
+          evaluacion: { nucleoFamiliarTotal: 4, familiasAfectadas: 1 },
+          evaluador: { id: 'u-p', nombre: 'Patrullero Vera' },
+          creadoEn: '2026-11-15T13:30:00Z',
+        },
+        {
+          id: 'rep-cierre-39',
+          misionId: 'm1000000-0000-4000-8000-000000000001',
+          tipoReporte: 'VERIFICACION_CIERRE',
+          dictamen: 'REQUIERE_CUADRILLA',
+          estadoTerreno: 'CRITICO',
+          requiereAsistenciaSocial: true,
+          versionReporte: 2,
+          esRectificacion: false,
+          etiquetaReporte: 'Informe Técnico de Verificación y Cierre',
+          prioridadSugerida: null,
+          prioridadAsignada: 'ALTA',
+          justificacionPrioridad: null,
+          resumenTecnico: 'Árbol caído bloquea acceso a dos viviendas; requiere motosierrista.',
+          accionesRealizadas: null,
+          danosEstimados: 'Cerco perimetral destruido',
+          observaciones: 'Se dejó perímetro demarcado.',
+          personasAfectadas: 6,
+          requiereApoyoAdicional: false,
+          evaluacion: {},
+          evaluador: { id: 'u-p', nombre: 'Patrullero Vera' },
+          creadoEn: '2026-11-15T14:00:00Z',
+        },
+      ],
+    };
+
+    vi.spyOn(incidentesService, 'obtenerDetalleIncidente').mockResolvedValueOnce({
+      exito: true,
+      datos: mockIncidenteCierreCuadrilla,
+      mensaje: 'OK',
+    });
+
+    render(
+      <IncidenteDetalleDrawer
+        incidenteId="i1000000-0000-4000-8000-000000000001"
+        incidenteCodigo="INC-2026-001"
+        userId="user-test"
+        onCerrar={vi.fn()}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Informe Técnico de Verificación y Cierre')).toBeDefined();
+    });
+
+    const seccionUltimo = screen.getByTestId('incidente-ultimo-reporte-section');
+    expect(seccionUltimo.textContent).toContain('Dictamen: Requiere Cuadrilla');
+    expect(seccionUltimo.textContent).toContain('Requiere Ficha FIBE');
+    expect(seccionUltimo.textContent).toContain('6 personas (Modificado; antes: 4)');
+    expect(screen.getByText('Despachar Cuadrilla')).toBeDefined();
+  });
+
+  it('muestra banner de cierre No Abordable y motivo técnico cuando dictamen es NO_ABORDABLE (H39)', async () => {
+    const mockIncidenteNoAbordable: IncidenteDetalle = {
+      ...mockDetalleIncidente,
+      estado: 'NO_ABORDABLE',
+      motivoNoAbordable: 'Predio privado inaccesible y sin riesgo hacia la vía pública.',
+      fechaCierre: '2026-11-15T15:10:00Z',
+      dictamenTerreno: 'NO_ABORDABLE',
+      reportesEvaluacionTerreno: [
+        {
+          id: 'rep-cierre-noab',
+          misionId: 'm1000000-0000-4000-8000-000000000001',
+          tipoReporte: 'VERIFICACION_CIERRE',
+          dictamen: 'NO_ABORDABLE',
+          motivoNoAbordable: 'Predio privado inaccesible y sin riesgo hacia la vía pública.',
+          estadoTerreno: 'SIN_ACCESO',
+          requiereAsistenciaSocial: false,
+          versionReporte: 1,
+          esRectificacion: false,
+          etiquetaReporte: 'Informe de Cierre — No Abordable',
+          prioridadSugerida: null,
+          prioridadAsignada: null,
+          justificacionPrioridad: null,
+          resumenTecnico: 'Se verifica portón cerrado en predio particular sin afectación externa.',
+          accionesRealizadas: null,
+          danosEstimados: 'Sin daños en espacio público',
+          observaciones: 'Se deja registro fotográfico del acceso.',
+          personasAfectadas: 0,
+          requiereApoyoAdicional: false,
+          evaluacion: {},
+          evaluador: { id: 'u-p', nombre: 'Patrullero Vera' },
+          creadoEn: '2026-11-15T15:10:00Z',
+        },
+      ],
+    };
+
+    vi.spyOn(incidentesService, 'obtenerDetalleIncidente').mockResolvedValueOnce({
+      exito: true,
+      datos: mockIncidenteNoAbordable,
+      mensaje: 'OK',
+    });
+
+    render(
+      <IncidenteDetalleDrawer
+        incidenteId="i1000000-0000-4000-8000-000000000001"
+        incidenteCodigo="INC-2026-001"
+        userId="user-test"
+        onCerrar={vi.fn()}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('banner-incidente-no-abordable')).toBeDefined();
+    });
+
+    const banner = screen.getByTestId('banner-incidente-no-abordable');
+    expect(banner.textContent).toContain('Caso cerrado en terreno como No Abordable');
+    expect(banner.textContent).toContain('Predio privado inaccesible y sin riesgo hacia la vía pública.');
+    expect(screen.queryByText('Despachar Cuadrilla')).toBeNull();
+    expect(screen.getByTestId('ultimo-reporte-motivo-no-abordable').textContent).toContain(
+      'Predio privado inaccesible y sin riesgo hacia la vía pública.'
+    );
   });
 
   it('actualiza reactivamente el estado de trazabilidad de la misión ante notificacion:trazabilidad_actualizada', async () => {
@@ -701,6 +1282,226 @@ describe('Componente IncidenteDetalleDrawer e integración HU-17', () => {
       'notificacion:trazabilidad_actualizada',
       expect.any(Function)
     );
+    expect(mockSocket.off).toHaveBeenCalledWith(
+      'adjunto:creado',
+      expect.any(Function)
+    );
     expect(mockSocket.emit).not.toHaveBeenCalledWith('salir', 'sala:encargados');
+  });
+
+  it('HU-43: debe recargar el incidente y mostrar la galería al recibir adjunto:creado para el incidenteId abierto', async () => {
+    const detalleConAdjunto = {
+      ...mockDetalleIncidente,
+      adjuntos: [
+        {
+          id: 'adj-inc-001',
+          nombreArchivo: 'foto_dano.webp',
+          url: '/uploads/evidencia/foto_dano.webp',
+          tipoMime: 'image/webp',
+          tamanoBytes: 120000,
+          creadoEn: '2026-10-02T15:30:00.000Z',
+        },
+      ],
+    };
+
+    const spyDetalle = vi
+      .spyOn(incidentesService, 'obtenerDetalleIncidente')
+      .mockResolvedValueOnce({
+        exito: true,
+        datos: mockDetalleIncidente,
+        mensaje: 'OK',
+      })
+      .mockResolvedValueOnce({
+        exito: true,
+        datos: detalleConAdjunto,
+        mensaje: 'OK',
+      });
+
+    render(
+      <IncidenteDetalleDrawer
+        incidenteId={mockDetalleIncidente.id}
+        userId="user-test"
+        onCerrar={vi.fn()}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('INC-2026-0042')).toBeDefined();
+    });
+    expect(screen.queryByTestId('incidente-evidencias-section')).toBeNull();
+
+    const handler = socketListeners['adjunto:creado']?.[0];
+    expect(handler).toBeDefined();
+
+    act(() => {
+      handler?.({
+        id: 'adj-inc-001',
+        nombreArchivo: 'foto_dano.webp',
+        url: '/uploads/evidencia/foto_dano.webp',
+        tipoMime: 'image/webp',
+        tamanoBytes: 120000,
+        incidenteId: mockDetalleIncidente.id,
+        reporteTerrenoId: null,
+        creadoEn: '2026-10-02T15:30:00.000Z',
+      });
+    });
+
+      await waitFor(() => {
+      expect(spyDetalle).toHaveBeenCalledTimes(2);
+      expect(screen.getByTestId('incidente-evidencias-section')).toBeDefined();
+      expect(screen.getByText('foto_dano.webp')).toBeDefined();
+    });
+  });
+
+  it('HU-68: muestra banner de faenas finalizadas (espera H86), prioriza REPORTE_CUADRILLA con materiales/horas y oculta despacho de cuadrilla', async () => {
+    const mockIncidenteH68: IncidenteDetalle = {
+      ...mockDetalleIncidente,
+      estado: 'EN_ATENCION',
+      misiones: [
+        {
+          id: 'mis-verif-1',
+          codigo: 'MIS-2026-0040',
+          titulo: 'Verificación previa',
+          descripcion: null,
+          tipoMision: 'VERIFICACION',
+          estado: 'COMPLETADA',
+          prioridad: 'ALTA',
+          justificacionRechazo: null,
+          patrulla: { id: 'pat-1', nombre: 'Patrulla Norte', estado: 'DISPONIBLE' },
+          cuadrilla: null,
+          fechaInicio: '2026-11-18T10:00:00Z',
+          fechaCierre: '2026-11-18T11:00:00Z',
+          creadoEn: '2026-11-18T09:30:00Z',
+        },
+        {
+          id: 'mis-cuad-68',
+          codigo: 'MIS-2026-0068',
+          titulo: 'Despeje de calzada y contención',
+          descripcion: 'Mitigación por cuadrilla',
+          tipoMision: 'ATENCION_CUADRILLA',
+          estado: 'COMPLETADA',
+          prioridad: 'ALTA',
+          justificacionRechazo: null,
+          patrulla: null,
+          cuadrilla: { id: 'cuad-1', nombre: 'Cuadrilla Vías y Canales 1', estado: 'DISPONIBLE' },
+          fechaInicio: '2026-11-18T12:00:00Z',
+          fechaCierre: '2026-11-18T17:30:00Z',
+          creadoEn: '2026-11-18T11:30:00Z',
+        },
+      ],
+      reportesEvaluacionTerreno: [
+        {
+          id: 'rep-verif-previo',
+          misionId: 'mis-verif-1',
+          tipoReporte: 'VERIFICACION_CIERRE',
+          dictamen: 'REQUIERE_CUADRILLA',
+          versionReporte: 1,
+          esRectificacion: false,
+          etiquetaReporte: 'Informe de Verificación y Cierre',
+          prioridadSugerida: null,
+          prioridadAsignada: null,
+          justificacionPrioridad: null,
+          resumenTecnico: 'Requiere retiro de árbol y contención.',
+          accionesRealizadas: null,
+          danosEstimados: null,
+          observaciones: null,
+          personasAfectadas: 4,
+          requiereApoyoAdicional: false,
+          evaluacion: {},
+          evaluador: { id: 'u-p', nombre: 'Patrulla Norte' },
+          creadoEn: '2026-11-18T11:00:00Z',
+        },
+        {
+          id: 'rep-cuad-final',
+          misionId: 'mis-cuad-68',
+          tipoReporte: 'REPORTE_CUADRILLA',
+          estadoTerreno: 'CONTROLADO',
+          etiquetaReporte: 'Informe Técnico Final de Cuadrilla (Cierre de Misión)',
+          horasHombre: 5.5,
+          materialesConsumidos: [
+            { recursoId: 'rec-sacos', nombre: 'Sacos de arena', cantidad: 25, unidad: 'sacos' },
+          ],
+          versionReporte: 1,
+          esRectificacion: false,
+          prioridadSugerida: null,
+          prioridadAsignada: null,
+          justificacionPrioridad: null,
+          resumenTecnico: 'Se ejecutó despeje completo de calzada y contención perimetral.',
+          accionesRealizadas: null,
+          danosEstimados: 'Solera dañada en 4 metros',
+          observaciones: 'Sector queda habilitado al tránsito.',
+          personasAfectadas: 0,
+          requiereApoyoAdicional: false,
+          evaluacion: {},
+          evaluador: { id: 'u-del', nombre: 'Carlos Delegado' },
+          creadoEn: '2026-11-18T17:30:00Z',
+        },
+      ],
+    };
+
+    const spyDetalle = vi
+      .spyOn(incidentesService, 'obtenerDetalleIncidente')
+      .mockResolvedValueOnce({
+        exito: true,
+        datos: mockIncidenteH68,
+        mensaje: 'OK',
+      })
+      .mockResolvedValueOnce({
+        exito: true,
+        datos: mockIncidenteH68,
+        mensaje: 'OK',
+      });
+
+    render(
+      <IncidenteDetalleDrawer
+        incidenteId="i1000000-0000-4000-8000-000000000001"
+        incidenteCodigo="INC-2026-0042"
+        userId="user-test"
+        onCerrar={vi.fn()}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('banner-faenas-cuadrilla-completadas')).toBeDefined();
+    });
+
+    const banner = screen.getByTestId('banner-faenas-cuadrilla-completadas');
+    expect(banner.textContent).toContain('Faenas de cuadrilla finalizadas — Cuadrilla liberada');
+    expect(banner.textContent).toContain('H86');
+    expect(screen.queryByText('Despachar Cuadrilla')).toBeNull();
+
+    const ultimoReporte = screen.getByTestId('incidente-ultimo-reporte-section');
+    expect(ultimoReporte.textContent).toContain('Informe Técnico Final de Cuadrilla (Cierre de Misión)');
+    expect(screen.getByTestId('ultimo-reporte-badge-estado-terreno').textContent).toContain(
+      'Terreno: Controlado'
+    );
+    expect(screen.getByTestId('ultimo-reporte-badge-horas-hombre').textContent).toContain(
+      '5,5 horas hombre'
+    );
+    expect(screen.getByTestId('ultimo-reporte-materiales-resumen').textContent).toContain(
+      'Sacos de arena: 25 sacos'
+    );
+    expect(ultimoReporte.textContent).toContain(
+      'Se ejecutó despeje completo de calzada y contención perimetral.'
+    );
+
+    // Recarga ante adjunto:creado vinculado únicamente por reporteTerrenoId (HU-43 + HU-68)
+    const adjuntoHandler = socketListeners['adjunto:creado']?.[0];
+    act(() => {
+      adjuntoHandler?.({
+        id: 'adj-cuad-tardio',
+        nombreArchivo: 'cierre_cuadrilla.jpg',
+        url: '/uploads/evidencia/cierre_cuadrilla.jpg',
+        tipoMime: 'image/jpeg',
+        tamanoBytes: 98000,
+        incidenteId: null,
+        reporteTerrenoId: 'rep-cuad-final',
+        creadoEn: '2026-11-18T17:35:00Z',
+      });
+    });
+
+    await waitFor(() => {
+      expect(spyDetalle).toHaveBeenCalledTimes(2);
+    });
   });
 });

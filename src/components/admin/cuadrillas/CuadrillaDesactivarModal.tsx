@@ -71,7 +71,7 @@ export default function CuadrillaDesactivarModal({
           <strong style={{ color: 'var(--color-primary-teal-dark, #14505A)' }}>
             «{cuadrilla.nombre}»
           </strong>{' '}
-          (Delegación: {cuadrilla.delegacion.nombre})?
+          (Delegación: {cuadrilla.delegacion?.nombre || 'Sin delegación'})?
         </p>
 
         {estaEnMision ? (

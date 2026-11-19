@@ -231,4 +231,28 @@ describe('CuadrillasTabla (H81)', () => {
 
     expect(screen.queryByRole('button', { name: /desactivar/i })).not.toBeInTheDocument();
   });
+
+  it('debe renderizar Sin delegación y Sin delegado asignado cuando delegacion y delegado son null', () => {
+    const cuadrillaSinRelaciones: CuadrillaItem = {
+      ...mockCuadrillas[0],
+      id: 'cuadrilla-null-rels',
+      nombre: 'Cuadrilla Sin Delegación',
+      delegacion: null,
+      delegado: null,
+    };
+
+    render(
+      <CuadrillasTabla
+        cuadrillas={[cuadrillaSinRelaciones]}
+        cargando={false}
+        onEditarCuadrilla={vi.fn()}
+        onVerDetalle={vi.fn()}
+        puedeEditar={true}
+      />
+    );
+
+    expect(screen.getByText('Cuadrilla Sin Delegación')).toBeDefined();
+    expect(screen.getByText('Sin delegación')).toBeDefined();
+    expect(screen.getByText('Sin delegado asignado')).toBeDefined();
+  });
 });

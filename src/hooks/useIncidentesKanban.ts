@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   listarIncidentes,
   DEFAULT_ENCARGADO_ID,
@@ -16,6 +16,10 @@ import {
   useEncargadoKanbanSocket,
   type IncidenteCreadoPayload,
   type IncidenteActualizadoPayload,
+  type MisionRechazadaPayload,
+  type MisionActualizadaPayload,
+  type CuadrillaActualizadaPayload,
+  type RecursoActualizadoPayload,
   type NotificacionTrazabilidadPayload,
 } from './useEncargadoKanbanSocket';
 import {
@@ -35,6 +39,7 @@ export const ESTADOS_KANBAN: EstadoIncidente[] = [
 
 import { catalogosService } from '@/services/catalogosService';
 import { useSimulatedSession } from '@/context/SimulatedSessionContext';
+import { esReporteCierreCuadrilla, fueTipologiaModificada } from '@/lib/utils/estadoUtils';
 
 export interface FiltrosKanban {
   busqueda: string;
@@ -45,6 +50,17 @@ export interface FiltrosKanban {
   fuenteOrigen: string; // '', 'CHATBOT', 'LLAMADA_TELEFONICA', 'FUNCIONARIO_TERRENO', 'WEB'
   delegacionId?: string;
   soloHoy?: boolean;
+}
+
+export interface UseIncidentesKanbanOptions {
+  initialUserId?: string;
+  onMisionRechazada?: (payload: MisionRechazadaPayload) => void;
+  onMisionActualizada?: (payload: MisionActualizadaPayload) => void;
+  onCuadrillaActualizada?: (payload: CuadrillaActualizadaPayload) => void;
+  onRecursoActualizado?: (payload: RecursoActualizadoPayload) => void;
+  onReporteTerrenoRecibido?: (payload: IncidenteActualizadoPayload) => void;
+  onIncidenteCreadoSocket?: (payload: IncidenteCreadoPayload) => void;
+  onIncidenteActualizadoSocket?: (payload: IncidenteActualizadoPayload) => void;
 }
 
 /**
@@ -66,10 +82,45 @@ function ordenarIncidentesColumna(
       return new Date(b.creadoEn).getTime() - new Date(a.creadoEn).getTime();
     });
   }
+  if (estado === 'EN_ATENCION') {
+    return [...incidentes].sort((a, b) => {
+      const aFin = a.faenasCuadrillaCompletadas ? 1 : 0;
+      const bFin = b.faenasCuadrillaCompletadas ? 1 : 0;
+      if (aFin !== bFin) {
+        return bFin - aFin; // Faenas finalizadas (1) primero
+      }
+      return new Date(b.creadoEn).getTime() - new Date(a.creadoEn).getTime();
+    });
+  }
   return incidentes;
 }
 
-export function useIncidentesKanban(initialUserId?: string) {
+export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | string) {
+  const optionsObj: UseIncidentesKanbanOptions = useMemo(
+    () => (typeof options === 'string' ? { initialUserId: options } : options || {}),
+    [options]
+  );
+  const initialUserId = optionsObj.initialUserId;
+
+  const onMisionRechazadaRef = useRef(optionsObj.onMisionRechazada);
+  useEffect(() => {
+    onMisionRechazadaRef.current = optionsObj.onMisionRechazada;
+  }, [optionsObj.onMisionRechazada]);
+
+  const onCuadrillaActualizadaRef = useRef(optionsObj.onCuadrillaActualizada);
+  useEffect(() => {
+    onCuadrillaActualizadaRef.current = optionsObj.onCuadrillaActualizada;
+  }, [optionsObj.onCuadrillaActualizada]);
+
+  const onMisionActualizadaRef = useRef(optionsObj.onMisionActualizada);
+  useEffect(() => {
+    onMisionActualizadaRef.current = optionsObj.onMisionActualizada;
+  }, [optionsObj.onMisionActualizada]);
+
+  const onRecursoActualizadoRef = useRef(optionsObj.onRecursoActualizado);
+  useEffect(() => {
+    onRecursoActualizadoRef.current = optionsObj.onRecursoActualizado;
+  }, [optionsObj.onRecursoActualizado]);
   let sessionUserId: string | undefined;
   let sessionSetUser: ((id: string) => void) | undefined;
   try {
@@ -97,6 +148,13 @@ export function useIncidentesKanban(initialUserId?: string) {
     RESUELTO: [],
     NO_ABORDABLE: [],
   });
+
+  const columnasRef = useRef(columnas);
+  useEffect(() => {
+    columnasRef.current = columnas;
+  }, [columnas]);
+
+  const reportesContadosRef = useRef<Set<string>>(new Set());
 
   const [paginacionColumna, setPaginacionColumna] = useState<
     Record<EstadoIncidente, PaginacionMeta | null>
@@ -204,6 +262,18 @@ export function useIncidentesKanban(initialUserId?: string) {
           return;
         }
 
+        // Verificar si hubo errores de servidor/red (evitar mostrar tablero vacío silenciosamente)
+        const fallidos = resultados.filter((r) => !r.exito);
+        if (fallidos.length > 0) {
+          setError(
+            fallidos[0].mensaje ||
+              'Error al cargar los incidentes del tablero. Intente nuevamente.'
+          );
+          if (fallidos.length === resultados.length) {
+            return;
+          }
+        }
+
         const nuevasColumnas: Record<EstadoIncidente, IncidenteResumen[]> = {
           REPORTADO: [],
           VERIFICANDO: [],
@@ -227,6 +297,26 @@ export function useIncidentesKanban(initialUserId?: string) {
             nuevasPaginaciones[estado] = res.paginacion || null;
           }
         });
+
+        // Sanitización defensiva: Si un incidente posee una misión EN_CURSO (aceptada en terreno),
+        // debe ubicarse inequívocamente en la columna VERIFICANDO (En Verificación)
+        if (nuevasColumnas.REPORTADO && nuevasColumnas.REPORTADO.length > 0) {
+          const aMoverAVerificando: IncidenteResumen[] = [];
+          nuevasColumnas.REPORTADO = nuevasColumnas.REPORTADO.filter((inc) => {
+            if (
+              inc.tieneMisionEnCurso &&
+              inc.estado !== 'NO_ABORDABLE' &&
+              inc.estado !== 'RESUELTO'
+            ) {
+              aMoverAVerificando.push({ ...inc, estado: 'VERIFICANDO' });
+              return false;
+            }
+            return true;
+          });
+          if (aMoverAVerificando.length > 0) {
+            nuevasColumnas.VERIFICANDO = [...aMoverAVerificando, ...nuevasColumnas.VERIFICANDO];
+          }
+        }
 
         setColumnas(nuevasColumnas);
         setPaginacionColumna(nuevasPaginaciones);
@@ -358,8 +448,10 @@ export function useIncidentesKanban(initialUserId?: string) {
           },
         };
       });
+
+      optionsObj.onIncidenteCreadoSocket?.(payload);
     },
-    []
+    [optionsObj]
   );
 
   const handleIncidenteActualizado = useCallback(
@@ -367,7 +459,27 @@ export function useIncidentesKanban(initialUserId?: string) {
       const { datos } = payload;
       if (!datos || !datos.id) return;
 
+      const reporteIdClave = datos.reporteTerreno?.id
+        ? `${datos.id}:${datos.reporteTerreno.id}`
+        : null;
+      const yaContado = reporteIdClave
+        ? reportesContadosRef.current.has(reporteIdClave)
+        : false;
+      if (reporteIdClave) {
+        reportesContadosRef.current.add(reporteIdClave);
+      }
+
       let columnaOrigenDetectada: EstadoIncidente | null = null;
+      let tipoAnteriorDetectado: string | undefined;
+
+      for (const est of ESTADOS_KANBAN) {
+        const incExistente = columnasRef.current[est].find((i) => i.id === datos.id);
+        if (incExistente) {
+          columnaOrigenDetectada = est;
+          tipoAnteriorDetectado = incExistente.tipoAfectacion;
+          break;
+        }
+      }
 
       setColumnas((prev) => {
         let incidenteEncontrado: IncidenteResumen | null = null;
@@ -379,14 +491,117 @@ export function useIncidentesKanban(initialUserId?: string) {
           if (idx !== -1) {
             columnaOrigen = est;
             columnaOrigenDetectada = est;
+            const incActual = prev[est][idx];
+            tipoAnteriorDetectado = incActual.tipoAfectacion;
+            const nuevaPrioridad = datos.prioridad || incActual.prioridad;
+            const nuevaPrioridadSugerida =
+              datos.prioridadSugerida !== undefined
+                ? datos.prioridadSugerida
+                : incActual.prioridadSugerida;
+            const nuevaJustificacionPrioridad =
+              datos.justificacionPrioridad !== undefined
+                ? datos.justificacionPrioridad
+                : incActual.justificacionPrioridad;
+            const nuevoTipo = datos.tipoAfectacion || incActual.tipoAfectacion;
+            const huboCambioPrioridad = Boolean(
+              (datos.prioridad && datos.prioridad !== incActual.prioridad) ||
+              (nuevaPrioridadSugerida && nuevaPrioridad !== nuevaPrioridadSugerida)
+            );
+            const huboCambioTipologia = fueTipologiaModificada(
+              incActual.tipoAfectacion,
+              datos.tipoAfectacion
+            );
+            const reclasificado = Boolean(
+              huboCambioTipologia ||
+              incActual.reclasificadoEnTerreno
+            );
+
+            const totalReportesPrevios = Number(incActual.totalReportesTerreno ?? 0);
+            const nuevoTotalReportes = datos.reporteTerreno
+              ? yaContado
+                ? Math.max(
+                    Number(datos.reporteTerreno.versionReporte || 1),
+                    totalReportesPrevios
+                  )
+                : Math.max(
+                    Number(datos.reporteTerreno.versionReporte || 1),
+                    totalReportesPrevios + 1
+                  )
+              : totalReportesPrevios;
+
+            const esCierreNoAbordable = datos.nuevoEstado === 'NO_ABORDABLE';
+            const esCierreCuadrilla = esReporteCierreCuadrilla(datos.reporteTerreno);
+            // H68: El cierre de cuadrilla nunca cierra automáticamente el incidente a RESUELTO (espera H86)
+            const estadoDestinoResuelto: EstadoIncidente =
+              esCierreCuadrilla && datos.nuevoEstado === 'RESUELTO'
+                ? (incActual.estado === 'EN_ATENCION' ? 'EN_ATENCION' : incActual.estado)
+                : datos.nuevoEstado;
+            const dictamenResuelto =
+              datos.dictamen ??
+              datos.reporteTerreno?.dictamen ??
+              incActual.dictamenTerreno ??
+              (esCierreNoAbordable ? 'NO_ABORDABLE' : undefined);
+            const motivoNoAbordableResuelto =
+              datos.motivoNoAbordable !== undefined
+                ? datos.motivoNoAbordable
+                : datos.reporteTerreno?.motivoNoAbordable !== undefined
+                  ? datos.reporteTerreno.motivoNoAbordable
+                  : incActual.motivoNoAbordable;
+            const fechaCierreResuelta =
+              esCierreCuadrilla
+                ? incActual.fechaCierre
+                : datos.fechaCierre !== undefined
+                  ? datos.fechaCierre
+                  : incActual.fechaCierre;
+
             incidenteEncontrado = {
-              ...prev[est][idx],
-              estado: datos.nuevoEstado,
-              prioridad: datos.prioridad || prev[est][idx].prioridad,
+              ...incActual,
+              estado: estadoDestinoResuelto,
+              prioridad: nuevaPrioridad,
+              prioridadSugerida: nuevaPrioridadSugerida,
+              justificacionPrioridad: nuevaJustificacionPrioridad,
+              totalReportesTerreno: nuevoTotalReportes,
+              requiereAsistenciaSocial:
+                datos.requiereAsistenciaSocial !== undefined
+                  ? datos.requiereAsistenciaSocial
+                  : datos.reporteTerreno?.requiereAsistenciaSocial !== undefined
+                    ? datos.reporteTerreno.requiereAsistenciaSocial
+                    : incActual.requiereAsistenciaSocial,
+              tipoAfectacion: nuevoTipo,
+              tipoIncidenteId: datos.tipoIncidenteId || incActual.tipoIncidenteId,
+              verificado:
+                datos.verificado !== undefined
+                  ? datos.verificado
+                  : payload.esSintetico
+                    ? Boolean(incActual.verificado)
+                    : true,
+              faenasCuadrillaCompletadas: esCierreCuadrilla
+                ? true
+                : incActual.faenasCuadrillaCompletadas,
+              estadoTerrenoFinal: esCierreCuadrilla
+                ? datos.reporteTerreno?.estadoTerreno ?? incActual.estadoTerrenoFinal
+                : incActual.estadoTerrenoFinal,
+              horasHombreRegistradas: esCierreCuadrilla
+                ? datos.reporteTerreno?.horasHombre ?? incActual.horasHombreRegistradas
+                : incActual.horasHombreRegistradas,
+              dictamenTerreno: dictamenResuelto,
+              motivoNoAbordable: motivoNoAbordableResuelto,
+              fechaCierre: fechaCierreResuelta,
+              tieneMisionEnCurso:
+                esCierreNoAbordable || esCierreCuadrilla ? false : incActual.tieneMisionEnCurso,
+              tieneMisionDespachada: esCierreNoAbordable ? false : incActual.tieneMisionDespachada,
+              reclasificadoEnTerreno: reclasificado,
+              justificacionReclasificacion:
+                datos.justificacion || incActual.justificacionReclasificacion,
+              cambioPrioridadMotivo: huboCambioPrioridad
+                ? nuevaJustificacionPrioridad ||
+                  datos.justificacion ||
+                  'Ajustada tras verificación presencial en terreno'
+                : incActual.cambioPrioridadMotivo,
               totalMisiones:
-                datos.nuevoEstado === 'VERIFICANDO' && est === 'REPORTADO'
-                  ? Math.max(1, (prev[est][idx].totalMisiones || 0) + 1)
-                  : prev[est][idx].totalMisiones,
+                estadoDestinoResuelto === 'VERIFICANDO' && est === 'REPORTADO'
+                  ? Math.max(1, (incActual.totalMisiones || 0) + 1)
+                  : incActual.totalMisiones,
               actualizadoEn: datos.actualizadoEn || new Date().toISOString(),
             };
             break;
@@ -397,12 +612,17 @@ export function useIncidentesKanban(initialUserId?: string) {
           return prev;
         }
 
-        // Si el estado no cambió de columna, solo actualizarlo in situ
-        if (columnaOrigen === datos.nuevoEstado) {
+        const estadoFinalColumna = incidenteEncontrado.estado;
+
+        // Si el estado no cambió de columna, solo actualizarlo in situ y mantener orden de verificación
+        if (columnaOrigen === estadoFinalColumna) {
           return {
             ...prev,
-            [columnaOrigen]: prev[columnaOrigen].map((i) =>
-              i.id === datos.id ? incidenteEncontrado! : i
+            [columnaOrigen]: ordenarIncidentesColumna(
+              prev[columnaOrigen].map((i) =>
+                i.id === datos.id ? incidenteEncontrado! : i
+              ),
+              columnaOrigen
             ),
           };
         }
@@ -411,28 +631,49 @@ export function useIncidentesKanban(initialUserId?: string) {
         return {
           ...prev,
           [columnaOrigen!]: prev[columnaOrigen!].filter((i) => i.id !== datos.id),
-          [datos.nuevoEstado]: ordenarIncidentesColumna([incidenteEncontrado, ...prev[datos.nuevoEstado]], datos.nuevoEstado),
+          [estadoFinalColumna]: ordenarIncidentesColumna([incidenteEncontrado, ...prev[estadoFinalColumna]], estadoFinalColumna),
         };
       });
 
       // Actualizar dinámicamente paginacionColumna si cambió de columna
-      if (columnaOrigenDetectada && columnaOrigenDetectada !== datos.nuevoEstado) {
+      const estadoObjetivo =
+        esReporteCierreCuadrilla(datos.reporteTerreno) && datos.nuevoEstado === 'RESUELTO'
+          ? 'EN_ATENCION'
+          : datos.nuevoEstado;
+      if (columnaOrigenDetectada && columnaOrigenDetectada !== estadoObjetivo) {
         setPaginacionColumna((prev) => {
           const metaOrigen = prev[columnaOrigenDetectada!];
-          const metaDestino = prev[datos.nuevoEstado];
+          const metaDestino = prev[estadoObjetivo];
           return {
             ...prev,
             [columnaOrigenDetectada!]: metaOrigen
               ? { ...metaOrigen, total: Math.max(0, metaOrigen.total - 1) }
               : null,
-            [datos.nuevoEstado]: metaDestino
+            [estadoObjetivo]: metaDestino
               ? { ...metaDestino, total: metaDestino.total + 1 }
               : null,
           };
         });
       }
+
+      const payloadEnriquecido: IncidenteActualizadoPayload =
+        datos.tipoAnterior || !tipoAnteriorDetectado
+          ? payload
+          : {
+              ...payload,
+              datos: {
+                ...datos,
+                tipoAnterior: tipoAnteriorDetectado,
+              },
+            };
+
+      if (datos.reporteTerreno) {
+        optionsObj.onReporteTerrenoRecibido?.(payloadEnriquecido);
+      } else {
+        optionsObj.onIncidenteActualizadoSocket?.(payloadEnriquecido);
+      }
     },
-    []
+    [optionsObj]
   );
 
   // Función para mover un incidente de columna de forma inmediata e imperativa
@@ -496,9 +737,180 @@ export function useIncidentesKanban(initialUserId?: string) {
             : null,
           [nuevoEstado]: metaDestino
             ? { ...metaDestino, total: metaDestino.total + 1 }
-            : null,
+            : {
+                total: 1,
+                pagina: 1,
+                limite: 20,
+                totalPaginas: 1,
+                tieneSiguiente: false,
+                tieneAnterior: false,
+              },
         };
       });
+    },
+    []
+  );
+
+  const handleMisionRechazada = useCallback(
+    (payload: MisionRechazadaPayload) => {
+      if (payload.incidenteId) {
+        let columnaOrigenDetectada: EstadoIncidente | null = null;
+        let columnaDestinoDetectada: EstadoIncidente = 'REPORTADO';
+
+        setColumnas((prev) => {
+          let incidenteEncontrado: IncidenteResumen | null = null;
+          let columnaOrigen: EstadoIncidente | null = null;
+
+          for (const est of ESTADOS_KANBAN) {
+            const idx = prev[est].findIndex((i) => i.id === payload.incidenteId);
+            if (idx !== -1) {
+              const actual = prev[est][idx];
+              const esRechazoCuadrilla =
+                payload.tipoMision === 'ATENCION_CUADRILLA' ||
+                Boolean(payload.cuadrillaId || payload.cuadrillaNombre);
+
+              const estadoDestino: EstadoIncidente =
+                esRechazoCuadrilla && actual.verificado ? 'VERIFICANDO' : 'REPORTADO';
+
+              columnaDestinoDetectada = estadoDestino;
+              incidenteEncontrado = {
+                ...actual,
+                estado: estadoDestino,
+                tieneMisionDespachada: false,
+                actualizadoEn: payload.rechazadoEn || new Date().toISOString(),
+              };
+              columnaOrigen = est;
+              columnaOrigenDetectada = est;
+              break;
+            }
+          }
+
+          if (!incidenteEncontrado || !columnaOrigen) return prev;
+
+          if (columnaOrigen === columnaDestinoDetectada) {
+            return {
+              ...prev,
+              [columnaDestinoDetectada]: prev[columnaDestinoDetectada].map((i) =>
+                i.id === payload.incidenteId ? incidenteEncontrado! : i
+              ),
+            };
+          }
+
+          return {
+            ...prev,
+            [columnaOrigen]: prev[columnaOrigen].filter((i) => i.id !== payload.incidenteId),
+            [columnaDestinoDetectada]: ordenarIncidentesColumna(
+              [incidenteEncontrado, ...prev[columnaDestinoDetectada]],
+              columnaDestinoDetectada
+            ),
+          };
+        });
+
+        setPaginacionColumna((prev) => {
+          if (!columnaOrigenDetectada || columnaOrigenDetectada === columnaDestinoDetectada) {
+            return prev;
+          }
+
+          return {
+            ...prev,
+            [columnaDestinoDetectada]: prev[columnaDestinoDetectada]
+              ? {
+                  ...prev[columnaDestinoDetectada]!,
+                  total: prev[columnaDestinoDetectada]!.total + 1,
+                }
+              : null,
+            [columnaOrigenDetectada]: prev[columnaOrigenDetectada]
+              ? {
+                  ...prev[columnaOrigenDetectada]!,
+                  total: Math.max(0, prev[columnaOrigenDetectada]!.total - 1),
+                }
+              : null,
+          };
+        });
+      }
+
+      onMisionRechazadaRef.current?.(payload);
+    },
+    []
+  );
+
+  const handleCuadrillaActualizada = useCallback(
+    (payload: CuadrillaActualizadaPayload) => {
+      onCuadrillaActualizadaRef.current?.(payload);
+    },
+    []
+  );
+
+  const handleMisionActualizada = useCallback(
+    (payload: MisionActualizadaPayload) => {
+      if (
+        payload.estado?.toUpperCase() === 'COMPLETADA' &&
+        payload.tipoMision === 'ATENCION_CUADRILLA' &&
+        payload.incidenteId
+      ) {
+        const repIdClave = payload.reporteTerreno?.id
+          ? `${payload.incidenteId}:${payload.reporteTerreno.id}`
+          : null;
+        const yaContado = repIdClave
+          ? reportesContadosRef.current.has(repIdClave)
+          : false;
+        if (repIdClave) {
+          reportesContadosRef.current.add(repIdClave);
+        }
+
+        setColumnas((prev) => {
+          const idx = prev.EN_ATENCION.findIndex(
+            (i) => i.id === payload.incidenteId
+          );
+          if (idx === -1) return prev;
+          const actual = prev.EN_ATENCION[idx];
+          const prevReportes = Number(actual.totalReportesTerreno ?? 0);
+          const actualizado: IncidenteResumen = {
+            ...actual,
+            faenasCuadrillaCompletadas: true,
+            tieneMisionEnCurso: false,
+            estadoTerrenoFinal:
+              payload.reporteTerreno?.estadoTerreno ?? actual.estadoTerrenoFinal,
+            horasHombreRegistradas:
+              typeof payload.reporteTerreno?.horasHombre === 'number'
+                ? payload.reporteTerreno.horasHombre
+                : actual.horasHombreRegistradas,
+            totalReportesTerreno: yaContado
+              ? Math.max(1, prevReportes)
+              : actual.faenasCuadrillaCompletadas
+                ? prevReportes
+                : Math.max(1, prevReportes + 1),
+            actualizadoEn: payload.fechaCierre || new Date().toISOString(),
+          };
+          const nuevaLista = prev.EN_ATENCION.map((item, i) =>
+            i === idx ? actualizado : item
+          );
+          return {
+            ...prev,
+            EN_ATENCION: ordenarIncidentesColumna(nuevaLista, 'EN_ATENCION'),
+          };
+        });
+      }
+      onMisionActualizadaRef.current?.(payload);
+    },
+    []
+  );
+
+  const handleRecursoActualizado = useCallback(
+    (payload: RecursoActualizadoPayload) => {
+      onRecursoActualizadoRef.current?.(payload);
+    },
+    []
+  );
+
+  const marcarIncidenteMisionDespachada = useCallback(
+    (incidenteId: string, despachada: boolean = true) => {
+      setColumnas((prev) => ({
+        ...prev,
+        REPORTADO: prev.REPORTADO.map((inc) =>
+          inc.id === incidenteId ? { ...inc, tieneMisionDespachada: despachada } : inc
+        ),
+      }));
     },
     []
   );
@@ -525,6 +937,10 @@ export function useIncidentesKanban(initialUserId?: string) {
   const { conectado, ultimoEvento } = useEncargadoKanbanSocket({
     onIncidenteCreado: handleIncidenteCreado,
     onIncidenteActualizado: handleIncidenteActualizado,
+    onMisionRechazada: handleMisionRechazada,
+    onMisionActualizada: handleMisionActualizada,
+    onCuadrillaActualizada: handleCuadrillaActualizada,
+    onRecursoActualizado: handleRecursoActualizado,
     onNotificacionTrazabilidadActualizada: handleTrazabilidadActualizada,
     enabled: !esForbidden,
   });
@@ -550,6 +966,7 @@ export function useIncidentesKanban(initialUserId?: string) {
     cargarMas,
     recargar: cargarTablero,
     moverIncidenteAEstado,
+    marcarIncidenteMisionDespachada,
     conectado,
     ultimoEvento,
     totalIncidentesVisibles,

@@ -68,42 +68,42 @@ Si la cuadrilla en terreno rechazó la misión asignada, se exhibe un banner des
 - **Si es misión preventiva (sin incidente previo):** Muestra el código del punto crítico, nombre del punto, coordenadas geográficas GPS y descripción técnica de los trabajos preventivos.
 
 #### 4. Unidad y Recursos Logísticos Desplegados
-- **Cuadrilla Operativa:** Nombre de la cuadrilla, estado en terreno, delegación territorial y delegado municipal a cargo (con nombre y correo institucional).
-  - **Tabla de Recursos Asignados:** Consolidado de camionetas 4x4, camiones tolva, motobombas, motosierras y herramientas menores, con su cantidad asignada.
+- **Cuadrilla Operativa:** Nombre de la cuadrilla, estado en terreno (actualizado automáticamente a `Disponible` al cerrar la misión), delegación territorial y delegado municipal a cargo (con nombre y correo institucional).
+  - **Tabla de Recursos Asignados:** Consolidado de camionetas 4x4, camiones tolva, motobombas, motosierras y herramientas menores, mostrando las asignaciones activas vigentes junto con su clasificación (`Individual` / `Granel`) y cantidad con unidad de medida.
 - **Patrulla Verificadora:** Nombre de la patrulla, estado, líder de patrulla y delegación.
 
 #### 5. Bitácora Cronológica de Tiempos
 Línea de tiempo vertical con los hitos operativos registrados en la misión:
 - Creación y despacho desde el Centro de Mando.
 - Llegada al sitio del suceso e inicio de labores.
-- Últimas actualizaciones emitidas desde terreno.
-- Cada hito detalla fecha (`YYYY-MM-DD`), hora (`HH:MM:SS`) y glosa explicativa.
+- Últimas actualizaciones emitidas desde terreno y cierre de misión (`Misión completada`).
+- Cada hito detalla fecha (`YYYY-MM-DD`), hora (`HH:MM:SS`) y glosa explicativa en lenguaje natural.
 
 #### 6. Informes Técnicos y Reportes de Terreno
 Desglose cronológico de las evaluaciones emitidas por los funcionarios municipales en terreno:
-- **Funcionario Evaluador:** Nombre completo, RUT y correo electrónico institucional.
-- **Diagnóstico y Resumen Técnico:** Estado real de la infraestructura comunal y gravedad de la afectación.
-- **Acciones Ejecutadas:** Trabajos de despeje, contención, bombeo o mitigación ejecutados en el lugar.
-- **Magnitud del Daño:** Personas afectadas y descripción de daños a bienes públicos o privados.
-- **Distintivos:** Indicador si la unidad *Requiere Apoyo Adicional* en terreno.
+- **Informes de Patrulla Verificadora (`EVALUACION_PRIORIDAD` / `VERIFICACION_CIERRE`):** Funcionario evaluador, diagnóstico técnico, comparativa de prioridad y afectación por familias/viviendas, dictamen operativo e indicador de Ficha FIBE.
+- **Informe Técnico Final de Cuadrilla (`REPORTE_CUADRILLA`, HU-68):** Delegado de cuadrilla evaluador, chip de estado final del terreno (`Controlado`, `Estable`, `Finalizado`, `Requiere seguimiento`, `Crítico` o `Inaccesible`), horas hombre invertidas, resumen de faenas ejecutadas, daños estimados, tabla de **Materiales e Insumos Consumidos** (con cantidad, unidad y observación) y distinción si la unidad *Requiere Apoyo* adicional en terreno.
 
 ---
 
-## 4. Galería de Evidencia Multimedia y Visor Lightbox
+## 4. Galería de Evidencia Multimedia y Visor Lightbox (HU-17 / HU-43)
 
-Cada informe técnico emitido desde terreno incluye su galería de archivos adjuntos:
+Cada informe técnico emitido desde terreno (y el detalle del incidente cuando recibe adjuntos directos) incluye su galería de archivos adjuntos con **actualización automática en tiempo real**: cuando un Delegado de Cuadrilla o Patrulla carga evidencia desde terreno (`adjunto:creado`), las miniaturas aparecen de inmediato sin necesidad de recargar la página.
 
 1. **Miniaturas Clicables:**
-   - Para fotografías y videos (`.jpg`, `.png`, `.mp4`), se genera una previsualización gráfica optimizada.
-   - Para documentos técnicos o actas (`.pdf`, `.docx`), se muestra un ícono de documento con el nombre del archivo y su peso formateado (ej. `1.5 MB`).
+   - **Fotografías** (`image/jpeg`, `image/png`, `image/webp`): se muestra una miniatura de previsualización optimizada.
+   - **Videos** (`video/mp4`, `video/webm`, `video/quicktime`): se muestra un ícono de video con la etiqueta `VIDEO`, el nombre del archivo y su tamaño.
+   - **Documentos técnicos** (`application/pdf`): se muestra un ícono de documento con la etiqueta `PDF`, el nombre del archivo y su peso formateado (ej. `500 KB`).
 2. **Visor en Pantalla Completa (Lightbox):**
-   - Al hacer clic sobre cualquier fotografía, se abre un visor de alta fidelidad con fondo oscuro.
-   - Permite inspeccionar los detalles de la evidencia fotográfica sin distorsiones.
-   - Muestra el nombre oficial del archivo y tamaño en bytes.
+   - Al hacer clic sobre cualquier miniatura, se abre el visor de alta fidelidad con fondo oscuro:
+     - **Fotografías:** visualización ampliada sin distorsiones.
+     - **Videos:** reproductor integrado con controles y reproducción progresiva (*streaming* `HTTP 206 Partial Content`), más botón **"Descargar Video"**.
+     - **Documentos PDF:** vista previa embebida dentro del visor y botón **"Descargar PDF"**.
+   - Muestra el nombre oficial del archivo y su tamaño formateado.
 3. **Cierre del Visor:**
    - Presiona la **"×"** superior derecha del visor.
    - O presiona la tecla `Escape` en tu teclado.
-   - O haz clic fuera de la fotografía.
+   - O haz clic fuera del contenido del visor.
 
 ---
 
@@ -137,5 +137,5 @@ Al cerrarse el modal:
 
 ## 7. Relación con Otros Repositorios del Sistema
 
-- **`sgrai-api`:** Provee el endpoint REST `GET /api/misiones/{id}`, valida la autorización RBAC con la cabecera `X-User-Id` y resuelve la multimedia almacenada bajo `/uploads/evidencia/`.
-- **`sgrai-pwa`:** Es la aplicación móvil utilizada en terreno por Delegados de Cuadrilla y Líderes de Patrulla para enviar los reportes técnicos y capturas fotográficas que se visualizan en esta pantalla.
+- **`sgrai-api`:** Provee el endpoint REST `GET /api/misiones/{id}`, recibe los adjuntos vía `POST /api/evidencia/adjuntos` (permiso `reportes:crear`), sirve la multimedia bajo `/uploads/evidencia/` con soporte `HTTP 206 Partial Content` y emite el evento WebSocket `adjunto:creado`.
+- **`sgrai-pwa`:** Es la aplicación móvil utilizada en terreno por Delegados de Cuadrilla y Líderes de Patrulla para capturar y enviar reportes técnicos, fotografías, videos y documentos PDF (incluyendo cola de sincronización *offline* en IndexedDB) que se visualizan en tiempo real en esta pantalla.

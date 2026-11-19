@@ -357,12 +357,13 @@ async function aplicarActualizacionFallback(
   const delegacionNombre =
     delegacionItem?.nombre ||
     catalogosService.resolverDelegacionNombre(payload.delegacionId) ||
-    item.delegacion.nombre;
+    item.delegacion?.nombre ||
+    'Sin delegación';
 
   const delegacionObj: DelegacionResumen = {
     id: delegacionItem?.id || payload.delegacionId,
     nombre: delegacionNombre,
-    codigo: delegacionItem?.codigo || item.delegacion.codigo,
+    codigo: delegacionItem?.codigo || item.delegacion?.codigo,
   };
 
   let delegadoObj = CANDIDATOS_DELEGADOS_FALLBACK.find((c) => c.id === payload.usuarioDelegadoId);
@@ -914,13 +915,13 @@ export const cuadrillasService = {
       resultado = resultado.filter(
         (c) =>
           c.nombre.toLowerCase().includes(qLower) ||
-          c.delegado.nombre.toLowerCase().includes(qLower) ||
-          (c.delegado.rut && c.delegado.rut.toLowerCase().includes(qLower))
+          (c.delegado?.nombre && c.delegado.nombre.toLowerCase().includes(qLower)) ||
+          (c.delegado?.rut && c.delegado.rut.toLowerCase().includes(qLower))
       );
     }
 
     if (delegacionId) {
-      resultado = resultado.filter((c) => c.delegacion.id === delegacionId);
+      resultado = resultado.filter((c) => c.delegacion?.id === delegacionId);
     }
 
     if (estado) {
