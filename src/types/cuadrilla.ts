@@ -37,7 +37,7 @@ export interface EditarCuadrillaDTO {
 export interface DelegacionResumen {
   id: string;
   nombre: string;
-  codigo?: string;
+  codigo?: string | null;
 }
 
 export interface DelegadoResumen {
@@ -95,8 +95,8 @@ export interface CuadrillaItem {
   id: string;
   nombre: string;
   estado: EstadoCuadrilla;
-  delegacion: DelegacionResumen;
-  delegado: DelegadoResumen;
+  delegacion: DelegacionResumen | null;
+  delegado: DelegadoResumen | null;
   recursos: CuadrillaRecursoDetalle[];
   trabajadores: CuadrillaTrabajadorDetalle[];
   totalRecursos?: number;
