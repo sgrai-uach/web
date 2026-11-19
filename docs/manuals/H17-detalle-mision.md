@@ -68,24 +68,21 @@ Si la cuadrilla en terreno rechazó la misión asignada, se exhibe un banner des
 - **Si es misión preventiva (sin incidente previo):** Muestra el código del punto crítico, nombre del punto, coordenadas geográficas GPS y descripción técnica de los trabajos preventivos.
 
 #### 4. Unidad y Recursos Logísticos Desplegados
-- **Cuadrilla Operativa:** Nombre de la cuadrilla, estado en terreno, delegación territorial y delegado municipal a cargo (con nombre y correo institucional).
-  - **Tabla de Recursos Asignados:** Consolidado de camionetas 4x4, camiones tolva, motobombas, motosierras y herramientas menores, con su cantidad asignada.
+- **Cuadrilla Operativa:** Nombre de la cuadrilla, estado en terreno (actualizado automáticamente a `Disponible` al cerrar la misión), delegación territorial y delegado municipal a cargo (con nombre y correo institucional).
+  - **Tabla de Recursos Asignados:** Consolidado de camionetas 4x4, camiones tolva, motobombas, motosierras y herramientas menores, mostrando las asignaciones activas vigentes junto con su clasificación (`Individual` / `Granel`) y cantidad con unidad de medida.
 - **Patrulla Verificadora:** Nombre de la patrulla, estado, líder de patrulla y delegación.
 
 #### 5. Bitácora Cronológica de Tiempos
 Línea de tiempo vertical con los hitos operativos registrados en la misión:
 - Creación y despacho desde el Centro de Mando.
 - Llegada al sitio del suceso e inicio de labores.
-- Últimas actualizaciones emitidas desde terreno.
-- Cada hito detalla fecha (`YYYY-MM-DD`), hora (`HH:MM:SS`) y glosa explicativa.
+- Últimas actualizaciones emitidas desde terreno y cierre de misión (`Misión completada`).
+- Cada hito detalla fecha (`YYYY-MM-DD`), hora (`HH:MM:SS`) y glosa explicativa en lenguaje natural.
 
 #### 6. Informes Técnicos y Reportes de Terreno
 Desglose cronológico de las evaluaciones emitidas por los funcionarios municipales en terreno:
-- **Funcionario Evaluador:** Nombre completo, RUT y correo electrónico institucional.
-- **Diagnóstico y Resumen Técnico:** Estado real de la infraestructura comunal y gravedad de la afectación.
-- **Acciones Ejecutadas:** Trabajos de despeje, contención, bombeo o mitigación ejecutados en el lugar.
-- **Magnitud del Daño:** Personas afectadas y descripción de daños a bienes públicos o privados.
-- **Distintivos:** Indicador si la unidad *Requiere Apoyo Adicional* en terreno.
+- **Informes de Patrulla Verificadora (`EVALUACION_PRIORIDAD` / `VERIFICACION_CIERRE`):** Funcionario evaluador, diagnóstico técnico, comparativa de prioridad y afectación por familias/viviendas, dictamen operativo e indicador de Ficha FIBE.
+- **Informe Técnico Final de Cuadrilla (`REPORTE_CUADRILLA`, HU-68):** Delegado de cuadrilla evaluador, chip de estado final del terreno (`Controlado`, `Estable`, `Finalizado`, `Requiere seguimiento`, `Crítico` o `Inaccesible`), horas hombre invertidas, resumen de faenas ejecutadas, daños estimados, tabla de **Materiales e Insumos Consumidos** (con cantidad, unidad y observación) y distinción si la unidad *Requiere Apoyo* adicional en terreno.
 
 ---
 
