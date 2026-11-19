@@ -88,9 +88,19 @@ export const misionesService = {
     }
 
     try {
+      const token =
+        getAuthCookie() ||
+        (typeof window !== 'undefined'
+          ? localStorage.getItem('sgrai_auth_token') || localStorage.getItem('token')
+          : null);
+
       const headers: Record<string, string> = {
         'x-user-id': userId,
       };
+
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
 
       const res = await fetch(`/api/misiones?${searchParams.toString()}`, {
         headers,

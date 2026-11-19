@@ -299,6 +299,7 @@ export interface MisionDetalleCompleto {
   patrulla: PatrullaMisionDetalle | null;
   bitacoraTiempos: MisionBitacoraHito[];
   reportesTerreno: ReporteTerrenoDetalle[];
+  adjuntos?: AdjuntoEvidencia[];
   evaluaciones?: MisionEvaluacionesResumen | null;
 }
 

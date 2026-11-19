@@ -27,6 +27,7 @@ import { MisionContextoSection } from './MisionContextoSection';
 import { MisionEquipoSection } from './MisionEquipoSection';
 import { MisionBitacoraSection } from './MisionBitacoraSection';
 import { MisionReportesSection } from './MisionReportesSection';
+import { MisionEvidenciasGallery } from './MisionEvidenciasGallery';
 import styles from '@/styles/mision-detalle.module.css';
 
 interface MisionDetalleModalProps {
@@ -167,6 +168,13 @@ export const MisionDetalleModal: React.FC<MisionDetalleModalProps> = ({
 
         if (candidato.incidenteId && prev.incidente?.id === candidato.incidenteId) {
           requiereRecarga = true;
+          const actuales = Array.isArray(prev.adjuntos) ? prev.adjuntos : [];
+          if (!actuales.some((a) => a.id === nuevoAdjunto.id)) {
+            return {
+              ...prev,
+              adjuntos: [...actuales, nuevoAdjunto],
+            };
+          }
         }
         return prev;
       });
@@ -510,6 +518,30 @@ export const MisionDetalleModal: React.FC<MisionDetalleModalProps> = ({
                 reporteDestacadoId={reporteDestacadoId}
                 seccionRef={seccionReportesRef}
               />
+
+              {/* Evidencia multimedia preliminar (cargada durante la misión en curso antes de consolidarse en un informe) */}
+              {(() => {
+                const idsEnReportes = new Set(
+                  (mision.reportesTerreno || []).flatMap((r) =>
+                    (r.adjuntos || []).map((a) => a.id)
+                  )
+                );
+                const adjuntosPreliminares = (mision.adjuntos || []).filter(
+                  (a) => !idsEnReportes.has(a.id)
+                );
+                if (adjuntosPreliminares.length === 0) return null;
+                return (
+                  <div
+                    style={{
+                      padding: '12px 16px',
+                      backgroundColor: 'var(--color-bg-light, #ECEFF3)',
+                      border: '1px solid var(--border-color-neutral-dark, #CCD2D9)',
+                    }}
+                  >
+                    <MisionEvidenciasGallery adjuntos={adjuntosPreliminares} />
+                  </div>
+                );
+              })()}
             </div>
 
             <footer className={styles.modalFooter}>
