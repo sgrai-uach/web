@@ -63,10 +63,8 @@ export async function verificarDuplicado(
 ): Promise<{ hayDuplicados: boolean; coincidencias: DuplicadoItem[] }> {
   try {
     const { data, error, response } = await apiClient.POST('/api/incidentes/verificar-duplicado', {
-      params: {
-        header: {
-          'x-user-id': operadorId,
-        },
+      headers: {
+        'x-user-id': operadorId,
       },
       body: payload,
     });
@@ -132,10 +130,8 @@ export async function crearIncidenteManual(
 ): Promise<ResultadoCreacionManual> {
   try {
     const { data, error, response } = await apiClient.POST('/api/incidentes/manual', {
-      params: {
-        header: {
-          'x-user-id': operadorId,
-        },
+      headers: {
+        'x-user-id': operadorId,
       },
       body: payload,
     });

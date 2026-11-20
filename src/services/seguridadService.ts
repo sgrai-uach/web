@@ -93,10 +93,8 @@ export { SeguridadServiceError as ApiError };
  */
 export async function listarRolesYPermisos(userId: string): Promise<ListarRolesResponse> {
   const { data, error, response } = await apiClient.GET('/api/seguridad/roles', {
-    params: {
-      header: {
-        'x-user-id': userId,
-      },
+    headers: {
+      'x-user-id': userId,
     },
   });
 
@@ -129,9 +127,9 @@ export async function obtenerDetalleRol(
   const { data, error, response } = await apiClient.GET('/api/seguridad/roles/{id}', {
     params: {
       path: { id },
-      header: {
-        'x-user-id': userId || DEFAULT_ADMIN_USER_ID,
-      },
+    },
+    headers: {
+      'x-user-id': userId || DEFAULT_ADMIN_USER_ID,
     },
   });
 

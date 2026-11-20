@@ -77,7 +77,6 @@ export const incidentesService = {
           query: query as unknown as NonNullable<
             paths['/api/incidentes']['get']['parameters']['query']
           >,
-          header: { 'x-user-id': userId },
         },
         headers: { 'x-user-id': userId },
       });
@@ -165,7 +164,6 @@ export const incidentesService = {
       const { data, error, response } = await apiClient.GET('/api/incidentes/{id}', {
         params: {
           path: { id: id.trim() },
-          header: { 'x-user-id': userId },
         },
         headers: { 'x-user-id': userId },
       });

@@ -66,7 +66,6 @@ describe('Servicio API Incidentes (Encargado)', () => {
         expect.objectContaining({
           params: {
             query: { page: 1, estado: 'REPORTADO' },
-            header: { 'x-user-id': DEFAULT_ENCARGADO_ID },
           },
           headers: {
             'x-user-id': DEFAULT_ENCARGADO_ID,
@@ -192,8 +191,8 @@ describe('Servicio API Incidentes (Encargado)', () => {
         expect.objectContaining({
           params: {
             path: { id: 'a0000000-0000-4000-8000-000000000001' },
-            header: { 'x-user-id': DEFAULT_ENCARGADO_ID },
           },
+          headers: { 'x-user-id': DEFAULT_ENCARGADO_ID },
         })
       );
       expect(res.exito).toBe(true);

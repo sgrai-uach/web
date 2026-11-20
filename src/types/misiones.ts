@@ -245,11 +245,17 @@ export type CrearMisionRequestBody =
 export type CrearMisionResponse201 =
   paths['/api/misiones']['post']['responses'][201]['content']['application/json'];
 
-export type DespacharPatrullaPayload = Omit<CrearMisionRequestBody, 'tipoMision'> & {
-  tipoMision?: CrearMisionRequestBody['tipoMision'];
+type CrearMisionPatrullaBody = Extract<CrearMisionRequestBody, { patrullaId: string }>;
+type CrearMisionPatrullaResponse201 = Extract<
+  CrearMisionResponse201,
+  { data: { patrulla: unknown } }
+>;
+
+export type DespacharPatrullaPayload = Omit<CrearMisionPatrullaBody, 'tipoMision'> & {
+  tipoMision?: CrearMisionPatrullaBody['tipoMision'];
 };
-export type DespacharPatrullaResponseData = CrearMisionResponse201['data'];
-export type DespacharPatrullaResponse = CrearMisionResponse201;
+export type DespacharPatrullaResponseData = CrearMisionPatrullaResponse201['data'];
+export type DespacharPatrullaResponse = CrearMisionPatrullaResponse201;
 
 export interface ResultadoDespacharPatrulla {
   exito: boolean;

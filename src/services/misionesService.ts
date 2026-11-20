@@ -418,7 +418,7 @@ export const misionesService = {
         };
       }
 
-      if (!response.ok || !data) {
+      if (!response.ok || !data || !('patrulla' in data.data)) {
         return {
           exito: false,
           codigoError: response.status,
