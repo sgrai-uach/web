@@ -43,6 +43,43 @@
   color: var(--color-text-muted, #5F676E);
 }
 
+.actionBarButtons {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2, 8px);
+  flex-wrap: wrap;
+}
+
+.cierreCard {
+  background-color: var(--color-success-bg, #E8F5E9);
+  border-left: 3px solid var(--color-success, #2E7D32);
+  padding: var(--space-3, 12px);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.cierreCardHeader {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--font-size-sm, 0.8125rem);
+  font-weight: 700;
+  color: var(--color-success, #2E7D32);
+}
+
+.cierreCardMeta {
+  font-size: var(--font-size-xs, 0.75rem);
+  color: var(--color-charcoal, #3B3F45);
+}
+
+.cierreCardText {
+  margin: 0;
+  font-size: var(--font-size-sm, 0.8125rem);
+  color: var(--color-text-dark, #2B2B2B);
+  line-height: 1.5;
+}
+
 .headerMeta {
   display: flex;
   flex-direction: column;

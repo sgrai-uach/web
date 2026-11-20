@@ -9,22 +9,26 @@ import {
   Clock,
   Loader2,
   Pencil,
+  CheckCircle2,
 } from 'lucide-react';
 import Heading from '@/components/ui/Heading';
 import Button from '@/components/ui/Button';
 import InlineNotice from '@/components/ui/InlineNotice';
 import { useOptionalToast } from '@/components/ui/Toast';
 import { usePuedeEditarRecuperacion } from '@/hooks/usePuedeEditarRecuperacion';
+import { usePuedeCerrarRecuperacion } from '@/hooks/usePuedeCerrarRecuperacion';
 import { useRecuperacionSocket } from '@/hooks/useRecuperacionSocket';
 import {
   obtenerDetalleOperativoRecuperacion,
   RecuperacionServiceError,
 } from '@/services/recuperacionService';
 import type {
+  CerrarOperativoRecuperacionData,
   EditarOperativoRecuperacionData,
   OperativoRecuperacionDetalle,
 } from '@/types/recuperacion';
 import { ModalEditarOperativoRecuperacion } from './ModalEditarOperativoRecuperacion';
+import { ModalCerrarOperativoRecuperacion } from './ModalCerrarOperativoRecuperacion';
 import {
   ETIQUETA_ESTADO_RECUPERACION,
   ETIQUETA_PRIORIDAD_RECUPERACION,
@@ -45,7 +49,9 @@ export const OperativoRecuperacionDrawer: React.FC<OperativoRecuperacionDrawerPr
 }) => {
   const toast = useOptionalToast();
   const puedeEditar = usePuedeEditarRecuperacion();
+  const puedeCerrar = usePuedeCerrarRecuperacion();
   const [modalEditarAbierto, setModalEditarAbierto] = useState(false);
+  const [modalCerrarAbierto, setModalCerrarAbierto] = useState(false);
   const [reloadNonce, setReloadNonce] = useState(0);
   const [estadoCarga, setEstadoCarga] = useState<{
     id: string | null;
@@ -61,6 +67,14 @@ export const OperativoRecuperacionDrawer: React.FC<OperativoRecuperacionDrawerPr
 
   const esEstadoBloqueado =
     detalle?.estado === 'COMPLETADA' || detalle?.estado === 'CANCELADA';
+  const puedeDeclararConcluido =
+    puedeCerrar && detalle?.estado === 'EN_EJECUCION';
+  const mostrarBalanceCierre =
+    detalle?.estado === 'COMPLETADA' ||
+    (detalle?.recursos ?? []).some(
+      (r) =>
+        r.cantidadConsumida !== null && r.cantidadConsumida !== undefined
+    );
 
   useEffect(() => {
     if (!operativoId) return;
@@ -111,13 +125,13 @@ export const OperativoRecuperacionDrawer: React.FC<OperativoRecuperacionDrawerPr
   useEffect(() => {
     if (!operativoId) return;
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape' && !modalEditarAbierto) {
+      if (event.key === 'Escape' && !modalEditarAbierto && !modalCerrarAbierto) {
         onCerrar();
       }
     };
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [operativoId, modalEditarAbierto, onCerrar]);
+  }, [operativoId, modalEditarAbierto, modalCerrarAbierto, onCerrar]);
 
   const handleEdicionExitosa = (actualizado: EditarOperativoRecuperacionData) => {
     setEstadoCarga((prev) => {
@@ -133,6 +147,29 @@ export const OperativoRecuperacionDrawer: React.FC<OperativoRecuperacionDrawerPr
           patrulla: actualizado.patrulla,
           mision: actualizado.mision,
           recursos: actualizado.recursos,
+        },
+      };
+    });
+    setReloadNonce((prev) => prev + 1);
+    onOperativoActualizado?.();
+  };
+
+  const handleCierreExitoso = (resultado: CerrarOperativoRecuperacionData) => {
+    const evento = resultado.evento;
+    setEstadoCarga((prev) => {
+      if (!prev.detalle || prev.id !== evento.id) return prev;
+      return {
+        ...prev,
+        detalle: {
+          ...prev.detalle,
+          estado: evento.estado,
+          fechaCierre: evento.fechaCierre,
+          observacionesCierre: evento.observacionesCierre,
+          cerradoPorId: evento.cerradoPorId,
+          actualizadoEn: evento.actualizadoEn,
+          patrulla: evento.patrulla,
+          mision: evento.mision,
+          recursos: evento.recursos,
         },
       };
     });
@@ -172,28 +209,46 @@ export const OperativoRecuperacionDrawer: React.FC<OperativoRecuperacionDrawerPr
           </Button>
         </header>
 
-        {!cargando && !error && detalle && puedeEditar && (
+        {!cargando && !error && detalle && (puedeEditar || puedeDeclararConcluido) && (
           <div className={styles.actionBar}>
             <span className={styles.actionBarHint}>
               {esEstadoBloqueado
                 ? 'Edición bloqueada: el operativo está finalizado o cancelado.'
+                : puedeDeclararConcluido
+                ? 'Operativo en ejecución: puedes concluirlo o ajustar planificación.'
                 : 'Planificación activa editable'}
             </span>
-            <Button
-              type="button"
-              variant="primary"
-              size="sm"
-              disabled={esEstadoBloqueado}
-              title={
-                esEstadoBloqueado
-                  ? 'No se permite editar operativos en estado COMPLETADA o CANCELADA.'
-                  : 'Editar planificación del operativo'
-              }
-              onClick={() => setModalEditarAbierto(true)}
-            >
-              <Pencil size={14} style={{ marginRight: '6px' }} />
-              <span>Editar Planificación</span>
-            </Button>
+            <div className={styles.actionBarButtons}>
+              {puedeEditar && (
+                <Button
+                  type="button"
+                  variant={puedeDeclararConcluido ? 'outline' : 'primary'}
+                  size="sm"
+                  disabled={esEstadoBloqueado}
+                  title={
+                    esEstadoBloqueado
+                      ? 'No se permite editar operativos en estado COMPLETADA o CANCELADA.'
+                      : 'Editar planificación del operativo'
+                  }
+                  onClick={() => setModalEditarAbierto(true)}
+                >
+                  <Pencil size={14} style={{ marginRight: '6px' }} />
+                  <span>Editar Planificación</span>
+                </Button>
+              )}
+
+              {puedeDeclararConcluido && (
+                <Button
+                  type="button"
+                  variant="primary"
+                  size="sm"
+                  onClick={() => setModalCerrarAbierto(true)}
+                >
+                  <CheckCircle2 size={14} style={{ marginRight: '6px' }} />
+                  <span>Declarar Concluido</span>
+                </Button>
+              )}
+            </div>
           </div>
         )}
 
@@ -267,10 +322,23 @@ export const OperativoRecuperacionDrawer: React.FC<OperativoRecuperacionDrawerPr
                   </div>
                 </div>
 
-                {detalle.observacionesCierre && (
-                  <div className={styles.infoItem}>
-                    <span className={styles.infoLabel}>Observaciones de cierre</span>
-                    <span className={styles.infoValue}>{detalle.observacionesCierre}</span>
+                {(detalle.estado === 'COMPLETADA' || detalle.observacionesCierre) && (
+                  <div className={styles.cierreCard}>
+                    <div className={styles.cierreCardHeader}>
+                      <CheckCircle2 size={15} />
+                      <span>Conclusión formal del operativo</span>
+                    </div>
+                    <div className={styles.cierreCardMeta}>
+                      <span>
+                        Fecha de cierre:{' '}
+                        <strong>{formatearFechaChilena(detalle.fechaCierre)}</strong>
+                      </span>
+                    </div>
+                    {detalle.observacionesCierre && (
+                      <p className={styles.cierreCardText}>
+                        {detalle.observacionesCierre}
+                      </p>
+                    )}
                   </div>
                 )}
               </section>
@@ -326,7 +394,14 @@ export const OperativoRecuperacionDrawer: React.FC<OperativoRecuperacionDrawerPr
                     <thead>
                       <tr>
                         <th>Recurso</th>
-                        <th>Cantidad asignada</th>
+                        <th>{mostrarBalanceCierre ? 'Asignado' : 'Cantidad asignada'}</th>
+                        {mostrarBalanceCierre && (
+                          <>
+                            <th>Consumido</th>
+                            <th>Devuelto a bodega</th>
+                            <th>Reintegro</th>
+                          </>
+                        )}
                       </tr>
                     </thead>
                     <tbody>
@@ -334,6 +409,27 @@ export const OperativoRecuperacionDrawer: React.FC<OperativoRecuperacionDrawerPr
                         <tr key={rec.recursoId}>
                           <td>{rec.nombre}</td>
                           <td>{rec.cantidadAsignada}</td>
+                          {mostrarBalanceCierre && (
+                            <>
+                              <td>
+                                {rec.cantidadConsumida !== null &&
+                                rec.cantidadConsumida !== undefined
+                                  ? rec.cantidadConsumida
+                                  : '—'}
+                              </td>
+                              <td>
+                                {rec.cantidadDevuelta !== null &&
+                                rec.cantidadDevuelta !== undefined
+                                  ? rec.cantidadDevuelta
+                                  : '—'}
+                              </td>
+                              <td>
+                                {rec.devueltoEn
+                                  ? formatearFechaChilena(rec.devueltoEn)
+                                  : '—'}
+                              </td>
+                            </>
+                          )}
                         </tr>
                       ))}
                     </tbody>
@@ -379,12 +475,20 @@ export const OperativoRecuperacionDrawer: React.FC<OperativoRecuperacionDrawerPr
       </aside>
 
       {detalle && (
-        <ModalEditarOperativoRecuperacion
-          isOpen={modalEditarAbierto}
-          operativo={detalle}
-          onClose={() => setModalEditarAbierto(false)}
-          onSuccess={handleEdicionExitosa}
-        />
+        <>
+          <ModalEditarOperativoRecuperacion
+            isOpen={modalEditarAbierto}
+            operativo={detalle}
+            onClose={() => setModalEditarAbierto(false)}
+            onSuccess={handleEdicionExitosa}
+          />
+          <ModalCerrarOperativoRecuperacion
+            isOpen={modalCerrarAbierto}
+            operativo={detalle}
+            onClose={() => setModalCerrarAbierto(false)}
+            onSuccess={handleCierreExitoso}
+          />
+        </>
       )}
     </div>
   );

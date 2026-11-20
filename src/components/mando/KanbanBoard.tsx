@@ -150,7 +150,7 @@ export const KanbanBoard: React.FC = () => {
     },
   });
 
-  // Hook de tiempo real para eventos de recuperación (HU-29)
+  // Hook de tiempo real para eventos de recuperación (HU-29, HU-74, HU-75)
   useRecuperacionSocket({
     onRecuperacionCreada: (nuevoEvento) => {
       setEventosRecuperacion((prev) => {
@@ -162,6 +162,30 @@ export const KanbanBoard: React.FC = () => {
         `Nuevo evento de recuperación en ${nuevoEvento.sector}: ${nuevoEvento.codigo}`,
         'Operación Territorial en Vivo'
       );
+    },
+    onRecuperacionActualizada: (eventoActualizado) => {
+      const esFinalizado =
+        eventoActualizado.accion === 'CERRADA' ||
+        eventoActualizado.estado === 'COMPLETADA' ||
+        eventoActualizado.estado === 'CANCELADA';
+
+      setEventosRecuperacion((prev) => {
+        if (esFinalizado) {
+          return prev.filter((e) => e.id !== eventoActualizado.id);
+        }
+        const existe = prev.some((e) => e.id === eventoActualizado.id);
+        if (!existe) return prev;
+        return prev.map((e) =>
+          e.id === eventoActualizado.id ? { ...e, ...eventoActualizado } : e
+        );
+      });
+
+      if (esFinalizado) {
+        showInfo(
+          `Operativo de recuperación ${eventoActualizado.codigo} concluido en ${eventoActualizado.sector}.`,
+          'Operativo Concluido'
+        );
+      }
     },
   });
 

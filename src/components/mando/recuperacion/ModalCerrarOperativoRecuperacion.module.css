@@ -1,0 +1,152 @@
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4, 16px);
+}
+
+.metaBanner {
+  background-color: var(--color-bg-light, #ECEFF3);
+  border-left: 3px solid var(--color-primary-teal, #1B6F7D);
+  padding: var(--space-3, 12px);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.metaHeaderRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2, 8px);
+  flex-wrap: wrap;
+}
+
+.metaCodigo {
+  font-family: monospace;
+  font-size: var(--font-size-xs, 0.75rem);
+  font-weight: 700;
+  color: var(--color-primary-teal-dark, #14505A);
+}
+
+.metaSector {
+  font-size: var(--font-size-xs, 0.75rem);
+  color: var(--color-text-muted, #5F676E);
+  font-weight: 600;
+}
+
+.metaNombre {
+  font-size: var(--font-size-base, 0.875rem);
+  font-weight: 700;
+  color: var(--color-text-dark, #2B2B2B);
+}
+
+.metaPatrulla {
+  font-size: var(--font-size-xs, 0.75rem);
+  color: var(--color-charcoal, #3B3F45);
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2, 8px);
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2, 8px);
+}
+
+.sectionLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--font-size-sm, 0.8125rem);
+  font-weight: 700;
+  color: var(--color-charcoal, #3B3F45);
+}
+
+.charCounter {
+  font-size: var(--font-size-xs, 0.75rem);
+  color: var(--color-text-muted, #5F676E);
+}
+
+.helperNote {
+  font-size: var(--font-size-xs, 0.75rem);
+  color: var(--color-text-muted, #5F676E);
+  margin: 0;
+}
+
+.tableWrapper {
+  border: 1px solid var(--border-color-neutral, #DFE3E8);
+  overflow-x: auto;
+}
+
+.consumosTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-size-sm, 0.8125rem);
+}
+
+.consumosTable th {
+  background-color: var(--color-bg-light, #ECEFF3);
+  padding: 8px 10px;
+  text-align: left;
+  font-size: var(--font-size-xs, 0.75rem);
+  font-weight: 700;
+  color: var(--color-charcoal, #3B3F45);
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--border-color-neutral-dark, #CCD2D9);
+}
+
+.consumosTable td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border-color-neutral, #DFE3E8);
+  color: var(--color-text-dark, #2B2B2B);
+  vertical-align: middle;
+}
+
+.consumosTable tr:last-child td {
+  border-bottom: none;
+}
+
+.devolverBadge {
+  display: inline-block;
+  padding: 2px 8px;
+  font-size: var(--font-size-xs, 0.75rem);
+  font-weight: 700;
+  background-color: var(--color-info-bg, #E0F2F1);
+  color: var(--color-primary-teal-dark, #14505A);
+}
+
+.devolverBadgeZero {
+  background-color: var(--color-bg-light, #ECEFF3);
+  color: var(--color-text-muted, #5F676E);
+}
+
+.summaryBar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2, 8px);
+  padding: var(--space-2, 8px) var(--space-3, 12px);
+  background-color: var(--color-bg-light, #ECEFF3);
+  border: 1px solid var(--border-color-neutral, #DFE3E8);
+  font-size: var(--font-size-xs, 0.75rem);
+  color: var(--color-charcoal, #3B3F45);
+}
+
+.errorText {
+  font-size: var(--font-size-xs, 0.75rem);
+  color: var(--color-danger, #D32F2F);
+  font-weight: 600;
+}
+
+.actionsRow {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2, 8px);
+  width: 100%;
+}

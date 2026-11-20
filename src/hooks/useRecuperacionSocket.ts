@@ -7,9 +7,14 @@ import type {
   EditarOperativoRecuperacionData,
 } from '@/types/recuperacion';
 
+export interface RecuperacionActualizadaEvent
+  extends EditarOperativoRecuperacionData {
+  accion?: 'EDITADA' | 'CERRADA' | string;
+}
+
 export interface UseRecuperacionSocketOptions {
   onRecuperacionCreada?: (evento: EventoRecuperacionResponse) => void;
-  onRecuperacionActualizada?: (evento: EditarOperativoRecuperacionData) => void;
+  onRecuperacionActualizada?: (evento: RecuperacionActualizadaEvent) => void;
   enabled?: boolean;
 }
 
@@ -85,15 +90,20 @@ export function useRecuperacionSocket({
     };
 
     const handleRecuperacionActualizada = (
-      payload: EditarOperativoRecuperacionData | { data: EditarOperativoRecuperacionData }
+      payload: RecuperacionActualizadaEvent | { data: RecuperacionActualizadaEvent }
     ) => {
       const evento =
         payload && 'data' in payload && payload.data
           ? payload.data
-          : (payload as EditarOperativoRecuperacionData);
+          : (payload as RecuperacionActualizadaEvent);
       const codigo = evento?.codigo || 'Evento';
       const sector = evento?.sector || 'Valdivia';
-      setUltimoEvento(`Recuperación actualizada: ${codigo} en ${sector}`);
+
+      if (evento?.accion === 'CERRADA' || evento?.estado === 'COMPLETADA') {
+        setUltimoEvento(`Recuperación concluida: ${codigo} en ${sector}`);
+      } else {
+        setUltimoEvento(`Recuperación actualizada: ${codigo} en ${sector}`);
+      }
 
       if (callbackActualizadaRef.current && evento) {
         callbackActualizadaRef.current(evento);
