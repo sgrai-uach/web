@@ -28,6 +28,8 @@ import { MapaOperativoMando } from './MapaOperativoMando';
 import { KanbanViewSwitcher } from './KanbanViewSwitcher';
 import { Zap } from 'lucide-react';
 import { usePuedeAsignarMision } from '@/hooks/usePuedeAsignarMision';
+import { extraerEstadoInicialNotificacion } from '@/lib/socket/trazabilidadConfig';
+import { setTrazabilidadEstado } from '@/lib/socket/trazabilidadStore';
 import InlineNotice from '@/components/ui/InlineNotice';
 import styles from '@/styles/mando.module.css';
 
@@ -117,6 +119,7 @@ export const KanbanBoard: React.FC = () => {
     totalIncidentesVisibles,
     incidenteSeleccionadoId,
     setIncidenteSeleccionadoId,
+    trazabilidadPorIncidente,
   } = useIncidentesKanban({
     onMisionRechazada: handleMisionRechazadaSocket,
   });
@@ -302,6 +305,7 @@ export const KanbanBoard: React.FC = () => {
                     onSeleccionarIncidente={(inc) => setIncidenteSeleccionadoId(inc.id)}
                     onAsignarPatrulla={(inc) => setIncidenteParaAsignar(inc)}
                     puedeAsignarPatrulla={puedeAsignar}
+                    trazabilidadPorIncidente={trazabilidadPorIncidente}
                   />
                 ))}
               </div>
@@ -324,10 +328,12 @@ export const KanbanBoard: React.FC = () => {
             userId={userId}
             onCerrar={() => setIncidenteSeleccionadoId(null)}
             onIncidenteActualizado={(incId, nuevoEstado) => {
-              if (nuevoEstado === 'REPORTADO') {
+              if (incId && nuevoEstado === 'REPORTADO') {
                 marcarIncidenteMisionDespachada(incId, true);
               }
-              moverIncidenteAEstado(incId, nuevoEstado);
+              if (incId && nuevoEstado) {
+                moverIncidenteAEstado(incId, nuevoEstado);
+              }
               recargar();
               refrescarKpis();
             }}
@@ -341,6 +347,9 @@ export const KanbanBoard: React.FC = () => {
             userId={userId}
             onAsignacionExitosa={(data) => {
               marcarIncidenteMisionDespachada(data.incidente.id, true);
+              const estadoInicial = extraerEstadoInicialNotificacion(data);
+              setTrazabilidadEstado(data.mision.id, estadoInicial, data.incidente.id);
+              moverIncidenteAEstado(data.incidente.id, 'VERIFICANDO');
               recargar();
               refrescarKpis();
               setIncidenteParaAsignar(null);

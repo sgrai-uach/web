@@ -9,13 +9,22 @@ import {
   type PrioridadIncidente,
   type PaginacionMeta,
   type ListarIncidentesQuery,
+  type EstadoTrazabilidadNotificacion,
 } from '@/services/incidentesService';
+import { obtenerDetalleMision } from '@/services/misionesService';
 import {
   useEncargadoKanbanSocket,
   type IncidenteCreadoPayload,
   type IncidenteActualizadoPayload,
   type MisionRechazadaPayload,
+  type NotificacionTrazabilidadPayload,
 } from './useEncargadoKanbanSocket';
+import {
+  getIncidentePorMision,
+  getSnapshotTrazabilidadIncidentes,
+  subscribeTrazabilidad,
+  vincularMisionIncidente,
+} from '@/lib/socket/trazabilidadStore';
 
 export const ESTADOS_KANBAN: EstadoIncidente[] = [
   'REPORTADO',
@@ -37,6 +46,28 @@ export interface FiltrosKanban {
   fuenteOrigen: string; // '', 'CHATBOT', 'LLAMADA_TELEFONICA', 'FUNCIONARIO_TERRENO', 'WEB'
   delegacionId?: string;
   soloHoy?: boolean;
+}
+
+/**
+ * Ordena incidentes para una columna del Kanban.
+ * En la columna 'VERIFICANDO', los incidentes ya verificados por patrulla
+ * aparecen siempre primero en la parte superior.
+ */
+function ordenarIncidentesColumna(
+  incidentes: IncidenteResumen[],
+  estado: EstadoIncidente
+): IncidenteResumen[] {
+  if (estado === 'VERIFICANDO') {
+    return [...incidentes].sort((a, b) => {
+      const aVerif = a.verificado ? 1 : 0;
+      const bVerif = b.verificado ? 1 : 0;
+      if (aVerif !== bVerif) {
+        return bVerif - aVerif; // Verificados (1) primero
+      }
+      return new Date(b.creadoEn).getTime() - new Date(a.creadoEn).getTime();
+    });
+  }
+  return incidentes;
 }
 
 export interface UseIncidentesKanbanOptions {
@@ -107,10 +138,30 @@ export function useIncidentesKanban(options?: string | UseIncidentesKanbanOption
     prioridad: '',
     tipoAfectacion: '',
     fuenteOrigen: '',
-    soloHoy: true,
   });
 
   const [incidenteSeleccionadoId, setIncidenteSeleccionadoId] = useState<string | null>(null);
+  const [trazabilidadPorIncidente, setTrazabilidadPorIncidente] = useState<
+    Record<string, EstadoTrazabilidadNotificacion>
+  >({});
+
+  useEffect(() => {
+    let activo = true;
+    queueMicrotask(() => {
+      if (activo) {
+        setTrazabilidadPorIncidente(getSnapshotTrazabilidadIncidentes());
+      }
+    });
+    const unsubscribe = subscribeTrazabilidad(() => {
+      if (activo) {
+        setTrazabilidadPorIncidente(getSnapshotTrazabilidadIncidentes());
+      }
+    });
+    return () => {
+      activo = false;
+      unsubscribe();
+    };
+  }, []);
 
   // Columnas visibles según el filtro de Estado (permite ocultar columnas)
   const estadosVisibles: EstadoIncidente[] = useMemo(() => {
@@ -192,13 +243,19 @@ export function useIncidentesKanban(options?: string | UseIncidentesKanbanOption
           }
         });
 
+        // Preservar la marca local de misión despachada mientras el backend la propaga
         setColumnas((prev) => {
           const preservadas: Record<EstadoIncidente, IncidenteResumen[]> = { ...nuevasColumnas };
           columnasAConsultar.forEach((estado) => {
-            preservadas[estado] = nuevasColumnas[estado].map((inc) => {
-              const previo = prev[estado]?.find((p) => p.id === inc.id);
-              return previo?.tieneMisionDespachada ? { ...inc, tieneMisionDespachada: true } : inc;
-            });
+            preservadas[estado] = ordenarIncidentesColumna(
+              nuevasColumnas[estado].map((inc) => {
+                const previo = prev[estado]?.find((p) => p.id === inc.id);
+                return previo?.tieneMisionDespachada
+                  ? { ...inc, tieneMisionDespachada: true }
+                  : inc;
+              }),
+              estado
+            );
           });
           return preservadas;
         });
@@ -255,7 +312,7 @@ export function useIncidentesKanban(options?: string | UseIncidentesKanbanOption
         if (res.exito) {
           setColumnas((prev) => ({
             ...prev,
-            [estado]: [...prev[estado], ...res.incidentes],
+            [estado]: ordenarIncidentesColumna([...prev[estado], ...res.incidentes], estado),
           }));
           setPaginacionColumna((prev) => ({
             ...prev,
@@ -278,7 +335,7 @@ export function useIncidentesKanban(options?: string | UseIncidentesKanbanOption
       tipoAfectacion: '',
       fuenteOrigen: '',
       delegacionId: undefined,
-      soloHoy: true,
+      soloHoy: false,
     });
   }, []);
 
@@ -305,6 +362,7 @@ export function useIncidentesKanban(options?: string | UseIncidentesKanbanOption
         informanteNombre: null,
         delegacionNombre: null,
         totalMisiones: 0,
+        verificado: false,
         creadoEn: datos.creadoEn,
         actualizadoEn: datos.creadoEn,
       };
@@ -383,7 +441,7 @@ export function useIncidentesKanban(options?: string | UseIncidentesKanbanOption
         return {
           ...prev,
           [columnaOrigen!]: prev[columnaOrigen!].filter((i) => i.id !== datos.id),
-          [datos.nuevoEstado]: [incidenteEncontrado, ...prev[datos.nuevoEstado]],
+          [datos.nuevoEstado]: ordenarIncidentesColumna([incidenteEncontrado, ...prev[datos.nuevoEstado]], datos.nuevoEstado),
         };
       });
 
@@ -399,14 +457,7 @@ export function useIncidentesKanban(options?: string | UseIncidentesKanbanOption
               : null,
             [datos.nuevoEstado]: metaDestino
               ? { ...metaDestino, total: metaDestino.total + 1 }
-              : {
-                  total: 1,
-                  pagina: 1,
-                  limite: 20,
-                  totalPaginas: 1,
-                  tieneSiguiente: false,
-                  tieneAnterior: false,
-                },
+              : null,
           };
         });
       }
@@ -475,18 +526,30 @@ export function useIncidentesKanban(options?: string | UseIncidentesKanbanOption
             : null,
           [nuevoEstado]: metaDestino
             ? { ...metaDestino, total: metaDestino.total + 1 }
-            : {
-                total: 1,
-                pagina: 1,
-                limite: 20,
-                totalPaginas: 1,
-                tieneSiguiente: false,
-                tieneAnterior: false,
-              },
+            : null,
         };
       });
     },
     []
+  );
+
+  const handleTrazabilidadActualizada = useCallback(
+    (payload: NotificacionTrazabilidadPayload) => {
+      if (!payload?.misionId || getIncidentePorMision(payload.misionId)) {
+        return;
+      }
+      void obtenerDetalleMision(payload.misionId, userId)
+        .then((res) => {
+          const incId = res.exito ? res.datos?.incidente?.id : undefined;
+          if (incId) {
+            vincularMisionIncidente(payload.misionId, incId);
+          }
+        })
+        .catch(() => {
+          // Ignorar fallo auxiliar de resolución de vínculo misión-incidente
+        });
+    },
+    [userId]
   );
 
   const handleMisionRechazada = useCallback(
@@ -570,6 +633,7 @@ export function useIncidentesKanban(options?: string | UseIncidentesKanbanOption
     onIncidenteCreado: handleIncidenteCreado,
     onIncidenteActualizado: handleIncidenteActualizado,
     onMisionRechazada: handleMisionRechazada,
+    onNotificacionTrazabilidadActualizada: handleTrazabilidadActualizada,
     enabled: !esForbidden,
   });
 
@@ -600,5 +664,6 @@ export function useIncidentesKanban(options?: string | UseIncidentesKanbanOption
     totalIncidentesVisibles,
     incidenteSeleccionadoId,
     setIncidenteSeleccionadoId,
+    trazabilidadPorIncidente,
   };
 }

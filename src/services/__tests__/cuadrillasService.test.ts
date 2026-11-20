@@ -178,6 +178,27 @@ describe('cuadrillasService (H79)', () => {
               rol_codigo: 'INFORMANTE', // informante externo excluido
               rol_nombre: 'Informante',
             },
+            {
+              usuario_id: 'u-4',
+              rut: '44.444.444-4',
+              nombres: 'Carla',
+              apellidos: 'Delegada',
+              email: 'carla@valdivia.cl',
+              telefono: null,
+              usuario_activo: true,
+              rol_id: 'r-4',
+              rol_codigo: 'DELEGADO_CUADRILLA', // delegado ya constituido: admitido
+              rol_nombre: 'Delegado de Cuadrilla',
+              delegacion_id: 'd-1',
+              delegacion_codigo: 'DEL_NORTE',
+              delegacion_nombre: 'Norte',
+              es_personal: true,
+              personal_id: 'p-4',
+              especialidad: 'Mando de cuadrilla',
+              cargo: 'Delegado de Cuadrilla',
+              estado_operativo: 'disponible',
+              disponible_terreno: true,
+            },
           ],
         },
         error: null,
@@ -185,9 +206,44 @@ describe('cuadrillasService (H79)', () => {
       } as unknown as Awaited<ReturnType<typeof apiClient.GET>>);
 
       const candidatos = await cuadrillasService.obtenerCandidatosDelegados();
-      expect(candidatos).toHaveLength(1);
+      expect(candidatos).toHaveLength(2);
       expect(candidatos[0].id).toBe('u-1');
       expect(candidatos[0].nombreCompleto).toBe('Juan Pérez');
+      expect(candidatos[1].id).toBe('u-4');
+      expect(candidatos[1].nombreCompleto).toBe('Carla Delegada');
+    });
+
+    it('debe solicitar al backend la exclusión de funcionarios ya asignados a una cuadrilla', async () => {
+      const spyGet = vi.spyOn(apiClient, 'GET').mockResolvedValueOnce({
+        data: { data: [] },
+        error: null,
+        response: new Response(null, { status: 200 }),
+      } as unknown as Awaited<ReturnType<typeof apiClient.GET>>);
+
+      const candidatos = await cuadrillasService.obtenerCandidatosDelegados();
+
+      expect(candidatos).toEqual([]);
+      const params = spyGet.mock.calls[0][1]?.params as {
+        query?: Record<string, unknown>;
+      };
+      expect(params?.query?.sinAsignacionCuadrilla).toBe(true);
+      expect(params?.query?.excluirCuadrillaId).toBeUndefined();
+    });
+
+    it('debe enviar la cuadrilla excluida cuando se edita una cuadrilla existente', async () => {
+      const spyGet = vi.spyOn(apiClient, 'GET').mockResolvedValueOnce({
+        data: { data: [] },
+        error: null,
+        response: new Response(null, { status: 200 }),
+      } as unknown as Awaited<ReturnType<typeof apiClient.GET>>);
+
+      await cuadrillasService.obtenerCandidatosDelegados(undefined, 'cuad-1');
+
+      const params = spyGet.mock.calls[0][1]?.params as {
+        query?: Record<string, unknown>;
+      };
+      expect(params?.query?.sinAsignacionCuadrilla).toBe(true);
+      expect(params?.query?.excluirCuadrillaId).toBe('cuad-1');
     });
   });
 
@@ -416,6 +472,66 @@ describe('cuadrillasService (H79)', () => {
       expect(resultado.meta.total).toBeGreaterThan(0);
     });
 
+    it('debe propagar 403 Forbidden sin exponer datos de fallback', async () => {
+      vi.spyOn(apiClient, 'GET').mockResolvedValueOnce({
+        data: undefined,
+        error: { message: 'Forbidden' },
+        response: new Response(null, { status: 403 }),
+      } as unknown as Awaited<ReturnType<typeof apiClient.GET>>);
+
+      await expect(cuadrillasService.obtenerCuadrillas({ pagina: 1, limite: 10 })).rejects.toMatchObject({
+        name: 'CuadrillaServiceError',
+        status: 403,
+        codigo: 'PERMISOS_INSUFICIENTES',
+      });
+    });
+
+    it('debe propagar 401 Unauthorized sin exponer datos de fallback', async () => {
+      vi.spyOn(apiClient, 'GET').mockResolvedValueOnce({
+        data: undefined,
+        error: { message: 'Unauthorized' },
+        response: new Response(null, { status: 401 }),
+      } as unknown as Awaited<ReturnType<typeof apiClient.GET>>);
+
+      await expect(cuadrillasService.obtenerCuadrillas()).rejects.toMatchObject({
+        name: 'CuadrillaServiceError',
+        status: 401,
+        codigo: 'NO_AUTENTICADO',
+      });
+    });
+
+    it('debe normalizar metadatos H34 (page/limit/totalPages) al contrato interno', async () => {
+      vi.spyOn(apiClient, 'GET').mockResolvedValueOnce({
+        data: {
+          message: 'Listado obtenido',
+          data: [
+            {
+              id: 'c-1',
+              nombre: 'Cuadrilla Test',
+              estado: 'DISPONIBLE',
+              delegacion: { id: 'd-1', nombre: 'Norte' },
+              delegado: { id: 'u-1', nombre: 'Juan', email: 'juan@valdivia.cl' },
+              recursos: [],
+              trabajadores: [],
+              creadoEn: '2026-10-24T12:00:00.000Z',
+            },
+          ],
+          meta: { total: 21, page: 3, limit: 5, totalPages: 5 },
+        },
+        error: null,
+        response: new Response(null, { status: 200 }),
+      } as unknown as Awaited<ReturnType<typeof apiClient.GET>>);
+
+      const resultado = await cuadrillasService.obtenerCuadrillas({ pagina: 1, limite: 10 });
+      expect(resultado.meta).toEqual({
+        total: 21,
+        pagina: 3,
+        limite: 5,
+        paginasTotales: 5,
+      });
+    });
+  
+
     it('debe mapear estado INACTIVAS a NO_DISPONIBLE y enviar incluirInactivas true al consultar la API', async () => {
       const getSpy = vi.spyOn(apiClient, 'GET').mockResolvedValueOnce({
         data: { message: 'OK', data: [], meta: { total: 0, pagina: 1, limite: 10, paginasTotales: 1 } },
@@ -437,7 +553,6 @@ describe('cuadrillasService (H79)', () => {
         })
       );
     });
-
     it('debe mapear estado TODAS omitiendo estado y enviando incluirInactivas true al consultar la API', async () => {
       const getSpy = vi.spyOn(apiClient, 'GET').mockResolvedValueOnce({
         data: { message: 'OK', data: [], meta: { total: 0, pagina: 1, limite: 10, paginasTotales: 1 } },

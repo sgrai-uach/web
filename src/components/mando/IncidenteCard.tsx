@@ -1,6 +1,11 @@
 import React from 'react';
-import { MapPin, ShieldCheck, Hourglass } from 'lucide-react';
-import type { IncidenteResumen } from '@/services/incidentesService';
+import { MapPin, CheckCircle2, ShieldCheck, Hourglass } from 'lucide-react';
+import type {
+  EstadoTrazabilidadNotificacion,
+  IncidenteResumen,
+} from '@/services/incidentesService';
+import { TRAZABILIDAD_CONFIG } from '@/lib/socket/trazabilidadConfig';
+import { TrazabilidadIcon } from './TrazabilidadIcon';
 import { obtenerNombreDelegacion } from '@/lib/utils/delegacionUtils';
 import styles from '@/styles/mando.module.css';
 import Heading from '@/components/ui/Heading';
@@ -11,6 +16,7 @@ interface IncidenteCardProps {
   onClick: (incidente: IncidenteResumen) => void;
   onAsignarPatrulla?: (incidente: IncidenteResumen) => void;
   puedeAsignarPatrulla?: boolean;
+  trazabilidadNotificacion?: EstadoTrazabilidadNotificacion;
 }
 
 export const IncidenteCard: React.FC<IncidenteCardProps> = ({
@@ -18,7 +24,14 @@ export const IncidenteCard: React.FC<IncidenteCardProps> = ({
   onClick,
   onAsignarPatrulla,
   puedeAsignarPatrulla = true,
+  trazabilidadNotificacion,
 }) => {
+  const estadoTrazabilidad =
+    trazabilidadNotificacion ?? incidente.trazabilidadNotificacion;
+  const trazabilidadConfig = estadoTrazabilidad
+    ? TRAZABILIDAD_CONFIG[estadoTrazabilidad]
+    : undefined;
+  const estaVerificado = Boolean(incidente.verificado);
   const getPrioridadClass = (prioridad: string) => {
     switch (prioridad) {
       case 'CRITICA':
@@ -42,7 +55,7 @@ export const IncidenteCard: React.FC<IncidenteCardProps> = ({
 
   return (
     <div
-      className={styles.incidenteCard}
+      className={`${styles.incidenteCard} ${estaVerificado ? styles.incidenteVerificado : ''}`}
       onClick={() => onClick(incidente)}
       onKeyDown={handleKeyDown}
       role="button"
@@ -50,7 +63,19 @@ export const IncidenteCard: React.FC<IncidenteCardProps> = ({
       aria-label={`Ver detalles del incidente ${incidente.codigo} tipo ${incidente.tipoAfectacion}`}
     >
       <div className={styles.cardTopRow}>
-        <span className={styles.cardCodigo}>{incidente.codigo}</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', flexWrap: 'wrap' }}>
+          <span className={styles.cardCodigo}>{incidente.codigo}</span>
+          {estaVerificado && (
+            <span
+              className={styles.badgeVerificado}
+              title="Diagnóstico técnico en terreno finalizado por patrulla"
+              data-testid="badge-verificado"
+            >
+              <CheckCircle2 size={11} aria-hidden="true" />
+              <span>Verificado</span>
+            </span>
+          )}
+        </div>
         <span
           className={`${styles.badgePrioridad} ${getPrioridadClass(incidente.prioridad)}`}
           title={`Prioridad: ${incidente.prioridad}`}
@@ -64,7 +89,7 @@ export const IncidenteCard: React.FC<IncidenteCardProps> = ({
       </Heading>
 
       <p className={styles.cardDireccion} title={incidente.direccion}>
-        <MapPin size={14} aria-hidden="true" style={{ flexShrink: 0 }} />
+        <MapPin size={14} aria-hidden="true" style={{ flexShrink: 0, marginTop: '2px' }} />
         <span>{incidente.direccion}</span>
       </p>
 
@@ -88,6 +113,109 @@ export const IncidenteCard: React.FC<IncidenteCardProps> = ({
 
         <span>{obtenerNombreDelegacion(incidente.delegacionNombre, 'Sin delegación')}</span>
       </div>
+
+      {trazabilidadConfig ? (
+        <div
+          data-testid={`card-trazabilidad-${incidente.id}`}
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'flex-start',
+            gap: '3px',
+            width: '100%',
+            boxSizing: 'border-box',
+            flexShrink: 0,
+            overflow: 'hidden',
+            padding: '6px 8px',
+            backgroundColor: trazabilidadConfig.bg,
+            color: trazabilidadConfig.color,
+            border: '1px solid currentColor',
+            borderLeft: '4px solid currentColor',
+            borderRadius: 0,
+            fontSize: '0.72rem',
+            lineHeight: 1.25,
+          }}
+          title={`Estado de notificación en terreno: ${trazabilidadConfig.texto}`}
+        >
+          <span
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '5px',
+              fontWeight: 700,
+              maxWidth: '100%',
+              overflowWrap: 'anywhere',
+              wordBreak: 'break-word',
+            }}
+          >
+            <TrazabilidadIcon estado={estadoTrazabilidad} size={13} />
+            <span>{trazabilidadConfig.etiquetaLectura}</span>
+          </span>
+          <span
+            style={{
+              fontWeight: 600,
+              fontSize: '0.7rem',
+              lineHeight: 1.3,
+              maxWidth: '100%',
+              overflowWrap: 'anywhere',
+              wordBreak: 'break-word',
+            }}
+          >
+            {trazabilidadConfig.textoCorto}
+          </span>
+        </div>
+      ) : (
+        incidente.estado === 'VERIFICANDO' && (
+          <div
+            data-testid={`card-trazabilidad-pendiente-${incidente.id}`}
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'flex-start',
+              gap: '3px',
+              width: '100%',
+              boxSizing: 'border-box',
+              flexShrink: 0,
+              overflow: 'hidden',
+              padding: '6px 8px',
+              backgroundColor: '#F8FAFC',
+              color: '#5F676E',
+              border: '1px dashed #94A3B8',
+              borderRadius: 0,
+              fontSize: '0.72rem',
+              lineHeight: 1.25,
+            }}
+            title="Aún no se registra confirmación de recepción o lectura desde la patrulla en terreno"
+          >
+            <span
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '5px',
+                fontWeight: 700,
+                maxWidth: '100%',
+                overflowWrap: 'anywhere',
+                wordBreak: 'break-word',
+              }}
+            >
+              <TrazabilidadIcon size={13} />
+              <span>SIN ACUSE</span>
+            </span>
+            <span
+              style={{
+                fontWeight: 500,
+                fontSize: '0.7rem',
+                lineHeight: 1.3,
+                maxWidth: '100%',
+                overflowWrap: 'anywhere',
+                wordBreak: 'break-word',
+              }}
+            >
+              Lectura aún no confirmada
+            </span>
+          </div>
+        )
+      )}
 
       {incidente.estado === 'REPORTADO' && (incidente.tieneMisionDespachada || (onAsignarPatrulla && puedeAsignarPatrulla)) && (
         <div style={{ marginTop: '0.625rem', paddingTop: '0.5rem', borderTop: '1px solid var(--border-color-neutral, #DFE3E8)' }}>
