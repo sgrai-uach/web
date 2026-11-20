@@ -48,3 +48,4 @@ Permitir al Encargado de Operaciones ajustar en tiempo real la planificación de
 
 * **`sgrai-api`:** El envío del formulario consume `PATCH /api/eventos-atp/prevencion/{id}`, ajusta automáticamente el delta de stock en bodega, registra auditoría (`actualizado_en`, `actualizado_por_id`) y emite el evento WebSocket `prevencion:actualizada`.
 * **`sgrai-pwa`:** Las patrullas o cuadrillas asignadas al evento preventivo reciben la información actualizada en terreno mediante la sincronización en tiempo real de la misión vinculada.
+* **Despacho de Patrullas y Recursos (HU-33):** Si requiere despachar una patrulla verificadora disponible creando una nueva misión preventiva y asignando materiales trazados por misión, utilice la vista dedicada `/eventos-atp/prevencion/[id]` (ver [Manual HU-33](H33-asignar-recursos-prevencion.md)).

@@ -1,0 +1,65 @@
+@startuml
+title H33 - Asignar Patrulla y Recursos Logisticos a Evento de Prevencion
+skinparam maxMessageSize 250
+
+box "Frontend (sgrai-web)" #White
+actor "Encargado de Mando" as user
+participant "DetalleEventoPrevencionClient\n(/eventos-atp/prevencion/[id])" as view
+participant "prevencionService\n(openapi-fetch)" as service
+participant "usePrevencionSocket" as wsHook
+end box
+
+box "Backend (sgrai-api)" #LightGoldenRodYellow
+participant "GET/POST /api/eventos-atp/prevencion/[id]/recursos" as controller
+participant "evento-prevencion.service" as biz
+participant "SocketGateway / Redis" as socket
+end box
+
+box "Capa de Datos" #F0F8FF
+database "PostgreSQL / PostGIS" as db
+end box
+
+== 1. Carga Consolidada del Evento Preventivo ==
+user -> view ++: Ingresa a /eventos-atp/prevencion/[id]
+view -> service ++: obtenerEventoPrevencion(id)
+service -> controller ++: GET /api/eventos-atp/prevencion/{id} (Bearer JWT)
+controller -> controller: Valida permisos (prevencion:eventos:leer | misiones:asignar)
+controller -> db ++: Consulta evento_prevencion, punto_critico, misiones[] y recursosAsignados[]
+return Detalle consolidado
+return 200 OK (EventoPrevencionDetalleResponse)
+service --> view --: Ficha de prevención + historial
+view -> controller : Consulta GET /api/patrullas?estado=DISPONIBLE & GET /api/recursos
+
+== 2. Selección y Pre-validación UX (§3.6) ==
+user -> view: Selecciona patrulla DISPONIBLE e insumos (granel / activo individual)
+view -> view: Valida stock visible, individual fijo en 1, sin duplicados
+user -> view: Confirma despacho ("Confirmar y Despachar Misión Preventiva")
+
+== 3. Transacción Atómica con Bloqueo Pesimista FOR UPDATE ==
+view -> service ++: asignarRecursosPrevencion(id, { patrullaId, recursos })
+service -> controller ++: POST /api/eventos-atp/prevencion/{id}/recursos (Bearer JWT)
+controller -> controller: Valida permiso estricto RBAC 'misiones:asignar'
+
+controller -> biz ++: asignarRecursosPrevencionService(id, payload, userId)
+biz -> db ++: BEGIN TRANSACTION;\n- SELECT ... FROM evento_prevencion FOR UPDATE (activo, no cerrado);\n- SELECT ... FROM patrulla_verificadora FOR UPDATE (estado = DISPONIBLE);\n- SELECT ... FROM recurso FOR UPDATE (§3.6:\n    individual != EN_MANTENCION/ASIGNADO/NO_DISPONIBLE && cantidad == 1;\n    granel: cantidad_inventario - cantidad_en_uso >= cantidad);\n- INSERT INTO mision (tipo_mision='PREVENCION', estado='DESPACHADA',\n    evento_prevencion_id, incidente_id=NULL);\n- UPDATE patrulla_verificadora SET estado='EN_PREVENCION';\n- UPDATE usuario/personal (lider estado_operativo='en_mision');\n- INSERT INTO evento_prevencion_recurso (mision_id, ...);\n- UPDATE recurso SET cantidad_en_uso += cantidad, estado=...;\nCOMMIT;
+return Asignación confirmada
+
+== 4. Difusión WebSocket en Tiempo Real ==
+biz -> socket ++: Emite 'prevencion:actualizada' (encargado, sala:encargados, mapa, patrulla:{id})
+biz -> socket : Emite 'recurso:actualizado' (encargado, sala:encargados, supervisor, mapa)
+biz -> socket : Emite 'patrulla:actualizada' (estado: EN_PREVENCION)
+return OK
+return AsignarRecursosPrevencionResponse
+
+alt Conflicto de Concurrencia / Permiso (409 / 403 / 400 / 404)
+    controller --> service: HTTP Error (STOCK_INSUFICIENTE | PATRULLA_OCUPADA | ACTIVO_NO_DISPONIBLE | EVENTO_CERRADO)
+    service --> view: throw PrevencionServiceError
+    view -> user: InlineNotice de conflicto + refresco de catálogos
+else Asignación Exitosa (200 OK)
+    controller --> service --: 200 OK (mision PREVENCION, patrulla EN_PREVENCION)
+    service --> view --: AsignarRecursosPrevencionResponse
+    view -> user: Toast de confirmación + recarga historial e inventario
+    socket -->> wsHook: Notifica a operadores y mapa operativo
+    wsHook -->> view: Refresca ficha, stock (debounce 300ms) y patrullas
+end
+@enduml

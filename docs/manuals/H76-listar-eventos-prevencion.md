@@ -108,3 +108,9 @@ Al hacer clic en cualquier fila de la tabla o en el botón `"Detalle"`, se abre 
    - Si el token JWT ha expirado, el sistema redirige automáticamente al portal de inicio de sesión (`/login`).
 3. **Sin Resultados de Búsqueda:**
    - Si la combinación de filtros no arroja registros coincidentes, la tabla muestra un estado vacío informativo con el botón para restablecer los criterios.
+
+---
+
+## 7. Continuación del Flujo Operativo (HU-33)
+
+Para asignar patrullas verificadoras disponibles y despachar materiales del inventario hacia un evento preventivo activo, presione el botón **"Asignar"** en la tabla o **"Asignar Patrulla y Recursos"** en el Drawer lateral para abrir la ficha dedicada `/eventos-atp/prevencion/[id]` (ver [Manual HU-33](H33-asignar-recursos-prevencion.md)).
