@@ -34,6 +34,20 @@ export interface IncidenteActualizadoPayload {
   emitidoEn: string;
 }
 
+export interface MisionRechazadaPayload {
+  misionId: string;
+  codigo: string;
+  tipoMision: string;
+  motivo: string;
+  justificacionRechazo?: string;
+  patrullaId?: string | null;
+  patrullaNombre?: string | null;
+  incidenteId?: string | null;
+  incidenteCodigo?: string | null;
+  rechazadoPorId?: string | null;
+  rechazadoEn?: string;
+}
+
 export interface NotificacionTrazabilidadPayload {
   notificacionId: string;
   misionId: string;
@@ -50,17 +64,19 @@ export interface NotificacionTrazabilidadPayload {
 export interface UseEncargadoKanbanSocketOptions {
   onIncidenteCreado?: (payload: IncidenteCreadoPayload) => void;
   onIncidenteActualizado?: (payload: IncidenteActualizadoPayload) => void;
+  onMisionRechazada?: (payload: MisionRechazadaPayload) => void;
   onNotificacionTrazabilidadActualizada?: (payload: NotificacionTrazabilidadPayload) => void;
   enabled?: boolean;
 }
 
 /**
  * Hook para la conexión en tiempo real del Encargado de Centro de Mando.
- * Se une a la sala 'sala:encargados' y escucha la creación y actualización de incidentes.
+ * Se une a la sala 'sala:encargados' y escucha la creación y actualización de incidentes y rechazos de misiones.
  */
 export function useEncargadoKanbanSocket({
   onIncidenteCreado,
   onIncidenteActualizado,
+  onMisionRechazada,
   onNotificacionTrazabilidadActualizada,
   enabled = true,
 }: UseEncargadoKanbanSocketOptions = {}) {
@@ -69,6 +85,8 @@ export function useEncargadoKanbanSocket({
 
   const creadoRef = useRef(onIncidenteCreado);
   const actualizadoRef = useRef(onIncidenteActualizado);
+  const rechazadaRef = useRef(onMisionRechazada);
+  const eventosProcesadosRef = useRef<Map<string, number>>(new Map());
   const trazabilidadRef = useRef(onNotificacionTrazabilidadActualizada);
 
   useEffect(() => {
@@ -78,6 +96,10 @@ export function useEncargadoKanbanSocket({
   useEffect(() => {
     actualizadoRef.current = onIncidenteActualizado;
   }, [onIncidenteActualizado]);
+
+  useEffect(() => {
+    rechazadaRef.current = onMisionRechazada;
+  }, [onMisionRechazada]);
 
   useEffect(() => {
     trazabilidadRef.current = onNotificacionTrazabilidadActualizada;
@@ -165,6 +187,64 @@ export function useEncargadoKanbanSocket({
       }
     };
 
+    const handleMisionRechazada = (payload: unknown) => {
+      const p = payload as Record<string, unknown> | null | undefined;
+      const raw = (p?.datos || p?.data || p) as Record<string, unknown> | null | undefined;
+      const misionId =
+        typeof raw?.misionId === 'string'
+          ? raw.misionId
+          : typeof raw?.id === 'string'
+            ? raw.id
+            : '';
+      const ahora = Date.now();
+
+      // Deduplicación reactiva ante emisiones múltiples por broadcast o varias salas concurrentes
+      if (misionId) {
+        const ultimaVez = eventosProcesadosRef.current.get(misionId);
+        if (ultimaVez && ahora - ultimaVez < 5000) {
+          return;
+        }
+        eventosProcesadosRef.current.set(misionId, ahora);
+        if (eventosProcesadosRef.current.size > 100) {
+          for (const [key, timestamp] of eventosProcesadosRef.current.entries()) {
+            if (ahora - timestamp > 10000) {
+              eventosProcesadosRef.current.delete(key);
+            }
+          }
+        }
+      }
+
+      const normalizedPayload: MisionRechazadaPayload = {
+        misionId,
+        codigo: typeof raw?.codigo === 'string' ? raw.codigo : '',
+        tipoMision: typeof raw?.tipoMision === 'string' ? raw.tipoMision : 'VERIFICACION',
+        motivo:
+          typeof raw?.motivo === 'string'
+            ? raw.motivo
+            : typeof raw?.justificacionRechazo === 'string'
+              ? raw.justificacionRechazo
+              : 'Sin motivo especificado',
+        justificacionRechazo:
+          typeof raw?.justificacionRechazo === 'string'
+            ? raw.justificacionRechazo
+            : typeof raw?.motivo === 'string'
+              ? raw.motivo
+              : undefined,
+        patrullaId: typeof raw?.patrullaId === 'string' ? raw.patrullaId : null,
+        patrullaNombre: typeof raw?.patrullaNombre === 'string' ? raw.patrullaNombre : null,
+        incidenteId: typeof raw?.incidenteId === 'string' ? raw.incidenteId : null,
+        incidenteCodigo: typeof raw?.incidenteCodigo === 'string' ? raw.incidenteCodigo : null,
+        rechazadoPorId: typeof raw?.rechazadoPorId === 'string' ? raw.rechazadoPorId : null,
+        rechazadoEn:
+          typeof raw?.rechazadoEn === 'string' ? raw.rechazadoEn : new Date().toISOString(),
+      };
+
+      setUltimoEvento(`Misión rechazada: ${normalizedPayload.codigo}`);
+      if (rechazadaRef.current) {
+        rechazadaRef.current(normalizedPayload);
+      }
+    };
+
     const handleTrazabilidad = (payload: unknown) => {
       if (!esPayloadTrazabilidadValido(payload)) return;
 
@@ -180,6 +260,7 @@ export function useEncargadoKanbanSocket({
     socket.on('disconnect', onDisconnect);
     socket.on('incidente:creado', handleCreado);
     socket.on('incidente:actualizado', handleActualizado);
+    socket.on('mision:rechazada', handleMisionRechazada);
     socket.on('notificacion:trazabilidad_actualizada', handleTrazabilidad);
 
     return () => {
@@ -187,6 +268,7 @@ export function useEncargadoKanbanSocket({
       socket.off('disconnect', onDisconnect);
       socket.off('incidente:creado', handleCreado);
       socket.off('incidente:actualizado', handleActualizado);
+      socket.off('mision:rechazada', handleMisionRechazada);
       socket.off('notificacion:trazabilidad_actualizada', handleTrazabilidad);
       socket.emit('leave', 'encargado');
       socket.emit('salir', 'sala:encargados');

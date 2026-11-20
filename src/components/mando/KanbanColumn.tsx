@@ -58,7 +58,7 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({
     }
   };
 
-  const total = paginacion ? paginacion.total : incidentes.length;
+  const total = paginacion ? Math.max(paginacion.total, incidentes.length) : incidentes.length;
 
   return (
     <div
