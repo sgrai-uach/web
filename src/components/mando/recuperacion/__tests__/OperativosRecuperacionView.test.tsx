@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { OperativosRecuperacionView } from '../OperativosRecuperacionView';
 import * as recuperacionService from '@/services/recuperacionService';
+import * as usePuedeCerrarHook from '@/hooks/usePuedeCerrarRecuperacion';
 import type {
   ListarOperativosRecuperacionApiResponse,
   OperativoRecuperacionDetalle,
@@ -179,5 +180,65 @@ describe('OperativosRecuperacionView (HU-73)', () => {
     expect(
       await screen.findByText(/No se encontraron operativos de recuperación/i)
     ).toBeInTheDocument();
+  });
+
+  it('debe mostrar el botón Declarar Concluido en el drawer para operativos EN_EJECUCION con permiso y ocultarlo sin permiso o en otros estados', async () => {
+    vi.spyOn(recuperacionService, 'listarOperativosRecuperacion').mockResolvedValue(mockListado);
+    vi.spyOn(recuperacionService, 'obtenerDetalleOperativoRecuperacion').mockResolvedValue(
+      mockDetalle
+    );
+
+    const permisoSpy = vi
+      .spyOn(usePuedeCerrarHook, 'usePuedeCerrarRecuperacion')
+      .mockReturnValue(true);
+
+    const { unmount } = render(<OperativosRecuperacionView delegaciones={mockDelegaciones} />);
+
+    fireEvent.click(await screen.findByText('REC-2026-0001'));
+    expect(
+      await screen.findByRole('button', { name: /Declarar Concluido/i })
+    ).toBeInTheDocument();
+    unmount();
+
+    permisoSpy.mockReturnValue(false);
+    const { unmount: unmountSinPermiso } = render(
+      <OperativosRecuperacionView delegaciones={mockDelegaciones} />
+    );
+    fireEvent.click(await screen.findByText('REC-2026-0001'));
+    await screen.findByText('Planchas de Zinc');
+    expect(
+      screen.queryByRole('button', { name: /Declarar Concluido/i })
+    ).not.toBeInTheDocument();
+    unmountSinPermiso();
+
+    permisoSpy.mockReturnValue(true);
+    vi.spyOn(recuperacionService, 'obtenerDetalleOperativoRecuperacion').mockResolvedValue({
+      ...mockDetalle,
+      estado: 'COMPLETADA',
+      fechaCierre: '2026-11-20T18:00:00.000Z',
+      observacionesCierre: 'Operativo cerrado correctamente.',
+      recursos: [
+        {
+          recursoId: 'r1',
+          nombre: 'Planchas de Zinc',
+          cantidadAsignada: 120,
+          cantidadConsumida: 100,
+          cantidadDevuelta: 20,
+          devueltoEn: '2026-11-20T18:00:00.000Z',
+        },
+      ],
+    });
+
+    render(<OperativosRecuperacionView delegaciones={mockDelegaciones} />);
+    fireEvent.click(await screen.findByText('REC-2026-0001'));
+    expect(
+      await screen.findByText(/Operativo cerrado correctamente/i)
+    ).toBeInTheDocument();
+    expect(screen.getByText('Devuelto a bodega')).toBeInTheDocument();
+    expect(screen.getByText('100')).toBeInTheDocument();
+    expect(screen.getByText('20')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /Declarar Concluido/i })
+    ).not.toBeInTheDocument();
   });
 });
