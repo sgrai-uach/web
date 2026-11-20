@@ -56,7 +56,7 @@ vi.mock('@/lib/maps/geocoding', () => ({
     }
     return { latitud: -39.81422, longitud: -73.24589 };
   }),
-  geocodificacionInversaEnValdivia: vi.fn(async (_lat: number, _lng: number) => {
+  geocodificacionInversaEnValdivia: vi.fn(async () => {
     return 'Avenida Ramón Picarte 2000, Sector Centro';
   }),
 }));

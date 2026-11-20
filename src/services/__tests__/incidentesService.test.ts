@@ -19,7 +19,7 @@ describe('Servicio API Incidentes (Encargado)', () => {
   });
 
   describe('listarIncidentes', () => {
-    it('debe enviar la cabecera x-user-id y retornar incidentes con paginación en respuesta exitosa 200', async () => {
+    it('debe consultar por apiClient con Bearer y retornar incidentes con paginación en respuesta exitosa 200', async () => {
       const mockData = {
         message: 'Listado obtenido exitosamente',
         data: [
@@ -66,10 +66,6 @@ describe('Servicio API Incidentes (Encargado)', () => {
         expect.objectContaining({
           params: {
             query: { page: 1, estado: 'REPORTADO' },
-            header: { 'x-user-id': DEFAULT_ENCARGADO_ID },
-          },
-          headers: {
-            'x-user-id': DEFAULT_ENCARGADO_ID,
           },
         })
       );
@@ -192,7 +188,6 @@ describe('Servicio API Incidentes (Encargado)', () => {
         expect.objectContaining({
           params: {
             path: { id: 'a0000000-0000-4000-8000-000000000001' },
-            header: { 'x-user-id': DEFAULT_ENCARGADO_ID },
           },
         })
       );
@@ -218,40 +213,43 @@ describe('Servicio API Incidentes (Encargado)', () => {
   });
 
   describe('obtenerKpisIncidentes', () => {
-    it('debe consultar /api/incidentes/kpis vía apiClient y retornar datos exitosos', async () => {
-      const mockKpisData = {
-        message: 'Contadores obtenidos exitosamente',
+    it('debe consultar /api/incidentes/kpis mediante apiClient enviando parámetros y cabeceras de sesión', async () => {
+      const mockKpis = {
+        message: 'Contadores de incidentes del día obtenidos exitosamente.',
         data: {
-          fecha: '2026-10-03',
+          fecha: '2026-11-16',
           zonaHoraria: 'America/Santiago' as const,
-          delegacionId: null,
-          total: 10,
+          delegacionId: '30000000-0000-4000-8000-000000000001',
+          total: 12,
           contadores: {
-            reportado: 2,
-            verificando: 3,
+            reportado: 3,
+            verificando: 2,
             enAtencion: 4,
-            noAbordables: 0,
-            resueltos: 1,
+            noAbordables: 1,
+            resueltos: 2,
           },
-          actualizadoEn: '2026-10-03T12:00:00Z',
+          actualizadoEn: '2026-11-16T23:00:00.000Z',
         },
       };
 
       vi.mocked(apiClient.GET).mockResolvedValueOnce({
-        data: mockKpisData,
+        data: mockKpis,
         error: undefined,
         response: { ok: true, status: 200 } as Response,
       });
 
-      const res = await obtenerKpisIncidentes({ delegacionId: 'del-1' }, DEFAULT_ENCARGADO_ID);
+      const res = await obtenerKpisIncidentes({
+        fecha: '2026-11-16',
+        delegacionId: '30000000-0000-4000-8000-000000000001',
+      });
 
       expect(apiClient.GET).toHaveBeenCalledWith(
         '/api/incidentes/kpis',
         expect.objectContaining({
           params: {
             query: {
-              fecha: undefined,
-              delegacionId: 'del-1',
+              fecha: '2026-11-16',
+              delegacionId: '30000000-0000-4000-8000-000000000001',
             },
             header: { 'x-user-id': DEFAULT_ENCARGADO_ID },
           },
@@ -259,8 +257,36 @@ describe('Servicio API Incidentes (Encargado)', () => {
         })
       );
       expect(res.exito).toBe(true);
-      expect(res.datos?.total).toBe(10);
-      expect(res.datos?.contadores.reportado).toBe(2);
+      expect(res.datos?.total).toBe(12);
+      expect(res.datos?.contadores.verificando).toBe(2);
+    });
+
+    it('debe retornar código 401 cuando el servidor rechaza la sesión por falta de token JWT', async () => {
+      vi.mocked(apiClient.GET).mockResolvedValueOnce({
+        data: undefined,
+        error: { message: 'Unauthorized' } as unknown as never,
+        response: { ok: false, status: 401 } as Response,
+      });
+
+      const res = await obtenerKpisIncidentes();
+
+      expect(res.exito).toBe(false);
+      expect(res.codigoError).toBe(401);
+      expect(res.mensaje).toContain('Sesión no válida');
+    });
+
+    it('debe retornar código 403 cuando el usuario no cuenta con permiso de Encargado', async () => {
+      vi.mocked(apiClient.GET).mockResolvedValueOnce({
+        data: undefined,
+        error: { message: 'Forbidden' } as unknown as never,
+        response: { ok: false, status: 403 } as Response,
+      });
+
+      const res = await obtenerKpisIncidentes();
+
+      expect(res.exito).toBe(false);
+      expect(res.codigoError).toBe(403);
+      expect(res.mensaje).toContain('No posees permisos de Encargado');
     });
 
     it('debe manejar error 403 de permisos insuficientes', async () => {

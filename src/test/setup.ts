@@ -2,7 +2,7 @@ import '@testing-library/jest-dom';
 import { configure } from '@testing-library/dom';
 
 // Margen extra para waitFor bajo carga (suite completa en paralelo)
-configure({ asyncUtilTimeout: 3000 });
+configure({ asyncUtilTimeout: 5000 });
 
 // Polyfill / Mock Storage para entornos Vitest / JSDOM en Node.js
 const createStorageMock = (): Storage => {

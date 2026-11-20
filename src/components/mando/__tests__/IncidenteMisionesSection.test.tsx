@@ -62,6 +62,25 @@ describe('Componente IncidenteMisionesSection', () => {
     );
   });
 
+  it('debe renderizar el botón "Ver Cuadrilla" y llamar a onVerDetalleCuadrilla al hacer clic', () => {
+    const handleVerCuadrilla = vi.fn();
+
+    render(
+      <IncidenteMisionesSection
+        misiones={mockMisiones}
+        onVerDetalleCuadrilla={handleVerCuadrilla}
+      />
+    );
+
+    const btnVerCuadrilla = screen.getByRole('button', {
+      name: /Ver ficha de la cuadrilla Cuadrilla Alfa 1/i,
+    });
+    expect(btnVerCuadrilla).toBeDefined();
+
+    fireEvent.click(btnVerCuadrilla);
+    expect(handleVerCuadrilla).toHaveBeenCalledWith('c1');
+  });
+
   it('debe renderizar el historial de misiones rechazadas con motivo de rechazo y permitir reasignar en estado REPORTADO', () => {
     const handleReasignar = vi.fn();
     const mockMisionesConRechazo: IncidenteDetalle['misiones'] = [

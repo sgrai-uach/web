@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Check, Clock, Eye, ShieldCheck, WifiOff, AlertTriangle, Hourglass } from 'lucide-react';
+import { Check, Clock, Eye, ShieldCheck, Users, WifiOff, AlertTriangle, Hourglass } from 'lucide-react';
 import Heading from '@/components/ui/Heading';
 import Button from '@/components/ui/Button';
 import type { IncidenteDetalle } from '@/services/incidentesService';
@@ -27,6 +27,7 @@ interface IncidenteMisionesSectionProps {
   misiones: IncidenteDetalle['misiones'];
   incidenteEstado?: string;
   onVerDetalleMision?: (misionId: string) => void;
+  onVerDetalleCuadrilla?: (cuadrillaId: string) => void;
   onAsignarPatrulla?: () => void;
   puedeAsignar?: boolean;
 }
@@ -117,6 +118,7 @@ export const IncidenteMisionesSection: React.FC<IncidenteMisionesSectionProps> =
   misiones,
   incidenteEstado,
   onVerDetalleMision,
+  onVerDetalleCuadrilla,
   onAsignarPatrulla,
   puedeAsignar = true,
 }) => {
@@ -499,7 +501,36 @@ export const IncidenteMisionesSection: React.FC<IncidenteMisionesSectionProps> =
             )
           )}
 
-                <div style={{ marginTop: '0.6rem', display: 'flex', justifyContent: 'flex-end' }}>
+                <div
+                  style={{
+                    marginTop: '0.6rem',
+                    display: 'flex',
+                    justifyContent: 'flex-end',
+                    gap: '8px',
+                    flexWrap: 'wrap',
+                  }}
+                >
+                  {mision.cuadrilla &&
+                    onVerDetalleCuadrilla &&
+                    (mision.cuadrilla.id ||
+                      (mision as unknown as { cuadrillaId?: string }).cuadrillaId) && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() =>
+                          onVerDetalleCuadrilla(
+                            mision.cuadrilla?.id ||
+                              (mision as unknown as { cuadrillaId: string }).cuadrillaId
+                          )
+                        }
+                        title={`Ver dotación, personal y equipamiento de ${mision.cuadrilla.nombre}`}
+                        aria-label={`Ver ficha de la cuadrilla ${mision.cuadrilla.nombre}`}
+                      >
+                        <Users size={13} aria-hidden="true" style={{ marginRight: '5px' }} />
+                        <span>Ver Cuadrilla</span>
+                      </Button>
+                    )}
                   <Button
                     type="button"
                     variant="secondary"

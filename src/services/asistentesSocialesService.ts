@@ -1,6 +1,5 @@
 import apiClient from '@/lib/api/client';
 import { getAuthCookie } from '@/lib/utils/cookieUtils';
-import { formatApiError } from '@/lib/utils/errorUtils';
 import type {
   AsistenteSocialItem,
   EstadoOperativoPersonal,

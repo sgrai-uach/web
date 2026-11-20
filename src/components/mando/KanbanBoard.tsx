@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { useSearchParams } from 'next/navigation';
 import {
   useIncidentesKanban,
 } from '@/hooks/useIncidentesKanban';
@@ -26,6 +27,9 @@ import { ModalCrearEventoPrevencion } from './ModalCrearEventoPrevencion';
 import { ModalCrearEventoRecuperacion } from './ModalCrearEventoRecuperacion';
 import { MapaOperativoMando } from './MapaOperativoMando';
 import { KanbanViewSwitcher } from './KanbanViewSwitcher';
+import CuadrillaDetalleDrawer from '@/components/admin/cuadrillas/CuadrillaDetalleDrawer';
+import { cuadrillasService } from '@/services/cuadrillasService';
+import type { CuadrillaItem } from '@/types/cuadrilla';
 import { Zap } from 'lucide-react';
 import { usePuedeAsignarMision } from '@/hooks/usePuedeAsignarMision';
 import { extraerEstadoInicialNotificacion } from '@/lib/socket/trazabilidadConfig';
@@ -34,7 +38,7 @@ import InlineNotice from '@/components/ui/InlineNotice';
 import styles from '@/styles/mando.module.css';
 
 const TITULOS_COLUMNAS = {
-  REPORTADO: 'Reportado',
+  REPORTADO: 'Pendiente / Reportado',
   VERIFICANDO: 'En Verificación',
   EN_ATENCION: 'En Atención',
   RESUELTO: 'Resuelto',
@@ -43,6 +47,7 @@ const TITULOS_COLUMNAS = {
 
 export const KanbanBoard: React.FC = () => {
   const { showInfo, showWarning } = useToast();
+  const searchParams = useSearchParams();
   const [vistaActiva, setVistaActiva] = useState<'kanban' | 'mapa'>('kanban');
   const [misionesModalAbierto, setMisionesModalAbierto] = useState(false);
   const [patrullasModalAbierto, setPatrullasModalAbierto] = useState(false);
@@ -51,10 +56,82 @@ export const KanbanBoard: React.FC = () => {
   const [modalRecuperacionAbierto, setModalRecuperacionAbierto] = useState(false);
   const [eventosPrevencion, setEventosPrevencion] = useState<EventoPrevencionDTO[]>([]);
   const [eventosRecuperacion, setEventosRecuperacion] = useState<EventoRecuperacionResponse[]>([]);
+  const [cuadrillaSeleccionadaId, setCuadrillaSeleccionadaId] = useState<string | null>(null);
+  const [cuadrillasOperativas, setCuadrillasOperativas] = useState<CuadrillaItem[]>([]);
   const [incidenteParaAsignar, setIncidenteParaAsignar] = useState<IncidenteResumen | null>(null);
   const puedeAsignar = usePuedeAsignarMision();
 
+  const cargarCuadrillas = useCallback(() => {
+    let isMounted = true;
+    cuadrillasService
+      .obtenerCuadrillas({ pagina: 1, limite: 100 })
+      .then((res) => {
+        if (isMounted && res.cuadrillas) {
+          setCuadrillasOperativas(res.cuadrillas);
+        }
+      })
+      .catch(() => {});
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    return cargarCuadrillas();
+  }, [cargarCuadrillas]);
+
+  // HU-69: el handler real depende de `refrescarKpis`, que se inicializa más abajo.
+  // Se usa un puente por ref para evitar dependencias circulares de hooks.
+  const onMisionRechazadaRef = React.useRef<(payload: MisionRechazadaPayload) => void>(
+    () => undefined
+  );
+  const handleMisionRechazada = React.useCallback((payload: MisionRechazadaPayload) => {
+    onMisionRechazadaRef.current(payload);
+  }, []);
+
+  const {
+    userId,
+    setUserId,
+    columnas,
+    paginacionColumna,
+    cargando,
+    cargandoColumna,
+    error,
+    esForbidden,
+    filtros,
+    setFiltros,
+    estadosVisibles,
+    limpiarFiltros,
+    cargarMas,
+    recargar,
+    moverIncidenteAEstado,
+    conectado,
+    ultimoEvento,
+    totalIncidentesVisibles,
+    incidenteSeleccionadoId,
+    setIncidenteSeleccionadoId,
+    trazabilidadPorIncidente,
+  } = useIncidentesKanban({
+    onMisionRechazada: handleMisionRechazada,
+  });
+
+
   const [estadoEnfocado, setEstadoEnfocado] = useState<EstadoIncidente | null>(null);
+
+  // CA-5 (BUG-H22-WEB-03): Abrir incidente automáticamente si se accede con ?incidenteId=...
+  const incidenteIdParam = searchParams?.get('incidenteId');
+  useEffect(() => {
+    if (incidenteIdParam) {
+      setIncidenteSeleccionadoId(incidenteIdParam);
+    }
+  }, [incidenteIdParam, setIncidenteSeleccionadoId]);
+
+  // Actualizar cuadrillas operativas ante eventos socket en tiempo real (BUG-H22-WEB-04)
+  useEffect(() => {
+    if (ultimoEvento) {
+      cargarCuadrillas();
+    }
+  }, [ultimoEvento, cargarCuadrillas]);
 
   const {
     kpis,
@@ -64,8 +141,9 @@ export const KanbanBoard: React.FC = () => {
     delegaciones,
     refrescarKpis,
     conectado: conectadoKpis,
-  } = useIncidentesKpis();
+  } = useIncidentesKpis({ userId });
 
+  // HU-69: notificación de rechazo de misión por patrulla verificadora
   const ultimosToastsRechazoRef = React.useRef<Map<string, number>>(new Map());
 
   const handleMisionRechazadaSocket = React.useCallback(
@@ -97,32 +175,9 @@ export const KanbanBoard: React.FC = () => {
     [showWarning, refrescarKpis]
   );
 
-  const {
-    userId,
-    setUserId,
-    columnas,
-    paginacionColumna,
-    cargando,
-    cargandoColumna,
-    error,
-    esForbidden,
-    filtros,
-    setFiltros,
-    estadosVisibles,
-    limpiarFiltros,
-    cargarMas,
-    recargar,
-    moverIncidenteAEstado,
-    marcarIncidenteMisionDespachada,
-    conectado,
-    ultimoEvento,
-    totalIncidentesVisibles,
-    incidenteSeleccionadoId,
-    setIncidenteSeleccionadoId,
-    trazabilidadPorIncidente,
-  } = useIncidentesKanban({
-    onMisionRechazada: handleMisionRechazadaSocket,
-  });
+  useEffect(() => {
+    onMisionRechazadaRef.current = handleMisionRechazadaSocket;
+  }, [handleMisionRechazadaSocket]);
 
   // Hook de tiempo real para eventos de prevención (HU-30)
   usePrevencionSocket({
@@ -205,6 +260,7 @@ export const KanbanBoard: React.FC = () => {
   const handleRefrescoCompleto = () => {
     refrescarKpis(true);
     recargar();
+    cargarCuadrillas();
   };
 
   const contadoresPorEstado = useMemo(() => {
@@ -316,7 +372,9 @@ export const KanbanBoard: React.FC = () => {
                 incidentes={todosLosIncidentes}
                 eventosPrevencion={eventosPrevencion}
                 eventosRecuperacion={eventosRecuperacion}
+                cuadrillas={cuadrillasOperativas}
                 onSelectIncidente={(incId) => setIncidenteSeleccionadoId(incId)}
+                onSelectCuadrilla={(cuadrillaId) => setCuadrillaSeleccionadaId(cuadrillaId)}
                 onCrearPrevencion={() => setModalPrevencionAbierto(true)}
                 onCrearRecuperacion={() => setModalRecuperacionAbierto(true)}
               />
@@ -327,15 +385,14 @@ export const KanbanBoard: React.FC = () => {
             incidenteId={incidenteSeleccionadoId}
             userId={userId}
             onCerrar={() => setIncidenteSeleccionadoId(null)}
+            onSelectCuadrilla={(cuadrillaId) => setCuadrillaSeleccionadaId(cuadrillaId)}
             onIncidenteActualizado={(incId, nuevoEstado) => {
-              if (incId && nuevoEstado === 'REPORTADO') {
-                marcarIncidenteMisionDespachada(incId, true);
-              }
               if (incId && nuevoEstado) {
                 moverIncidenteAEstado(incId, nuevoEstado);
               }
               recargar();
               refrescarKpis();
+              cargarCuadrillas();
             }}
           />
 
@@ -346,12 +403,12 @@ export const KanbanBoard: React.FC = () => {
             incidente={incidenteParaAsignar}
             userId={userId}
             onAsignacionExitosa={(data) => {
-              marcarIncidenteMisionDespachada(data.incidente.id, true);
               const estadoInicial = extraerEstadoInicialNotificacion(data);
               setTrazabilidadEstado(data.mision.id, estadoInicial, data.incidente.id);
               moverIncidenteAEstado(data.incidente.id, 'VERIFICANDO');
               recargar();
               refrescarKpis();
+              cargarCuadrillas();
               setIncidenteParaAsignar(null);
             }}
           />
@@ -399,6 +456,19 @@ export const KanbanBoard: React.FC = () => {
               setEventosRecuperacion((prev) => [eventoCreado, ...prev]);
               handleRefrescoCompleto();
             }}
+          />
+
+          {/* Drawer de Detalle y Composición de Cuadrilla (HU-22) */}
+          <CuadrillaDetalleDrawer
+            cuadrillaId={cuadrillaSeleccionadaId}
+            isOpen={Boolean(cuadrillaSeleccionadaId)}
+            onCerrar={() => setCuadrillaSeleccionadaId(null)}
+            onSelectIncidente={(incId) => {
+              setCuadrillaSeleccionadaId(null);
+              setIncidenteSeleccionadoId(incId);
+            }}
+            puedeEditar={false}
+            puedeEliminar={false}
           />
         </>
       )}

@@ -5,6 +5,7 @@ import dynamic from 'next/dynamic';
 import type { IncidenteResumen } from '@/services/incidentesService';
 import type { EventoPrevencionDTO } from '@/types/evento-prevencion';
 import type { EventoRecuperacionResponse } from '@/types/recuperacion';
+import type { CuadrillaItem } from '@/types/cuadrilla';
 import Button from '@/components/ui/Button';
 import { ShieldAlert, Truck, Layers } from 'lucide-react';
 
@@ -12,7 +13,9 @@ export interface MapaOperativoMandoProps {
   incidentes?: IncidenteResumen[];
   eventosRecuperacion?: EventoRecuperacionResponse[];
   eventosPrevencion?: EventoPrevencionDTO[];
+  cuadrillas?: CuadrillaItem[];
   onSelectIncidente?: (id: string) => void;
+  onSelectCuadrilla?: (cuadrillaId: string) => void;
   onCrearRecuperacion?: () => void;
   onCrearPrevencion?: () => void;
   height?: string;
@@ -49,7 +52,9 @@ export const MapaOperativoMando: React.FC<MapaOperativoMandoProps> = ({
   incidentes = [],
   eventosRecuperacion = [],
   eventosPrevencion = [],
+  cuadrillas = [],
   onSelectIncidente,
+  onSelectCuadrilla,
   onCrearRecuperacion,
   onCrearPrevencion,
   height = '520px',
@@ -191,7 +196,9 @@ export const MapaOperativoMando: React.FC<MapaOperativoMandoProps> = ({
           incidentes={incidentes}
           eventosPrevencion={eventosPrevencion}
           eventosRecuperacion={eventosRecuperacion}
+          cuadrillas={cuadrillas}
           onSelectIncidente={onSelectIncidente}
+          onSelectCuadrilla={onSelectCuadrilla}
           mostrarIncidentes={mostrarIncidentes}
           mostrarPrevenciones={mostrarPrevenciones}
           mostrarRecuperaciones={mostrarRecuperaciones}

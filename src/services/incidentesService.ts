@@ -15,9 +15,7 @@ export const DEFAULT_ENCARGADO_ID = '00000000-0000-4000-8000-000000000003';
 
 export type ListarIncidentesResponse = components['schemas']['ListarIncidentesResponse'];
 export type IncidenteDetalleResponse = components['schemas']['IncidenteDetalleResponse'];
-export type IncidenteResumen = ListarIncidentesResponse['data'][number] & {
-  tieneMisionDespachada?: boolean;
-};
+export type IncidenteResumen = ListarIncidentesResponse['data'][number];
 export type MisionDetalle = IncidenteDetalleResponse['data']['misiones'][number];
 export type IncidenteDetalle = IncidenteDetalleResponse['data'];
 export type EstadoTrazabilidadNotificacion = NonNullable<
@@ -73,15 +71,16 @@ export const incidentesService = {
     query: ListarIncidentesQuery = {},
     userId: string = DEFAULT_ENCARGADO_ID
   ): Promise<ResultadoListadoIncidentes> {
+  // El API ahora autentica con Authorization Bearer (JWT): el identificador de usuario
+  // se conserva por compatibilidad de firma y ya no se envía como cabecera x-user-id.
+    void userId;
     try {
       const { data, error, response } = await apiClient.GET('/api/incidentes', {
         params: {
           query: query as unknown as NonNullable<
             paths['/api/incidentes']['get']['parameters']['query']
           >,
-          header: { 'x-user-id': userId },
         },
-        headers: { 'x-user-id': userId },
       });
 
       if (response?.status === 403) {
@@ -155,6 +154,9 @@ export const incidentesService = {
     id: string,
     userId: string = DEFAULT_ENCARGADO_ID
   ): Promise<ResultadoDetalleIncidente> {
+  // El API ahora autentica con Authorization Bearer (JWT): el identificador de usuario
+  // se conserva por compatibilidad de firma y ya no se envía como cabecera x-user-id.
+    void userId;
     if (!id || !id.trim()) {
       return {
         exito: false,
@@ -167,9 +169,7 @@ export const incidentesService = {
       const { data, error, response } = await apiClient.GET('/api/incidentes/{id}', {
         params: {
           path: { id: id.trim() },
-          header: { 'x-user-id': userId },
         },
-        headers: { 'x-user-id': userId },
       });
 
       if (response?.status === 403) {
@@ -227,12 +227,19 @@ export const incidentesService = {
     userId: string = DEFAULT_ENCARGADO_ID
   ): Promise<ResultadoKpisIncidentes> {
     try {
-      const { data, response } = await apiClient.GET('/api/incidentes/kpis', {
+      const queryParams: NonNullable<
+        paths['/api/incidentes/kpis']['get']['parameters']['query']
+      > = {};
+      if (query.fecha && query.fecha.trim()) {
+        queryParams.fecha = query.fecha.trim();
+      }
+      if (query.delegacionId && query.delegacionId.trim()) {
+        queryParams.delegacionId = query.delegacionId.trim();
+      }
+
+      const { data, error, response } = await apiClient.GET('/api/incidentes/kpis', {
         params: {
-          query: {
-            fecha: query.fecha && query.fecha.trim() ? query.fecha.trim() : undefined,
-            delegacionId: query.delegacionId && query.delegacionId.trim() ? query.delegacionId.trim() : undefined,
-          },
+          query: queryParams,
           header: { 'x-user-id': userId },
         },
         headers: { 'x-user-id': userId },
@@ -254,7 +261,7 @@ export const incidentesService = {
         };
       }
 
-      if (!response?.ok) {
+      if (error || !response?.ok) {
         return {
           exito: false,
           codigoError: response?.status || 500,
@@ -265,7 +272,7 @@ export const incidentesService = {
       if (data?.data) {
         return {
           exito: true,
-          datos: data.data as unknown as IncidentesKpisData,
+          datos: data.data,
           mensaje: data.message || 'Contadores obtenidos exitosamente.',
         };
       }
