@@ -14,6 +14,7 @@ import type {
   EventoPrevencionListItemDTO,
 } from '@/types/evento-prevencion';
 import { useEventosPrevencion } from '@/hooks/useEventosPrevencion';
+import { usePuedeAsignarMision } from '@/hooks/usePuedeAsignarMision';
 import Pagination from '@/components/common/Pagination';
 import AccesoDenegadoState from '@/components/common/AccesoDenegadoState';
 import EventosPrevencionFiltros from './EventosPrevencionFiltros';
@@ -48,6 +49,11 @@ export const EventosPrevencionView: React.FC<EventosPrevencionViewProps> = ({
   const puedeEditar = Boolean(
     isMounted &&
       (hasPermission('prevencion:eventos:crear') || esAdmin)
+  );
+
+  const puedeAsignarHook = usePuedeAsignarMision();
+  const puedeAsignar = Boolean(
+    isMounted && (puedeAsignarHook || hasPermission('misiones:asignar') || esAdmin)
   );
 
   const [eventoAEditar, setEventoAEditar] = useState<EventoPrevencionListItemDTO | null>(null);
@@ -242,6 +248,7 @@ export const EventosPrevencionView: React.FC<EventosPrevencionViewProps> = ({
         eventoSeleccionadoId={eventoSeleccionado?.id}
         onSeleccionarEvento={(ev) => setEventoSeleccionado(ev)}
         puedeEditar={puedeEditar}
+        puedeAsignar={puedeAsignar}
         onEditarEvento={(ev) => setEventoAEditar(ev)}
         cargando={cargando}
       />
@@ -271,6 +278,7 @@ export const EventosPrevencionView: React.FC<EventosPrevencionViewProps> = ({
         isOpen={Boolean(eventoSeleccionado)}
         onClose={() => setEventoSeleccionado(null)}
         puedeEditar={puedeEditar}
+        puedeAsignar={puedeAsignar}
         onEditarEvento={(ev) => setEventoAEditar(ev)}
       />
 

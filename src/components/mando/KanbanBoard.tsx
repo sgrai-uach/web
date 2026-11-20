@@ -10,7 +10,12 @@ import { usePrevencionSocket } from '@/hooks/usePrevencionSocket';
 import { useRecuperacionSocket } from '@/hooks/useRecuperacionSocket';
 import { useToast } from '@/components/ui/Toast';
 import type { EstadoIncidente, IncidenteResumen } from '@/services/incidentesService';
-import type { EventoPrevencionDTO } from '@/types/evento-prevencion';
+import type {
+  EventoPrevencionDTO,
+  EventoPrevencionListItemDTO,
+  DetalleEventoPrevencionResponse,
+  RecursoAsignadoPrevencionDTO,
+} from '@/types/evento-prevencion';
 import type { EventoRecuperacionResponse } from '@/types/recuperacion';
 import { KanbanHeader } from './KanbanHeader';
 import { KanbanFiltros } from './KanbanFiltros';
@@ -29,6 +34,7 @@ import { KanbanViewSwitcher, type VistaCentroIncidentes } from './KanbanViewSwit
 import EventosPrevencionView from './prevencion/EventosPrevencionView';
 import CuadrillaDetalleDrawer from '@/components/admin/cuadrillas/CuadrillaDetalleDrawer';
 import { cuadrillasService } from '@/services/cuadrillasService';
+import { listarEventosPrevencion } from '@/services/prevencionService';
 import type { CuadrillaItem } from '@/types/cuadrilla';
 import { Zap } from 'lucide-react';
 import { usePuedeAsignarMision } from '@/hooks/usePuedeAsignarMision';
@@ -55,7 +61,9 @@ export const KanbanBoard: React.FC = () => {
   const [misionSeleccionadaId, setMisionSeleccionadaId] = useState<string | null>(null);
   const [modalPrevencionAbierto, setModalPrevencionAbierto] = useState(false);
   const [modalRecuperacionAbierto, setModalRecuperacionAbierto] = useState(false);
-  const [eventosPrevencion, setEventosPrevencion] = useState<EventoPrevencionDTO[]>([]);
+  const [eventosPrevencion, setEventosPrevencion] = useState<
+    (EventoPrevencionDTO | EventoPrevencionListItemDTO | DetalleEventoPrevencionResponse)[]
+  >([]);
   const [eventosRecuperacion, setEventosRecuperacion] = useState<EventoRecuperacionResponse[]>([]);
   const [cuadrillaSeleccionadaId, setCuadrillaSeleccionadaId] = useState<string | null>(null);
   const [cuadrillasOperativas, setCuadrillasOperativas] = useState<CuadrillaItem[]>([]);
@@ -77,9 +85,28 @@ export const KanbanBoard: React.FC = () => {
     };
   }, []);
 
+  const cargarEventosPrevencion = useCallback(() => {
+    let isMounted = true;
+    listarEventosPrevencion({ page: 1, limit: 100 })
+      .then((res) => {
+        if (isMounted && res.data) {
+          setEventosPrevencion(res.data);
+        }
+      })
+      .catch(() => {});
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   useEffect(() => {
-    return cargarCuadrillas();
-  }, [cargarCuadrillas]);
+    const cancelCuadrillas = cargarCuadrillas();
+    const cancelPrevencion = cargarEventosPrevencion();
+    return () => {
+      cancelCuadrillas?.();
+      cancelPrevencion?.();
+    };
+  }, [cargarCuadrillas, cargarEventosPrevencion]);
 
   const {
     userId,
@@ -133,7 +160,7 @@ export const KanbanBoard: React.FC = () => {
     conectado: conectadoKpis,
   } = useIncidentesKpis({ userId });
 
-  // Hook de tiempo real para eventos de prevención (HU-30)
+  // Hook de tiempo real para eventos de prevención (HU-30 / HU-77 / HU-33)
   usePrevencionSocket({
     onPrevencionCreada: (nuevoEvento) => {
       setEventosPrevencion((prev) => {
@@ -145,6 +172,92 @@ export const KanbanBoard: React.FC = () => {
         `Nuevo evento de prevención en ${nuevoEvento.sector || 'sector'}: ${nuevoEvento.codigo}`,
         'Operación Preventiva en Vivo'
       );
+    },
+    onPrevencionActualizada: (payload) => {
+      const obj = payload && typeof payload === 'object' ? (payload as Record<string, unknown>) : null;
+      const eventoObj =
+        obj && 'evento' in obj && typeof obj.evento === 'object' && obj.evento !== null
+          ? (obj.evento as Partial<EventoPrevencionListItemDTO>)
+          : null;
+      const rawEv = (eventoObj || obj) as Partial<EventoPrevencionListItemDTO> | null;
+      const evId = rawEv?.id || (obj?.id ? String(obj.id) : null);
+
+      if (evId) {
+        const rootMision = (obj?.mision ?? rawEv?.mision) as EventoPrevencionListItemDTO['mision'] | undefined;
+        const rootPatrulla = (obj?.patrulla ?? rawEv?.patrulla) as EventoPrevencionListItemDTO['patrulla'] | undefined;
+        const rootRecursos = (obj?.recursos ?? rawEv?.recursos) as RecursoAsignadoPrevencionDTO[] | undefined;
+
+        const misionActualizada: EventoPrevencionListItemDTO['mision'] | undefined = rootMision
+          ? {
+              id: rootMision.id,
+              codigo: rootMision.codigo,
+              titulo: rootMision.titulo,
+              estado: rootMision.estado,
+              tipoMision: rootMision.tipoMision,
+              fechaInicio: rootMision.fechaInicio ?? null,
+              fechaCierre: rootMision.fechaCierre ?? null,
+            }
+          : undefined;
+
+        setEventosPrevencion((prev) => {
+          const existe = prev.some((item) => item.id === evId);
+          if (!existe) {
+            void cargarEventosPrevencion();
+            return prev;
+          }
+          return prev.map((item) => {
+            if (item.id !== evId) return item;
+            const actualizado: EventoPrevencionListItemDTO = {
+              id: item.id,
+              codigo: rawEv?.codigo || item.codigo,
+              nombre: rawEv?.nombre || item.nombre,
+              descripcion: rawEv?.descripcion !== undefined ? rawEv.descripcion : item.descripcion,
+              sector: rawEv?.sector !== undefined ? rawEv.sector : item.sector,
+              direccionTexto:
+                rawEv?.direccionTexto !== undefined ? rawEv.direccionTexto : item.direccionTexto,
+              prioridad: rawEv?.prioridad || item.prioridad,
+              estado: rawEv?.estado || item.estado,
+              latitud: rawEv?.latitud ?? item.latitud,
+              longitud: rawEv?.longitud ?? item.longitud,
+              ubicacionGeoJson: 'ubicacionGeoJson' in item ? (item.ubicacionGeoJson ?? null) : null,
+              delegacion: item.delegacion,
+              puntoCritico: item.puntoCritico
+                ? {
+                    ...item.puntoCritico,
+                    latitud: item.puntoCritico.latitud ?? item.latitud,
+                    longitud: item.puntoCritico.longitud ?? item.longitud,
+                  }
+                : null,
+              patrulla: (rootPatrulla !== undefined ? rootPatrulla : item.patrulla) ?? null,
+              cuadrilla: 'cuadrilla' in item ? (item.cuadrilla ?? null) : null,
+              mision:
+                misionActualizada !== undefined
+                  ? misionActualizada
+                  : item.mision
+                  ? {
+                      id: item.mision.id,
+                      codigo: item.mision.codigo,
+                      titulo: item.mision.titulo,
+                      estado: item.mision.estado,
+                      tipoMision: item.mision.tipoMision,
+                      fechaInicio: 'fechaInicio' in item.mision ? item.mision.fechaInicio : null,
+                      fechaCierre: 'fechaCierre' in item.mision ? item.mision.fechaCierre : null,
+                    }
+                  : null,
+              recursos: Array.isArray(rootRecursos) ? rootRecursos : item.recursos,
+              fechaEstimadaFin:
+                rawEv?.fechaEstimadaFin !== undefined
+                  ? rawEv.fechaEstimadaFin
+                  : item.fechaEstimadaFin,
+              creadoPorId: item.creadoPorId,
+              actualizadoPorId: item.actualizadoPorId,
+              creadoEn: item.creadoEn,
+              actualizadoEn: rawEv?.actualizadoEn || item.actualizadoEn,
+            };
+            return actualizado;
+          });
+        });
+      }
     },
   });
 
@@ -215,6 +328,7 @@ export const KanbanBoard: React.FC = () => {
     refrescarKpis(true);
     recargar();
     cargarCuadrillas();
+    cargarEventosPrevencion();
   };
 
   const contadoresPorEstado = useMemo(() => {

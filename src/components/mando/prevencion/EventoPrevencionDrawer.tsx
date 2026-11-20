@@ -13,6 +13,8 @@ import {
   Users,
   Pencil,
   Boxes,
+  PackagePlus,
+  ExternalLink,
 } from 'lucide-react';
 import Heading from '@/components/ui/Heading';
 import Button from '@/components/ui/Button';
@@ -25,6 +27,7 @@ interface EventoPrevencionDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   puedeEditar?: boolean;
+  puedeAsignar?: boolean;
   onEditarEvento?: (evento: EventoPrevencionListItemDTO) => void;
 }
 
@@ -49,6 +52,7 @@ export const EventoPrevencionDrawer: React.FC<EventoPrevencionDrawerProps> = ({
   isOpen,
   onClose,
   puedeEditar = false,
+  puedeAsignar = false,
   onEditarEvento,
 }) => {
   // Manejo de tecla Escape para cerrar
@@ -144,12 +148,34 @@ export const EventoPrevencionDrawer: React.FC<EventoPrevencionDrawerProps> = ({
             </span>
           </div>
 
-          {/* Barra de Acciones Operativas (H77) */}
-          {puedeEditar &&
-            onEditarEvento &&
-            evento.estado !== 'COMPLETADA' &&
-            evento.estado !== 'CANCELADA' && (
-              <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+          {/* Barra de Acciones Operativas (H77 / HU-33) */}
+          <div style={{ display: 'flex', justifyContent: 'flex-end', flexWrap: 'wrap', gap: '8px' }}>
+            {puedeAsignar && evento.estado !== 'COMPLETADA' && evento.estado !== 'CANCELADA' ? (
+              <Button
+                type="button"
+                variant="teal"
+                size="sm"
+                href={`/eventos-atp/prevencion/${evento.id}`}
+              >
+                <PackagePlus size={14} style={{ marginRight: '6px' }} aria-hidden="true" />
+                Asignar Patrulla y Recursos
+              </Button>
+            ) : (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                href={`/eventos-atp/prevencion/${evento.id}`}
+              >
+                <ExternalLink size={14} style={{ marginRight: '6px' }} aria-hidden="true" />
+                Ver Ficha Completa
+              </Button>
+            )}
+
+            {puedeEditar &&
+              onEditarEvento &&
+              evento.estado !== 'COMPLETADA' &&
+              evento.estado !== 'CANCELADA' && (
                 <Button
                   type="button"
                   variant="primary"
@@ -159,8 +185,8 @@ export const EventoPrevencionDrawer: React.FC<EventoPrevencionDrawerProps> = ({
                   <Pencil size={14} style={{ marginRight: '6px' }} aria-hidden="true" />
                   Editar Preventivo
                 </Button>
-              </div>
-            )}
+              )}
+          </div>
 
           {/* Sección 1: Información del Punto Crítico (o Fallback) */}
           <section className={styles.section} aria-labelledby="section-punto-critico-title">

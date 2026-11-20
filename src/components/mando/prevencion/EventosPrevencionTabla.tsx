@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { ShieldAlert, MapPin, Eye, Calendar, Pencil } from 'lucide-react';
+import { ShieldAlert, MapPin, Eye, Calendar, Pencil, PackagePlus } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import type { EventoPrevencionListItemDTO } from '@/types/evento-prevencion';
 import { ESTADOS_PREVENCION } from '@/types/evento-prevencion';
@@ -12,6 +12,7 @@ interface EventosPrevencionTablaProps {
   eventoSeleccionadoId?: string | null;
   onSeleccionarEvento: (evento: EventoPrevencionListItemDTO) => void;
   puedeEditar?: boolean;
+  puedeAsignar?: boolean;
   onEditarEvento?: (evento: EventoPrevencionListItemDTO) => void;
   cargando?: boolean;
 }
@@ -37,6 +38,7 @@ export const EventosPrevencionTabla: React.FC<EventosPrevencionTablaProps> = ({
   eventoSeleccionadoId,
   onSeleccionarEvento,
   puedeEditar = false,
+  puedeAsignar = false,
   onEditarEvento,
   cargando,
 }) => {
@@ -221,6 +223,29 @@ export const EventosPrevencionTabla: React.FC<EventosPrevencionTablaProps> = ({
                       <Eye size={13} style={{ marginRight: '4px' }} />
                       <span>Detalle</span>
                     </Button>
+
+                    {puedeAsignar && (
+                      <Button
+                        type="button"
+                        variant="teal"
+                        size="sm"
+                        href={
+                          ev.estado === 'COMPLETADA' || ev.estado === 'CANCELADA'
+                            ? undefined
+                            : `/eventos-atp/prevencion/${ev.id}`
+                        }
+                        disabled={ev.estado === 'COMPLETADA' || ev.estado === 'CANCELADA'}
+                        title={
+                          ev.estado === 'COMPLETADA' || ev.estado === 'CANCELADA'
+                            ? 'No se permite asignar recursos a eventos en estado COMPLETADA o CANCELADA.'
+                            : `Asignar patrulla y recursos a ${ev.codigo}`
+                        }
+                        aria-label={`Asignar recursos a ${ev.codigo}`}
+                      >
+                        <PackagePlus size={13} style={{ marginRight: '4px' }} aria-hidden="true" />
+                        <span>Asignar</span>
+                      </Button>
+                    )}
 
                     {puedeEditar && onEditarEvento && (
                       <Button

@@ -15,6 +15,12 @@ import type {
   ListarEventosPrevencionResponse,
   EventoPrevencionListItemDTO,
   PaginacionMetaH34,
+  DetalleEventoPrevencionDTO,
+  DetalleEventoPrevencionResponse,
+  MisionPrevencionHistorialItem,
+  RecursoAsignadoPrevencionDetalle,
+  AsignarRecursosPrevencionInput,
+  AsignarRecursosPrevencionResponse,
 } from '@/types/evento-prevencion';
 
 import type { paths } from '@/types/api-generated';
@@ -30,8 +36,24 @@ type EditarPrevencionRequestBody = NonNullable<
 export type TipoConflictoPrevencion =
   | 'PATRULLA_OCUPADA'
   | 'STOCK_INSUFICIENTE'
+  | 'ACTIVO_NO_DISPONIBLE'
+  | 'EVENTO_CERRADO'
   | 'ESTADO_BLOQUEADO'
   | 'OTRO';
+
+function normalizarGeoJson(
+  geoJson: unknown
+): { type: string; coordinates: number[] } | null {
+  if (!geoJson || typeof geoJson !== 'object') return null;
+  const candidate = geoJson as { type?: unknown; coordinates?: unknown };
+  if (typeof candidate.type !== 'string' || !Array.isArray(candidate.coordinates)) {
+    return null;
+  }
+  return {
+    type: candidate.type,
+    coordinates: candidate.coordinates.filter((c): c is number => typeof c === 'number'),
+  };
+}
 
 function resolveAuthToken(explicitToken?: string): string | null {
   return (
@@ -477,6 +499,307 @@ export async function editarEventoPrevencion(
     const formatted = formatApiError(err);
     throw new PrevencionServiceError(
       formatted.message || 'Error inesperado de comunicación con el servidor',
+      {
+        statusCode: formatted.statusCode,
+        apiDetails: formatted,
+      }
+    );
+  }
+}
+
+/**
+ * Consulta la información consolidada de un evento de prevención comunal (HU-33).
+ * Consume: GET /api/eventos-atp/prevencion/{id}
+ */
+export async function obtenerEventoPrevencion(
+  id: string,
+  explicitToken?: string
+): Promise<DetalleEventoPrevencionResponse> {
+  try {
+    const token = resolveAuthToken(explicitToken);
+
+    const { data, error, response } = await apiClient.GET('/api/eventos-atp/prevencion/{id}', {
+      params: {
+        path: { id },
+      },
+      ...(token
+        ? {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        : {}),
+    });
+
+    if (response?.status === 200 && data) {
+      const raw =
+        typeof data === 'object' && data !== null && 'data' in data
+          ? (data as { data: DetalleEventoPrevencionDTO }).data
+          : (data as DetalleEventoPrevencionDTO);
+
+      const recursosAsignados: RecursoAsignadoPrevencionDetalle[] = (raw.recursosAsignados || []).map(
+        (rec) => ({
+          id: rec.id,
+          recursoId: rec.recursoId,
+          nombre: rec.nombre,
+          esIndividual: Boolean(rec.esIndividual),
+          cantidadAsignada: rec.cantidadAsignada,
+          misionId: rec.misionId ?? null,
+          creadoEn: rec.creadoEn,
+        })
+      );
+
+      const misiones: MisionPrevencionHistorialItem[] = (raw.misiones || []).map((m) => ({
+        id: m.id,
+        codigo: m.codigo,
+        titulo: m.titulo,
+        estado: m.estado,
+        tipoMision: m.tipoMision,
+        fechaInicio: m.fechaInicio ?? null,
+        fechaCierre: m.fechaCierre ?? null,
+        creadoEn: m.creadoEn,
+        patrulla: m.patrulla ?? null,
+        cuadrilla: m.cuadrilla ?? null,
+      }));
+
+      const primeraMision = misiones[0] || null;
+
+      return {
+        id: raw.id,
+        codigo: raw.codigo,
+        nombre: raw.nombre,
+        descripcion: raw.descripcion ?? null,
+        sector: raw.sector ?? null,
+        direccionTexto: raw.direccionTexto ?? null,
+        prioridad: raw.prioridad,
+        estado: raw.estado,
+        latitud: raw.latitud,
+        longitud: raw.longitud,
+        ubicacionGeoJson: normalizarGeoJson(raw.ubicacionGeoJson),
+        puntoCritico: raw.puntoCritico
+          ? {
+              id: raw.puntoCritico.id,
+              codigo: raw.puntoCritico.codigo,
+              nombre: raw.puntoCritico.nombre,
+              descripcion: raw.puntoCritico.descripcion ?? null,
+              tipoRiesgo: raw.puntoCritico.tipoRiesgo ?? null,
+              prioridad: raw.puntoCritico.prioridad ?? null,
+              latitud: raw.puntoCritico.latitud,
+              longitud: raw.puntoCritico.longitud,
+              ubicacionGeoJson: normalizarGeoJson(raw.puntoCritico.ubicacionGeoJson),
+            }
+          : null,
+        delegacion: raw.delegacion ?? null,
+        mision: primeraMision
+          ? {
+              id: primeraMision.id,
+              codigo: primeraMision.codigo,
+              titulo: primeraMision.titulo,
+              estado: primeraMision.estado,
+              tipoMision: primeraMision.tipoMision,
+              fechaInicio: primeraMision.fechaInicio ?? null,
+              fechaCierre: primeraMision.fechaCierre ?? null,
+            }
+          : null,
+        misiones,
+        patrulla: primeraMision?.patrulla ?? null,
+        cuadrilla: primeraMision?.cuadrilla ?? null,
+        recursosAsignados,
+        recursos: recursosAsignados,
+        fechaEstimadaFin: raw.fechaEstimadaFin ?? null,
+        creadoPorId: raw.creadoPorId,
+        actualizadoPorId: raw.actualizadoPorId ?? null,
+        creadoEn: raw.creadoEn,
+        actualizadoEn: raw.actualizadoEn,
+      };
+    }
+
+    const status = response?.status ?? 500;
+    const errorData = (error || {}) as {
+      message?: string;
+      error?: string;
+      details?: Record<string, string[]>;
+      errors?: Array<{ campo?: string; field?: string; mensaje?: string; message?: string }> | Record<string, string[]>;
+    };
+    const mensajeError =
+      errorData.message || errorData.error || `Error HTTP ${status} al consultar el evento de prevención.`;
+
+    if (status === 400) {
+      throw new PrevencionServiceError(mensajeError, {
+        statusCode: 400,
+        fieldErrors: parseFieldErrors400(errorData),
+        apiDetails: errorData,
+      });
+    }
+
+    if (status === 401) {
+      throw new PrevencionServiceError('Token de sesión inválido o expirado.', {
+        statusCode: 401,
+        apiDetails: errorData,
+      });
+    }
+
+    if (status === 403) {
+      throw new PrevencionServiceError(
+        'Acceso denegado. Se requiere alguno de los permisos: "prevencion:eventos:leer", "prevencion:eventos:crear", "misiones:leer" o "misiones:asignar".',
+        {
+          statusCode: 403,
+          apiDetails: errorData,
+        }
+      );
+    }
+
+    if (status === 404) {
+      throw new PrevencionServiceError(
+        mensajeError || 'El evento de prevención especificado no fue encontrado.',
+        {
+          statusCode: 404,
+          apiDetails: errorData,
+        }
+      );
+    }
+
+    throw new PrevencionServiceError(mensajeError, {
+      statusCode: status,
+      apiDetails: errorData,
+    });
+  } catch (err: unknown) {
+    if (err instanceof PrevencionServiceError) {
+      throw err;
+    }
+    const formatted = formatApiError(err);
+    throw new PrevencionServiceError(
+      formatted.message || 'Error inesperado al consultar el evento de prevención',
+      {
+        statusCode: formatted.statusCode,
+        apiDetails: formatted,
+      }
+    );
+  }
+}
+
+/**
+ * Asigna atómicamente una patrulla verificadora disponible y materiales del inventario
+ * a un evento de prevención comunal bajo bloqueo transaccional FOR UPDATE §3.6 (HU-33).
+ * Consume: POST /api/eventos-atp/prevencion/{id}/recursos
+ */
+export async function asignarRecursosPrevencion(
+  id: string,
+  input: AsignarRecursosPrevencionInput,
+  explicitToken?: string
+): Promise<AsignarRecursosPrevencionResponse> {
+  try {
+    const token = resolveAuthToken(explicitToken);
+
+    const { data, error, response } = await apiClient.POST('/api/eventos-atp/prevencion/{id}/recursos', {
+      params: {
+        path: { id },
+      },
+      body: input,
+      ...(token
+        ? {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        : {}),
+    });
+
+    if (response?.status === 200 && data) {
+      return data;
+    }
+
+    const status = response?.status ?? 500;
+    const errorData = (error || {}) as {
+      message?: string;
+      error?: string;
+      details?: Record<string, string[]>;
+      errors?: Array<{ campo?: string; field?: string; mensaje?: string; message?: string }> | Record<string, string[]>;
+    };
+
+    const mensajeError =
+      errorData.message || errorData.error || `Error HTTP ${status} al asignar recursos al evento de prevención.`;
+
+    if (status === 409) {
+      const lower = mensajeError.toLowerCase();
+      let tipoConflicto: TipoConflictoPrevencion = 'OTRO';
+
+      if (
+        lower.includes('completad') ||
+        lower.includes('cancelad') ||
+        lower.includes('inactivo') ||
+        lower.includes('cerrad')
+      ) {
+        tipoConflicto = 'EVENTO_CERRADO';
+      } else if (lower.includes('patrulla') || lower.includes('ocupada')) {
+        tipoConflicto = 'PATRULLA_OCUPADA';
+      } else if (lower.includes('stock') || lower.includes('bodega') || lower.includes('insuficiente')) {
+        tipoConflicto = 'STOCK_INSUFICIENTE';
+      } else if (
+        lower.includes('mantencion') ||
+        lower.includes('mantención') ||
+        lower.includes('taller') ||
+        lower.includes('activo') ||
+        lower.includes('individual') ||
+        lower.includes('no disponible') ||
+        lower.includes('asignado')
+      ) {
+        tipoConflicto = 'ACTIVO_NO_DISPONIBLE';
+      }
+
+      throw new PrevencionServiceError(mensajeError, {
+        statusCode: 409,
+        tipoConflicto,
+        apiDetails: errorData,
+      });
+    }
+
+    if (status === 400) {
+      throw new PrevencionServiceError(mensajeError, {
+        statusCode: 400,
+        fieldErrors: parseFieldErrors400(errorData),
+        apiDetails: errorData,
+      });
+    }
+
+    if (status === 401) {
+      throw new PrevencionServiceError('Token de sesión inválido o expirado.', {
+        statusCode: 401,
+        apiDetails: errorData,
+      });
+    }
+
+    if (status === 403) {
+      throw new PrevencionServiceError(
+        'No posee el permiso requerido: misiones:asignar. Requiere rol de Encargado o Administrador.',
+        {
+          statusCode: 403,
+          apiDetails: errorData,
+        }
+      );
+    }
+
+    if (status === 404) {
+      throw new PrevencionServiceError(
+        mensajeError || 'El evento de prevención, patrulla o insumo logístico no fue encontrado.',
+        {
+          statusCode: 404,
+          apiDetails: errorData,
+        }
+      );
+    }
+
+    throw new PrevencionServiceError(mensajeError, {
+      statusCode: status,
+      apiDetails: errorData,
+    });
+  } catch (err: unknown) {
+    if (err instanceof PrevencionServiceError) {
+      throw err;
+    }
+    const formatted = formatApiError(err);
+    throw new PrevencionServiceError(
+      formatted.message || 'Error inesperado al asignar recursos a prevención',
       {
         statusCode: formatted.statusCode,
         apiDetails: formatted,

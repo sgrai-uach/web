@@ -1,7 +1,9 @@
 /**
- * Tipos TypeScript para el flujo de Creación de Eventos Manuales de Prevención (HU-30).
- * Conforme a la especificación OpenAPI de sgrai-api y HANDOVER_HU30_CREAR_EVENTO_PREVENCION_FRONTEND.md.
+ * Tipos TypeScript para el flujo de Eventos Manuales de Prevención (HU-30, HU-76, HU-77 y HU-33).
+ * Conforme a la especificación OpenAPI de sgrai-api.
  */
+
+import type { paths } from '@/types/api-generated';
 
 export type PrioridadEventoPrevencion = 'BAJA' | 'MEDIA' | 'ALTA' | 'CRITICA';
 
@@ -27,10 +29,89 @@ export interface CrearEventoPrevencionPayload {
 }
 
 export interface RecursoAsignadoPrevencionDTO {
+  id?: string;
   recursoId: string;
   nombre: string;
+  esIndividual?: boolean;
   cantidadAsignada: number;
+  misionId?: string | null;
+  creadoEn?: string;
 }
+
+/**
+ * Contratos OpenAPI derivados para Detalle y Asignación de Recursos a Evento de Prevención (HU-33).
+ */
+export type DetalleEventoPrevencionDTO =
+  paths['/api/eventos-atp/prevencion/{id}']['get']['responses'][200]['content']['application/json']['data'];
+
+export type AsignarRecursosPrevencionInputDTO =
+  NonNullable<paths['/api/eventos-atp/prevencion/{id}/recursos']['post']['requestBody']>['content']['application/json'];
+
+export type AsignarRecursosPrevencionResponseDTO =
+  paths['/api/eventos-atp/prevencion/{id}/recursos']['post']['responses'][200]['content']['application/json'];
+
+export interface RecursoAsignadoPrevencionDetalle {
+  id?: string;
+  recursoId: string;
+  nombre: string;
+  esIndividual: boolean;
+  cantidadAsignada: number;
+  misionId?: string | null;
+  creadoEn?: string;
+}
+
+export interface MisionPrevencionHistorialItem {
+  id: string;
+  codigo: string;
+  titulo: string;
+  estado: string;
+  tipoMision: string;
+  fechaInicio?: string | null;
+  fechaCierre?: string | null;
+  creadoEn: string;
+  patrulla?: {
+    id: string;
+    nombre: string;
+    estado: string;
+  } | null;
+  cuadrilla?: CuadrillaPrevencionResumenDTO | null;
+  recursos?: RecursoAsignadoPrevencionDetalle[];
+}
+
+export interface DetalleEventoPrevencionResponse {
+  id: string;
+  codigo: string;
+  nombre: string;
+  descripcion: string | null;
+  sector: string | null;
+  direccionTexto: string | null;
+  prioridad: PrioridadEventoPrevencion;
+  estado: EstadoEventoPrevencion;
+  latitud: number;
+  longitud: number;
+  ubicacionGeoJson?: { type: string; coordinates: number[] } | null;
+  puntoCritico: PuntoCriticoPrevencionDetalleDTO | null;
+  delegacion: DelegacionPrevencionDTO | null;
+  mision?: MisionPrevencionDetalleDTO | null;
+  misiones: MisionPrevencionHistorialItem[];
+  patrulla?: {
+    id: string;
+    nombre: string;
+    estado: string;
+  } | null;
+  cuadrilla?: CuadrillaPrevencionResumenDTO | null;
+  recursosAsignados: RecursoAsignadoPrevencionDetalle[];
+  recursos: RecursoAsignadoPrevencionDetalle[];
+  fechaEstimadaFin?: string | null;
+  creadoPorId?: string;
+  actualizadoPorId?: string | null;
+  creadoEn: string;
+  actualizadoEn: string;
+}
+
+export type AsignarRecursosPrevencionInput = AsignarRecursosPrevencionInputDTO;
+
+export type AsignarRecursosPrevencionResponse = AsignarRecursosPrevencionResponseDTO;
 
 export interface MisionPrevencionResumenDTO {
   id: string;
