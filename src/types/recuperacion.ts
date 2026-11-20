@@ -34,6 +34,9 @@ export interface RecursoAsignadoItem {
   recursoId: string;
   nombre: string;
   cantidadAsignada: number;
+  cantidadConsumida?: number | null;
+  cantidadDevuelta?: number | null;
+  devueltoEn?: string | null;
 }
 
 export interface EventoRecuperacionResponse {
@@ -69,6 +72,11 @@ export interface EventoRecuperacionResponse {
   };
   recursos: RecursoAsignadoItem[];
   creadoPorId: string;
+  fechaEstimadaFin?: string | null;
+  actualizadoPorId?: string | null;
+  fechaCierre?: string | null;
+  observacionesCierre?: string | null;
+  cerradoPorId?: string | null;
   creadoEn: string;
   actualizadoEn: string;
 }
@@ -158,4 +166,26 @@ export type EditarOperativoRecuperacionApiResponse =
 
 export type EditarOperativoRecuperacionData =
   EditarOperativoRecuperacionApiResponse['data'];
+
+/* -------------------------------------------------------------------------- */
+/* HU-75: Conclusión formal de operativos de recuperación                     */
+/* Derivados directamente del spec OpenAPI generado (api-generated.d.ts)      */
+/* -------------------------------------------------------------------------- */
+
+export type CerrarOperativoRecuperacionInput = NonNullable<
+  paths['/api/eventos-atp/recuperacion/{id}/cerrar']['post']['requestBody']
+>['content']['application/json'];
+
+export type ConsumoRecursoCierreItem = NonNullable<
+  CerrarOperativoRecuperacionInput['consumos']
+>[number];
+
+export type CerrarOperativoRecuperacionApiResponse =
+  paths['/api/eventos-atp/recuperacion/{id}/cerrar']['post']['responses'][200]['content']['application/json'];
+
+export type CerrarOperativoRecuperacionData =
+  CerrarOperativoRecuperacionApiResponse['data'];
+
+export type RecursoReintegradoCierreItem =
+  CerrarOperativoRecuperacionData['recursosReintegrados'][number];
 

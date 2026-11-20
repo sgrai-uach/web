@@ -5206,6 +5206,9 @@ export interface paths {
                                     recursoId: string;
                                     nombre: string;
                                     cantidadAsignada: number;
+                                    cantidadConsumida?: number | null;
+                                    cantidadDevuelta?: number | null;
+                                    devueltoEn?: string | null;
                                 }[];
                                 cantidadInsumosAsignados: number;
                                 totalTiposInsumos: number;
@@ -5226,6 +5229,7 @@ export interface paths {
                                 actualizadoPorId?: string | null;
                                 fechaCierre?: string | null;
                                 observacionesCierre?: string | null;
+                                cerradoPorId?: string | null;
                             };
                         };
                     };
@@ -5456,6 +5460,174 @@ export interface paths {
                 };
             };
         };
+        trace?: never;
+    };
+    "/api/eventos-atp/recuperacion/{id}/cerrar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Concluir formalmente un operativo de recuperación en ejecución (HU-75)
+         * @description Decreta la conclusión formal de un operativo de recuperación en estado EN_EJECUCION. Transiciona atómicamente el operativo a COMPLETADA registrando el resumen de cierre, reintegra los remanentes no consumidos al inventario (cantidad_inventario), cierra la misión táctica asociada, libera la patrulla verificadora si no tiene otras misiones activas y emite 'recuperacion:actualizada', 'recurso:actualizado', 'patrulla:actualizada' y 'mision:actualizada'.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: {
+                    /** @description Token Bearer JWT de sesión institucional */
+                    authorization?: string;
+                    /** @description UUID del usuario autenticado (Encargado o Administrador) */
+                    "x-user-id"?: string;
+                };
+                path: {
+                    /** @description UUID del operativo de recuperación */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            /** @description Resumen formal de cierre y detalle opcional de unidades consumidas por recurso */
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        /**
+                         * @description Resumen formal de las ayudas entregadas o rehabilitación del sector
+                         * @example Se entregaron 7 kits de emergencia y 3 quedaron sin uso; sector habilitado y despejado.
+                         */
+                        resumenCierre: string;
+                        /** @description Detalle opcional de unidades consumidas por recurso. Los recursos no incluidos se asumen consumidos por completo (remanente 0). */
+                        consumos?: {
+                            /**
+                             * Format: uuid
+                             * @description UUID del recurso asignado al operativo
+                             */
+                            recursoId: string;
+                            /**
+                             * @description Unidades consumidas en terreno (el remanente se reintegra al inventario)
+                             * @example 7
+                             */
+                            cantidadConsumida: number;
+                        }[];
+                    };
+                };
+            };
+            responses: {
+                /** @description Operativo de recuperación concluido exitosamente */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example Operativo de recuperación concluido exitosamente. */
+                            message: string;
+                            data: {
+                                evento: {
+                                    /** Format: uuid */
+                                    id: string;
+                                    codigo: string;
+                                    nombre: string;
+                                    descripcion: string | null;
+                                    sector: string;
+                                    direccionTexto: string | null;
+                                    prioridad: "BAJA" | "MEDIA" | "ALTA" | "CRITICA";
+                                    contactoNombre: string | null;
+                                    contactoTelefono: string | null;
+                                    latitud: number;
+                                    longitud: number;
+                                    estado: "PLANIFICADA" | "EN_EJECUCION" | "COMPLETADA" | "CANCELADA";
+                                    familiasAfectadas: number;
+                                    delegacion: {
+                                        /** Format: uuid */
+                                        id: string;
+                                        codigo: string;
+                                        nombre: string;
+                                    } | null;
+                                    mision: {
+                                        /** Format: uuid */
+                                        id: string;
+                                        codigo: string;
+                                        titulo: string;
+                                        estado: string;
+                                        tipoMision: string;
+                                    };
+                                    patrulla: {
+                                        /** Format: uuid */
+                                        id: string;
+                                        nombre: string;
+                                        estado: string;
+                                    };
+                                    recursos: {
+                                        /** Format: uuid */
+                                        recursoId: string;
+                                        nombre: string;
+                                        cantidadAsignada: number;
+                                        cantidadConsumida?: number | null;
+                                        cantidadDevuelta?: number | null;
+                                        devueltoEn?: string | null;
+                                    }[];
+                                    /** Format: uuid */
+                                    creadoPorId: string;
+                                    fechaEstimadaFin?: string | null;
+                                    /** Format: uuid */
+                                    actualizadoPorId?: string | null;
+                                    fechaCierre?: string | null;
+                                    observacionesCierre?: string | null;
+                                    /** Format: uuid */
+                                    cerradoPorId?: string | null;
+                                    creadoEn: string;
+                                    actualizadoEn: string;
+                                };
+                                recursosReintegrados: {
+                                    /** Format: uuid */
+                                    recursoId: string;
+                                    nombre: string;
+                                    esIndividual: boolean;
+                                    cantidadAsignada: number;
+                                    cantidadConsumida: number;
+                                    cantidadDevuelta: number;
+                                    cantidadInventario: number;
+                                    cantidadEnUso: number;
+                                    estadoRecurso: string;
+                                }[];
+                                mision: {
+                                    /** Format: uuid */
+                                    id: string;
+                                    codigo: string;
+                                    estado: string;
+                                } | null;
+                                patrullaLiberada: {
+                                    /** Format: uuid */
+                                    id: string;
+                                    nombre: string;
+                                    estado: string;
+                                } | null;
+                            };
+                        };
+                    };
+                };
+                /** @description Datos de entrada inválidos, UUID inválido o consumo reportado inválido */
+                400: { headers: { [name: string]: unknown }; content?: never };
+                /** @description No autenticado / sesión ausente o expirada */
+                401: { headers: { [name: string]: unknown }; content?: never };
+                /** @description Acceso denegado. Se requiere permiso 'recuperacion:cerrar' */
+                403: { headers: { [name: string]: unknown }; content?: never };
+                /** @description Operativo de recuperación no encontrado */
+                404: { headers: { [name: string]: unknown }; content?: never };
+                /** @description Conflicto: el operativo no se encuentra en estado EN_EJECUCION */
+                409: { headers: { [name: string]: unknown }; content?: never };
+                /** @description Error interno del servidor al cerrar el operativo */
+                500: { headers: { [name: string]: unknown }; content?: never };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/eventos-atp/asistencia-social": {
