@@ -191,6 +191,14 @@ export const PERMISOS_DEFAULT_SISTEMA: PermisoCatalogoItem[] = [
       'Permite dar de baja lógica y disolver cuadrillas operativas que no cuenten con misiones activas en terreno, liberando dotación y recursos.',
     modulo: 'Cuadrillas Operativas',
   },
+  {
+    id: '10000000-0000-4000-8000-000000000081',
+    codigo: 'recuperacion:cerrar',
+    nombre: 'Cerrar Operativo de Recuperación',
+    descripcion:
+      'Permite decretar la conclusión formal de un operativo de recuperación en ejecución, reintegrar remanentes y liberar patrullas',
+    modulo: 'Eventos ATP',
+  },
 ];
 
 /**

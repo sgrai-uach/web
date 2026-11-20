@@ -51,3 +51,39 @@ export const editarOperativoRecuperacionSchema = z
 export type EditarOperativoRecuperacionFormPayload = z.infer<
   typeof editarOperativoRecuperacionSchema
 >;
+
+export const consumoRecursoCierreSchema = z.object({
+  recursoId: z.string().uuid('El identificador del recurso debe ser un UUID válido.'),
+  cantidadConsumida: z
+    .number({ message: 'La cantidad consumida debe ser un número entero.' })
+    .int('La cantidad consumida debe ser un número entero.')
+    .min(0, 'La cantidad consumida no puede ser negativa.'),
+});
+
+export const cerrarOperativoRecuperacionSchema = z
+  .object({
+    resumenCierre: z
+      .string()
+      .trim()
+      .min(10, 'El resumen de cierre debe tener al menos 10 caracteres.')
+      .max(2000, 'El resumen de cierre no puede superar los 2000 caracteres.'),
+    consumos: z.array(consumoRecursoCierreSchema).optional(),
+  })
+  .superRefine((val, ctx) => {
+    if (!val.consumos) return;
+    const vistos = new Set<string>();
+    val.consumos.forEach((item, index) => {
+      if (vistos.has(item.recursoId)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['consumos', index, 'recursoId'],
+          message: 'El recurso está duplicado en el detalle de consumos.',
+        });
+      }
+      vistos.add(item.recursoId);
+    });
+  });
+
+export type CerrarOperativoRecuperacionFormPayload = z.infer<
+  typeof cerrarOperativoRecuperacionSchema
+>;

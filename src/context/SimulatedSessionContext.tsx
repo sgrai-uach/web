@@ -106,6 +106,7 @@ function obtenerPermisosFallback(rol: string, esAdmin: boolean): Set<string> {
       'recuperacion:leer',
       'recuperacion:crear',
       'recuperacion:editar',
+      'recuperacion:cerrar',
     ]);
   }
 
@@ -128,6 +129,7 @@ function obtenerPermisosFallback(rol: string, esAdmin: boolean): Set<string> {
       'recuperacion:leer',
       'recuperacion:crear',
       'recuperacion:editar',
+      'recuperacion:cerrar',
     ]);
   }
 

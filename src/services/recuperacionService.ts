@@ -9,6 +9,8 @@ import type {
   OperativoRecuperacionDetalle,
   EditarOperativoRecuperacionInput,
   EditarOperativoRecuperacionApiResponse,
+  CerrarOperativoRecuperacionInput,
+  CerrarOperativoRecuperacionApiResponse,
 } from '@/types/recuperacion';
 
 export type TipoConflictoRecuperacion =
@@ -422,6 +424,124 @@ export async function editarOperativoRecuperacion(
     const formatted = formatApiError(err);
     throw new RecuperacionServiceError(
       formatted.message || 'Error inesperado al editar el operativo de recuperación.',
+      {
+        statusCode: formatted.statusCode,
+        apiDetails: formatted,
+      }
+    );
+  }
+}
+
+/**
+ * Decreta la conclusión formal de un operativo de recuperación en estado EN_EJECUCION,
+ * reintegrando al inventario los insumos remanentes no consumidos y liberando la patrulla (HU-75).
+ */
+export async function cerrarOperativoRecuperacion(
+  id: string,
+  input: CerrarOperativoRecuperacionInput,
+  userId?: string
+): Promise<CerrarOperativoRecuperacionApiResponse> {
+  try {
+    const { data, error, response } = await apiClient.POST(
+      '/api/eventos-atp/recuperacion/{id}/cerrar',
+      {
+        params: {
+          path: { id },
+          ...(userId ? { header: { 'x-user-id': userId } } : {}),
+        },
+        body: input,
+      }
+    );
+
+    if (response.ok && data?.data) {
+      return data;
+    }
+
+    const status = response.status;
+    const errorData = (error || {}) as {
+      message?: string;
+      error?: string;
+      details?: Record<string, string[]>;
+      errors?: Array<{ campo?: string; field?: string; mensaje?: string; message?: string }>;
+    };
+
+    const mensajeError =
+      errorData.message ||
+      errorData.error ||
+      `Error HTTP ${status} al concluir el operativo de recuperación.`;
+
+    if (status === 400) {
+      const fieldErrors: Record<string, string> = {};
+
+      if (Array.isArray(errorData.errors)) {
+        for (const err of errorData.errors) {
+          const field = err.campo || err.field;
+          const msg = err.mensaje || err.message;
+          if (field && msg) {
+            fieldErrors[field] = msg;
+          }
+        }
+      } else if (errorData.details && typeof errorData.details === 'object') {
+        for (const [key, msgs] of Object.entries(errorData.details)) {
+          if (Array.isArray(msgs) && msgs.length > 0) {
+            fieldErrors[key] = msgs.join('. ');
+          }
+        }
+      }
+
+      throw new RecuperacionServiceError(mensajeError, {
+        statusCode: 400,
+        fieldErrors,
+        apiDetails: errorData,
+      });
+    }
+
+    if (status === 401) {
+      throw new RecuperacionServiceError('Sesión expirada o no autenticada.', {
+        statusCode: 401,
+        apiDetails: errorData,
+      });
+    }
+
+    if (status === 403) {
+      throw new RecuperacionServiceError(
+        'No posee el permiso requerido: recuperacion:cerrar. Requiere rol de Encargado o Administrador.',
+        {
+          statusCode: 403,
+          apiDetails: errorData,
+        }
+      );
+    }
+
+    if (status === 404) {
+      throw new RecuperacionServiceError(
+        mensajeError || 'El operativo de recuperación solicitado no fue encontrado.',
+        {
+          statusCode: 404,
+          apiDetails: errorData,
+        }
+      );
+    }
+
+    if (status === 409) {
+      throw new RecuperacionServiceError(mensajeError, {
+        statusCode: 409,
+        tipoConflicto: 'ESTADO_BLOQUEADO',
+        apiDetails: errorData,
+      });
+    }
+
+    throw new RecuperacionServiceError(mensajeError, {
+      statusCode: status,
+      apiDetails: errorData,
+    });
+  } catch (err: unknown) {
+    if (err instanceof RecuperacionServiceError) {
+      throw err;
+    }
+    const formatted = formatApiError(err);
+    throw new RecuperacionServiceError(
+      formatted.message || 'Error inesperado al concluir el operativo de recuperación.',
       {
         statusCode: formatted.statusCode,
         apiDetails: formatted,
