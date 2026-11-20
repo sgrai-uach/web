@@ -106,6 +106,7 @@ describe('usePrevencionSocket (HU-30)', () => {
       (socket as unknown as { _trigger: (ev: string) => void })._trigger('connect');
     });
 
+    expect(socket.emit).toHaveBeenCalledWith('unirse', 'encargado');
     expect(socket.emit).toHaveBeenCalledWith('unirse', 'sala:encargados');
     expect(socket.emit).toHaveBeenCalledWith('unirse', 'mapa');
   });
@@ -143,6 +144,9 @@ describe('usePrevencionSocket (HU-30)', () => {
     expect(socket.off).toHaveBeenCalledWith('disconnect', expect.any(Function));
     expect(socket.off).toHaveBeenCalledWith('prevencion:creada', expect.any(Function));
     expect(socket.off).toHaveBeenCalledWith('prevencion:actualizada', expect.any(Function));
+    expect(socket.off).toHaveBeenCalledWith('recurso:actualizado', expect.any(Function));
+    expect(socket.off).toHaveBeenCalledWith('patrulla:actualizada', expect.any(Function));
+    expect(socket.emit).toHaveBeenCalledWith('salir', 'encargado');
     expect(socket.emit).toHaveBeenCalledWith('salir', 'sala:encargados');
     expect(socket.emit).toHaveBeenCalledWith('salir', 'mapa');
   });
@@ -166,5 +170,73 @@ describe('usePrevencionSocket (HU-30)', () => {
 
     expect(onEventoActualizado).toHaveBeenCalledWith(mockEvento);
     expect(result.current.ultimoEvento).toContain('Prevención actualizada: PREV-2026-0001');
+  });
+
+  it('debe filtrar prevencion:actualizada por eventoId y escuchar recurso:actualizado y patrulla:actualizada (HU-33)', () => {
+    const socket = getSocket();
+    const onPrevencionActualizada = vi.fn();
+    const onRecursoActualizado = vi.fn();
+    const onPatrullaActualizada = vi.fn();
+
+    renderHook(() =>
+      usePrevencionSocket({
+        eventoId: 'prev-123',
+        onPrevencionActualizada,
+        onRecursoActualizado,
+        onPatrullaActualizada,
+      })
+    );
+
+    const payloadOtroEvento = {
+      id: 'prev-otro',
+      codigo: 'PREV-2026-9999',
+      evento: { id: 'prev-otro', codigo: 'PREV-2026-9999' },
+    };
+
+    const payloadObjetivo = {
+      id: 'prev-123',
+      codigo: 'PREV-2026-0001',
+      nombre: 'Operativo Angachilla',
+      evento: { id: 'prev-123', codigo: 'PREV-2026-0001', nombre: 'Operativo Angachilla', estado: 'PLANIFICADA' },
+      mision: { id: 'mis-1', codigo: 'MIS-2026-0010', estado: 'DESPACHADA', tipoMision: 'PREVENCION' },
+      patrulla: { id: 'pat-1', nombre: 'Patrulla Alfa', estado: 'EN_PREVENCION' },
+      recursos: [{ recursoId: 'rec-1', nombre: 'Sacos', cantidadAsignada: 5 }],
+      asignadoEn: '2026-11-19T21:00:00.000Z',
+    };
+
+    act(() => {
+      (socket as unknown as { _trigger: (ev: string, p: unknown) => void })._trigger(
+        'prevencion:actualizada',
+        payloadOtroEvento
+      );
+    });
+    expect(onPrevencionActualizada).not.toHaveBeenCalled();
+
+    act(() => {
+      (socket as unknown as { _trigger: (ev: string, p: unknown) => void })._trigger(
+        'prevencion:actualizada',
+        payloadObjetivo
+      );
+      (socket as unknown as { _trigger: (ev: string, p: unknown) => void })._trigger(
+        'recurso:actualizado',
+        { id: 'rec-1', cantidad_en_uso: 15, estado: 'DISPONIBLE' }
+      );
+      (socket as unknown as { _trigger: (ev: string, p: unknown) => void })._trigger(
+        'patrulla:actualizada',
+        { id: 'pat-1', estado: 'EN_PREVENCION', misionActivaId: 'mis-1' }
+      );
+    });
+
+    expect(onPrevencionActualizada).toHaveBeenCalledWith(payloadObjetivo);
+    expect(onRecursoActualizado).toHaveBeenCalledWith({
+      id: 'rec-1',
+      cantidad_en_uso: 15,
+      estado: 'DISPONIBLE',
+    });
+    expect(onPatrullaActualizada).toHaveBeenCalledWith({
+      id: 'pat-1',
+      estado: 'EN_PREVENCION',
+      misionActivaId: 'mis-1',
+    });
   });
 });

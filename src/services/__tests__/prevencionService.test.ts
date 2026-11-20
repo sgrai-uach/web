@@ -3,6 +3,8 @@ import {
   crearEventoPrevencion,
   listarEventosPrevencion,
   editarEventoPrevencion,
+  obtenerEventoPrevencion,
+  asignarRecursosPrevencion,
   PrevencionServiceError,
 } from '../prevencionService';
 import apiClient from '@/lib/api/client';
@@ -522,6 +524,241 @@ describe('prevencionService - editarEventoPrevencion (HU-77)', () => {
     ).rejects.toMatchObject({
       statusCode: 403,
       message: 'Acceso denegado. Se requiere el permiso "prevencion:eventos:crear".',
+    });
+  });
+});
+
+describe('prevencionService - obtenerEventoPrevencion y asignarRecursosPrevencion (HU-33)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  const eventoId = '80000000-0000-4000-8000-000000000001';
+  const patrullaId = '50000000-0000-4000-8000-000000000001';
+  const recursoId = '00000000-0000-4000-8000-000000000001';
+
+  it('debe consultar GET /api/eventos-atp/prevencion/{id} y normalizar detalle, misiones y recursos', async () => {
+    const rawDetalle = {
+      id: eventoId,
+      codigo: 'PREV-2026-0001',
+      nombre: 'Limpieza preventiva de colectores en Angachilla',
+      descripcion: 'Despeje preventivo de rejillas',
+      sector: 'Humedal Angachilla',
+      direccionTexto: 'Pasaje Los Robles s/n',
+      prioridad: 'ALTA' as const,
+      estado: 'PLANIFICADA' as const,
+      latitud: -39.8456,
+      longitud: -73.2389,
+      ubicacionGeoJson: { type: 'Point', coordinates: [-73.2389, -39.8456] },
+      puntoCritico: {
+        id: '40000000-0000-4000-8000-000000000001',
+        codigo: 'PC-VAL-001',
+        nombre: 'Colector Humedal Angachilla',
+        descripcion: 'Zona baja propensa a anegamiento',
+        tipoRiesgo: 'Inundación',
+        prioridad: 'ALTA' as const,
+        latitud: -39.8456,
+        longitud: -73.2389,
+        ubicacionGeoJson: { type: 'Point', coordinates: [-73.2389, -39.8456] },
+      },
+      delegacion: { id: '30000000-0000-4000-8000-000000000001', codigo: 'SUR', nombre: 'Delegación Sur' },
+      misiones: [
+        {
+          id: '60000000-0000-4000-8000-000000000001',
+          codigo: 'MIS-2026-0045',
+          titulo: 'Inspección preventiva',
+          estado: 'DESPACHADA',
+          tipoMision: 'PREVENCION',
+          patrulla: { id: patrullaId, nombre: 'Patrulla Verificadora Alfa', estado: 'EN_PREVENCION' },
+          cuadrilla: null,
+          fechaInicio: null,
+          fechaCierre: null,
+          creadoEn: '2026-11-19T12:00:00.000Z',
+        },
+      ],
+      recursosAsignados: [
+        {
+          id: 'epr-1',
+          recursoId,
+          nombre: 'Sacos de Arena 25kg',
+          esIndividual: false,
+          cantidadAsignada: 10,
+          misionId: '60000000-0000-4000-8000-000000000001',
+          creadoEn: '2026-11-19T12:00:00.000Z',
+        },
+      ],
+      fechaEstimadaFin: null,
+      creadoPorId: DEFAULT_ENCARGADO_ID,
+      actualizadoPorId: null,
+      creadoEn: '2026-11-19T10:00:00.000Z',
+      actualizadoEn: '2026-11-19T12:00:00.000Z',
+    };
+
+    vi.mocked(apiClient.GET).mockResolvedValueOnce({
+      data: { message: 'Detalle obtenido', data: rawDetalle } as unknown as never,
+      error: undefined,
+      response: { ok: true, status: 200 } as Response,
+    });
+
+    const res = await obtenerEventoPrevencion(eventoId);
+
+    expect(apiClient.GET).toHaveBeenCalledWith('/api/eventos-atp/prevencion/{id}', {
+      params: { path: { id: eventoId } },
+      headers: { Authorization: 'Bearer mock-jwt-token' },
+    });
+    expect(res.codigo).toBe('PREV-2026-0001');
+    expect(res.misiones).toHaveLength(1);
+    expect(res.patrulla?.estado).toBe('EN_PREVENCION');
+    expect(res.recursosAsignados[0].misionId).toBe('60000000-0000-4000-8000-000000000001');
+  });
+
+  it('debe mapear 404 y 403 en obtenerEventoPrevencion', async () => {
+    vi.mocked(apiClient.GET).mockResolvedValueOnce({
+      data: undefined,
+      error: { message: 'Evento no encontrado' } as unknown as never,
+      response: { ok: false, status: 404 } as Response,
+    });
+
+    await expect(obtenerEventoPrevencion(eventoId)).rejects.toMatchObject({
+      statusCode: 404,
+      message: 'Evento no encontrado',
+    });
+
+    vi.mocked(apiClient.GET).mockResolvedValueOnce({
+      data: undefined,
+      error: { message: 'Forbidden' } as unknown as never,
+      response: { ok: false, status: 403 } as Response,
+    });
+
+    await expect(obtenerEventoPrevencion(eventoId)).rejects.toMatchObject({
+      statusCode: 403,
+    });
+  });
+
+  it('debe enviar POST /api/eventos-atp/prevencion/{id}/recursos y retornar misión PREVENCION y patrulla EN_PREVENCION', async () => {
+    const mockAsignacion = {
+      message: 'Patrulla y recursos logísticos asignados exitosamente al evento de prevención.',
+      data: {
+        evento: {
+          id: eventoId,
+          codigo: 'PREV-2026-0001',
+          nombre: 'Limpieza preventiva de colectores en Angachilla',
+          estado: 'PLANIFICADA' as const,
+        },
+        mision: {
+          id: '60000000-0000-4000-8000-000000000002',
+          codigo: 'MIS-2026-0050',
+          titulo: 'Limpieza preventiva de colectores en Angachilla',
+          estado: 'DESPACHADA',
+          tipoMision: 'PREVENCION',
+        },
+        patrulla: {
+          id: patrullaId,
+          nombre: 'Patrulla Verificadora Alfa',
+          estado: 'EN_PREVENCION',
+        },
+        recursos: [
+          {
+            recursoId,
+            nombre: 'Sacos de Arena 25kg',
+            esIndividual: false,
+            cantidadAsignada: 10,
+            cantidadEnUso: 10,
+            estadoRecurso: 'DISPONIBLE',
+          },
+        ],
+        asignadoEn: '2026-11-19T21:00:00.000Z',
+      },
+    };
+
+    vi.mocked(apiClient.POST).mockResolvedValueOnce({
+      data: mockAsignacion as unknown as never,
+      error: undefined,
+      response: { ok: true, status: 200 } as Response,
+    });
+
+    const payload = { patrullaId, recursos: [{ recursoId, cantidad: 10 }] };
+    const res = await asignarRecursosPrevencion(eventoId, payload);
+
+    expect(apiClient.POST).toHaveBeenCalledWith('/api/eventos-atp/prevencion/{id}/recursos', {
+      params: { path: { id: eventoId } },
+      body: payload,
+      headers: { Authorization: 'Bearer mock-jwt-token' },
+    });
+    expect(res.data.mision.tipoMision).toBe('PREVENCION');
+    expect(res.data.patrulla.estado).toBe('EN_PREVENCION');
+    expect(res.data.recursos[0].cantidadEnUso).toBe(10);
+  });
+
+  it('debe clasificar correctamente conflictos 409 en asignarRecursosPrevencion', async () => {
+    const casos = [
+      { msg: 'Stock insuficiente en bodega para el recurso solicitado.', esperado: 'STOCK_INSUFICIENTE' },
+      { msg: 'La patrulla seleccionada no está disponible o está ocupada.', esperado: 'PATRULLA_OCUPADA' },
+      { msg: 'El activo individual está en mantención o asignado a otra misión.', esperado: 'ACTIVO_NO_DISPONIBLE' },
+      { msg: 'El evento de prevención está COMPLETADA y no admite nuevas asignaciones.', esperado: 'EVENTO_CERRADO' },
+    ] as const;
+
+    for (const caso of casos) {
+      vi.mocked(apiClient.POST).mockResolvedValueOnce({
+        data: undefined,
+        error: { message: caso.msg } as unknown as never,
+        response: { ok: false, status: 409 } as Response,
+      });
+
+      await expect(
+        asignarRecursosPrevencion(eventoId, { patrullaId, recursos: [{ recursoId, cantidad: 1 }] })
+      ).rejects.toMatchObject({
+        statusCode: 409,
+        tipoConflicto: caso.esperado,
+      });
+    }
+  });
+
+  it('debe mapear 400 (individual != 1), 401, 403 (misiones:asignar) y 404 en asignarRecursosPrevencion', async () => {
+    vi.mocked(apiClient.POST).mockResolvedValueOnce({
+      data: undefined,
+      error: {
+        message: 'Activo individual requiere cantidad igual a 1.',
+        errors: [{ campo: 'recursos', mensaje: 'Un activo individual solo permite cantidad 1' }],
+      } as unknown as never,
+      response: { ok: false, status: 400 } as Response,
+    });
+
+    try {
+      await asignarRecursosPrevencion(eventoId, { patrullaId, recursos: [{ recursoId, cantidad: 2 }] });
+      expect.fail('Debió lanzar 400');
+    } catch (err) {
+      expect(err).toBeInstanceOf(PrevencionServiceError);
+      if (err instanceof PrevencionServiceError) {
+        expect(err.statusCode).toBe(400);
+        expect(err.fieldErrors?.recursos).toContain('cantidad 1');
+      }
+    }
+
+    vi.mocked(apiClient.POST).mockResolvedValueOnce({
+      data: undefined,
+      error: { message: 'Forbidden' } as unknown as never,
+      response: { ok: false, status: 403 } as Response,
+    });
+
+    await expect(
+      asignarRecursosPrevencion(eventoId, { patrullaId, recursos: [{ recursoId, cantidad: 1 }] })
+    ).rejects.toMatchObject({
+      statusCode: 403,
+      message: 'No posee el permiso requerido: misiones:asignar. Requiere rol de Encargado o Administrador.',
+    });
+
+    vi.mocked(apiClient.POST).mockResolvedValueOnce({
+      data: undefined,
+      error: { message: 'Recurso no encontrado' } as unknown as never,
+      response: { ok: false, status: 404 } as Response,
+    });
+
+    await expect(
+      asignarRecursosPrevencion(eventoId, { patrullaId, recursos: [{ recursoId, cantidad: 1 }] })
+    ).rejects.toMatchObject({
+      statusCode: 404,
+      message: 'Recurso no encontrado',
     });
   });
 });

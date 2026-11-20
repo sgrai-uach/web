@@ -36,6 +36,10 @@ vi.mock('@/lib/socket/client', () => ({
   getSocket: () => mockSocket,
 }));
 
+vi.mock('@/hooks/usePuedeAsignarMision', () => ({
+  usePuedeAsignarMision: () => true,
+}));
+
 vi.mock('@/components/ui/Toast', () => {
   const toastMock = {
     showSuccess: vi.fn(),

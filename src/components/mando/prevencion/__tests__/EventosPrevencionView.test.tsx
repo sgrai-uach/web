@@ -6,9 +6,13 @@ import * as prevencionService from '@/services/prevencionService';
 import { useSimulatedSession } from '@/context/SimulatedSessionContext';
 import type { ListarEventosPrevencionResponse } from '@/types/evento-prevencion';
 
-vi.mock('@/context/SimulatedSessionContext', () => ({
-  useSimulatedSession: vi.fn(),
-}));
+vi.mock('@/context/SimulatedSessionContext', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/context/SimulatedSessionContext')>();
+  return {
+    ...actual,
+    useSimulatedSession: vi.fn(),
+  };
+});
 
 vi.mock('@/services/prevencionService', () => ({
   listarEventosPrevencion: vi.fn(),
@@ -142,11 +146,18 @@ describe('EventosPrevencionView (HU-76)', () => {
     });
 
     const botonDetalle = screen.getByTitle(/Abrir panel de detalle para PREV-2026-0001/i);
+    expect(
+      screen.getByRole('link', { name: /Asignar recursos a PREV-2026-0001/i })
+    ).toHaveAttribute('href', '/eventos-atp/prevencion/ev-1');
+
     fireEvent.click(botonDetalle);
 
     await waitFor(() => {
       expect(screen.getByRole('dialog')).toBeInTheDocument();
       expect(screen.getByRole('heading', { name: 'PREV-2026-0001' })).toBeInTheDocument();
+      expect(
+        screen.getByRole('link', { name: /Asignar Patrulla y Recursos/i })
+      ).toHaveAttribute('href', '/eventos-atp/prevencion/ev-1');
     });
   });
 });

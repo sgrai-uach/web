@@ -149,4 +149,29 @@ describe('EventosPrevencionTabla (HU-76)', () => {
     expect(onEditarEvento).toHaveBeenCalledWith(mockEventos[0]);
     expect(onSeleccionarEvento).not.toHaveBeenCalled();
   });
+
+  it('debe mostrar enlace Asignar en eventos activos y botón deshabilitado en COMPLETADA cuando puedeAsignar es true (HU-33)', () => {
+    const eventosConCerrado = [
+      mockEventos[0],
+      { ...mockEventos[1], estado: 'COMPLETADA' as const },
+    ];
+
+    render(
+      <EventosPrevencionTabla
+        eventos={eventosConCerrado}
+        onSeleccionarEvento={vi.fn()}
+        puedeAsignar={true}
+      />
+    );
+
+    const linkAsignarActivo = screen.getByRole('link', {
+      name: `Asignar recursos a ${mockEventos[0].codigo}`,
+    });
+    expect(linkAsignarActivo).toHaveAttribute('href', '/eventos-atp/prevencion/ev-1');
+
+    const btnAsignarCerrado = screen.getByRole('button', {
+      name: `Asignar recursos a ${mockEventos[1].codigo}`,
+    });
+    expect(btnAsignarCerrado).toBeDisabled();
+  });
 });

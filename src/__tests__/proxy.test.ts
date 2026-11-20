@@ -67,4 +67,24 @@ describe('proxy middleware (sgrai-web)', () => {
     const resSw = proxy(reqSw);
     expect(resSw.status).toBe(200);
   });
+
+  it('debe redirigir a /terreno cuando un rol exclusivo de terreno intenta ingresar a /eventos-atp/prevencion/[id]', () => {
+    const tokenPatrulla = crearJwtMock({ sub: 'u-pat', rolCodigo: 'PATRULLA_VERIFICADORA' });
+    const reqPat = new NextRequest(
+      'http://localhost:3000/eventos-atp/prevencion/80000000-0000-4000-8000-000000000001',
+      { headers: { cookie: `${AUTH_COOKIE_NAME}=${tokenPatrulla}` } }
+    );
+    const resPat = proxy(reqPat);
+    expect(resPat.status).toBe(307);
+    expect(resPat.headers.get('location')).toBe('http://localhost:3000/terreno');
+
+    const tokenCuadrilla = crearJwtMock({ sub: 'u-cuad', rolCodigo: 'DELEGADO_CUADRILLA' });
+    const reqCuad = new NextRequest(
+      'http://localhost:3000/eventos-atp/prevencion/80000000-0000-4000-8000-000000000001',
+      { headers: { cookie: `${AUTH_COOKIE_NAME}=${tokenCuadrilla}` } }
+    );
+    const resCuad = proxy(reqCuad);
+    expect(resCuad.status).toBe(307);
+    expect(resCuad.headers.get('location')).toBe('http://localhost:3000/terreno');
+  });
 });

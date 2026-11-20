@@ -178,4 +178,30 @@ describe('EventoPrevencionDrawer (HU-76)', () => {
 
     expect(screen.queryByRole('button', { name: /Editar Preventivo/i })).not.toBeInTheDocument();
   });
+
+  it('debe mostrar enlace "Asignar Patrulla y Recursos" cuando puedeAsignar es true y el evento está activo, y "Ver Ficha Completa" si está cerrado (HU-33)', () => {
+    const { rerender } = render(
+      <EventoPrevencionDrawer
+        evento={mockEventoConPuntoCritico}
+        isOpen={true}
+        onClose={vi.fn()}
+        puedeAsignar={true}
+      />
+    );
+
+    const linkAsignar = screen.getByRole('link', { name: /Asignar Patrulla y Recursos/i });
+    expect(linkAsignar).toHaveAttribute('href', '/eventos-atp/prevencion/ev-1');
+
+    rerender(
+      <EventoPrevencionDrawer
+        evento={{ ...mockEventoConPuntoCritico, estado: 'COMPLETADA' }}
+        isOpen={true}
+        onClose={vi.fn()}
+        puedeAsignar={true}
+      />
+    );
+
+    const linkFicha = screen.getByRole('link', { name: /Ver Ficha Completa/i });
+    expect(linkFicha).toHaveAttribute('href', '/eventos-atp/prevencion/ev-1');
+  });
 });
