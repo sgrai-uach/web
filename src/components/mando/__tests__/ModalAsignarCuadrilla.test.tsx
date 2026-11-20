@@ -116,8 +116,8 @@ describe('ModalAsignarCuadrilla (HU-21 / Regla ICS §3.2)', () => {
       />
     );
 
-    // Debe mostrar la tarjeta informativa de la regla ICS §3.2 explicando que la patrulla será relevada
-    expect(screen.getByText(/Regla de Negocio ICS §3.2 \(Relevo Táctico\)/i)).toBeDefined();
+    // Debe mostrar la tarjeta informativa explicando que la patrulla será relevada
+    expect(screen.getByText(/Relevo de Patrulla en Terreno/i)).toBeDefined();
     expect(screen.getByText(/Patrulla Rápida Costa 1/i)).toBeDefined();
     expect(screen.getByText(/será automáticamente relevada a estado/i)).toBeDefined();
 

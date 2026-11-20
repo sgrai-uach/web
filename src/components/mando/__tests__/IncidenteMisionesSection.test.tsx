@@ -45,7 +45,7 @@ describe('Componente IncidenteMisionesSection', () => {
     );
 
     expect(screen.getByText('MIS-2026-0001: Despeje de cables')).toBeDefined();
-    expect(screen.getByText('EN_CURSO')).toBeDefined();
+    expect(screen.getByText('En curso')).toBeDefined();
 
     const btnVerDetalles = screen.getByRole('button', {
       name: /Ver detalles de la misión MIS-2026-0001/i,

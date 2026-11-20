@@ -96,11 +96,7 @@ describe('ModalEditarEventoPrevencion (H77)', () => {
     expect(
       screen.getByDisplayValue('Inspección y limpieza de sumideros previos al frente de lluvia.')
     ).toBeInTheDocument();
-    expect(screen.getByDisplayValue('10')).toBeInTheDocument();
-
-    await waitFor(() => {
-      expect(recursosService.getRecursos).toHaveBeenCalled();
-    });
+    expect(screen.queryByRole('button', { name: /Agregar Recurso/i })).not.toBeInTheDocument();
   });
 
   it('debe mostrar error en cliente si se intenta guardar sin modificar ningún campo', async () => {

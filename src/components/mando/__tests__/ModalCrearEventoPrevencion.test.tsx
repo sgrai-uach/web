@@ -185,7 +185,6 @@ describe('ModalCrearEventoPrevencion (HU-30)', () => {
 
     await waitFor(() => {
       expect(getCatalogos).toHaveBeenCalled();
-      expect(getRecursos).toHaveBeenCalled();
       expect(getPuntosCriticos).toHaveBeenCalled();
     });
   });
@@ -261,39 +260,15 @@ describe('ModalCrearEventoPrevencion (HU-30)', () => {
     });
   });
 
-  it('debe validar que la cantidad no supere el stock si se agregan recursos opcionales', async () => {
+  it('no debe incluir selectores de patrulla ni recursos a nivel de evento (se despachan por misión)', async () => {
     render(<ModalCrearEventoPrevencion isOpen={true} onClose={onClose} onSuccess={onSuccess} />);
 
     await waitFor(() => {
-      expect(getRecursos).toHaveBeenCalled();
+      expect(getCatalogos).toHaveBeenCalled();
     });
 
-    fireEvent.change(screen.getByLabelText(/Título \/ Nombre de la Labor Preventiva/i), {
-      target: { value: 'Despeje preventivo' },
-    });
-    fireEvent.change(screen.getByLabelText(/Instrucciones Tácticas y Detalle de Mitigación/i), {
-      target: { value: 'Despejar ramas y talud' },
-    });
-
-    // Agregar fila de recurso
-    const btnAgregarRecurso = screen.getByRole('button', { name: /Agregar Insumo/i });
-    fireEvent.click(btnAgregarRecurso);
-
-    // Seleccionar recurso 1 (disponible: 20)
-    const selectRecurso = screen.getByRole('combobox', { name: '' });
-    fireEvent.change(selectRecurso, { target: { value: 'rec-1' } });
-
-    // Ingresar cantidad que excede el stock (ej: 50)
-    const inputCantidad = screen.getByRole('spinbutton');
-    fireEvent.change(inputCantidad, { target: { value: '50' } });
-
-    const submitBtn = screen.getByRole('button', { name: /Crear y Despachar Patrulla/i });
-    fireEvent.click(submitBtn);
-
-    await waitFor(() => {
-      expect(screen.getByText(/Excede el stock disponible en bodega \(máx\. 20\)/i)).toBeInTheDocument();
-      expect(crearEventoPrevencion).not.toHaveBeenCalled();
-    });
+    expect(screen.queryByRole('button', { name: /Agregar Insumo/i })).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/Patrulla Asignada/i)).not.toBeInTheDocument();
   });
 
   it('debe mostrar banner de conflicto cuando la patrulla ya está ocupada (409 Conflict)', async () => {
