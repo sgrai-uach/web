@@ -77,6 +77,8 @@ export interface RecursoAsignadoMision {
   nombre: string;
   tipo: string;
   cantidadAsignada: number;
+  esIndividual?: boolean;
+  unidad?: string | null;
 }
 
 export interface CuadrillaMisionDetalle {
@@ -102,6 +104,7 @@ export interface PatrullaMisionDetalle {
     nombre: string;
     email: string;
   } | null;
+  recursos?: RecursoAsignadoMision[];
 }
 
 export type TipoMision =

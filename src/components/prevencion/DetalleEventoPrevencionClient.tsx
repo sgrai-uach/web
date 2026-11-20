@@ -21,7 +21,7 @@ import {
 } from '@/services/prevencionService';
 import { patrullasService, DEFAULT_ENCARGADO_ID } from '@/services/patrullasService';
 import { getRecursos } from '@/services/recursosService';
-import { formatearEstado } from '@/lib/utils/estadoUtils';
+import { formatearEstado, formatearTipoMision } from '@/lib/utils/estadoUtils';
 import {
   ESTADOS_PREVENCION,
   type DetalleEventoPrevencionResponse,
@@ -444,7 +444,6 @@ export const DetalleEventoPrevencionClient: React.FC<DetalleEventoPrevencionClie
   const estadoCfg = ESTADOS_PREVENCION.find((e) => e.valor === evento.estado);
   const labelEstado = estadoCfg?.label || formatearEstado(evento.estado);
   const todosRecursos = evento.recursosAsignados || evento.recursos || [];
-  const recursosSinMision = todosRecursos.filter((rec) => !rec.misionId);
 
   return (
     <div className={styles.container}>
@@ -522,7 +521,7 @@ export const DetalleEventoPrevencionClient: React.FC<DetalleEventoPrevencionClie
               <MapPin size={16} style={{ flexShrink: 0, marginTop: '2px' }} />
               <span>
                 <strong>Evento con coordenadas libres:</strong> Esta operación preventiva se
-                planificó directamente en terreno sin punto crítico formal asociado (Regla §3.4).
+                planificó directamente en terreno sin punto crítico formal asociado.
               </span>
             </div>
           )}
@@ -590,7 +589,7 @@ export const DetalleEventoPrevencionClient: React.FC<DetalleEventoPrevencionClie
 
           {estaCerrado ? (
             <InlineNotice variant="info">
-              Este evento de prevención se encuentra en estado <strong>{evento.estado}</strong>. No es
+              Este evento de prevención se encuentra en estado <strong>{formatearEstado(evento.estado)}</strong>. No es
               posible asignar nuevas patrullas ni materiales a una operación cerrada.
             </InlineNotice>
           ) : !puedeAsignar ? (
@@ -641,12 +640,12 @@ export const DetalleEventoPrevencionClient: React.FC<DetalleEventoPrevencionClie
                 )}
               </div>
 
-              {/* Tabla Dinámica de Insumos Logísticos (§3.6) */}
+              {/* Tabla Dinámica de Insumos Logísticos */}
               <div className={styles.fieldGroup}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <label className={styles.label}>Materiales e Insumos Logísticos (*)</label>
                   <span style={{ fontSize: '12px', color: 'var(--color-text-muted, #5F676E)' }}>
-                    Regla §3.6: Control de stock transaccional
+                    Control de disponibilidad en bodega
                   </span>
                 </div>
 
@@ -799,50 +798,13 @@ export const DetalleEventoPrevencionClient: React.FC<DetalleEventoPrevencionClie
             </span>
           </div>
 
-          {(!evento.misiones || evento.misiones.length === 0) && recursosSinMision.length === 0 ? (
+          {!evento.misiones || evento.misiones.length === 0 ? (
             <div className={styles.emptyHistory}>
               <Boxes size={32} style={{ margin: '0 auto 8px auto', display: 'block', opacity: 0.5 }} />
               No se han despachado patrullas ni asignado materiales preventivos previamente para este evento.
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {recursosSinMision.length > 0 && (
-                <div
-                  className={styles.misionItem}
-                  style={{ borderLeft: '4px solid var(--color-primary-teal, #1B6F7D)' }}
-                >
-                  <div className={styles.misionHeader}>
-                    <div>
-                      <strong>Dotación Logística Inicial / Previa</strong>
-                    </div>
-                    <span className={styles.misionEstadoBadge}>ASIGNACIÓN DIRECTA</span>
-                  </div>
-                  <div>
-                    <span
-                      style={{
-                        fontSize: '12px',
-                        fontWeight: 700,
-                        textTransform: 'uppercase',
-                        color: 'var(--color-text-muted, #5F676E)',
-                        display: 'block',
-                        marginBottom: '6px',
-                      }}
-                    >
-                      Materiales y equipamiento vinculado:
-                    </span>
-                    <div className={styles.misionRecursosList}>
-                      {recursosSinMision.map((rec, i) => (
-                        <span key={`sin-mision-${rec.recursoId}-${i}`} className={styles.misionRecursoChip}>
-                          <Boxes size={12} color="var(--color-primary-teal, #1B6F7D)" />
-                          <strong>{rec.nombre}</strong>: {rec.cantidadAsignada} un.
-                          {rec.esIndividual && <span className={styles.recursoIndividualTag}>Activo</span>}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              )}
-
               {(evento.misiones || []).map((mision: MisionPrevencionHistorialItem) => {
                 const recursosDeEstaMision = todosRecursos.filter((rec) => rec.misionId === mision.id);
                 const recursosAMostrar =
@@ -855,7 +817,9 @@ export const DetalleEventoPrevencionClient: React.FC<DetalleEventoPrevencionClie
                         <span className={styles.misionCodigo}>{mision.codigo}</span>
                         <span style={{ color: '#CCD2D9' }}>|</span>
                         <strong>{mision.titulo || 'Operación preventiva en terreno'}</strong>
-                        <span className={styles.misionTipoBadge}>{mision.tipoMision}</span>
+                        <span className={styles.misionTipoBadge}>
+                          {formatearTipoMision(mision.tipoMision)}
+                        </span>
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                         {mision.patrulla ? (

@@ -20,6 +20,12 @@ import Heading from '@/components/ui/Heading';
 import Button from '@/components/ui/Button';
 import type { EventoPrevencionListItemDTO } from '@/types/evento-prevencion';
 import { ESTADOS_PREVENCION } from '@/types/evento-prevencion';
+import {
+  formatearEstado,
+  formatearPrioridad,
+  formatearTipoMision,
+  formatearTipologia,
+} from '@/lib/utils/estadoUtils';
 import styles from './EventoPrevencionDrawer.module.css';
 
 interface EventoPrevencionDrawerProps {
@@ -211,12 +217,18 @@ export const EventoPrevencionDrawer: React.FC<EventoPrevencionDrawerProps> = ({
 
                 <div className={styles.infoField}>
                   <span className={styles.label}>Tipo de Riesgo</span>
-                  <span className={styles.value}>{evento.puntoCritico.tipoRiesgo || 'No especificado'}</span>
+                  <span className={styles.value}>
+                    {evento.puntoCritico.tipoRiesgo
+                      ? formatearTipologia(evento.puntoCritico.tipoRiesgo)
+                      : 'No especificado'}
+                  </span>
                 </div>
 
                 <div className={styles.infoField}>
                   <span className={styles.label}>Nivel de Prioridad</span>
-                  <span className={styles.value}>{evento.puntoCritico.prioridad || 'Media'}</span>
+                  <span className={styles.value}>
+                    {formatearPrioridad(evento.puntoCritico.prioridad, 'Media')}
+                  </span>
                 </div>
 
                 {evento.puntoCritico.descripcion && (
@@ -311,12 +323,12 @@ export const EventoPrevencionDrawer: React.FC<EventoPrevencionDrawerProps> = ({
 
                 <div className={styles.infoField}>
                   <span className={styles.label}>Tipo de Misión</span>
-                  <span className={styles.value}>{evento.mision.tipoMision}</span>
+                  <span className={styles.value}>{formatearTipoMision(evento.mision.tipoMision)}</span>
                 </div>
 
                 <div className={styles.infoField}>
                   <span className={styles.label}>Estado de la Misión</span>
-                  <span className={styles.value}>{evento.mision.estado}</span>
+                  <span className={styles.value}>{formatearEstado(evento.mision.estado)}</span>
                 </div>
 
                 <div className={styles.infoField}>
@@ -344,7 +356,7 @@ export const EventoPrevencionDrawer: React.FC<EventoPrevencionDrawerProps> = ({
                   <div>
                     <span style={{ fontWeight: 600 }}>{evento.cuadrilla.nombre}</span>
                     <span style={{ fontSize: '12px', color: 'var(--color-text-muted, #5F676E)', marginLeft: '6px' }}>
-                      (Cuadrilla • {evento.cuadrilla.estado})
+                      (Cuadrilla • {formatearEstado(evento.cuadrilla.estado)})
                     </span>
                   </div>
                 </div>
@@ -354,7 +366,7 @@ export const EventoPrevencionDrawer: React.FC<EventoPrevencionDrawerProps> = ({
                   <div>
                     <span style={{ fontWeight: 600 }}>{evento.patrulla.nombre}</span>
                     <span style={{ fontSize: '12px', color: 'var(--color-text-muted, #5F676E)', marginLeft: '6px' }}>
-                      (Patrulla • {evento.patrulla.estado})
+                      (Patrulla • {formatearEstado(evento.patrulla.estado)})
                     </span>
                   </div>
                 </div>

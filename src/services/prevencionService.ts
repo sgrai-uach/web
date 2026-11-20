@@ -139,8 +139,8 @@ export async function crearEventoPrevencion(
       puntoCriticoId: payload.puntoCriticoId,
       latitud: payload.latitud,
       longitud: payload.longitud,
-      patrullaId: payload.patrullaId,
-      recursos: payload.recursos,
+      ...(payload.patrullaId ? { patrullaId: payload.patrullaId } : {}),
+      ...(payload.recursos ? { recursos: payload.recursos } : {}),
     };
 
     const { data, error, response } = await apiClient.POST('/api/eventos-atp/prevencion', {

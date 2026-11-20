@@ -17,6 +17,7 @@ import InlineNotice from '@/components/ui/InlineNotice';
 import { useToast } from '@/components/ui/Toast';
 import { listarPatrullasDisponibles } from '@/services/patrullasService';
 import { despacharPatrullaVerificadora } from '@/services/misionesService';
+import { formatearPrioridad, formatearTipologia } from '@/lib/utils/estadoUtils';
 import type { PatrullaVerificadoraDTO } from '@/types/patrullas';
 import type { DespacharPatrullaResponseData } from '@/types/misiones';
 import styles from './AsignarPatrullaModal.module.css';
@@ -239,12 +240,12 @@ export const AsignarPatrullaModal: React.FC<AsignarPatrullaModalProps> = ({
             <div className={styles.incidenteResumenCard}>
               <div className={styles.incidenteHeaderRow}>
                 <span className={styles.incidenteCodigo}>Incidente: {incidente.codigo}</span>
-                <span className={styles.badgePrioridad}>Prioridad: {incidente.prioridad}</span>
+                <span className={styles.badgePrioridad}>Prioridad: {formatearPrioridad(incidente.prioridad)}</span>
               </div>
               <div className={styles.incidenteInfoGrid}>
                 <div>
                   <span className={styles.incidenteLabel}>Tipo de Afectación</span>
-                  <span>{incidente.tipoAfectacion}</span>
+                  <span>{formatearTipologia(incidente.tipoAfectacion)}</span>
                 </div>
                 <div>
                   <span className={styles.incidenteLabel}>Ubicación</span>
@@ -320,7 +321,7 @@ export const AsignarPatrullaModal: React.FC<AsignarPatrullaModalProps> = ({
                 </div>
               ) : patrullas.length === 0 ? (
                 <InlineNotice variant="info">
-                  Actualmente no existen patrullas verificadoras en estado <strong>DISPONIBLE</strong>. Todas las unidades se encuentran asignadas o fuera de servicio.
+                  Actualmente no existen patrullas verificadoras en estado <strong>Disponible</strong>. Todas las unidades se encuentran asignadas o fuera de servicio.
                 </InlineNotice>
               ) : (
                 <select

@@ -168,16 +168,16 @@ export const ModalAsignarCuadrilla: React.FC<ModalAsignarCuadrillaProps> = ({
           </div>
         </div>
 
-        {/* Tarjeta Regla de Negocio ICS §3.2: Relevo táctico cuando la patrulla continúa activa */}
+        {/* Tarjeta informativa de relevo táctico cuando la patrulla continúa activa */}
         {patrullaAsignada && misionVerificacion?.estado !== 'COMPLETADA' && (
           <div className={styles.patrullaRelevoCard} role="status">
             <ShieldCheck size={18} aria-hidden="true" style={{ flexShrink: 0 }} />
             <div>
-              <strong>Regla de Negocio ICS §3.2 (Relevo Táctico)</strong>
+              <strong>Relevo de Patrulla en Terreno</strong>
               <div>
                 Al confirmar el despacho de la cuadrilla, la patrulla verificadora{' '}
                 <strong>{patrullaAsignada.nombre}</strong> será automáticamente relevada a estado{' '}
-                <strong>DISPONIBLE</strong> y su misión previa se marcará como <strong>COMPLETADA</strong>.
+                <strong>Disponible</strong> y su misión previa se marcará como <strong>Completada</strong>.
               </div>
             </div>
           </div>

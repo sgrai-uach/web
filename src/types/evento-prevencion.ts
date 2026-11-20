@@ -24,7 +24,7 @@ export interface CrearEventoPrevencionPayload {
   puntoCriticoId?: string | null;
   latitud: number;
   longitud: number;
-  patrullaId: string;
+  patrullaId?: string | null;
   recursos?: ItemRecursoSolicitadoPrevencion[];
 }
 

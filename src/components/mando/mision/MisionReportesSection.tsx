@@ -5,6 +5,7 @@ import { ClipboardList, User, Clock } from 'lucide-react';
 import Heading from '@/components/ui/Heading';
 import type { ReporteTerrenoDetalle } from '@/types/misiones';
 import { MisionEvidenciasGallery } from './MisionEvidenciasGallery';
+import { formatearEstado } from '@/lib/utils/estadoUtils';
 import styles from '@/styles/mision-detalle.module.css';
 
 interface MisionReportesSectionProps {
@@ -64,7 +65,7 @@ export const MisionReportesSection: React.FC<MisionReportesSectionProps> = ({ re
 
                 <div className={styles.reporteMetaTags}>
                   <span className={styles.badgeTerreno} title="Estado reportado en terreno">
-                    {reporte.estadoTerreno}
+                    {formatearEstado(reporte.estadoTerreno)}
                   </span>
 
                   {reporte.requiereApoyoAdicional && (

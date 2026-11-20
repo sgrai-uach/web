@@ -4,6 +4,7 @@ import React from 'react';
 import { Users, Truck, Shield, Box } from 'lucide-react';
 import Heading from '@/components/ui/Heading';
 import type { CuadrillaMisionDetalle, PatrullaMisionDetalle } from '@/types/misiones';
+import { formatearEstado, formatearTipoRecurso } from '@/lib/utils/estadoUtils';
 import styles from '@/styles/mision-detalle.module.css';
 
 interface MisionEquipoSectionProps {
@@ -94,7 +95,7 @@ export const MisionEquipoSection: React.FC<MisionEquipoSectionProps> = ({
                       {cuadrilla.recursos.map((rec) => (
                         <tr key={rec.id}>
                           <td style={{ fontWeight: 600 }}>{rec.nombre}</td>
-                          <td>{rec.tipo}</td>
+                          <td>{formatearTipoRecurso(rec.esIndividual, rec.tipo)}</td>
                           <td style={{ textAlign: 'right', fontWeight: 700 }}>
                             {rec.cantidadAsignada}
                           </td>
@@ -129,7 +130,7 @@ export const MisionEquipoSection: React.FC<MisionEquipoSectionProps> = ({
             <div className={styles.dataItem}>
               <span className={styles.dataLabel}>Estado Operativo</span>
               <span className={styles.dataValue} style={{ fontWeight: 600 }}>
-                {patrulla.estado}
+                {formatearEstado(patrulla.estado)}
               </span>
             </div>
 
@@ -155,6 +156,36 @@ export const MisionEquipoSection: React.FC<MisionEquipoSectionProps> = ({
                 )}
               </span>
             </div>
+
+            {patrulla.recursos && patrulla.recursos.length > 0 && (
+              <div className={styles.dataItem} style={{ gridColumn: '1 / -1', marginTop: '8px' }}>
+                <span className={styles.dataLabel}>
+                  Recursos e Insumos Asignados ({patrulla.recursos.length})
+                </span>
+                <div style={{ overflowX: 'auto', marginTop: '6px' }}>
+                  <table className={styles.recursosTable}>
+                    <thead>
+                      <tr>
+                        <th>Recurso / Activo</th>
+                        <th>Tipo</th>
+                        <th style={{ textAlign: 'right' }}>Cantidad Asignada</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {patrulla.recursos.map((rec) => (
+                        <tr key={rec.id}>
+                          <td style={{ fontWeight: 600 }}>{rec.nombre}</td>
+                          <td>{formatearTipoRecurso(rec.esIndividual, rec.tipo)}</td>
+                          <td style={{ textAlign: 'right', fontWeight: 700 }}>
+                            {rec.cantidadAsignada}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
           </div>
         )}
 

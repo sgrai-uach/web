@@ -7,6 +7,7 @@ import Button from '@/components/ui/Button';
 import type { IncidenteDetalle } from '@/services/incidentesService';
 import { TRAZABILIDAD_CONFIG } from '@/lib/socket/trazabilidadConfig';
 import { TrazabilidadIcon } from '../TrazabilidadIcon';
+import { formatearEstado, formatearPrioridad, formatearTipoMision } from '@/lib/utils/estadoUtils';
 import styles from '@/styles/mando.module.css';
 
 const obtenerBordeSegmento = (
@@ -23,13 +24,30 @@ const obtenerBordeSegmento = (
   return '2px dashed #CBD5E1';
 };
 
+export interface MisionDesplegadaResumen {
+  id: string;
+  codigo: string;
+  titulo: string;
+  estado: string;
+  tipoMision: string;
+  prioridad?: string | null;
+  justificacionRechazo?: string | null;
+  trazabilidadNotificacion?: IncidenteDetalle['misiones'][number]['trazabilidadNotificacion'];
+  cuadrilla?: { id: string; nombre: string; estado: string } | null;
+  patrulla?: { id: string; nombre: string; estado: string } | null;
+}
+
 interface IncidenteMisionesSectionProps {
-  misiones: IncidenteDetalle['misiones'];
+  misiones: MisionDesplegadaResumen[];
   incidenteEstado?: string;
   onVerDetalleMision?: (misionId: string) => void;
   onVerDetalleCuadrilla?: (cuadrillaId: string) => void;
   onAsignarPatrulla?: () => void;
   puedeAsignar?: boolean;
+  tituloSeccion?: string;
+  botonDespachoLabel?: string;
+  permitirMultiplesDespachos?: boolean;
+  descripcionDespacho?: string;
 }
 
 export const IncidenteMisionesSection: React.FC<IncidenteMisionesSectionProps> = ({
@@ -39,6 +57,10 @@ export const IncidenteMisionesSection: React.FC<IncidenteMisionesSectionProps> =
   onVerDetalleCuadrilla,
   onAsignarPatrulla,
   puedeAsignar = true,
+  tituloSeccion = 'Misiones y Equipos en Terreno',
+  botonDespachoLabel = 'Despachar Patrulla Verificadora',
+  permitirMultiplesDespachos = false,
+  descripcionDespacho = 'Este incidente está pendiente de evaluación inicial. Despache una patrulla disponible para verificar en terreno las necesidades reales.',
 }) => {
   const tieneVerificacionActiva = misiones.some(
     (m) =>
@@ -47,8 +69,10 @@ export const IncidenteMisionesSection: React.FC<IncidenteMisionesSectionProps> =
   );
 
   const mostrarBotonDespacho =
-    incidenteEstado === 'REPORTADO' &&
-    !tieneVerificacionActiva &&
+    (incidenteEstado === 'REPORTADO' || permitirMultiplesDespachos) &&
+    (permitirMultiplesDespachos || !tieneVerificacionActiva) &&
+    incidenteEstado !== 'COMPLETADA' &&
+    incidenteEstado !== 'CANCELADA' &&
     Boolean(onAsignarPatrulla) &&
     puedeAsignar;
 
@@ -56,7 +80,7 @@ export const IncidenteMisionesSection: React.FC<IncidenteMisionesSectionProps> =
     <div className={styles.drawerSection}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
         <Heading as="h3" variant="h4" color="teal" noMargin>
-          Misiones y Equipos en Terreno ({misiones.length})
+          {tituloSeccion} ({misiones.length})
         </Heading>
       </div>
 
@@ -77,17 +101,17 @@ export const IncidenteMisionesSection: React.FC<IncidenteMisionesSectionProps> =
               margin: '0 0 10px 0',
             }}
           >
-            Este incidente está pendiente de evaluación inicial. Despache una patrulla disponible para verificar en terreno las necesidades reales.
+            {descripcionDespacho}
           </p>
           <Button
             type="button"
             variant="primary"
             size="sm"
             onClick={onAsignarPatrulla}
-            title="Despachar patrulla verificadora"
+            title={botonDespachoLabel}
           >
             <ShieldCheck size={14} style={{ marginRight: '5px' }} />
-            <span>Despachar Patrulla Verificadora</span>
+            <span>{botonDespachoLabel}</span>
           </Button>
         </div>
       )}
@@ -103,20 +127,25 @@ export const IncidenteMisionesSection: React.FC<IncidenteMisionesSectionProps> =
           <div className={styles.misionHeader}>
             <span>{mision.codigo}: {mision.titulo}</span>
             <span style={{ color: 'var(--color-primary-teal, #1B6F7D)', fontWeight: 700 }}>
-              {mision.estado}
+              {formatearEstado(mision.estado)}
             </span>
           </div>
           <div style={{ fontSize: '0.8125rem', marginTop: '0.25rem' }}>
-            <strong>Tipo:</strong> {mision.tipoMision} | <strong>Prioridad:</strong> {mision.prioridad}
+            <strong>Tipo:</strong> {formatearTipoMision(mision.tipoMision)}
+            {mision.prioridad ? (
+              <>
+                {' '}| <strong>Prioridad:</strong> {formatearPrioridad(mision.prioridad)}
+              </>
+            ) : null}
           </div>
           {mision.cuadrilla && (
             <div style={{ fontSize: '0.8125rem', marginTop: '0.25rem' }}>
-              <strong>Cuadrilla:</strong> {mision.cuadrilla.nombre} ({mision.cuadrilla.estado})
+              <strong>Cuadrilla:</strong> {mision.cuadrilla.nombre} ({formatearEstado(mision.cuadrilla.estado)})
             </div>
           )}
           {mision.patrulla && (
             <div style={{ fontSize: '0.8125rem', marginTop: '0.25rem' }}>
-              <strong>Patrulla:</strong> {mision.patrulla.nombre} ({mision.patrulla.estado})
+              <strong>Patrulla:</strong> {mision.patrulla.nombre} ({formatearEstado(mision.patrulla.estado)})
             </div>
           )}
           {mision.trazabilidadNotificacion && TRAZABILIDAD_CONFIG[mision.trazabilidadNotificacion] ? (

@@ -9,7 +9,6 @@ import Select from '@/components/ui/Select';
 import Textarea from '@/components/ui/Textarea';
 import { useToast } from '@/components/ui/Toast';
 import { getCatalogos } from '@/services/catalogosService';
-import { getRecursos } from '@/services/recursosService';
 import { getPuntosCriticos } from '@/services/puntosCriticosService';
 import {
   crearEventoPrevencion,
@@ -17,34 +16,21 @@ import {
   type TipoConflictoPrevencion,
 } from '@/services/prevencionService';
 import {
-  PATRULLAS_OFICIALES_SEED,
   PRIORIDADES_PREVENCION,
   type PatrullaVerificadoraItem,
   type PrioridadEventoPrevencion,
   type EventoPrevencionDTO,
-  type ItemRecursoSolicitadoPrevencion,
   type CrearEventoPrevencionPayload,
 } from '@/types/evento-prevencion';
 import type { CatalogoItem } from '@/types/catalogos';
-import type { RecursoItem } from '@/types/recurso';
 import type { PuntoCriticoItem } from '@/types/puntoCritico';
 import {
   ShieldAlert,
   MapPin,
-  Truck,
-  Boxes,
   AlertTriangle,
-  Trash2,
-  Plus,
   Compass,
 } from 'lucide-react';
 import styles from './ModalCrearEventoPrevencion.module.css';
-
-interface FilaRecursoForm {
-  idTemporal: string;
-  recursoId: string;
-  cantidad: number;
-}
 
 export interface ModalCrearEventoPrevencionProps {
   isOpen: boolean;
@@ -59,14 +45,8 @@ export const ModalCrearEventoPrevencion: React.FC<ModalCrearEventoPrevencionProp
   onClose,
   onSuccess,
   userId,
-  patrullasDisponibles: patrullasProp,
 }) => {
   const { showSuccess, showError } = useToast();
-
-  // Lista de patrullas a desplegar
-  const patrullas = useMemo(() => {
-    return patrullasProp && patrullasProp.length > 0 ? patrullasProp : PATRULLAS_OFICIALES_SEED;
-  }, [patrullasProp]);
 
   // Estados del formulario
   const [nombre, setNombre] = useState('');
@@ -76,18 +56,12 @@ export const ModalCrearEventoPrevencion: React.FC<ModalCrearEventoPrevencionProp
   const [prioridad, setPrioridad] = useState<PrioridadEventoPrevencion>('MEDIA');
   const [delegacionId, setDelegacionId] = useState<string>('');
   const [puntoCriticoId, setPuntoCriticoId] = useState<string>('');
-  const [patrullaId, setPatrullaId] = useState<string>('');
   const [latitud, setLatitud] = useState<number>(-39.8142);
   const [longitud, setLongitud] = useState<number>(-73.2459);
 
-  // Filas dinámicas de recursos solicitados (opcional en prevención)
-  const [filasRecursos, setFilasRecursos] = useState<FilaRecursoForm[]>([]);
-
-  // Catálogos, inventario y puntos críticos
+  // Catálogos y puntos críticos
   const [delegaciones, setDelegaciones] = useState<CatalogoItem[]>([]);
   const [puntosCriticos, setPuntosCriticos] = useState<PuntoCriticoItem[]>([]);
-  const [inventario, setInventario] = useState<RecursoItem[]>([]);
-  const [mostrarSoloDisponibles, setMostrarSoloDisponibles] = useState(true);
 
   // Errores y estado de envío
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -98,12 +72,7 @@ export const ModalCrearEventoPrevencion: React.FC<ModalCrearEventoPrevencionProp
   } | null>(null);
   const [errorGeneral, setErrorGeneral] = useState<string | null>(null);
 
-  const patrullasFiltradas = useMemo(() => {
-    if (!mostrarSoloDisponibles) return patrullas;
-    return patrullas.filter((p) => p.estado === 'DISPONIBLE');
-  }, [patrullas, mostrarSoloDisponibles]);
-
-  // Carga asíncrona de catálogos, puntos críticos e inventario al abrir
+  // Carga asíncrona de catálogos y puntos críticos al abrir
   useEffect(() => {
     let activo = true;
 
@@ -114,23 +83,12 @@ export const ModalCrearEventoPrevencion: React.FC<ModalCrearEventoPrevencionProp
       setErroresCampos({});
       setBannerConflicto(null);
       setErrorGeneral(null);
-
-      const primeraDisponible = patrullas.find((p) => p.estado === 'DISPONIBLE');
-      if (primeraDisponible) {
-        setPatrullaId((prev) => (prev ? prev : primeraDisponible.id));
-      } else if (patrullas.length > 0) {
-        setPatrullaId((prev) => (prev ? prev : patrullas[0].id));
-      }
     });
 
     void (async () => {
       try {
-        const [resCatalogos, resRecursos, resPuntosCriticos] = await Promise.all([
+        const [resCatalogos, resPuntosCriticos] = await Promise.all([
           getCatalogos().catch(() => ({ delegaciones: [], roles: [], especialidades: [], cargos: [] })),
-          getRecursos({ pagina: 1, limite: 100, estado: 'DISPONIBLE' }, userId).catch(() => ({
-            data: [],
-            meta: { total: 0, pagina: 1, limite: 100, totalPaginas: 1 },
-          })),
           getPuntosCriticos({ pagina: 1, limite: 100, activo: true }, userId).catch(() => ({
             data: [],
             meta: { total: 0, pagina: 1, limite: 100, totalPaginas: 1 },
@@ -143,9 +101,6 @@ export const ModalCrearEventoPrevencion: React.FC<ModalCrearEventoPrevencionProp
           setDelegaciones(resCatalogos.delegaciones);
           setDelegacionId((prev) => (prev ? prev : resCatalogos.delegaciones[0].id));
         }
-        if (resRecursos?.data) {
-          setInventario(resRecursos.data);
-        }
         if (resPuntosCriticos?.data) {
           setPuntosCriticos(resPuntosCriticos.data);
         }
@@ -157,14 +112,7 @@ export const ModalCrearEventoPrevencion: React.FC<ModalCrearEventoPrevencionProp
     return () => {
       activo = false;
     };
-  }, [isOpen, patrullas, userId]);
-
-  // Diccionario rápido de recursos para consultar stock
-  const inventarioMap = useMemo(() => {
-    const map = new Map<string, RecursoItem>();
-    inventario.forEach((item) => map.set(item.id, item));
-    return map;
-  }, [inventario]);
+  }, [isOpen, userId]);
 
   // Punto crítico seleccionado actualmente
   const puntoCriticoSeleccionado = useMemo(() => {
@@ -200,40 +148,6 @@ export const ModalCrearEventoPrevencion: React.FC<ModalCrearEventoPrevencionProp
         });
       }
     }
-  };
-
-  // Manejo de filas dinámicas de recursos
-  const handleAgregarFilaRecurso = () => {
-    setFilasRecursos((prev) => [
-      ...prev,
-      { idTemporal: `recurso-${Date.now()}-${Math.random()}`, recursoId: '', cantidad: 1 },
-    ]);
-  };
-
-  const handleEliminarFilaRecurso = (idTemporal: string) => {
-    setFilasRecursos((prev) => prev.filter((f) => f.idTemporal !== idTemporal));
-  };
-
-  const handleRecursoChange = (idTemporal: string, recursoId: string) => {
-    setFilasRecursos((prev) =>
-      prev.map((f) => {
-        if (f.idTemporal === idTemporal) {
-          return { ...f, recursoId, cantidad: 1 };
-        }
-        return f;
-      })
-    );
-  };
-
-  const handleCantidadChange = (idTemporal: string, cantidad: number) => {
-    setFilasRecursos((prev) =>
-      prev.map((f) => {
-        if (f.idTemporal === idTemporal) {
-          return { ...f, cantidad };
-        }
-        return f;
-      })
-    );
   };
 
   // Manejo de selección geográfica desde el mapa interactivo
@@ -272,48 +186,8 @@ export const ModalCrearEventoPrevencion: React.FC<ModalCrearEventoPrevencionProp
       nuevosErrores.delegacionId = 'Debe seleccionar la delegación territorial correspondiente.';
     }
 
-    if (!patrullaId) {
-      nuevosErrores.patrullaId = 'Debe seleccionar una patrulla verificadora disponible.';
-    }
-
     if (latitud < -90 || latitud > 90 || longitud < -180 || longitud > 180) {
       nuevosErrores.latitud = 'Coordenadas geográficas fuera del rango válido.';
-    }
-
-    // Validar recursos si fueron agregados
-    if (filasRecursos.length > 0) {
-      let algunInvalido = false;
-      const idsSeleccionados = new Set<string>();
-
-      for (let i = 0; i < filasRecursos.length; i++) {
-        const fila = filasRecursos[i];
-        if (!fila.recursoId) {
-          nuevosErrores[`recurso_${i}`] = 'Seleccione un insumo del catálogo.';
-          algunInvalido = true;
-          continue;
-        }
-
-        if (idsSeleccionados.has(fila.recursoId)) {
-          nuevosErrores[`recurso_${i}`] = 'Este insumo ya fue agregado en otra fila.';
-          algunInvalido = true;
-        }
-        idsSeleccionados.add(fila.recursoId);
-
-        const recData = inventarioMap.get(fila.recursoId);
-        const stockDisponible = recData?.cantidadDisponible ?? 0;
-
-        if (fila.cantidad <= 0 || !Number.isInteger(fila.cantidad)) {
-          nuevosErrores[`cantidad_${i}`] = 'La cantidad debe ser un número entero mayor a 0.';
-          algunInvalido = true;
-        } else if (fila.cantidad > stockDisponible) {
-          nuevosErrores[`cantidad_${i}`] = `Excede el stock disponible en bodega (máx. ${stockDisponible}).`;
-          algunInvalido = true;
-        }
-      }
-
-      if (algunInvalido && !nuevosErrores.recursos) {
-        nuevosErrores.recursos = 'Verifique los recursos e insumos ingresados.';
-      }
     }
 
     setErroresCampos(nuevosErrores);
@@ -331,13 +205,6 @@ export const ModalCrearEventoPrevencion: React.FC<ModalCrearEventoPrevencionProp
 
     setIsSubmitting(true);
 
-    const recursosLimpios: ItemRecursoSolicitadoPrevencion[] = filasRecursos
-      .filter((f) => Boolean(f.recursoId))
-      .map((f) => ({
-        recursoId: f.recursoId,
-        cantidad: Math.floor(Number(f.cantidad)),
-      }));
-
     const payload: CrearEventoPrevencionPayload = {
       nombre: nombre.trim(),
       descripcion: descripcion.trim(),
@@ -348,16 +215,14 @@ export const ModalCrearEventoPrevencion: React.FC<ModalCrearEventoPrevencionProp
       puntoCriticoId: puntoCriticoId ? puntoCriticoId : null,
       latitud,
       longitud,
-      patrullaId,
-      recursos: recursosLimpios.length > 0 ? recursosLimpios : undefined,
     };
 
     try {
       const eventoCreado = await crearEventoPrevencion(payload, userId);
 
       showSuccess(
-        `Evento de prevención registrado y patrulla despachada exitosamente. Código: ${eventoCreado.codigo}`,
-        'Operación Preventiva Despachada'
+        `Evento de prevención registrado exitosamente. Código: ${eventoCreado.codigo}`,
+        'Evento Preventivo Registrado'
       );
 
       if (onSuccess) {
@@ -605,204 +470,6 @@ export const ModalCrearEventoPrevencion: React.FC<ModalCrearEventoPrevencionProp
             <span className={styles.fieldError}>
               {erroresCampos.latitud || erroresCampos.longitud}
             </span>
-          )}
-        </div>
-
-        {/* Sección 3: Asignación de Patrulla Verificadora */}
-        <div className={styles.sectionTitle}>
-          <Truck size={16} />
-          <span>Despacho de Patrulla Verificadora</span>
-        </div>
-
-        <div>
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              marginBottom: '6px',
-              flexWrap: 'wrap',
-              gap: '6px',
-            }}
-          >
-            <label
-              htmlFor="prevencion-patrulla"
-              style={{
-                fontWeight: 600,
-                fontSize: 'var(--font-size-sm, 13px)',
-                color: 'var(--color-charcoal, #3B3F45)',
-              }}
-            >
-              Patrulla Asignada <span style={{ color: 'var(--color-danger, #D32F2F)' }}>*</span>
-            </label>
-
-            <label
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-                fontSize: '12px',
-                color: 'var(--color-text-muted, #5F676E)',
-                cursor: 'pointer',
-              }}
-            >
-              <input
-                type="checkbox"
-                checked={mostrarSoloDisponibles}
-                onChange={(e) => setMostrarSoloDisponibles(e.target.checked)}
-              />
-              <span>Mostrar solo patrullas disponibles</span>
-            </label>
-          </div>
-
-          <Select
-            id="prevencion-patrulla"
-            value={patrullaId}
-            onChange={(e) => setPatrullaId(e.target.value)}
-            disabled={isSubmitting}
-            error={erroresCampos.patrullaId}
-            options={
-              patrullasFiltradas.length > 0
-                ? patrullasFiltradas.map((p) => ({
-                    value: p.id,
-                    label: `${p.nombre} [${p.estado}] ${p.delegacionNombre ? `(${p.delegacionNombre})` : ''}`,
-                  }))
-                : [{ value: '', label: '-- No hay patrullas disponibles en este momento --' }]
-            }
-          />
-          <div style={{ fontSize: '11px', color: 'var(--color-text-muted, #5F676E)', marginTop: '4px' }}>
-            La patrulla seleccionada cambiará inmediatamente a estado <strong>EN_PREVENCION</strong> y recibirá una notificación en tiempo real.
-          </div>
-        </div>
-
-        {/* Sección 4: Asignación Opcional de Recursos Logísticos */}
-        <div className={styles.sectionTitle}>
-          <Boxes size={16} />
-          <span>Recursos Logísticos e Insumos en Terreno (Opcional)</span>
-        </div>
-
-        <div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
-            <span style={{ fontSize: '12px', color: 'var(--color-text-muted, #5F676E)' }}>
-              Asigne herramientas, sacos de arena o equipamiento necesario desde bodega si la labor lo requiere.
-            </span>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={handleAgregarFilaRecurso}
-              disabled={isSubmitting}
-            >
-              <Plus size={14} style={{ marginRight: '4px' }} />
-              <span>Agregar Insumo</span>
-            </Button>
-          </div>
-
-          {erroresCampos.recursos && (
-            <span className={styles.fieldError} style={{ marginTop: '6px' }}>
-              {erroresCampos.recursos}
-            </span>
-          )}
-
-          {filasRecursos.length === 0 ? (
-            <div className={styles.emptyRecursosNotice}>
-              Sin insumos asignados. La patrulla verificadora acudirá con su equipamiento táctico estándar.
-            </div>
-          ) : (
-            <table className={styles.recursosTable}>
-              <thead>
-                <tr>
-                  <th style={{ width: '55%' }}>Insumo / Recurso</th>
-                  <th style={{ width: '25%' }}>Stock Bodega</th>
-                  <th style={{ width: '15%' }}>Cantidad</th>
-                  <th style={{ width: '5%', textAlign: 'center' }}>Acción</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filasRecursos.map((fila, idx) => {
-                  const recData = inventarioMap.get(fila.recursoId);
-                  const stockDisponible = recData?.cantidadDisponible ?? 0;
-                  const errRec = erroresCampos[`recurso_${idx}`];
-                  const errCant = erroresCampos[`cantidad_${idx}`];
-
-                  return (
-                    <tr key={fila.idTemporal}>
-                      <td>
-                        <select
-                          value={fila.recursoId}
-                          onChange={(e) => handleRecursoChange(fila.idTemporal, e.target.value)}
-                          disabled={isSubmitting}
-                          style={{
-                            width: '100%',
-                            padding: '6px 8px',
-                            border: errRec ? '1px solid var(--color-danger, #D32F2F)' : '1px solid var(--border-color-neutral-dark, #CCD2D9)',
-                            backgroundColor: '#FFFFFF',
-                            fontSize: '12px',
-                          }}
-                        >
-                          <option value="">-- Seleccionar Recurso --</option>
-                          {inventario.map((r) => (
-                            <option key={r.id} value={r.id} disabled={r.cantidadDisponible <= 0}>
-                              {r.nombre} ({r.tipo}) {r.cantidadDisponible <= 0 ? '— Sin Stock' : ''}
-                            </option>
-                          ))}
-                        </select>
-                        {errRec && <span className={styles.fieldError}>{errRec}</span>}
-                      </td>
-
-                      <td>
-                        {fila.recursoId && recData ? (
-                          <span
-                            className={`${styles.stockBadge} ${
-                              stockDisponible > 5
-                                ? styles.stockBadgeAvailable
-                                : stockDisponible > 0
-                                ? styles.stockBadgeLow
-                                : ''
-                            }`}
-                          >
-                            {stockDisponible} un.
-                          </span>
-                        ) : (
-                          <span style={{ color: 'var(--color-text-muted, #5F676E)', fontSize: '11px' }}>—</span>
-                        )}
-                      </td>
-
-                      <td>
-                        <input
-                          type="number"
-                          min={1}
-                          max={stockDisponible > 0 ? stockDisponible : 9999}
-                          value={fila.cantidad}
-                          onChange={(e) => handleCantidadChange(fila.idTemporal, parseInt(e.target.value, 10) || 0)}
-                          disabled={isSubmitting || !fila.recursoId}
-                          style={{
-                            width: '70px',
-                            padding: '6px 8px',
-                            border: errCant ? '1px solid var(--color-danger, #D32F2F)' : '1px solid var(--border-color-neutral-dark, #CCD2D9)',
-                            backgroundColor: '#FFFFFF',
-                            fontSize: '12px',
-                          }}
-                        />
-                        {errCant && <span className={styles.fieldError}>{errCant}</span>}
-                      </td>
-
-                      <td style={{ textAlign: 'center' }}>
-                        <button
-                          type="button"
-                          className={styles.btnEliminarRecurso}
-                          onClick={() => handleEliminarFilaRecurso(fila.idTemporal)}
-                          title="Eliminar fila"
-                          disabled={isSubmitting}
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
           )}
         </div>
       </form>

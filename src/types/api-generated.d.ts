@@ -4879,7 +4879,7 @@ export interface paths {
                          * @description Identificador de la patrulla verificadora disponible asignada a la entrega
                          * @example 50000000-0000-4000-8000-000000000001
                          */
-                        patrullaId: string;
+                        patrullaId?: string | null;
                         /**
                          * @description Número estimado de familias o viviendas beneficiadas
                          * @default 0
@@ -5720,7 +5720,7 @@ export interface paths {
                          * @description Identificador de la patrulla verificadora disponible asignada al evento
                          * @example 50000000-0000-4000-8000-000000000001
                          */
-                        patrullaId: string;
+                        patrullaId?: string | null;
                         /**
                          * @description Listado de insumos o herramientas asignadas para la misión preventiva
                          * @default []
@@ -6368,7 +6368,7 @@ export interface paths {
                          * @description Identificador de la patrulla verificadora disponible a asignar
                          * @example 50000000-0000-4000-8000-000000000001
                          */
-                        patrullaId: string;
+                        patrullaId?: string | null;
                         /** @description Listado de insumos o activos individuales solicitados para la obra preventiva */
                         recursos: {
                             /**
@@ -9193,7 +9193,7 @@ export interface paths {
                                  * Format: uuid
                                  * @description Identificador de la patrulla destinataria
                                  */
-                                patrullaId: string;
+                                patrullaId?: string | null;
                                 /**
                                  * @description Estado actual del ciclo de vida de la notificación
                                  * @enum {string}
@@ -9331,7 +9331,7 @@ export interface paths {
                                  * Format: uuid
                                  * @description Identificador de la patrulla asignada
                                  */
-                                patrullaId: string;
+                                patrullaId?: string | null;
                                 /**
                                  * Format: uuid
                                  * @description Identificador del incidente asociado si aplica
