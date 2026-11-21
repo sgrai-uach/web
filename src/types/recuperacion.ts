@@ -1,4 +1,5 @@
 import type { paths } from '@/types/api-generated';
+import type { EstadoPatrullaEnum } from '@/types/patrullas';
 
 /**
  * Tipos TypeScript para el flujo de Creación de Eventos de Recuperación (HU-29).
@@ -89,7 +90,7 @@ export interface CrearEventoRecuperacionApiResponse {
 export interface PatrullaVerificadoraItem {
   id: string;
   nombre: string;
-  estado: 'DISPONIBLE' | 'EN_VERIFICACION' | 'EN_RECUPERACION' | 'NO_DISPONIBLE';
+  estado: EstadoPatrullaEnum;
   delegacionId?: string | null;
   delegacionNombre?: string | null;
 }

@@ -71,6 +71,7 @@ export const ModalEditarOperativoRecuperacion: React.FC<
 
   const [inventario, setInventario] = useState<RecursoItem[]>([]);
   const [patrullas, setPatrullas] = useState<PatrullaVerificadoraDTO[]>([]);
+  const [errorPatrullas, setErrorPatrullas] = useState<string | null>(null);
   const [cargandoCatalogos, setCargandoCatalogos] = useState<boolean>(false);
 
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
@@ -96,6 +97,7 @@ export const ModalEditarOperativoRecuperacion: React.FC<
       );
       setErroresCampos({});
       setErrorGeneral(null);
+      setErrorPatrullas(null);
       setCargandoCatalogos(true);
     });
 
@@ -109,6 +111,7 @@ export const ModalEditarOperativoRecuperacion: React.FC<
           patrullasService.listar({ limit: 100 }, userId).catch(() => ({
             exito: false,
             data: [],
+            mensaje: 'No fue posible consultar las patrullas disponibles.',
             meta: { total: 0, page: 1, limit: 100, totalPages: 1, hasNext: false, hasPrev: false },
           })),
         ]);
@@ -120,6 +123,11 @@ export const ModalEditarOperativoRecuperacion: React.FC<
         }
         if (Array.isArray(resPatrullas?.data)) {
           setPatrullas(resPatrullas.data);
+        }
+        if (resPatrullas && !resPatrullas.exito) {
+          setErrorPatrullas(
+            resPatrullas.mensaje || 'No fue posible consultar otras patrullas disponibles.'
+          );
         }
       } finally {
         if (activo) {
@@ -415,7 +423,16 @@ export const ModalEditarOperativoRecuperacion: React.FC<
             onChange={(e) => setPatrullaId(e.target.value)}
             options={opcionesPatrulla}
             error={erroresCampos.patrullaId}
-            helperText="Si selecciona otra patrulla disponible, la patrulla actual quedará liberada automáticamente."
+            helperText={
+              errorPatrullas
+                ? errorPatrullas
+                : !cargandoCatalogos &&
+                  patrullas.filter(
+                    (p) => p.id !== operativo.patrulla?.id && p.estado === 'DISPONIBLE'
+                  ).length === 0
+                ? 'No hay otras patrullas en estado DISPONIBLE para reasignar en este momento.'
+                : 'Si selecciona otra patrulla disponible, la patrulla actual quedará liberada automáticamente.'
+            }
             disabled={isSubmitting || cargandoCatalogos}
           />
         </div>

@@ -10,6 +10,9 @@ import Textarea from '@/components/ui/Textarea';
 import { useToast } from '@/components/ui/Toast';
 import { getCatalogos } from '@/services/catalogosService';
 import { getRecursos } from '@/services/recursosService';
+import { patrullasService } from '@/services/patrullasService';
+import { formatearEstado } from '@/lib/utils/estadoUtils';
+import InlineNotice from '@/components/ui/InlineNotice';
 import {
   crearEventoRecuperacion,
   RecuperacionServiceError,
@@ -59,10 +62,20 @@ export const ModalCrearEventoRecuperacion: React.FC<ModalCrearEventoRecuperacion
 }) => {
   const { showSuccess, showError } = useToast();
 
-  // Lista de patrullas a desplegar
+  // Catálogos e inventario
+  const [delegaciones, setDelegaciones] = useState<CatalogoItem[]>([]);
+  const [inventario, setInventario] = useState<RecursoItem[]>([]);
+  const [patrullasCargadas, setPatrullasCargadas] = useState<PatrullaVerificadoraItem[] | null>(null);
+  const [errorPatrullas, setErrorPatrullas] = useState<string | null>(null);
+  const [cargandoCatalogos, setCargandoCatalogos] = useState(false);
+  const [mostrarSoloDisponibles, setMostrarSoloDisponibles] = useState(true);
+
+  // Lista de patrullas a desplegar: prop explícita > API en vivo > seed de respaldo
   const patrullas = useMemo(() => {
-    return patrullasProp && patrullasProp.length > 0 ? patrullasProp : PATRULLAS_OFICIALES_SEED;
-  }, [patrullasProp]);
+    if (patrullasProp && patrullasProp.length > 0) return patrullasProp;
+    if (patrullasCargadas !== null) return patrullasCargadas;
+    return PATRULLAS_OFICIALES_SEED;
+  }, [patrullasProp, patrullasCargadas]);
 
   // Estados del formulario
   const [nombre, setNombre] = useState('');
@@ -83,12 +96,6 @@ export const ModalCrearEventoRecuperacion: React.FC<ModalCrearEventoRecuperacion
     { idTemporal: 'recurso-1', recursoId: '', cantidad: 1 },
   ]);
 
-  // Catálogos e inventario
-  const [delegaciones, setDelegaciones] = useState<CatalogoItem[]>([]);
-  const [inventario, setInventario] = useState<RecursoItem[]>([]);
-  const [cargandoCatalogos, setCargandoCatalogos] = useState(false);
-  const [mostrarSoloDisponibles, setMostrarSoloDisponibles] = useState(true);
-
   // Errores y estado de envío
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [erroresCampos, setErroresCampos] = useState<Record<string, string>>({});
@@ -103,35 +110,32 @@ export const ModalCrearEventoRecuperacion: React.FC<ModalCrearEventoRecuperacion
     return patrullas.filter((p) => p.estado === 'DISPONIBLE');
   }, [patrullas, mostrarSoloDisponibles]);
 
-  // Carga asíncrona de catálogos e inventario al abrir
+  // Carga asíncrona de catálogos, inventario y patrullas al abrir
   useEffect(() => {
     let activo = true;
 
     if (!isOpen) return;
 
-    // Ejecutar en microtarea para evitar setState síncrono en cuerpo del efecto
     queueMicrotask(() => {
       if (!activo) return;
       setErroresCampos({});
       setBannerConflicto(null);
       setErrorGeneral(null);
-
-      const primeraDisponible = patrullas.find((p) => p.estado === 'DISPONIBLE');
-      if (primeraDisponible) {
-        setPatrullaId((prev) => (prev ? prev : primeraDisponible.id));
-      } else if (patrullas.length > 0) {
-        setPatrullaId((prev) => (prev ? prev : patrullas[0].id));
-      }
+      setErrorPatrullas(null);
+      setCargandoCatalogos(true);
     });
 
     void (async () => {
       try {
-        const [resCatalogos, resRecursos] = await Promise.all([
+        const [resCatalogos, resRecursos, resPatrullas] = await Promise.all([
           getCatalogos().catch(() => ({ delegaciones: [], roles: [], especialidades: [], cargos: [] })),
           getRecursos({ pagina: 1, limite: 100, estado: 'DISPONIBLE' }, userId).catch(() => ({
             data: [],
             meta: { total: 0, pagina: 1, limite: 100, totalPaginas: 1 },
           })),
+          patrullasProp && patrullasProp.length > 0
+            ? Promise.resolve(null)
+            : patrullasService.listar({ limit: 100 }, userId).catch(() => null),
         ]);
 
         if (!activo) return;
@@ -141,6 +145,23 @@ export const ModalCrearEventoRecuperacion: React.FC<ModalCrearEventoRecuperacion
         }
         if (resRecursos?.data) {
           setInventario(resRecursos.data);
+        }
+        if (resPatrullas) {
+          if (resPatrullas.exito && Array.isArray(resPatrullas.data)) {
+            setPatrullasCargadas(
+              resPatrullas.data.map((p) => ({
+                id: p.id,
+                nombre: p.nombre,
+                estado: p.estado,
+                delegacionId: p.delegacion?.id ?? null,
+                delegacionNombre: p.delegacion?.nombre ?? null,
+              }))
+            );
+          } else if (!resPatrullas.exito) {
+            setErrorPatrullas(
+              resPatrullas.mensaje || 'No fue posible consultar las patrullas disponibles.'
+            );
+          }
         }
       } finally {
         if (activo) {
@@ -152,7 +173,24 @@ export const ModalCrearEventoRecuperacion: React.FC<ModalCrearEventoRecuperacion
     return () => {
       activo = false;
     };
-  }, [isOpen, patrullas, userId]);
+  }, [isOpen, patrullasProp, userId]);
+
+  // Mantener selección coherente: solo preseleccionar patrullas DISPONIBLE
+  useEffect(() => {
+    if (!isOpen) return;
+    queueMicrotask(() => {
+      setPatrullaId((prev) => {
+        if (prev) {
+          const actual = patrullas.find((p) => p.id === prev);
+          if (actual && actual.estado === 'DISPONIBLE') {
+            return prev;
+          }
+        }
+        const primeraDisponible = patrullas.find((p) => p.estado === 'DISPONIBLE');
+        return primeraDisponible ? primeraDisponible.id : '';
+      });
+    });
+  }, [isOpen, patrullas]);
 
   // Diccionario rápido de recursos para consultar stock
   const inventarioMap = useMemo(() => {
@@ -331,6 +369,24 @@ export const ModalCrearEventoRecuperacion: React.FC<ModalCrearEventoRecuperacion
             mensaje:
               'La patrulla seleccionada acaba de ser asignada a otra tarea o no se encuentra disponible. Seleccione otra patrulla disponible.',
           });
+          if (!patrullasProp || patrullasProp.length === 0) {
+            void patrullasService
+              .listar({ limit: 100 }, userId)
+              .then((res) => {
+                if (res.exito && Array.isArray(res.data)) {
+                  setPatrullasCargadas(
+                    res.data.map((p) => ({
+                      id: p.id,
+                      nombre: p.nombre,
+                      estado: p.estado,
+                      delegacionId: p.delegacion?.id ?? null,
+                      delegacionNombre: p.delegacion?.nombre ?? null,
+                    }))
+                  );
+                }
+              })
+              .catch(() => {});
+          }
         } else if (err.tipoConflicto === 'STOCK_INSUFICIENTE') {
           setBannerConflicto({
             tipo: 'STOCK_INSUFICIENTE',
@@ -560,19 +616,28 @@ export const ModalCrearEventoRecuperacion: React.FC<ModalCrearEventoRecuperacion
             </label>
           </div>
 
+          {errorPatrullas && <InlineNotice variant="warning">{errorPatrullas}</InlineNotice>}
+
           <Select
             id="recuperacion-patrulla"
             value={patrullaId}
             onChange={(e) => setPatrullaId(e.target.value)}
             error={erroresCampos.patrullaId}
-            disabled={isSubmitting}
+            disabled={isSubmitting || cargandoCatalogos}
           >
-            <option value="">Seleccione una patrulla verificadora...</option>
+            <option value="">
+              {cargandoCatalogos
+                ? 'Cargando patrullas...'
+                : 'Seleccione una patrulla verificadora...'}
+            </option>
             {patrullasFiltradas.map((p) => {
               const esDisponible = p.estado === 'DISPONIBLE';
+              const etiquetaEstado = esDisponible
+                ? 'Disponible'
+                : `No disponible (${formatearEstado(p.estado)})`;
               return (
-                <option key={p.id} value={p.id}>
-                  {p.nombre} — {esDisponible ? '🟢 DISPONIBLE' : `🔴 (${p.estado})`}
+                <option key={p.id} value={p.id} disabled={!esDisponible}>
+                  {p.nombre} — {etiquetaEstado}
                   {p.delegacionNombre ? ` — ${p.delegacionNombre}` : ''}
                 </option>
               );
