@@ -39,7 +39,7 @@ Existen cuatro puntos directos de acceso a la pantalla de creación:
 3. **Estimación de Afectados (Modo Aproximado o Desglose por Familia — Opcional):**
    * *Modo aproximado (por defecto):* Si se desconoce el detalle interno del hogar, ingresar directamente los totales estimados en **Personas Afectadas Estimadas** y **Familias / Hogares Afectados**.
    * *Nivel de Compromiso Habitacional y Daños Estimados (Opcionales):* Permite clasificar el daño general de la vivienda (`Sin daño estructural`, `Daño leve`, `Daño moderado`, `Daño grave / Inhabitable`) y detallar daños materiales.
-   * *Desglose por Familia / Hogar (Opcional):* Al presionar **"+ Añadir Familia / Hogar"**, se despliegan tarjetas por grupo familiar homologadas con los informes de terreno (**H38/H39**): referencia del hogar, total de integrantes, niños/adolescentes, adultos mayores, personas con discapacidad, electrodependientes, mascotas afectadas y compromiso habitacional. Al añadir o quitar familias, los totales de personas y familias se recalculan automáticamente (pudiendo volver al modo aproximado en cualquier momento).
+   * *Desglose por Familia / Hogar (Opcional):* Al presionar **"+ Añadir Familia / Hogar"**, se despliegan tarjetas por grupo familiar homologadas con los informes de terreno (**H38/H39**): referencia del hogar, total de integrantes, niños/adolescentes, adultos mayores, personas con discapacidad, electrodependientes, mascotas afectadas y compromiso habitacional. **Importante:** al ingresar familias en el desglose, cualquier valor aproximado ingresado previamente queda totalmente descartado y es reemplazado por el conteo exacto de las familias registradas (si vuelve a modo aproximado, los campos se limpian para ingresar una nueva estimación).
 4. **Vincular a Incidente en Curso (Opcional):**
    * *Sin vincular a incidente:* Selección por defecto para registrar un caso social independiente / excepcional que no provenga del flujo estándar de un incidente.
    * *Seleccionar un incidente:* Prioriza los casos marcados con `[FIBE Requerida]` y excluye incidentes cerrados como `NO_ABORDABLE` sin requerimiento FIBE. Al seleccionar un incidente, se precargan automáticamente el tipo de afectación mapeado, la prioridad, la ubicación, el contacto, las personas consolidadas del informe de cierre de patrulla (**H39**) y las familias rescatadas de la evaluación de prioridad (**H38**).
@@ -80,9 +80,9 @@ Si se dispone de información preliminar de los habitantes:
 
 ### Paso 6: Vista Previa y Despliegue de Ficha Técnica (Opcional)
 * En cualquier momento durante el llenado del formulario, el usuario puede presionar el botón **"Desplegar Ficha del Caso"**.
-* Se abrirá un modal con la ficha técnica completa que consolida todos los datos ingresados en tiempo real (caracterización del caso, daños, métricas de personas/familias, estado proyectado, asistente social seleccionado, coordenadas con botón para copiar, enlace a OpenStreetMap y datos de contacto).
+* Se abrirá un modal con la ficha técnica completa que consolida todos los datos ingresados en tiempo real: caracterización del caso, asistente social asignado, evaluación demográfica y condición habitacional (indicando si corresponde a *Estimación Aproximada* o *Desglose por Familia*, resumen de grupos vulnerables, nivel de compromiso habitacional, daños materiales y detalle por hogar), coordenadas con botón para copiar, enlace a OpenStreetMap, datos de contacto y trazabilidad de creación/actualización.
 * Desde la misma ficha es posible revisar la información y presionar **"Confirmar y Guardar Evento"**.
-* Asimismo, en la bandeja general de Asistencia Social, cada registro cuenta con la acción **"Ver Ficha"** para consultar el expediente técnico de cualquier caso registrado.
+* Asimismo, en la bandeja general de Asistencia Social, cada registro cuenta con la acción **"Ver Ficha"** para consultar el expediente técnico completo de cualquier caso registrado.
 
 ---
 
