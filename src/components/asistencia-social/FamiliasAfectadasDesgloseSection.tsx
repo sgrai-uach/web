@@ -1,10 +1,11 @@
 'use client';
 
 import React from 'react';
-import { Home, Plus, Trash2, Users, RotateCcw, AlertCircle, Info } from 'lucide-react';
+import { Home, Plus, Trash2, Users, RotateCcw, AlertCircle, Info, Phone } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import Select from '@/components/ui/Select';
+import { validarCoherenciaFamiliaSocial } from '@/lib/utils/asistenciaSocialIncidenteUtils';
 import {
   NIVELES_COMPROMISO_VIVIENDA,
   type FamiliaAfectadaSocialDTO,
@@ -56,21 +57,10 @@ export default function FamiliasAfectadasDesgloseSection({
   ) => {
     const actualizadas = familias.map((fam, idx) => {
       if (idx !== indice) return fam;
-      const siguiente: FamiliaAfectadaSocialDTO = {
+      return {
         ...fam,
         [campo]: valor,
       };
-
-      const ninos = Number(siguiente.cantidadNinos) || 0;
-      const adultosMayores = Number(siguiente.cantidadAdultosMayores) || 0;
-      if (
-        (campo === 'cantidadNinos' || campo === 'cantidadAdultosMayores') &&
-        ninos + adultosMayores > (Number(siguiente.nucleoFamiliarTotal) || 0)
-      ) {
-        siguiente.nucleoFamiliarTotal = ninos + adultosMayores;
-      }
-
-      return siguiente;
     });
     onChangeFamilias(actualizadas);
   };
@@ -225,7 +215,16 @@ export default function FamiliasAfectadasDesgloseSection({
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            {familias.map((fam, idx) => (
+            {familias.map((fam, idx) => {
+              const erroresFam = validarCoherenciaFamiliaSocial(fam);
+              const mensajesCoherencia = [
+                erroresFam.nucleoFamiliarTotal,
+                erroresFam.cantidadNinos,
+                erroresFam.personasDiscapacitadas,
+                erroresFam.personasElectrodependientes,
+              ].filter(Boolean);
+
+              return (
               <div
                 key={fam.id || idx}
                 data-testid={`familia-card-${idx}`}
@@ -329,6 +328,7 @@ export default function FamiliasAfectadasDesgloseSection({
                     min={1}
                     value={fam.nucleoFamiliarTotal}
                     disabled={disabled}
+                    error={erroresFam.nucleoFamiliarTotal}
                     onChange={(e) =>
                       handleActualizarCampo(
                         idx,
@@ -345,6 +345,7 @@ export default function FamiliasAfectadasDesgloseSection({
                     min={0}
                     value={fam.cantidadNinos ?? 0}
                     disabled={disabled}
+                    error={erroresFam.cantidadNinos}
                     onChange={(e) =>
                       handleActualizarCampo(idx, 'cantidadNinos', parseNonNegInt(e.target.value))
                     }
@@ -373,6 +374,7 @@ export default function FamiliasAfectadasDesgloseSection({
                     min={0}
                     value={fam.personasDiscapacitadas ?? 0}
                     disabled={disabled}
+                    error={erroresFam.personasDiscapacitadas}
                     onChange={(e) =>
                       handleActualizarCampo(
                         idx,
@@ -389,6 +391,7 @@ export default function FamiliasAfectadasDesgloseSection({
                     min={0}
                     value={fam.personasElectrodependientes ?? 0}
                     disabled={disabled}
+                    error={erroresFam.personasElectrodependientes}
                     onChange={(e) =>
                       handleActualizarCampo(
                         idx,
@@ -414,8 +417,96 @@ export default function FamiliasAfectadasDesgloseSection({
                     }
                   />
                 </div>
+
+                {mensajesCoherencia.length > 0 && (
+                  <div
+                    role="alert"
+                    data-testid={`familia-coherencia-error-${idx}`}
+                    style={{
+                      backgroundColor: 'var(--color-danger-bg, #FFEBEE)',
+                      border: '1px solid var(--color-danger, #D32F2F)',
+                      color: 'var(--color-danger, #D32F2F)',
+                      padding: '8px 12px',
+                      fontSize: '12px',
+                      fontWeight: 600,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                    }}
+                  >
+                    <AlertCircle size={14} style={{ flexShrink: 0 }} />
+                    <span>{mensajesCoherencia[0]}</span>
+                  </div>
+                )}
+
+                <div
+                  style={{
+                    backgroundColor: 'var(--color-bg-light, #ECEFF3)',
+                    border: '1px solid var(--border-color-neutral, #DFE3E8)',
+                    padding: '12px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '10px',
+                  }}
+                >
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      fontSize: '12px',
+                      fontWeight: 700,
+                      color: 'var(--color-primary-teal-dark, #14505A)',
+                      textTransform: 'uppercase',
+                    }}
+                  >
+                    <Phone size={14} />
+                    <span>Datos Preliminares de Contacto de la Familia (Opcional)</span>
+                  </div>
+
+                  <div
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))',
+                      gap: '10px',
+                    }}
+                  >
+                    <Input
+                      id={`fam-contacto-nombre-${idx}`}
+                      label="Nombre de Contacto"
+                      placeholder="Ej. Ana Veas"
+                      value={fam.contactoNombre || ''}
+                      disabled={disabled}
+                      onChange={(e) =>
+                        handleActualizarCampo(idx, 'contactoNombre', e.target.value)
+                      }
+                    />
+                    <Input
+                      id={`fam-contacto-telefono-${idx}`}
+                      label="Teléfono de Contacto"
+                      placeholder="Ej. +56912345678"
+                      value={fam.contactoTelefono || ''}
+                      disabled={disabled}
+                      onChange={(e) =>
+                        handleActualizarCampo(idx, 'contactoTelefono', e.target.value)
+                      }
+                    />
+                    <Input
+                      id={`fam-contacto-rut-${idx}`}
+                      label="RUT Preliminar (si se conoce)"
+                      placeholder="Ej. 12.345.678-5"
+                      value={fam.contactoRut || ''}
+                      disabled={disabled}
+                      error={erroresFam.contactoRut}
+                      onChange={(e) =>
+                        handleActualizarCampo(idx, 'contactoRut', e.target.value)
+                      }
+                    />
+                  </div>
+                </div>
               </div>
-            ))}
+              );
+            })}
           </div>
 
           <div

@@ -254,7 +254,7 @@ export default function EventoAsistenciaSocialDetalleModal({
         onClick={onClose}
         disabled={guardando}
       >
-        Cerrar Ficha
+        Cerrar Detalle
       </Button>
 
       {esVistaPrevia && onConfirmarGuardado && (
@@ -278,7 +278,7 @@ export default function EventoAsistenciaSocialDetalleModal({
   return (
     <Modal
       isOpen={isOpen}
-      title={esVistaPrevia ? 'Ficha de Evento Social (Vista Previa)' : 'Ficha de Asistencia Social FIBE'}
+      title={esVistaPrevia ? 'Detalle de Evento de Asistencia Social (Vista Previa)' : 'Detalle de Evento de Asistencia Social'}
       onClose={onClose}
       actions={actions}
       maxWidth="800px"
@@ -364,7 +364,7 @@ export default function EventoAsistenciaSocialDetalleModal({
                 ...getEstadoBadgeStyle(datos.estado),
               }}
             >
-              {datos.estado ? datos.estado.replace(/_/g, ' ') : 'PENDIENTE FIBE'}
+              {datos.estado ? datos.estado.replace(/_/g, ' ') : 'PENDIENTE'}
             </span>
           </div>
         </div>
@@ -487,7 +487,7 @@ export default function EventoAsistenciaSocialDetalleModal({
                   textTransform: 'uppercase',
                 }}
               >
-                Evaluación Demográfica y Condición Habitacional
+                Evaluación Preliminar y Condición Habitacional
               </div>
 
               {tieneDesgloseFamilias ? (
@@ -520,9 +520,13 @@ export default function EventoAsistenciaSocialDetalleModal({
               )}
             </div>
 
-            {tieneDesgloseFamilias && (
+            {tieneDesgloseFamilias ? (
               <div style={{ fontSize: '11px', color: 'var(--color-text-muted, #5F676E)' }}>
-                Totales calculados desde el desglose familiar (aproximación descartada).
+                Totales calculados desde el desglose familiar (aproximación descartada). Antecedentes preliminares; no constituyen una FIBE (Ficha Básica de Emergencias).
+              </div>
+            ) : (
+              <div style={{ fontSize: '11px', color: 'var(--color-text-muted, #5F676E)' }}>
+                Antecedentes preliminares; no constituyen una FIBE (Ficha Básica de Emergencias).
               </div>
             )}
 
@@ -713,6 +717,33 @@ export default function EventoAsistenciaSocialDetalleModal({
                           <strong>Mascotas:</strong> {fam.mascotasAfectadas ?? 0}
                         </span>
                       </div>
+                      {(fam.contactoNombre?.trim() ||
+                        fam.contactoTelefono?.trim() ||
+                        fam.contactoRut?.trim()) && (
+                        <div
+                          style={{
+                            marginTop: '4px',
+                            paddingTop: '4px',
+                            borderTop: '1px dashed var(--border-color-neutral, #DFE3E8)',
+                            fontSize: '11px',
+                            color: 'var(--color-text-muted, #5F676E)',
+                            display: 'flex',
+                            flexWrap: 'wrap',
+                            gap: '4px 10px',
+                          }}
+                        >
+                          <span>
+                            <strong>Contacto preliminar:</strong>{' '}
+                            {fam.contactoNombre?.trim() || 'Sin nombre'}
+                          </span>
+                          {fam.contactoTelefono?.trim() && (
+                            <span>Tel: {fam.contactoTelefono.trim()}</span>
+                          )}
+                          {fam.contactoRut?.trim() && (
+                            <span>RUT: {fam.contactoRut.trim()}</span>
+                          )}
+                        </div>
+                      )}
                     </div>
                   );
                 })}
@@ -822,55 +853,142 @@ export default function EventoAsistenciaSocialDetalleModal({
             border: '1px solid var(--border-color-neutral, #DFE3E8)',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
             <User size={18} color="var(--color-primary-teal, #1B6F7D)" />
             <Heading as="h4" variant="h4" color="teal" noMargin>
-              3. Datos Preliminares de Contacto
+              {tieneDesgloseFamilias
+                ? '3. Datos Preliminares de Contacto por Familia'
+                : '3. Datos Preliminares de Contacto'}
             </Heading>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px' }}>
-            <div>
-              <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--color-text-muted, #5F676E)', textTransform: 'uppercase' }}>
-                Nombre de Contacto / Jefe Hogar
-              </span>
-              <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-text-dark, #2B2B2B)', marginTop: '2px' }}>
-                {datos.contactoNombre || 'No especificado'}
-              </div>
-            </div>
-
-            <div>
-              <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--color-text-muted, #5F676E)', textTransform: 'uppercase' }}>
-                Teléfono de Contacto
-              </span>
-              <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-text-dark, #2B2B2B)', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                {datos.contactoTelefono ? (
-                  <>
-                    <Phone size={13} color="var(--color-primary-teal, #1B6F7D)" />
-                    <span>{datos.contactoTelefono}</span>
-                  </>
-                ) : (
-                  'No especificado'
-                )}
-              </div>
-            </div>
-
-            <div>
-              <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--color-text-muted, #5F676E)', textTransform: 'uppercase' }}>
-                RUT
-              </span>
-              <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-text-dark, #2B2B2B)', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                {datos.contactoRut ? (
-                  <>
-                    <FileText size={13} color="var(--color-primary-teal, #1B6F7D)" />
-                    <span>{datos.contactoRut}</span>
-                  </>
-                ) : (
-                  'No especificado'
-                )}
-              </div>
-            </div>
+          <div
+            style={{
+              fontSize: '12px',
+              color: 'var(--color-text-muted, #5F676E)',
+              marginBottom: '12px',
+            }}
+          >
+            Antecedentes preliminares de contacto; no corresponden a la FIBE formal (Ficha Básica de Emergencias).
           </div>
+
+          {tieneDesgloseFamilias ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {familiasLista.map((fam, idx) => {
+                const tieneContactoFam = Boolean(
+                  fam.contactoNombre?.trim() ||
+                    fam.contactoTelefono?.trim() ||
+                    fam.contactoRut?.trim()
+                );
+                return (
+                  <div
+                    key={fam.id || idx}
+                    data-testid={`detalle-contacto-familia-${idx}`}
+                    style={{
+                      padding: '10px 12px',
+                      backgroundColor: 'var(--color-bg-light, #ECEFF3)',
+                      border: '1px solid var(--border-color-neutral, #DFE3E8)',
+                      borderLeft: '3px solid var(--color-primary-teal, #1B6F7D)',
+                    }}
+                  >
+                    <div
+                      style={{
+                        fontSize: '12px',
+                        fontWeight: 700,
+                        color: 'var(--color-charcoal-dark, #24272B)',
+                        marginBottom: '6px',
+                      }}
+                    >
+                      Familia #{idx + 1}
+                      {fam.referencia?.trim() ? ` — ${fam.referencia.trim()}` : ''}
+                    </div>
+                    {tieneContactoFam ? (
+                      <div
+                        style={{
+                          display: 'grid',
+                          gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+                          gap: '8px',
+                          fontSize: '13px',
+                        }}
+                      >
+                        <div>
+                          <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--color-text-muted, #5F676E)', textTransform: 'uppercase' }}>
+                            Nombre
+                          </span>
+                          <div style={{ fontWeight: 600 }}>
+                            {fam.contactoNombre?.trim() || 'No especificado'}
+                          </div>
+                        </div>
+                        <div>
+                          <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--color-text-muted, #5F676E)', textTransform: 'uppercase' }}>
+                            Teléfono
+                          </span>
+                          <div style={{ fontWeight: 600 }}>
+                            {fam.contactoTelefono?.trim() || 'No especificado'}
+                          </div>
+                        </div>
+                        <div>
+                          <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--color-text-muted, #5F676E)', textTransform: 'uppercase' }}>
+                            RUT
+                          </span>
+                          <div style={{ fontWeight: 600 }}>
+                            {fam.contactoRut?.trim() || 'No especificado'}
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div style={{ fontSize: '12px', color: 'var(--color-text-muted, #5F676E)', fontStyle: 'italic' }}>
+                        Sin contacto preliminar registrado
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px' }}>
+              <div>
+                <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--color-text-muted, #5F676E)', textTransform: 'uppercase' }}>
+                  Nombre de Contacto / Jefe Hogar
+                </span>
+                <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-text-dark, #2B2B2B)', marginTop: '2px' }}>
+                  {datos.contactoNombre || 'No especificado'}
+                </div>
+              </div>
+
+              <div>
+                <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--color-text-muted, #5F676E)', textTransform: 'uppercase' }}>
+                  Teléfono de Contacto
+                </span>
+                <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-text-dark, #2B2B2B)', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  {datos.contactoTelefono ? (
+                    <>
+                      <Phone size={13} color="var(--color-primary-teal, #1B6F7D)" />
+                      <span>{datos.contactoTelefono}</span>
+                    </>
+                  ) : (
+                    'No especificado'
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--color-text-muted, #5F676E)', textTransform: 'uppercase' }}>
+                  RUT
+                </span>
+                <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-text-dark, #2B2B2B)', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  {datos.contactoRut ? (
+                    <>
+                      <FileText size={13} color="var(--color-primary-teal, #1B6F7D)" />
+                      <span>{datos.contactoRut}</span>
+                    </>
+                  ) : (
+                    'No especificado'
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* 4. Trazabilidad Institucional */}

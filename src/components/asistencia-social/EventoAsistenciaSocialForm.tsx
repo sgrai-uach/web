@@ -52,6 +52,8 @@ import {
   clasificarYOrdenarIncidentesParaVinculacion,
   construirDetallesEvaluacionSocial,
   extraerContextoSocialDesdeIncidente,
+  extraerContactoPrincipalDesdeFamilias,
+  validarCoherenciaFamiliaSocial,
   type ContextoSocialDesdeIncidente,
   type IncidenteDetalleCompatible,
   type IncidenteResumenCompatible,
@@ -416,6 +418,9 @@ export default function EventoAsistenciaSocialForm({
         );
         setPersonasAfectadas(totalPers);
         setFamiliasAfectadas(nuevasFamilias.length);
+        setContactoNombre('');
+        setContactoTelefono('');
+        setContactoRut('');
       } else {
         setPersonasAfectadas('');
         setFamiliasAfectadas('');
@@ -453,6 +458,33 @@ export default function EventoAsistenciaSocialForm({
           ? 0
           : Number(familiasAfectadas);
 
+    // Validación de coherencia demográfica y RUT por familia antes de construir payload
+    for (let idx = 0; idx < familiasDesglosadas.length; idx++) {
+      const erroresFam = validarCoherenciaFamiliaSocial(familiasDesglosadas[idx]);
+      const primerError = Object.values(erroresFam)[0];
+      if (primerError) {
+        const mensaje = `Familia #${idx + 1}: ${primerError}`;
+        setErrores({ detallesEvaluacion: mensaje });
+        showError(mensaje, 'Incoherencia en catastro familiar');
+        return;
+      }
+    }
+
+    const tieneFamilias = familiasDesglosadas.length > 0;
+    const contactoPrincipalFamilias = tieneFamilias
+      ? extraerContactoPrincipalDesdeFamilias(familiasDesglosadas)
+      : null;
+
+    const contactoNombreFinal = tieneFamilias
+      ? contactoPrincipalFamilias!.contactoNombre.trim() || null
+      : contactoNombre.trim() || null;
+    const contactoTelefonoFinal = tieneFamilias
+      ? contactoPrincipalFamilias!.contactoTelefono.trim() || null
+      : contactoTelefono.trim() || null;
+    const contactoRutFinal = tieneFamilias
+      ? contactoPrincipalFamilias!.contactoRut.trim() || null
+      : contactoRut.trim() || null;
+
     // Validación cliente Zod
     const validacion = crearEventoAsistenciaSocialSchema.safeParse({
       descripcion,
@@ -463,9 +495,9 @@ export default function EventoAsistenciaSocialForm({
       personasAfectadas: parsedPersonas,
       familiasAfectadas: parsedFamilias,
       prioridad,
-      contactoNombre: contactoNombre.trim() || null,
-      contactoTelefono: contactoTelefono.trim() || null,
-      contactoRut: contactoRut.trim() || null,
+      contactoNombre: contactoNombreFinal,
+      contactoTelefono: contactoTelefonoFinal,
+      contactoRut: contactoRutFinal,
       delegacionId: delegacionId || null,
       incidenteId: incidenteId.trim() || null,
       asistenteSocialId: asistenteSocialId.trim() || null,
@@ -499,9 +531,9 @@ export default function EventoAsistenciaSocialForm({
         personasAfectadas: parsedPersonas,
         familiasAfectadas: parsedFamilias,
         prioridad: prioridad as PrioridadEventoSocial,
-        contactoNombre: contactoNombre.trim() || null,
-        contactoTelefono: contactoTelefono.trim() || null,
-        contactoRut: contactoRut.trim() || null,
+        contactoNombre: contactoNombreFinal,
+        contactoTelefono: contactoTelefonoFinal,
+        contactoRut: contactoRutFinal,
         delegacionId: delegacionId || null,
         incidenteId: incidenteId.trim() || null,
         asistenteSocialId: asistenteSocialId.trim() || null,
@@ -1130,7 +1162,7 @@ export default function EventoAsistenciaSocialForm({
         </div>
       </div>
 
-      {/* SECCIÓN 3: Datos Preliminares de Contacto (Opcionales) */}
+      {/* SECCIÓN 3: Datos Preliminares de Contacto */}
       <div
         style={{
           backgroundColor: '#FFFFFF',
@@ -1141,38 +1173,56 @@ export default function EventoAsistenciaSocialForm({
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: 'var(--space-4, 16px)' }}>
           <User size={20} color="var(--color-primary-teal, #1B6F7D)" />
           <Heading as="h2" variant="h3" color="teal">
-            3. Datos Preliminares de Contacto (Opcional)
+            {familiasDesglosadas.length > 0
+              ? '3. Datos Preliminares de Contacto por Familia'
+              : '3. Datos Preliminares de Contacto (Opcional)'}
           </Heading>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 'var(--space-4, 16px)' }}>
-          <div>
-            <Input
-              label="Nombre de Contacto / Jefe de Hogar"
-              placeholder="Ej. María González"
-              value={contactoNombre}
-              onChange={(e) => setContactoNombre(e.target.value)}
-            />
+        {familiasDesglosadas.length > 0 ? (
+          <div
+            data-testid="aviso-contacto-por-familia"
+            style={{
+              backgroundColor: 'var(--color-info-bg, #E0F2F1)',
+              border: '1px solid var(--color-primary-teal, #1B6F7D)',
+              padding: '12px 14px',
+              fontSize: '13px',
+              color: 'var(--color-text-dark, #2B2B2B)',
+              lineHeight: 1.45,
+            }}
+          >
+            Los datos preliminares de contacto se gestionan de forma separada en cada tarjeta familiar de la Sección 1 (cualquier contacto general aproximado previo fue descartado). Estos antecedentes son preliminares y no corresponden a una FIBE formal.
           </div>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 'var(--space-4, 16px)' }}>
+            <div>
+              <Input
+                label="Nombre de Contacto / Jefe de Hogar"
+                placeholder="Ej. María González"
+                value={contactoNombre}
+                onChange={(e) => setContactoNombre(e.target.value)}
+              />
+            </div>
 
-          <div>
-            <Input
-              label="Teléfono de Contacto"
-              placeholder="Ej. +56912345678"
-              value={contactoTelefono}
-              onChange={(e) => setContactoTelefono(e.target.value)}
-            />
-          </div>
+            <div>
+              <Input
+                label="Teléfono de Contacto"
+                placeholder="Ej. +56912345678"
+                value={contactoTelefono}
+                onChange={(e) => setContactoTelefono(e.target.value)}
+              />
+            </div>
 
-          <div>
-            <Input
-              label="RUT (si se conoce)"
-              placeholder="Ej. 12.345.678-9"
-              value={contactoRut}
-              onChange={(e) => setContactoRut(e.target.value)}
-            />
+            <div>
+              <Input
+                label="RUT (si se conoce)"
+                placeholder="Ej. 12.345.678-9"
+                value={contactoRut}
+                onChange={(e) => setContactoRut(e.target.value)}
+              />
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* SECCIÓN 4: Asignación Inmediata de Asistente Social (Opcional) */}
@@ -1264,7 +1314,19 @@ export default function EventoAsistenciaSocialForm({
           type="button"
           variant="outline"
           size="lg"
-          onClick={() => setFichaModalAbierta(true)}
+          onClick={() => {
+            for (let idx = 0; idx < familiasDesglosadas.length; idx++) {
+              const erroresFam = validarCoherenciaFamiliaSocial(familiasDesglosadas[idx]);
+              const primerError = Object.values(erroresFam)[0];
+              if (primerError) {
+                const mensaje = `Familia #${idx + 1}: ${primerError}`;
+                setErrores({ detallesEvaluacion: mensaje });
+                showError(mensaje, 'Incoherencia en catastro familiar');
+                return;
+              }
+            }
+            setFichaModalAbierta(true);
+          }}
           disabled={enviando}
           style={{
             backgroundColor: '#FFFFFF',
@@ -1276,7 +1338,7 @@ export default function EventoAsistenciaSocialForm({
           }}
         >
           <FileText size={18} />
-          <span>Desplegar Ficha del Caso</span>
+          <span>Vista Previa del Evento</span>
         </Button>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3, 12px)', flexWrap: 'wrap' }}>
@@ -1328,9 +1390,18 @@ export default function EventoAsistenciaSocialForm({
           incidenteId: incidenteId || null,
           incidenteCodigo:
             incidentesDisponibles.find((i) => i.id === incidenteId)?.codigo || null,
-          contactoNombre,
-          contactoTelefono,
-          contactoRut,
+          contactoNombre:
+            familiasDesglosadas.length > 0
+              ? extraerContactoPrincipalDesdeFamilias(familiasDesglosadas).contactoNombre
+              : contactoNombre,
+          contactoTelefono:
+            familiasDesglosadas.length > 0
+              ? extraerContactoPrincipalDesdeFamilias(familiasDesglosadas).contactoTelefono
+              : contactoTelefono,
+          contactoRut:
+            familiasDesglosadas.length > 0
+              ? extraerContactoPrincipalDesdeFamilias(familiasDesglosadas).contactoRut
+              : contactoRut,
           creadoPorNombre: auth?.usuario?.nombre || usuarioActivo.nombre,
           creadoEn: new Date().toISOString(),
           estado: asistenteSocialId ? 'ASIGNADO' : 'PENDIENTE',

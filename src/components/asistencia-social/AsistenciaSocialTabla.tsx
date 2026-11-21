@@ -297,26 +297,59 @@ export default function AsistenciaSocialTabla({
                     </td>
 
                     <td style={{ padding: '12px 16px', verticalAlign: 'top', minWidth: '150px' }}>
-                      {evento.contactoNombre || evento.contactoTelefono ? (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
-                          {evento.contactoNombre && (
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 600 }}>
-                              <User size={13} color="#5F676E" />
-                              <span>{evento.contactoNombre}</span>
-                            </div>
-                          )}
-                          {evento.contactoTelefono && (
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#5F676E', fontSize: '12px' }}>
-                              <Phone size={12} color="#5F676E" />
-                              <span>{evento.contactoTelefono}</span>
-                            </div>
-                          )}
-                        </div>
-                      ) : (
-                        <span style={{ color: '#888', fontStyle: 'italic', fontSize: '12px' }}>
-                          Sin contacto preliminar
-                        </span>
-                      )}
+                      {(() => {
+                        const familiasConContacto = (evento.detallesEvaluacion?.familias ?? []).filter(
+                          (f) => f.contactoNombre?.trim() || f.contactoTelefono?.trim()
+                        );
+                        const nombreMostrar =
+                          evento.contactoNombre ||
+                          familiasConContacto[0]?.contactoNombre ||
+                          null;
+                        const telefonoMostrar =
+                          evento.contactoTelefono ||
+                          familiasConContacto[0]?.contactoTelefono ||
+                          null;
+                        const extraFamilias = Math.max(0, familiasConContacto.length - 1);
+
+                        if (!nombreMostrar && !telefonoMostrar) {
+                          return (
+                            <span style={{ color: '#888', fontStyle: 'italic', fontSize: '12px' }}>
+                              Sin contacto preliminar
+                            </span>
+                          );
+                        }
+
+                        return (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                            {nombreMostrar && (
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 600, flexWrap: 'wrap' }}>
+                                <User size={13} color="#5F676E" />
+                                <span>{nombreMostrar}</span>
+                                {extraFamilias > 0 && (
+                                  <span
+                                    style={{
+                                      fontSize: '10px',
+                                      fontWeight: 700,
+                                      padding: '1px 5px',
+                                      backgroundColor: 'var(--color-info-bg, #E0F2F1)',
+                                      color: 'var(--color-primary-teal-dark, #14505A)',
+                                      border: '1px solid var(--color-primary-teal, #1B6F7D)',
+                                    }}
+                                  >
+                                    (+{extraFamilias} fam.)
+                                  </span>
+                                )}
+                              </div>
+                            )}
+                            {telefonoMostrar && (
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#5F676E', fontSize: '12px' }}>
+                                <Phone size={12} color="#5F676E" />
+                                <span>{telefonoMostrar}</span>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })()}
                     </td>
 
                     <td style={{ padding: '12px 16px', verticalAlign: 'top', whiteSpace: 'nowrap' }}>
@@ -393,10 +426,10 @@ export default function AsistenciaSocialTabla({
                             alignItems: 'center',
                             gap: '5px',
                           }}
-                          title={`Ver ficha técnica de ${evento.codigo}`}
+                          title={`Ver detalle del evento ${evento.codigo}`}
                         >
                           <Eye size={14} color="var(--color-primary-teal, #1B6F7D)" />
-                          <span>Ver Ficha</span>
+                          <span>Ver Detalle</span>
                         </Button>
                       </div>
                     </td>

@@ -305,14 +305,116 @@ function leerNumeroOpcional(obj: Record<string, unknown>, camel: string, snake: 
   return typeof val === 'number' && !Number.isNaN(val) && val >= 0 ? Math.trunc(val) : 0;
 }
 
+function leerTextoOpcional(
+  obj: Record<string, unknown>,
+  camel: string,
+  snake: string
+): string | null {
+  const val = obj[camel] ?? obj[snake];
+  if (typeof val !== 'string') return null;
+  const limpio = val.trim();
+  return limpio.length > 0 ? limpio : null;
+}
+
+export function validarCoherenciaFamiliaSocial(
+  fam: FamiliaAfectadaSocialDTO
+): Record<string, string> {
+  const errores: Record<string, string> = {};
+  const total = Math.trunc(Number(fam.nucleoFamiliarTotal) || 0);
+  const ninos = Math.trunc(Number(fam.cantidadNinos) || 0);
+  const adultos = Math.trunc(Number(fam.cantidadAdultosMayores) || 0);
+  const discap = Math.trunc(Number(fam.personasDiscapacitadas) || 0);
+  const electro = Math.trunc(Number(fam.personasElectrodependientes) || 0);
+
+  if (total < 1) {
+    errores.nucleoFamiliarTotal = 'Cada familia debe registrar al menos 1 integrante.';
+  }
+  if (ninos + adultos > total) {
+    errores.cantidadNinos = `Niños (${ninos}) + adultos mayores (${adultos}) excede el total de integrantes (${total}).`;
+  }
+  if (discap > total) {
+    errores.personasDiscapacitadas = `Personas con discapacidad (${discap}) no puede superar el total de integrantes (${total}).`;
+  }
+  if (electro > total) {
+    errores.personasElectrodependientes = `Personas electrodependientes (${electro}) no puede superar el total de integrantes (${total}).`;
+  }
+
+  const rut = fam.contactoRut?.trim() || '';
+  if (rut.length > 0) {
+    const limpio = rut.replace(/\./g, '').replace(/-/g, '').toUpperCase();
+    let rutValido = /^\d{7,8}[0-9K]$/.test(limpio);
+    if (rutValido) {
+      const cuerpo = limpio.slice(0, -1);
+      const dvIngresado = limpio.slice(-1);
+      let suma = 0;
+      let mult = 2;
+      for (let i = cuerpo.length - 1; i >= 0; i--) {
+        suma += Number(cuerpo[i]) * mult;
+        mult = mult === 7 ? 2 : mult + 1;
+      }
+      const resto = 11 - (suma % 11);
+      const dvEsperado = resto === 11 ? '0' : resto === 10 ? 'K' : String(resto);
+      rutValido = dvIngresado === dvEsperado;
+    }
+    if (!rutValido) {
+      errores.contactoRut = 'El RUT preliminar ingresado no es válido.';
+    }
+  }
+
+  return errores;
+}
+
+export function calcularLimitesFamiliaSocial(fam: FamiliaAfectadaSocialDTO) {
+  const total = Math.max(0, Math.trunc(Number(fam.nucleoFamiliarTotal) || 0));
+  const ninos = Math.max(0, Math.trunc(Number(fam.cantidadNinos) || 0));
+  const adultos = Math.max(0, Math.trunc(Number(fam.cantidadAdultosMayores) || 0));
+  return {
+    totalEtarios: ninos + adultos,
+    cupoEtarioDisponible: Math.max(0, total - (ninos + adultos)),
+  };
+}
+
+export function extraerContactoPrincipalDesdeFamilias(
+  familias?: FamiliaAfectadaSocialDTO[] | null
+): {
+  contactoNombre: string;
+  contactoTelefono: string;
+  contactoRut: string;
+} {
+  if (!Array.isArray(familias) || familias.length === 0) {
+    return { contactoNombre: '', contactoTelefono: '', contactoRut: '' };
+  }
+  for (const fam of familias) {
+    const nombre = fam.contactoNombre?.trim() || '';
+    const telefono = fam.contactoTelefono?.trim() || '';
+    const rut = fam.contactoRut?.trim() || '';
+    if (nombre || telefono || rut) {
+      return {
+        contactoNombre: nombre,
+        contactoTelefono: telefono,
+        contactoRut: rut,
+      };
+    }
+  }
+  return { contactoNombre: '', contactoTelefono: '', contactoRut: '' };
+}
+
 function extraerFamiliasDesglosadasDeReporte(
   reporte?: ReporteTerrenoCompatible | null,
   personasFallbackUnica?: number | null
 ): FamiliaAfectadaSocialDTO[] {
   if (!reporte) return [];
-  const fuentes = [reporte.evaluacion, reporte.detallesEvaluacion];
+  const evalObj = reporte.evaluacion as Record<string, unknown> | null | undefined;
+  const detObj = reporte.detallesEvaluacion as Record<string, unknown> | null | undefined;
+  const fuentes = [
+    reporte.evaluacion,
+    evalObj?.evaluacionPrioridadPrevia as Record<string, unknown> | undefined,
+    reporte.detallesEvaluacion,
+    detObj?.evaluacionPrioridadPrevia as Record<string, unknown> | undefined,
+  ];
   for (const fuente of fuentes) {
     if (!fuente || !Array.isArray(fuente.familias) || fuente.familias.length === 0) continue;
+    const totalFamiliasFuente = fuente.familias.length;
 
     return fuente.familias.map((raw, idx) => {
       const f = (raw || {}) as Record<string, unknown>;
@@ -320,7 +422,7 @@ function extraerFamiliasDesglosadasDeReporte(
       let nucleo = leerNumeroOpcional(f, 'nucleoFamiliarTotal', 'nucleo_familiar_total');
       if (
         nucleo === 0 &&
-        fuente.familias?.length === 1 &&
+        totalFamiliasFuente === 1 &&
         typeof personasFallbackUnica === 'number' &&
         personasFallbackUnica > 0
       ) {
@@ -330,6 +432,9 @@ function extraerFamiliasDesglosadasDeReporte(
         | string
         | undefined;
       const comp = normalizarNivelCompromiso(compRaw);
+      const contactoNombre = leerTextoOpcional(f, 'contactoNombre', 'contacto_nombre');
+      const contactoTelefono = leerTextoOpcional(f, 'contactoTelefono', 'contacto_telefono');
+      const contactoRut = leerTextoOpcional(f, 'contactoRut', 'contacto_rut');
 
       return {
         id: typeof f.id === 'string' ? f.id : `fam-precarga-${idx + 1}`,
@@ -353,6 +458,9 @@ function extraerFamiliasDesglosadasDeReporte(
         ),
         mascotasAfectadas: leerNumeroOpcional(f, 'mascotasAfectadas', 'mascotas_afectadas'),
         ...(comp ? { nivelCompromisoVivienda: comp } : {}),
+        ...(contactoNombre ? { contactoNombre } : {}),
+        ...(contactoTelefono ? { contactoTelefono } : {}),
+        ...(contactoRut ? { contactoRut } : {}),
       };
     });
   }
@@ -381,6 +489,9 @@ export function construirDetallesEvaluacionSocial(input: {
     ),
     mascotasAfectadas: Math.max(0, Math.trunc(Number(f.mascotasAfectadas) || 0)),
     ...(f.nivelCompromisoVivienda ? { nivelCompromisoVivienda: f.nivelCompromisoVivienda } : {}),
+    ...(f.contactoNombre?.trim() ? { contactoNombre: f.contactoNombre.trim() } : {}),
+    ...(f.contactoTelefono?.trim() ? { contactoTelefono: f.contactoTelefono.trim() } : {}),
+    ...(f.contactoRut?.trim() ? { contactoRut: f.contactoRut.trim() } : {}),
   }));
 
   const compromiso = input.nivelCompromisoVivienda?.trim() || null;
@@ -447,6 +558,9 @@ export function normalizarDetallesEvaluacionSocial(
       | undefined;
     const comp = normalizarNivelCompromiso(compRaw);
     const nucleo = leerNumeroOpcional(f, 'nucleoFamiliarTotal', 'nucleo_familiar_total');
+    const contactoNombre = leerTextoOpcional(f, 'contactoNombre', 'contacto_nombre');
+    const contactoTelefono = leerTextoOpcional(f, 'contactoTelefono', 'contacto_telefono');
+    const contactoRut = leerTextoOpcional(f, 'contactoRut', 'contacto_rut');
 
     return {
       ...(typeof f.id === 'string' ? { id: f.id } : { id: `fam-norm-${idx + 1}` }),
@@ -470,6 +584,9 @@ export function normalizarDetallesEvaluacionSocial(
       ),
       mascotasAfectadas: leerNumeroOpcional(f, 'mascotasAfectadas', 'mascotas_afectadas'),
       ...(comp ? { nivelCompromisoVivienda: comp } : {}),
+      ...(contactoNombre ? { contactoNombre } : {}),
+      ...(contactoTelefono ? { contactoTelefono } : {}),
+      ...(contactoRut ? { contactoRut } : {}),
     };
   });
 
@@ -622,10 +739,40 @@ export function extraerContextoSocialDesdeIncidente(
     reporteCierre,
     personasAfectadas
   );
-  const familiasDesglosadas =
+  const familiasDesglosadasBase =
     familiasDesglosadasCierre.length > 0
       ? familiasDesglosadasCierre
       : extraerFamiliasDesglosadasDeReporte(reportePrioridad, personasAfectadas);
+
+  const infNombre = detalle.informante?.nombre?.trim() || '';
+  const infTelefono = detalle.informante?.telefono?.trim() || '';
+  const infRut = detalle.informante?.rut?.trim() || '';
+
+  const familiasDesglosadas = familiasDesglosadasBase.map((fam, idx) => {
+    if (
+      idx === 0 &&
+      !fam.contactoNombre &&
+      !fam.contactoTelefono &&
+      !fam.contactoRut &&
+      (infNombre || infTelefono || infRut)
+    ) {
+      return {
+        ...fam,
+        ...(infNombre ? { contactoNombre: infNombre } : {}),
+        ...(infTelefono ? { contactoTelefono: infTelefono } : {}),
+        ...(infRut ? { contactoRut: infRut } : {}),
+      };
+    }
+    return fam;
+  });
+
+  const contactoDesdeFamilias = extraerContactoPrincipalDesdeFamilias(familiasDesglosadas);
+  const contactoNombre =
+    familiasDesglosadas.length > 0 ? contactoDesdeFamilias.contactoNombre : infNombre;
+  const contactoTelefono =
+    familiasDesglosadas.length > 0 ? contactoDesdeFamilias.contactoTelefono : infTelefono;
+  const contactoRut =
+    familiasDesglosadas.length > 0 ? contactoDesdeFamilias.contactoRut : infRut;
 
   const nivelCompromisoVivienda =
     normalizarNivelCompromiso(reporteCierre?.evaluacion?.nivelCompromisoVivienda) ||
@@ -662,9 +809,9 @@ export function extraerContextoSocialDesdeIncidente(
         ? detalle.longitud
         : null,
     delegacionId: resolverDelegacionDesdeIncidente(detalle.delegacion, catalogoDelegaciones),
-    contactoNombre: detalle.informante?.nombre?.trim() || '',
-    contactoTelefono: detalle.informante?.telefono?.trim() || '',
-    contactoRut: detalle.informante?.rut?.trim() || '',
+    contactoNombre,
+    contactoTelefono,
+    contactoRut,
     tieneCierrePatrulla: Boolean(reporteCierre) || esNoAbordable,
     dictamenCierre,
     esNoAbordable,
