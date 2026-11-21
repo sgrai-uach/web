@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import {
   crearEventoAsistenciaSocial,
   obtenerEventosAsistenciaSocial,
+  asignarAsistenteSocial,
   AsistenciaSocialServiceError,
   filtrarEventosMock,
 } from '../asistenciaSocialService';
@@ -147,5 +148,83 @@ describe('asistenciaSocialService', () => {
 
     expect(respuesta.data).toHaveLength(1);
     expect(respuesta.data[0].codigo).toBe('AS-2026-0001');
+  });
+
+  it('debe asignar un asistente social mediante PATCH y retornar el evento actualizado a ASIGNADO', async () => {
+    const mockActualizado = {
+      id: '70000000-0000-4000-8000-000000000001',
+      codigo: 'AS-2026-0001',
+      descripcion: 'Anegamiento en patio',
+      tipoAfectacion: 'VIVIENDA_ANEGADA',
+      personasAfectadas: 2,
+      familiasAfectadas: 1,
+      direccionTexto: 'Av. Francia 500',
+      latitud: -39.82,
+      longitud: -73.23,
+      prioridad: 'MEDIA' as const,
+      estado: 'ASIGNADO' as const,
+      contactoNombre: null,
+      contactoTelefono: null,
+      contactoRut: null,
+      delegacionId: null,
+      delegacionNombre: null,
+      incidenteId: null,
+      asistenteSocialId: '50000000-0000-4000-8000-000000000001',
+      asistenteSocialNombre: 'Camila Valenzuela Castro',
+      creadoPor: { id: '1', nombre: 'Encargado' },
+      creadoEn: new Date().toISOString(),
+      actualizadoEn: new Date().toISOString(),
+    };
+
+    const spyPatch = vi.spyOn(apiClient, 'PATCH').mockResolvedValueOnce({
+      data: { data: mockActualizado },
+      error: null,
+      response: new Response(null, { status: 200 }),
+    });
+
+    const resultado = await asignarAsistenteSocial(
+      '70000000-0000-4000-8000-000000000001',
+      '50000000-0000-4000-8000-000000000001',
+      'encargado-1'
+    );
+
+    expect(spyPatch).toHaveBeenCalledTimes(1);
+    expect(resultado.estado).toBe('ASIGNADO');
+    expect(resultado.asistenteSocialId).toBe('50000000-0000-4000-8000-000000000001');
+    expect(resultado.asistenteSocialNombre).toBe('Camila Valenzuela Castro');
+  });
+
+  it('debe lanzar AsistenciaSocialServiceError con statusCode 409 cuando el asistente no está disponible', async () => {
+    vi.spyOn(apiClient, 'PATCH').mockResolvedValueOnce({
+      data: null,
+      error: { message: 'El asistente social ya no se encuentra disponible.' },
+      response: new Response(null, { status: 409 }),
+    });
+
+    await expect(
+      asignarAsistenteSocial(
+        '70000000-0000-4000-8000-000000000001',
+        '50000000-0000-4000-8000-000000000001'
+      )
+    ).rejects.toMatchObject({
+      statusCode: 409,
+    });
+  });
+
+  it('debe lanzar AsistenciaSocialServiceError con statusCode 403 si falta permiso asistencia_social:crear', async () => {
+    vi.spyOn(apiClient, 'PATCH').mockResolvedValueOnce({
+      data: null,
+      error: { message: 'Permiso insuficiente' },
+      response: new Response(null, { status: 403 }),
+    });
+
+    await expect(
+      asignarAsistenteSocial(
+        '70000000-0000-4000-8000-000000000001',
+        '50000000-0000-4000-8000-000000000001'
+      )
+    ).rejects.toMatchObject({
+      statusCode: 403,
+    });
   });
 });

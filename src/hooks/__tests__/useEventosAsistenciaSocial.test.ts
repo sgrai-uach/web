@@ -128,4 +128,41 @@ describe('useEventosAsistenciaSocial', () => {
     expect(result.current.eventos).toHaveLength(2);
     expect(result.current.eventos[0].codigo).toBe('AS-2026-0002');
   });
+
+  it('debe actualizar reactivamente el estado a ASIGNADO cuando recibe asistencia_social:actualizada por Socket.io', async () => {
+    vi.spyOn(asistenciaSocialService, 'obtenerEventosAsistenciaSocial').mockResolvedValueOnce({
+      data: [mockItem],
+      total: 1,
+      pagina: 1,
+      limite: 10,
+      totalPaginas: 1,
+    });
+
+    const { result } = renderHook(() =>
+      useEventosAsistenciaSocial({ pagina: 1, limite: 10, estado: 'PENDIENTE' })
+    );
+
+    await waitFor(() => {
+      expect(result.current.cargando).toBe(false);
+    });
+
+    const socket = getSocket() as unknown as {
+      _trigger: (event: string, payload?: unknown) => void;
+    };
+
+    const eventoActualizado: EventoAsistenciaSocialItem = {
+      ...mockItem,
+      estado: 'ASIGNADO',
+      asistenteSocialId: '50000000-0000-4000-8000-000000000001',
+      asistenteSocialNombre: 'Camila Valenzuela Castro',
+    };
+
+    act(() => {
+      socket._trigger('asistencia_social:actualizada', eventoActualizado);
+    });
+
+    expect(result.current.eventos).toHaveLength(1);
+    expect(result.current.eventos[0].estado).toBe('ASIGNADO');
+    expect(result.current.eventos[0].asistenteSocialNombre).toBe('Camila Valenzuela Castro');
+  });
 });
