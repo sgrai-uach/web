@@ -178,6 +178,27 @@ describe('cuadrillasService (H79)', () => {
               rol_codigo: 'INFORMANTE', // informante externo excluido
               rol_nombre: 'Informante',
             },
+            {
+              usuario_id: 'u-4',
+              rut: '44.444.444-4',
+              nombres: 'Carla',
+              apellidos: 'Delegada',
+              email: 'carla@valdivia.cl',
+              telefono: null,
+              usuario_activo: true,
+              rol_id: 'r-4',
+              rol_codigo: 'DELEGADO_CUADRILLA', // delegado ya constituido: admitido
+              rol_nombre: 'Delegado de Cuadrilla',
+              delegacion_id: 'd-1',
+              delegacion_codigo: 'DEL_NORTE',
+              delegacion_nombre: 'Norte',
+              es_personal: true,
+              personal_id: 'p-4',
+              especialidad: 'Mando de cuadrilla',
+              cargo: 'Delegado de Cuadrilla',
+              estado_operativo: 'disponible',
+              disponible_terreno: true,
+            },
           ],
         },
         error: null,
@@ -185,9 +206,44 @@ describe('cuadrillasService (H79)', () => {
       } as unknown as Awaited<ReturnType<typeof apiClient.GET>>);
 
       const candidatos = await cuadrillasService.obtenerCandidatosDelegados();
-      expect(candidatos).toHaveLength(1);
+      expect(candidatos).toHaveLength(2);
       expect(candidatos[0].id).toBe('u-1');
       expect(candidatos[0].nombreCompleto).toBe('Juan Pérez');
+      expect(candidatos[1].id).toBe('u-4');
+      expect(candidatos[1].nombreCompleto).toBe('Carla Delegada');
+    });
+
+    it('debe solicitar al backend la exclusión de funcionarios ya asignados a una cuadrilla', async () => {
+      const spyGet = vi.spyOn(apiClient, 'GET').mockResolvedValueOnce({
+        data: { data: [] },
+        error: null,
+        response: new Response(null, { status: 200 }),
+      } as unknown as Awaited<ReturnType<typeof apiClient.GET>>);
+
+      const candidatos = await cuadrillasService.obtenerCandidatosDelegados();
+
+      expect(candidatos).toEqual([]);
+      const params = spyGet.mock.calls[0][1]?.params as {
+        query?: Record<string, unknown>;
+      };
+      expect(params?.query?.sinAsignacionCuadrilla).toBe(true);
+      expect(params?.query?.excluirCuadrillaId).toBeUndefined();
+    });
+
+    it('debe enviar la cuadrilla excluida cuando se edita una cuadrilla existente', async () => {
+      const spyGet = vi.spyOn(apiClient, 'GET').mockResolvedValueOnce({
+        data: { data: [] },
+        error: null,
+        response: new Response(null, { status: 200 }),
+      } as unknown as Awaited<ReturnType<typeof apiClient.GET>>);
+
+      await cuadrillasService.obtenerCandidatosDelegados(undefined, 'cuad-1');
+
+      const params = spyGet.mock.calls[0][1]?.params as {
+        query?: Record<string, unknown>;
+      };
+      expect(params?.query?.sinAsignacionCuadrilla).toBe(true);
+      expect(params?.query?.excluirCuadrillaId).toBe('cuad-1');
     });
   });
 
@@ -416,6 +472,66 @@ describe('cuadrillasService (H79)', () => {
       expect(resultado.meta.total).toBeGreaterThan(0);
     });
 
+    it('debe propagar 403 Forbidden sin exponer datos de fallback', async () => {
+      vi.spyOn(apiClient, 'GET').mockResolvedValueOnce({
+        data: undefined,
+        error: { message: 'Forbidden' },
+        response: new Response(null, { status: 403 }),
+      } as unknown as Awaited<ReturnType<typeof apiClient.GET>>);
+
+      await expect(cuadrillasService.obtenerCuadrillas({ pagina: 1, limite: 10 })).rejects.toMatchObject({
+        name: 'CuadrillaServiceError',
+        status: 403,
+        codigo: 'PERMISOS_INSUFICIENTES',
+      });
+    });
+
+    it('debe propagar 401 Unauthorized sin exponer datos de fallback', async () => {
+      vi.spyOn(apiClient, 'GET').mockResolvedValueOnce({
+        data: undefined,
+        error: { message: 'Unauthorized' },
+        response: new Response(null, { status: 401 }),
+      } as unknown as Awaited<ReturnType<typeof apiClient.GET>>);
+
+      await expect(cuadrillasService.obtenerCuadrillas()).rejects.toMatchObject({
+        name: 'CuadrillaServiceError',
+        status: 401,
+        codigo: 'NO_AUTENTICADO',
+      });
+    });
+
+    it('debe normalizar metadatos H34 (page/limit/totalPages) al contrato interno', async () => {
+      vi.spyOn(apiClient, 'GET').mockResolvedValueOnce({
+        data: {
+          message: 'Listado obtenido',
+          data: [
+            {
+              id: 'c-1',
+              nombre: 'Cuadrilla Test',
+              estado: 'DISPONIBLE',
+              delegacion: { id: 'd-1', nombre: 'Norte' },
+              delegado: { id: 'u-1', nombre: 'Juan', email: 'juan@valdivia.cl' },
+              recursos: [],
+              trabajadores: [],
+              creadoEn: '2026-10-24T12:00:00.000Z',
+            },
+          ],
+          meta: { total: 21, page: 3, limit: 5, totalPages: 5 },
+        },
+        error: null,
+        response: new Response(null, { status: 200 }),
+      } as unknown as Awaited<ReturnType<typeof apiClient.GET>>);
+
+      const resultado = await cuadrillasService.obtenerCuadrillas({ pagina: 1, limite: 10 });
+      expect(resultado.meta).toEqual({
+        total: 21,
+        pagina: 3,
+        limite: 5,
+        paginasTotales: 5,
+      });
+    });
+  
+
     it('debe mapear estado INACTIVAS a NO_DISPONIBLE y enviar incluirInactivas true al consultar la API', async () => {
       const getSpy = vi.spyOn(apiClient, 'GET').mockResolvedValueOnce({
         data: { message: 'OK', data: [], meta: { total: 0, pagina: 1, limite: 10, paginasTotales: 1 } },
@@ -437,7 +553,6 @@ describe('cuadrillasService (H79)', () => {
         })
       );
     });
-
     it('debe mapear estado TODAS omitiendo estado y enviando incluirInactivas true al consultar la API', async () => {
       const getSpy = vi.spyOn(apiClient, 'GET').mockResolvedValueOnce({
         data: { message: 'OK', data: [], meta: { total: 0, pagina: 1, limite: 10, paginasTotales: 1 } },
@@ -584,6 +699,160 @@ describe('cuadrillasService (H79)', () => {
         expect(error.status).toBe(500);
         expect(error.message).toContain('Error de conexión');
       }
+    });
+  });
+
+  describe('obtenerCuadrillaPorId (HU-22)', () => {
+    it('debe retornar la cuadrilla con dotación completa de integrantes, teléfono, recursos con especificaciones y misión activa cuando la API responde 200', async () => {
+      const mockDetalle = {
+        message: 'Detalle de cuadrilla obtenido exitosamente',
+        data: {
+          id: 'c-100',
+          nombre: 'Cuadrilla Emergencia Central',
+          estado: 'EN_MISION',
+          delegacion: { id: 'd-1', nombre: 'Delegación Norte', codigo: 'DEL_NORTE' },
+          delegado: {
+            id: 'u-1',
+            nombre: 'Carlos Gómez',
+            email: 'carlos@valdivia.cl',
+            rut: '12.345.678-9',
+            telefono: '+56 9 1111 2222',
+          },
+          trabajadores: [
+            {
+              id: 't-1',
+              personalId: 'p-1',
+              usuarioId: 'u-2',
+              nombre: 'Juan Pérez',
+              rut: '14.567.890-1',
+              cargo: 'Operario',
+              especialidad: 'Motosierrista',
+              telefono: '+56 9 9999 8888',
+              asignadoEn: '2026-11-01T08:00:00Z',
+            },
+          ],
+          recursos: [
+            {
+              id: 'r-1',
+              recursoId: 'rec-1',
+              nombre: 'Camioneta de Rescate 4x4',
+              cantidadAsignada: 1,
+              esIndividual: true,
+              descripcion: 'Vehículo de traslado',
+              especificaciones: { patente: 'XX-1122', marca: 'Toyota', modelo: 'Hilux' },
+            },
+          ],
+          misionActiva: {
+            id: 'm-1',
+            codigo: 'MIS-2026-001',
+            titulo: 'Despeje de árbol caído',
+            tipoMision: 'DESPEJE',
+            estado: 'EN_CURSO',
+            fechaDespacho: '2026-11-08T09:00:00Z',
+            tiempoTranscurridoMinutos: 45,
+            incidente: {
+              id: 'inc-1',
+              codigo: 'INC-2026-101',
+              tipo: 'Caída de Árbol',
+              direccion: 'Av. Alemania 450',
+              latitud: -39.81,
+              longitud: -73.24,
+            },
+          },
+          creadoEn: '2026-10-24T12:00:00.000Z',
+          actualizadoEn: null,
+          activo: true,
+        },
+      };
+
+      vi.spyOn(apiClient, 'GET').mockResolvedValueOnce({
+        data: mockDetalle,
+        error: null,
+        response: new Response(null, { status: 200 }),
+      } as unknown as Awaited<ReturnType<typeof apiClient.GET>>);
+
+      const resultado = await cuadrillasService.obtenerCuadrillaPorId('c-100');
+
+      expect(resultado.id).toBe('c-100');
+      expect(resultado.nombre).toBe('Cuadrilla Emergencia Central');
+      expect(resultado.trabajadores[0].telefono).toBe('+56 9 9999 8888');
+      expect(resultado.recursos[0].especificaciones?.patente).toBe('XX-1122');
+      expect(resultado.misionActiva?.codigo).toBe('MIS-2026-001');
+      expect(resultado.misionActiva?.tiempoTranscurridoMinutos).toBe(45);
+      expect(resultado.misionActiva?.incidente?.codigo).toBe('INC-2026-101');
+    });
+
+    it('debe lanzar CuadrillaServiceError con código PERMISOS_INSUFICIENTES y status 403 ante 403 Forbidden', async () => {
+      vi.spyOn(apiClient, 'GET').mockResolvedValueOnce({
+        data: null,
+        error: { message: 'Forbidden' },
+        response: new Response(null, { status: 403 }),
+      } as unknown as Awaited<ReturnType<typeof apiClient.GET>>);
+
+      try {
+        await cuadrillasService.obtenerCuadrillaPorId('c-forbidden-123');
+        expect.unreachable('Debería haber lanzado error 403');
+      } catch (err: unknown) {
+        const error = err as CuadrillaServiceError;
+        expect(error).toBeInstanceOf(CuadrillaServiceError);
+        expect(error.status).toBe(403);
+        expect(error.codigo).toBe('PERMISOS_INSUFICIENTES');
+        expect(error.message).toContain('No cuenta con privilegios suficientes');
+      }
+    });
+
+    it('debe lanzar CuadrillaServiceError con código RECURSO_NO_ENCONTRADO y status 404 si la cuadrilla no existe', async () => {
+      vi.spyOn(apiClient, 'GET').mockResolvedValueOnce({
+        data: null,
+        error: { message: 'Not found' },
+        response: new Response(null, { status: 404 }),
+      } as unknown as Awaited<ReturnType<typeof apiClient.GET>>);
+
+      try {
+        await cuadrillasService.obtenerCuadrillaPorId('id-totalmente-inexistente-999');
+        expect.unreachable('Debería haber lanzado error 404');
+      } catch (err: unknown) {
+        const error = err as CuadrillaServiceError;
+        expect(error).toBeInstanceOf(CuadrillaServiceError);
+        expect(error.status).toBe(404);
+        expect(error.codigo).toBe('RECURSO_NO_ENCONTRADO');
+        expect(error.message).toContain('no existe');
+      }
+    });
+
+    it('debe propagar error 401 NO_AUTORIZADO y 500 ERROR_SERVIDOR sin recurrir a fallback', async () => {
+      vi.spyOn(apiClient, 'GET').mockResolvedValueOnce({
+        data: null,
+        error: { message: 'Unauthorized' },
+        response: new Response(null, { status: 401 }),
+      } as unknown as Awaited<ReturnType<typeof apiClient.GET>>);
+
+      await expect(
+        cuadrillasService.obtenerCuadrillaPorId('50000000-0000-4000-8000-000000000002')
+      ).rejects.toMatchObject({ status: 401, codigo: 'NO_AUTORIZADO' });
+
+      vi.spyOn(apiClient, 'GET').mockResolvedValueOnce({
+        data: null,
+        error: { message: 'Internal Server Error' },
+        response: new Response(null, { status: 500 }),
+      } as unknown as Awaited<ReturnType<typeof apiClient.GET>>);
+
+      await expect(
+        cuadrillasService.obtenerCuadrillaPorId('50000000-0000-4000-8000-000000000002')
+      ).rejects.toMatchObject({ status: 500, codigo: 'ERROR_SERVIDOR' });
+    });
+
+    it('debe resolver cuadrilla local desde CUADRILLAS_FALLBACK con misión activa y teléfono si la red falla', async () => {
+      vi.spyOn(apiClient, 'GET').mockRejectedValueOnce(new Error('Network error'));
+
+      const resultado = await cuadrillasService.obtenerCuadrillaPorId('50000000-0000-4000-8000-000000000002');
+
+      expect(resultado.nombre).toBe('Cuadrilla Mitigación Costera');
+      expect(resultado.estado).toBe('EN_MISION');
+      expect(resultado.misionActiva).not.toBeNull();
+      expect(resultado.misionActiva?.incidente?.codigo).toBe('INC-2026-042');
+      expect(resultado.trabajadores[0].telefono).toBe('+56 9 7654 3210');
+      expect(resultado.recursos[0].especificaciones?.patente).toBe('GHJK-78');
     });
   });
 });

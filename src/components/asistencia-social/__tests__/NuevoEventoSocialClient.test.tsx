@@ -3,7 +3,7 @@ import { render, screen } from '@testing-library/react';
 import NuevoEventoSocialClient from '../NuevoEventoSocialClient';
 
 let mockRol = 'Encargado';
-let mockHasPermission = vi.fn((_perm: string) => true);
+let mockHasPermission = vi.fn<(_perm: string) => boolean>(() => true);
 
 vi.mock('@/context/SimulatedSessionContext', () => ({
   useSimulatedSession: () => ({
