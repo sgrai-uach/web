@@ -4,6 +4,7 @@ import {
   resolverDelegacionDesdeIncidente,
   clasificarYOrdenarIncidentesParaVinculacion,
   extraerContextoSocialDesdeIncidente,
+  construirDetallesEvaluacionSocial,
 } from '../asistenciaSocialIncidenteUtils';
 import { DELEGACIONES_MUNICIPALES } from '@/hooks/usePuntosCriticos';
 
@@ -143,5 +144,78 @@ describe('asistenciaSocialIncidenteUtils', () => {
     expect(contexto.esNoAbordable).toBe(true);
     expect(contexto.motivoNoAbordable).toBe('Falsa alarma verificada en el sector.');
     expect(contexto.requiereFibeVerificado).toBe(false);
+  });
+
+  it('extrae familiasDesglosadas con grupos vulnerables, daños estimados y compromiso habitacional, y construye detallesEvaluacion', () => {
+    const contexto = extraerContextoSocialDesdeIncidente(
+      {
+        id: 'inc-3',
+        estado: 'VERIFICANDO',
+        prioridad: 'ALTA',
+        requiereAsistenciaSocial: true,
+        verificado: true,
+        reportesEvaluacionTerreno: [
+          {
+            id: 'rep-h38-det',
+            tipoReporte: 'EVALUACION_PRIORIDAD',
+            versionReporte: 1,
+            evaluacion: {
+              nivelCompromisoVivienda: 'MODERADO',
+              danosEstimados: 'Anegamiento en primer piso y colchonetas húmedas',
+              familias: [
+                {
+                  referencia: 'Familia Soto',
+                  nucleoFamiliarTotal: 4,
+                  cantidadNinos: 2,
+                  cantidadAdultosMayores: 1,
+                  personasDiscapacitadas: 1,
+                  personasElectrodependientes: 0,
+                  mascotasAfectadas: 1,
+                  nivelCompromisoVivienda: 'MODERADO',
+                },
+              ],
+            },
+          },
+        ],
+      },
+      DELEGACIONES_MUNICIPALES
+    );
+
+    expect(contexto.nivelCompromisoVivienda).toBe('MODERADO');
+    expect(contexto.danosEstimados).toBe('Anegamiento en primer piso y colchonetas húmedas');
+    expect(contexto.familiasDesglosadas).toHaveLength(1);
+    expect(contexto.familiasDesglosadas[0]).toMatchObject({
+      referencia: 'Familia Soto',
+      nucleoFamiliarTotal: 4,
+      cantidadNinos: 2,
+      cantidadAdultosMayores: 1,
+      personasDiscapacitadas: 1,
+      mascotasAfectadas: 1,
+      nivelCompromisoVivienda: 'MODERADO',
+    });
+
+    expect(
+      construirDetallesEvaluacionSocial({
+        familias: [],
+        nivelCompromisoVivienda: '',
+        danosEstimados: '',
+      })
+    ).toBeNull();
+
+    const detalles = construirDetallesEvaluacionSocial({
+      familias: contexto.familiasDesglosadas,
+      nivelCompromisoVivienda: contexto.nivelCompromisoVivienda,
+      danosEstimados: contexto.danosEstimados,
+    });
+    expect(detalles).toMatchObject({
+      familiasAfectadas: 1,
+      nucleoFamiliarTotal: 4,
+      cantidadNinos: 2,
+      cantidadAdultosMayores: 1,
+      personasDiscapacitadas: 1,
+      mascotasAfectadas: 1,
+      nivelCompromisoVivienda: 'MODERADO',
+      danosEstimados: 'Anegamiento en primer piso y colchonetas húmedas',
+    });
   });
 });

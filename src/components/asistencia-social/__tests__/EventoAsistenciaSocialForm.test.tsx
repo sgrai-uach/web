@@ -644,4 +644,190 @@ describe('EventoAsistenciaSocialForm', () => {
       'AS-2026-0090'
     );
   });
+
+  it('permite añadir y quitar familias de forma opcional, recalcula totales y envía detallesEvaluacion al crear', async () => {
+    vi.spyOn(asistenciaSocialService, 'crearEventoAsistenciaSocial').mockResolvedValueOnce({
+      id: '70000000-0000-4000-8000-000000000012',
+      codigo: 'AS-2026-0012',
+      descripcion: 'Anegamiento de dos viviendas interiores',
+      tipoAfectacion: 'VIVIENDA_ANEGADA',
+      personasAfectadas: 5,
+      familiasAfectadas: 1,
+      direccionTexto: 'Calle Los Notros 890',
+      latitud: -39.825,
+      longitud: -73.221,
+      prioridad: 'ALTA',
+      estado: 'PENDIENTE',
+      contactoNombre: null,
+      contactoTelefono: null,
+      contactoRut: null,
+      delegacionId: null,
+      delegacionNombre: null,
+      incidenteId: null,
+      asistenteSocialId: null,
+      asistenteSocialNombre: null,
+      creadoPor: { id: 'user-1', nombre: 'Encargado' },
+      creadoEn: new Date().toISOString(),
+      actualizadoEn: new Date().toISOString(),
+    });
+
+    render(<EventoAsistenciaSocialForm basePath="/gestion/asistente-social" />);
+
+    expect(screen.getByText(/Modo aproximado activo/i)).toBeDefined();
+
+    // Añadir 2 familias
+    const btnAgregar = screen.getByRole('button', { name: /Añadir Familia \/ Hogar/i });
+    fireEvent.click(btnAgregar);
+    fireEvent.click(btnAgregar);
+
+    expect(screen.getByTestId('familia-card-0')).toBeDefined();
+    expect(screen.getByTestId('familia-card-1')).toBeDefined();
+
+    // Rellenar familia 1
+    fireEvent.change(document.getElementById('fam-ref-0') as HTMLInputElement, {
+      target: { value: 'Familia Paredes' },
+    });
+    fireEvent.change(document.getElementById('fam-total-0') as HTMLInputElement, {
+      target: { value: '5' },
+    });
+    fireEvent.change(document.getElementById('fam-ninos-0') as HTMLInputElement, {
+      target: { value: '2' },
+    });
+    fireEvent.change(document.getElementById('fam-mayores-0') as HTMLInputElement, {
+      target: { value: '1' },
+    });
+    fireEvent.change(document.getElementById('fam-electro-0') as HTMLInputElement, {
+      target: { value: '1' },
+    });
+
+    // Quitar familia 2
+    fireEvent.click(screen.getByRole('button', { name: /Quitar familia 2/i }));
+    expect(screen.queryByTestId('familia-card-1')).toBeNull();
+
+    // Totales recalculados automáticamente desde la familia restante
+    expect((screen.getByLabelText(/Personas Afectadas Estimadas/i) as HTMLInputElement).value).toBe(
+      '5'
+    );
+    expect((screen.getByLabelText(/Familias \/ Hogares Afectados/i) as HTMLInputElement).value).toBe(
+      '1'
+    );
+
+    // Completar campos obligatorios y enviar
+    fireEvent.change(screen.getByLabelText(/Tipo de Afectación Social/i), {
+      target: { value: 'VIVIENDA_ANEGADA' },
+    });
+    fireEvent.change(screen.getByLabelText(/Prioridad de Atención/i), {
+      target: { value: 'ALTA' },
+    });
+    fireEvent.click(screen.getByTestId('mock-map-click-btn'));
+    fireEvent.change(screen.getByLabelText(/Descripción de la Excepcionalidad Social/i), {
+      target: { value: 'Anegamiento de vivienda con paciente electrodependiente' },
+    });
+    fireEvent.change(screen.getByPlaceholderText(/Ej\. Calle Los Alerces 1420/i), {
+      target: { value: 'Calle Los Notros 890' },
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: /Guardar Evento de Asistencia Social/i }));
+
+    await waitFor(() => {
+      expect(asistenciaSocialService.crearEventoAsistenciaSocial).toHaveBeenCalledWith(
+        expect.objectContaining({
+          personasAfectadas: 5,
+          familiasAfectadas: 1,
+          detallesEvaluacion: expect.objectContaining({
+            familiasAfectadas: 1,
+            nucleoFamiliarTotal: 5,
+            cantidadNinos: 2,
+            cantidadAdultosMayores: 1,
+            personasElectrodependientes: 1,
+            familias: [
+              expect.objectContaining({
+                referencia: 'Familia Paredes',
+                nucleoFamiliarTotal: 5,
+                cantidadNinos: 2,
+                cantidadAdultosMayores: 1,
+                personasElectrodependientes: 1,
+              }),
+            ],
+          }),
+        }),
+        '00000000-0000-4000-8000-000000000003'
+      );
+    });
+  });
+
+  it('precarga familias desglosadas desde un incidente H38/H39 y permite volver al modo aproximado', async () => {
+    mockSearchParams = new URLSearchParams('incidenteId=11111111-1111-4000-8000-111111111111');
+
+    vi.mocked(incidentesService.obtenerDetalle).mockResolvedValueOnce({
+      exito: true,
+      mensaje: 'OK',
+      datos: {
+        id: '11111111-1111-4000-8000-111111111111',
+        codigo: 'INC-2026-0001',
+        codigoSeguimiento: '12345678',
+        tipoAfectacion: 'Inundación Mayor',
+        descripcion: 'Reporte inicial',
+        direccion: 'Avenida Costanera 100',
+        latitud: -39.81,
+        longitud: -73.24,
+        estado: 'VERIFICANDO',
+        prioridad: 'ALTA',
+        requiereAsistenciaSocial: true,
+        verificado: true,
+        fuenteOrigen: 'LLAMADA',
+        asteriskCallId: null,
+        asteriskCallerPhone: null,
+        informante: null,
+        delegacion: null,
+        creadoPor: null,
+        encargado: null,
+        misiones: [],
+        recursosAsociados: [],
+        creadoEn: new Date().toISOString(),
+        actualizadoEn: new Date().toISOString(),
+        reportesEvaluacionTerreno: [
+          {
+            id: 'rep-h38-familias',
+            misionId: 'm-1',
+            tipoReporte: 'EVALUACION_PRIORIDAD',
+            versionReporte: 1,
+            esRectificacion: false,
+            etiquetaReporte: 'Evaluación Prioridad',
+            creadoEn: '2026-11-21T10:00:00.000Z',
+            evaluacion: {
+              nucleoFamiliarTotal: 4,
+              nivelCompromisoVivienda: 'GRAVE_INHABITABLE',
+              danosEstimados: 'Pérdida de enseres en dormitorio',
+              familias: [
+                {
+                  referencia: 'Familia Núñez',
+                  nucleoFamiliarTotal: 4,
+                  cantidadNinos: 1,
+                  cantidadAdultosMayores: 2,
+                  nivelCompromisoVivienda: 'GRAVE_INHABITABLE',
+                },
+              ],
+            },
+          },
+        ],
+      } as unknown as NonNullable<Awaited<ReturnType<typeof incidentesService.obtenerDetalle>>['datos']>,
+    });
+
+    render(<EventoAsistenciaSocialForm basePath="/gestion/asistente-social" />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('familia-card-0')).toBeDefined();
+    });
+
+    expect((document.getElementById('fam-ref-0') as HTMLInputElement).value).toBe('Familia Núñez');
+    expect((screen.getByLabelText(/Daños Materiales Estimados/i) as HTMLInputElement).value).toBe(
+      'Pérdida de enseres en dormitorio'
+    );
+
+    // Volver al modo aproximado vacía el desglose
+    fireEvent.click(screen.getByRole('button', { name: /Volver a modo aproximado/i }));
+    expect(screen.queryByTestId('familia-card-0')).toBeNull();
+    expect(screen.getByText(/Modo aproximado activo/i)).toBeDefined();
+  });
 });

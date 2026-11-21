@@ -282,4 +282,66 @@ describe('asistenciaSocialService', () => {
       statusCode: 409,
     });
   });
+
+  it('debe enviar detallesEvaluacion con familias en el cuerpo del POST cuando se provee desglose opcional', async () => {
+    const payloadConDetalles: CrearEventoAsistenciaSocialDTO = {
+      ...mockPayload,
+      personasAfectadas: 4,
+      familiasAfectadas: 1,
+      detallesEvaluacion: {
+        familiasAfectadas: 1,
+        nucleoFamiliarTotal: 4,
+        cantidadNinos: 2,
+        cantidadAdultosMayores: 1,
+        nivelCompromisoVivienda: 'MODERADO',
+        danosEstimados: 'Anegamiento en comedor',
+        familias: [
+          {
+            referencia: 'Familia Morales',
+            nucleoFamiliarTotal: 4,
+            cantidadNinos: 2,
+            cantidadAdultosMayores: 1,
+            nivelCompromisoVivienda: 'MODERADO',
+          },
+        ],
+      },
+    };
+
+    const spyPost = vi.spyOn(apiClient, 'POST').mockResolvedValueOnce({
+      data: {
+        data: {
+          id: '70000000-0000-4000-8000-000000000105',
+          codigo: 'AS-2026-0105',
+          ...payloadConDetalles,
+          estado: 'PENDIENTE',
+          contactoRut: null,
+          delegacionId: null,
+          delegacionNombre: null,
+          incidenteId: null,
+          asistenteSocialId: null,
+          asistenteSocialNombre: null,
+          creadoPor: { id: 'user-1', nombre: 'Encargado' },
+          creadoEn: new Date().toISOString(),
+          actualizadoEn: new Date().toISOString(),
+        },
+      },
+      error: null,
+      response: new Response(null, { status: 201 }),
+    });
+
+    const resultado = await crearEventoAsistenciaSocial(payloadConDetalles, 'user-1');
+
+    expect(spyPost).toHaveBeenCalledWith(
+      '/api/eventos-atp/asistencia-social',
+      expect.objectContaining({
+        body: expect.objectContaining({
+          detallesEvaluacion: expect.objectContaining({
+            familiasAfectadas: 1,
+            nucleoFamiliarTotal: 4,
+          }),
+        }),
+      })
+    );
+    expect(resultado.codigo).toBe('AS-2026-0105');
+  });
 });
