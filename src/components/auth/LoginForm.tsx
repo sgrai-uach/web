@@ -21,10 +21,17 @@ import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import styles from './LoginForm.module.css';
 
-export const RUTA_INICIO_GESTION = '/gestion';
-export const RUTA_INICIO_TERRENO = '/terreno';
-export const RUTA_TERRENO_PATRULLA = '/terreno/patrulla/misiones';
-export const RUTA_TERRENO_CUADRILLA = '/terreno/cuadrilla/misiones';
+export {
+  RUTA_INICIO_GESTION,
+  RUTA_INICIO_TERRENO,
+  RUTA_TERRENO_CUADRILLA,
+  RUTA_TERRENO_PATRULLA,
+} from '@/lib/constants/routes';
+
+import {
+  RUTA_INICIO_GESTION,
+  RUTA_INICIO_TERRENO,
+} from '@/lib/constants/routes';
 
 /**
  * Determina la ruta destino post-autenticación según el rol canónico.
