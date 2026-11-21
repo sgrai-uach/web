@@ -78,11 +78,17 @@ Si se dispone de información preliminar de los habitantes:
 
 ---
 
-### Paso 6: Vista Previa y Despliegue de Ficha Técnica (Opcional)
-* En cualquier momento durante el llenado del formulario, el usuario puede presionar el botón **"Desplegar Ficha del Caso"**.
-* Se abrirá un modal con la ficha técnica completa que consolida todos los datos ingresados en tiempo real: caracterización del caso, asistente social asignado, evaluación demográfica y condición habitacional (indicando si corresponde a *Estimación Aproximada* o *Desglose por Familia*, resumen de grupos vulnerables, nivel de compromiso habitacional, daños materiales y detalle por hogar), coordenadas con botón para copiar, enlace a OpenStreetMap, datos de contacto y trazabilidad de creación/actualización.
-* Desde la misma ficha es posible revisar la información y presionar **"Confirmar y Guardar Evento"**.
-* Asimismo, en la bandeja general de Asistencia Social, cada registro cuenta con la acción **"Ver Ficha"** para consultar el expediente técnico completo de cualquier caso registrado.
+### Paso 6: Vista Previa y Detalle de Evento de Asistencia Social (Opcional)
+> **Nota importante de dominio:** Todos los datos familiares, demográficos y de contacto capturados en este formulario y en los reportes previos de Patrulla (`H38`/`H39`) son **estrictamente preliminares** y **NO corresponden a la FIBE** (*Ficha Básica de Emergencias*). El levantamiento formal de la FIBE se realiza por familia en una historia de usuario aparte.
+
+* En cualquier momento durante el llenado del formulario, el usuario puede presionar el botón **"Vista Previa del Evento"**.
+* Se abrirá el modal **"Detalle de Evento de Asistencia Social (Vista Previa)"** que consolida en tiempo real: caracterización del caso, asistente social asignado, evaluación preliminar y condición habitacional (indicando si corresponde a *Estimación Aproximada* o *Desglose por Familia*, resumen de grupos vulnerables, nivel de compromiso habitacional, daños materiales y detalle por hogar), coordenadas con botón para copiar, enlace a OpenStreetMap, datos preliminares de contacto separados por familia (cuando hay desglose familiar) y trazabilidad de creación/actualización.
+* Al agregar familias en el desglose:
+  * Se valida **coherencia demográfica estricta** (`niños + adultos mayores <= total integrantes`, `discapacidad <= total integrantes`, `electrodependientes <= total integrantes`; `mascotas >= 0`).
+  * El contacto preliminar se gestiona de forma independiente en cada familia y cualquier contacto general aproximado previo queda descartado.
+  * Al vincular un incidente proveniente de Patrulla (`H38`/`H39`), las familias y sus contactos preliminares declarados en terreno se sincronizan automáticamente.
+* Desde la misma vista previa es posible revisar la información y presionar **"Confirmar y Guardar Evento"**.
+* Asimismo, en la bandeja general de Asistencia Social, cada registro cuenta con la acción **"Ver Detalle"** para consultar el **"Detalle de Evento de Asistencia Social"** de cualquier caso registrado.
 
 ---
 
