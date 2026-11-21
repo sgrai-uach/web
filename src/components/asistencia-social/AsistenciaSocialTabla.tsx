@@ -455,6 +455,7 @@ export default function AsistenciaSocialTabla({
                 contactoRut: eventoSeleccionado.contactoRut,
                 creadoPorNombre: eventoSeleccionado.creadoPor?.nombre,
                 creadoEn: eventoSeleccionado.creadoEn,
+                actualizadoEn: eventoSeleccionado.actualizadoEn,
                 estado: eventoSeleccionado.estado,
                 asistenteSocialNombre: eventoSeleccionado.asistenteSocialNombre,
                 detallesEvaluacion: eventoSeleccionado.detallesEvaluacion ?? null,

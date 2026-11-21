@@ -1,5 +1,6 @@
 import apiClient from '@/lib/api/client';
 import { formatApiError } from '@/lib/utils/errorUtils';
+import { normalizarDetallesEvaluacionSocial } from '@/lib/utils/asistenciaSocialIncidenteUtils';
 import type {
   CrearEventoAsistenciaSocialDTO,
   EventoAsistenciaSocialItem,
@@ -7,6 +8,18 @@ import type {
   FiltrosEventosAsistenciaSocialState,
   PrioridadEventoSocial,
 } from '@/types/asistenciaSocial';
+
+function normalizarEventoSocial(
+  item: EventoAsistenciaSocialItem & { detalles_evaluacion?: unknown }
+): EventoAsistenciaSocialItem {
+  const detalles = normalizarDetallesEvaluacionSocial(
+    item.detallesEvaluacion ?? item.detalles_evaluacion
+  );
+  return {
+    ...item,
+    detallesEvaluacion: detalles,
+  };
+}
 
 export class AsistenciaSocialServiceError extends Error {
   public statusCode?: number;
@@ -56,6 +69,30 @@ export const EVENTOS_ASISTENCIA_SOCIAL_MOCK: EventoAsistenciaSocialItem[] = [
     incidenteId: null,
     asistenteSocialId: null,
     asistenteSocialNombre: null,
+    detallesEvaluacion: {
+      familiasAfectadas: 1,
+      nucleoFamiliarTotal: 4,
+      cantidadNinos: 2,
+      cantidadAdultosMayores: 1,
+      personasDiscapacitadas: 0,
+      personasElectrodependientes: 0,
+      mascotasAfectadas: 1,
+      nivelCompromisoVivienda: 'MODERADO',
+      danosEstimados: 'Anegamiento en patio y dos dormitorios de primer piso',
+      familias: [
+        {
+          id: 'fam-mock-1',
+          referencia: 'Familia González',
+          nucleoFamiliarTotal: 4,
+          cantidadNinos: 2,
+          cantidadAdultosMayores: 1,
+          personasDiscapacitadas: 0,
+          personasElectrodependientes: 0,
+          mascotasAfectadas: 1,
+          nivelCompromisoVivienda: 'MODERADO',
+        },
+      ],
+    },
     creadoPor: {
       id: '00000000-0000-4000-8000-000000000003',
       nombre: 'Encargado de Operaciones',
@@ -83,6 +120,7 @@ export const EVENTOS_ASISTENCIA_SOCIAL_MOCK: EventoAsistenciaSocialItem[] = [
     incidenteId: null,
     asistenteSocialId: null,
     asistenteSocialNombre: null,
+    detallesEvaluacion: null,
     creadoPor: {
       id: '00000000-0000-4000-8000-000000000003',
       nombre: 'Encargado de Operaciones',
@@ -182,8 +220,9 @@ export async function crearEventoAsistenciaSocial(
     );
 
     if (response?.status === 201 && data) {
-      const respData =
+      const rawData =
         (data as { data?: EventoAsistenciaSocialItem }).data || (data as EventoAsistenciaSocialItem);
+      const respData = normalizarEventoSocial(rawData);
       // Actualizar memoria mock
       eventosSocialesMemoria = [respData, ...eventosSocialesMemoria];
       return respData;
@@ -323,7 +362,7 @@ export async function obtenerEventosAsistenciaSocial(
       };
       if (Array.isArray(respData.data)) {
         return {
-          data: respData.data,
+          data: respData.data.map(normalizarEventoSocial),
           total: respData.total ?? respData.data.length,
           pagina: respData.pagina ?? filtros.pagina,
           limite: respData.limite ?? filtros.limite,
@@ -376,9 +415,10 @@ export async function asignarAsistenteSocial(
     );
 
     if (response?.status === 200 && data) {
-      const respData =
+      const rawData =
         (data as unknown as { data?: EventoAsistenciaSocialItem }).data ||
         (data as unknown as EventoAsistenciaSocialItem);
+      const respData = normalizarEventoSocial(rawData);
       eventosSocialesMemoria = eventosSocialesMemoria.map((item) =>
         item.id === respData.id ? respData : item
       );

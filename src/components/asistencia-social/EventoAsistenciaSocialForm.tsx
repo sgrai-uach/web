@@ -286,12 +286,17 @@ export default function EventoAsistenciaSocialForm({
             ctx.familiasDesglosadas.length > 0 &&
             ctx.familiasDesglosadas.some((f) => f.nucleoFamiliarTotal > 0)
           ) {
-            setFamiliasDesglosadas(
-              ctx.familiasDesglosadas.map((f) => ({
-                ...f,
-                nucleoFamiliarTotal: Math.max(1, f.nucleoFamiliarTotal || 1),
-              }))
+            const familiasNormalizadas = ctx.familiasDesglosadas.map((f) => ({
+              ...f,
+              nucleoFamiliarTotal: Math.max(1, f.nucleoFamiliarTotal || 1),
+            }));
+            setFamiliasDesglosadas(familiasNormalizadas);
+            const totalPersFamilias = familiasNormalizadas.reduce(
+              (acc, f) => acc + f.nucleoFamiliarTotal,
+              0
             );
+            setPersonasAfectadas(totalPersFamilias);
+            setFamiliasAfectadas(familiasNormalizadas.length);
           } else {
             setFamiliasDesglosadas([]);
           }
@@ -411,6 +416,9 @@ export default function EventoAsistenciaSocialForm({
         );
         setPersonasAfectadas(totalPers);
         setFamiliasAfectadas(nuevasFamilias.length);
+      } else {
+        setPersonasAfectadas('');
+        setFamiliasAfectadas('');
       }
       setErrores((prev) => {
         const limpio = { ...prev };
@@ -425,8 +433,6 @@ export default function EventoAsistenciaSocialForm({
     e.preventDefault();
     setErrorServidor(null);
 
-    const parsedPersonas = personasAfectadas === '' ? 0 : Number(personasAfectadas);
-    const parsedFamilias = familiasAfectadas === '' ? 0 : Number(familiasAfectadas);
     const parsedLat = latitud === '' ? NaN : Number(latitud);
     const parsedLng = longitud === '' ? NaN : Number(longitud);
     const detallesEvaluacion = construirDetallesEvaluacionSocial({
@@ -434,6 +440,18 @@ export default function EventoAsistenciaSocialForm({
       nivelCompromisoVivienda,
       danosEstimados,
     });
+    const parsedPersonas =
+      familiasDesglosadas.length > 0
+        ? detallesEvaluacion?.nucleoFamiliarTotal ?? 0
+        : personasAfectadas === ''
+          ? 0
+          : Number(personasAfectadas);
+    const parsedFamilias =
+      familiasDesglosadas.length > 0
+        ? detallesEvaluacion?.familiasAfectadas ?? familiasDesglosadas.length
+        : familiasAfectadas === ''
+          ? 0
+          : Number(familiasAfectadas);
 
     // Validación cliente Zod
     const validacion = crearEventoAsistenciaSocialSchema.safeParse({
@@ -648,8 +666,8 @@ export default function EventoAsistenciaSocialForm({
               onChange={(e) => setPersonasAfectadas(e.target.value)}
               helperText={
                 familiasDesglosadas.length > 0
-                  ? 'Calculado automáticamente desde el desglose por familia.'
-                  : undefined
+                  ? 'Aproximación descartada: calculado exclusivamente desde el desglose por familia.'
+                  : 'Estimación aproximada. Si añade familias abajo, este valor quedará descartado.'
               }
               error={errores.personasAfectadas}
             />
@@ -666,8 +684,8 @@ export default function EventoAsistenciaSocialForm({
               onChange={(e) => setFamiliasAfectadas(e.target.value)}
               helperText={
                 familiasDesglosadas.length > 0
-                  ? 'Calculado automáticamente según familias añadidas.'
-                  : undefined
+                  ? 'Aproximación descartada: calculado exclusivamente desde el desglose por familia.'
+                  : 'Estimación aproximada. Si añade familias abajo, este valor quedará descartado.'
               }
               error={errores.familiasAfectadas}
             />
@@ -712,9 +730,6 @@ export default function EventoAsistenciaSocialForm({
           onChangeFamilias={handleCambiarFamiliasDesglosadas}
           disabled={enviando}
           errorGeneral={errores.detallesEvaluacion}
-          totalPersonasExterno={
-            personasAfectadas !== '' ? Number(personasAfectadas) : null
-          }
         />
 
         {/* Campo no obligatorio: Vinculación a Incidente */}
@@ -1296,8 +1311,15 @@ export default function EventoAsistenciaSocialForm({
           descripcion,
           tipoAfectacion,
           prioridad,
-          personasAfectadas,
-          familiasAfectadas,
+          personasAfectadas:
+            familiasDesglosadas.length > 0
+              ? familiasDesglosadas.reduce(
+                  (acc, f) => acc + (Number(f.nucleoFamiliarTotal) || 0),
+                  0
+                )
+              : personasAfectadas,
+          familiasAfectadas:
+            familiasDesglosadas.length > 0 ? familiasDesglosadas.length : familiasAfectadas,
           direccionTexto,
           latitud: latitud !== '' ? latitud : null,
           longitud: longitud !== '' ? longitud : null,

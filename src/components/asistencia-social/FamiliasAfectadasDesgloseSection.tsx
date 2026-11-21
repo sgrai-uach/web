@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Home, Plus, Trash2, Users, RotateCcw, AlertCircle } from 'lucide-react';
+import { Home, Plus, Trash2, Users, RotateCcw, AlertCircle, Info } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import Select from '@/components/ui/Select';
@@ -15,7 +15,6 @@ export interface FamiliasAfectadasDesgloseSectionProps {
   onChangeFamilias: (familias: FamiliaAfectadaSocialDTO[]) => void;
   disabled?: boolean;
   errorGeneral?: string;
-  totalPersonasExterno?: number | null;
 }
 
 function parseNonNegInt(raw: string): number {
@@ -30,7 +29,6 @@ export default function FamiliasAfectadasDesgloseSection({
   onChangeFamilias,
   disabled = false,
   errorGeneral,
-  totalPersonasExterno,
 }: FamiliasAfectadasDesgloseSectionProps) {
   const handleAgregarFamilia = () => {
     const nuevaFamilia: FamiliaAfectadaSocialDTO = {
@@ -177,18 +175,55 @@ export default function FamiliasAfectadasDesgloseSection({
 
       {familias.length === 0 ? (
         <div
+          data-testid="nota-descarte-aproximacion"
           style={{
             padding: '10px 12px',
             backgroundColor: '#FFFFFF',
             border: '1px dashed var(--border-color-neutral-dark, #CCD2D9)',
             fontSize: '12px',
             color: 'var(--color-text-muted, #5F676E)',
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: '8px',
+            lineHeight: 1.45,
           }}
         >
-          Modo aproximado activo: sin desglose por familia. Presione &quot;Añadir Familia / Hogar&quot; si conoce el detalle de integrantes por grupo vulnerable.
+          <Info
+            size={15}
+            color="var(--color-primary-teal, #1B6F7D)"
+            style={{ flexShrink: 0, marginTop: '1px' }}
+          />
+          <span>
+            <strong>Modo aproximado activo: sin desglose por familia.</strong> Importante: si ingresa una o más familias en este desglose, cualquier valor aproximado colocado previamente en Personas Afectadas o Familias / Hogares quedará totalmente descartado y será reemplazado por el conteo exacto de las familias registradas.
+          </span>
         </div>
       ) : (
         <>
+          <div
+            data-testid="nota-aproximacion-descartada"
+            style={{
+              padding: '10px 12px',
+              backgroundColor: 'var(--color-info-bg, #E0F2F1)',
+              border: '1px solid var(--color-primary-teal, #1B6F7D)',
+              borderLeft: '3px solid var(--color-primary-teal, #1B6F7D)',
+              fontSize: '12px',
+              color: 'var(--color-text-dark, #2B2B2B)',
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: '8px',
+              lineHeight: 1.45,
+            }}
+          >
+            <Info
+              size={15}
+              color="var(--color-primary-teal-dark, #14505A)"
+              style={{ flexShrink: 0, marginTop: '1px' }}
+            />
+            <span>
+              <strong>Desglose por familia activo:</strong> cualquier estimación aproximada ingresada previamente ha sido totalmente descartada. Los totales finales de personas y familias se calculan exclusivamente a partir de las familias registradas.
+            </span>
+          </div>
+
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             {familias.map((fam, idx) => (
               <div
@@ -420,13 +455,6 @@ export default function FamiliasAfectadasDesgloseSection({
               <span>
                 <strong>Mascotas:</strong> {totales.mascotas}
               </span>
-              {totalPersonasExterno !== null &&
-                totalPersonasExterno !== undefined &&
-                totalPersonasExterno !== totales.integrantes && (
-                  <span style={{ color: 'var(--color-warning, #E65100)', fontWeight: 600 }}>
-                    (Diferencia respecto al total reportado al cierre: {totalPersonasExterno})
-                  </span>
-                )}
             </div>
 
             <Button

@@ -427,6 +427,112 @@ export function construirDetallesEvaluacionSocial(input: {
 }
 
 /**
+ * Normaliza defensivamente detallesEvaluacion / detalles_evaluacion desde camelCase o snake_case
+ * recalculando los totales consolidados desde familias[] cuando existen familias desglosadas.
+ */
+export function normalizarDetallesEvaluacionSocial(
+  raw: unknown
+): DetallesEvaluacionSocialDTO | null {
+  if (!raw || typeof raw !== 'object') {
+    return null;
+  }
+
+  const obj = raw as Record<string, unknown>;
+  const familiasRaw = Array.isArray(obj.familias) ? obj.familias : [];
+  const familias: FamiliaAfectadaSocialDTO[] = familiasRaw.map((item, idx) => {
+    const f = (item || {}) as Record<string, unknown>;
+    const refRaw = typeof f.referencia === 'string' ? f.referencia.trim() : '';
+    const compRaw = (f.nivelCompromisoVivienda ?? f.nivel_compromiso_vivienda) as
+      | string
+      | undefined;
+    const comp = normalizarNivelCompromiso(compRaw);
+    const nucleo = leerNumeroOpcional(f, 'nucleoFamiliarTotal', 'nucleo_familiar_total');
+
+    return {
+      ...(typeof f.id === 'string' ? { id: f.id } : { id: `fam-norm-${idx + 1}` }),
+      ...(refRaw ? { referencia: refRaw } : {}),
+      nucleoFamiliarTotal: Math.max(1, nucleo),
+      cantidadNinos: leerNumeroOpcional(f, 'cantidadNinos', 'cantidad_ninos'),
+      cantidadAdultosMayores: leerNumeroOpcional(
+        f,
+        'cantidadAdultosMayores',
+        'cantidad_adultos_mayores'
+      ),
+      personasDiscapacitadas: leerNumeroOpcional(
+        f,
+        'personasDiscapacitadas',
+        'personas_discapacitadas'
+      ),
+      personasElectrodependientes: leerNumeroOpcional(
+        f,
+        'personasElectrodependientes',
+        'personas_electrodependientes'
+      ),
+      mascotasAfectadas: leerNumeroOpcional(f, 'mascotasAfectadas', 'mascotas_afectadas'),
+      ...(comp ? { nivelCompromisoVivienda: comp } : {}),
+    };
+  });
+
+  const nivelRaw = (obj.nivelCompromisoVivienda ?? obj.nivel_compromiso_vivienda) as
+    | string
+    | undefined;
+  const nivelCompromisoVivienda = normalizarNivelCompromiso(nivelRaw) || null;
+  const danosRaw = obj.danosEstimados ?? obj.danos_estimados;
+  const danosEstimados = typeof danosRaw === 'string' && danosRaw.trim() ? danosRaw.trim() : null;
+
+  if (familias.length > 0) {
+    return construirDetallesEvaluacionSocial({
+      familias,
+      nivelCompromisoVivienda,
+      danosEstimados,
+    });
+  }
+
+  const cantidadNinos = leerNumeroOpcional(obj, 'cantidadNinos', 'cantidad_ninos');
+  const cantidadAdultosMayores = leerNumeroOpcional(
+    obj,
+    'cantidadAdultosMayores',
+    'cantidad_adultos_mayores'
+  );
+  const personasDiscapacitadas = leerNumeroOpcional(
+    obj,
+    'personasDiscapacitadas',
+    'personas_discapacitadas'
+  );
+  const personasElectrodependientes = leerNumeroOpcional(
+    obj,
+    'personasElectrodependientes',
+    'personas_electrodependientes'
+  );
+  const mascotasAfectadas = leerNumeroOpcional(obj, 'mascotasAfectadas', 'mascotas_afectadas');
+
+  const tieneContadoresSueltos =
+    cantidadNinos > 0 ||
+    cantidadAdultosMayores > 0 ||
+    personasDiscapacitadas > 0 ||
+    personasElectrodependientes > 0 ||
+    mascotasAfectadas > 0;
+
+  if (!nivelCompromisoVivienda && !danosEstimados && !tieneContadoresSueltos) {
+    return null;
+  }
+
+  return {
+    ...(tieneContadoresSueltos
+      ? {
+          cantidadNinos,
+          cantidadAdultosMayores,
+          personasDiscapacitadas,
+          personasElectrodependientes,
+          mascotasAfectadas,
+        }
+      : {}),
+    nivelCompromisoVivienda,
+    danosEstimados,
+  };
+}
+
+/**
  * Consolida el contexto social desde un incidente integrando el informe de cierre H39 y
  * la evaluación previa de prioridad H38 sin romper compatibilidad con incidentes sin reportes.
  */
