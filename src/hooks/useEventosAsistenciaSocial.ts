@@ -10,8 +10,25 @@ import {
   obtenerEventosAsistenciaSocial,
   AsistenciaSocialServiceError,
 } from '@/services/asistenciaSocialService';
+import { normalizarDetallesEvaluacionSocial } from '@/lib/utils/asistenciaSocialIncidenteUtils';
 import { getSocket } from '@/lib/socket/client';
 import type { Socket } from 'socket.io-client';
+
+type EventoSocialSocketPayload = EventoAsistenciaSocialItem & {
+  detalles_evaluacion?: unknown;
+};
+
+function normalizarEventoDesdeSocket(
+  evento: EventoSocialSocketPayload
+): EventoAsistenciaSocialItem {
+  const { detalles_evaluacion, ...resto } = evento;
+  return {
+    ...resto,
+    detallesEvaluacion: normalizarDetallesEvaluacionSocial(
+      evento.detallesEvaluacion ?? detalles_evaluacion
+    ),
+  };
+}
 
 export interface UseEventosAsistenciaSocialReturn {
   eventos: EventoAsistenciaSocialItem[];
@@ -91,14 +108,17 @@ export function useEventosAsistenciaSocial(
 
   const agregarEventoLocalmente = useCallback(
     (nuevoEvento: EventoAsistenciaSocialItem) => {
-      if (estado && nuevoEvento.estado !== estado) {
+      const eventoNormalizado = normalizarEventoDesdeSocket(
+        nuevoEvento as EventoSocialSocketPayload
+      );
+      if (estado && eventoNormalizado.estado !== estado) {
         return;
       }
 
       setData((prev) => {
         if (!prev) {
           return {
-            data: [nuevoEvento],
+            data: [eventoNormalizado],
             total: 1,
             pagina: 1,
             limite: 10,
@@ -107,13 +127,17 @@ export function useEventosAsistenciaSocial(
         }
 
         // Evitar duplicados
-        if (prev.data.some((e) => e.id === nuevoEvento.id || e.codigo === nuevoEvento.codigo)) {
+        if (
+          prev.data.some(
+            (e) => e.id === eventoNormalizado.id || e.codigo === eventoNormalizado.codigo
+          )
+        ) {
           return prev;
         }
 
         return {
           ...prev,
-          data: [nuevoEvento, ...prev.data],
+          data: [eventoNormalizado, ...prev.data],
           total: prev.total + 1,
         };
       });
@@ -122,20 +146,33 @@ export function useEventosAsistenciaSocial(
   );
 
   const actualizarEventoLocalmente = useCallback((eventoActualizado: EventoAsistenciaSocialItem) => {
+    const payloadSocket = eventoActualizado as EventoSocialSocketPayload;
+    const traeDetallesEnPayload =
+      payloadSocket.detallesEvaluacion !== undefined ||
+      payloadSocket.detalles_evaluacion !== undefined;
+    const eventoNormalizado = normalizarEventoDesdeSocket(payloadSocket);
+
     setData((prev) => {
       if (!prev) return prev;
       const existe = prev.data.some(
-        (e) => e.id === eventoActualizado.id || e.codigo === eventoActualizado.codigo
+        (e) => e.id === eventoNormalizado.id || e.codigo === eventoNormalizado.codigo
       );
       if (!existe) return prev;
 
       return {
         ...prev,
-        data: prev.data.map((e) =>
-          e.id === eventoActualizado.id || e.codigo === eventoActualizado.codigo
-            ? { ...e, ...eventoActualizado }
-            : e
-        ),
+        data: prev.data.map((e) => {
+          if (e.id !== eventoNormalizado.id && e.codigo !== eventoNormalizado.codigo) {
+            return e;
+          }
+          return {
+            ...e,
+            ...eventoNormalizado,
+            detallesEvaluacion: traeDetallesEnPayload
+              ? eventoNormalizado.detallesEvaluacion
+              : e.detallesEvaluacion ?? null,
+          };
+        }),
       };
     });
   }, []);
