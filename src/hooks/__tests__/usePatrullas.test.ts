@@ -272,4 +272,49 @@ describe('Hook usePatrullas (HU-16: Patrullas en Tiempo Real)', () => {
     expect(result.current.meta.total).toBe(1);
     expect(result.current.ultimoEvento).toContain('Patrulla dada de baja');
   });
+
+  it('debe transicionar patrulla a EN_RECUPERACION con mision:asignada RECUPERACION y liberarla con recuperacion:actualizada CERRADA', async () => {
+    vi.mocked(patrullasService.listar).mockResolvedValueOnce({
+      exito: true,
+      data: mockPatrullas,
+      meta: { total: 2, page: 1, limit: 20, totalPages: 1, hasNext: false, hasPrev: false },
+      mensaje: 'OK',
+    });
+
+    const { result } = renderHook(() => usePatrullas());
+
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 10));
+    });
+
+    act(() => {
+      (getSocket() as unknown as { _trigger: (ev: string, data: unknown) => void })._trigger(
+        'mision:asignada',
+        {
+          misionId: 'm-rec-1',
+          codigo: 'MIS-REC-001',
+          tipoMision: 'RECUPERACION',
+          patrullaId: 'p-1',
+          asignadoEn: '2026-11-21T00:00:00.000Z',
+        }
+      );
+    });
+
+    expect(result.current.patrullas[0].estado).toBe('EN_RECUPERACION');
+    expect(result.current.patrullas[0].misionActiva?.tipoMision).toBe('RECUPERACION');
+
+    act(() => {
+      (getSocket() as unknown as { _trigger: (ev: string, data: unknown) => void })._trigger(
+        'recuperacion:actualizada',
+        {
+          accion: 'CERRADA',
+          estado: 'COMPLETADA',
+          patrulla: { id: 'p-1', nombre: 'Patrulla Rápida Costa-1', estado: 'DISPONIBLE' },
+        }
+      );
+    });
+
+    expect(result.current.patrullas[0].estado).toBe('DISPONIBLE');
+    expect(result.current.patrullas[0].misionActiva).toBeNull();
+  });
 });

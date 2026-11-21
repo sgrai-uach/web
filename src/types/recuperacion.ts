@@ -1,3 +1,6 @@
+import type { paths } from '@/types/api-generated';
+import type { EstadoPatrullaEnum } from '@/types/patrullas';
+
 /**
  * Tipos TypeScript para el flujo de Creación de Eventos de Recuperación (HU-29).
  * Conforme a la especificación OpenAPI de sgrai-api y HANDOVER_HU29_CREAR_EVENTO_RECUPERACION_FRONTEND.md.
@@ -32,6 +35,22 @@ export interface RecursoAsignadoItem {
   recursoId: string;
   nombre: string;
   cantidadAsignada: number;
+  cantidadConsumida?: number | null;
+  cantidadDevuelta?: number | null;
+  devueltoEn?: string | null;
+}
+
+export interface ReportePatrullaRecuperacion {
+  resumen: string;
+  consumos: Array<{
+    recursoId: string;
+    cantidadConsumida: number;
+  }>;
+  reportadoEn: string;
+  reportadoPor: {
+    id: string;
+    nombre: string;
+  } | null;
 }
 
 export interface EventoRecuperacionResponse {
@@ -67,6 +86,12 @@ export interface EventoRecuperacionResponse {
   };
   recursos: RecursoAsignadoItem[];
   creadoPorId: string;
+  fechaEstimadaFin?: string | null;
+  actualizadoPorId?: string | null;
+  fechaCierre?: string | null;
+  observacionesCierre?: string | null;
+  cerradoPorId?: string | null;
+  reportePatrulla?: ReportePatrullaRecuperacion | null;
   creadoEn: string;
   actualizadoEn: string;
 }
@@ -79,7 +104,7 @@ export interface CrearEventoRecuperacionApiResponse {
 export interface PatrullaVerificadoraItem {
   id: string;
   nombre: string;
-  estado: 'DISPONIBLE' | 'EN_VERIFICACION' | 'EN_RECUPERACION' | 'NO_DISPONIBLE';
+  estado: EstadoPatrullaEnum;
   delegacionId?: string | null;
   delegacionNombre?: string | null;
 }
@@ -101,3 +126,81 @@ export const PATRULLAS_OFICIALES_SEED: PatrullaVerificadoraItem[] = [
     delegacionNombre: 'Delegación Costa',
   },
 ];
+
+/* -------------------------------------------------------------------------- */
+/* HU-73: Listado paginado y detalle de operativos de recuperación             */
+/* Derivados directamente del spec OpenAPI generado (api-generated.d.ts)       */
+/* -------------------------------------------------------------------------- */
+
+export type ListarOperativosRecuperacionQuery = NonNullable<
+  paths['/api/eventos-atp/recuperacion']['get']['parameters']['query']
+>;
+
+export type OrdenarPorRecuperacion = NonNullable<
+  ListarOperativosRecuperacionQuery['ordenarPor']
+>;
+
+export type DireccionOrdenRecuperacion = NonNullable<
+  ListarOperativosRecuperacionQuery['orden']
+>;
+
+export type ListarOperativosRecuperacionApiResponse =
+  paths['/api/eventos-atp/recuperacion']['get']['responses'][200]['content']['application/json'];
+
+export type OperativoRecuperacionListadoItem =
+  ListarOperativosRecuperacionApiResponse['data'][number];
+
+export type RecursoResumenTipo =
+  OperativoRecuperacionListadoItem['recursosResumen'][number];
+
+export type PaginacionMetaH34 = ListarOperativosRecuperacionApiResponse['meta'];
+
+export type DetalleOperativoRecuperacionApiResponse =
+  paths['/api/eventos-atp/recuperacion/{id}']['get']['responses'][200]['content']['application/json'];
+
+export type OperativoRecuperacionDetalle =
+  DetalleOperativoRecuperacionApiResponse['data'];
+
+export type OperativoRecuperacionRecursoDetalle =
+  OperativoRecuperacionDetalle['recursos'][number];
+
+export type OperativoRecuperacionHistorialItem =
+  OperativoRecuperacionDetalle['historial'][number];
+
+/* -------------------------------------------------------------------------- */
+/* HU-74: Edición de planificación de operativos de recuperación               */
+/* Derivados directamente del spec OpenAPI generado (api-generated.d.ts)       */
+/* -------------------------------------------------------------------------- */
+
+export type EditarOperativoRecuperacionInput = NonNullable<
+  paths['/api/eventos-atp/recuperacion/{id}']['patch']['requestBody']
+>['content']['application/json'];
+
+export type EditarOperativoRecuperacionApiResponse =
+  paths['/api/eventos-atp/recuperacion/{id}']['patch']['responses'][200]['content']['application/json'];
+
+export type EditarOperativoRecuperacionData =
+  EditarOperativoRecuperacionApiResponse['data'];
+
+/* -------------------------------------------------------------------------- */
+/* HU-75: Conclusión formal de operativos de recuperación                     */
+/* Derivados directamente del spec OpenAPI generado (api-generated.d.ts)      */
+/* -------------------------------------------------------------------------- */
+
+export type CerrarOperativoRecuperacionInput = NonNullable<
+  paths['/api/eventos-atp/recuperacion/{id}/cerrar']['post']['requestBody']
+>['content']['application/json'];
+
+export type ConsumoRecursoCierreItem = NonNullable<
+  CerrarOperativoRecuperacionInput['consumos']
+>[number];
+
+export type CerrarOperativoRecuperacionApiResponse =
+  paths['/api/eventos-atp/recuperacion/{id}/cerrar']['post']['responses'][200]['content']['application/json'];
+
+export type CerrarOperativoRecuperacionData =
+  CerrarOperativoRecuperacionApiResponse['data'];
+
+export type RecursoReintegradoCierreItem =
+  CerrarOperativoRecuperacionData['recursosReintegrados'][number];
+

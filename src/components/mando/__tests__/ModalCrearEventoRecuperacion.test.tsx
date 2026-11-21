@@ -5,6 +5,7 @@ import { ModalCrearEventoRecuperacion } from '../ModalCrearEventoRecuperacion';
 import { crearEventoRecuperacion, RecuperacionServiceError } from '@/services/recuperacionService';
 import { getRecursos } from '@/services/recursosService';
 import { getCatalogos } from '@/services/catalogosService';
+import { patrullasService } from '@/services/patrullasService';
 import type { EventoRecuperacionResponse } from '@/types/recuperacion';
 
 vi.mock('@/components/maps/LocationPickerMap', () => ({
@@ -52,6 +53,30 @@ vi.mock('@/services/recursosService', () => ({
     ],
     meta: { total: 2, pagina: 1, limite: 100, totalPaginas: 1 },
   }),
+}));
+
+vi.mock('@/services/patrullasService', () => ({
+  patrullasService: {
+    listar: vi.fn().mockResolvedValue({
+      exito: true,
+      data: [
+        {
+          id: 'f1000000-0000-4000-8000-000000000002',
+          nombre: 'Patrulla Rápida Centro-Sur',
+          estado: 'DISPONIBLE',
+          delegacion: { id: '30000000-0000-4000-8000-000000000002', codigo: 'SUR', nombre: 'Delegación Sur' },
+        },
+        {
+          id: 'f1000000-0000-4000-8000-000000000001',
+          nombre: 'Patrulla Rápida Costa-1',
+          estado: 'EN_VERIFICACION',
+          delegacion: { id: '30000000-0000-4000-8000-000000000003', codigo: 'COSTA', nombre: 'Delegación Costa' },
+        },
+      ],
+      meta: { total: 2, page: 1, limit: 100, totalPages: 1, hasNext: false, hasPrev: false },
+      mensaje: 'OK',
+    }),
+  },
 }));
 
 vi.mock('@/services/recuperacionService', () => {
@@ -310,5 +335,40 @@ describe('ModalCrearEventoRecuperacion (HU-29)', () => {
       ).toBeInTheDocument();
       expect(onClose).not.toHaveBeenCalled();
     });
+  });
+
+  it('debe cargar patrullas reales desde la API sin emojis y no preseleccionar patrullas ocupadas', async () => {
+    vi.mocked(patrullasService.listar).mockResolvedValueOnce({
+      exito: true,
+      data: [
+        {
+          id: 'pat-ocupada-1',
+          nombre: 'Patrulla Ocupada Norte',
+          estado: 'EN_RECUPERACION',
+          delegacion: { id: 'del-norte', codigo: 'NORTE', nombre: 'Delegación Norte' },
+        } as never,
+      ],
+      meta: { total: 1, page: 1, limit: 100, totalPages: 1, hasNext: false, hasPrev: false },
+      mensaje: 'OK',
+    });
+
+    render(<ModalCrearEventoRecuperacion isOpen={true} onClose={onClose} onSuccess={onSuccess} />);
+
+    await waitFor(() => {
+      expect(patrullasService.listar).toHaveBeenCalledWith({ limit: 100 }, undefined);
+    });
+
+    const selectPatrulla = screen.getByLabelText(/Seleccionar Patrulla Verificadora/i) as HTMLSelectElement;
+    expect(selectPatrulla.value).toBe('');
+    expect(
+      screen.getByText(/No hay patrullas verificadoras en estado DISPONIBLE/i)
+    ).toBeInTheDocument();
+
+    fireEvent.click(screen.getByLabelText(/Mostrar solo patrullas disponibles/i));
+    const opcionOcupada = await screen.findByRole('option', {
+      name: /Patrulla Ocupada Norte/i,
+    }) as HTMLOptionElement;
+    expect(opcionOcupada.disabled).toBe(true);
+    expect(opcionOcupada.textContent).not.toMatch(/[🟢🔴]/);
   });
 });

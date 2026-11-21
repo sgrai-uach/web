@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import {
   useIncidentesKanban,
@@ -26,7 +26,8 @@ import { PanelPatrullasModal } from './patrullas/PanelPatrullasModal';
 import { ModalCrearEventoPrevencion } from './ModalCrearEventoPrevencion';
 import { ModalCrearEventoRecuperacion } from './ModalCrearEventoRecuperacion';
 import { MapaOperativoMando } from './MapaOperativoMando';
-import { KanbanViewSwitcher } from './KanbanViewSwitcher';
+import { KanbanViewSwitcher, type VistaCentroIncidentes } from './KanbanViewSwitcher';
+import { OperativosRecuperacionView } from './recuperacion/OperativosRecuperacionView';
 import CuadrillaDetalleDrawer from '@/components/admin/cuadrillas/CuadrillaDetalleDrawer';
 import { cuadrillasService } from '@/services/cuadrillasService';
 import type { CuadrillaItem } from '@/types/cuadrilla';
@@ -49,7 +50,10 @@ const TITULOS_COLUMNAS = {
 export const KanbanBoard: React.FC = () => {
   const { showInfo, showWarning } = useToast();
   const searchParams = useSearchParams();
-  const [vistaActiva, setVistaActiva] = useState<'kanban' | 'mapa'>('kanban');
+  const vistaInicial = searchParams.get('vista');
+  const [vistaActiva, setVistaActiva] = useState<VistaCentroIncidentes>(
+    vistaInicial === 'recuperacion' || vistaInicial === 'mapa' ? vistaInicial : 'kanban'
+  );
   const [misionesModalAbierto, setMisionesModalAbierto] = useState(false);
   const [patrullasModalAbierto, setPatrullasModalAbierto] = useState(false);
   const [misionSeleccionadaId, setMisionSeleccionadaId] = useState<string | null>(null);
@@ -196,7 +200,24 @@ export const KanbanBoard: React.FC = () => {
     },
   });
 
-  // Hook de tiempo real para eventos de recuperación (HU-29)
+  // Deduplicación de notificaciones Toast por evento WebSocket (evita repetidos entre salas)
+  const toastsRecientesRef = useRef<Map<string, number>>(new Map());
+  const debeMostrarToastRecuperacion = useCallback((clave: string): boolean => {
+    const ahora = Date.now();
+    const ultimo = toastsRecientesRef.current.get(clave);
+    if (ultimo && ahora - ultimo < 3000) {
+      return false;
+    }
+    toastsRecientesRef.current.set(clave, ahora);
+    for (const [k, ts] of toastsRecientesRef.current.entries()) {
+      if (ahora - ts > 10000) {
+        toastsRecientesRef.current.delete(k);
+      }
+    }
+    return true;
+  }, []);
+
+  // Hook de tiempo real para eventos de recuperación (HU-29, HU-74, HU-75)
   useRecuperacionSocket({
     onRecuperacionCreada: (nuevoEvento) => {
       setEventosRecuperacion((prev) => {
@@ -204,10 +225,51 @@ export const KanbanBoard: React.FC = () => {
         if (existe) return prev;
         return [nuevoEvento, ...prev];
       });
-      showInfo(
-        `Nuevo evento de recuperación en ${nuevoEvento.sector}: ${nuevoEvento.codigo}`,
-        'Operación Territorial en Vivo'
-      );
+      if (debeMostrarToastRecuperacion(`creada:${nuevoEvento.id}`)) {
+        showInfo(
+          `Nuevo evento de recuperación en ${nuevoEvento.sector}: ${nuevoEvento.codigo}`,
+          'Operación Territorial en Vivo'
+        );
+      }
+    },
+    onRecuperacionActualizada: (eventoActualizado) => {
+      const esFinalizado =
+        eventoActualizado.accion === 'CERRADA' ||
+        eventoActualizado.estado === 'COMPLETADA' ||
+        eventoActualizado.estado === 'CANCELADA';
+
+      setEventosRecuperacion((prev) => {
+        if (esFinalizado) {
+          return prev.filter((e) => e.id !== eventoActualizado.id);
+        }
+        const existe = prev.some((e) => e.id === eventoActualizado.id);
+        if (!existe) return prev;
+        return prev.map((e) =>
+          e.id === eventoActualizado.id ? { ...e, ...eventoActualizado } : e
+        );
+      });
+
+      const claveToast = `act:${eventoActualizado.id}:${eventoActualizado.accion || eventoActualizado.estado}:${eventoActualizado.actualizadoEn || ''}`;
+      if (!debeMostrarToastRecuperacion(claveToast)) {
+        return;
+      }
+
+      if (esFinalizado) {
+        showInfo(
+          `Operativo de recuperación ${eventoActualizado.codigo} concluido en ${eventoActualizado.sector}.`,
+          'Operativo Concluido'
+        );
+      } else if (eventoActualizado.accion === 'REPORTE_TERRENO') {
+        showInfo(
+          `La patrulla reportó el cierre en terreno para ${eventoActualizado.codigo} (${eventoActualizado.sector}). Listo para confirmar en Centro de Mando.`,
+          'Cierre Reportado desde Terreno'
+        );
+      } else if (eventoActualizado.accion === 'EN_EJECUCION') {
+        showInfo(
+          `El operativo ${eventoActualizado.codigo} (${eventoActualizado.sector}) pasó a En Ejecución.`,
+          'Operativo en Ejecución'
+        );
+      }
     },
   });
 
@@ -293,26 +355,30 @@ export const KanbanBoard: React.FC = () => {
         <AccesoDenegado />
       ) : (
         <>
-          <IncidentesKpiCards
-            kpis={kpis}
-            cargando={cargandoKpis}
-            delegacionId={delegacionId}
-            onDelegacionChange={handleDelegacionChange}
-            delegaciones={delegaciones}
-            onRefrescar={handleRefrescoCompleto}
-            estadoSeleccionado={estadoEnfocado}
-            onSelectEstado={handleSelectEstado}
-            conectado={conectadoKpis || conectado}
-          />
+          {vistaActiva !== 'recuperacion' && (
+            <>
+              <IncidentesKpiCards
+                kpis={kpis}
+                cargando={cargandoKpis}
+                delegacionId={delegacionId}
+                onDelegacionChange={handleDelegacionChange}
+                delegaciones={delegaciones}
+                onRefrescar={handleRefrescoCompleto}
+                estadoSeleccionado={estadoEnfocado}
+                onSelectEstado={handleSelectEstado}
+                conectado={conectadoKpis || conectado}
+              />
 
-          <KanbanFiltros
-            filtros={filtros}
-            onFiltrosChange={setFiltros}
-            onLimpiarFiltros={limpiarFiltros}
-            onRecargar={handleRefrescoCompleto}
-            contadoresPorEstado={contadoresPorEstado}
-            cargando={cargando}
-          />
+              <KanbanFiltros
+                filtros={filtros}
+                onFiltrosChange={setFiltros}
+                onLimpiarFiltros={limpiarFiltros}
+                onRecargar={handleRefrescoCompleto}
+                contadoresPorEstado={contadoresPorEstado}
+                cargando={cargando}
+              />
+            </>
+          )}
 
           {ultimoEvento && (
             <div
@@ -369,7 +435,7 @@ export const KanbanBoard: React.FC = () => {
                 ))}
               </div>
             </main>
-          ) : (
+          ) : vistaActiva === 'mapa' ? (
             <main style={{ marginTop: 'var(--space-4, 16px)' }}>
               <MapaOperativoMando
                 incidentes={todosLosIncidentes}
@@ -379,6 +445,13 @@ export const KanbanBoard: React.FC = () => {
                 onSelectIncidente={(incId) => setIncidenteSeleccionadoId(incId)}
                 onSelectCuadrilla={(cuadrillaId) => setCuadrillaSeleccionadaId(cuadrillaId)}
                 onCrearPrevencion={() => setModalPrevencionAbierto(true)}
+                onCrearRecuperacion={() => setModalRecuperacionAbierto(true)}
+              />
+            </main>
+          ) : (
+            <main style={{ marginTop: 'var(--space-4, 16px)' }}>
+              <OperativosRecuperacionView
+                delegaciones={delegaciones}
                 onCrearRecuperacion={() => setModalRecuperacionAbierto(true)}
               />
             </main>

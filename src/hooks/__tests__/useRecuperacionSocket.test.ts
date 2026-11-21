@@ -136,7 +136,59 @@ describe('useRecuperacionSocket (HU-29)', () => {
     expect(socket.off).toHaveBeenCalledWith('connect', expect.any(Function));
     expect(socket.off).toHaveBeenCalledWith('disconnect', expect.any(Function));
     expect(socket.off).toHaveBeenCalledWith('recuperacion:creada', expect.any(Function));
+    expect(socket.off).toHaveBeenCalledWith('recuperacion:actualizada', expect.any(Function));
     expect(socket.emit).toHaveBeenCalledWith('salir', 'sala:encargados');
+    expect(socket.emit).toHaveBeenCalledWith('salir', 'encargado');
     expect(socket.emit).toHaveBeenCalledWith('salir', 'mapa');
+  });
+
+  it('debe invocar onRecuperacionActualizada al recibir evento WebSocket recuperacion:actualizada', () => {
+    const socket = getSocket();
+    const onRecuperacionActualizada = vi.fn();
+
+    const { result } = renderHook(() =>
+      useRecuperacionSocket({
+        onRecuperacionActualizada,
+      })
+    );
+
+    act(() => {
+      (socket as unknown as { _trigger: (ev: string, p: unknown) => void })._trigger(
+        'recuperacion:actualizada',
+        mockEvento
+      );
+    });
+
+    expect(onRecuperacionActualizada).toHaveBeenCalledWith(mockEvento);
+    expect(result.current.ultimoEvento).toContain('Recuperación actualizada: REC-2026-0001');
+  });
+
+  it('debe reflejar cierre formal cuando recuperacion:actualizada trae accion CERRADA y estado COMPLETADA', () => {
+    const socket = getSocket();
+    const onRecuperacionActualizada = vi.fn();
+
+    const { result } = renderHook(() =>
+      useRecuperacionSocket({
+        onRecuperacionActualizada,
+      })
+    );
+
+    const payloadCierre = {
+      ...mockEvento,
+      estado: 'COMPLETADA' as const,
+      accion: 'CERRADA',
+      fechaCierre: '2026-11-20T18:00:00.000Z',
+      observacionesCierre: 'Operativo concluido.',
+    };
+
+    act(() => {
+      (socket as unknown as { _trigger: (ev: string, p: unknown) => void })._trigger(
+        'recuperacion:actualizada',
+        payloadCierre
+      );
+    });
+
+    expect(onRecuperacionActualizada).toHaveBeenCalledWith(payloadCierre);
+    expect(result.current.ultimoEvento).toContain('Recuperación concluida: REC-2026-0001');
   });
 });
