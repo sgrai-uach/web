@@ -44,7 +44,7 @@ describe('EventoAsistenciaSocialDetalleModal', () => {
       />
     );
 
-    expect(screen.getByText(/Ficha de Asistencia Social FIBE/i)).toBeDefined();
+    expect(screen.getByText(/Detalle de Evento de Asistencia Social/i)).toBeDefined();
     expect(screen.getByText('AS-2026-0001')).toBeDefined();
     expect(screen.getByText(/Anegamiento severo de vivienda en sector Isla Teja/i)).toBeDefined();
     expect(screen.getByText('Los Robles 1025, Isla Teja')).toBeDefined();
@@ -69,7 +69,7 @@ describe('EventoAsistenciaSocialDetalleModal', () => {
       />
     );
 
-    expect(screen.getByText(/Ficha de Evento Social \(Vista Previa\)/i)).toBeDefined();
+    expect(screen.getByText(/Detalle de Evento de Asistencia Social \(Vista Previa\)/i)).toBeDefined();
     expect(screen.getByText(/Borrador en Pantalla/i)).toBeDefined();
 
     const confirmarBtn = screen.getByRole('button', { name: /Confirmar y Guardar Evento/i });
@@ -79,7 +79,7 @@ describe('EventoAsistenciaSocialDetalleModal', () => {
     expect(handleConfirmar).toHaveBeenCalledTimes(1);
   });
 
-  it('debe invocar onClose al hacer clic en Cerrar Ficha', () => {
+  it('debe invocar onClose al hacer clic en Cerrar Detalle', () => {
     const handleClose = vi.fn();
     render(
       <EventoAsistenciaSocialDetalleModal
@@ -89,7 +89,7 @@ describe('EventoAsistenciaSocialDetalleModal', () => {
       />
     );
 
-    const cerrarBtn = screen.getByRole('button', { name: /Cerrar Ficha/i });
+    const cerrarBtn = screen.getByRole('button', { name: /Cerrar Detalle/i });
     fireEvent.click(cerrarBtn);
     expect(handleClose).toHaveBeenCalledTimes(1);
   });
@@ -133,6 +133,8 @@ describe('EventoAsistenciaSocialDetalleModal', () => {
                 personasElectrodependientes: 0,
                 mascotasAfectadas: 1,
                 nivelCompromisoVivienda: 'GRAVE_INHABITABLE',
+                contactoNombre: 'Ana Soto',
+                contactoTelefono: '+56911111111',
               },
               {
                 referencia: 'Familia Ríos',
@@ -143,6 +145,8 @@ describe('EventoAsistenciaSocialDetalleModal', () => {
                 personasElectrodependientes: 1,
                 mascotasAfectadas: 0,
                 nivelCompromisoVivienda: 'MODERADO',
+                contactoNombre: 'Pedro Ríos',
+                contactoTelefono: '+56922222222',
               },
             ],
           },
@@ -159,6 +163,8 @@ describe('EventoAsistenciaSocialDetalleModal', () => {
     expect(screen.getByTestId('ficha-resumen-grupos-vulnerables')).toBeDefined();
     expect(screen.getByTestId('ficha-familia-item-0').textContent).toContain('Familia #1 — Familia Soto');
     expect(screen.getByTestId('ficha-familia-item-1').textContent).toContain('Familia #2 — Familia Ríos');
+    expect(screen.getByTestId('detalle-contacto-familia-0').textContent).toContain('Ana Soto');
+    expect(screen.getByTestId('detalle-contacto-familia-1').textContent).toContain('Pedro Ríos');
     expect(screen.queryByText('99')).toBeNull();
     expect(screen.getByText(/Última actualización:/i)).toBeDefined();
   });

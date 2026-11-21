@@ -6,6 +6,8 @@ import {
   extraerContextoSocialDesdeIncidente,
   construirDetallesEvaluacionSocial,
   normalizarDetallesEvaluacionSocial,
+  validarCoherenciaFamiliaSocial,
+  extraerContactoPrincipalDesdeFamilias,
 } from '../asistenciaSocialIncidenteUtils';
 import { DELEGACIONES_MUNICIPALES } from '@/hooks/usePuntosCriticos';
 
@@ -261,5 +263,48 @@ describe('asistenciaSocialIncidenteUtils', () => {
     });
     expect(norm?.familias).toHaveLength(2);
     expect(normalizarDetallesEvaluacionSocial(null)).toBeNull();
+  });
+
+  it('valida coherencia demográfica estricta por familia y extrae contacto principal de la primera familia con datos', () => {
+    expect(
+      Object.keys(
+        validarCoherenciaFamiliaSocial({
+          nucleoFamiliarTotal: 5,
+          cantidadNinos: 2,
+          cantidadAdultosMayores: 1,
+          personasDiscapacitadas: 1,
+          personasElectrodependientes: 1,
+          mascotasAfectadas: 8,
+        })
+      )
+    ).toHaveLength(0);
+
+    const errsNinos = validarCoherenciaFamiliaSocial({
+      nucleoFamiliarTotal: 5,
+      cantidadNinos: 6,
+    });
+    expect(errsNinos.cantidadNinos).toBeDefined();
+
+    const errsDiscap = validarCoherenciaFamiliaSocial({
+      nucleoFamiliarTotal: 5,
+      personasDiscapacitadas: 10,
+    });
+    expect(errsDiscap.personasDiscapacitadas).toBeDefined();
+
+    expect(
+      extraerContactoPrincipalDesdeFamilias([
+        { nucleoFamiliarTotal: 2 },
+        {
+          nucleoFamiliarTotal: 3,
+          contactoNombre: 'Ana Veas',
+          contactoTelefono: '+56912345678',
+          contactoRut: '11.111.111-1',
+        },
+      ])
+    ).toEqual({
+      contactoNombre: 'Ana Veas',
+      contactoTelefono: '+56912345678',
+      contactoRut: '11.111.111-1',
+    });
   });
 });

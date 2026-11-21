@@ -369,7 +369,7 @@ describe('EventoAsistenciaSocialForm', () => {
     });
   });
 
-  it('debe desplegar la ficha resumen del caso en modal al hacer clic en Desplegar Ficha del Caso y cerrarla al presionar Cerrar Ficha', async () => {
+  it('debe desplegar la vista previa del evento en modal al hacer clic en Vista Previa del Evento y cerrarla al presionar Cerrar Detalle', async () => {
     render(<EventoAsistenciaSocialForm basePath="/gestion/asistente-social" />);
 
     // Ingresar datos
@@ -380,22 +380,22 @@ describe('EventoAsistenciaSocialForm', () => {
       target: { value: 'Pasaje Los Coihues 450' },
     });
 
-    // Abrir ficha
-    const desplegarBtn = screen.getByRole('button', { name: /Desplegar Ficha del Caso/i });
+    // Abrir vista previa
+    const desplegarBtn = screen.getByRole('button', { name: /Vista Previa del Evento/i });
     expect(desplegarBtn).toBeDefined();
     fireEvent.click(desplegarBtn);
 
     // Verificar que el modal se desplegó con los datos
-    expect(screen.getByText(/Ficha de Evento Social \(Vista Previa\)/i)).toBeDefined();
+    expect(screen.getByText(/Detalle de Evento de Asistencia Social \(Vista Previa\)/i)).toBeDefined();
     expect(screen.getAllByText('Familia damnificada por anegamiento severo').length).toBe(2);
     expect(screen.getAllByText('Pasaje Los Coihues 450').length).toBeGreaterThanOrEqual(1);
 
-    // Cerrar ficha
-    const cerrarBtn = screen.getByRole('button', { name: /Cerrar Ficha/i });
+    // Cerrar detalle
+    const cerrarBtn = screen.getByRole('button', { name: /Cerrar Detalle/i });
     fireEvent.click(cerrarBtn);
 
     await waitFor(() => {
-      expect(screen.queryByText(/Ficha de Evento Social \(Vista Previa\)/i)).toBeNull();
+      expect(screen.queryByText(/Detalle de Evento de Asistencia Social \(Vista Previa\)/i)).toBeNull();
     });
   });
 
@@ -858,5 +858,21 @@ describe('EventoAsistenciaSocialForm', () => {
     fireEvent.click(screen.getByRole('button', { name: /Volver a modo aproximado/i }));
     expect(personasInput.value).toBe('');
     expect(familiasInput.value).toBe('');
+  });
+
+  it('muestra error de coherencia demográfica sin inflar total cuando niños supera el total de integrantes y separa contacto por familia', () => {
+    render(<EventoAsistenciaSocialForm basePath="/gestion/asistente-social" />);
+
+    fireEvent.click(screen.getByRole('button', { name: /Añadir Familia \/ Hogar/i }));
+    expect(screen.getByTestId('aviso-contacto-por-familia')).toBeDefined();
+
+    const totalInput = document.getElementById('fam-total-0') as HTMLInputElement;
+    const ninosInput = document.getElementById('fam-ninos-0') as HTMLInputElement;
+
+    fireEvent.change(totalInput, { target: { value: '5' } });
+    fireEvent.change(ninosInput, { target: { value: '6' } });
+
+    expect(totalInput.value).toBe('5');
+    expect(screen.getByTestId('familia-coherencia-error-0')).toBeDefined();
   });
 });
