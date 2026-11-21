@@ -15,8 +15,8 @@ Permitir al **Encargado** asignar formalmente un profesional con rol `ASISTENTE_
 
 ## 2. Ciclo de Estados de Eventos de Asistencia Social
 
-1. **PENDIENTE:** Evento excepcional registrado manualmente (HU-28), aún sin profesional asignado.
-2. **ASIGNADO:** Evento con un asistente social asignado formalmente desde el panel (HU-31).
+1. **PENDIENTE:** Evento excepcional registrado manualmente (HU-28) sin asignación inmediata, pendiente de profesional.
+2. **ASIGNADO:** Evento con un asistente social asignado formalmente desde el panel (HU-31) o asignado de forma opcional e inmediata al momento de su creación en HU-28.
 3. **EN EVALUACIÓN FIBE:** El asistente social inició el levantamiento de la ficha FIBE en terreno (`sgrai-pwa`).
 4. **FINALIZADO:** Levantamiento y cierre de atención completados.
 5. **DESCARTADO:** Evento cerrado administrativamente sin ejecución.
