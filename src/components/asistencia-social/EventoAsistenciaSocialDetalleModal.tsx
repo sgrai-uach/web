@@ -21,8 +21,15 @@ import {
 import Modal from '@/components/common/Modal';
 import Button from '@/components/ui/Button';
 import Heading from '@/components/ui/Heading';
-import { TIPOS_AFECTACION_SOCIAL } from '@/types/asistenciaSocial';
-import type { PrioridadEventoSocial, TipoAfectacionSocial } from '@/types/asistenciaSocial';
+import {
+  TIPOS_AFECTACION_SOCIAL,
+  NIVELES_COMPROMISO_VIVIENDA,
+} from '@/types/asistenciaSocial';
+import type {
+  DetallesEvaluacionSocialDTO,
+  PrioridadEventoSocial,
+  TipoAfectacionSocial,
+} from '@/types/asistenciaSocial';
 
 export interface DatosFichaAsistenciaSocial {
   codigo?: string;
@@ -44,6 +51,7 @@ export interface DatosFichaAsistenciaSocial {
   creadoEn?: string | null;
   estado?: string;
   asistenteSocialNombre?: string | null;
+  detallesEvaluacion?: DetallesEvaluacionSocialDTO | null;
 }
 
 interface EventoAsistenciaSocialDetalleModalProps {
@@ -381,6 +389,125 @@ export default function EventoAsistenciaSocialDetalleModal({
               </div>
             </div>
           </div>
+
+          {datos.detallesEvaluacion &&
+            (Boolean(datos.detallesEvaluacion.familias?.length) ||
+              Boolean(datos.detallesEvaluacion.nivelCompromisoVivienda) ||
+              Boolean(datos.detallesEvaluacion.danosEstimados)) && (
+              <div
+                data-testid="ficha-desglose-demografico"
+                style={{
+                  marginTop: '14px',
+                  padding: '12px',
+                  backgroundColor: 'var(--color-bg-light, #ECEFF3)',
+                  border: '1px solid var(--border-color-neutral, #DFE3E8)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '10px',
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    color: 'var(--color-primary-teal-dark, #14505A)',
+                    textTransform: 'uppercase',
+                  }}
+                >
+                  Desglose Demográfico y Habitacional
+                </div>
+
+                {(datos.detallesEvaluacion.nivelCompromisoVivienda ||
+                  datos.detallesEvaluacion.danosEstimados) && (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 16px', fontSize: '12px' }}>
+                    {datos.detallesEvaluacion.nivelCompromisoVivienda && (
+                      <span>
+                        <strong>Compromiso habitacional:</strong>{' '}
+                        {NIVELES_COMPROMISO_VIVIENDA.find(
+                          (n) => n.value === datos.detallesEvaluacion?.nivelCompromisoVivienda
+                        )?.label || datos.detallesEvaluacion.nivelCompromisoVivienda}
+                      </span>
+                    )}
+                    {datos.detallesEvaluacion.danosEstimados && (
+                      <span>
+                        <strong>Daños materiales:</strong> {datos.detallesEvaluacion.danosEstimados}
+                      </span>
+                    )}
+                  </div>
+                )}
+
+                {datos.detallesEvaluacion.familias &&
+                  datos.detallesEvaluacion.familias.length > 0 && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      {datos.detallesEvaluacion.familias.map((fam, idx) => {
+                        const compLabel = fam.nivelCompromisoVivienda
+                          ? NIVELES_COMPROMISO_VIVIENDA.find(
+                              (n) => n.value === fam.nivelCompromisoVivienda
+                            )?.label || fam.nivelCompromisoVivienda
+                          : null;
+                        return (
+                          <div
+                            key={fam.id || idx}
+                            style={{
+                              padding: '8px 10px',
+                              backgroundColor: '#FFFFFF',
+                              border: '1px solid var(--border-color-neutral, #DFE3E8)',
+                              fontSize: '12px',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              gap: '4px',
+                            }}
+                          >
+                            <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '6px' }}>
+                              <strong>
+                                {fam.referencia?.trim()
+                                  ? fam.referencia.trim()
+                                  : `Familia #${idx + 1}`}
+                              </strong>
+                              {compLabel && (
+                                <span style={{ color: 'var(--color-primary-teal, #1B6F7D)', fontWeight: 600 }}>
+                                  {compLabel}
+                                </span>
+                              )}
+                            </div>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 12px', color: 'var(--color-charcoal, #3B3F45)' }}>
+                              <span>
+                                <strong>Integrantes:</strong> {fam.nucleoFamiliarTotal}
+                              </span>
+                              {(fam.cantidadNinos ?? 0) > 0 && (
+                                <span>
+                                  <strong>Niños/Adolescentes:</strong> {fam.cantidadNinos}
+                                </span>
+                              )}
+                              {(fam.cantidadAdultosMayores ?? 0) > 0 && (
+                                <span>
+                                  <strong>Adultos mayores:</strong> {fam.cantidadAdultosMayores}
+                                </span>
+                              )}
+                              {(fam.personasDiscapacitadas ?? 0) > 0 && (
+                                <span>
+                                  <strong>Discapacidad:</strong> {fam.personasDiscapacitadas}
+                                </span>
+                              )}
+                              {(fam.personasElectrodependientes ?? 0) > 0 && (
+                                <span>
+                                  <strong>Electrodependientes:</strong>{' '}
+                                  {fam.personasElectrodependientes}
+                                </span>
+                              )}
+                              {(fam.mascotasAfectadas ?? 0) > 0 && (
+                                <span>
+                                  <strong>Mascotas:</strong> {fam.mascotasAfectadas}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+              </div>
+            )}
         </div>
 
         {/* 2. Ubicación Georreferenciada */}

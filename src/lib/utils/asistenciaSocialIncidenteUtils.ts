@@ -1,4 +1,10 @@
-import type { PrioridadEventoSocial, TipoAfectacionSocial } from '@/types/asistenciaSocial';
+import type {
+  DetallesEvaluacionSocialDTO,
+  FamiliaAfectadaSocialDTO,
+  NivelCompromisoViviendaSocial,
+  PrioridadEventoSocial,
+  TipoAfectacionSocial,
+} from '@/types/asistenciaSocial';
 
 export interface IncidenteResumenCompatible {
   id: string;
@@ -15,7 +21,14 @@ export interface IncidenteResumenCompatible {
 export interface EvaluacionTerrenoCompatible {
   nucleoFamiliarTotal?: number | null;
   familiasAfectadas?: number | null;
-  familias?: Array<unknown> | null;
+  familias?: Array<Record<string, unknown>> | null;
+  cantidadNinos?: number | null;
+  cantidadAdultosMayores?: number | null;
+  personasDiscapacitadas?: number | null;
+  personasElectrodependientes?: number | null;
+  mascotasAfectadas?: number | null;
+  nivelCompromisoVivienda?: string | null;
+  danosEstimados?: string | null;
   requiereAsistenciaSocial?: boolean | null;
 }
 
@@ -29,6 +42,7 @@ export interface ReporteTerrenoCompatible {
   personasAfectadas?: number | null;
   personasAfectadasPrevias?: number | null;
   personasAfectadasModificadas?: boolean | null;
+  danosEstimados?: string | null;
   resumenTecnico?: string | null;
   observaciones?: string | null;
   versionReporte?: number | null;
@@ -87,9 +101,18 @@ export interface ContextoSocialDesdeIncidente {
   motivoNoAbordable: string | null;
   requiereFibeVerificado: boolean | null;
   resumenCierrePatrulla: string | null;
+  familiasDesglosadas: FamiliaAfectadaSocialDTO[];
+  nivelCompromisoVivienda: NivelCompromisoViviendaSocial | '';
+  danosEstimados: string;
 }
 
 const PRIORIDADES_VALIDAS: PrioridadEventoSocial[] = ['BAJA', 'MEDIA', 'ALTA', 'CRITICA'];
+const NIVELES_COMPROMISO_VALIDOS: NivelCompromisoViviendaSocial[] = [
+  'SIN_DANO',
+  'LEVE',
+  'MODERADO',
+  'GRAVE_INHABITABLE',
+];
 
 /**
  * Normaliza un texto eliminando tildes, pasando a minúsculas y colapsando espacios.
@@ -269,6 +292,140 @@ function normalizarDictamen(
   return null;
 }
 
+function normalizarNivelCompromiso(
+  valor?: string | null
+): NivelCompromisoViviendaSocial | '' {
+  if (!valor || typeof valor !== 'string') return '';
+  const limpio = valor.trim().toUpperCase() as NivelCompromisoViviendaSocial;
+  return NIVELES_COMPROMISO_VALIDOS.includes(limpio) ? limpio : '';
+}
+
+function leerNumeroOpcional(obj: Record<string, unknown>, camel: string, snake: string): number {
+  const val = obj[camel] ?? obj[snake];
+  return typeof val === 'number' && !Number.isNaN(val) && val >= 0 ? Math.trunc(val) : 0;
+}
+
+function extraerFamiliasDesglosadasDeReporte(
+  reporte?: ReporteTerrenoCompatible | null,
+  personasFallbackUnica?: number | null
+): FamiliaAfectadaSocialDTO[] {
+  if (!reporte) return [];
+  const fuentes = [reporte.evaluacion, reporte.detallesEvaluacion];
+  for (const fuente of fuentes) {
+    if (!fuente || !Array.isArray(fuente.familias) || fuente.familias.length === 0) continue;
+
+    return fuente.familias.map((raw, idx) => {
+      const f = (raw || {}) as Record<string, unknown>;
+      const refRaw = typeof f.referencia === 'string' ? f.referencia.trim() : '';
+      let nucleo = leerNumeroOpcional(f, 'nucleoFamiliarTotal', 'nucleo_familiar_total');
+      if (
+        nucleo === 0 &&
+        fuente.familias?.length === 1 &&
+        typeof personasFallbackUnica === 'number' &&
+        personasFallbackUnica > 0
+      ) {
+        nucleo = personasFallbackUnica;
+      }
+      const compRaw = (f.nivelCompromisoVivienda ?? f.nivel_compromiso_vivienda) as
+        | string
+        | undefined;
+      const comp = normalizarNivelCompromiso(compRaw);
+
+      return {
+        id: typeof f.id === 'string' ? f.id : `fam-precarga-${idx + 1}`,
+        referencia: refRaw || undefined,
+        nucleoFamiliarTotal: nucleo,
+        cantidadNinos: leerNumeroOpcional(f, 'cantidadNinos', 'cantidad_ninos'),
+        cantidadAdultosMayores: leerNumeroOpcional(
+          f,
+          'cantidadAdultosMayores',
+          'cantidad_adultos_mayores'
+        ),
+        personasDiscapacitadas: leerNumeroOpcional(
+          f,
+          'personasDiscapacitadas',
+          'personas_discapacitadas'
+        ),
+        personasElectrodependientes: leerNumeroOpcional(
+          f,
+          'personasElectrodependientes',
+          'personas_electrodependientes'
+        ),
+        mascotasAfectadas: leerNumeroOpcional(f, 'mascotasAfectadas', 'mascotas_afectadas'),
+        ...(comp ? { nivelCompromisoVivienda: comp } : {}),
+      };
+    });
+  }
+  return [];
+}
+
+/**
+ * Construye el payload estructurado detallesEvaluacion a partir de las familias desglosadas
+ * y datos habitacionales opcionales. Retorna null en modo aproximado sin detalles adicionales.
+ */
+export function construirDetallesEvaluacionSocial(input: {
+  familias: FamiliaAfectadaSocialDTO[];
+  nivelCompromisoVivienda?: NivelCompromisoViviendaSocial | string | null;
+  danosEstimados?: string | null;
+}): DetallesEvaluacionSocialDTO | null {
+  const familiasLimpias = input.familias.map((f) => ({
+    ...(f.id ? { id: f.id } : {}),
+    ...(f.referencia?.trim() ? { referencia: f.referencia.trim() } : {}),
+    nucleoFamiliarTotal: Math.max(0, Math.trunc(Number(f.nucleoFamiliarTotal) || 0)),
+    cantidadNinos: Math.max(0, Math.trunc(Number(f.cantidadNinos) || 0)),
+    cantidadAdultosMayores: Math.max(0, Math.trunc(Number(f.cantidadAdultosMayores) || 0)),
+    personasDiscapacitadas: Math.max(0, Math.trunc(Number(f.personasDiscapacitadas) || 0)),
+    personasElectrodependientes: Math.max(
+      0,
+      Math.trunc(Number(f.personasElectrodependientes) || 0)
+    ),
+    mascotasAfectadas: Math.max(0, Math.trunc(Number(f.mascotasAfectadas) || 0)),
+    ...(f.nivelCompromisoVivienda ? { nivelCompromisoVivienda: f.nivelCompromisoVivienda } : {}),
+  }));
+
+  const compromiso = input.nivelCompromisoVivienda?.trim() || null;
+  const danos = input.danosEstimados?.trim() || null;
+
+  if (familiasLimpias.length === 0 && !compromiso && !danos) {
+    return null;
+  }
+
+  if (familiasLimpias.length === 0) {
+    return {
+      nivelCompromisoVivienda: compromiso,
+      danosEstimados: danos,
+    };
+  }
+
+  const totales = familiasLimpias.reduce(
+    (acc, fam) => ({
+      nucleoFamiliarTotal: acc.nucleoFamiliarTotal + fam.nucleoFamiliarTotal,
+      cantidadNinos: acc.cantidadNinos + (fam.cantidadNinos ?? 0),
+      cantidadAdultosMayores: acc.cantidadAdultosMayores + (fam.cantidadAdultosMayores ?? 0),
+      personasDiscapacitadas: acc.personasDiscapacitadas + (fam.personasDiscapacitadas ?? 0),
+      personasElectrodependientes:
+        acc.personasElectrodependientes + (fam.personasElectrodependientes ?? 0),
+      mascotasAfectadas: acc.mascotasAfectadas + (fam.mascotasAfectadas ?? 0),
+    }),
+    {
+      nucleoFamiliarTotal: 0,
+      cantidadNinos: 0,
+      cantidadAdultosMayores: 0,
+      personasDiscapacitadas: 0,
+      personasElectrodependientes: 0,
+      mascotasAfectadas: 0,
+    }
+  );
+
+  return {
+    familias: familiasLimpias,
+    familiasAfectadas: familiasLimpias.length,
+    ...totales,
+    nivelCompromisoVivienda: compromiso,
+    danosEstimados: danos,
+  };
+}
+
 /**
  * Consolida el contexto social desde un incidente integrando el informe de cierre H39 y
  * la evaluación previa de prioridad H38 sin romper compatibilidad con incidentes sin reportes.
@@ -355,6 +512,31 @@ export function extraerContextoSocialDesdeIncidente(
     ? prioridadRaw
     : 'MEDIA';
 
+  const familiasDesglosadasCierre = extraerFamiliasDesglosadasDeReporte(
+    reporteCierre,
+    personasAfectadas
+  );
+  const familiasDesglosadas =
+    familiasDesglosadasCierre.length > 0
+      ? familiasDesglosadasCierre
+      : extraerFamiliasDesglosadasDeReporte(reportePrioridad, personasAfectadas);
+
+  const nivelCompromisoVivienda =
+    normalizarNivelCompromiso(reporteCierre?.evaluacion?.nivelCompromisoVivienda) ||
+    normalizarNivelCompromiso(reporteCierre?.detallesEvaluacion?.nivelCompromisoVivienda) ||
+    normalizarNivelCompromiso(reportePrioridad?.evaluacion?.nivelCompromisoVivienda) ||
+    normalizarNivelCompromiso(reportePrioridad?.detallesEvaluacion?.nivelCompromisoVivienda) ||
+    '';
+
+  const danosEstimados =
+    reporteCierre?.danosEstimados?.trim() ||
+    reporteCierre?.evaluacion?.danosEstimados?.trim() ||
+    reporteCierre?.detallesEvaluacion?.danosEstimados?.trim() ||
+    reportePrioridad?.danosEstimados?.trim() ||
+    reportePrioridad?.evaluacion?.danosEstimados?.trim() ||
+    reportePrioridad?.detallesEvaluacion?.danosEstimados?.trim() ||
+    '';
+
   return {
     tipoAfectacion: mapearTipoAfectacionIncidenteASocial(detalle.tipoAfectacion),
     prioridad,
@@ -383,5 +565,8 @@ export function extraerContextoSocialDesdeIncidente(
     motivoNoAbordable,
     requiereFibeVerificado,
     resumenCierrePatrulla,
+    familiasDesglosadas,
+    nivelCompromisoVivienda,
+    danosEstimados,
   };
 }

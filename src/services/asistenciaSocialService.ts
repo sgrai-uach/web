@@ -162,6 +162,7 @@ export async function crearEventoAsistenciaSocial(
     delegacionId: payload.delegacionId || null,
     incidenteId: payload.incidenteId ? payload.incidenteId.trim() : null,
     asistenteSocialId: payload.asistenteSocialId ? payload.asistenteSocialId.trim() : null,
+    detallesEvaluacion: payload.detallesEvaluacion ?? null,
   };
 
   try {
@@ -263,6 +264,7 @@ export async function crearEventoAsistenciaSocial(
         incidenteId: body.incidenteId ?? null,
         asistenteSocialId: body.asistenteSocialId ?? null,
         asistenteSocialNombre: body.asistenteSocialId ? 'Asistente Social Asignado' : null,
+        detallesEvaluacion: body.detallesEvaluacion ?? null,
         creadoPor: {
           id: userId || '00000000-0000-4000-8000-000000000003',
           nombre: 'Encargado de Operaciones',

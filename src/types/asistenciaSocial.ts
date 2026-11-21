@@ -17,6 +17,49 @@ export type TipoAfectacionSocial =
   | 'REMOCION_MASA'
   | 'OTRO_EXCEPCIONAL';
 
+export type NivelCompromisoViviendaSocial =
+  | 'SIN_DANO'
+  | 'LEVE'
+  | 'MODERADO'
+  | 'GRAVE_INHABITABLE';
+
+export interface NivelCompromisoOption {
+  value: NivelCompromisoViviendaSocial;
+  label: string;
+}
+
+export const NIVELES_COMPROMISO_VIVIENDA: NivelCompromisoOption[] = [
+  { value: 'SIN_DANO', label: 'Sin daño estructural' },
+  { value: 'LEVE', label: 'Daño leve (habitable)' },
+  { value: 'MODERADO', label: 'Daño moderado (afectación parcial)' },
+  { value: 'GRAVE_INHABITABLE', label: 'Daño grave / Inhabitable' },
+];
+
+export interface FamiliaAfectadaSocialDTO {
+  id?: string;
+  referencia?: string;
+  nucleoFamiliarTotal: number;
+  cantidadNinos?: number;
+  cantidadAdultosMayores?: number;
+  personasDiscapacitadas?: number;
+  personasElectrodependientes?: number;
+  mascotasAfectadas?: number;
+  nivelCompromisoVivienda?: NivelCompromisoViviendaSocial | string;
+}
+
+export interface DetallesEvaluacionSocialDTO {
+  familias?: FamiliaAfectadaSocialDTO[];
+  nucleoFamiliarTotal?: number;
+  familiasAfectadas?: number;
+  cantidadNinos?: number;
+  cantidadAdultosMayores?: number;
+  personasDiscapacitadas?: number;
+  personasElectrodependientes?: number;
+  mascotasAfectadas?: number;
+  nivelCompromisoVivienda?: NivelCompromisoViviendaSocial | string | null;
+  danosEstimados?: string | null;
+}
+
 export interface TipoAfectacionOption {
   value: TipoAfectacionSocial;
   label: string;
@@ -71,6 +114,7 @@ export interface CrearEventoAsistenciaSocialDTO {
   delegacionId?: string | null;
   incidenteId?: string | null;
   asistenteSocialId?: string | null;
+  detallesEvaluacion?: DetallesEvaluacionSocialDTO | null;
 }
 
 export interface EventoAsistenciaSocialItem {
@@ -93,6 +137,7 @@ export interface EventoAsistenciaSocialItem {
   incidenteId: string | null;
   asistenteSocialId: string | null;
   asistenteSocialNombre: string | null;
+  detallesEvaluacion?: DetallesEvaluacionSocialDTO | null;
   creadoPor: {
     id: string;
     nombre: string;
@@ -117,6 +162,42 @@ export interface FiltrosEventosAsistenciaSocialState {
   prioridad?: PrioridadEventoSocial;
   estado?: EstadoEventoSocial;
 }
+
+export const familiaAfectadaSocialSchema = z
+  .object({
+    id: z.string().optional(),
+    referencia: z.string().trim().max(120, 'Máximo 120 caracteres.').optional(),
+    nucleoFamiliarTotal: z
+      .number()
+      .int('Debe ser un número entero.')
+      .min(1, 'Cada familia debe registrar al menos 1 integrante.'),
+    cantidadNinos: z.number().int().min(0, 'No puede ser negativo.').default(0),
+    cantidadAdultosMayores: z.number().int().min(0, 'No puede ser negativo.').default(0),
+    personasDiscapacitadas: z.number().int().min(0, 'No puede ser negativo.').default(0),
+    personasElectrodependientes: z.number().int().min(0, 'No puede ser negativo.').default(0),
+    mascotasAfectadas: z.number().int().min(0, 'No puede ser negativo.').default(0),
+    nivelCompromisoVivienda: z.string().optional(),
+  })
+  .refine(
+    (f) => (f.cantidadNinos ?? 0) + (f.cantidadAdultosMayores ?? 0) <= f.nucleoFamiliarTotal,
+    {
+      message:
+        'La suma de niños y adultos mayores no puede superar el total de integrantes del hogar.',
+    }
+  );
+
+export const detallesEvaluacionSocialSchema = z.object({
+  familias: z.array(familiaAfectadaSocialSchema).optional(),
+  nucleoFamiliarTotal: z.number().int().min(0).optional(),
+  familiasAfectadas: z.number().int().min(0).optional(),
+  cantidadNinos: z.number().int().min(0).optional(),
+  cantidadAdultosMayores: z.number().int().min(0).optional(),
+  personasDiscapacitadas: z.number().int().min(0).optional(),
+  personasElectrodependientes: z.number().int().min(0).optional(),
+  mascotasAfectadas: z.number().int().min(0).optional(),
+  nivelCompromisoVivienda: z.string().nullable().optional(),
+  danosEstimados: z.string().trim().max(500).nullable().optional(),
+});
 
 export const crearEventoAsistenciaSocialSchema = z.object({
   descripcion: z
@@ -157,6 +238,7 @@ export const crearEventoAsistenciaSocialSchema = z.object({
   delegacionId: z.string().nullable().optional(),
   incidenteId: z.string().trim().nullable().optional(),
   asistenteSocialId: z.string().trim().nullable().optional(),
+  detallesEvaluacion: detallesEvaluacionSocialSchema.nullable().optional(),
 });
 
 export type CrearEventoAsistenciaSocialFormInput = z.infer<typeof crearEventoAsistenciaSocialSchema>;

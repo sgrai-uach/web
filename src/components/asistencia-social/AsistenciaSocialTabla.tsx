@@ -457,6 +457,7 @@ export default function AsistenciaSocialTabla({
                 creadoEn: eventoSeleccionado.creadoEn,
                 estado: eventoSeleccionado.estado,
                 asistenteSocialNombre: eventoSeleccionado.asistenteSocialNombre,
+                detallesEvaluacion: eventoSeleccionado.detallesEvaluacion ?? null,
               }
             : null
         }

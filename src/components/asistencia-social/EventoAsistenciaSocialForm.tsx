@@ -29,8 +29,11 @@ import { AuthContext } from '@/context/AuthContext';
 import { DELEGACIONES_MUNICIPALES } from '@/hooks/usePuntosCriticos';
 import {
   TIPOS_AFECTACION_SOCIAL,
+  NIVELES_COMPROMISO_VIVIENDA,
   crearEventoAsistenciaSocialSchema,
   type CrearEventoAsistenciaSocialDTO,
+  type FamiliaAfectadaSocialDTO,
+  type NivelCompromisoViviendaSocial,
   type TipoAfectacionSocial,
   type PrioridadEventoSocial,
 } from '@/types/asistenciaSocial';
@@ -47,11 +50,13 @@ import {
 import { incidentesService } from '@/services/incidentesService';
 import {
   clasificarYOrdenarIncidentesParaVinculacion,
+  construirDetallesEvaluacionSocial,
   extraerContextoSocialDesdeIncidente,
   type ContextoSocialDesdeIncidente,
   type IncidenteDetalleCompatible,
   type IncidenteResumenCompatible,
 } from '@/lib/utils/asistenciaSocialIncidenteUtils';
+import FamiliasAfectadasDesgloseSection from './FamiliasAfectadasDesgloseSection';
 import EventoAsistenciaSocialDetalleModal from './EventoAsistenciaSocialDetalleModal';
 
 // Carga dinámica de Leaflet para evitar problemas de SSR en Next.js
@@ -100,6 +105,11 @@ export default function EventoAsistenciaSocialForm({
   const [prioridad, setPrioridad] = useState<PrioridadEventoSocial | ''>('');
   const [personasAfectadas, setPersonasAfectadas] = useState<number | string>('');
   const [familiasAfectadas, setFamiliasAfectadas] = useState<number | string>('');
+  const [familiasDesglosadas, setFamiliasDesglosadas] = useState<FamiliaAfectadaSocialDTO[]>([]);
+  const [nivelCompromisoVivienda, setNivelCompromisoVivienda] = useState<
+    NivelCompromisoViviendaSocial | ''
+  >('');
+  const [danosEstimados, setDanosEstimados] = useState('');
 
   // Vinculación opcional a incidente y contexto H39/H38
   const [incidenteId, setIncidenteId] = useState(() => incidenteIdParam);
@@ -266,6 +276,25 @@ export default function EventoAsistenciaSocialForm({
           if (ctx.contactoRut) {
             setContactoRut(ctx.contactoRut);
           }
+          if (ctx.nivelCompromisoVivienda) {
+            setNivelCompromisoVivienda(ctx.nivelCompromisoVivienda);
+          }
+          if (ctx.danosEstimados) {
+            setDanosEstimados(ctx.danosEstimados);
+          }
+          if (
+            ctx.familiasDesglosadas.length > 0 &&
+            ctx.familiasDesglosadas.some((f) => f.nucleoFamiliarTotal > 0)
+          ) {
+            setFamiliasDesglosadas(
+              ctx.familiasDesglosadas.map((f) => ({
+                ...f,
+                nucleoFamiliarTotal: Math.max(1, f.nucleoFamiliarTotal || 1),
+              }))
+            );
+          } else {
+            setFamiliasDesglosadas([]);
+          }
           setErrores((prev) => {
             const limpio = { ...prev };
             delete limpio.tipoAfectacion;
@@ -372,6 +401,26 @@ export default function EventoAsistenciaSocialForm({
     handleUserSelectLocation(valdiviaCoords);
   }, [handleUserSelectLocation]);
 
+  const handleCambiarFamiliasDesglosadas = useCallback(
+    (nuevasFamilias: FamiliaAfectadaSocialDTO[]) => {
+      setFamiliasDesglosadas(nuevasFamilias);
+      if (nuevasFamilias.length > 0) {
+        const totalPers = nuevasFamilias.reduce(
+          (acc, f) => acc + (Number(f.nucleoFamiliarTotal) || 0),
+          0
+        );
+        setPersonasAfectadas(totalPers);
+        setFamiliasAfectadas(nuevasFamilias.length);
+      }
+      setErrores((prev) => {
+        const limpio = { ...prev };
+        delete limpio.detallesEvaluacion;
+        return limpio;
+      });
+    },
+    []
+  );
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorServidor(null);
@@ -380,6 +429,11 @@ export default function EventoAsistenciaSocialForm({
     const parsedFamilias = familiasAfectadas === '' ? 0 : Number(familiasAfectadas);
     const parsedLat = latitud === '' ? NaN : Number(latitud);
     const parsedLng = longitud === '' ? NaN : Number(longitud);
+    const detallesEvaluacion = construirDetallesEvaluacionSocial({
+      familias: familiasDesglosadas,
+      nivelCompromisoVivienda,
+      danosEstimados,
+    });
 
     // Validación cliente Zod
     const validacion = crearEventoAsistenciaSocialSchema.safeParse({
@@ -397,6 +451,7 @@ export default function EventoAsistenciaSocialForm({
       delegacionId: delegacionId || null,
       incidenteId: incidenteId.trim() || null,
       asistenteSocialId: asistenteSocialId.trim() || null,
+      detallesEvaluacion,
     });
 
     if (!validacion.success) {
@@ -432,6 +487,7 @@ export default function EventoAsistenciaSocialForm({
         delegacionId: delegacionId || null,
         incidenteId: incidenteId.trim() || null,
         asistenteSocialId: asistenteSocialId.trim() || null,
+        detallesEvaluacion,
       };
 
       const creado = await crearEventoAsistenciaSocial(payload, effectiveUserId);
@@ -588,7 +644,13 @@ export default function EventoAsistenciaSocialForm({
               placeholder="0"
               value={personasAfectadas}
               min={0}
+              readOnly={familiasDesglosadas.length > 0}
               onChange={(e) => setPersonasAfectadas(e.target.value)}
+              helperText={
+                familiasDesglosadas.length > 0
+                  ? 'Calculado automáticamente desde el desglose por familia.'
+                  : undefined
+              }
               error={errores.personasAfectadas}
             />
           </div>
@@ -600,11 +662,60 @@ export default function EventoAsistenciaSocialForm({
               placeholder="0"
               value={familiasAfectadas}
               min={0}
+              readOnly={familiasDesglosadas.length > 0}
               onChange={(e) => setFamiliasAfectadas(e.target.value)}
+              helperText={
+                familiasDesglosadas.length > 0
+                  ? 'Calculado automáticamente según familias añadidas.'
+                  : undefined
+              }
               error={errores.familiasAfectadas}
             />
           </div>
         </div>
+
+        {/* Parámetros opcionales de vivienda y daños homologados con informe de cierre (H38/H39) */}
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+            gap: 'var(--space-4, 16px)',
+            marginTop: 'var(--space-4, 16px)',
+          }}
+        >
+          <Select
+            label="Nivel de Compromiso Habitacional (Opcional)"
+            value={nivelCompromisoVivienda}
+            onChange={(e) =>
+              setNivelCompromisoVivienda(e.target.value as NivelCompromisoViviendaSocial | '')
+            }
+            options={[
+              { value: '', label: 'Sin especificar (opcional)' },
+              ...NIVELES_COMPROMISO_VIVIENDA.map((op) => ({
+                value: op.value,
+                label: op.label,
+              })),
+            ]}
+          />
+
+          <Input
+            label="Daños Materiales Estimados (Opcional)"
+            placeholder="Ej. Inundación de primer piso, pérdida de enseres..."
+            value={danosEstimados}
+            onChange={(e) => setDanosEstimados(e.target.value)}
+          />
+        </div>
+
+        {/* Desglose demográfico opcional por familia / hogar */}
+        <FamiliasAfectadasDesgloseSection
+          familias={familiasDesglosadas}
+          onChangeFamilias={handleCambiarFamiliasDesglosadas}
+          disabled={enviando}
+          errorGeneral={errores.detallesEvaluacion}
+          totalPersonasExterno={
+            personasAfectadas !== '' ? Number(personasAfectadas) : null
+          }
+        />
 
         {/* Campo no obligatorio: Vinculación a Incidente */}
         <div style={{ marginTop: 'var(--space-4, 16px)' }}>
@@ -1204,6 +1315,11 @@ export default function EventoAsistenciaSocialForm({
           asistenteSocialNombre:
             profesionalesDisponibles.find((a) => a.usuarioId === asistenteSocialId)
               ?.nombreCompleto || null,
+          detallesEvaluacion: construirDetallesEvaluacionSocial({
+            familias: familiasDesglosadas,
+            nivelCompromisoVivienda,
+            danosEstimados,
+          }),
         }}
         esVistaPrevia={true}
         onConfirmarGuardado={() => {
