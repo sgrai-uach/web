@@ -344,4 +344,91 @@ describe('asistenciaSocialService', () => {
     );
     expect(resultado.codigo).toBe('AS-2026-0105');
   });
+
+  it('preserva y normaliza detallesEvaluacion (5 integrantes, 2 niños, 1 discapacidad) entre POST, GET y PATCH', async () => {
+    const detallesReales = {
+      familiasAfectadas: 1,
+      nucleoFamiliarTotal: 5,
+      cantidadNinos: 2,
+      cantidadAdultosMayores: 0,
+      personasDiscapacitadas: 1,
+      personasElectrodependientes: 0,
+      mascotasAfectadas: 0,
+      nivelCompromisoVivienda: 'MODERADO' as const,
+      danosEstimados: 'Daño parcial',
+      familias: [
+        {
+          referencia: 'Hogar Beneficencia',
+          nucleoFamiliarTotal: 5,
+          cantidadNinos: 2,
+          cantidadAdultosMayores: 0,
+          personasDiscapacitadas: 1,
+          personasElectrodependientes: 0,
+          mascotasAfectadas: 0,
+          nivelCompromisoVivienda: 'MODERADO' as const,
+        },
+      ],
+    };
+
+    const eventoServidor = {
+      id: '70000000-0000-4000-8000-000000000222',
+      codigo: 'AS-2026-0222',
+      ...mockPayload,
+      personasAfectadas: 5,
+      familiasAfectadas: 1,
+      estado: 'PENDIENTE' as const,
+      contactoRut: null,
+      delegacionId: null,
+      delegacionNombre: null,
+      incidenteId: null,
+      asistenteSocialId: null,
+      asistenteSocialNombre: null,
+      detallesEvaluacion: detallesReales,
+      creadoPor: { id: 'user-1', nombre: 'Encargado' },
+      creadoEn: new Date().toISOString(),
+      actualizadoEn: new Date().toISOString(),
+    };
+
+    vi.spyOn(apiClient, 'POST').mockResolvedValueOnce({
+      data: { data: eventoServidor },
+      error: null,
+      response: new Response(null, { status: 201 }),
+    });
+    vi.spyOn(apiClient, 'GET').mockResolvedValueOnce({
+      data: { data: [eventoServidor], total: 1, pagina: 1, limite: 10, totalPaginas: 1 },
+      error: null,
+      response: new Response(null, { status: 200 }),
+    });
+    vi.spyOn(apiClient, 'PATCH').mockResolvedValueOnce({
+      data: {
+        data: {
+          ...eventoServidor,
+          estado: 'ASIGNADO',
+          asistenteSocialId: '50000000-0000-4000-8000-000000000001',
+          asistenteSocialNombre: 'Camila Valenzuela Castro',
+        },
+      },
+      error: null,
+      response: new Response(null, { status: 200 }),
+    });
+
+    const creado = await crearEventoAsistenciaSocial(
+      { ...mockPayload, personasAfectadas: 5, familiasAfectadas: 1, detallesEvaluacion: detallesReales },
+      'user-1'
+    );
+    const listado = await obtenerEventosAsistenciaSocial({ pagina: 1, limite: 10 });
+    const asignado = await asignarAsistenteSocial(
+      eventoServidor.id,
+      '50000000-0000-4000-8000-000000000001',
+      'user-1'
+    );
+
+    for (const item of [creado, listado.data[0], asignado]) {
+      expect(item.personasAfectadas).toBe(5);
+      expect(item.familiasAfectadas).toBe(1);
+      expect(item.detallesEvaluacion?.familias).toHaveLength(1);
+      expect(item.detallesEvaluacion?.cantidadNinos).toBe(2);
+      expect(item.detallesEvaluacion?.personasDiscapacitadas).toBe(1);
+    }
+  });
 });
