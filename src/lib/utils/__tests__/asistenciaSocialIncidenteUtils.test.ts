@@ -5,6 +5,7 @@ import {
   clasificarYOrdenarIncidentesParaVinculacion,
   extraerContextoSocialDesdeIncidente,
   construirDetallesEvaluacionSocial,
+  normalizarDetallesEvaluacionSocial,
 } from '../asistenciaSocialIncidenteUtils';
 import { DELEGACIONES_MUNICIPALES } from '@/hooks/usePuntosCriticos';
 
@@ -217,5 +218,48 @@ describe('asistenciaSocialIncidenteUtils', () => {
       nivelCompromisoVivienda: 'MODERADO',
       danosEstimados: 'Anegamiento en primer piso y colchonetas húmedas',
     });
+  });
+
+  it('normaliza detalles_evaluacion en snake_case y recalcula sumatorias desde familias[]', () => {
+    const norm = normalizarDetallesEvaluacionSocial({
+      nivel_compromiso_vivienda: 'GRAVE_INHABITABLE',
+      danos_estimados: 'Colapso parcial de techumbre',
+      familias: [
+        {
+          referencia: 'Familia 1',
+          nucleo_familiar_total: 3,
+          cantidad_ninos: 1,
+          cantidad_adultos_mayores: 1,
+          personas_discapacitadas: 0,
+          personas_electrodependientes: 1,
+          mascotas_afectadas: 2,
+          nivel_compromiso_vivienda: 'GRAVE_INHABITABLE',
+        },
+        {
+          referencia: 'Familia 2',
+          nucleo_familiar_total: 2,
+          cantidad_ninos: 1,
+          cantidad_adultos_mayores: 0,
+          personas_discapacitadas: 1,
+          personas_electrodependientes: 0,
+          mascotas_afectadas: 0,
+          nivel_compromiso_vivienda: 'MODERADO',
+        },
+      ],
+    });
+
+    expect(norm).toMatchObject({
+      familiasAfectadas: 2,
+      nucleoFamiliarTotal: 5,
+      cantidadNinos: 2,
+      cantidadAdultosMayores: 1,
+      personasDiscapacitadas: 1,
+      personasElectrodependientes: 1,
+      mascotasAfectadas: 2,
+      nivelCompromisoVivienda: 'GRAVE_INHABITABLE',
+      danosEstimados: 'Colapso parcial de techumbre',
+    });
+    expect(norm?.familias).toHaveLength(2);
+    expect(normalizarDetallesEvaluacionSocial(null)).toBeNull();
   });
 });

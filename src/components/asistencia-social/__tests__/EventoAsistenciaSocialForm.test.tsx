@@ -825,9 +825,38 @@ describe('EventoAsistenciaSocialForm', () => {
       'Pérdida de enseres en dormitorio'
     );
 
-    // Volver al modo aproximado vacía el desglose
+    // Volver al modo aproximado vacía el desglose y descarta también los totales anteriores
     fireEvent.click(screen.getByRole('button', { name: /Volver a modo aproximado/i }));
     expect(screen.queryByTestId('familia-card-0')).toBeNull();
-    expect(screen.getByText(/Modo aproximado activo/i)).toBeDefined();
+    expect(screen.getByTestId('nota-descarte-aproximacion')).toBeDefined();
+    expect((screen.getByLabelText(/Personas Afectadas Estimadas/i) as HTMLInputElement).value).toBe('');
+    expect((screen.getByLabelText(/Familias \/ Hogares Afectados/i) as HTMLInputElement).value).toBe('');
+  });
+
+  it('descarta totalmente una aproximación previa al añadir familias, muestra anotación y limpia al volver al modo aproximado', async () => {
+    render(<EventoAsistenciaSocialForm basePath="/gestion/asistente-social" />);
+
+    expect(screen.getByTestId('nota-descarte-aproximacion')).toBeDefined();
+
+    const personasInput = screen.getByLabelText(/Personas Afectadas Estimadas/i) as HTMLInputElement;
+    const familiasInput = screen.getByLabelText(/Familias \/ Hogares Afectados/i) as HTMLInputElement;
+
+    fireEvent.change(personasInput, { target: { value: '20' } });
+    fireEvent.change(familiasInput, { target: { value: '5' } });
+    expect(personasInput.value).toBe('20');
+    expect(familiasInput.value).toBe('5');
+
+    fireEvent.click(screen.getByRole('button', { name: /Añadir Familia \/ Hogar/i }));
+    fireEvent.change(document.getElementById('fam-total-0') as HTMLInputElement, {
+      target: { value: '3' },
+    });
+
+    expect(screen.getByTestId('nota-aproximacion-descartada')).toBeDefined();
+    expect(personasInput.value).toBe('3');
+    expect(familiasInput.value).toBe('1');
+
+    fireEvent.click(screen.getByRole('button', { name: /Volver a modo aproximado/i }));
+    expect(personasInput.value).toBe('');
+    expect(familiasInput.value).toBe('');
   });
 });
