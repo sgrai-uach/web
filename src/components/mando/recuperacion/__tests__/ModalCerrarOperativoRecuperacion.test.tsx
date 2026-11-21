@@ -289,4 +289,46 @@ describe('ModalCerrarOperativoRecuperacion (HU-75)', () => {
     expect(mockShowError).toHaveBeenCalled();
     expect(onClose).not.toHaveBeenCalled();
   });
+
+  it('precarga automáticamente el resumen y consumos cuando existe reportePatrulla desde terreno', () => {
+    const operativoConReporte: OperativoRecuperacionDetalle = {
+      ...operativoBase,
+      reportePatrulla: {
+        resumen: 'Entrega completa reportada por la patrulla en Collico.',
+        consumos: [
+          {
+            recursoId: '80000000-0000-4000-8000-000000000001',
+            cantidadConsumida: 6,
+          },
+          {
+            recursoId: '80000000-0000-4000-8000-000000000002',
+            cantidadConsumida: 3,
+          },
+        ],
+        reportadoEn: '2026-11-21T00:30:00.000Z',
+        reportadoPor: { id: 'u-pat-1', nombre: 'Patrulla Alfa' },
+      },
+    };
+
+    render(
+      <ModalCerrarOperativoRecuperacion
+        isOpen={true}
+        operativo={operativoConReporte}
+        onClose={vi.fn()}
+        onSuccess={vi.fn()}
+      />
+    );
+
+    const textarea = screen.getByLabelText('Resumen formal de cierre') as HTMLTextAreaElement;
+    expect(textarea.value).toBe('Entrega completa reportada por la patrulla en Collico.');
+
+    const inputFrazadas = screen.getByLabelText(
+      'Cantidad consumida de Frazadas Térmicas'
+    ) as HTMLInputElement;
+    expect(inputFrazadas.value).toBe('6');
+
+    expect(
+      screen.getByText(/Datos precargados desde el reporte enviado por la patrulla en terreno/i)
+    ).toBeInTheDocument();
+  });
 });
