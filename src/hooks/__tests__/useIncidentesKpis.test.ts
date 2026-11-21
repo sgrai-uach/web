@@ -101,19 +101,25 @@ describe('useIncidentesKpis', () => {
     });
   });
 
-  it('debe conectar el socket y suscribirse con join y unirse de forma defensiva', () => {
+  it('debe conectar el socket y suscribirse con join y unirse de forma defensiva', async () => {
     const socket = getSocket();
 
     renderHook(() => useIncidentesKpis());
+
+    await waitFor(() => {
+      expect(obtenerKpisIncidentes).toHaveBeenCalledTimes(1);
+    });
 
     expect(socket.connect).toHaveBeenCalled();
     expect(socket.on).toHaveBeenCalledWith('connect', expect.any(Function));
     expect(socket.on).toHaveBeenCalledWith('incidente:creado', expect.any(Function));
     expect(socket.on).toHaveBeenCalledWith('incidente:actualizado', expect.any(Function));
+    expect(socket.on).toHaveBeenCalledWith('mision:rechazada', expect.any(Function));
+    expect(socket.on).toHaveBeenCalledWith('mision:asignada', expect.any(Function));
 
     // Simular evento de conexión
     const socketHelper = socket as unknown as { _trigger: (ev: string) => void };
-    act(() => {
+    await act(async () => {
       socketHelper._trigger('connect');
     });
 
@@ -148,6 +154,23 @@ describe('useIncidentesKpis', () => {
     const socket = getSocket() as unknown as { _trigger: (ev: string, data?: unknown) => void };
     await act(async () => {
       socket._trigger('incidente:actualizado', { id: 'inc-123', nuevoEstado: 'EN_ATENCION' });
+    });
+
+    await waitFor(() => {
+      expect(obtenerKpisIncidentes).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  it('debe refrescar los KPIs al recibir el evento mision:rechazada vía WebSockets', async () => {
+    renderHook(() => useIncidentesKpis());
+
+    await waitFor(() => {
+      expect(obtenerKpisIncidentes).toHaveBeenCalledTimes(1);
+    });
+
+    const socket = getSocket() as unknown as { _trigger: (ev: string, data?: unknown) => void };
+    await act(async () => {
+      socket._trigger('mision:rechazada', { misionId: 'm-1', incidenteId: 'inc-123' });
     });
 
     await waitFor(() => {
