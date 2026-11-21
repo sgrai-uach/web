@@ -19,10 +19,11 @@ El evento puede registrarse de forma **independiente** sin necesidad de provenir
 ## 2. Flujo Paso a Paso para la Creación del Evento Social
 
 ### Paso 1: Acceso al Formulario de Registro
-Existen tres puntos directos de acceso a la pantalla de creación:
+Existen cuatro puntos directos de acceso a la pantalla de creación:
 1. **Desde el Centro de Mando:** En la barra superior de acciones tácticas ([`KanbanHeader`](../../src/components/mando/KanbanHeader.tsx)), hacer clic en el botón **"Nuevo Evento Social"** (con ícono `HeartHandshake`).
-2. **Desde el Módulo de Asistencia Social:** En la barra de navegación lateral, ingresar a **"Asistencia Social"** (`/gestion/asistente-social`) y presionar el botón primario **"+ Nuevo Evento Social"** en el encabezado.
-3. **Desde el Grid de Módulos:** En la página principal de gestión (`/gestion`), en la tarjeta "Asistencia Social", hacer clic en la acción secundaria **"+ Nuevo Evento"**.
+2. **Derivación directa desde un Incidente con FIBE Requerida:** En el Panel Lateral de Detalle del Incidente (`IncidenteDetalleDrawer`), si la evaluación de terreno marcó `requiereAsistenciaSocial`, aparece el botón **"Crear Evento FIBE"**, que abre el formulario precargando los datos del incidente vía `?incidenteId=`.
+3. **Desde el Módulo de Asistencia Social:** En la barra de navegación lateral, ingresar a **"Asistencia Social"** (`/gestion/asistente-social`) y presionar el botón primario **"+ Nuevo Evento Social"** en el encabezado.
+4. **Desde el Grid de Módulos:** En la página principal de gestión (`/gestion`), en la tarjeta "Asistencia Social", hacer clic en la acción secundaria **"+ Nuevo Evento"**.
 
 ---
 
@@ -35,10 +36,14 @@ Existen tres puntos directos de acceso a la pantalla de creación:
    * *Derrumbe o Remoción en Masa:* Deslizamiento de tierra, socavón o riesgo inminente de ladera sobre la vivienda.
    * *Otro Caso Excepcional:* Vulnerabilidad social de emergencia que no clasifique en las categorías anteriores.
 2. **Prioridad de Atención:** Elegir entre *Crítica*, *Alta*, *Media* o *Baja*. (Por defecto asigna *Media*).
-3. **Estimación de Afectados:** Ingresar el número estimado de personas y de familias que habitan el inmueble.
+3. **Estimación de Afectados (Modo Aproximado o Desglose por Familia — Opcional):**
+   * *Modo aproximado (por defecto):* Si se desconoce el detalle interno del hogar, ingresar directamente los totales estimados en **Personas Afectadas Estimadas** y **Familias / Hogares Afectados**.
+   * *Nivel de Compromiso Habitacional y Daños Estimados (Opcionales):* Permite clasificar el daño general de la vivienda (`Sin daño estructural`, `Daño leve`, `Daño moderado`, `Daño grave / Inhabitable`) y detallar daños materiales.
+   * *Desglose por Familia / Hogar (Opcional):* Al presionar **"+ Añadir Familia / Hogar"**, se despliegan tarjetas por grupo familiar homologadas con los informes de terreno (**H38/H39**): referencia del hogar, total de integrantes, niños/adolescentes, adultos mayores, personas con discapacidad, electrodependientes, mascotas afectadas y compromiso habitacional. **Importante:** al ingresar familias en el desglose, cualquier valor aproximado ingresado previamente queda totalmente descartado y es reemplazado por el conteo exacto de las familias registradas (si vuelve a modo aproximado, los campos se limpian para ingresar una nueva estimación).
 4. **Vincular a Incidente en Curso (Opcional):**
    * *Sin vincular a incidente:* Selección por defecto para registrar un caso social independiente / excepcional que no provenga del flujo estándar de un incidente.
-   * *Seleccionar un incidente:* Despliega los incidentes activos en el sistema (ej. `INC-2026-0001 — Inundación Mayor (Avenida Costanera)`). Si se asocia, el caso FIBE quedará formalmente enlazado a dicho incidente.
+   * *Seleccionar un incidente:* Prioriza los casos marcados con `[FIBE Requerida]` y excluye incidentes cerrados como `NO_ABORDABLE` sin requerimiento FIBE. Al seleccionar un incidente, se precargan automáticamente el tipo de afectación mapeado, la prioridad, la ubicación, el contacto, las personas consolidadas del informe de cierre de patrulla (**H39**) y las familias rescatadas de la evaluación de prioridad (**H38**).
+   * *Alertas de consistencia H39 y duplicados:* Si el incidente fue cerrado como `NO_ABORDABLE`, si la patrulla indicó en su cierre que **no requiere Ficha FIBE**, o si ya existe un evento social vinculado al mismo incidente, el formulario desplegará una advertencia preventiva para validar antes de guardar.
 5. **Descripción de la Excepcionalidad (Obligatorio):** Detallar la situación de vulnerabilidad o el motivo urgente por el cual se requiere la visita de Asistencia Social (mínimo 5 caracteres).
 
 ---
@@ -66,21 +71,34 @@ Si se dispone de información preliminar de los habitantes:
 
 ---
 
-### Paso 5: Vista Previa y Despliegue de Ficha Técnica (Opcional)
-* En cualquier momento durante el llenado del formulario, el usuario puede presionar el botón **"Desplegar Ficha del Caso"**.
-* Se abrirá un modal con la ficha técnica completa que consolida todos los datos ingresados en tiempo real (caracterización del caso, daños, métricas de personas/familias, coordenadas con botón para copiar, enlace a OpenStreetMap y datos de contacto).
-* Desde la misma ficha es posible revisar la información y presionar **"Confirmar y Guardar Evento"**.
-* Asimismo, en la bandeja general de Asistencia Social, cada registro cuenta con la acción **"Ver Ficha"** para consultar el expediente técnico de cualquier caso registrado.
+### Paso 5: Asignación Inmediata de Asistente Social (Opcional)
+1. En la **Sección 4**, por defecto el campo inicia en *"Dejar pendiente sin asignar"*.
+2. Si existe personal con rol `ASISTENTE_SOCIAL` en estado **Disponible**, el Encargado puede seleccionarlo directamente para registrar el evento en estado **ASIGNADO** en un solo paso atómico.
+3. En cualquier momento es posible presionar **Actualizar Disponibilidad** para consultar en vivo si se liberaron nuevos profesionales.
 
 ---
 
-### Paso 6: Confirmación y Guardado
+### Paso 6: Vista Previa y Detalle de Evento de Asistencia Social (Opcional)
+> **Nota importante de dominio:** Todos los datos familiares, demográficos y de contacto capturados en este formulario y en los reportes previos de Patrulla (`H38`/`H39`) son **estrictamente preliminares** y **NO corresponden a la FIBE** (*Ficha Básica de Emergencias*). El levantamiento formal de la FIBE se realiza por familia en una historia de usuario aparte.
+
+* En cualquier momento durante el llenado del formulario, el usuario puede presionar el botón **"Vista Previa del Evento"**.
+* Se abrirá el modal **"Detalle de Evento de Asistencia Social (Vista Previa)"** que consolida en tiempo real: caracterización del caso, asistente social asignado, evaluación preliminar y condición habitacional (indicando si corresponde a *Estimación Aproximada* o *Desglose por Familia*, resumen de grupos vulnerables, nivel de compromiso habitacional, daños materiales y detalle por hogar), coordenadas con botón para copiar, enlace a OpenStreetMap, datos preliminares de contacto separados por familia (cuando hay desglose familiar) y trazabilidad de creación/actualización.
+* Al agregar familias en el desglose:
+  * Se valida **coherencia demográfica estricta** (`niños + adultos mayores <= total integrantes`, `discapacidad <= total integrantes`, `electrodependientes <= total integrantes`; `mascotas >= 0`).
+  * El contacto preliminar se gestiona de forma independiente en cada familia y cualquier contacto general aproximado previo queda descartado.
+  * Al vincular un incidente proveniente de Patrulla (`H38`/`H39`), las familias y sus contactos preliminares declarados en terreno se sincronizan automáticamente.
+* Desde la misma vista previa es posible revisar la información y presionar **"Confirmar y Guardar Evento"**.
+* Asimismo, en la bandeja general de Asistencia Social, cada registro cuenta con la acción **"Ver Detalle"** para consultar el **"Detalle de Evento de Asistencia Social"** de cualquier caso registrado.
+
+---
+
+### Paso 7: Confirmación y Guardado
 1. Presionar el botón **"Guardar Evento de Asistencia Social"** (o confirmar desde la Ficha Técnica).
 2. El sistema validará los campos requeridos (descripción ≥ 5 caracteres, dirección ≥ 3 caracteres, coordenadas válidas en Valdivia).
 3. Al registrarse exitosamente en la base de datos:
    * La API asignará el correlativo oficial anual (ej: **`AS-2026-0001`**).
    * Se mostrará una notificación verde de confirmación (Toast).
-   * Se redirigirá automáticamente a la bandeja de **Asistencia Social**, donde el nuevo evento se listará de inmediato en estado **PENDIENTE** listo para la posterior asignación de asistentes sociales.
+   * Si se seleccionó asistente social disponible, el evento nacerá en estado **ASIGNADO** y se redirigirá automáticamente a `/gestion/asistente-social?estado=ASIGNADO`. Si no se seleccionó, quedará en **PENDIENTE** y se redirigirá a la bandeja de pendientes para su asignación posterior ([H31](./H31-asignar-asistente-social.md)).
 
 ---
 
@@ -101,6 +119,7 @@ El sistema utiliza WebSockets con Socket.io. Al crearse el nuevo evento social:
 | **"Latitud/Longitud inválida"** | Coordenadas fuera de rango geográfico. | Seleccionar un punto válido dentro del mapa comunal. |
 | **Acceso Restringido: "Se requiere el rol de Encargado o contar con el permiso 'asistencia_social:crear'"** | El usuario no cuenta con el rol ni con el permiso correspondiente. | Solicitar al Administrador la asignación del rol Encargado o la concesión del permiso `asistencia_social:crear`. |
 | **HTTP 400 Bad Request** | La API rechazó algún campo del payload. | Corregir los campos indicados en rojo bajo cada entrada. |
+| **HTTP 409 Conflict** | El asistente social seleccionado dejó de estar disponible o existe conflicto de duplicidad con el incidente. | Seleccionar otro asistente social disponible tras la recarga automática de la nómina, o dejar el caso en estado `PENDIENTE`. |
 
 ---
 

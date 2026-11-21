@@ -1,11 +1,18 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import AsistenciaSocialClient from '../AsistenciaSocialClient';
 import * as asistenciaSocialService from '@/services/asistenciaSocialService';
+import * as asistentesSocialesService from '@/services/asistentesSocialesService';
 import type { EventoAsistenciaSocialItem } from '@/types/asistenciaSocial';
+import type { AsistenteSocialItem } from '@/types/asistenteSocialPersonal';
 
 let mockRol = 'Encargado';
 let mockHasPermission = vi.fn(() => true);
+let mockSearchParams = new URLSearchParams();
+
+vi.mock('next/navigation', () => ({
+  useSearchParams: () => mockSearchParams,
+}));
 
 vi.mock('@/context/SimulatedSessionContext', () => ({
   useSimulatedSession: () => ({
@@ -32,6 +39,7 @@ describe('AsistenciaSocialClient', () => {
     vi.clearAllMocks();
     mockRol = 'Encargado';
     mockHasPermission = vi.fn(() => true);
+    mockSearchParams = new URLSearchParams();
   });
 
   const mockItem: EventoAsistenciaSocialItem = {
@@ -106,5 +114,109 @@ describe('AsistenciaSocialClient', () => {
     expect(
       screen.getByText(/Se requieren credenciales de Encargado, Administrador o Asistente Social/i)
     ).toBeDefined();
+  });
+
+  it('oculta el botón Asignar Asistente cuando el usuario solo tiene asistencia_social:leer', async () => {
+    mockRol = 'Asistente Social';
+    mockHasPermission = vi.fn((perm: string) => perm === 'asistencia_social:leer');
+
+    vi.spyOn(asistenciaSocialService, 'obtenerEventosAsistenciaSocial').mockResolvedValueOnce({
+      data: [mockItem],
+      total: 1,
+      pagina: 1,
+      limite: 10,
+      totalPaginas: 1,
+    });
+
+    render(<AsistenciaSocialClient basePath="/gestion/asistente-social" />);
+
+    await waitFor(() => {
+      expect(screen.getByText('AS-2026-0001')).toBeDefined();
+    });
+
+    expect(screen.queryByRole('button', { name: /Asignar Asistente/i })).toBeNull();
+  });
+
+  it('abre el modal desde Asignar Asistente, confirma y actualiza el badge a ASIGNADO inmediatamente', async () => {
+    vi.spyOn(asistenciaSocialService, 'obtenerEventosAsistenciaSocial').mockResolvedValueOnce({
+      data: [mockItem],
+      total: 1,
+      pagina: 1,
+      limite: 10,
+      totalPaginas: 1,
+    });
+
+    const mockDisponibles: AsistenteSocialItem[] = [
+      {
+        usuarioId: '50000000-0000-4000-8000-000000000001',
+        rut: '16.789.012-3',
+        nombres: 'Camila Andrea',
+        apellidos: 'Valenzuela Castro',
+        nombreCompleto: 'Camila Valenzuela Castro',
+        email: 'cvalenzuela@valdivia.cl',
+        telefono: '+56987654321',
+        delegacionId: null,
+        delegacionCodigo: null,
+        delegacionNombre: 'Delegación Municipal Costa',
+        personalId: '60000000-0000-4000-8000-000000000001',
+        estadoOperativo: 'disponible',
+        casosFibeAsignados: 0,
+      },
+    ];
+
+    vi.spyOn(asistentesSocialesService, 'obtenerAsistentesSociales').mockResolvedValue({
+      data: mockDisponibles,
+      meta: { total: 1, pagina: 1, limite: 50, totalPaginas: 1 },
+    });
+
+    vi.spyOn(asistenciaSocialService, 'asignarAsistenteSocial').mockResolvedValueOnce({
+      ...mockItem,
+      estado: 'ASIGNADO',
+      asistenteSocialId: '50000000-0000-4000-8000-000000000001',
+      asistenteSocialNombre: 'Camila Valenzuela Castro',
+    });
+
+    render(<AsistenciaSocialClient basePath="/gestion/asistente-social" />);
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /Asignar Asistente/i })).toBeDefined();
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: /Asignar Asistente/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText('Camila Valenzuela Castro')).toBeDefined();
+    });
+
+    fireEvent.click(screen.getByRole('radio'));
+    fireEvent.click(screen.getByRole('button', { name: /Confirmar Asignación/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText('ASIGNADO')).toBeDefined();
+      expect(screen.getByText(/Asig\.: Camila Valenzuela Castro/i)).toBeDefined();
+      expect(screen.queryByRole('button', { name: /Asignar Asistente/i })).toBeNull();
+    });
+  });
+
+  it('inicializa el filtro de estado con ?estado=ASIGNADO desde searchParams', async () => {
+    mockSearchParams = new URLSearchParams('estado=ASIGNADO');
+    const spyObtener = vi
+      .spyOn(asistenciaSocialService, 'obtenerEventosAsistenciaSocial')
+      .mockResolvedValueOnce({
+        data: [],
+        total: 0,
+        pagina: 1,
+        limite: 10,
+        totalPaginas: 1,
+      });
+
+    render(<AsistenciaSocialClient basePath="/gestion/asistente-social" />);
+
+    await waitFor(() => {
+      expect(spyObtener).toHaveBeenCalledWith(
+        expect.objectContaining({ estado: 'ASIGNADO' }),
+        '00000000-0000-4000-8000-000000000003'
+      );
+    });
   });
 });

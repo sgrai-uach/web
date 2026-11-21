@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useCallback, useContext } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useSimulatedSession } from '@/context/SimulatedSessionContext';
 import { AuthContext } from '@/context/AuthContext';
 import { useEventosAsistenciaSocial } from '@/hooks/useEventosAsistenciaSocial';
@@ -19,9 +20,18 @@ interface AsistenciaSocialClientProps {
   basePath?: string;
 }
 
+const ESTADOS_VALIDOS: EstadoEventoSocial[] = [
+  'PENDIENTE',
+  'ASIGNADO',
+  'EN_EVALUACION_FIBE',
+  'FINALIZADO',
+  'DESCARTADO',
+];
+
 export default function AsistenciaSocialClient({
   basePath = '/gestion/asistente-social',
 }: AsistenciaSocialClientProps) {
+  const searchParams = useSearchParams();
   const { usuarioActivo, hasPermission } = useSimulatedSession();
   const auth = useContext(AuthContext);
 
@@ -48,16 +58,24 @@ export default function AsistenciaSocialClient({
     hasPermission('asistencia_social:leer') ||
     Boolean(auth?.tienePermiso && auth.tienePermiso('asistencia_social:leer'));
 
-  const [filtros, setFiltros] = useState<FiltrosEventosAsistenciaSocialState>({
+  const estadoParam = searchParams.get('estado');
+  const estadoInicial: EstadoEventoSocial | undefined =
+    estadoParam === 'TODOS'
+      ? undefined
+      : estadoParam && ESTADOS_VALIDOS.includes(estadoParam as EstadoEventoSocial)
+        ? (estadoParam as EstadoEventoSocial)
+        : 'PENDIENTE';
+
+  const [filtros, setFiltros] = useState<FiltrosEventosAsistenciaSocialState>(() => ({
     pagina: 1,
     limite: 10,
     busqueda: '',
     delegacionId: undefined,
     prioridad: undefined,
-    estado: 'PENDIENTE',
-  });
+    estado: estadoInicial,
+  }));
 
-  const { eventos, meta, cargando } = useEventosAsistenciaSocial(
+  const { eventos, meta, cargando, actualizarEventoLocalmente } = useEventosAsistenciaSocial(
     filtros,
     usuarioActivo.id
   );
@@ -145,6 +163,9 @@ export default function AsistenciaSocialClient({
           meta={meta}
           onCambiarPagina={handleCambiarPagina}
           cargando={cargando}
+          puedeAsignar={tienePermisoCrear}
+          usuarioId={usuarioActivo.id}
+          onEventoActualizado={actualizarEventoLocalmente}
         />
       )}
     </div>

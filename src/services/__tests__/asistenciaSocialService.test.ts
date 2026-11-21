@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import {
   crearEventoAsistenciaSocial,
   obtenerEventosAsistenciaSocial,
+  asignarAsistenteSocial,
   AsistenciaSocialServiceError,
   filtrarEventosMock,
 } from '../asistenciaSocialService';
@@ -147,5 +148,287 @@ describe('asistenciaSocialService', () => {
 
     expect(respuesta.data).toHaveLength(1);
     expect(respuesta.data[0].codigo).toBe('AS-2026-0001');
+  });
+
+  it('debe asignar un asistente social mediante PATCH y retornar el evento actualizado a ASIGNADO', async () => {
+    const mockActualizado = {
+      id: '70000000-0000-4000-8000-000000000001',
+      codigo: 'AS-2026-0001',
+      descripcion: 'Anegamiento en patio',
+      tipoAfectacion: 'VIVIENDA_ANEGADA',
+      personasAfectadas: 2,
+      familiasAfectadas: 1,
+      direccionTexto: 'Av. Francia 500',
+      latitud: -39.82,
+      longitud: -73.23,
+      prioridad: 'MEDIA' as const,
+      estado: 'ASIGNADO' as const,
+      contactoNombre: null,
+      contactoTelefono: null,
+      contactoRut: null,
+      delegacionId: null,
+      delegacionNombre: null,
+      incidenteId: null,
+      asistenteSocialId: '50000000-0000-4000-8000-000000000001',
+      asistenteSocialNombre: 'Camila Valenzuela Castro',
+      creadoPor: { id: '1', nombre: 'Encargado' },
+      creadoEn: new Date().toISOString(),
+      actualizadoEn: new Date().toISOString(),
+    };
+
+    const spyPatch = vi.spyOn(apiClient, 'PATCH').mockResolvedValueOnce({
+      data: { data: mockActualizado },
+      error: null,
+      response: new Response(null, { status: 200 }),
+    });
+
+    const resultado = await asignarAsistenteSocial(
+      '70000000-0000-4000-8000-000000000001',
+      '50000000-0000-4000-8000-000000000001',
+      'encargado-1'
+    );
+
+    expect(spyPatch).toHaveBeenCalledTimes(1);
+    expect(resultado.estado).toBe('ASIGNADO');
+    expect(resultado.asistenteSocialId).toBe('50000000-0000-4000-8000-000000000001');
+    expect(resultado.asistenteSocialNombre).toBe('Camila Valenzuela Castro');
+  });
+
+  it('debe lanzar AsistenciaSocialServiceError con statusCode 409 cuando el asistente no está disponible', async () => {
+    vi.spyOn(apiClient, 'PATCH').mockResolvedValueOnce({
+      data: null,
+      error: { message: 'El asistente social ya no se encuentra disponible.' },
+      response: new Response(null, { status: 409 }),
+    });
+
+    await expect(
+      asignarAsistenteSocial(
+        '70000000-0000-4000-8000-000000000001',
+        '50000000-0000-4000-8000-000000000001'
+      )
+    ).rejects.toMatchObject({
+      statusCode: 409,
+    });
+  });
+
+  it('debe lanzar AsistenciaSocialServiceError con statusCode 403 si falta permiso asistencia_social:crear', async () => {
+    vi.spyOn(apiClient, 'PATCH').mockResolvedValueOnce({
+      data: null,
+      error: { message: 'Permiso insuficiente' },
+      response: new Response(null, { status: 403 }),
+    });
+
+    await expect(
+      asignarAsistenteSocial(
+        '70000000-0000-4000-8000-000000000001',
+        '50000000-0000-4000-8000-000000000001'
+      )
+    ).rejects.toMatchObject({
+      statusCode: 403,
+    });
+  });
+
+  it('debe crear un evento con asistenteSocialId en estado ASIGNADO cuando la API retorna 201 (Opción A)', async () => {
+    const payloadConAsistente: CrearEventoAsistenciaSocialDTO = {
+      ...mockPayload,
+      asistenteSocialId: '50000000-0000-4000-8000-000000000001',
+    };
+
+    const spyPost = vi.spyOn(apiClient, 'POST').mockResolvedValueOnce({
+      data: {
+        data: {
+          id: '70000000-0000-4000-8000-000000000101',
+          codigo: 'AS-2026-0101',
+          ...mockPayload,
+          estado: 'ASIGNADO',
+          contactoRut: null,
+          delegacionId: null,
+          delegacionNombre: null,
+          incidenteId: null,
+          asistenteSocialId: '50000000-0000-4000-8000-000000000001',
+          asistenteSocialNombre: 'Camila Valenzuela Castro',
+          creadoPor: { id: 'user-1', nombre: 'Encargado' },
+          creadoEn: new Date().toISOString(),
+          actualizadoEn: new Date().toISOString(),
+        },
+      },
+      error: null,
+      response: new Response(null, { status: 201 }),
+    });
+
+    const resultado = await crearEventoAsistenciaSocial(payloadConAsistente, 'user-1');
+
+    expect(spyPost).toHaveBeenCalledTimes(1);
+    expect(resultado.estado).toBe('ASIGNADO');
+    expect(resultado.asistenteSocialId).toBe('50000000-0000-4000-8000-000000000001');
+  });
+
+  it('debe lanzar AsistenciaSocialServiceError con statusCode 409 al crear si el asistente ya no está disponible', async () => {
+    vi.spyOn(apiClient, 'POST').mockResolvedValueOnce({
+      data: null,
+      error: { message: 'El asistente social ya no está disponible para asignación.' },
+      response: new Response(null, { status: 409 }),
+    });
+
+    await expect(
+      crearEventoAsistenciaSocial(
+        {
+          ...mockPayload,
+          asistenteSocialId: '50000000-0000-4000-8000-000000000001',
+        },
+        'user-1'
+      )
+    ).rejects.toMatchObject({
+      statusCode: 409,
+    });
+  });
+
+  it('debe enviar detallesEvaluacion con familias en el cuerpo del POST cuando se provee desglose opcional', async () => {
+    const payloadConDetalles: CrearEventoAsistenciaSocialDTO = {
+      ...mockPayload,
+      personasAfectadas: 4,
+      familiasAfectadas: 1,
+      detallesEvaluacion: {
+        familiasAfectadas: 1,
+        nucleoFamiliarTotal: 4,
+        cantidadNinos: 2,
+        cantidadAdultosMayores: 1,
+        nivelCompromisoVivienda: 'MODERADO',
+        danosEstimados: 'Anegamiento en comedor',
+        familias: [
+          {
+            referencia: 'Familia Morales',
+            nucleoFamiliarTotal: 4,
+            cantidadNinos: 2,
+            cantidadAdultosMayores: 1,
+            nivelCompromisoVivienda: 'MODERADO',
+          },
+        ],
+      },
+    };
+
+    const spyPost = vi.spyOn(apiClient, 'POST').mockResolvedValueOnce({
+      data: {
+        data: {
+          id: '70000000-0000-4000-8000-000000000105',
+          codigo: 'AS-2026-0105',
+          ...payloadConDetalles,
+          estado: 'PENDIENTE',
+          contactoRut: null,
+          delegacionId: null,
+          delegacionNombre: null,
+          incidenteId: null,
+          asistenteSocialId: null,
+          asistenteSocialNombre: null,
+          creadoPor: { id: 'user-1', nombre: 'Encargado' },
+          creadoEn: new Date().toISOString(),
+          actualizadoEn: new Date().toISOString(),
+        },
+      },
+      error: null,
+      response: new Response(null, { status: 201 }),
+    });
+
+    const resultado = await crearEventoAsistenciaSocial(payloadConDetalles, 'user-1');
+
+    expect(spyPost).toHaveBeenCalledWith(
+      '/api/eventos-atp/asistencia-social',
+      expect.objectContaining({
+        body: expect.objectContaining({
+          detallesEvaluacion: expect.objectContaining({
+            familiasAfectadas: 1,
+            nucleoFamiliarTotal: 4,
+          }),
+        }),
+      })
+    );
+    expect(resultado.codigo).toBe('AS-2026-0105');
+  });
+
+  it('preserva y normaliza detallesEvaluacion (5 integrantes, 2 niños, 1 discapacidad) entre POST, GET y PATCH', async () => {
+    const detallesReales = {
+      familiasAfectadas: 1,
+      nucleoFamiliarTotal: 5,
+      cantidadNinos: 2,
+      cantidadAdultosMayores: 0,
+      personasDiscapacitadas: 1,
+      personasElectrodependientes: 0,
+      mascotasAfectadas: 0,
+      nivelCompromisoVivienda: 'MODERADO' as const,
+      danosEstimados: 'Daño parcial',
+      familias: [
+        {
+          referencia: 'Hogar Beneficencia',
+          nucleoFamiliarTotal: 5,
+          cantidadNinos: 2,
+          cantidadAdultosMayores: 0,
+          personasDiscapacitadas: 1,
+          personasElectrodependientes: 0,
+          mascotasAfectadas: 0,
+          nivelCompromisoVivienda: 'MODERADO' as const,
+        },
+      ],
+    };
+
+    const eventoServidor = {
+      id: '70000000-0000-4000-8000-000000000222',
+      codigo: 'AS-2026-0222',
+      ...mockPayload,
+      personasAfectadas: 5,
+      familiasAfectadas: 1,
+      estado: 'PENDIENTE' as const,
+      contactoRut: null,
+      delegacionId: null,
+      delegacionNombre: null,
+      incidenteId: null,
+      asistenteSocialId: null,
+      asistenteSocialNombre: null,
+      detallesEvaluacion: detallesReales,
+      creadoPor: { id: 'user-1', nombre: 'Encargado' },
+      creadoEn: new Date().toISOString(),
+      actualizadoEn: new Date().toISOString(),
+    };
+
+    vi.spyOn(apiClient, 'POST').mockResolvedValueOnce({
+      data: { data: eventoServidor },
+      error: null,
+      response: new Response(null, { status: 201 }),
+    });
+    vi.spyOn(apiClient, 'GET').mockResolvedValueOnce({
+      data: { data: [eventoServidor], total: 1, pagina: 1, limite: 10, totalPaginas: 1 },
+      error: null,
+      response: new Response(null, { status: 200 }),
+    });
+    vi.spyOn(apiClient, 'PATCH').mockResolvedValueOnce({
+      data: {
+        data: {
+          ...eventoServidor,
+          estado: 'ASIGNADO',
+          asistenteSocialId: '50000000-0000-4000-8000-000000000001',
+          asistenteSocialNombre: 'Camila Valenzuela Castro',
+        },
+      },
+      error: null,
+      response: new Response(null, { status: 200 }),
+    });
+
+    const creado = await crearEventoAsistenciaSocial(
+      { ...mockPayload, personasAfectadas: 5, familiasAfectadas: 1, detallesEvaluacion: detallesReales },
+      'user-1'
+    );
+    const listado = await obtenerEventosAsistenciaSocial({ pagina: 1, limite: 10 });
+    const asignado = await asignarAsistenteSocial(
+      eventoServidor.id,
+      '50000000-0000-4000-8000-000000000001',
+      'user-1'
+    );
+
+    for (const item of [creado, listado.data[0], asignado]) {
+      expect(item.personasAfectadas).toBe(5);
+      expect(item.familiasAfectadas).toBe(1);
+      expect(item.detallesEvaluacion?.familias).toHaveLength(1);
+      expect(item.detallesEvaluacion?.cantidadNinos).toBe(2);
+      expect(item.detallesEvaluacion?.personasDiscapacitadas).toBe(1);
+    }
   });
 });

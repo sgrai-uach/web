@@ -10,8 +10,25 @@ import {
   obtenerEventosAsistenciaSocial,
   AsistenciaSocialServiceError,
 } from '@/services/asistenciaSocialService';
+import { normalizarDetallesEvaluacionSocial } from '@/lib/utils/asistenciaSocialIncidenteUtils';
 import { getSocket } from '@/lib/socket/client';
 import type { Socket } from 'socket.io-client';
+
+type EventoSocialSocketPayload = EventoAsistenciaSocialItem & {
+  detalles_evaluacion?: unknown;
+};
+
+function normalizarEventoDesdeSocket(
+  evento: EventoSocialSocketPayload
+): EventoAsistenciaSocialItem {
+  const { detalles_evaluacion, ...resto } = evento;
+  return {
+    ...resto,
+    detallesEvaluacion: normalizarDetallesEvaluacionSocial(
+      evento.detallesEvaluacion ?? detalles_evaluacion
+    ),
+  };
+}
 
 export interface UseEventosAsistenciaSocialReturn {
   eventos: EventoAsistenciaSocialItem[];
@@ -26,6 +43,7 @@ export interface UseEventosAsistenciaSocialReturn {
   statusCode: number | null;
   recargar: () => Promise<void>;
   agregarEventoLocalmente: (evento: EventoAsistenciaSocialItem) => void;
+  actualizarEventoLocalmente: (eventoActualizado: EventoAsistenciaSocialItem) => void;
 }
 
 export function useEventosAsistenciaSocial(
@@ -88,27 +106,73 @@ export function useEventosAsistenciaSocial(
     };
   }, [fetchData]);
 
-  const agregarEventoLocalmente = useCallback((nuevoEvento: EventoAsistenciaSocialItem) => {
-    setData((prev) => {
-      if (!prev) {
-        return {
-          data: [nuevoEvento],
-          total: 1,
-          pagina: 1,
-          limite: 10,
-          totalPaginas: 1,
-        };
+  const agregarEventoLocalmente = useCallback(
+    (nuevoEvento: EventoAsistenciaSocialItem) => {
+      const eventoNormalizado = normalizarEventoDesdeSocket(
+        nuevoEvento as EventoSocialSocketPayload
+      );
+      if (estado && eventoNormalizado.estado !== estado) {
+        return;
       }
 
-      // Evitar duplicados
-      if (prev.data.some((e) => e.id === nuevoEvento.id || e.codigo === nuevoEvento.codigo)) {
-        return prev;
-      }
+      setData((prev) => {
+        if (!prev) {
+          return {
+            data: [eventoNormalizado],
+            total: 1,
+            pagina: 1,
+            limite: 10,
+            totalPaginas: 1,
+          };
+        }
+
+        // Evitar duplicados
+        if (
+          prev.data.some(
+            (e) => e.id === eventoNormalizado.id || e.codigo === eventoNormalizado.codigo
+          )
+        ) {
+          return prev;
+        }
+
+        return {
+          ...prev,
+          data: [eventoNormalizado, ...prev.data],
+          total: prev.total + 1,
+        };
+      });
+    },
+    [estado]
+  );
+
+  const actualizarEventoLocalmente = useCallback((eventoActualizado: EventoAsistenciaSocialItem) => {
+    const payloadSocket = eventoActualizado as EventoSocialSocketPayload;
+    const traeDetallesEnPayload =
+      payloadSocket.detallesEvaluacion !== undefined ||
+      payloadSocket.detalles_evaluacion !== undefined;
+    const eventoNormalizado = normalizarEventoDesdeSocket(payloadSocket);
+
+    setData((prev) => {
+      if (!prev) return prev;
+      const existe = prev.data.some(
+        (e) => e.id === eventoNormalizado.id || e.codigo === eventoNormalizado.codigo
+      );
+      if (!existe) return prev;
 
       return {
         ...prev,
-        data: [nuevoEvento, ...prev.data],
-        total: prev.total + 1,
+        data: prev.data.map((e) => {
+          if (e.id !== eventoNormalizado.id && e.codigo !== eventoNormalizado.codigo) {
+            return e;
+          }
+          return {
+            ...e,
+            ...eventoNormalizado,
+            detallesEvaluacion: traeDetallesEnPayload
+              ? eventoNormalizado.detallesEvaluacion
+              : e.detallesEvaluacion ?? null,
+          };
+        }),
       };
     });
   }, []);
@@ -126,6 +190,18 @@ export function useEventosAsistenciaSocial(
 
     if (!socketInstance) return;
 
+    const unirseASalas = () => {
+      const salas = ['asistente_social', 'sala:encargados', 'encargado', 'centro_mando'];
+      salas.forEach((sala) => {
+        socketInstance?.emit('join', sala);
+        socketInstance?.emit('unirse', sala);
+      });
+    };
+
+    if (socketInstance.connected) {
+      unirseASalas();
+    }
+
     const handleAsistenciaSocialCreada = (nuevoEvento: EventoAsistenciaSocialItem) => {
       if (nuevoEvento && nuevoEvento.id) {
         agregarEventoLocalmente(nuevoEvento);
@@ -134,12 +210,24 @@ export function useEventosAsistenciaSocial(
       }
     };
 
+    const handleAsistenciaSocialActualizada = (eventoActualizado: EventoAsistenciaSocialItem) => {
+      if (eventoActualizado && eventoActualizado.id) {
+        actualizarEventoLocalmente(eventoActualizado);
+      } else {
+        fetchData();
+      }
+    };
+
+    socketInstance.on('connect', unirseASalas);
     socketInstance.on('asistencia_social:creada', handleAsistenciaSocialCreada);
+    socketInstance.on('asistencia_social:actualizada', handleAsistenciaSocialActualizada);
 
     return () => {
+      socketInstance?.off('connect', unirseASalas);
       socketInstance?.off('asistencia_social:creada', handleAsistenciaSocialCreada);
+      socketInstance?.off('asistencia_social:actualizada', handleAsistenciaSocialActualizada);
     };
-  }, [agregarEventoLocalmente, fetchData]);
+  }, [agregarEventoLocalmente, actualizarEventoLocalmente, fetchData]);
 
   return {
     eventos: data?.data ?? [],
@@ -154,5 +242,6 @@ export function useEventosAsistenciaSocial(
     statusCode,
     recargar: fetchData,
     agregarEventoLocalmente,
+    actualizarEventoLocalmente,
   };
 }

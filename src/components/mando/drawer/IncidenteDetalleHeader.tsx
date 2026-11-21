@@ -3,7 +3,7 @@
 import React from 'react';
 import Heading from '@/components/ui/Heading';
 import Button from '@/components/ui/Button';
-import { X, ShieldCheck } from 'lucide-react';
+import { X, ShieldCheck, HeartHandshake } from 'lucide-react';
 import type { IncidenteDetalle } from '@/services/incidentesService';
 import styles from '@/styles/mando.module.css';
 
@@ -12,6 +12,7 @@ interface IncidenteDetalleHeaderProps {
   onCerrar: () => void;
   onAsignarPatrulla?: () => void;
   puedeAsignar?: boolean;
+  puedeCrearEventoFibe?: boolean;
 }
 
 export const IncidenteDetalleHeader: React.FC<IncidenteDetalleHeaderProps> = ({
@@ -19,6 +20,7 @@ export const IncidenteDetalleHeader: React.FC<IncidenteDetalleHeaderProps> = ({
   onCerrar,
   onAsignarPatrulla,
   puedeAsignar = true,
+  puedeCrearEventoFibe = false,
 }) => {
   const tieneMisionDespachada = Boolean(
     detalle?.misiones?.some((m) => m.estado === 'DESPACHADA' || m.estado === 'PLANIFICADA')
@@ -48,6 +50,17 @@ export const IncidenteDetalleHeader: React.FC<IncidenteDetalleHeaderProps> = ({
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        {detalle?.requiereAsistenciaSocial && puedeCrearEventoFibe && (
+          <Button
+            href={`/gestion/asistente-social/nuevo?incidenteId=${detalle.id}`}
+            variant="outline"
+            size="sm"
+            title="Crear evento de asistencia social (FIBE) precargado con este incidente"
+          >
+            <HeartHandshake size={14} style={{ marginRight: '5px' }} />
+            <span>Crear Evento FIBE</span>
+          </Button>
+        )}
         {detalle?.estado === 'REPORTADO' && !tieneMisionDespachada && onAsignarPatrulla && puedeAsignar && (
           <Button
             type="button"
