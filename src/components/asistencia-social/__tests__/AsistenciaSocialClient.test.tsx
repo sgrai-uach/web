@@ -8,6 +8,11 @@ import type { AsistenteSocialItem } from '@/types/asistenteSocialPersonal';
 
 let mockRol = 'Encargado';
 let mockHasPermission = vi.fn(() => true);
+let mockSearchParams = new URLSearchParams();
+
+vi.mock('next/navigation', () => ({
+  useSearchParams: () => mockSearchParams,
+}));
 
 vi.mock('@/context/SimulatedSessionContext', () => ({
   useSimulatedSession: () => ({
@@ -34,6 +39,7 @@ describe('AsistenciaSocialClient', () => {
     vi.clearAllMocks();
     mockRol = 'Encargado';
     mockHasPermission = vi.fn(() => true);
+    mockSearchParams = new URLSearchParams();
   });
 
   const mockItem: EventoAsistenciaSocialItem = {
@@ -189,6 +195,28 @@ describe('AsistenciaSocialClient', () => {
       expect(screen.getByText('ASIGNADO')).toBeDefined();
       expect(screen.getByText(/Asig\.: Camila Valenzuela Castro/i)).toBeDefined();
       expect(screen.queryByRole('button', { name: /Asignar Asistente/i })).toBeNull();
+    });
+  });
+
+  it('inicializa el filtro de estado con ?estado=ASIGNADO desde searchParams', async () => {
+    mockSearchParams = new URLSearchParams('estado=ASIGNADO');
+    const spyObtener = vi
+      .spyOn(asistenciaSocialService, 'obtenerEventosAsistenciaSocial')
+      .mockResolvedValueOnce({
+        data: [],
+        total: 0,
+        pagina: 1,
+        limite: 10,
+        totalPaginas: 1,
+      });
+
+    render(<AsistenciaSocialClient basePath="/gestion/asistente-social" />);
+
+    await waitFor(() => {
+      expect(spyObtener).toHaveBeenCalledWith(
+        expect.objectContaining({ estado: 'ASIGNADO' }),
+        '00000000-0000-4000-8000-000000000003'
+      );
     });
   });
 });

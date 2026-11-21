@@ -703,4 +703,32 @@ describe('Componente IncidenteDetalleDrawer e integración HU-17', () => {
     );
     expect(mockSocket.emit).not.toHaveBeenCalledWith('salir', 'sala:encargados');
   });
+
+  it('muestra acceso directo Crear Evento FIBE hacia el formulario precargado cuando requiereAsistenciaSocial es true', async () => {
+    vi.spyOn(incidentesService, 'obtenerDetalleIncidente').mockResolvedValueOnce({
+      exito: true,
+      datos: {
+        ...mockDetalleIncidente,
+        requiereAsistenciaSocial: true,
+      },
+      mensaje: 'OK',
+    });
+
+    render(
+      <IncidenteDetalleDrawer
+        incidenteId={mockDetalleIncidente.id}
+        userId="user-test"
+        onCerrar={vi.fn()}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('INC-2026-0042')).toBeDefined();
+    });
+
+    const linkCrearFibe = screen.getByRole('link', { name: /Crear Evento FIBE/i });
+    expect(linkCrearFibe.getAttribute('href')).toBe(
+      `/gestion/asistente-social/nuevo?incidenteId=${mockDetalleIncidente.id}`
+    );
+  });
 });

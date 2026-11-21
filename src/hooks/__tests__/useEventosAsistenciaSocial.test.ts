@@ -165,4 +165,42 @@ describe('useEventosAsistenciaSocial', () => {
     expect(result.current.eventos[0].estado).toBe('ASIGNADO');
     expect(result.current.eventos[0].asistenteSocialNombre).toBe('Camila Valenzuela Castro');
   });
+
+  it('no inserta en la bandeja PENDIENTE un evento recibido por asistencia_social:creada con estado ASIGNADO', async () => {
+    vi.spyOn(asistenciaSocialService, 'obtenerEventosAsistenciaSocial').mockResolvedValueOnce({
+      data: [mockItem],
+      total: 1,
+      pagina: 1,
+      limite: 10,
+      totalPaginas: 1,
+    });
+
+    const { result } = renderHook(() =>
+      useEventosAsistenciaSocial({ pagina: 1, limite: 10, estado: 'PENDIENTE' })
+    );
+
+    await waitFor(() => {
+      expect(result.current.cargando).toBe(false);
+    });
+
+    const socket = getSocket() as unknown as {
+      _trigger: (event: string, payload?: unknown) => void;
+    };
+
+    const eventoAsignadoAlCrear: EventoAsistenciaSocialItem = {
+      ...mockItem,
+      id: '70000000-0000-4000-8000-000000000099',
+      codigo: 'AS-2026-0099',
+      estado: 'ASIGNADO',
+      asistenteSocialId: '50000000-0000-4000-8000-000000000001',
+      asistenteSocialNombre: 'Camila Valenzuela Castro',
+    };
+
+    act(() => {
+      socket._trigger('asistencia_social:creada', eventoAsignadoAlCrear);
+    });
+
+    expect(result.current.eventos).toHaveLength(1);
+    expect(result.current.eventos[0].codigo).toBe('AS-2026-0001');
+  });
 });

@@ -2,13 +2,17 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import EventoAsistenciaSocialForm from '../EventoAsistenciaSocialForm';
 import * as asistenciaSocialService from '@/services/asistenciaSocialService';
+import * as asistentesSocialesService from '@/services/asistentesSocialesService';
 import * as geocoding from '@/lib/maps/geocoding';
+import { incidentesService } from '@/services/incidentesService';
 
 const mockPush = vi.fn();
+let mockSearchParams = new URLSearchParams();
 vi.mock('next/navigation', () => ({
   useRouter: () => ({
     push: mockPush,
   }),
+  useSearchParams: () => mockSearchParams,
 }));
 
 const mockShowSuccess = vi.fn();
@@ -45,6 +49,10 @@ vi.mock('@/services/incidentesService', () => ({
         },
       ],
       mensaje: 'OK',
+    })),
+    obtenerDetalle: vi.fn(async () => ({
+      exito: false,
+      mensaje: 'No encontrado',
     })),
   },
 }));
@@ -89,6 +97,34 @@ vi.mock('@/components/maps/LocationPickerMap', () => ({
 describe('EventoAsistenciaSocialForm', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockSearchParams = new URLSearchParams();
+    vi.spyOn(asistentesSocialesService, 'obtenerAsistentesSociales').mockResolvedValue({
+      data: [
+        {
+          usuarioId: '50000000-0000-4000-8000-000000000001',
+          rut: '16.789.012-3',
+          nombres: 'Camila Andrea',
+          apellidos: 'Valenzuela Castro',
+          nombreCompleto: 'Camila Valenzuela Castro',
+          email: 'cvalenzuela@valdivia.cl',
+          telefono: '+56987654321',
+          delegacionId: '30000000-0000-4000-8000-000000000001',
+          delegacionCodigo: 'COSTA',
+          delegacionNombre: 'Delegación Municipal Costa',
+          personalId: '60000000-0000-4000-8000-000000000001',
+          estadoOperativo: 'disponible',
+          casosFibeAsignados: 1,
+        },
+      ],
+      meta: { total: 1, pagina: 1, limite: 50, totalPaginas: 1 },
+    });
+    vi.spyOn(asistenciaSocialService, 'obtenerEventosAsistenciaSocial').mockResolvedValue({
+      data: [],
+      total: 0,
+      pagina: 1,
+      limite: 50,
+      totalPaginas: 1,
+    });
   });
 
   it('debe renderizar todos los campos principales del formulario incluyendo el vinculador a incidentes', async () => {
@@ -180,6 +216,8 @@ describe('EventoAsistenciaSocialForm', () => {
     expect(lngInput.value).toBe('');
     expect(dirInput.value).toBe('');
     expect(descInput.value).toBe('');
+    const asistenteSelect = screen.getByLabelText(/Asistente Social Disponible/i) as HTMLSelectElement;
+    expect(asistenteSelect.value).toBe('');
   });
 
   it('debe enviar el payload con incidenteId nulo cuando no se selecciona incidente', async () => {
@@ -359,5 +397,251 @@ describe('EventoAsistenciaSocialForm', () => {
     await waitFor(() => {
       expect(screen.queryByText(/Ficha de Evento Social \(Vista Previa\)/i)).toBeNull();
     });
+  });
+
+  it('envía asistenteSocialId de forma atómica (Opción A) y redirige a ?estado=ASIGNADO', async () => {
+    vi.spyOn(asistenciaSocialService, 'crearEventoAsistenciaSocial').mockResolvedValueOnce({
+      id: '70000000-0000-4000-8000-000000000008',
+      codigo: 'AS-2026-0008',
+      descripcion: 'Anegamiento crítico en vivienda con adulto mayor',
+      tipoAfectacion: 'VIVIENDA_ANEGADA',
+      personasAfectadas: 2,
+      familiasAfectadas: 1,
+      direccionTexto: 'Calle Los Notros 890',
+      latitud: -39.825,
+      longitud: -73.221,
+      prioridad: 'ALTA',
+      estado: 'ASIGNADO',
+      contactoNombre: null,
+      contactoTelefono: null,
+      contactoRut: null,
+      delegacionId: null,
+      delegacionNombre: null,
+      incidenteId: null,
+      asistenteSocialId: '50000000-0000-4000-8000-000000000001',
+      asistenteSocialNombre: 'Camila Valenzuela Castro',
+      creadoPor: { id: 'user-1', nombre: 'Encargado' },
+      creadoEn: new Date().toISOString(),
+      actualizadoEn: new Date().toISOString(),
+    });
+
+    render(<EventoAsistenciaSocialForm basePath="/gestion/asistente-social" />);
+
+    await waitFor(() => {
+      expect(screen.getByText(/Camila Valenzuela Castro/i)).toBeDefined();
+    });
+
+    fireEvent.change(screen.getByLabelText(/Tipo de Afectación Social/i), {
+      target: { value: 'VIVIENDA_ANEGADA' },
+    });
+    fireEvent.change(screen.getByLabelText(/Prioridad de Atención/i), {
+      target: { value: 'ALTA' },
+    });
+    fireEvent.click(screen.getByTestId('mock-map-click-btn'));
+    fireEvent.change(screen.getByLabelText(/Descripción de la Excepcionalidad Social/i), {
+      target: { value: 'Anegamiento crítico en vivienda con adulto mayor' },
+    });
+    fireEvent.change(screen.getByPlaceholderText(/Ej\. Calle Los Alerces 1420/i), {
+      target: { value: 'Calle Los Notros 890' },
+    });
+    fireEvent.change(screen.getByLabelText(/Asistente Social Disponible/i), {
+      target: { value: '50000000-0000-4000-8000-000000000001' },
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: /Guardar Evento de Asistencia Social/i }));
+
+    await waitFor(() => {
+      expect(asistenciaSocialService.crearEventoAsistenciaSocial).toHaveBeenCalledWith(
+        expect.objectContaining({
+          asistenteSocialId: '50000000-0000-4000-8000-000000000001',
+        }),
+        '00000000-0000-4000-8000-000000000003'
+      );
+    });
+
+    expect(mockShowSuccess).toHaveBeenCalledWith(
+      expect.stringContaining('Camila Valenzuela Castro'),
+      'Caso Social Creado y Asignado'
+    );
+    expect(mockPush).toHaveBeenCalledWith('/gestion/asistente-social?estado=ASIGNADO');
+  });
+
+  it('maneja 409 Conflict al crear con asistente, recarga disponibles y conserva datos del formulario', async () => {
+    vi.spyOn(asistenciaSocialService, 'crearEventoAsistenciaSocial').mockRejectedValueOnce(
+      new asistenciaSocialService.AsistenciaSocialServiceError(
+        'El asistente social seleccionado ya no se encuentra disponible.',
+        { statusCode: 409 }
+      )
+    );
+
+    render(<EventoAsistenciaSocialForm basePath="/gestion/asistente-social" />);
+
+    await waitFor(() => {
+      expect(screen.getByText(/Camila Valenzuela Castro/i)).toBeDefined();
+    });
+
+    const llamadasIniciales = vi.mocked(asistentesSocialesService.obtenerAsistentesSociales).mock
+      .calls.length;
+
+    fireEvent.change(screen.getByLabelText(/Tipo de Afectación Social/i), {
+      target: { value: 'VIVIENDA_ANEGADA' },
+    });
+    fireEvent.change(screen.getByLabelText(/Prioridad de Atención/i), {
+      target: { value: 'ALTA' },
+    });
+    fireEvent.click(screen.getByTestId('mock-map-click-btn'));
+    fireEvent.change(screen.getByLabelText(/Descripción de la Excepcionalidad Social/i), {
+      target: { value: 'Situación de emergencia preservada' },
+    });
+    fireEvent.change(screen.getByPlaceholderText(/Ej\. Calle Los Alerces 1420/i), {
+      target: { value: 'Pasaje Los Coihues 450' },
+    });
+    const asistenteSelect = screen.getByLabelText(/Asistente Social Disponible/i) as HTMLSelectElement;
+    fireEvent.change(asistenteSelect, {
+      target: { value: '50000000-0000-4000-8000-000000000001' },
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: /Guardar Evento de Asistencia Social/i }));
+
+    await waitFor(() => {
+      expect(screen.getByRole('alert').textContent).toContain('ya no se encuentra disponible');
+      expect(
+        vi.mocked(asistentesSocialesService.obtenerAsistentesSociales).mock.calls.length
+      ).toBeGreaterThan(llamadasIniciales);
+    });
+
+    expect(asistenteSelect.value).toBe('');
+    expect(
+      (screen.getByLabelText(/Descripción de la Excepcionalidad Social/i) as HTMLTextAreaElement)
+        .value
+    ).toBe('Situación de emergencia preservada');
+    expect(mockPush).not.toHaveBeenCalled();
+  });
+
+  it('precarga contexto H39/H38 vía ?incidenteId= y muestra alertas de consistencia de cierre', async () => {
+    mockSearchParams = new URLSearchParams('incidenteId=11111111-1111-4000-8000-111111111111');
+
+    vi.mocked(incidentesService.obtenerDetalle).mockResolvedValueOnce({
+      exito: true,
+      mensaje: 'OK',
+      datos: {
+        id: '11111111-1111-4000-8000-111111111111',
+        codigo: 'INC-2026-0001',
+        codigoSeguimiento: '12345678',
+        tipoAfectacion: 'Inundación Mayor',
+        descripcion: 'Reporte inicial',
+        direccion: 'Avenida Costanera 100',
+        latitud: -39.81,
+        longitud: -73.24,
+        estado: 'NO_ABORDABLE',
+        prioridad: 'CRITICA',
+        requiereAsistenciaSocial: false,
+        verificado: true,
+        dictamenTerreno: 'NO_ABORDABLE',
+        motivoNoAbordable: 'Predio privado cerrado sin morador presente.',
+        fuenteOrigen: 'LLAMADA',
+        asteriskCallId: null,
+        asteriskCallerPhone: null,
+        informante: { id: 'inf-1', nombre: 'Juan Pérez', rut: '11.111.111-1', telefono: '+56955555555' },
+        delegacion: { id: '30000000-0000-4000-8000-000000000001', nombre: 'Delegación Municipal Norte', descripcion: null },
+        creadoPor: null,
+        encargado: null,
+        misiones: [],
+        recursosAsociados: [],
+        creadoEn: new Date().toISOString(),
+        actualizadoEn: new Date().toISOString(),
+        reportesEvaluacionTerreno: [
+          {
+            id: 'rep-h38',
+            misionId: 'm-1',
+            tipoReporte: 'EVALUACION_PRIORIDAD',
+            versionReporte: 1,
+            esRectificacion: false,
+            etiquetaReporte: 'Evaluación Prioridad',
+            creadoEn: '2026-11-21T10:00:00.000Z',
+            evaluacion: { nucleoFamiliarTotal: 3, familias: [{ referencia: 'Familia 1' }, { referencia: 'Familia 2' }] },
+          },
+          {
+            id: 'rep-h39',
+            misionId: 'm-1',
+            tipoReporte: 'VERIFICACION_CIERRE',
+            dictamen: 'NO_ABORDABLE',
+            motivoNoAbordable: 'Predio privado cerrado sin morador presente.',
+            requiereAsistenciaSocial: false,
+            personasAfectadas: 5,
+            personasAfectadasPrevias: 3,
+            personasAfectadasModificadas: true,
+            versionReporte: 2,
+            esRectificacion: false,
+            etiquetaReporte: 'Informe Técnico de Verificación y Cierre',
+            resumenTecnico: 'Diagnóstico consolidado al cierre por patrulla.',
+            creadoEn: '2026-11-21T11:00:00.000Z',
+          },
+        ],
+      } as unknown as NonNullable<Awaited<ReturnType<typeof incidentesService.obtenerDetalle>>['datos']>,
+    });
+
+    vi.spyOn(asistenciaSocialService, 'obtenerEventosAsistenciaSocial').mockResolvedValueOnce({
+      data: [
+        {
+          id: 'ev-dup-1',
+          codigo: 'AS-2026-0090',
+          descripcion: 'Existente',
+          tipoAfectacion: 'VIVIENDA_ANEGADA',
+          personasAfectadas: 5,
+          familiasAfectadas: 2,
+          direccionTexto: 'Avenida Costanera 100',
+          latitud: -39.81,
+          longitud: -73.24,
+          prioridad: 'CRITICA',
+          estado: 'PENDIENTE',
+          contactoNombre: null,
+          contactoTelefono: null,
+          contactoRut: null,
+          delegacionId: null,
+          delegacionNombre: null,
+          incidenteId: '11111111-1111-4000-8000-111111111111',
+          asistenteSocialId: null,
+          asistenteSocialNombre: null,
+          creadoPor: { id: 'u1', nombre: 'Encargado' },
+          creadoEn: new Date().toISOString(),
+          actualizadoEn: new Date().toISOString(),
+        },
+      ],
+      total: 1,
+      pagina: 1,
+      limite: 50,
+      totalPaginas: 1,
+    });
+
+    render(<EventoAsistenciaSocialForm basePath="/gestion/asistente-social" />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('resumen-verificacion-h39')).toBeDefined();
+    });
+
+    expect((screen.getByLabelText(/Tipo de Afectación Social/i) as HTMLSelectElement).value).toBe(
+      'VIVIENDA_ANEGADA'
+    );
+    expect((screen.getByLabelText(/Prioridad de Atención/i) as HTMLSelectElement).value).toBe(
+      'CRITICA'
+    );
+    expect((screen.getByLabelText(/Personas Afectadas Estimadas/i) as HTMLInputElement).value).toBe(
+      '5'
+    );
+    expect((screen.getByLabelText(/Familias \/ Hogares Afectados/i) as HTMLInputElement).value).toBe(
+      '2'
+    );
+    expect(
+      (screen.getByLabelText(/Descripción de la Excepcionalidad Social/i) as HTMLTextAreaElement)
+        .value
+    ).toBe('Diagnóstico consolidado al cierre por patrulla.');
+    expect(screen.getByTestId('alerta-incidente-no-abordable').textContent).toContain(
+      'Predio privado cerrado sin morador presente.'
+    );
+    expect(screen.getByTestId('alerta-sin-fibe-h39')).toBeDefined();
+    expect(screen.getByTestId('alerta-evento-social-duplicado').textContent).toContain(
+      'AS-2026-0090'
+    );
   });
 });

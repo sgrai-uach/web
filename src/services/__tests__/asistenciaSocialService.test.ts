@@ -227,4 +227,59 @@ describe('asistenciaSocialService', () => {
       statusCode: 403,
     });
   });
+
+  it('debe crear un evento con asistenteSocialId en estado ASIGNADO cuando la API retorna 201 (Opción A)', async () => {
+    const payloadConAsistente: CrearEventoAsistenciaSocialDTO = {
+      ...mockPayload,
+      asistenteSocialId: '50000000-0000-4000-8000-000000000001',
+    };
+
+    const spyPost = vi.spyOn(apiClient, 'POST').mockResolvedValueOnce({
+      data: {
+        data: {
+          id: '70000000-0000-4000-8000-000000000101',
+          codigo: 'AS-2026-0101',
+          ...mockPayload,
+          estado: 'ASIGNADO',
+          contactoRut: null,
+          delegacionId: null,
+          delegacionNombre: null,
+          incidenteId: null,
+          asistenteSocialId: '50000000-0000-4000-8000-000000000001',
+          asistenteSocialNombre: 'Camila Valenzuela Castro',
+          creadoPor: { id: 'user-1', nombre: 'Encargado' },
+          creadoEn: new Date().toISOString(),
+          actualizadoEn: new Date().toISOString(),
+        },
+      },
+      error: null,
+      response: new Response(null, { status: 201 }),
+    });
+
+    const resultado = await crearEventoAsistenciaSocial(payloadConAsistente, 'user-1');
+
+    expect(spyPost).toHaveBeenCalledTimes(1);
+    expect(resultado.estado).toBe('ASIGNADO');
+    expect(resultado.asistenteSocialId).toBe('50000000-0000-4000-8000-000000000001');
+  });
+
+  it('debe lanzar AsistenciaSocialServiceError con statusCode 409 al crear si el asistente ya no está disponible', async () => {
+    vi.spyOn(apiClient, 'POST').mockResolvedValueOnce({
+      data: null,
+      error: { message: 'El asistente social ya no está disponible para asignación.' },
+      response: new Response(null, { status: 409 }),
+    });
+
+    await expect(
+      crearEventoAsistenciaSocial(
+        {
+          ...mockPayload,
+          asistenteSocialId: '50000000-0000-4000-8000-000000000001',
+        },
+        'user-1'
+      )
+    ).rejects.toMatchObject({
+      statusCode: 409,
+    });
+  });
 });
