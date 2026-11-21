@@ -36,7 +36,10 @@ Existen cuatro puntos directos de acceso a la pantalla de creación:
    * *Derrumbe o Remoción en Masa:* Deslizamiento de tierra, socavón o riesgo inminente de ladera sobre la vivienda.
    * *Otro Caso Excepcional:* Vulnerabilidad social de emergencia que no clasifique en las categorías anteriores.
 2. **Prioridad de Atención:** Elegir entre *Crítica*, *Alta*, *Media* o *Baja*. (Por defecto asigna *Media*).
-3. **Estimación de Afectados:** Ingresar el número estimado de personas y de familias que habitan el inmueble.
+3. **Estimación de Afectados (Modo Aproximado o Desglose por Familia — Opcional):**
+   * *Modo aproximado (por defecto):* Si se desconoce el detalle interno del hogar, ingresar directamente los totales estimados en **Personas Afectadas Estimadas** y **Familias / Hogares Afectados**.
+   * *Nivel de Compromiso Habitacional y Daños Estimados (Opcionales):* Permite clasificar el daño general de la vivienda (`Sin daño estructural`, `Daño leve`, `Daño moderado`, `Daño grave / Inhabitable`) y detallar daños materiales.
+   * *Desglose por Familia / Hogar (Opcional):* Al presionar **"+ Añadir Familia / Hogar"**, se despliegan tarjetas por grupo familiar homologadas con los informes de terreno (**H38/H39**): referencia del hogar, total de integrantes, niños/adolescentes, adultos mayores, personas con discapacidad, electrodependientes, mascotas afectadas y compromiso habitacional. Al añadir o quitar familias, los totales de personas y familias se recalculan automáticamente (pudiendo volver al modo aproximado en cualquier momento).
 4. **Vincular a Incidente en Curso (Opcional):**
    * *Sin vincular a incidente:* Selección por defecto para registrar un caso social independiente / excepcional que no provenga del flujo estándar de un incidente.
    * *Seleccionar un incidente:* Prioriza los casos marcados con `[FIBE Requerida]` y excluye incidentes cerrados como `NO_ABORDABLE` sin requerimiento FIBE. Al seleccionar un incidente, se precargan automáticamente el tipo de afectación mapeado, la prioridad, la ubicación, el contacto, las personas consolidadas del informe de cierre de patrulla (**H39**) y las familias rescatadas de la evaluación de prioridad (**H38**).
