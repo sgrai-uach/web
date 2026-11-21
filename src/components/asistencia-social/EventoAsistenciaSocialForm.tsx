@@ -1,14 +1,18 @@
 'use client';
 
 import React, { useState, useCallback, useEffect, useContext } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import {
   HeartHandshake,
   MapPin,
   AlertCircle,
+  AlertTriangle,
   Crosshair,
   User,
+  UserCheck,
+  RefreshCw,
+  Info,
   Save,
   ArrowLeft,
   Link as LinkIcon,
@@ -32,13 +36,22 @@ import {
 } from '@/types/asistenciaSocial';
 import {
   crearEventoAsistenciaSocial,
+  obtenerEventosAsistenciaSocial,
   AsistenciaSocialServiceError,
 } from '@/services/asistenciaSocialService';
+import { useAsistentesSociales } from '@/hooks/useAsistentesSociales';
 import {
   geocodificarDireccionEnValdivia,
   geocodificacionInversaEnValdivia,
 } from '@/lib/maps/geocoding';
 import { incidentesService } from '@/services/incidentesService';
+import {
+  clasificarYOrdenarIncidentesParaVinculacion,
+  extraerContextoSocialDesdeIncidente,
+  type ContextoSocialDesdeIncidente,
+  type IncidenteDetalleCompatible,
+  type IncidenteResumenCompatible,
+} from '@/lib/utils/asistenciaSocialIncidenteUtils';
 import EventoAsistenciaSocialDetalleModal from './EventoAsistenciaSocialDetalleModal';
 
 // Carga dinámica de Leaflet para evitar problemas de SSR en Next.js
@@ -74,6 +87,8 @@ export default function EventoAsistenciaSocialForm({
   basePath = '/gestion/asistente-social',
 }: EventoAsistenciaSocialFormProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const incidenteIdParam = searchParams.get('incidenteId') || '';
   const { showSuccess, showError } = useToast();
   const { usuarioActivo } = useSimulatedSession();
   const auth = useContext(AuthContext);
@@ -86,12 +101,42 @@ export default function EventoAsistenciaSocialForm({
   const [personasAfectadas, setPersonasAfectadas] = useState<number | string>('');
   const [familiasAfectadas, setFamiliasAfectadas] = useState<number | string>('');
 
-  // Vinculación opcional a incidente
-  const [incidenteId, setIncidenteId] = useState('');
+  // Vinculación opcional a incidente y contexto H39/H38
+  const [incidenteId, setIncidenteId] = useState(() => incidenteIdParam);
   const [incidentesDisponibles, setIncidentesDisponibles] = useState<
-    Array<{ id: string; codigo: string; tipoAfectacion: string; direccion?: string }>
+    Array<{
+      id: string;
+      codigo: string;
+      tipoAfectacion: string;
+      direccion?: string;
+      estado?: string;
+      requiereAsistenciaSocial?: boolean;
+      verificado?: boolean;
+    }>
   >([]);
   const [cargandoIncidentes, setCargandoIncidentes] = useState(true);
+  const [cargandoDetalleIncidente, setCargandoDetalleIncidente] = useState(false);
+  const [contextoIncidenteH39, setContextoIncidenteH39] =
+    useState<ContextoSocialDesdeIncidente | null>(null);
+  const [eventoSocialDuplicado, setEventoSocialDuplicado] = useState<{
+    codigo: string;
+    estado: string;
+  } | null>(null);
+
+  // Asignación opcional de asistente social disponible (Opción A)
+  const [asistenteSocialId, setAsistenteSocialId] = useState('');
+  const {
+    asistentes: asistentesDisponibles,
+    cargando: cargandoAsistentes,
+    recargar: recargarAsistentes,
+  } = useAsistentesSociales({
+    pagina: 1,
+    limite: 50,
+    estadoOperativo: 'disponible',
+  });
+  const profesionalesDisponibles = asistentesDisponibles.filter(
+    (a) => a.estadoOperativo === 'disponible'
+  );
 
   // Ubicación y sincronización bidireccional mapa-dirección
   const [direccionTexto, setDireccionTexto] = useState('');
@@ -112,19 +157,25 @@ export default function EventoAsistenciaSocialForm({
   const [errores, setErrores] = useState<Record<string, string>>({});
   const [errorServidor, setErrorServidor] = useState<string | null>(null);
 
-  // Carga de incidentes disponibles para vinculación opcional
+  // Carga de incidentes disponibles para vinculación opcional (priorizando FIBE requerida y excluyendo NO_ABORDABLE sin FIBE)
   useEffect(() => {
     let activo = true;
     incidentesService
-      .listar({ limit: 50 })
+      .listar({ limit: 50 }, effectiveUserId)
       .then((res) => {
         if (activo && res.exito && res.incidentes) {
+          const clasificados = clasificarYOrdenarIncidentesParaVinculacion(
+            res.incidentes as IncidenteResumenCompatible[]
+          );
           setIncidentesDisponibles(
-            res.incidentes.map((inc) => ({
+            clasificados.map((inc) => ({
               id: inc.id,
               codigo: inc.codigo || inc.id.slice(0, 8),
               tipoAfectacion: inc.tipoAfectacion || 'Incidente General',
-              direccion: inc.direccion,
+              direccion: inc.direccion || undefined,
+              estado: inc.estado,
+              requiereAsistenciaSocial: inc.requiereAsistenciaSocial,
+              verificado: inc.verificado,
             }))
           );
         }
@@ -139,7 +190,117 @@ export default function EventoAsistenciaSocialForm({
     return () => {
       activo = false;
     };
-  }, []);
+  }, [effectiveUserId]);
+
+  const cargarContextoDeIncidente = useCallback(
+    async (idSeleccionado: string) => {
+      if (!idSeleccionado) {
+        setContextoIncidenteH39(null);
+        setEventoSocialDuplicado(null);
+        return;
+      }
+
+      setCargandoDetalleIncidente(true);
+      setEventoSocialDuplicado(null);
+
+      try {
+        const detallePromise =
+          typeof incidentesService.obtenerDetalle === 'function'
+            ? incidentesService.obtenerDetalle(idSeleccionado, effectiveUserId)
+            : Promise.resolve({ exito: false, mensaje: '' });
+
+        const eventosPromise = obtenerEventosAsistenciaSocial(
+          { pagina: 1, limite: 50 },
+          effectiveUserId
+        ).catch(() => null);
+
+        const [resDetalle, resEventos] = await Promise.all([detallePromise, eventosPromise]);
+
+        if (resEventos && Array.isArray(resEventos.data)) {
+          const existente = resEventos.data.find(
+            (ev) => ev.incidenteId === idSeleccionado && ev.estado !== 'DESCARTADO'
+          );
+          if (existente) {
+            setEventoSocialDuplicado({
+              codigo: existente.codigo,
+              estado: existente.estado,
+            });
+          }
+        }
+
+        if (resDetalle?.exito && 'datos' in resDetalle && resDetalle.datos) {
+          const ctx = extraerContextoSocialDesdeIncidente(
+            resDetalle.datos as IncidenteDetalleCompatible,
+            DELEGACIONES_MUNICIPALES
+          );
+          setContextoIncidenteH39(ctx);
+          setTipoAfectacion(ctx.tipoAfectacion);
+          setPrioridad(ctx.prioridad);
+          if (ctx.personasAfectadas !== null) {
+            setPersonasAfectadas(ctx.personasAfectadas);
+          }
+          if (ctx.familiasAfectadas !== null) {
+            setFamiliasAfectadas(ctx.familiasAfectadas);
+          }
+          if (ctx.descripcionSugerida) {
+            setDescripcion(ctx.descripcionSugerida);
+          }
+          if (ctx.direccionTexto) {
+            setDireccionTexto(ctx.direccionTexto);
+          }
+          if (ctx.latitud !== null) {
+            setLatitud(ctx.latitud);
+          }
+          if (ctx.longitud !== null) {
+            setLongitud(ctx.longitud);
+          }
+          if (ctx.delegacionId) {
+            setDelegacionId(ctx.delegacionId);
+          }
+          if (ctx.contactoNombre) {
+            setContactoNombre(ctx.contactoNombre);
+          }
+          if (ctx.contactoTelefono) {
+            setContactoTelefono(ctx.contactoTelefono);
+          }
+          if (ctx.contactoRut) {
+            setContactoRut(ctx.contactoRut);
+          }
+          setErrores((prev) => {
+            const limpio = { ...prev };
+            delete limpio.tipoAfectacion;
+            delete limpio.prioridad;
+            delete limpio.descripcion;
+            delete limpio.direccionTexto;
+            delete limpio.latitud;
+            delete limpio.longitud;
+            return limpio;
+          });
+        } else {
+          setContextoIncidenteH39(null);
+        }
+      } catch {
+        setContextoIncidenteH39(null);
+      } finally {
+        setCargandoDetalleIncidente(false);
+      }
+    },
+    [effectiveUserId]
+  );
+
+  // Precargar contexto automáticamente si se accede con ?incidenteId=<uuid>
+  useEffect(() => {
+    if (!incidenteIdParam) return;
+    let activo = true;
+    queueMicrotask(() => {
+      if (activo) {
+        void cargarContextoDeIncidente(incidenteIdParam);
+      }
+    });
+    return () => {
+      activo = false;
+    };
+  }, [incidenteIdParam, cargarContextoDeIncidente]);
 
   // 1. Sincronización del mapa hacia el texto de dirección (geocodificación inversa)
   const handleUserSelectLocation = useCallback(
@@ -235,6 +396,7 @@ export default function EventoAsistenciaSocialForm({
       contactoRut: contactoRut.trim() || null,
       delegacionId: delegacionId || null,
       incidenteId: incidenteId.trim() || null,
+      asistenteSocialId: asistenteSocialId.trim() || null,
     });
 
     if (!validacion.success) {
@@ -269,19 +431,36 @@ export default function EventoAsistenciaSocialForm({
         contactoRut: contactoRut.trim() || null,
         delegacionId: delegacionId || null,
         incidenteId: incidenteId.trim() || null,
+        asistenteSocialId: asistenteSocialId.trim() || null,
       };
 
       const creado = await crearEventoAsistenciaSocial(payload, effectiveUserId);
 
-      showSuccess(
-        `Evento social ${creado.codigo} registrado exitosamente. Se ha incorporado a la bandeja de pendientes.`,
-        'Caso Social Creado'
-      );
-
-      // Redirigir a la bandeja de eventos pendientes
-      router.push(basePath);
+      if (creado.estado === 'ASIGNADO' || Boolean(creado.asistenteSocialId)) {
+        showSuccess(
+          `Evento social ${creado.codigo} registrado y asignado a ${
+            creado.asistenteSocialNombre || 'asistente social'
+          }.`,
+          'Caso Social Creado y Asignado'
+        );
+        router.push(`${basePath}?estado=ASIGNADO`);
+      } else {
+        showSuccess(
+          `Evento social ${creado.codigo} registrado exitosamente. Se ha incorporado a la bandeja de pendientes.`,
+          'Caso Social Creado'
+        );
+        router.push(basePath);
+      }
     } catch (err: unknown) {
       if (err instanceof AsistenciaSocialServiceError) {
+        if (err.statusCode === 409) {
+          setErrorServidor(err.message);
+          showError(err.message, 'Conflicto de disponibilidad');
+          setAsistenteSocialId('');
+          await recargarAsistentes();
+          return;
+        }
+
         let msg = err.message;
         if (
           err.statusCode === 403 ||
@@ -438,8 +617,12 @@ export default function EventoAsistenciaSocialForm({
           <Select
             label=""
             value={incidenteId}
-            onChange={(e) => setIncidenteId(e.target.value)}
-            disabled={cargandoIncidentes}
+            onChange={(e) => {
+              const nuevoId = e.target.value;
+              setIncidenteId(nuevoId);
+              void cargarContextoDeIncidente(nuevoId);
+            }}
+            disabled={cargandoIncidentes || cargandoDetalleIncidente}
             options={[
               {
                 value: '',
@@ -449,8 +632,10 @@ export default function EventoAsistenciaSocialForm({
               },
               ...incidentesDisponibles.map((inc) => ({
                 value: inc.id,
-                label: `${inc.codigo} — ${inc.tipoAfectacion}${
-                  inc.direccion ? ` (${inc.direccion})` : ''
+                label: `${inc.requiereAsistenciaSocial ? '[FIBE Requerida] ' : ''}${inc.codigo} — ${
+                  inc.tipoAfectacion
+                }${inc.direccion ? ` (${inc.direccion})` : ''}${
+                  inc.estado === 'NO_ABORDABLE' ? ' [No Abordable]' : ''
                 }`,
               })),
             ]}
@@ -463,8 +648,152 @@ export default function EventoAsistenciaSocialForm({
               marginBottom: 0,
             }}
           >
-            Este campo es opcional. Permite asociar este levantamiento de FIBE a un incidente operacional registrado previamente, o conservarlo independiente sin vínculo a la entidad Incidente.
+            Este campo es opcional. Al seleccionar un incidente, se precargará la información disponible del terreno y del reporte de cierre de patrulla para facilitar la derivación FIBE.
           </p>
+
+          {cargandoDetalleIncidente && (
+            <div
+              style={{
+                marginTop: '8px',
+                fontSize: '12px',
+                color: 'var(--color-primary-teal, #1B6F7D)',
+                fontWeight: 600,
+              }}
+            >
+              Cargando contexto técnico y diagnóstico de patrulla del incidente...
+            </div>
+          )}
+
+          {contextoIncidenteH39?.tieneCierrePatrulla && (
+            <div
+              data-testid="resumen-verificacion-h39"
+              style={{
+                marginTop: '10px',
+                padding: '10px 12px',
+                backgroundColor: 'var(--color-info-bg, #E0F2F1)',
+                border: '1px solid var(--color-primary-teal, #1B6F7D)',
+                borderLeft: '4px solid var(--color-primary-teal, #1B6F7D)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '4px',
+                fontSize: '12px',
+                color: 'var(--color-text-dark, #2B2B2B)',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 700, color: 'var(--color-primary-teal-dark, #14505A)' }}>
+                <Info size={15} />
+                <span>
+                  Diagnóstico consolidado de patrulla verificadora
+                  {contextoIncidenteH39.dictamenCierre
+                    ? ` (Dictamen: ${
+                        contextoIncidenteH39.dictamenCierre === 'NO_ABORDABLE'
+                          ? 'No Abordable'
+                          : 'Requiere Cuadrilla'
+                      })`
+                    : ''}
+                </span>
+              </div>
+              {contextoIncidenteH39.personasModificadasEnCierre &&
+                contextoIncidenteH39.personasAfectadas !== null && (
+                  <span>
+                    Personas afectadas actualizadas al cierre: <strong>{contextoIncidenteH39.personasAfectadas}</strong>
+                    {contextoIncidenteH39.personasPrevias !== null
+                      ? ` (antes en evaluación previa: ${contextoIncidenteH39.personasPrevias})`
+                      : ''}
+                    .
+                  </span>
+                )}
+              {contextoIncidenteH39.familiasRescatadasDePrioridad &&
+                contextoIncidenteH39.familiasAfectadas !== null && (
+                  <span>
+                    Familias afectadas rescatadas de evaluación previa: <strong>{contextoIncidenteH39.familiasAfectadas}</strong>.
+                  </span>
+                )}
+            </div>
+          )}
+
+          {contextoIncidenteH39?.esNoAbordable && (
+            <div
+              data-testid="alerta-incidente-no-abordable"
+              role="alert"
+              style={{
+                marginTop: '10px',
+                padding: '10px 12px',
+                backgroundColor: 'var(--color-warning-bg, #FFF3E0)',
+                border: '1px solid var(--color-warning, #E65100)',
+                borderLeft: '4px solid var(--color-warning, #E65100)',
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: '8px',
+                fontSize: '12px',
+                color: 'var(--color-text-dark, #2B2B2B)',
+              }}
+            >
+              <AlertTriangle size={16} color="var(--color-warning, #E65100)" style={{ flexShrink: 0, marginTop: '1px' }} />
+              <div>
+                <strong>Incidente cerrado en terreno como No Abordable.</strong>{' '}
+                {contextoIncidenteH39.motivoNoAbordable
+                  ? `Motivo informado por patrulla: ${contextoIncidenteH39.motivoNoAbordable}`
+                  : 'Verifique si corresponde igualmente el levantamiento de Ficha FIBE excepcional.'}
+              </div>
+            </div>
+          )}
+
+          {contextoIncidenteH39?.requiereFibeVerificado === false && (
+            <div
+              data-testid="alerta-sin-fibe-h39"
+              role="alert"
+              style={{
+                marginTop: '10px',
+                padding: '10px 12px',
+                backgroundColor: 'var(--color-warning-bg, #FFF3E0)',
+                border: '1px solid var(--color-warning, #E65100)',
+                borderLeft: '4px solid var(--color-warning, #E65100)',
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: '8px',
+                fontSize: '12px',
+                color: 'var(--color-text-dark, #2B2B2B)',
+              }}
+            >
+              <AlertTriangle size={16} color="var(--color-warning, #E65100)" style={{ flexShrink: 0, marginTop: '1px' }} />
+              <span>
+                La patrulla verificadora indicó en su cierre que este incidente <strong>no requiere Ficha FIBE</strong>. Confirme si corresponde crear un evento social excepcional.
+              </span>
+            </div>
+          )}
+
+          {eventoSocialDuplicado && (
+            <div
+              data-testid="alerta-evento-social-duplicado"
+              role="alert"
+              style={{
+                marginTop: '10px',
+                padding: '10px 12px',
+                backgroundColor: 'var(--color-warning-bg, #FFF3E0)',
+                border: '1px solid var(--color-warning, #E65100)',
+                borderLeft: '4px solid var(--color-warning, #E65100)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: '10px',
+                fontSize: '12px',
+                color: 'var(--color-text-dark, #2B2B2B)',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <AlertTriangle size={16} color="var(--color-warning, #E65100)" style={{ flexShrink: 0 }} />
+                <span>
+                  Ya existe un evento social vinculado a este incidente (<strong>{eventoSocialDuplicado.codigo}</strong> — estado{' '}
+                  <strong>{eventoSocialDuplicado.estado}</strong>). Revise la bandeja para evitar duplicar la ficha FIBE.
+                </span>
+              </div>
+              <Button href={basePath} variant="outline" size="sm">
+                Ir a Bandeja Social
+              </Button>
+            </div>
+          )}
         </div>
 
         <div style={{ marginTop: 'var(--space-4, 16px)' }}>
@@ -720,6 +1049,80 @@ export default function EventoAsistenciaSocialForm({
         </div>
       </div>
 
+      {/* SECCIÓN 4: Asignación Inmediata de Asistente Social (Opcional) */}
+      <div
+        style={{
+          backgroundColor: '#FFFFFF',
+          border: '1px solid var(--border-color-neutral, #DFE3E8)',
+          padding: 'var(--space-6, 24px)',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px', marginBottom: 'var(--space-4, 16px)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <UserCheck size={20} color="var(--color-primary-teal, #1B6F7D)" />
+            <Heading as="h2" variant="h3" color="teal">
+              4. Asignación Inmediata de Asistente Social (Opcional)
+            </Heading>
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => recargarAsistentes()}
+            disabled={cargandoAsistentes || enviando}
+            title="Actualizar lista de asistentes sociales disponibles"
+          >
+            <RefreshCw size={14} style={{ marginRight: '5px' }} />
+            <span>Actualizar Disponibilidad</span>
+          </Button>
+        </div>
+
+        <Select
+          label="Asistente Social Disponible (Opcional)"
+          value={asistenteSocialId}
+          onChange={(e) => setAsistenteSocialId(e.target.value)}
+          disabled={cargandoAsistentes || enviando}
+          options={[
+            {
+              value: '',
+              label: cargandoAsistentes
+                ? 'Cargando asistentes sociales disponibles...'
+                : 'Dejar pendiente sin asignar (se asignará luego en la bandeja)',
+            },
+            ...profesionalesDisponibles.map((asistente) => ({
+              value: asistente.usuarioId,
+              label: `${asistente.nombreCompleto}${
+                asistente.delegacionNombre ? ` — ${asistente.delegacionNombre}` : ''
+              } (${asistente.casosFibeAsignados} FIBE activas)`,
+            })),
+          ]}
+        />
+
+        {!cargandoAsistentes && profesionalesDisponibles.length === 0 ? (
+          <p
+            style={{
+              fontSize: '12px',
+              color: 'var(--color-text-muted, #5F676E)',
+              marginTop: '6px',
+              marginBottom: 0,
+            }}
+          >
+            No existen asistentes sociales en estado disponible en este momento. El evento puede guardarse igualmente y quedará en estado PENDIENTE.
+          </p>
+        ) : (
+          <p
+            style={{
+              fontSize: '12px',
+              color: 'var(--color-text-muted, #5F676E)',
+              marginTop: '6px',
+              marginBottom: 0,
+            }}
+          >
+            Si selecciona un profesional disponible, el evento se registrará directamente en estado ASIGNADO. De lo contrario, quedará en la bandeja de PENDIENTES.
+          </p>
+        )}
+      </div>
+
       {/* Botones de Acción */}
       <div
         style={{
@@ -797,7 +1200,10 @@ export default function EventoAsistenciaSocialForm({
           contactoRut,
           creadoPorNombre: auth?.usuario?.nombre || usuarioActivo.nombre,
           creadoEn: new Date().toISOString(),
-          estado: 'PENDIENTE',
+          estado: asistenteSocialId ? 'ASIGNADO' : 'PENDIENTE',
+          asistenteSocialNombre:
+            profesionalesDisponibles.find((a) => a.usuarioId === asistenteSocialId)
+              ?.nombreCompleto || null,
         }}
         esVistaPrevia={true}
         onConfirmarGuardado={() => {

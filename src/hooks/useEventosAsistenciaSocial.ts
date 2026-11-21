@@ -89,30 +89,37 @@ export function useEventosAsistenciaSocial(
     };
   }, [fetchData]);
 
-  const agregarEventoLocalmente = useCallback((nuevoEvento: EventoAsistenciaSocialItem) => {
-    setData((prev) => {
-      if (!prev) {
+  const agregarEventoLocalmente = useCallback(
+    (nuevoEvento: EventoAsistenciaSocialItem) => {
+      if (estado && nuevoEvento.estado !== estado) {
+        return;
+      }
+
+      setData((prev) => {
+        if (!prev) {
+          return {
+            data: [nuevoEvento],
+            total: 1,
+            pagina: 1,
+            limite: 10,
+            totalPaginas: 1,
+          };
+        }
+
+        // Evitar duplicados
+        if (prev.data.some((e) => e.id === nuevoEvento.id || e.codigo === nuevoEvento.codigo)) {
+          return prev;
+        }
+
         return {
-          data: [nuevoEvento],
-          total: 1,
-          pagina: 1,
-          limite: 10,
-          totalPaginas: 1,
+          ...prev,
+          data: [nuevoEvento, ...prev.data],
+          total: prev.total + 1,
         };
-      }
-
-      // Evitar duplicados
-      if (prev.data.some((e) => e.id === nuevoEvento.id || e.codigo === nuevoEvento.codigo)) {
-        return prev;
-      }
-
-      return {
-        ...prev,
-        data: [nuevoEvento, ...prev.data],
-        total: prev.total + 1,
-      };
-    });
-  }, []);
+      });
+    },
+    [estado]
+  );
 
   const actualizarEventoLocalmente = useCallback((eventoActualizado: EventoAsistenciaSocialItem) => {
     setData((prev) => {

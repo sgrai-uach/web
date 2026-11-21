@@ -16,6 +16,7 @@ import {
   Building2,
   Calendar,
   ShieldAlert,
+  UserCheck,
 } from 'lucide-react';
 import Modal from '@/components/common/Modal';
 import Button from '@/components/ui/Button';
@@ -42,6 +43,7 @@ export interface DatosFichaAsistenciaSocial {
   creadoPorNombre?: string | null;
   creadoEn?: string | null;
   estado?: string;
+  asistenteSocialNombre?: string | null;
 }
 
 interface EventoAsistenciaSocialDetalleModalProps {
@@ -79,6 +81,42 @@ const PRIORIDAD_STYLES: Record<string, { bg: string; color: string; border: stri
     label: 'Baja — Preventiva',
   },
 };
+
+function getEstadoBadgeStyle(estado?: string) {
+  switch (estado) {
+    case 'ASIGNADO':
+      return {
+        backgroundColor: 'var(--color-info-bg, #E0F2F1)',
+        color: 'var(--color-primary-teal, #1B6F7D)',
+        border: '1px solid #80CBC4',
+      };
+    case 'EN_EVALUACION_FIBE':
+      return {
+        backgroundColor: '#E8EAF6',
+        color: '#283593',
+        border: '1px solid #9FA8DA',
+      };
+    case 'FINALIZADO':
+      return {
+        backgroundColor: 'var(--color-success-bg, #E8F5E9)',
+        color: 'var(--color-success, #2E7D32)',
+        border: '1px solid #A5D6A7',
+      };
+    case 'DESCARTADO':
+      return {
+        backgroundColor: 'var(--color-bg-light, #ECEFF3)',
+        color: 'var(--color-text-muted, #5F676E)',
+        border: '1px solid var(--border-color-neutral, #DFE3E8)',
+      };
+    case 'PENDIENTE':
+    default:
+      return {
+        backgroundColor: '#FFF8E1',
+        color: '#F57F17',
+        border: '1px solid #FFE082',
+      };
+  }
+}
 
 export default function EventoAsistenciaSocialDetalleModal({
   isOpen,
@@ -242,10 +280,8 @@ export default function EventoAsistenciaSocialDetalleModal({
                 padding: '4px 10px',
                 fontSize: '12px',
                 fontWeight: 700,
-                backgroundColor: '#FFF8E1',
-                color: '#F57F17',
-                border: '1px solid #FFE082',
                 textTransform: 'uppercase',
+                ...getEstadoBadgeStyle(datos.estado),
               }}
             >
               {datos.estado ? datos.estado.replace(/_/g, ' ') : 'PENDIENTE FIBE'}
@@ -329,6 +365,18 @@ export default function EventoAsistenciaSocialDetalleModal({
                     : datos.incidenteId
                     ? 'Incidente Asociado'
                     : 'Caso Independiente'}
+                </div>
+              </div>
+            </div>
+
+            <div style={{ padding: '10px 12px', backgroundColor: 'var(--color-bg-light, #ECEFF3)', display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <UserCheck size={20} color="var(--color-primary-teal, #1B6F7D)" />
+              <div>
+                <div style={{ fontSize: '11px', color: 'var(--color-text-muted, #5F676E)', fontWeight: 600 }}>
+                  ASISTENTE SOCIAL ASIGNADO
+                </div>
+                <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--color-text-dark, #2B2B2B)' }}>
+                  {datos.asistenteSocialNombre || 'Sin asignar (Pendiente)'}
                 </div>
               </div>
             </div>

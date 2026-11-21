@@ -161,6 +161,7 @@ export async function crearEventoAsistenciaSocial(
     contactoRut: payload.contactoRut?.trim() || null,
     delegacionId: payload.delegacionId || null,
     incidenteId: payload.incidenteId ? payload.incidenteId.trim() : null,
+    asistenteSocialId: payload.asistenteSocialId ? payload.asistenteSocialId.trim() : null,
   };
 
   try {
@@ -197,6 +198,14 @@ export async function crearEventoAsistenciaSocial(
       throw new AsistenciaSocialServiceError(
         'No cuenta con los permisos requeridos para registrar eventos de asistencia social.',
         { statusCode: 403 }
+      );
+    }
+
+    if (statusCode === 409) {
+      throw new AsistenciaSocialServiceError(
+        errorBody.message ||
+          'El asistente social seleccionado ya no se encuentra disponible o existe un conflicto con el evento.',
+        { statusCode: 409 }
       );
     }
 
@@ -245,15 +254,15 @@ export async function crearEventoAsistenciaSocial(
         latitud: body.latitud,
         longitud: body.longitud,
         prioridad: body.prioridad as PrioridadEventoSocial,
-        estado: 'PENDIENTE',
+        estado: body.asistenteSocialId ? 'ASIGNADO' : 'PENDIENTE',
         contactoNombre: body.contactoNombre,
         contactoTelefono: body.contactoTelefono,
         contactoRut: body.contactoRut,
         delegacionId: body.delegacionId,
         delegacionNombre: body.delegacionId ? 'Delegación Municipal' : null,
         incidenteId: body.incidenteId ?? null,
-        asistenteSocialId: null,
-        asistenteSocialNombre: null,
+        asistenteSocialId: body.asistenteSocialId ?? null,
+        asistenteSocialNombre: body.asistenteSocialId ? 'Asistente Social Asignado' : null,
         creadoPor: {
           id: userId || '00000000-0000-4000-8000-000000000003',
           nombre: 'Encargado de Operaciones',

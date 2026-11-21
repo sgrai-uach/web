@@ -70,6 +70,7 @@ export interface CrearEventoAsistenciaSocialDTO {
   contactoRut?: string | null;
   delegacionId?: string | null;
   incidenteId?: string | null;
+  asistenteSocialId?: string | null;
 }
 
 export interface EventoAsistenciaSocialItem {
@@ -155,6 +156,7 @@ export const crearEventoAsistenciaSocialSchema = z.object({
   contactoRut: z.string().trim().nullable().optional(),
   delegacionId: z.string().nullable().optional(),
   incidenteId: z.string().trim().nullable().optional(),
+  asistenteSocialId: z.string().trim().nullable().optional(),
 });
 
 export type CrearEventoAsistenciaSocialFormInput = z.infer<typeof crearEventoAsistenciaSocialSchema>;

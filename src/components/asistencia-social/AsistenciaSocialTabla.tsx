@@ -456,6 +456,7 @@ export default function AsistenciaSocialTabla({
                 creadoPorNombre: eventoSeleccionado.creadoPor?.nombre,
                 creadoEn: eventoSeleccionado.creadoEn,
                 estado: eventoSeleccionado.estado,
+                asistenteSocialNombre: eventoSeleccionado.asistenteSocialNombre,
               }
             : null
         }

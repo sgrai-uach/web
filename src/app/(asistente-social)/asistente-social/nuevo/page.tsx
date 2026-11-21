@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { Suspense } from 'react';
 import NuevoEventoSocialClient from '@/components/asistencia-social/NuevoEventoSocialClient';
 
 export const metadata: Metadata = {
@@ -8,5 +9,9 @@ export const metadata: Metadata = {
 };
 
 export default function AsistenteSocialPortalNuevoPage() {
-  return <NuevoEventoSocialClient basePath="/asistente-social" />;
+  return (
+    <Suspense fallback={null}>
+      <NuevoEventoSocialClient basePath="/asistente-social" />
+    </Suspense>
+  );
 }

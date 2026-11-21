@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { Suspense } from 'react';
 import AsistenciaSocialClient from '@/components/asistencia-social/AsistenciaSocialClient';
 
 export const metadata: Metadata = {
@@ -8,5 +9,9 @@ export const metadata: Metadata = {
 };
 
 export default function GestionAsistenciaSocialPage() {
-  return <AsistenciaSocialClient basePath="/gestion/asistente-social" />;
+  return (
+    <Suspense fallback={null}>
+      <AsistenciaSocialClient basePath="/gestion/asistente-social" />
+    </Suspense>
+  );
 }
