@@ -241,4 +241,26 @@ describe('OperativosRecuperacionView (HU-73)', () => {
       screen.queryByRole('button', { name: /Declarar Concluido/i })
     ).not.toBeInTheDocument();
   });
+
+  it('no debe cerrar el drawer ni el modal al hacer clic dentro del modal de conclusión', async () => {
+    vi.spyOn(recuperacionService, 'listarOperativosRecuperacion').mockResolvedValue(mockListado);
+    vi.spyOn(recuperacionService, 'obtenerDetalleOperativoRecuperacion').mockResolvedValue(
+      mockDetalle
+    );
+    vi.spyOn(usePuedeCerrarHook, 'usePuedeCerrarRecuperacion').mockReturnValue(true);
+
+    render(<OperativosRecuperacionView delegaciones={mockDelegaciones} />);
+
+    fireEvent.click(await screen.findByText('REC-2026-0001'));
+    fireEvent.click(await screen.findByRole('button', { name: /Declarar Concluido/i }));
+
+    const textarea = await screen.findByLabelText('Resumen formal de cierre');
+    fireEvent.click(textarea);
+    fireEvent.change(textarea, {
+      target: { value: 'Clic dentro del modal sin cerrar el drawer.' },
+    });
+
+    expect(screen.getByLabelText('Resumen formal de cierre')).toBeInTheDocument();
+    expect(screen.getByText('Declarar Conclusión de Operativo')).toBeInTheDocument();
+  });
 });

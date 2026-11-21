@@ -180,13 +180,14 @@ export const OperativoRecuperacionDrawer: React.FC<OperativoRecuperacionDrawerPr
   if (!operativoId) return null;
 
   return (
-    <div
-      className={styles.backdrop}
-      role="dialog"
-      aria-modal="true"
-      aria-label="Detalle de operativo de recuperación"
-      onClick={onCerrar}
-    >
+    <>
+      <div
+        className={styles.backdrop}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Detalle de operativo de recuperación"
+        onClick={onCerrar}
+      >
       <aside className={styles.drawer} onClick={(e) => e.stopPropagation()}>
         <header className={styles.header}>
           <div className={styles.headerMeta}>
@@ -485,6 +486,7 @@ export const OperativoRecuperacionDrawer: React.FC<OperativoRecuperacionDrawerPr
           )}
         </div>
       </aside>
+      </div>
 
       {detalle && (
         <>
@@ -502,6 +504,6 @@ export const OperativoRecuperacionDrawer: React.FC<OperativoRecuperacionDrawerPr
           />
         </>
       )}
-    </div>
+    </>
   );
 };

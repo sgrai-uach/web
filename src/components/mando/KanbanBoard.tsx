@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import {
   useIncidentesKanban,
@@ -150,6 +150,23 @@ export const KanbanBoard: React.FC = () => {
     },
   });
 
+  // Deduplicación de notificaciones Toast por evento WebSocket (evita repetidos entre salas)
+  const toastsRecientesRef = useRef<Map<string, number>>(new Map());
+  const debeMostrarToastRecuperacion = useCallback((clave: string): boolean => {
+    const ahora = Date.now();
+    const ultimo = toastsRecientesRef.current.get(clave);
+    if (ultimo && ahora - ultimo < 3000) {
+      return false;
+    }
+    toastsRecientesRef.current.set(clave, ahora);
+    for (const [k, ts] of toastsRecientesRef.current.entries()) {
+      if (ahora - ts > 10000) {
+        toastsRecientesRef.current.delete(k);
+      }
+    }
+    return true;
+  }, []);
+
   // Hook de tiempo real para eventos de recuperación (HU-29, HU-74, HU-75)
   useRecuperacionSocket({
     onRecuperacionCreada: (nuevoEvento) => {
@@ -158,10 +175,12 @@ export const KanbanBoard: React.FC = () => {
         if (existe) return prev;
         return [nuevoEvento, ...prev];
       });
-      showInfo(
-        `Nuevo evento de recuperación en ${nuevoEvento.sector}: ${nuevoEvento.codigo}`,
-        'Operación Territorial en Vivo'
-      );
+      if (debeMostrarToastRecuperacion(`creada:${nuevoEvento.id}`)) {
+        showInfo(
+          `Nuevo evento de recuperación en ${nuevoEvento.sector}: ${nuevoEvento.codigo}`,
+          'Operación Territorial en Vivo'
+        );
+      }
     },
     onRecuperacionActualizada: (eventoActualizado) => {
       const esFinalizado =
@@ -179,6 +198,11 @@ export const KanbanBoard: React.FC = () => {
           e.id === eventoActualizado.id ? { ...e, ...eventoActualizado } : e
         );
       });
+
+      const claveToast = `act:${eventoActualizado.id}:${eventoActualizado.accion || eventoActualizado.estado}:${eventoActualizado.actualizadoEn || ''}`;
+      if (!debeMostrarToastRecuperacion(claveToast)) {
+        return;
+      }
 
       if (esFinalizado) {
         showInfo(
