@@ -40,6 +40,19 @@ export interface RecursoAsignadoItem {
   devueltoEn?: string | null;
 }
 
+export interface ReportePatrullaRecuperacion {
+  resumen: string;
+  consumos: Array<{
+    recursoId: string;
+    cantidadConsumida: number;
+  }>;
+  reportadoEn: string;
+  reportadoPor: {
+    id: string;
+    nombre: string;
+  } | null;
+}
+
 export interface EventoRecuperacionResponse {
   id: string;
   codigo: string;
@@ -78,6 +91,7 @@ export interface EventoRecuperacionResponse {
   fechaCierre?: string | null;
   observacionesCierre?: string | null;
   cerradoPorId?: string | null;
+  reportePatrulla?: ReportePatrullaRecuperacion | null;
   creadoEn: string;
   actualizadoEn: string;
 }

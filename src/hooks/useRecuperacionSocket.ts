@@ -9,7 +9,7 @@ import type {
 
 export interface RecuperacionActualizadaEvent
   extends EditarOperativoRecuperacionData {
-  accion?: 'EDITADA' | 'CERRADA' | string;
+  accion?: 'EDITADA' | 'CERRADA' | 'REPORTE_TERRENO' | 'EN_EJECUCION' | string;
 }
 
 export interface UseRecuperacionSocketOptions {
@@ -101,6 +101,12 @@ export function useRecuperacionSocket({
 
       if (evento?.accion === 'CERRADA' || evento?.estado === 'COMPLETADA') {
         setUltimoEvento(`Recuperación concluida: ${codigo} en ${sector}`);
+      } else if (evento?.accion === 'REPORTE_TERRENO') {
+        setUltimoEvento(
+          `Reporte de cierre en terreno recibido para ${codigo} en ${sector}`
+        );
+      } else if (evento?.accion === 'EN_EJECUCION') {
+        setUltimoEvento(`Operativo en ejecución: ${codigo} en ${sector}`);
       } else {
         setUltimoEvento(`Recuperación actualizada: ${codigo} en ${sector}`);
       }

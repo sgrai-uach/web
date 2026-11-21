@@ -245,7 +245,11 @@ export const OperativoRecuperacionDrawer: React.FC<OperativoRecuperacionDrawerPr
                   onClick={() => setModalCerrarAbierto(true)}
                 >
                   <CheckCircle2 size={14} style={{ marginRight: '6px' }} />
-                  <span>Declarar Concluido</span>
+                  <span>
+                    {detalle.reportePatrulla
+                      ? 'Confirmar Cierre'
+                      : 'Declarar Concluido'}
+                  </span>
                 </Button>
               )}
             </div>
@@ -321,6 +325,14 @@ export const OperativoRecuperacionDrawer: React.FC<OperativoRecuperacionDrawerPr
                     </span>
                   </div>
                 </div>
+
+                {detalle.estado === 'EN_EJECUCION' && detalle.reportePatrulla && (
+                  <InlineNotice variant="info">
+                    <strong>Reporte de cierre recibido desde terreno</strong> (
+                    {formatearFechaChilena(detalle.reportePatrulla.reportadoEn)}):{' '}
+                    {detalle.reportePatrulla.resumen}
+                  </InlineNotice>
+                )}
 
                 {(detalle.estado === 'COMPLETADA' || detalle.observacionesCierre) && (
                   <div className={styles.cierreCard}>

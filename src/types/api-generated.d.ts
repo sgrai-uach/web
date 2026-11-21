@@ -5230,6 +5230,18 @@ export interface paths {
                                 fechaCierre?: string | null;
                                 observacionesCierre?: string | null;
                                 cerradoPorId?: string | null;
+                                reportePatrulla?: {
+                                    resumen: string;
+                                    consumos: {
+                                        recursoId: string;
+                                        cantidadConsumida: number;
+                                    }[];
+                                    reportadoEn: string;
+                                    reportadoPor: {
+                                        id: string;
+                                        nombre: string;
+                                    } | null;
+                                } | null;
                             };
                         };
                     };

@@ -185,6 +185,16 @@ export const KanbanBoard: React.FC = () => {
           `Operativo de recuperación ${eventoActualizado.codigo} concluido en ${eventoActualizado.sector}.`,
           'Operativo Concluido'
         );
+      } else if (eventoActualizado.accion === 'REPORTE_TERRENO') {
+        showInfo(
+          `La patrulla reportó el cierre en terreno para ${eventoActualizado.codigo} (${eventoActualizado.sector}). Listo para confirmar en Centro de Mando.`,
+          'Cierre Reportado desde Terreno'
+        );
+      } else if (eventoActualizado.accion === 'EN_EJECUCION') {
+        showInfo(
+          `El operativo ${eventoActualizado.codigo} (${eventoActualizado.sector}) pasó a En Ejecución.`,
+          'Operativo en Ejecución'
+        );
       }
     },
   });

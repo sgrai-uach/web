@@ -33,8 +33,14 @@ function construirConsumosIniciales(
   operativo: OperativoRecuperacionDetalle
 ): Record<string, number> {
   const iniciales: Record<string, number> = {};
+  const reportados = new Map(
+    (operativo.reportePatrulla?.consumos ?? []).map((c) => [
+      c.recursoId,
+      c.cantidadConsumida,
+    ])
+  );
   for (const rec of operativo.recursos ?? []) {
-    iniciales[rec.recursoId] = rec.cantidadAsignada;
+    iniciales[rec.recursoId] = reportados.get(rec.recursoId) ?? rec.cantidadAsignada;
   }
   return iniciales;
 }
@@ -44,7 +50,9 @@ export const ModalCerrarOperativoRecuperacion: React.FC<
 > = ({ isOpen, operativo, onClose, onSuccess, userId }) => {
   const toast = useOptionalToast();
 
-  const [resumenCierre, setResumenCierre] = useState<string>('');
+  const [resumenCierre, setResumenCierre] = useState<string>(
+    () => operativo.reportePatrulla?.resumen ?? ''
+  );
   const [consumosPorRecurso, setConsumosPorRecurso] = useState<Record<string, number>>(
     () => construirConsumosIniciales(operativo)
   );
@@ -64,7 +72,7 @@ export const ModalCerrarOperativoRecuperacion: React.FC<
 
     if (!debeReiniciar) return;
 
-    setResumenCierre('');
+    setResumenCierre(operativo.reportePatrulla?.resumen ?? '');
     setConsumosPorRecurso(construirConsumosIniciales(operativo));
     setErroresCampos({});
     setErrorGeneral(null);
@@ -248,9 +256,15 @@ export const ModalCerrarOperativoRecuperacion: React.FC<
           )}
         </div>
 
-        <InlineNotice variant="info">
-          Al confirmar, el operativo pasará a estado <strong>Completada</strong>, la misión táctica quedará cerrada, la patrulla pasará a <strong>Disponible</strong> y los insumos no consumidos se reintegrarán automáticamente al inventario de bodega.
-        </InlineNotice>
+        {operativo.reportePatrulla ? (
+          <InlineNotice variant="success">
+            Datos precargados desde el reporte enviado por la patrulla en terreno. Confirma para concluir formalmente el operativo, reintegrar remanentes al inventario y liberar la patrulla.
+          </InlineNotice>
+        ) : (
+          <InlineNotice variant="info">
+            Al confirmar, el operativo pasará a estado <strong>Completada</strong>, la misión táctica quedará cerrada, la patrulla pasará a <strong>Disponible</strong> y los insumos no consumidos se reintegrarán automáticamente al inventario de bodega.
+          </InlineNotice>
+        )}
 
         {errorGeneral && <InlineNotice variant="error">{errorGeneral}</InlineNotice>}
 
