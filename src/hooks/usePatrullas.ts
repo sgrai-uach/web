@@ -156,7 +156,14 @@ export function usePatrullas({
                   id: payload.misionActivaId,
                   codigo: `MIS-${payload.misionActivaId.slice(0, 4)}`,
                   titulo: 'Misión operativa en curso',
-                  tipoMision: nuevoEstado === 'EN_VERIFICACION' ? 'VERIFICACION' : 'OPERATIVA',
+                  tipoMision:
+                    nuevoEstado === 'EN_VERIFICACION'
+                      ? 'VERIFICACION'
+                      : nuevoEstado === 'EN_RECUPERACION'
+                      ? 'RECUPERACION'
+                      : nuevoEstado === 'EN_PREVENCION'
+                      ? 'PREVENCION'
+                      : 'OPERATIVA',
                   estado: 'EN_CURSO',
                   prioridad: 'ALTA',
                   incidenteId: payload.incidenteId,
@@ -182,7 +189,13 @@ export function usePatrullas({
         }
 
         const nuevoEstado: EstadoPatrullaEnum =
-          payload.tipoMision === 'VERIFICACION' ? 'EN_VERIFICACION' : 'EN_MISION';
+          payload.tipoMision === 'VERIFICACION'
+            ? 'EN_VERIFICACION'
+            : payload.tipoMision === 'RECUPERACION'
+            ? 'EN_RECUPERACION'
+            : payload.tipoMision === 'PREVENCION'
+            ? 'EN_PREVENCION'
+            : 'EN_MISION';
 
         const actualizada: PatrullaVerificadoraDTO = {
           ...prev[index],
@@ -229,6 +242,76 @@ export function usePatrullas({
       });
     };
 
+    const handleRecuperacionCreada = (rawPayload: unknown) => {
+      const evento =
+        rawPayload && typeof rawPayload === 'object' && 'data' in rawPayload
+          ? (rawPayload as { data: { patrulla?: { id?: string; nombre?: string }; mision?: { id?: string; codigo?: string; titulo?: string; estado?: string }; prioridad?: string; sector?: string; actualizadoEn?: string } }).data
+          : (rawPayload as { patrulla?: { id?: string; nombre?: string }; mision?: { id?: string; codigo?: string; titulo?: string; estado?: string }; prioridad?: string; sector?: string; actualizadoEn?: string });
+      const patrullaId = evento?.patrulla?.id;
+      if (!patrullaId) return;
+
+      setUltimoEvento(
+        `Patrulla ${evento.patrulla?.nombre || ''} asignada a recuperación en ${evento.sector || 'terreno'}`
+      );
+
+      setPatrullas((prev) => {
+        const index = prev.findIndex((p) => p.id === patrullaId);
+        if (index === -1) return prev;
+        const actualizada: PatrullaVerificadoraDTO = {
+          ...prev[index],
+          estado: 'EN_RECUPERACION',
+          actualizadoEn: evento.actualizadoEn || new Date().toISOString(),
+          misionActiva: evento.mision?.id
+            ? {
+                id: evento.mision.id,
+                codigo: evento.mision.codigo || 'MIS-REC',
+                titulo: evento.mision.titulo || 'Operativo de recuperación',
+                tipoMision: 'RECUPERACION',
+                estado: evento.mision.estado || 'DESPACHADA',
+                prioridad: evento.prioridad || 'MEDIA',
+                incidenteId: null,
+              }
+            : prev[index].misionActiva,
+        };
+        const nuevaLista = [...prev];
+        nuevaLista[index] = actualizada;
+        return nuevaLista;
+      });
+    };
+
+    const handleRecuperacionActualizada = (rawPayload: unknown) => {
+      type RecuperacionActualizadaResumen = {
+        accion?: string;
+        estado?: string;
+        patrulla?: { id?: string; nombre?: string; estado?: string };
+      };
+      const payloadObj =
+        rawPayload && typeof rawPayload === 'object'
+          ? (rawPayload as { data?: RecuperacionActualizadaResumen } & RecuperacionActualizadaResumen)
+          : null;
+      const evento: RecuperacionActualizadaResumen | undefined =
+        payloadObj && 'data' in payloadObj && payloadObj.data
+          ? payloadObj.data
+          : payloadObj ?? undefined;
+      if (!evento) return;
+
+      if (evento.accion === 'CERRADA' || evento.estado === 'COMPLETADA') {
+        const patrullaId = evento.patrulla?.id;
+        if (patrullaId) {
+          setPatrullas((prev) =>
+            prev.map((p) =>
+              p.id === patrullaId
+                ? { ...p, estado: 'DISPONIBLE', misionActiva: null }
+                : p
+            )
+          );
+        }
+        return;
+      }
+
+      consultarRef.current(filtrosRef.current);
+    };
+
     socket.on('connect', onConnect);
     socket.on('disconnect', onDisconnect);
     socket.on('patrulla:actualizada', handlePatrullaActualizada);
@@ -236,6 +319,8 @@ export function usePatrullas({
     socket.on('mision:asignada', handleMisionAsignada);
     socket.on('patrulla:creada', handlePatrullaCreada);
     socket.on('patrulla:desactivada', handlePatrullaDesactivada);
+    socket.on('recuperacion:creada', handleRecuperacionCreada);
+    socket.on('recuperacion:actualizada', handleRecuperacionActualizada);
 
     return () => {
       socket.off('connect', onConnect);
@@ -245,6 +330,8 @@ export function usePatrullas({
       socket.off('mision:asignada', handleMisionAsignada);
       socket.off('patrulla:creada', handlePatrullaCreada);
       socket.off('patrulla:desactivada', handlePatrullaDesactivada);
+      socket.off('recuperacion:creada', handleRecuperacionCreada);
+      socket.off('recuperacion:actualizada', handleRecuperacionActualizada);
       socket.emit('leave', 'encargado');
       socket.emit('salir', 'sala:encargados');
       socket.emit('leave', 'mapa');
