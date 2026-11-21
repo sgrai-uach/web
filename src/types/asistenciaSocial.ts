@@ -158,3 +158,16 @@ export const crearEventoAsistenciaSocialSchema = z.object({
 });
 
 export type CrearEventoAsistenciaSocialFormInput = z.infer<typeof crearEventoAsistenciaSocialSchema>;
+
+export interface AsignarAsistenteSocialDTO {
+  asistenteSocialId: string;
+}
+
+export const asignarAsistenteSocialSchema = z.object({
+  asistenteSocialId: z
+    .string({ message: 'Debe seleccionar un asistente social disponible.' })
+    .trim()
+    .min(1, 'Debe seleccionar un asistente social disponible.'),
+});
+
+export type AsignarAsistenteSocialFormInput = z.infer<typeof asignarAsistenteSocialSchema>;

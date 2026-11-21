@@ -57,7 +57,7 @@ export default function AsistenciaSocialClient({
     estado: 'PENDIENTE',
   });
 
-  const { eventos, meta, cargando } = useEventosAsistenciaSocial(
+  const { eventos, meta, cargando, actualizarEventoLocalmente } = useEventosAsistenciaSocial(
     filtros,
     usuarioActivo.id
   );
@@ -145,6 +145,9 @@ export default function AsistenciaSocialClient({
           meta={meta}
           onCambiarPagina={handleCambiarPagina}
           cargando={cargando}
+          puedeAsignar={tienePermisoCrear}
+          usuarioId={usuarioActivo.id}
+          onEventoActualizado={actualizarEventoLocalmente}
         />
       )}
     </div>

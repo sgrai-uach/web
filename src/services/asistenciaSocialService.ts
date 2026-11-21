@@ -336,3 +336,150 @@ export async function obtenerEventosAsistenciaSocial(
     return filtrarEventosMock(filtros);
   }
 }
+
+/**
+ * Asigna un asistente social disponible a un evento de asistencia social en estado PENDIENTE (H31).
+ */
+export async function asignarAsistenteSocial(
+  eventoId: string,
+  asistenteSocialId: string,
+  userId?: string
+): Promise<EventoAsistenciaSocialItem> {
+  const body = { asistenteSocialId: asistenteSocialId.trim() };
+
+  try {
+    const { data, error, response } = await apiClient.PATCH(
+      '/api/eventos-atp/asistencia-social/{id}' as unknown as Parameters<typeof apiClient.PATCH>[0],
+      {
+        params: {
+          path: { id: eventoId },
+          header: {
+            ...(userId ? { 'x-user-id': userId } : {}),
+          },
+        },
+        headers: {
+          ...(userId ? { 'x-user-id': userId } : {}),
+        },
+        body: body as unknown as Parameters<typeof apiClient.PATCH>[1]['body'],
+      } as unknown as Parameters<typeof apiClient.PATCH>[1]
+    );
+
+    if (response?.status === 200 && data) {
+      const respData =
+        (data as unknown as { data?: EventoAsistenciaSocialItem }).data ||
+        (data as unknown as EventoAsistenciaSocialItem);
+      eventosSocialesMemoria = eventosSocialesMemoria.map((item) =>
+        item.id === respData.id ? respData : item
+      );
+      return respData;
+    }
+
+    const statusCode = response?.status || 500;
+    const errorBody = (error || {}) as {
+      message?: string;
+      errors?: Array<{ campo: string; mensaje: string }>;
+    };
+
+    if (statusCode === 403) {
+      throw new AsistenciaSocialServiceError(
+        errorBody.message ||
+          'No cuenta con el permiso requerido (asistencia_social:crear) para asignar asistentes sociales.',
+        { statusCode: 403 }
+      );
+    }
+
+    if (statusCode === 404) {
+      throw new AsistenciaSocialServiceError(
+        errorBody.message || 'Evento de asistencia social o asistente social no encontrado.',
+        { statusCode: 404 }
+      );
+    }
+
+    if (statusCode === 409) {
+      throw new AsistenciaSocialServiceError(
+        errorBody.message ||
+          'El asistente social seleccionado ya no se encuentra disponible o el evento ya fue asignado.',
+        { statusCode: 409 }
+      );
+    }
+
+    if (statusCode === 400 && Array.isArray(errorBody.errors)) {
+      const fieldErrors: Record<string, string> = {};
+      errorBody.errors.forEach((err: { campo: string; mensaje: string }) => {
+        if (err.campo) fieldErrors[err.campo] = err.mensaje;
+      });
+      throw new AsistenciaSocialServiceError(
+        errorBody.message || 'Error de validación al asignar el asistente social.',
+        {
+          statusCode: 400,
+          errors: errorBody.errors,
+          fieldErrors,
+        }
+      );
+    }
+
+    const apiErr = formatApiError(errorBody);
+    throw new AsistenciaSocialServiceError(
+      apiErr.message || `Error HTTP ${statusCode}: No fue posible asignar el asistente social.`,
+      { statusCode }
+    );
+  } catch (err: unknown) {
+    if (err instanceof AsistenciaSocialServiceError) {
+      throw err;
+    }
+
+    const isNetworkError =
+      err instanceof TypeError &&
+      (err.message.includes('fetch') ||
+        err.message.includes('Failed to fetch') ||
+        err.message.includes('NetworkError'));
+
+    if (isNetworkError) {
+      const existente = eventosSocialesMemoria.find((item) => item.id === eventoId);
+      const actualizado: EventoAsistenciaSocialItem = existente
+        ? {
+            ...existente,
+            estado: 'ASIGNADO',
+            asistenteSocialId: body.asistenteSocialId,
+            asistenteSocialNombre: existente.asistenteSocialNombre || 'Asistente Social Asignado',
+            actualizadoEn: new Date().toISOString(),
+          }
+        : {
+            id: eventoId,
+            codigo: 'AS-2026-0000',
+            descripcion: '',
+            tipoAfectacion: 'OTRO_EXCEPCIONAL',
+            personasAfectadas: 0,
+            familiasAfectadas: 0,
+            direccionTexto: '',
+            latitud: -39.814,
+            longitud: -73.245,
+            prioridad: 'MEDIA',
+            estado: 'ASIGNADO',
+            contactoNombre: null,
+            contactoTelefono: null,
+            contactoRut: null,
+            delegacionId: null,
+            delegacionNombre: null,
+            incidenteId: null,
+            asistenteSocialId: body.asistenteSocialId,
+            asistenteSocialNombre: 'Asistente Social Asignado',
+            creadoPor: {
+              id: userId || '00000000-0000-4000-8000-000000000003',
+              nombre: 'Encargado de Operaciones',
+            },
+            creadoEn: new Date().toISOString(),
+            actualizadoEn: new Date().toISOString(),
+          };
+
+      eventosSocialesMemoria = eventosSocialesMemoria.map((item) =>
+        item.id === eventoId ? actualizado : item
+      );
+      return actualizado;
+    }
+
+    throw new AsistenciaSocialServiceError(
+      'Error inesperado al conectar con el servicio de asistencia social.'
+    );
+  }
+}

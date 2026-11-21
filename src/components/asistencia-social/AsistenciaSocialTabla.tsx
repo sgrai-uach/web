@@ -9,8 +9,9 @@ import type {
 import { TIPOS_AFECTACION_SOCIAL } from '@/types/asistenciaSocial';
 import Pagination from '@/components/common/Pagination';
 import Button from '@/components/ui/Button';
-import { MapPin, Users, Phone, User, Calendar, Eye } from 'lucide-react';
+import { MapPin, Users, Phone, User, Calendar, Eye, UserCheck, CheckCircle2 } from 'lucide-react';
 import EventoAsistenciaSocialDetalleModal from './EventoAsistenciaSocialDetalleModal';
+import ModalAsignarAsistenteSocial from './ModalAsignarAsistenteSocial';
 
 interface AsistenciaSocialTablaProps {
   eventos: EventoAsistenciaSocialItem[];
@@ -23,6 +24,9 @@ interface AsistenciaSocialTablaProps {
   onCambiarPagina: (nuevaPagina: number) => void;
   onCambiarLimite?: (nuevoLimite: number) => void;
   cargando?: boolean;
+  puedeAsignar?: boolean;
+  usuarioId?: string;
+  onEventoActualizado?: (evento: EventoAsistenciaSocialItem) => void;
 }
 
 function getPrioridadBadgeStyle(prioridad: PrioridadEventoSocial) {
@@ -102,11 +106,53 @@ export default function AsistenciaSocialTabla({
   onCambiarPagina,
   onCambiarLimite,
   cargando = false,
+  puedeAsignar = false,
+  usuarioId,
+  onEventoActualizado,
 }: AsistenciaSocialTablaProps) {
   const [eventoSeleccionado, setEventoSeleccionado] = useState<EventoAsistenciaSocialItem | null>(null);
+  const [eventoParaAsignar, setEventoParaAsignar] = useState<EventoAsistenciaSocialItem | null>(null);
+  const [confirmacionMensaje, setConfirmacionMensaje] = useState<string | null>(null);
+
+  const handleAsignacionExitosa = (actualizado: EventoAsistenciaSocialItem) => {
+    setConfirmacionMensaje(
+      `Caso ${actualizado.codigo} asignado a ${actualizado.asistenteSocialNombre || 'asistente social'}.`
+    );
+    onEventoActualizado?.(actualizado);
+  };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4, 16px)' }}>
+      {confirmacionMensaje && (
+        <div
+          role="status"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '12px',
+            padding: '10px 14px',
+            backgroundColor: 'var(--color-success-bg, #E8F5E9)',
+            border: '1px solid var(--color-success, #2E7D32)',
+            color: 'var(--color-success, #2E7D32)',
+            fontSize: 'var(--font-size-sm, 13px)',
+            fontWeight: 600,
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <CheckCircle2 size={16} />
+            <span>{confirmacionMensaje}</span>
+          </div>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={() => setConfirmacionMensaje(null)}
+          >
+            Cerrar
+          </Button>
+        </div>
+      )}
       <div
         style={{
           width: '100%',
@@ -274,18 +320,25 @@ export default function AsistenciaSocialTabla({
                     </td>
 
                     <td style={{ padding: '12px 16px', verticalAlign: 'top', whiteSpace: 'nowrap' }}>
-                      <span
-                        style={{
-                          display: 'inline-block',
-                          padding: '2px 8px',
-                          fontSize: '11px',
-                          fontWeight: 700,
-                          textTransform: 'uppercase',
-                          ...estadoStyle,
-                        }}
-                      >
-                        {evento.estado.replace(/_/g, ' ')}
-                      </span>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'flex-start' }}>
+                        <span
+                          style={{
+                            display: 'inline-block',
+                            padding: '2px 8px',
+                            fontSize: '11px',
+                            fontWeight: 700,
+                            textTransform: 'uppercase',
+                            ...estadoStyle,
+                          }}
+                        >
+                          {evento.estado.replace(/_/g, ' ')}
+                        </span>
+                        {evento.asistenteSocialNombre && (
+                          <span style={{ fontSize: '11px', color: 'var(--color-text-muted, #5F676E)' }}>
+                            Asig.: {evento.asistenteSocialNombre}
+                          </span>
+                        )}
+                      </div>
                     </td>
 
                     <td style={{ padding: '12px 16px', verticalAlign: 'top', whiteSpace: 'nowrap' }}>
@@ -309,23 +362,43 @@ export default function AsistenciaSocialTabla({
                     </td>
 
                     <td style={{ padding: '12px 16px', verticalAlign: 'top', textAlign: 'right', whiteSpace: 'nowrap' }}>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setEventoSeleccionado(evento)}
-                        style={{
-                          border: '1px solid var(--border-color-neutral, #DFE3E8)',
-                          padding: '4px 10px',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '5px',
-                        }}
-                        title={`Ver ficha técnica de ${evento.codigo}`}
-                      >
-                        <Eye size={14} color="var(--color-primary-teal, #1B6F7D)" />
-                        <span>Ver Ficha</span>
-                      </Button>
+                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', justifyContent: 'flex-end' }}>
+                        {puedeAsignar && evento.estado === 'PENDIENTE' && (
+                          <Button
+                            type="button"
+                            variant="primary"
+                            size="sm"
+                            onClick={() => setEventoParaAsignar(evento)}
+                            style={{
+                              padding: '4px 10px',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '5px',
+                            }}
+                            title={`Asignar asistente social a ${evento.codigo}`}
+                          >
+                            <UserCheck size={14} />
+                            <span>Asignar Asistente</span>
+                          </Button>
+                        )}
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setEventoSeleccionado(evento)}
+                          style={{
+                            border: '1px solid var(--border-color-neutral, #DFE3E8)',
+                            padding: '4px 10px',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '5px',
+                          }}
+                          title={`Ver ficha técnica de ${evento.codigo}`}
+                        >
+                          <Eye size={14} color="var(--color-primary-teal, #1B6F7D)" />
+                          <span>Ver Ficha</span>
+                        </Button>
+                      </div>
                     </td>
                   </tr>
                 );
@@ -344,6 +417,18 @@ export default function AsistenciaSocialTabla({
           limite={meta.limite}
           onCambiarLimite={onCambiarLimite || (() => {})}
           nombreEntidad="casos registrados"
+        />
+      )}
+
+      {/* Modal Asignación de Asistente Social (H31) */}
+      {eventoParaAsignar && (
+        <ModalAsignarAsistenteSocial
+          key={eventoParaAsignar.id}
+          isOpen={true}
+          onClose={() => setEventoParaAsignar(null)}
+          evento={eventoParaAsignar}
+          usuarioId={usuarioId}
+          onAsignado={handleAsignacionExitosa}
         />
       )}
 

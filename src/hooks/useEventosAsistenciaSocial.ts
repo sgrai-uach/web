@@ -26,6 +26,7 @@ export interface UseEventosAsistenciaSocialReturn {
   statusCode: number | null;
   recargar: () => Promise<void>;
   agregarEventoLocalmente: (evento: EventoAsistenciaSocialItem) => void;
+  actualizarEventoLocalmente: (eventoActualizado: EventoAsistenciaSocialItem) => void;
 }
 
 export function useEventosAsistenciaSocial(
@@ -113,6 +114,25 @@ export function useEventosAsistenciaSocial(
     });
   }, []);
 
+  const actualizarEventoLocalmente = useCallback((eventoActualizado: EventoAsistenciaSocialItem) => {
+    setData((prev) => {
+      if (!prev) return prev;
+      const existe = prev.data.some(
+        (e) => e.id === eventoActualizado.id || e.codigo === eventoActualizado.codigo
+      );
+      if (!existe) return prev;
+
+      return {
+        ...prev,
+        data: prev.data.map((e) =>
+          e.id === eventoActualizado.id || e.codigo === eventoActualizado.codigo
+            ? { ...e, ...eventoActualizado }
+            : e
+        ),
+      };
+    });
+  }, []);
+
   // Suscripción reactiva en tiempo real vía WebSockets (Socket.io)
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -126,6 +146,18 @@ export function useEventosAsistenciaSocial(
 
     if (!socketInstance) return;
 
+    const unirseASalas = () => {
+      const salas = ['asistente_social', 'sala:encargados', 'encargado', 'centro_mando'];
+      salas.forEach((sala) => {
+        socketInstance?.emit('join', sala);
+        socketInstance?.emit('unirse', sala);
+      });
+    };
+
+    if (socketInstance.connected) {
+      unirseASalas();
+    }
+
     const handleAsistenciaSocialCreada = (nuevoEvento: EventoAsistenciaSocialItem) => {
       if (nuevoEvento && nuevoEvento.id) {
         agregarEventoLocalmente(nuevoEvento);
@@ -134,12 +166,24 @@ export function useEventosAsistenciaSocial(
       }
     };
 
+    const handleAsistenciaSocialActualizada = (eventoActualizado: EventoAsistenciaSocialItem) => {
+      if (eventoActualizado && eventoActualizado.id) {
+        actualizarEventoLocalmente(eventoActualizado);
+      } else {
+        fetchData();
+      }
+    };
+
+    socketInstance.on('connect', unirseASalas);
     socketInstance.on('asistencia_social:creada', handleAsistenciaSocialCreada);
+    socketInstance.on('asistencia_social:actualizada', handleAsistenciaSocialActualizada);
 
     return () => {
+      socketInstance?.off('connect', unirseASalas);
       socketInstance?.off('asistencia_social:creada', handleAsistenciaSocialCreada);
+      socketInstance?.off('asistencia_social:actualizada', handleAsistenciaSocialActualizada);
     };
-  }, [agregarEventoLocalmente, fetchData]);
+  }, [agregarEventoLocalmente, actualizarEventoLocalmente, fetchData]);
 
   return {
     eventos: data?.data ?? [],
@@ -154,5 +198,6 @@ export function useEventosAsistenciaSocial(
     statusCode,
     recargar: fetchData,
     agregarEventoLocalmente,
+    actualizarEventoLocalmente,
   };
 }
