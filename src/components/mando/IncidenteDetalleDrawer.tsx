@@ -76,6 +76,13 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
     auth.usuario?.rolCodigo === 'ENCARGADO' ||
     auth.usuario?.rolCodigo === 'ADMINISTRADOR';
 
+  const puedeCrearEventoFibe = !auth
+    ? true
+    : auth.tienePermiso('asistencia_social:crear') ||
+      auth.usuario?.rolCodigo === 'ENCARGADO' ||
+      auth.usuario?.rolCodigo === 'ADMIN' ||
+      auth.usuario?.rolCodigo === 'ADMINISTRADOR';
+
   const cargarDetalle = useCallback(() => {
     if (!incidenteId) return;
     setCargando(true);
@@ -296,6 +303,7 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
             onCerrar={onCerrar}
             onAsignarPatrulla={() => setModalAsignarPatrullaAbierto(true)}
             puedeAsignar={puedeAsignar}
+            puedeCrearEventoFibe={puedeCrearEventoFibe}
           />
 
           {/* Barra táctica de despacho de cuadrilla operativa (HU-21 / Regla ICS §3.2) */}
