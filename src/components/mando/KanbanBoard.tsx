@@ -19,6 +19,7 @@ import type {
   RecursoActualizadoPayload,
   IncidenteActualizadoPayload,
   IncidenteCreadoPayload,
+  AsistenciaSocialSocketPayload,
 } from '@/hooks/useEncargadoKanbanSocket';
 import {
   esJustificacionSinCambios,
@@ -52,6 +53,8 @@ import CuadrillaDetalleDrawer from '@/components/admin/cuadrillas/CuadrillaDetal
 import { cuadrillasService } from '@/services/cuadrillasService';
 import type { CuadrillaItem } from '@/types/cuadrilla';
 import { usePuedeAsignarMision } from '@/hooks/usePuedeAsignarMision';
+import { usePuedeDerivarAsistenciaSocial } from '@/hooks/usePuedeDerivarAsistenciaSocial';
+import ModalDerivarAsistenciaSocial from './ModalDerivarAsistenciaSocial';
 import { extraerEstadoInicialNotificacion } from '@/lib/socket/trazabilidadConfig';
 import { setTrazabilidadEstado } from '@/lib/socket/trazabilidadStore';
 import InlineNotice from '@/components/ui/InlineNotice';
@@ -91,7 +94,10 @@ export const KanbanBoard: React.FC = () => {
   const [cuadrillaSeleccionadaId, setCuadrillaSeleccionadaId] = useState<string | null>(null);
   const [cuadrillasOperativas, setCuadrillasOperativas] = useState<CuadrillaItem[]>([]);
   const [incidenteParaAsignar, setIncidenteParaAsignar] = useState<IncidenteResumen | null>(null);
+  const [incidenteParaDerivarSocial, setIncidenteParaDerivarSocial] =
+    useState<IncidenteResumen | null>(null);
   const puedeAsignar = usePuedeAsignarMision();
+  const puedeDerivarSocial = usePuedeDerivarAsistenciaSocial();
 
   const cargarCuadrillas = useCallback(() => {
     let isMounted = true;
@@ -649,6 +655,32 @@ export const KanbanBoard: React.FC = () => {
     [showWarning]
   );
 
+  const handleAsistenciaSocialCreadaSocket = React.useCallback(
+    (payload: AsistenciaSocialSocketPayload) => {
+      const detallesToast: Array<{ label: string; value: string }> = [
+        { label: 'Evento Social', value: payload.codigo || payload.id },
+        { label: 'Estado', value: formatearEstado(payload.estado) },
+      ];
+      if (payload.asistenteSocialNombre) {
+        detallesToast.push({
+          label: 'Asistente Social',
+          value: payload.asistenteSocialNombre,
+        });
+      }
+
+      showSuccess(
+        `El incidente fue derivado a Asistencia Social (DGRD) para levantamiento de Ficha FIBE.`,
+        'Derivación a Asistencia Social',
+        {
+          icon: 'asistencia_social',
+          dedupKey: `asoc-creada:${payload.id}`,
+          details: detallesToast,
+        }
+      );
+    },
+    [showSuccess]
+  );
+
   const {
     userId,
     setUserId,
@@ -666,6 +698,7 @@ export const KanbanBoard: React.FC = () => {
     recargar,
     moverIncidenteAEstado,
     marcarIncidenteMisionDespachada,
+    marcarIncidenteDerivadoSocial,
     conectado,
     ultimoEvento,
     totalIncidentesVisibles,
@@ -678,6 +711,7 @@ export const KanbanBoard: React.FC = () => {
     onReporteTerrenoRecibido: handleReporteTerrenoRecibido,
     onIncidenteCreadoSocket: handleIncidenteCreadoSocket,
     onIncidenteActualizadoSocket: handleIncidenteActualizadoSocket,
+    onAsistenciaSocialCreada: handleAsistenciaSocialCreadaSocket,
   });
 
   const [estadoEnfocado, setEstadoEnfocado] = useState<EstadoIncidente | null>(null);
@@ -884,6 +918,8 @@ export const KanbanBoard: React.FC = () => {
                     onSeleccionarIncidente={(inc) => setIncidenteSeleccionadoId(inc.id)}
                     onAsignarPatrulla={(inc) => setIncidenteParaAsignar(inc)}
                     puedeAsignarPatrulla={puedeAsignar}
+                    onDerivarAsistenciaSocial={(inc) => setIncidenteParaDerivarSocial(inc)}
+                    puedeDerivarAsistenciaSocial={puedeDerivarSocial}
                     trazabilidadPorIncidente={trazabilidadPorIncidente}
                   />
                 ))}
@@ -962,6 +998,47 @@ export const KanbanBoard: React.FC = () => {
             misionId={misionSeleccionadaId}
             onCerrar={() => setMisionSeleccionadaId(null)}
             userId={userId}
+          />
+
+          <ModalDerivarAsistenciaSocial
+            isOpen={!!incidenteParaDerivarSocial}
+            onClose={() => setIncidenteParaDerivarSocial(null)}
+            incidente={incidenteParaDerivarSocial}
+            usuarioId={userId}
+            onDerivado={(respuesta) => {
+              if (incidenteParaDerivarSocial) {
+                marcarIncidenteDerivadoSocial(incidenteParaDerivarSocial.id, {
+                  id: respuesta.evento.id,
+                  codigo: respuesta.evento.codigo,
+                  estado: respuesta.evento.estado,
+                  asistenteSocialId: respuesta.evento.asistenteSocialId ?? null,
+                  asistenteSocialNombre: respuesta.evento.asistenteSocialNombre ?? null,
+                  creadoEn: respuesta.evento.creadoEn,
+                  actualizadoEn: respuesta.evento.actualizadoEn,
+                });
+              }
+              showSuccess(
+                `Incidente derivado a Asistencia Social (DGRD) para levantamiento de Ficha FIBE (${respuesta.evento.codigo}).`,
+                'Derivación a Asistencia Social',
+                {
+                  icon: 'asistencia_social',
+                  dedupKey: `asoc-creada:${respuesta.evento.id}`,
+                  details: [
+                    { label: 'Evento Social', value: respuesta.evento.codigo },
+                    {
+                      label: 'Asistente Social',
+                      value:
+                        respuesta.evento.asistenteSocialNombre ||
+                        respuesta.evento.asistenteSocialId ||
+                        'Asignado',
+                    },
+                    { label: 'Estado', value: formatearEstado(respuesta.evento.estado) },
+                  ],
+                }
+              );
+              recargar();
+              setIncidenteParaDerivarSocial(null);
+            }}
           />
 
           <ModalCrearEventoPrevencion

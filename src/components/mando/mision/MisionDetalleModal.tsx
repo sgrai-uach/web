@@ -391,15 +391,43 @@ export const MisionDetalleModal: React.FC<MisionDetalleModalProps> = ({
       }
     };
 
+    const handleAsistenciaSocialEvento = (rawPayload: unknown) => {
+      const p = rawPayload as Record<string, unknown> | null | undefined;
+      const nested = (p?.evento || p?.datos || p?.data || p) as
+        | Record<string, unknown>
+        | null
+        | undefined;
+      const incId =
+        typeof nested?.incidenteId === 'string'
+          ? nested.incidenteId
+          : typeof nested?.incidente_id === 'string'
+            ? nested.incidente_id
+            : typeof p?.incidenteId === 'string'
+              ? p.incidenteId
+              : typeof p?.incidente_id === 'string'
+                ? p.incidente_id
+                : '';
+      if (!incId) return;
+      void obtenerDetalleMision(misionId, userId).then((res) => {
+        if (res.exito && res.datos) {
+          setMision(res.datos);
+        }
+      });
+    };
+
     socket.on('connect', asegurarSalasEncargado);
     socket.on('adjunto:creado', handleAdjuntoCreado);
     socket.on('incidente:actualizado', handleIncidenteActualizado);
     socket.on('mision:actualizada', handleMisionActualizada);
+    socket.on('asistencia_social:creada', handleAsistenciaSocialEvento);
+    socket.on('asistencia_social:actualizada', handleAsistenciaSocialEvento);
     return () => {
       socket.off('connect', asegurarSalasEncargado);
       socket.off('adjunto:creado', handleAdjuntoCreado);
       socket.off('incidente:actualizado', handleIncidenteActualizado);
       socket.off('mision:actualizada', handleMisionActualizada);
+      socket.off('asistencia_social:creada', handleAsistenciaSocialEvento);
+      socket.off('asistencia_social:actualizada', handleAsistenciaSocialEvento);
     };
   }, [misionId, userId]);
 

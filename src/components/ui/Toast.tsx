@@ -13,7 +13,8 @@ export type ToastIconType =
   | 'cuadrilla'
   | 'inventario'
   | 'rechazo'
-  | 'operativo';
+  | 'operativo'
+  | 'asistencia_social';
 
 export interface ToastDetailItem {
   label: string;

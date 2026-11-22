@@ -8,6 +8,8 @@ import {
   ClipboardCheck,
   Ban,
   HardHat,
+  HeartHandshake,
+  Users,
 } from 'lucide-react';
 import type {
   EstadoTrazabilidadNotificacion,
@@ -17,6 +19,7 @@ import { TRAZABILIDAD_CONFIG } from '@/lib/socket/trazabilidadConfig';
 import { TrazabilidadIcon } from './TrazabilidadIcon';
 import { obtenerNombreDelegacion } from '@/lib/utils/delegacionUtils';
 import { formatearEstadoTerreno, formatearPrioridad } from '@/lib/utils/estadoUtils';
+import { evaluarElegibilidadDerivacionSocial } from '@/lib/utils/asistenciaSocialIncidenteUtils';
 import {
   obtenerVarianteChipEstadoTerreno,
   obtenerVarianteChipPrioridad,
@@ -31,6 +34,8 @@ interface IncidenteCardProps {
   onClick: (incidente: IncidenteResumen) => void;
   onAsignarPatrulla?: (incidente: IncidenteResumen) => void;
   puedeAsignarPatrulla?: boolean;
+  onDerivarAsistenciaSocial?: (incidente: IncidenteResumen) => void;
+  puedeDerivarAsistenciaSocial?: boolean;
   trazabilidadNotificacion?: EstadoTrazabilidadNotificacion;
 }
 
@@ -39,8 +44,11 @@ export const IncidenteCard: React.FC<IncidenteCardProps> = ({
   onClick,
   onAsignarPatrulla,
   puedeAsignarPatrulla = true,
+  onDerivarAsistenciaSocial,
+  puedeDerivarAsistenciaSocial = true,
   trazabilidadNotificacion,
 }) => {
+  const elegibilidadSocial = evaluarElegibilidadDerivacionSocial(incidente);
   const estadoTrazabilidad =
     trazabilidadNotificacion ?? incidente.trazabilidadNotificacion;
   const trazabilidadConfig = estadoTrazabilidad
@@ -154,6 +162,33 @@ export const IncidenteCard: React.FC<IncidenteCardProps> = ({
               title="Este incidente requiere levantamiento de ficha FIBE"
             >
               FIBE
+            </Chip>
+          )}
+          {elegibilidadSocial.personasAfectadas > 0 && (
+            <Chip
+              data-testid="badge-personas-afectadas"
+              variant="warning"
+              size="sm"
+              icon={<Users size={11} strokeWidth={2.2} />}
+              title={`${elegibilidadSocial.personasAfectadas} persona(s) damnificada(s) registrada(s)`}
+            >
+              {elegibilidadSocial.personasAfectadas}{' '}
+              {elegibilidadSocial.personasAfectadas === 1 ? 'damnificado' : 'damnificados'}
+            </Chip>
+          )}
+          {elegibilidadSocial.yaDerivado && elegibilidadSocial.eventoSocial && (
+            <Chip
+              data-testid="badge-derivado-fibe"
+              variant="solid-teal"
+              size="sm"
+              icon={<HeartHandshake size={11} strokeWidth={2.2} />}
+              title={
+                elegibilidadSocial.eventoSocial.asistenteSocialNombre
+                  ? `Derivado a Asistencia Social (${elegibilidadSocial.eventoSocial.asistenteSocialNombre})`
+                  : 'Derivado a Asistencia Social para levantamiento de Ficha FIBE'
+              }
+            >
+              Derivado FIBE
             </Chip>
           )}
           {incidente.estado === 'NO_ABORDABLE' && (
@@ -418,6 +453,57 @@ export const IncidenteCard: React.FC<IncidenteCardProps> = ({
           ) : null}
         </div>
       )}
+
+      {incidente.estado === 'RESUELTO' &&
+        (elegibilidadSocial.yaDerivado ||
+          (elegibilidadSocial.elegible &&
+            onDerivarAsistenciaSocial &&
+            puedeDerivarAsistenciaSocial)) && (
+          <div
+            style={{
+              marginTop: '0.625rem',
+              paddingTop: '0.5rem',
+              borderTop: '1px solid var(--border-color-neutral, #DFE3E8)',
+            }}
+          >
+            {elegibilidadSocial.yaDerivado && elegibilidadSocial.eventoSocial ? (
+              <div
+                data-testid="resumen-derivacion-social-card"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  fontSize: '0.75rem',
+                  color: 'var(--color-primary-teal-dark, #14505A)',
+                  fontWeight: 600,
+                }}
+              >
+                <HeartHandshake size={13} style={{ flexShrink: 0 }} />
+                <span>
+                  {elegibilidadSocial.eventoSocial.asistenteSocialNombre
+                    ? `Asistencia Social: ${elegibilidadSocial.eventoSocial.asistenteSocialNombre}`
+                    : 'Derivado a Asistencia Social (FIBE)'}
+                </span>
+              </div>
+            ) : (
+              <Button
+                type="button"
+                variant="primary"
+                size="sm"
+                icon={<HeartHandshake size={14} style={{ flexShrink: 0 }} />}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDerivarAsistenciaSocial?.(incidente);
+                }}
+                style={{ width: '100%', justifyContent: 'center' }}
+                title={`Derivar incidente ${incidente.codigo} a Asistencia Social para levantamiento FIBE`}
+                aria-label={`Derivar incidente ${incidente.codigo} a Asistencia Social`}
+              >
+                <span>Derivar a Asistencia Social</span>
+              </Button>
+            )}
+          </div>
+        )}
     </div>
   );
 };

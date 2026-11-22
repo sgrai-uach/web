@@ -16,6 +16,7 @@ import {
   ArrowRight,
   HardHat,
   Package,
+  HeartHandshake,
 } from 'lucide-react';
 import Button from './Button';
 import Chip from './Chip';
@@ -101,6 +102,8 @@ export default function ToastItem({ toast, onRemove }: ToastItemProps) {
             return <UserX size={18} color={iconColors.color} />;
           case 'operativo':
             return <Shield size={18} color={iconColors.color} />;
+          case 'asistencia_social':
+            return <HeartHandshake size={18} color={iconColors.color} />;
           default:
             break;
         }

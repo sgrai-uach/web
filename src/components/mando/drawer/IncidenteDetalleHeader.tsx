@@ -102,7 +102,9 @@ export const IncidenteDetalleHeader: React.FC<IncidenteDetalleHeaderProps> = ({
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-        {detalle?.requiereAsistenciaSocial && puedeCrearEventoFibe && (
+        {detalle?.requiereAsistenciaSocial &&
+          detalle.estado !== 'RESUELTO' &&
+          puedeCrearEventoFibe && (
           <Button
             href={`/gestion/asistente-social/nuevo?incidenteId=${detalle.id}`}
             variant="outline"

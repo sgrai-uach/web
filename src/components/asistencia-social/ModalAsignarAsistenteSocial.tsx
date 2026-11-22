@@ -4,13 +4,11 @@ import React, { useState } from 'react';
 import {
   AlertCircle,
   MapPin,
-  RefreshCw,
-  Search,
   UserCheck,
 } from 'lucide-react';
 import Modal from '@/components/common/Modal';
 import Button from '@/components/ui/Button';
-import { useAsistentesSociales } from '@/hooks/useAsistentesSociales';
+import SelectorAsistenteSocialDisponible from './SelectorAsistenteSocialDisponible';
 import {
   asignarAsistenteSocial,
   AsistenciaSocialServiceError,
@@ -36,21 +34,12 @@ export default function ModalAsignarAsistenteSocial({
   usuarioId,
   onAsignado,
 }: ModalAsignarAsistenteSocialProps) {
-  const [busqueda, setBusqueda] = useState('');
   const [asistenteSeleccionadoId, setAsistenteSeleccionadoId] = useState('');
   const [guardando, setGuardando] = useState(false);
   const [errorMensaje, setErrorMensaje] = useState<string | null>(null);
-
-  const { asistentes, cargando, recargar } = useAsistentesSociales({
-    pagina: 1,
-    limite: 50,
-    estadoOperativo: 'disponible',
-    busqueda,
-  });
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   if (!isOpen || !evento) return null;
-
-  const disponibles = asistentes.filter((a) => a.estadoOperativo === 'disponible');
 
   const handleConfirmar = async () => {
     setErrorMensaje(null);
@@ -80,7 +69,7 @@ export default function ModalAsignarAsistenteSocial({
         setErrorMensaje(err.message);
         if (err.statusCode === 409) {
           setAsistenteSeleccionadoId('');
-          await recargar();
+          setRefreshTrigger((prev) => prev + 1);
         }
       } else {
         setErrorMensaje('Ocurrió un error inesperado al asignar el asistente social.');
@@ -141,74 +130,15 @@ export default function ModalAsignarAsistenteSocial({
         </div>
       )}
 
-      <div className={styles.toolbar}>
-        <div className={styles.searchWrapper}>
-          <Search size={15} className={styles.searchIcon} />
-          <input
-            type="text"
-            className={styles.searchInput}
-            placeholder="Buscar asistente social disponible por nombre o RUT..."
-            value={busqueda}
-            onChange={(e) => setBusqueda(e.target.value)}
-            aria-label="Buscar asistente social disponible"
-          />
-        </div>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={() => recargar()}
-          disabled={cargando || guardando}
-          title="Actualizar nómina de disponibles"
-        >
-          <RefreshCw size={14} />
-          <span>Actualizar</span>
-        </Button>
-      </div>
-
-      <div className={styles.listaContainer} role="radiogroup" aria-label="Asistentes sociales disponibles">
-        {cargando ? (
-          <div className={styles.estadoMensaje}>
-            Cargando profesionales disponibles...
-          </div>
-        ) : disponibles.length === 0 ? (
-          <div className={styles.estadoMensaje}>
-            No hay asistentes sociales con estado disponible en este momento.
-          </div>
-        ) : (
-          disponibles.map((asistente) => {
-            const seleccionado = asistenteSeleccionadoId === asistente.usuarioId;
-            return (
-              <label
-                key={asistente.usuarioId}
-                className={`${styles.opcionCard} ${seleccionado ? styles.opcionCardSeleccionada : ''}`}
-              >
-                <input
-                  type="radio"
-                  name="asistenteSocialId"
-                  value={asistente.usuarioId}
-                  checked={seleccionado}
-                  onChange={() => setAsistenteSeleccionadoId(asistente.usuarioId)}
-                  className={styles.radioInput}
-                />
-                <div className={styles.opcionInfo}>
-                  <div className={styles.opcionHeader}>
-                    <span className={styles.nombreProfesional}>{asistente.nombreCompleto}</span>
-                    <span className={styles.badgeDisponible}>Disponible</span>
-                  </div>
-                  <div className={styles.metaProfesional}>
-                    <span>RUT: {asistente.rut}</span>
-                    {asistente.delegacionNombre && (
-                      <span>Delegación: {asistente.delegacionNombre}</span>
-                    )}
-                    <span>Fichas FIBE activas: {asistente.casosFibeAsignados}</span>
-                  </div>
-                </div>
-              </label>
-            );
-          })
-        )}
-      </div>
+      <SelectorAsistenteSocialDisponible
+        value={asistenteSeleccionadoId}
+        onChange={(id) => {
+          setAsistenteSeleccionadoId(id);
+          setErrorMensaje(null);
+        }}
+        disabled={guardando}
+        refreshTrigger={refreshTrigger}
+      />
     </Modal>
   );
 }

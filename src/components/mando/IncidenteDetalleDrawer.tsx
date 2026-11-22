@@ -17,12 +17,16 @@ import { IncidenteEvidenciasSection } from './drawer/IncidenteEvidenciasSection'
 import { MisionDetalleModal } from './mision/MisionDetalleModal';
 import { ModalAsignarCuadrilla } from './ModalAsignarCuadrilla';
 import { AsignarPatrullaModal } from './patrullas/AsignarPatrullaModal';
+import ModalDerivarAsistenciaSocial from './ModalDerivarAsistenciaSocial';
 import { useOptionalAuth } from '@/context/AuthContext';
 import { useOptionalToast } from '@/components/ui/Toast';
 import { usePuedeAsignarMision } from '@/hooks/usePuedeAsignarMision';
+import { usePuedeDerivarAsistenciaSocial } from '@/hooks/usePuedeDerivarAsistenciaSocial';
+import { evaluarElegibilidadDerivacionSocial } from '@/lib/utils/asistenciaSocialIncidenteUtils';
 import {
   esReporteCierreCuadrilla,
   esReporteVerificacionCierre,
+  formatearEstado,
   formatearEstadoTerreno,
   formatearHorasHombre,
   fueTipologiaModificada,
@@ -30,6 +34,7 @@ import {
 import { obtenerVarianteChipEstadoTerreno } from '@/lib/utils/chipVariants';
 import Chip from '@/components/ui/Chip';
 import Button from '@/components/ui/Button';
+import Link from 'next/link';
 import { getSocket } from '@/lib/socket/client';
 import {
   getTrazabilidadEstado,
@@ -52,7 +57,7 @@ import {
   type DictamenAtencionTerreno,
 } from '@/types/misiones';
 import type { EstadoIncidente } from '@/services/incidentesService';
-import { HardHat, CheckCircle2, Ban } from 'lucide-react';
+import { HardHat, CheckCircle2, Ban, HeartHandshake, ArrowRight } from 'lucide-react';
 import styles from '@/styles/mando.module.css';
 
 export interface IncidenteDetalleDrawerProps {
@@ -83,7 +88,9 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
   const [reporteDestacadoId, setReporteDestacadoId] = useState<string | null>(null);
   const [modalCuadrillaAbierto, setModalCuadrillaAbierto] = useState<boolean>(false);
   const [modalAsignarPatrullaAbierto, setModalAsignarPatrullaAbierto] = useState<boolean>(false);
+  const [modalDerivarSocialAbierto, setModalDerivarSocialAbierto] = useState<boolean>(false);
   const puedeAsignar = usePuedeAsignarMision();
+  const puedeDerivarSocial = usePuedeDerivarAsistenciaSocial();
   const detalleRef = useRef<IncidenteDetalle | null>(null);
 
   useEffect(() => {
@@ -145,6 +152,7 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
         setError(null);
         setModalCuadrillaAbierto(false);
         setModalAsignarPatrullaAbierto(false);
+        setModalDerivarSocialAbierto(false);
         return;
       }
       cargarDetalle();
@@ -537,6 +545,24 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
       }
     };
 
+    const handleAsistenciaSocialEvento = (rawPayload: unknown) => {
+      const p = rawPayload as Record<string, unknown> | null | undefined;
+      const nested = (p?.evento || p?.datos || p?.data || p) as Record<string, unknown> | null | undefined;
+      const incId =
+        typeof nested?.incidenteId === 'string'
+          ? nested.incidenteId
+          : typeof nested?.incidente_id === 'string'
+            ? nested.incidente_id
+            : typeof p?.incidenteId === 'string'
+              ? p.incidenteId
+              : typeof p?.incidente_id === 'string'
+                ? p.incidente_id
+                : undefined;
+      if (incId === incidenteId) {
+        cargarDetalle();
+      }
+    };
+
     socket.on('connect', asegurarSalasEncargado);
     socket.on('incidente:actualizado', handleActualizadoSocket);
     socket.on('notificacion:trazabilidad_actualizada', handleTrazabilidad);
@@ -544,6 +570,8 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
     socket.on('mision:rechazada', handleMisionRechazada);
     socket.on('incidente:actualizado', handleIncidenteActualizado);
     socket.on('adjunto:creado', handleAdjuntoCreado);
+    socket.on('asistencia_social:creada', handleAsistenciaSocialEvento);
+    socket.on('asistencia_social:actualizada', handleAsistenciaSocialEvento);
 
     return () => {
       socket.off('connect', asegurarSalasEncargado);
@@ -553,6 +581,8 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
       socket.off('mision:rechazada', handleMisionRechazada);
       socket.off('incidente:actualizado', handleIncidenteActualizado);
       socket.off('adjunto:creado', handleAdjuntoCreado);
+      socket.off('asistencia_social:creada', handleAsistenciaSocialEvento);
+      socket.off('asistencia_social:actualizada', handleAsistenciaSocialEvento);
     };
   }, [incidenteId, cargarDetalle]);
 
@@ -624,6 +654,109 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
             puedeAsignar={puedeAsignar}
             puedeCrearEventoFibe={puedeCrearEventoFibe}
           />
+
+          {/* Banner de Derivación a Asistencia Social post-resolución (HU-25) */}
+          {detalle &&
+            detalle.estado === 'RESUELTO' &&
+            (() => {
+              const elegibilidadSocial = evaluarElegibilidadDerivacionSocial(detalle);
+              if (elegibilidadSocial.yaDerivado && elegibilidadSocial.eventoSocial) {
+                return (
+                  <div
+                    data-testid="banner-derivacion-social-confirmada"
+                    style={{
+                      backgroundColor: 'var(--color-info-bg, #E0F2F1)',
+                      padding: 'var(--space-3, 12px) var(--space-4, 16px)',
+                      borderBottom: '1px solid var(--border-color-neutral, #DFE3E8)',
+                      borderLeft: '4px solid var(--color-primary-teal, #1B6F7D)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      flexWrap: 'wrap',
+                      gap: '10px',
+                    }}
+                  >
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                        <HeartHandshake size={16} color="var(--color-primary-teal, #1B6F7D)" />
+                        <strong style={{ fontSize: '0.875rem', color: 'var(--color-primary-teal-dark, #14505A)' }}>
+                          Derivado a Asistencia Social (FIBE / DGRD)
+                        </strong>
+                        <Chip variant="solid-teal" size="sm">
+                          {elegibilidadSocial.eventoSocial.codigo ?? 'ASIGNADO'}
+                        </Chip>
+                      </div>
+                      <span style={{ fontSize: '0.8125rem', color: 'var(--color-text-dark, #2B2B2B)' }}>
+                        Profesional asignado:{' '}
+                        <strong>
+                          {elegibilidadSocial.eventoSocial.asistenteSocialNombre ||
+                            elegibilidadSocial.eventoSocial.asistenteSocialId ||
+                            'Asignado'}
+                        </strong>
+                      </span>
+                    </div>
+                    <Link
+                      href="/gestion/asistente-social?estado=ASIGNADO"
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        fontSize: '0.8125rem',
+                        fontWeight: 700,
+                        color: 'var(--color-primary-teal-dark, #14505A)',
+                        textDecoration: 'none',
+                      }}
+                    >
+                      <span>Ver en Panel Asistencia Social</span>
+                      <ArrowRight size={14} />
+                    </Link>
+                  </div>
+                );
+              }
+              if (elegibilidadSocial.elegible && puedeDerivarSocial) {
+                return (
+                  <div
+                    data-testid="banner-derivar-asistencia-social"
+                    style={{
+                      backgroundColor: 'var(--color-warning-bg, #FFF3E0)',
+                      padding: 'var(--space-3, 12px) var(--space-4, 16px)',
+                      borderBottom: '1px solid #FFCC80',
+                      borderLeft: '4px solid var(--color-warning, #E65100)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      flexWrap: 'wrap',
+                      gap: '10px',
+                    }}
+                  >
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                        <HeartHandshake size={16} color="var(--color-warning, #E65100)" />
+                        <strong style={{ fontSize: '0.875rem', color: 'var(--color-charcoal-dark, #24272B)' }}>
+                          Afectación social constatada — Pendiente derivación FIBE
+                        </strong>
+                      </div>
+                      <span style={{ fontSize: '0.8125rem', color: 'var(--color-text-dark, #2B2B2B)' }}>
+                        {elegibilidadSocial.personasAfectadas > 0
+                          ? `Se registraron ${elegibilidadSocial.personasAfectadas} persona(s) damnificada(s). `
+                          : ''}
+                        Deriva el caso a un profesional de la DGRD para levantamiento de Ficha FIBE.
+                      </span>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="primary"
+                      size="sm"
+                      icon={<HeartHandshake size={14} />}
+                      onClick={() => setModalDerivarSocialAbierto(true)}
+                    >
+                      <span>Derivar a Asistencia Social</span>
+                    </Button>
+                  </div>
+                );
+              }
+              return null;
+            })()}
 
           {/* Banner informativo de cierre por No Abordabilidad en terreno (HU-39 / HU-86) */}
           {detalle && detalle.estado === 'NO_ABORDABLE' && (
@@ -974,6 +1107,54 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
         }
         userId={userId}
         onAsignacionExitosa={handleAsignacionExitosa}
+      />
+
+      {/* Modal de Derivación a Asistencia Social post-incidente (HU-25) */}
+      <ModalDerivarAsistenciaSocial
+        isOpen={modalDerivarSocialAbierto}
+        onClose={() => setModalDerivarSocialAbierto(false)}
+        incidente={detalle}
+        usuarioId={userId}
+        onDerivado={(respuesta) => {
+          setDetalle((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  asistenciaSocial: {
+                    id: respuesta.evento.id,
+                    codigo: respuesta.evento.codigo,
+                    estado: respuesta.evento.estado,
+                    asistenteSocialId: respuesta.evento.asistenteSocialId ?? null,
+                    asistenteSocialNombre: respuesta.evento.asistenteSocialNombre ?? null,
+                    creadoEn: respuesta.evento.creadoEn,
+                    actualizadoEn: respuesta.evento.actualizadoEn,
+                  },
+                }
+              : prev
+          );
+          toast?.showSuccess(
+            `Incidente derivado a Asistencia Social (DGRD) para levantamiento de Ficha FIBE (${respuesta.evento.codigo}).`,
+            'Derivación a Asistencia Social',
+            {
+              icon: 'asistencia_social',
+              dedupKey: `asoc-creada:${respuesta.evento.id}`,
+              details: [
+                { label: 'Evento Social', value: respuesta.evento.codigo },
+                {
+                  label: 'Asistente Social',
+                  value:
+                    respuesta.evento.asistenteSocialNombre ||
+                    respuesta.evento.asistenteSocialId ||
+                    'Asignado',
+                },
+                { label: 'Estado', value: formatearEstado(respuesta.evento.estado) },
+              ],
+            }
+          );
+          cargarDetalle();
+          onIncidenteActualizado?.();
+          setModalDerivarSocialAbierto(false);
+        }}
       />
     </>
   );
