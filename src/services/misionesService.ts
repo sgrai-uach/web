@@ -16,6 +16,7 @@ import type {
   DespacharCuadrillaDTO,
   DespacharCuadrillaResponse,
   DespacharPatrullaPayload,
+  DespacharPatrullaResponse,
   ResultadoDespacharPatrulla,
   TipoMision,
   PrioridadMision,
@@ -428,10 +429,14 @@ export const misionesService = {
         };
       }
 
+      // El endpoint unificado responde con `anyOf` (patrulla o cuadrilla): para el
+      // despacho de patrulla se toma el esquema de respuesta de verificación.
+      const respuesta = data as unknown as DespacharPatrullaResponse;
+
       return {
         exito: true,
-        data: data.data,
-        mensaje: data.message || 'Misión de verificación creada y patrulla despachada exitosamente.',
+        data: respuesta.data,
+        mensaje: respuesta.message || 'Misión de verificación creada y patrulla despachada exitosamente.',
       };
     } catch {
       return {

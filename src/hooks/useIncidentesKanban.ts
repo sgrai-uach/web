@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   listarIncidentes,
   DEFAULT_ENCARGADO_ID,
@@ -16,6 +16,7 @@ import {
   useEncargadoKanbanSocket,
   type IncidenteCreadoPayload,
   type IncidenteActualizadoPayload,
+  type MisionRechazadaPayload,
   type NotificacionTrazabilidadPayload,
 } from './useEncargadoKanbanSocket';
 import {
@@ -26,7 +27,10 @@ import {
 } from '@/lib/socket/trazabilidadStore';
 import { obtenerConfigHito } from '@/lib/utils/misionHitos';
 import { useOptionalToast } from '@/components/ui/Toast';
-import type { MisionHitoRegistradoPayload } from '@/types/misiones';
+import type {
+  MisionActualizadaPayload,
+  MisionHitoRegistradoPayload,
+} from '@/types/misiones';
 
 export const ESTADOS_KANBAN: EstadoIncidente[] = [
   'REPORTADO',
@@ -72,8 +76,29 @@ function ordenarIncidentesColumna(
   return incidentes;
 }
 
-export function useIncidentesKanban(initialUserId?: string) {
+export interface UseIncidentesKanbanOptions {
+  initialUserId?: string;
+  onMisionRechazada?: (payload: MisionRechazadaPayload) => void;
+  onMisionAceptada?: (payload: MisionActualizadaPayload) => void;
+}
+
+export function useIncidentesKanban(options?: string | UseIncidentesKanbanOptions) {
   const toast = useOptionalToast();
+  const optionsObj: UseIncidentesKanbanOptions =
+    typeof options === 'string' ? { initialUserId: options } : options || {};
+  const initialUserId = optionsObj.initialUserId;
+
+  const onMisionRechazadaRef = useRef(optionsObj.onMisionRechazada);
+  useEffect(() => {
+    onMisionRechazadaRef.current = optionsObj.onMisionRechazada;
+  }, [optionsObj.onMisionRechazada]);
+
+  const onMisionAceptadaRef = useRef(optionsObj.onMisionAceptada);
+  useEffect(() => {
+    onMisionAceptadaRef.current = optionsObj.onMisionAceptada;
+  }, [optionsObj.onMisionAceptada]);
+
+  const toastAceptacionRef = useRef<Map<string, number>>(new Map());
   let sessionUserId: string | undefined;
   let sessionSetUser: ((id: string) => void) | undefined;
   try {
@@ -227,12 +252,27 @@ export function useIncidentesKanban(initialUserId?: string) {
         columnasAConsultar.forEach((estado, idx) => {
           const res = resultados[idx];
           if (res.exito) {
-            nuevasColumnas[estado] = ordenarIncidentesColumna(res.incidentes, estado);
+            nuevasColumnas[estado] = res.incidentes;
             nuevasPaginaciones[estado] = res.paginacion || null;
           }
         });
 
-        setColumnas(nuevasColumnas);
+        // Preservar la marca local de misión despachada mientras el backend la propaga
+        setColumnas((prev) => {
+          const preservadas: Record<EstadoIncidente, IncidenteResumen[]> = { ...nuevasColumnas };
+          columnasAConsultar.forEach((estado) => {
+            preservadas[estado] = ordenarIncidentesColumna(
+              nuevasColumnas[estado].map((inc) => {
+                const previo = prev[estado]?.find((p) => p.id === inc.id);
+                return previo?.tieneMisionDespachada
+                  ? { ...inc, tieneMisionDespachada: true }
+                  : inc;
+              }),
+              estado
+            );
+          });
+          return preservadas;
+        });
         setPaginacionColumna(nuevasPaginaciones);
       } catch {
         setError('Error al conectar con el servidor.');
@@ -457,6 +497,8 @@ export function useIncidentesKanban(initialUserId?: string) {
               ...prev[est][idx],
               estado: nuevoEstado,
               prioridad: prioridad || prev[est][idx].prioridad,
+              tieneMisionDespachada:
+                nuevoEstado === 'REPORTADO' ? prev[est][idx].tieneMisionDespachada : false,
               totalMisiones:
                 nuevoEstado === 'VERIFICANDO' && est === 'REPORTADO'
                   ? Math.max(1, (prev[est][idx].totalMisiones || 0) + 1)
@@ -526,25 +568,155 @@ export function useIncidentesKanban(initialUserId?: string) {
     [userId]
   );
 
-  const handleMisionHitoRegistrado = useCallback(
-    (payload: MisionHitoRegistradoPayload) => {
-      const config = obtenerConfigHito(payload.hito);
-      if (!config.esLlegadaTerreno) return;
+  const notificarToastAceptacionCuadrilla = useCallback(
+    (misionId: string, codigo?: string) => {
+      const clave = misionId.trim();
+      const ahora = Date.now();
+      if (clave) {
+        const ultimaVez = toastAceptacionRef.current.get(clave);
+        if (ultimaVez && ahora - ultimaVez < 5000) {
+          return;
+        }
+        toastAceptacionRef.current.set(clave, ahora);
+      }
 
-      const etiquetaMision = payload.codigoMision?.trim() || payload.misionId;
+      const etiquetaMision = codigo?.trim() || misionId;
       toast?.showInfo(
-        `La cuadrilla ha reportado su llegada a terreno para la misión ${etiquetaMision}.`,
-        'Llegada a Terreno'
+        `La cuadrilla ha aceptado la asignación de la misión ${etiquetaMision}. El equipo se encuentra Ocupado y el incidente pasa a En Atención.`,
+        'Asignación Aceptada por Cuadrilla'
       );
     },
     [toast]
   );
 
+  const handleMisionHitoRegistrado = useCallback(
+    (payload: MisionHitoRegistradoPayload) => {
+      const config = obtenerConfigHito(payload.hito);
+      const etiquetaMision = payload.codigoMision?.trim() || payload.misionId;
+
+      if (config.esLlegadaTerreno) {
+        toast?.showInfo(
+          `La cuadrilla ha reportado su llegada a terreno para la misión ${etiquetaMision}.`,
+          'Llegada a Terreno'
+        );
+        return;
+      }
+
+      if (config.esAceptacion) {
+        notificarToastAceptacionCuadrilla(payload.misionId, payload.codigoMision);
+      }
+    },
+    [notificarToastAceptacionCuadrilla, toast]
+  );
+
+  const handleMisionActualizada = useCallback(
+    (payload: MisionActualizadaPayload) => {
+      const esMisionCuadrilla =
+        Boolean(payload.cuadrillaId) || payload.tipoMision === 'ATENCION_CUADRILLA';
+      const hitoConfig = payload.hito?.hito ? obtenerConfigHito(payload.hito.hito) : null;
+      const esAceptacion =
+        Boolean(hitoConfig?.esAceptacion) ||
+        (payload.estado === 'EN_CURSO' && esMisionCuadrilla);
+
+      if (!esAceptacion) return;
+
+      if (payload.incidenteId && esMisionCuadrilla) {
+        moverIncidenteAEstado(payload.incidenteId, 'EN_ATENCION');
+      }
+
+      if (esMisionCuadrilla) {
+        notificarToastAceptacionCuadrilla(payload.misionId, payload.codigo);
+      }
+
+      onMisionAceptadaRef.current?.(payload);
+    },
+    [moverIncidenteAEstado, notificarToastAceptacionCuadrilla]
+  );
+
+  const handleMisionRechazada = useCallback(
+    (payload: MisionRechazadaPayload) => {
+      if (payload.incidenteId) {
+        let columnaOrigenDetectada: EstadoIncidente | null = null;
+
+        setColumnas((prev) => {
+          let incidenteEncontrado: IncidenteResumen | null = null;
+          let columnaOrigen: EstadoIncidente | null = null;
+
+          for (const est of ESTADOS_KANBAN) {
+            const idx = prev[est].findIndex((i) => i.id === payload.incidenteId);
+            if (idx !== -1) {
+              incidenteEncontrado = {
+                ...prev[est][idx],
+                estado: 'REPORTADO',
+                tieneMisionDespachada: false,
+                actualizadoEn: payload.rechazadoEn || new Date().toISOString(),
+              };
+              columnaOrigen = est;
+              columnaOrigenDetectada = est;
+              break;
+            }
+          }
+
+          if (!incidenteEncontrado) return prev;
+
+          if (columnaOrigen === 'REPORTADO') {
+            return {
+              ...prev,
+              REPORTADO: prev.REPORTADO.map((i) =>
+                i.id === payload.incidenteId ? incidenteEncontrado! : i
+              ),
+            };
+          }
+
+          return {
+            ...prev,
+            [columnaOrigen!]: prev[columnaOrigen!].filter((i) => i.id !== payload.incidenteId),
+            REPORTADO: [incidenteEncontrado, ...prev.REPORTADO],
+          };
+        });
+
+        setPaginacionColumna((prev) => {
+          if (!columnaOrigenDetectada || columnaOrigenDetectada === 'REPORTADO') {
+            return prev;
+          }
+
+          return {
+            ...prev,
+            REPORTADO: prev.REPORTADO ? { ...prev.REPORTADO, total: prev.REPORTADO.total + 1 } : null,
+            [columnaOrigenDetectada]: prev[columnaOrigenDetectada]
+              ? {
+                  ...prev[columnaOrigenDetectada]!,
+                  total: Math.max(0, prev[columnaOrigenDetectada]!.total - 1),
+                }
+              : null,
+          };
+        });
+      }
+
+      onMisionRechazadaRef.current?.(payload);
+    },
+    []
+  );
+
+  const marcarIncidenteMisionDespachada = useCallback(
+    (incidenteId: string, despachada: boolean = true) => {
+      setColumnas((prev) => ({
+        ...prev,
+        REPORTADO: prev.REPORTADO.map((inc) =>
+          inc.id === incidenteId ? { ...inc, tieneMisionDespachada: despachada } : inc
+        ),
+      }));
+    },
+    []
+  );
+
   const { conectado, ultimoEvento } = useEncargadoKanbanSocket({
     onIncidenteCreado: handleIncidenteCreado,
     onIncidenteActualizado: handleIncidenteActualizado,
+    onMisionRechazada: handleMisionRechazada,
     onNotificacionTrazabilidadActualizada: handleTrazabilidadActualizada,
     onMisionHitoRegistrado: handleMisionHitoRegistrado,
+    onMisionActualizada: handleMisionActualizada,
     enabled: !esForbidden,
   });
 
@@ -569,6 +741,7 @@ export function useIncidentesKanban(initialUserId?: string) {
     cargarMas,
     recargar: cargarTablero,
     moverIncidenteAEstado,
+    marcarIncidenteMisionDespachada,
     conectado,
     ultimoEvento,
     totalIncidentesVisibles,
