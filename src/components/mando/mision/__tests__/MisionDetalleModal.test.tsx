@@ -479,4 +479,64 @@ describe('Componente MisionDetalleModal (HU-17)', () => {
     fireEvent.click(btnMapa);
     expect(onUbicarEnMapa).toHaveBeenCalledWith(-39.81422, -73.24589, 'Llegada a Terreno');
   });
+
+  it('HU-40: inserta reactivamente MISION_ACEPTADA en la bitácora y actualiza el badge a En Trabajos de Terreno', async () => {
+    const {
+      clearMisionesRealtimeStore,
+      actualizarEstadoMisionTiempoReal,
+    } = await import('@/lib/socket/misionesStore');
+    clearMisionesRealtimeStore();
+
+    const misionDespachada = {
+      ...mockMision,
+      estado: 'DESPACHADA' as const,
+      bitacoraTiempos: [
+        {
+          hito: 'Misión Creada',
+          fecha: '22/11/2026',
+          hora: '14:00:00',
+          timestamp: '2026-11-22T17:00:00.000Z',
+          descripcion: 'Cuadrilla despachada desde Centro de Mando',
+        },
+      ],
+    };
+
+    vi.spyOn(misionesService, 'obtenerDetalleMision').mockResolvedValueOnce({
+      exito: true,
+      datos: misionDespachada,
+      mensaje: 'Detalle obtenido.',
+    });
+
+    render(
+      <MisionDetalleModal
+        misionId="m1000000-0000-4000-8000-000000000001"
+        onCerrar={vi.fn()}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Despachada')).toBeDefined();
+    });
+
+    act(() => {
+      actualizarEstadoMisionTiempoReal({
+        misionId: 'm1000000-0000-4000-8000-000000000001',
+        codigo: 'MIS-2026-0001',
+        estado: 'EN_CURSO',
+        tipoMision: 'ATENCION_CUADRILLA',
+        cuadrillaId: 'c001',
+        hito: {
+          id: 'hito-acep-1',
+          hito: 'MISION_ACEPTADA',
+          descripcion: 'Misión Aceptada por Cuadrilla',
+          creadoEn: '2026-11-22T17:10:00.000Z',
+        },
+      });
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText('Misión Aceptada por Unidad')).toBeDefined();
+      expect(screen.getByText('En Trabajos de Terreno')).toBeDefined();
+    });
+  });
 });

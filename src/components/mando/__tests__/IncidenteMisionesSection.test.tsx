@@ -360,4 +360,44 @@ describe('Componente IncidenteMisionesSection', () => {
       });
     });
   });
+
+  it('HU-40: actualiza reactivamente el badge de misión a En Curso y la cuadrilla a En misión desde misionesStore', async () => {
+    const {
+      clearMisionesRealtimeStore,
+      actualizarEstadoMisionTiempoReal,
+    } = await import('@/lib/socket/misionesStore');
+    clearMisionesRealtimeStore();
+
+    const misionesDespachadas: IncidenteDetalle['misiones'] = [
+      {
+        ...mockMisiones[0],
+        id: 'm-h40-sec',
+        estado: 'DESPACHADA',
+        cuadrilla: {
+          id: 'c-h40',
+          nombre: 'Cuadrilla Sur 2',
+          estado: 'DISPONIBLE',
+        },
+      },
+    ];
+
+    render(<IncidenteMisionesSection misiones={misionesDespachadas} />);
+
+    expect(screen.getByText('Despachada')).toBeDefined();
+    expect(screen.getByText(/Cuadrilla Sur 2 \(Disponible\)/i)).toBeDefined();
+
+    const { act } = await import('@testing-library/react');
+    await act(async () => {
+      actualizarEstadoMisionTiempoReal({
+        misionId: 'm-h40-sec',
+        codigo: 'MIS-2026-0001',
+        estado: 'EN_CURSO',
+        cuadrillaId: 'c-h40',
+      });
+      await Promise.resolve();
+    });
+
+    expect(screen.getByText('En Curso')).toBeDefined();
+    expect(screen.getByText(/Cuadrilla Sur 2 \(En misión\)/i)).toBeDefined();
+  });
 });

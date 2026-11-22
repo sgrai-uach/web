@@ -342,4 +342,50 @@ describe('useEncargadoKanbanSocket', () => {
     expect(onMisionActualizada).toHaveBeenCalledTimes(1);
     expect(getEstadoTiempoRealMision('mis-h42-1')).toBe('EN_PROCESO');
   });
+
+  it('HU-40: procesa mision:actualizada con hito MISION_ACEPTADA actualizando estado e hitos en misionesStore', async () => {
+    const {
+      clearMisionesRealtimeStore,
+      getEstadoTiempoRealMision,
+      getHitosTiempoRealMision,
+    } = await import('@/lib/socket/misionesStore');
+    clearMisionesRealtimeStore();
+
+    const socket = getSocket();
+    const onMisionActualizada = vi.fn();
+
+    renderHook(() =>
+      useEncargadoKanbanSocket({
+        onMisionActualizada,
+      })
+    );
+
+    const trigger = (socket as unknown as { _trigger: (ev: string, p: unknown) => void })._trigger;
+
+    act(() => {
+      trigger('mision:actualizada', {
+        misionId: 'mis-h40-1',
+        codigo: 'MIS-2026-0040',
+        estado: 'EN_CURSO',
+        tipoMision: 'ATENCION_CUADRILLA',
+        cuadrillaId: 'cuad-1',
+        incidenteId: 'inc-40',
+        hito: {
+          id: 'hito-h40-1',
+          hito: 'MISION_ACEPTADA',
+          descripcion: 'Misión Aceptada por Cuadrilla',
+          registradoPorId: 'usr-del-40',
+          creadoEn: '2026-11-22T15:00:00.000Z',
+        },
+        actualizadoEn: '2026-11-22T15:00:00.000Z',
+      });
+    });
+
+    expect(onMisionActualizada).toHaveBeenCalledTimes(1);
+    expect(getEstadoTiempoRealMision('mis-h40-1')).toBe('EN_CURSO');
+    const hitos = getHitosTiempoRealMision('mis-h40-1');
+    expect(hitos).toHaveLength(1);
+    expect(hitos[0].hito).toBe('Misión Aceptada por Unidad');
+    expect(hitos[0].descripcion).toBe('Misión Aceptada por Cuadrilla');
+  });
 });

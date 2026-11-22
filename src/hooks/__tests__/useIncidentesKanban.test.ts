@@ -20,6 +20,18 @@ vi.mock('@/services/misionesService', () => ({
   obtenerDetalleMision: vi.fn(),
 }));
 
+const toastMock = {
+  showSuccess: vi.fn(),
+  showError: vi.fn(),
+  showInfo: vi.fn(),
+  showWarning: vi.fn(),
+};
+
+vi.mock('@/components/ui/Toast', () => ({
+  useToast: () => toastMock,
+  useOptionalToast: () => toastMock,
+}));
+
 vi.mock('../useEncargadoKanbanSocket', () => ({
   useEncargadoKanbanSocket: vi.fn(() => ({
     conectado: true,
@@ -377,5 +389,110 @@ describe('useIncidentesKanban - HU-20 y BUG-04', () => {
     });
 
     expect(result.current.columnas.REPORTADO[0].tieneMisionDespachada).toBe(true);
+  });
+
+  it('HU-40: mueve el incidente a EN_ATENCION, emite Toast sin duplicados e invoca onMisionAceptada al aceptar misión de cuadrilla', async () => {
+    const mockReportado: incidentesService.IncidenteResumen = {
+      id: 'inc-400',
+      codigo: 'INC-2026-400',
+      codigoSeguimiento: '40004000',
+      tipoAfectacion: 'Inundación',
+      descripcion: 'Anegamiento en calzada',
+      direccion: 'Av. Alemania 500',
+      latitud: -39.81,
+      longitud: -73.24,
+      estado: 'REPORTADO',
+      prioridad: 'ALTA',
+      requiereAsistenciaSocial: false,
+      fuenteOrigen: 'WEB',
+      informanteNombre: 'Luis',
+      delegacionNombre: 'Norte',
+      totalMisiones: 1,
+      tieneMisionDespachada: true,
+      creadoEn: '2026-11-22T10:00:00Z',
+      actualizadoEn: '2026-11-22T10:00:00Z',
+    };
+
+    vi.mocked(incidentesService.listarIncidentes).mockImplementation(async (query) => {
+      if (query.estado === 'REPORTADO') {
+        return {
+          exito: true,
+          incidentes: [mockReportado],
+          paginacion: {
+            total: 1,
+            pagina: 1,
+            limite: 20,
+            totalPaginas: 1,
+            tieneSiguiente: false,
+            tieneAnterior: false,
+          },
+          mensaje: 'OK',
+        };
+      }
+      return {
+        exito: true,
+        incidentes: [],
+        paginacion: {
+          total: 0,
+          pagina: 1,
+          limite: 20,
+          totalPaginas: 0,
+          tieneSiguiente: false,
+          tieneAnterior: false,
+        },
+        mensaje: 'OK',
+      };
+    });
+
+    const onMisionAceptada = vi.fn();
+    const { result } = renderHook(() =>
+      useIncidentesKanban({ onMisionAceptada })
+    );
+
+    await waitFor(() => {
+      expect(result.current.columnas.REPORTADO.length).toBe(1);
+    });
+
+    const calls = vi.mocked(useEncargadoKanbanSocket).mock.calls;
+    const socketOptions = calls[calls.length - 1]?.[0] as UseEncargadoKanbanSocketOptions;
+    expect(socketOptions?.onMisionActualizada).toBeDefined();
+
+    const payloadAceptacion = {
+      misionId: 'mis-400',
+      codigo: 'MIS-2026-0400',
+      estado: 'EN_CURSO',
+      tipoMision: 'ATENCION_CUADRILLA',
+      cuadrillaId: 'cuad-400',
+      incidenteId: 'inc-400',
+      hito: {
+        id: 'hito-400',
+        hito: 'MISION_ACEPTADA',
+        descripcion: 'Misión Aceptada por Cuadrilla',
+      },
+    };
+
+    act(() => {
+      socketOptions.onMisionActualizada?.(payloadAceptacion);
+      socketOptions.onMisionHitoRegistrado?.({
+        misionId: 'mis-400',
+        codigoMision: 'MIS-2026-0400',
+        hito: 'MISION_ACEPTADA',
+        descripcion: 'Misión Aceptada por Cuadrilla',
+        registradoEn: '2026-11-22T15:00:00Z',
+        nuevoEstadoMision: 'EN_CURSO',
+      });
+    });
+
+    expect(result.current.columnas.REPORTADO.length).toBe(0);
+    expect(result.current.columnas.EN_ATENCION.length).toBe(1);
+    expect(result.current.columnas.EN_ATENCION[0].tieneMisionDespachada).toBe(false);
+    expect(result.current.paginacionColumna.REPORTADO?.total).toBe(0);
+    expect(result.current.paginacionColumna.EN_ATENCION?.total).toBe(1);
+    expect(toastMock.showInfo).toHaveBeenCalledTimes(1);
+    expect(toastMock.showInfo).toHaveBeenCalledWith(
+      expect.stringContaining('MIS-2026-0400'),
+      'Asignación Aceptada por Cuadrilla'
+    );
+    expect(onMisionAceptada).toHaveBeenCalledWith(payloadAceptacion);
   });
 });
