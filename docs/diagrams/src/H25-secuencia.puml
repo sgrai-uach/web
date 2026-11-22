@@ -1,0 +1,41 @@
+@startuml H25-secuencia
+title HU-25: Derivación de Incidente Resuelto a Asistencia Social (FIBE / DGRD)
+
+actor "Encargado\n(Centro de Mando)" as Encargado
+participant "KanbanBoard /\nIncidenteDetalleDrawer\n(sgrai-web)" as UI
+participant "ModalDerivarAsistenciaSocial\n+ SelectorAsistenteSocialDisponible" as Modal
+participant "sgrai-api\n(REST + RBAC + Zod)" as API
+database "PostgreSQL\n(Kysely)" as DB
+participant "Socket.io\n(Salas: encargado,\nsala:encargados,\nasistente_social)" as WS
+actor "Asistente Social\n(DGRD)" as Asistente
+
+== 1. Habilitación condicional (Regla §3.5: FIBE / DGRD) ==
+UI -> UI : evaluarElegibilidadDerivacionSocial(incidente)\n[estado == RESUELTO &&\n(personasAfectadas > 0 || requiereAsistenciaSocial)]
+Encargado -> UI : Clic en "Derivar a Asistencia Social"
+UI -> Modal : Abre modal de derivación
+
+== 2. Consulta de profesionales disponibles ==
+Modal -> API : GET /api/personal?rolCodigo=ASISTENTE_SOCIAL&estadoOperativo=disponible
+API -> DB : SELECT personal activo con rol ASISTENTE_SOCIAL\ny estadoOperativo = 'disponible'
+DB --> API : Nómina de asistentes disponibles
+API --> Modal : 200 OK (lista de profesionales disponibles)
+
+== 3. Confirmación y persistencia ==
+Encargado -> Modal : Selecciona profesional disponible\n(y observaciones opcionales)\n+ Clic en "Confirmar Derivación"
+Modal -> Modal : Validar con derivarAsistenciaSocialSchema (Zod)
+Modal -> API : POST /api/incidentes/{id}/asistencia-social\n{ asistenteSocialId, observaciones? }
+API -> API : Verificar permiso RBAC:\nasistencia_social:crear (403 si falta)
+API -> DB : Verificar incidente RESUELTO,\nelegibilidad y asistente disponible (409/422 si no)
+API -> DB : Upsert en evento_asistencia_social\n(incidente_id, asistente_social_id, estado = 'ASIGNADO',\ncopia contacto y dirección del incidente)
+API -> DB : Registrar hito en mision_hito\n(DERIVACION_ASISTENCIA_SOCIAL + profesional asignado)
+DB --> API : Evento social + Hito registrado
+
+== 4. Notificación en tiempo real ==
+API -> WS : Emitir "asistencia_social:creada"\na salas "asistente_social" y "encargado"
+API --> Modal : 200/201 { exito: true, evento, hito }
+
+WS --> UI : "asistencia_social:creada"\nActualizar tarjeta Kanban (chip Derivado FIBE),\nDrawer y Bitácora (MisionDetalleModal)
+WS --> Asistente : "asistencia_social:creada"\nActualizar Panel Asistencia Social\n(useEventosAsistenciaSocial)
+Modal --> Encargado : Toast institucional "Derivación a Asistencia Social"
+
+@enduml

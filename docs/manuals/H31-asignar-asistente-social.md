@@ -60,4 +60,4 @@ Permitir al **Encargado** asignar formalmente un profesional con rol `ASISTENTE_
 
 - **`sgrai-api`:** La confirmación invoca `PATCH /api/eventos-atp/asistencia-social/{id}`, valida disponibilidad del profesional en transacción atómica, registra la trazabilidad de actualización (`actualizado_en`) y emite el evento WebSocket `asistencia_social:actualizada`.
 - **`sgrai-pwa`:** El asistente social asignado recibe la actualización en su bandeja de terreno para iniciar el levantamiento de la ficha FIBE.
-- **Manual relacionado:** [H28-crear-evento-asistencia-social.md](./H28-crear-evento-asistencia-social.md).
+- **Manuales relacionados:** [H28-crear-evento-asistencia-social.md](./H28-crear-evento-asistencia-social.md) y [H25-derivar-asistencia-social-post-incidente.md](./H25-derivar-asistencia-social-post-incidente.md).

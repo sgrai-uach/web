@@ -1,0 +1,24 @@
+@startuml H25-estados-evento-asistencia-social
+title HU-25: Diagrama de Estados de evento_asistencia_social (FIBE / DGRD)
+
+[*] --> PENDIENTE : Creación manual (HU-28)\no detección temprana sin asignar
+[*] --> ASIGNADO : Derivación directa desde incidente RESUELTO (HU-25)\nPOST /api/incidentes/{id}/asistencia-social\n[personas_afectadas > 0 || requiere_asistencia_social = true]
+
+PENDIENTE --> ASIGNADO : Asignación manual desde Panel Social (HU-31)\no upsert por derivación post-incidente (HU-25)
+ASIGNADO --> EN_EVALUACION_FIBE : Asistente Social inicia levantamiento\nde Ficha FIBE en terreno
+EN_EVALUACION_FIBE --> FINALIZADO : Ficha FIBE completada y beneficios\ngestionados por DGRD
+PENDIENTE --> DESCARTADO : Caso sin vulnerabilidad social acreditada
+ASIGNADO --> DESCARTADO : Caso desistido o duplicado en terreno
+
+FINALIZADO --> [*]
+DESCARTADO --> [*]
+
+note right of ASIGNADO
+  Regla de negocio §3.5:
+  No existe módulo de Albergues ni DIDECO.
+  Toda derivación social se orienta exclusivamente
+  al levantamiento de Ficha FIBE y gestión
+  de vulnerabilidad con la DGRD.
+end note
+
+@enduml

@@ -91,3 +91,4 @@ Para responder a los requerimientos de auditoría histórica de la Municipalidad
 
 - **`sgrai-api`:** Provee los endpoints REST `/api/incidentes` y `/api/incidentes/:id`, valida permisos mediante la cabecera `X-User-Id` y emite los eventos de WebSocket `incidente:creado` e `incidente:actualizado`.
 - **`sgrai-pwa`:** Es la aplicación móvil utilizada por las patrullas verificadoras y cuadrillas en terreno, cuyas acciones actualizan el estado de los incidentes que se reflejan en este tablero en tiempo real.
+- **Derivación post-incidente (`HU-25`):** En la columna `RESUELTO`, los incidentes con personas damnificadas o marca FIBE habilitan la acción directa en [H25-derivar-asistencia-social-post-incidente.md](./H25-derivar-asistencia-social-post-incidente.md).

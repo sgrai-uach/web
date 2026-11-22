@@ -127,3 +127,4 @@ El sistema utiliza WebSockets con Socket.io. Al crearse el nuevo evento social:
 
 * **`sgrai-api`:** Persiste el evento en la tabla `eventos_atp_asistencia_social` con sus coordenadas geográficas, asignando `incidente_id` si se vinculó a un incidente o manteniéndolo como `null` para casos independientes.
 * **`sgrai-pwa`:** Aplicación de terreno utilizada por Asistentes Sociales para consultar los eventos pendientes asignados y levantar la Ficha FIBE in situ con soporte offline.
+* **Derivación post-incidente (`HU-25`):** Para derivar directamente un incidente `RESUELTO` desde el Centro de Mando hacia un profesional disponible, consulta [H25-derivar-asistencia-social-post-incidente.md](./H25-derivar-asistencia-social-post-incidente.md).
