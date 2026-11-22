@@ -1716,6 +1716,17 @@ export interface paths {
                                  * @default false
                                  */
                                 verificado: boolean;
+                                /** @description Indica si la cuadrilla operativa finalizó sus faenas y envió el informe técnico final (HU-68) */
+                                faenasCuadrillaCompletadas?: boolean;
+                                /** @description Estado final del terreno informado por la cuadrilla al cierre (HU-68) */
+                                estadoTerrenoFinal?: string | null;
+                                /** @description Horas hombre invertidas reportadas en el último cierre de cuadrilla (HU-68) */
+                                horasHombreRegistradas?: number | null;
+                                /**
+                                 * @description Último dictamen técnico emitido por la patrulla verificadora (HU-39)
+                                 * @enum {string|null}
+                                 */
+                                dictamenTerreno?: "REQUIERE_CUADRILLA" | "NO_ABORDABLE" | null;
                                 /** @description Indica si el incidente fue verificado o reclasificado en terreno */
                                 reclasificadoEnTerreno?: boolean;
                                 /** @description Motivo o justificación técnica de la evaluación en terreno */
@@ -2017,6 +2028,17 @@ export interface paths {
                                  * @default false
                                  */
                                 verificado: boolean;
+                                /** @description Indica si la cuadrilla operativa finalizó sus faenas y envió el informe técnico final (HU-68) */
+                                faenasCuadrillaCompletadas?: boolean;
+                                /** @description Estado final del terreno informado por la cuadrilla al cierre (HU-68) */
+                                estadoTerrenoFinal?: string | null;
+                                /** @description Horas hombre invertidas reportadas en el último cierre de cuadrilla (HU-68) */
+                                horasHombreRegistradas?: number | null;
+                                /**
+                                 * @description Último dictamen técnico emitido por la patrulla verificadora (HU-39)
+                                 * @enum {string|null}
+                                 */
+                                dictamenTerreno?: "REQUIERE_CUADRILLA" | "NO_ABORDABLE" | null;
                                 /**
                                  * @description Indica si fue verificado o reclasificado en terreno
                                  * @default false
@@ -2054,6 +2076,11 @@ export interface paths {
                                     dictamen?: "REQUIERE_CUADRILLA" | "NO_ABORDABLE" | null;
                                     motivoNoAbordable?: string | null;
                                     tipoReporte?: string | null;
+                                    estadoTerreno?: string | null;
+                                    etiquetaReporte?: string | null;
+                                    horasHombre?: number | null;
+                                    requiereApoyoAdicional?: boolean;
+                                    materialesConsumidos?: components["schemas"]["MaterialConsumidoDetalle"][] | null;
                                     versionReporte: number | null;
                                     esRectificacion: boolean;
                                 } | null;
@@ -3607,16 +3634,16 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Confirmar y aceptar misión asignada desde terreno (HU-36)
-         * @description Permite a la patrulla verificadora confirmar y aceptar la misión asignada desde su dispositivo móvil (PWA). Ejecuta una transición atómica actualizando mision.estado de DESPACHADA a EN_CURSO, fijando mision.fecha_inicio = CURRENT_TIMESTAMP y registrando el hito 'Misión Aceptada por Patrulla' (código 'MISION_ACEPTADA') en mision_hito. Mantiene patrulla_verificadora.estado en EN_VERIFICACION e incidente.estado en VERIFICANDO, y emite el evento WebSocket 'mision:actualizada' hacia la sala 'encargado'. Requiere el permiso RBAC 'misiones:terreno:verificar'.
+         * Confirmar y aceptar misión asignada desde terreno (HU-36 / HU-40)
+         * @description Permite al Delegado de Cuadrilla (HU-40) o a la patrulla verificadora (HU-36) confirmar y aceptar la misión asignada desde su dispositivo móvil (PWA). Para cuadrillas (`ATENCION_CUADRILLA`, requiere permiso `misiones:terreno:ejecutar`): ejecuta una transacción atómica que (1) actualiza `mision.estado` de `DESPACHADA` a `EN_CURSO` fijando `fecha_inicio = CURRENT_TIMESTAMP`, (2) actualiza `cuadrilla.estado = 'EN_MISION'`, (3) actualiza `incidente.estado = 'EN_ATENCION'`, (4) registra el hito `'Asignación Aceptada por Cuadrilla'` (`MISION_ACEPTADA`) en `mision_hito`, y emite los eventos WebSocket `incidente:actualizado` y `mision:actualizada` hacia el Centro de Mando. Para patrullas verificadoras (`VERIFICACION`, requiere permiso `misiones:terreno:verificar`), mantiene `patrulla_verificadora.estado = 'EN_VERIFICACION'` e `incidente.estado = 'VERIFICANDO'` registrando `'Misión Aceptada por Patrulla'`.
          */
         post: {
             parameters: {
                 query?: never;
                 header?: {
-                    /** @description Token Bearer JWT de sesión de la patrulla verificadora */
+                    /** @description Token Bearer JWT de sesión de terreno (Delegado de Cuadrilla o Patrulla) */
                     authorization?: string;
-                    /** @description UUID del usuario autenticado con permiso misiones:terreno:verificar */
+                    /** @description UUID del usuario autenticado con permiso misiones:terreno:ejecutar o misiones:terreno:verificar */
                     "x-user-id"?: string;
                 };
                 path: {
@@ -3625,7 +3652,7 @@ export interface paths {
                 };
                 cookie?: never;
             };
-            /** @description Coordenadas GPS opcionales al momento de confirmar la salida en la PWA */
+            /** @description Coordenadas GPS opcionales al momento de confirmar la aceptación en la PWA */
             requestBody?: {
                 content: {
                     "application/json": components["schemas"]["AceptarMisionInput"];
@@ -3655,7 +3682,7 @@ export interface paths {
                     };
                     content?: never;
                 };
-                /** @description Acceso denegado. Se requiere el permiso 'misiones:terreno:verificar' y pertenecer a la patrulla asignada */
+                /** @description Acceso denegado. Se requiere el permiso 'misiones:terreno:ejecutar' (cuadrilla) o 'misiones:terreno:verificar' (patrulla) y pertenecer a la unidad asignada */
                 403: {
                     headers: {
                         [name: string]: unknown;
@@ -3669,7 +3696,7 @@ export interface paths {
                     };
                     content?: never;
                 };
-                /** @description Conflicto de estado: la misión no se encuentra en estado 'DESPACHADA' (ej. ya fue aceptada o cancelada) */
+                /** @description Conflicto de estado: la misión no se encuentra en estado 'DESPACHADA' (ej. ya fue aceptada o cancelada), la unidad está dada de baja o el incidente está cerrado */
                 409: {
                     headers: {
                         [name: string]: unknown;
@@ -11587,6 +11614,17 @@ export interface components {
                  * @default false
                  */
                 verificado: boolean;
+                /** @description Indica si la cuadrilla operativa finalizó sus faenas y envió el informe técnico final (HU-68) */
+                faenasCuadrillaCompletadas?: boolean;
+                /** @description Estado final del terreno informado por la cuadrilla al cierre (HU-68) */
+                estadoTerrenoFinal?: string | null;
+                /** @description Horas hombre invertidas reportadas en el último cierre de cuadrilla (HU-68) */
+                horasHombreRegistradas?: number | null;
+                /**
+                 * @description Último dictamen técnico emitido por la patrulla verificadora (HU-39)
+                 * @enum {string|null}
+                 */
+                dictamenTerreno?: "REQUIERE_CUADRILLA" | "NO_ABORDABLE" | null;
                 /** @description Indica si el incidente fue verificado o reclasificado en terreno */
                 reclasificadoEnTerreno?: boolean;
                 /** @description Motivo o justificación técnica de la evaluación en terreno */
@@ -11816,6 +11854,17 @@ export interface components {
                  * @default false
                  */
                 verificado: boolean;
+                /** @description Indica si la cuadrilla operativa finalizó sus faenas y envió el informe técnico final (HU-68) */
+                faenasCuadrillaCompletadas?: boolean;
+                /** @description Estado final del terreno informado por la cuadrilla al cierre (HU-68) */
+                estadoTerrenoFinal?: string | null;
+                /** @description Horas hombre invertidas reportadas en el último cierre de cuadrilla (HU-68) */
+                horasHombreRegistradas?: number | null;
+                /**
+                 * @description Último dictamen técnico emitido por la patrulla verificadora (HU-39)
+                 * @enum {string|null}
+                 */
+                dictamenTerreno?: "REQUIERE_CUADRILLA" | "NO_ABORDABLE" | null;
                 /**
                  * @description Indica si fue verificado o reclasificado en terreno
                  * @default false
@@ -11853,6 +11902,11 @@ export interface components {
                     dictamen?: "REQUIERE_CUADRILLA" | "NO_ABORDABLE" | null;
                     motivoNoAbordable?: string | null;
                     tipoReporte?: string | null;
+                    estadoTerreno?: string | null;
+                    etiquetaReporte?: string | null;
+                    horasHombre?: number | null;
+                    requiereApoyoAdicional?: boolean;
+                    materialesConsumidos?: components["schemas"]["MaterialConsumidoDetalle"][] | null;
                     versionReporte: number | null;
                     esRectificacion: boolean;
                 } | null;
@@ -12689,13 +12743,13 @@ export interface components {
              */
             hito: string;
             /**
-             * @description Glosa descriptiva del hito operativo
-             * @example Misión Aceptada por Patrulla
+             * @description Glosa descriptiva del hito operativo ('Asignación Aceptada por Cuadrilla' en HU-40 o 'Misión Aceptada por Patrulla' en HU-36)
+             * @example Asignación Aceptada por Cuadrilla
              */
             descripcion: string;
             /**
              * Format: uuid
-             * @description UUID del funcionario de patrulla en sesión que confirmó la salida
+             * @description UUID del funcionario en sesión (Delegado de Cuadrilla o líder de patrulla) que confirmó la aceptación
              */
             registradoPorId: string | null;
             /** @description Latitud reportada al momento del hito */
@@ -13738,7 +13792,7 @@ export interface components {
             longitud?: number;
         };
         AceptarMisionResponse: {
-            /** @example Misión aceptada exitosamente. La patrulla se encuentra en trayecto para iniciar la evaluación. */
+            /** @example Asignación de misión aceptada exitosamente. La cuadrilla inicia el desplazamiento y asume la atención del incidente. */
             message: string;
             data: {
                 mision: {
@@ -13760,16 +13814,30 @@ export interface components {
                     incidenteId: string | null;
                     /** Format: uuid */
                     patrullaId: string | null;
+                    /** Format: uuid */
+                    cuadrillaId?: string | null;
                     /** @description Timestamp ISO 8601 fijado al momento de aceptar la misión */
                     fechaInicio: string;
                     actualizadoEn: string;
                 };
+                cuadrilla?: {
+                    /** Format: uuid */
+                    id: string;
+                    nombre: string;
+                    /**
+                     * @description Actualizado a EN_MISION al aceptar la asignación (HU-40)
+                     * @example EN_MISION
+                     */
+                    estado: string;
+                    /** Format: uuid */
+                    delegacionId?: string | null;
+                } | null;
                 patrulla: {
                     /** Format: uuid */
                     id: string;
                     nombre: string;
                     /**
-                     * @description Se mantiene en EN_VERIFICACION durante el trayecto y evaluación
+                     * @description Se mantiene en EN_VERIFICACION durante el trayecto y evaluación (HU-36)
                      * @example EN_VERIFICACION
                      */
                     estado: string;
@@ -13779,10 +13847,11 @@ export interface components {
                     id: string;
                     codigo: string;
                     /**
-                     * @description Permanece en estado canónico VERIFICANDO (no 'En camino')
-                     * @example VERIFICANDO
+                     * @description EN_ATENCION cuando acepta una cuadrilla (HU-40) o VERIFICANDO cuando acepta una patrulla (HU-36)
+                     * @example EN_ATENCION
                      */
                     estado: string;
+                    prioridad?: string;
                 } | null;
                 hito: components["schemas"]["MisionHitoRegistrado"];
             };

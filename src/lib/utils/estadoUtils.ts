@@ -397,6 +397,20 @@ export function formatearNombrePatrulla(
 }
 
 /**
+ * Formatea el nombre de una cuadrilla operativa evitando duplicar el prefijo
+ * "Cuadrilla" cuando el nombre registrado ya lo incluye (ej. "Cuadrilla Vías y Canales 1").
+ */
+export function formatearNombreCuadrilla(
+  nombre?: string | null,
+  fallback = 'Cuadrilla Operativa'
+): string {
+  if (!nombre || typeof nombre !== 'string') return fallback;
+  const limpio = nombre.trim();
+  if (!limpio) return fallback;
+  return /^cuadrilla\b/i.test(limpio) ? limpio : `Cuadrilla ${limpio}`;
+}
+
+/**
  * Formatea el dictamen operativo del informe de verificación y cierre (HU-39 / HU-86).
  */
 export function formatearDictamenTerreno(
