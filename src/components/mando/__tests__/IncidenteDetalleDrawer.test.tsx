@@ -1532,4 +1532,87 @@ describe('Componente IncidenteDetalleDrawer e integración HU-17', () => {
       expect(spyDetalle).toHaveBeenCalledTimes(2);
     });
   });
+
+  it('HU-25: muestra banner de derivación social en RESUELTO elegible y oculta duplicado "Crear Evento FIBE" en cabecera', async () => {
+    vi.spyOn(incidentesService, 'obtenerDetalleIncidente').mockResolvedValueOnce({
+      exito: true,
+      mensaje: 'OK',
+      datos: {
+        id: 'inc-1',
+        codigo: 'INC-2026-0001',
+        tipoAfectacion: 'Inundación',
+        descripcion: 'Agua en vivienda',
+        direccion: 'Av. Picarte 1420',
+        latitud: -39.81,
+        longitud: -73.24,
+        estado: 'RESUELTO',
+        prioridad: 'ALTA',
+        personasAfectadas: 3,
+        requiereAsistenciaSocial: true,
+        asistenciaSocial: null,
+        creadoEn: '2026-11-18T10:00:00Z',
+        actualizadoEn: '2026-11-18T12:00:00Z',
+        informante: null,
+        delegacion: { id: 'del-1', nombre: 'Centro' },
+        misiones: [],
+        recursosAsociados: [],
+      } as unknown as incidentesService.IncidenteDetalle,
+    });
+
+    render(<IncidenteDetalleDrawer incidenteId="inc-1" onCerrar={vi.fn()} />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('banner-derivar-asistencia-social')).toBeInTheDocument();
+    });
+
+    expect(
+      screen.getByRole('button', { name: /Derivar a Asistencia Social/i })
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /Crear Evento FIBE/i })).not.toBeInTheDocument();
+  });
+
+  it('HU-25: muestra banner de confirmación cuando el incidente RESUELTO ya posee evento social ASIGNADO', async () => {
+    vi.spyOn(incidentesService, 'obtenerDetalleIncidente').mockResolvedValueOnce({
+      exito: true,
+      mensaje: 'OK',
+      datos: {
+        id: 'inc-1',
+        codigo: 'INC-2026-0001',
+        tipoAfectacion: 'Inundación',
+        descripcion: 'Agua en vivienda',
+        direccion: 'Av. Picarte 1420',
+        latitud: -39.81,
+        longitud: -73.24,
+        estado: 'RESUELTO',
+        prioridad: 'ALTA',
+        personasAfectadas: 2,
+        requiereAsistenciaSocial: true,
+        asistenciaSocial: {
+          id: 'ev-10',
+          codigo: 'AS-2026-0010',
+          estado: 'ASIGNADO',
+          asistenteSocialId: 'asoc-1',
+          asistenteSocialNombre: 'Camila Soto Méndez',
+        },
+        creadoEn: '2026-11-18T10:00:00Z',
+        actualizadoEn: '2026-11-18T12:00:00Z',
+        informante: null,
+        delegacion: { id: 'del-1', nombre: 'Centro' },
+        misiones: [],
+        recursosAsociados: [],
+      } as unknown as incidentesService.IncidenteDetalle,
+    });
+
+    render(<IncidenteDetalleDrawer incidenteId="inc-1" onCerrar={vi.fn()} />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('banner-derivacion-social-confirmada')).toBeInTheDocument();
+    });
+
+    expect(screen.getByText(/AS-2026-0010/)).toBeInTheDocument();
+    expect(screen.getByText(/Camila Soto Méndez/)).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /Derivar a Asistencia Social/i })
+    ).not.toBeInTheDocument();
+  });
 });

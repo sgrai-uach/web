@@ -8,6 +8,7 @@ import {
   normalizarDetallesEvaluacionSocial,
   validarCoherenciaFamiliaSocial,
   extraerContactoPrincipalDesdeFamilias,
+  evaluarElegibilidadDerivacionSocial,
 } from '../asistenciaSocialIncidenteUtils';
 import { DELEGACIONES_MUNICIPALES } from '@/hooks/usePuntosCriticos';
 
@@ -306,5 +307,81 @@ describe('asistenciaSocialIncidenteUtils', () => {
       contactoTelefono: '+56912345678',
       contactoRut: '11.111.111-1',
     });
+  });
+
+  it('HU-25: evalúa elegibilidad de derivación social post-incidente RESUELTO', () => {
+    const noResuelto = evaluarElegibilidadDerivacionSocial({
+      id: 'inc-1',
+      estado: 'EN_ATENCION',
+      personasAfectadas: 4,
+      requiereAsistenciaSocial: true,
+    });
+    expect(noResuelto.esResuelto).toBe(false);
+    expect(noResuelto.elegible).toBe(false);
+
+    const sinAfectacionNiFibe = evaluarElegibilidadDerivacionSocial({
+      id: 'inc-2',
+      estado: 'RESUELTO',
+      personasAfectadas: 0,
+      requiereAsistenciaSocial: false,
+    });
+    expect(sinAfectacionNiFibe.esResuelto).toBe(true);
+    expect(sinAfectacionNiFibe.elegible).toBe(false);
+
+    const porPersonas = evaluarElegibilidadDerivacionSocial({
+      id: 'inc-3',
+      estado: 'RESUELTO',
+      personasAfectadas: 3,
+      requiereAsistenciaSocial: false,
+    });
+    expect(porPersonas.elegible).toBe(true);
+    expect(porPersonas.personasAfectadas).toBe(3);
+    expect(porPersonas.yaDerivado).toBe(false);
+
+    const porMarcaFibeDesdeCuadrilla = evaluarElegibilidadDerivacionSocial({
+      id: 'inc-4',
+      estado: 'RESUELTO',
+      personasAfectadas: 0,
+      requiereAsistenciaSocial: false,
+      reportesEvaluacionTerreno: [
+        {
+          id: 'rep-cierre',
+          tipoReporte: 'REPORTE_CUADRILLA',
+          personasAfectadas: 2,
+          requiereAsistenciaSocial: true,
+        },
+      ],
+    });
+    expect(porMarcaFibeDesdeCuadrilla.elegible).toBe(true);
+    expect(porMarcaFibeDesdeCuadrilla.personasAfectadas).toBe(2);
+    expect(porMarcaFibeDesdeCuadrilla.requiereAsistenciaSocial).toBe(true);
+
+    const pendienteUpsert = evaluarElegibilidadDerivacionSocial({
+      id: 'inc-5',
+      estado: 'RESUELTO',
+      personasAfectadas: 2,
+      asistenciaSocial: {
+        id: 'ev-1',
+        codigo: 'AS-2026-0001',
+        estado: 'PENDIENTE',
+      },
+    });
+    expect(pendienteUpsert.elegible).toBe(true);
+    expect(pendienteUpsert.tieneEventoPendiente).toBe(true);
+    expect(pendienteUpsert.yaDerivado).toBe(false);
+
+    const yaAsignado = evaluarElegibilidadDerivacionSocial({
+      id: 'inc-6',
+      estado: 'RESUELTO',
+      personasAfectadas: 2,
+      asistenciaSocial: {
+        id: 'ev-2',
+        codigo: 'AS-2026-0002',
+        estado: 'ASIGNADO',
+        asistenteSocialNombre: 'Camila Soto',
+      },
+    });
+    expect(yaAsignado.elegible).toBe(true);
+    expect(yaAsignado.yaDerivado).toBe(true);
   });
 });

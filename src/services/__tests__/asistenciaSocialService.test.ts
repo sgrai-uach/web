@@ -3,6 +3,7 @@ import {
   crearEventoAsistenciaSocial,
   obtenerEventosAsistenciaSocial,
   asignarAsistenteSocial,
+  derivarIncidenteAAsistenciaSocial,
   AsistenciaSocialServiceError,
   filtrarEventosMock,
 } from '../asistenciaSocialService';
@@ -430,5 +431,103 @@ describe('asistenciaSocialService', () => {
       expect(item.detallesEvaluacion?.cantidadNinos).toBe(2);
       expect(item.detallesEvaluacion?.personasDiscapacitadas).toBe(1);
     }
+  });
+
+  it('HU-25: derivarIncidenteAAsistenciaSocial llama a POST /api/incidentes/{id}/asistencia-social y maneja 201, 200, 403, 409 y 422', async () => {
+    const postSpy = vi.spyOn(apiClient, 'POST').mockResolvedValueOnce({
+      data: {
+        data: {
+          accion: 'CREADO',
+          evento: {
+            id: 'ev-h25-1',
+            codigo: 'AS-2026-0099',
+            estado: 'ASIGNADO',
+            incidenteId: 'inc-resuelto-1',
+            asistenteSocialId: 'asoc-1',
+            asistenteSocialNombre: 'Camila Soto',
+            direccionTexto: 'Av. Picarte 1420',
+            contactoNombre: 'Juan Pérez',
+            contactoTelefono: '+56987654321',
+            prioridad: 'ALTA',
+            tipoAfectacion: 'VIVIENDA_ANEGADA',
+            personasAfectadas: 3,
+            familiasAfectadas: 1,
+            latitud: -39.81,
+            longitud: -73.24,
+            creadoEn: '2026-11-21T12:00:00Z',
+            actualizadoEn: '2026-11-21T12:00:00Z',
+          },
+          hitoRegistrado: {
+            hito: 'DERIVACION_ASISTENCIA_SOCIAL',
+            descripcion: 'Derivado a Camila Soto',
+          },
+        },
+      },
+      error: null,
+      response: new Response(null, { status: 201 }),
+    } as never);
+
+    const res201 = await derivarIncidenteAAsistenciaSocial(
+      {
+        incidenteId: 'inc-resuelto-1',
+        asistenteSocialId: 'asoc-1',
+        observaciones: 'Adulto mayor en vivienda anegada',
+      },
+      'encargado-1'
+    );
+
+    expect(postSpy).toHaveBeenCalledWith(
+      '/api/incidentes/{id}/asistencia-social',
+      expect.objectContaining({
+        params: expect.objectContaining({ path: { id: 'inc-resuelto-1' } }),
+        body: {
+          asistenteSocialId: 'asoc-1',
+          observaciones: 'Adulto mayor en vivienda anegada',
+        },
+      })
+    );
+    expect(res201.accion).toBe('CREADO');
+    expect(res201.evento.estado).toBe('ASIGNADO');
+    expect(res201.evento.contactoNombre).toBe('Juan Pérez');
+    expect(res201.hitoRegistrado?.hito).toBe('DERIVACION_ASISTENCIA_SOCIAL');
+
+    // Error 403 RBAC
+    vi.spyOn(apiClient, 'POST').mockResolvedValueOnce({
+      data: undefined,
+      error: { message: 'Permiso asistencia_social:crear requerido' },
+      response: new Response(null, { status: 403 }),
+    } as never);
+    await expect(
+      derivarIncidenteAAsistenciaSocial({
+        incidenteId: 'inc-resuelto-1',
+        asistenteSocialId: 'asoc-1',
+      })
+    ).rejects.toMatchObject({ statusCode: 403 });
+
+    // Error 409 conflicto disponibilidad
+    vi.spyOn(apiClient, 'POST').mockResolvedValueOnce({
+      data: undefined,
+      error: { message: 'El asistente social ya no está disponible' },
+      response: new Response(null, { status: 409 }),
+    } as never);
+    await expect(
+      derivarIncidenteAAsistenciaSocial({
+        incidenteId: 'inc-resuelto-1',
+        asistenteSocialId: 'asoc-1',
+      })
+    ).rejects.toMatchObject({ statusCode: 409 });
+
+    // Error 422 incidente no elegible
+    vi.spyOn(apiClient, 'POST').mockResolvedValueOnce({
+      data: undefined,
+      error: { message: 'Incidente no está RESUELTO' },
+      response: new Response(null, { status: 422 }),
+    } as never);
+    await expect(
+      derivarIncidenteAAsistenciaSocial({
+        incidenteId: 'inc-resuelto-1',
+        asistenteSocialId: 'asoc-1',
+      })
+    ).rejects.toMatchObject({ statusCode: 422 });
   });
 });

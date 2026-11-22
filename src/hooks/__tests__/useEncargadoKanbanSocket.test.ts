@@ -714,4 +714,66 @@ describe('useEncargadoKanbanSocket', () => {
       })
     );
   });
+
+  it('HU-25: normaliza y deduplica eventos asistencia_social:creada y asistencia_social:actualizada', async () => {
+    const { getSocket } = await import('@/lib/socket/client');
+    const socket = getSocket() as unknown as {
+      _trigger: (ev: string, p: unknown) => void;
+    };
+
+    const onAsistenciaSocialCreada = vi.fn();
+    const onAsistenciaSocialActualizada = vi.fn();
+
+    renderHook(() =>
+      useEncargadoKanbanSocket({
+        onAsistenciaSocialCreada,
+        onAsistenciaSocialActualizada,
+      })
+    );
+
+    const payloadCreada = {
+      evento: {
+        id: 'ev-soc-25',
+        codigo: 'AS-2026-0025',
+        incidente_id: 'inc-res-25',
+        asistente_social_id: 'asoc-1',
+        asistente_social_nombre: 'Camila Soto',
+        estado: 'ASIGNADO',
+      },
+    };
+
+    act(() => {
+      socket._trigger('asistencia_social:creada', payloadCreada);
+      socket._trigger('asistencia_social:creada', payloadCreada); // duplicado
+    });
+
+    expect(onAsistenciaSocialCreada).toHaveBeenCalledTimes(1);
+    expect(onAsistenciaSocialCreada).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: 'ev-soc-25',
+        codigo: 'AS-2026-0025',
+        incidenteId: 'inc-res-25',
+        asistenteSocialId: 'asoc-1',
+        asistenteSocialNombre: 'Camila Soto',
+        estado: 'ASIGNADO',
+      })
+    );
+
+    act(() => {
+      socket._trigger('asistencia_social:actualizada', {
+        id: 'ev-soc-25',
+        codigo: 'AS-2026-0025',
+        incidenteId: 'inc-res-25',
+        estado: 'EN_EVALUACION_FIBE',
+        actualizadoEn: '2026-11-21T16:00:00Z',
+      });
+    });
+
+    expect(onAsistenciaSocialActualizada).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: 'ev-soc-25',
+        estado: 'EN_EVALUACION_FIBE',
+      })
+    );
+  });
 });

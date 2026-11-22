@@ -311,4 +311,59 @@ describe('useEventosAsistenciaSocial', () => {
     expect(result.current.eventos[0].detallesEvaluacion?.cantidadNinos).toBe(2);
     expect(result.current.eventos[0].detallesEvaluacion?.personasDiscapacitadas).toBe(1);
   });
+
+  it('HU-25: soporta payload envuelto { evento } en asistencia_social:creada y actualiza/remueve evento PENDIENTE al pasar a ASIGNADO', async () => {
+    vi.mocked(asistenciaSocialService.obtenerEventosAsistenciaSocial).mockResolvedValueOnce({
+      data: [
+        {
+          ...mockItem,
+          id: 'ev-pendiente-1',
+          codigo: 'AS-2026-0050',
+          estado: 'PENDIENTE',
+        },
+      ],
+      total: 1,
+      pagina: 1,
+      limite: 10,
+      totalPaginas: 1,
+    });
+
+    const { result } = renderHook(() =>
+      useEventosAsistenciaSocial({
+        pagina: 1,
+        limite: 10,
+        busqueda: '',
+        delegacionId: '',
+        prioridad: '',
+        estado: 'PENDIENTE',
+      })
+    );
+
+    await waitFor(() => {
+      expect(result.current.cargando).toBe(false);
+    });
+    expect(result.current.eventos).toHaveLength(1);
+
+    const { getSocket } = await import('@/lib/socket/client');
+    const socket = getSocket() as unknown as {
+      _trigger: (event: string, payload?: unknown) => void;
+    };
+
+    act(() => {
+      socket._trigger('asistencia_social:creada', {
+        evento: {
+          ...mockItem,
+          id: 'ev-pendiente-1',
+          codigo: 'AS-2026-0050',
+          estado: 'ASIGNADO',
+          asistenteSocialId: 'asoc-1',
+          asistenteSocialNombre: 'Camila Soto',
+        },
+      });
+    });
+
+    // Al estar filtrado por PENDIENTE, el upsert a ASIGNADO debe removerlo de la lista actual
+    expect(result.current.eventos).toHaveLength(0);
+    expect(result.current.meta.total).toBe(0);
+  });
 });

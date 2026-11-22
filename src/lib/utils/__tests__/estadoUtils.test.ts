@@ -353,6 +353,17 @@ describe('H68: utilidades para cierre de misión de cuadrilla (REPORTE_CUADRILLA
       'Misión cerrada por la Cuadrilla Norte. Estado terreno: Requiere seguimiento. Cuadrilla pasa a Disponible.'
     );
   });
+
+  it('HU-25: formatea hitos y estados de derivación a Asistencia Social (FIBE / DGRD)', () => {
+    expect(formatearHitoBitacora('DERIVACION_ASISTENCIA_SOCIAL')).toBe(
+      'Derivación a Asistencia Social (DGRD — Ficha FIBE)'
+    );
+    expect(formatearEstado('ASISTENCIA_SOCIAL_ASIGNADA')).toBe(
+      'Asistente social asignado para levantamiento FIBE'
+    );
+    expect(formatearEstado('PENDIENTE')).toBe('Pendiente');
+    expect(formatearEstado('EN_EVALUACION_FIBE')).toBe('En evaluación FIBE');
+  });
 });
 
 

@@ -405,4 +405,84 @@ describe('IncidenteCard', () => {
     expect(badgeReportes.textContent).toBe('3 reportes');
     expect(badgeReportes.textContent).not.toContain('Rectificado');
   });
+
+  it('HU-25: habilita "Derivar a Asistencia Social" solo en RESUELTO con personas afectadas o requiereAsistenciaSocial y sin derivación previa', () => {
+    const onDerivar = vi.fn();
+
+    // 1. RESUELTO con personasAfectadas > 0 -> muestra botón y chip damnificados
+    const resueltoConDamnificados: IncidenteResumen = {
+      ...mockIncidente,
+      id: 'inc-res-1',
+      estado: 'RESUELTO',
+      personasAfectadas: 3,
+      requiereAsistenciaSocial: false,
+    };
+    const { rerender } = render(
+      <IncidenteCard
+        incidente={resueltoConDamnificados}
+        onClick={vi.fn()}
+        onDerivarAsistenciaSocial={onDerivar}
+        puedeDerivarAsistenciaSocial
+      />
+    );
+    expect(screen.getByTestId('badge-personas-afectadas')).toHaveTextContent('3 damnificados');
+    const btnDerivar = screen.getByRole('button', { name: /Derivar incidente/i });
+    fireEvent.click(btnDerivar);
+    expect(onDerivar).toHaveBeenCalledWith(resueltoConDamnificados);
+
+    // 2. RESUELTO sin personas afectadas ni requiereAsistenciaSocial -> NO muestra botón
+    rerender(
+      <IncidenteCard
+        incidente={{
+          ...mockIncidente,
+          id: 'inc-res-2',
+          estado: 'RESUELTO',
+          personasAfectadas: 0,
+          requiereAsistenciaSocial: false,
+        }}
+        onClick={vi.fn()}
+        onDerivarAsistenciaSocial={onDerivar}
+        puedeDerivarAsistenciaSocial
+      />
+    );
+    expect(screen.queryByRole('button', { name: /Derivar incidente/i })).not.toBeInTheDocument();
+
+    // 3. EN_ATENCION con personasAfectadas > 0 -> NO muestra botón
+    rerender(
+      <IncidenteCard
+        incidente={{
+          ...mockIncidente,
+          id: 'inc-at-1',
+          estado: 'EN_ATENCION',
+          personasAfectadas: 3,
+          requiereAsistenciaSocial: true,
+        }}
+        onClick={vi.fn()}
+        onDerivarAsistenciaSocial={onDerivar}
+        puedeDerivarAsistenciaSocial
+      />
+    );
+    expect(screen.queryByRole('button', { name: /Derivar incidente/i })).not.toBeInTheDocument();
+
+    // 4. RESUELTO ya derivado (ASIGNADO) -> muestra chip Derivado FIBE y oculta botón
+    rerender(
+      <IncidenteCard
+        incidente={{
+          ...resueltoConDamnificados,
+          asistenciaSocial: {
+            id: 'ev-1',
+            codigo: 'AS-2026-0008',
+            estado: 'ASIGNADO',
+            asistenteSocialNombre: 'Camila Soto',
+          },
+        }}
+        onClick={vi.fn()}
+        onDerivarAsistenciaSocial={onDerivar}
+        puedeDerivarAsistenciaSocial
+      />
+    );
+    expect(screen.getByTestId('badge-derivado-fibe')).toHaveTextContent('Derivado FIBE');
+    expect(screen.getByTestId('resumen-derivacion-social-card')).toHaveTextContent('Camila Soto');
+    expect(screen.queryByRole('button', { name: /Derivar incidente/i })).not.toBeInTheDocument();
+  });
 });
