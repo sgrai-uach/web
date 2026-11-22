@@ -88,19 +88,21 @@ export function useCuadrillaEditForm({
 
         // Precargar datos de la cuadrilla
         setNombre(cuadrilla.nombre);
-        setDelegacionId(cuadrilla.delegacion.id);
+        setDelegacionId(cuadrilla.delegacion?.id || '');
 
-        if (cuadrilla.delegado) {
+        if (cuadrilla.delegado && cuadrilla.delegado.id) {
           setDelegadoSeleccionado({
             id: cuadrilla.delegado.id,
-            nombreCompleto: cuadrilla.delegado.nombre,
+            nombreCompleto: cuadrilla.delegado.nombre || 'Delegado Operativo',
             rut: cuadrilla.delegado.rut || '',
-            email: cuadrilla.delegado.email,
+            email: cuadrilla.delegado.email || '',
             rolNombre: 'Delegado de Cuadrilla',
             rolCodigo: 'DELEGADO_CUADRILLA',
-            delegacionNombre: cuadrilla.delegacion.nombre,
+            delegacionNombre: cuadrilla.delegacion?.nombre || undefined,
             estadoOperativo: 'disponible',
           });
+        } else {
+          setDelegadoSeleccionado(null);
         }
 
         // Precargar recursos asignados resolviendo stock real

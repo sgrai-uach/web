@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { patrullasService, DEFAULT_ENCARGADO_ID } from '@/services/patrullasService';
 import { getSocket } from '@/lib/socket/client';
+import { suscribirSalasSocket } from '@/lib/socket/roomManager';
 import type {
   FiltrosPatrullas,
   PatrullaVerificadoraDTO,
@@ -98,6 +99,7 @@ export function usePatrullas({
   }, [filtros]);
 
   const consultarRef = useRef(consultar);
+  const eventosProcesadosRef = useRef<Map<string, number>>(new Map());
   useEffect(() => {
     consultarRef.current = consultar;
   }, [consultar]);
@@ -105,22 +107,30 @@ export function usePatrullas({
   useEffect(() => {
     if (!enabled) return;
 
+    const esEventoDuplicado = (clave: string, ventanaMs = 4000): boolean => {
+      const ahora = Date.now();
+      const ultimoProc = eventosProcesadosRef.current.get(clave);
+      if (ultimoProc && ahora - ultimoProc < ventanaMs) {
+        return true;
+      }
+      eventosProcesadosRef.current.set(clave, ahora);
+      return false;
+    };
+
     const socket = getSocket();
 
     if (!socket.connected) {
       socket.connect();
     }
 
-    const unirseSalas = () => {
-      setConectado(true);
-      socket.emit('join', 'encargado');
-      socket.emit('unirse', 'sala:encargados');
-      socket.emit('join', 'mapa');
-      socket.emit('unirse', 'mapa');
-    };
+    const desuscribirSalas = suscribirSalasSocket(socket, [
+      { sala: 'encargado', eventosJoin: ['join'], eventosLeave: ['leave'] },
+      { sala: 'sala:encargados', eventosJoin: ['unirse'], eventosLeave: ['salir'] },
+      { sala: 'mapa', eventosJoin: ['join', 'unirse'], eventosLeave: ['leave', 'salir'] },
+    ]);
 
     const onConnect = () => {
-      unirseSalas();
+      setConectado(true);
     };
 
     const onDisconnect = () => {
@@ -128,11 +138,16 @@ export function usePatrullas({
     };
 
     if (socket.connected) {
-      unirseSalas();
+      queueMicrotask(() => {
+        setConectado(true);
+      });
     }
 
     const handlePatrullaActualizada = (payload: PatrullaActualizadaSocketPayload) => {
       if (!payload?.patrullaId) return;
+      if (esEventoDuplicado(`patrulla-act:${payload.patrullaId}:${payload.estado}:${payload.misionActivaId || ''}`)) {
+        return;
+      }
 
       const nombre = payload.nombre || 'Patrulla';
       const nuevoEstado: EstadoPatrullaEnum = payload.estado;
@@ -172,6 +187,9 @@ export function usePatrullas({
 
     const handleMisionAsignada = (payload: MisionAsignadaSocketPayload) => {
       if (!payload?.patrullaId) return;
+      if (esEventoDuplicado(`mision-asig:${payload.patrullaId}:${payload.misionId}`)) {
+        return;
+      }
 
       setUltimoEvento(`Misión ${payload.codigo || ''} asignada a patrulla`);
 
@@ -207,6 +225,9 @@ export function usePatrullas({
 
     const handlePatrullaCreada = (payload: PatrullaCreadaSocketPayload) => {
       if (!payload?.patrullaId) return;
+      if (esEventoDuplicado(`patrulla-creada:${payload.patrullaId}`)) {
+        return;
+      }
       const nombre = payload.nombre || payload.codigo || 'Nueva Patrulla';
       setUltimoEvento(`Nueva patrulla incorporada: ${nombre} (${payload.estado || 'DISPONIBLE'})`);
       consultarRef.current(filtrosRef.current);
@@ -214,6 +235,9 @@ export function usePatrullas({
 
     const handlePatrullaDesactivada = (payload: PatrullaDesactivadaSocketPayload) => {
       if (!payload?.patrullaId) return;
+      if (esEventoDuplicado(`patrulla-desact:${payload.patrullaId}`)) {
+        return;
+      }
       const nombre = payload.nombre || 'Patrulla';
       setUltimoEvento(`Patrulla dada de baja: ${nombre}`);
       setPatrullas((prev) => {
@@ -245,10 +269,7 @@ export function usePatrullas({
       socket.off('mision:asignada', handleMisionAsignada);
       socket.off('patrulla:creada', handlePatrullaCreada);
       socket.off('patrulla:desactivada', handlePatrullaDesactivada);
-      socket.emit('leave', 'encargado');
-      socket.emit('salir', 'sala:encargados');
-      socket.emit('leave', 'mapa');
-      socket.emit('salir', 'mapa');
+      desuscribirSalas();
     };
   }, [enabled]);
 

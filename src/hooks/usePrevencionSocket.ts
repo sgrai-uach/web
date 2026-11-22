@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { getSocket } from '@/lib/socket/client';
+import { suscribirSalasSocket } from '@/lib/socket/roomManager';
 import type { EventoPrevencionDTO } from '@/types/evento-prevencion';
 
 export interface UsePrevencionSocketOptions {
@@ -38,16 +39,13 @@ export function usePrevencionSocket({
       socket.connect();
     }
 
-    const unirseSalas = () => {
-      setConectado(true);
-      socket.emit('unirse', 'sala:encargados');
-      socket.emit('join', 'sala:encargados');
-      socket.emit('unirse', 'mapa');
-      socket.emit('join', 'mapa');
-    };
+    const desuscribirSalas = suscribirSalasSocket(socket, [
+      { sala: 'sala:encargados', eventosJoin: ['unirse', 'join'], eventosLeave: ['salir', 'leave'] },
+      { sala: 'mapa', eventosJoin: ['unirse', 'join'], eventosLeave: ['salir', 'leave'] },
+    ]);
 
     const onConnect = () => {
-      unirseSalas();
+      setConectado(true);
     };
 
     const onDisconnect = () => {
@@ -55,7 +53,9 @@ export function usePrevencionSocket({
     };
 
     if (socket.connected) {
-      unirseSalas();
+      queueMicrotask(() => {
+        setConectado(true);
+      });
     }
 
     const handlePrevencionCreada = (payload: EventoPrevencionDTO | { data: EventoPrevencionDTO }) => {
@@ -77,10 +77,7 @@ export function usePrevencionSocket({
       socket.off('connect', onConnect);
       socket.off('disconnect', onDisconnect);
       socket.off('prevencion:creada', handlePrevencionCreada);
-      socket.emit('salir', 'sala:encargados');
-      socket.emit('leave', 'sala:encargados');
-      socket.emit('salir', 'mapa');
-      socket.emit('leave', 'mapa');
+      desuscribirSalas();
     };
   }, [enabled]);
 

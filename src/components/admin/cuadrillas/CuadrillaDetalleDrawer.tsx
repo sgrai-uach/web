@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useRef } from 'react';
+import { getSocket } from '@/lib/socket/client';
 import {
   X,
   HardHat,
@@ -124,6 +125,11 @@ function CuadrillaDetalleDrawerContent({
   const [cargando, setCargando] = useState<boolean>(true);
   const [errorCarga, setErrorCarga] = useState<string | null>(null);
   const [esForbidden, setEsForbidden] = useState<boolean>(false);
+  const recursosIdsRef = useRef<string[]>([]);
+
+  useEffect(() => {
+    recursosIdsRef.current = (cuadrillaData?.recursos || []).map((r) => r.recursoId);
+  }, [cuadrillaData]);
 
   useEffect(() => {
     let isMounted = true;
@@ -152,6 +158,85 @@ function CuadrillaDetalleDrawerContent({
     return () => {
       isMounted = false;
     };
+  }, [targetId]);
+
+  // Sincronización en tiempo real al liberar cuadrilla o consumir recursos (H68)
+  useEffect(() => {
+    let isMounted = true;
+    try {
+      const socket = getSocket();
+      if (!socket || typeof socket.on !== 'function') return;
+
+      const unirseSalas = () => {
+        socket.emit('join', 'encargado');
+        socket.emit('unirse', 'sala:encargados');
+      };
+
+      if (!socket.connected && typeof socket.connect === 'function') {
+        socket.connect();
+      }
+      if (socket.connected) {
+        unirseSalas();
+      }
+
+      const recargarDetalle = () => {
+        void cuadrillasService
+          .obtenerCuadrillaPorId(targetId)
+          .then((data) => {
+            if (isMounted) setCuadrillaData(data);
+          })
+          .catch(() => {
+            // Ignorar fallo silencioso en refresco reactivo
+          });
+      };
+
+      const handleCuadrillaActualizada = (rawPayload: unknown) => {
+        const p = rawPayload as Record<string, unknown> | null | undefined;
+        const raw = (p?.datos || p?.data || rawPayload) as Record<string, unknown> | null | undefined;
+        const id =
+          typeof raw?.id === 'string'
+            ? raw.id
+            : typeof raw?.cuadrillaId === 'string'
+              ? raw.cuadrillaId
+              : typeof raw?.cuadrilla_id === 'string'
+                ? raw.cuadrilla_id
+                : '';
+        if (id === targetId) {
+          recargarDetalle();
+        }
+      };
+
+      const handleRecursoActualizado = (rawPayload: unknown) => {
+        const p = rawPayload as Record<string, unknown> | null | undefined;
+        const raw = (p?.datos || p?.data || rawPayload) as Record<string, unknown> | null | undefined;
+        const id =
+          typeof raw?.id === 'string'
+            ? raw.id
+            : typeof raw?.recursoId === 'string'
+              ? raw.recursoId
+              : typeof raw?.recurso_id === 'string'
+                ? raw.recurso_id
+                : '';
+        if (id && recursosIdsRef.current.includes(id)) {
+          recargarDetalle();
+        }
+      };
+
+      socket.on('connect', unirseSalas);
+      socket.on('cuadrilla:actualizada', handleCuadrillaActualizada);
+      socket.on('recurso:actualizado', handleRecursoActualizado);
+
+      return () => {
+        isMounted = false;
+        socket.off('connect', unirseSalas);
+        socket.off('cuadrilla:actualizada', handleCuadrillaActualizada);
+        socket.off('recurso:actualizado', handleRecursoActualizado);
+      };
+    } catch {
+      return () => {
+        isMounted = false;
+      };
+    }
   }, [targetId]);
 
   useEffect(() => {

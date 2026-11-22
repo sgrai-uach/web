@@ -145,6 +145,42 @@ describe('useEncargadoKanbanSocket', () => {
     expect(onIncidenteActualizado).toHaveBeenCalledWith(payload);
   });
 
+  it('debe procesar reclasificación de tipología en terreno emitiendo string amigable en ultimoEvento', () => {
+    const socket = getSocket();
+    const onIncidenteActualizado = vi.fn();
+
+    const { result } = renderHook(() =>
+      useEncargadoKanbanSocket({
+        onIncidenteActualizado,
+      })
+    );
+
+    const payloadReclasificado = {
+      evento: 'incidente:actualizado' as const,
+      datos: {
+        id: '50000000-0000-4000-8000-000000000001',
+        codigo: 'INC-2026-001',
+        nuevoEstado: 'VERIFICANDO' as const,
+        prioridad: 'ALTA' as const,
+        tipoIncidenteId: '40000000-0000-4000-8000-000000000001',
+        tipoAfectacion: 'Inundación',
+        justificacion: 'Tras evaluación presencial se constata desborde de cauce con ingreso de agua.',
+        actualizadoEn: '2026-11-10T03:30:00.000Z',
+      },
+      emitidoEn: '2026-11-10T03:30:00.000Z',
+    };
+
+    act(() => {
+      (socket as unknown as { _trigger: (ev: string, p: unknown) => void })._trigger(
+        'incidente:actualizado',
+        payloadReclasificado
+      );
+    });
+
+    expect(onIncidenteActualizado).toHaveBeenCalledWith(payloadReclasificado);
+    expect(result.current.ultimoEvento).toContain('Tipología reclasificada: INC-2026-001 a Inundación (Prioridad: Alta)');
+  });
+
   it('debe escuchar notificacion:trazabilidad_actualizada e invocar el callback onNotificacionTrazabilidadActualizada', () => {
     const socket = getSocket();
     const onNotificacionTrazabilidadActualizada = vi.fn();
@@ -211,7 +247,7 @@ describe('useEncargadoKanbanSocket', () => {
       );
     });
 
-    expect(onMisionRechazada).toHaveBeenCalledWith(payload);
+    expect(onMisionRechazada).toHaveBeenCalledWith(expect.objectContaining(payload));
   });
 
   it('debe deduplicar eventos de mision:rechazada recibidos repetidamente dentro de la ventana de tiempo', () => {
@@ -253,11 +289,221 @@ describe('useEncargadoKanbanSocket', () => {
     expect(socket.off).toHaveBeenCalledWith('incidente:creado', expect.any(Function));
     expect(socket.off).toHaveBeenCalledWith('incidente:actualizado', expect.any(Function));
     expect(socket.off).toHaveBeenCalledWith('mision:rechazada', expect.any(Function));
+    expect(socket.off).toHaveBeenCalledWith('cuadrilla:actualizada', expect.any(Function));
     expect(socket.off).toHaveBeenCalledWith('notificacion:trazabilidad_actualizada', expect.any(Function));
     expect(socket.emit).toHaveBeenCalledWith('leave', 'encargado');
     expect(socket.emit).toHaveBeenCalledWith('salir', 'sala:encargados');
     expect(socket.emit).toHaveBeenCalledWith('leave', 'mapa');
     expect(socket.emit).toHaveBeenCalledWith('salir', 'mapa');
+  });
+
+  it('debe deduplicar eventos incidente:actualizado repetidos por múltiples salas', () => {
+    const socket = getSocket();
+    const onIncidenteActualizado = vi.fn();
+
+    renderHook(() =>
+      useEncargadoKanbanSocket({
+        onIncidenteActualizado,
+      })
+    );
+
+    const payload = {
+      evento: 'incidente:actualizado' as const,
+      datos: {
+        id: 'inc-dup-1',
+        codigo: 'INC-948888-846',
+        nuevoEstado: 'VERIFICANDO' as const,
+        prioridad: 'MEDIA' as const,
+        actualizadoEn: '2026-11-13T12:00:00Z',
+      },
+      emitidoEn: '2026-11-13T12:00:00Z',
+    };
+
+    act(() => {
+      const trigger = (socket as unknown as { _trigger: (ev: string, p: unknown) => void })._trigger;
+      trigger('incidente:actualizado', payload);
+      trigger('incidente:actualizado', payload);
+      trigger('incidente:actualizado', payload);
+    });
+
+    expect(onIncidenteActualizado).toHaveBeenCalledTimes(1);
+  });
+
+  it('debe marcar esSintetico: true al sintetizar actualización desde mision:actualizada en EN_CURSO', () => {
+    const socket = getSocket();
+    const onIncidenteActualizado = vi.fn();
+
+    renderHook(() =>
+      useEncargadoKanbanSocket({
+        onIncidenteActualizado,
+      })
+    );
+
+    act(() => {
+      const trigger = (socket as unknown as { _trigger: (ev: string, p: unknown) => void })._trigger;
+      trigger('mision:actualizada', {
+        incidenteId: 'inc-mision-1',
+        estado: 'EN_CURSO',
+        tipoMision: 'VERIFICACION',
+        codigo: 'MIS-001',
+      });
+      trigger('mision:actualizada', {
+        incidenteId: 'inc-mision-1',
+        estado: 'EN_CURSO',
+        tipoMision: 'VERIFICACION',
+        codigo: 'MIS-001',
+      });
+    });
+
+    expect(onIncidenteActualizado).toHaveBeenCalledTimes(1);
+    expect(onIncidenteActualizado).toHaveBeenCalledWith(
+      expect.objectContaining({
+        esSintetico: true,
+        datos: expect.objectContaining({
+          id: 'inc-mision-1',
+          nuevoEstado: 'VERIFICANDO',
+        }),
+      })
+    );
+  });
+
+  it('debe reflejar en ultimoEvento cuando la tipología fue confirmada sin cambios', () => {
+    const socket = getSocket();
+    const onIncidenteActualizado = vi.fn();
+
+    const { result } = renderHook(() =>
+      useEncargadoKanbanSocket({
+        onIncidenteActualizado,
+      })
+    );
+
+    act(() => {
+      const trigger = (socket as unknown as { _trigger: (ev: string, p: unknown) => void })._trigger;
+      trigger('incidente:actualizado', {
+        evento: 'incidente:actualizado',
+        datos: {
+          id: 'inc-rat-1',
+          codigo: 'INC-948888-846',
+          nuevoEstado: 'VERIFICANDO',
+          prioridad: 'MEDIA',
+          tipoAnterior: 'Deslizamiento',
+          tipoAfectacion: 'Deslizamiento',
+          justificacion: 'Tipología constatada y ratificada en terreno sin variaciones.',
+          actualizadoEn: '2026-11-13T15:21:38Z',
+        },
+      });
+    });
+
+    expect(result.current.ultimoEvento).toContain('Tipología confirmada sin cambios: INC-948888-846 (Deslizamiento');
+  });
+
+  it('debe normalizar incidente:actualizado con dictamen NO_ABORDABLE, motivoNoAbordable y fechaCierre (H39)', () => {
+    const socket = getSocket();
+    const onIncidenteActualizado = vi.fn();
+
+    const { result } = renderHook(() =>
+      useEncargadoKanbanSocket({
+        onIncidenteActualizado,
+      })
+    );
+
+    act(() => {
+      const trigger = (socket as unknown as { _trigger: (ev: string, p: unknown) => void })._trigger;
+      trigger('incidente:actualizado', {
+        evento: 'incidente:actualizado',
+        datos: {
+          id: 'inc-noab-1',
+          codigo: 'INC-2026-860',
+          nuevoEstado: 'NO_ABORDABLE',
+          prioridad: 'BAJA',
+          dictamen: 'NO_ABORDABLE',
+          motivoNoAbordable: 'Predio privado cerrado sin acceso vehicular ni riesgo externo.',
+          fechaCierre: '2026-11-15T14:20:00Z',
+          verificado: true,
+          actualizadoEn: '2026-11-15T14:20:00Z',
+        },
+      });
+    });
+
+    expect(onIncidenteActualizado).toHaveBeenCalledWith(
+      expect.objectContaining({
+        datos: expect.objectContaining({
+          id: 'inc-noab-1',
+          nuevoEstado: 'NO_ABORDABLE',
+          dictamen: 'NO_ABORDABLE',
+          motivoNoAbordable: 'Predio privado cerrado sin acceso vehicular ni riesgo externo.',
+          fechaCierre: '2026-11-15T14:20:00Z',
+          verificado: true,
+        }),
+      })
+    );
+    expect(result.current.ultimoEvento).toContain('declarado No Abordable en terreno');
+  });
+
+  it('debe normalizar informe de cierre REQUIERE_CUADRILLA con FIBE y NO sintetizar evento para mision COMPLETADA (H39)', () => {
+    const socket = getSocket();
+    const onIncidenteActualizado = vi.fn();
+
+    const { result } = renderHook(() =>
+      useEncargadoKanbanSocket({
+        onIncidenteActualizado,
+      })
+    );
+
+    act(() => {
+      const trigger = (socket as unknown as { _trigger: (ev: string, p: unknown) => void })._trigger;
+      // mision:actualizada COMPLETADA no debe disparar payload sintético que pise estados
+      trigger('mision:actualizada', {
+        incidenteId: 'inc-cierre-1',
+        estado: 'COMPLETADA',
+        tipoMision: 'VERIFICACION',
+        codigo: 'MIS-2026-039',
+      });
+    });
+
+    expect(onIncidenteActualizado).not.toHaveBeenCalled();
+
+    act(() => {
+      const trigger = (socket as unknown as { _trigger: (ev: string, p: unknown) => void })._trigger;
+      trigger('incidente:actualizado', {
+        evento: 'incidente:actualizado',
+        datos: {
+          id: 'inc-cierre-1',
+          codigo: 'INC-2026-039',
+          nuevoEstado: 'VERIFICANDO',
+          prioridad: 'ALTA',
+          verificado: true,
+          requiereAsistenciaSocial: true,
+          dictamen: 'REQUIERE_CUADRILLA',
+          reporteTerreno: {
+            id: 'rep-cierre-1',
+            misionId: 'mis-039',
+            tipoReporte: 'VERIFICACION_CIERRE',
+            dictamen: 'REQUIERE_CUADRILLA',
+            etiquetaReporte: 'Informe de Verificación y Cierre',
+            requiereAsistenciaSocial: true,
+            personasAfectadas: 4,
+            estadoTerreno: 'CRITICO',
+            resumenTecnico: 'Árbol obstruye calzada y compromete acceso a vivienda.',
+          },
+          actualizadoEn: '2026-11-15T15:00:00Z',
+        },
+      });
+    });
+
+    expect(onIncidenteActualizado).toHaveBeenCalledTimes(1);
+    expect(onIncidenteActualizado).toHaveBeenCalledWith(
+      expect.objectContaining({
+        datos: expect.objectContaining({
+          id: 'inc-cierre-1',
+          nuevoEstado: 'VERIFICANDO',
+          verificado: true,
+          requiereAsistenciaSocial: true,
+          dictamen: 'REQUIERE_CUADRILLA',
+        }),
+      })
+    );
+    expect(result.current.ultimoEvento).toContain('Verificación finalizada en INC-2026-039: Requiere Cuadrilla');
   });
 
   it('BUG-H35-WEB-07: ignora payloads malformados o con estado inválido en notificacion:trazabilidad_actualizada', () => {
@@ -284,5 +530,188 @@ describe('useEncargadoKanbanSocket', () => {
     expect(onNotificacionTrazabilidadActualizada).not.toHaveBeenCalled();
     expect(result.current.ultimoEvento).toBeNull();
     expect(getTrazabilidadEstado('mis-invalido')).toBeUndefined();
+  });
+
+  it('HU-41: escucha mision:rechazada de cuadrilla, normaliza payload y deduplica emisiones concurrentes', () => {
+    const socket = getSocket();
+    const onMisionRechazada = vi.fn();
+
+    const { result } = renderHook(() =>
+      useEncargadoKanbanSocket({
+        onMisionRechazada,
+      })
+    );
+
+    const payload = {
+      misionId: '70000000-0000-4000-8000-000000000001',
+      codigo: 'MIS-2026-0005',
+      tipoMision: 'ATENCION_CUADRILLA',
+      motivo: 'Camión tolva presenta falla hidráulica en ruta de salida desde base.',
+      justificacionRechazo: 'Camión tolva presenta falla hidráulica en ruta de salida desde base.',
+      cuadrillaId: '50000000-0000-4000-8000-000000000001',
+      cuadrillaNombre: 'Cuadrilla Vías y Canales 1',
+      patrullaId: null,
+      patrullaNombre: null,
+      incidenteId: '30000000-0000-4000-8000-000000000001',
+      incidenteCodigo: 'INC-2026-0001',
+      rechazadoPorId: 'd0000000-0000-4000-8000-000000000001',
+      rechazadoEn: '2026-11-16T23:15:00.000Z',
+    };
+
+    act(() => {
+      const trigger = (socket as unknown as { _trigger: (ev: string, p: unknown) => void })._trigger;
+      trigger('mision:rechazada', payload);
+      trigger('mision:rechazada', payload);
+    });
+
+    expect(onMisionRechazada).toHaveBeenCalledTimes(1);
+    expect(onMisionRechazada).toHaveBeenCalledWith(expect.objectContaining(payload));
+    expect(result.current.ultimoEvento).toBe('Misión rechazada: MIS-2026-0005');
+  });
+
+  it('HU-41: escucha cuadrilla:actualizada e invoca onCuadrillaActualizada cuando la cuadrilla vuelve a DISPONIBLE', () => {
+    const socket = getSocket();
+    const onCuadrillaActualizada = vi.fn();
+
+    renderHook(() =>
+      useEncargadoKanbanSocket({
+        onCuadrillaActualizada,
+      })
+    );
+
+    const payload = {
+      id: '50000000-0000-4000-8000-000000000001',
+      nombre: 'Cuadrilla Vías y Canales 1',
+      estado: 'DISPONIBLE',
+      delegacionId: '30000000-0000-4000-8000-000000000001',
+    };
+
+    act(() => {
+      (socket as unknown as { _trigger: (ev: string, p: unknown) => void })._trigger(
+        'cuadrilla:actualizada',
+        payload
+      );
+    });
+
+    expect(onCuadrillaActualizada).toHaveBeenCalledWith(payload);
+  });
+
+  it('HU-68: normaliza incidente:actualizado con REPORTE_CUADRILLA manteniendo estado EN_ATENCION', () => {
+    const socket = getSocket();
+    const onIncidenteActualizado = vi.fn();
+
+    const { result } = renderHook(() =>
+      useEncargadoKanbanSocket({
+        onIncidenteActualizado,
+      })
+    );
+
+    act(() => {
+      const trigger = (socket as unknown as { _trigger: (ev: string, p: unknown) => void })._trigger;
+      trigger('incidente:actualizado', {
+        evento: 'incidente:actualizado',
+        datos: {
+          id: 'inc-cuad-68',
+          codigo: 'INC-2026-0068',
+          nuevoEstado: 'EN_ATENCION',
+          prioridad: 'ALTA',
+          reporteTerreno: {
+            id: 'rep-cuad-68',
+            misionId: 'mis-cuad-68',
+            tipoReporte: 'REPORTE_CUADRILLA',
+            etiquetaReporte: 'Informe Técnico Final de Cuadrilla (Cierre de Misión)',
+            resumenFaenas: 'Se despeja colector pluvial obstruido y se instalan sacos de arena.',
+            horas_hombre: 6.5,
+            estadoTerreno: 'CONTROLADO',
+            materiales_consumidos: [
+              { recurso_id: 'rec-sacos', nombre: 'Sacos de arena', cantidad: 30, unidad: 'sacos' },
+            ],
+          },
+          actualizadoEn: '2026-11-18T18:00:00Z',
+        },
+      });
+    });
+
+    expect(onIncidenteActualizado).toHaveBeenCalledTimes(1);
+    expect(onIncidenteActualizado).toHaveBeenCalledWith(
+      expect.objectContaining({
+        datos: expect.objectContaining({
+          id: 'inc-cuad-68',
+          nuevoEstado: 'EN_ATENCION',
+          reporteTerreno: expect.objectContaining({
+            tipoReporte: 'REPORTE_CUADRILLA',
+            horasHombre: 6.5,
+            estadoTerreno: 'CONTROLADO',
+            materialesConsumidos: [
+              {
+                recursoId: 'rec-sacos',
+                nombre: 'Sacos de arena',
+                cantidad: 30,
+                unidad: 'sacos',
+                observacion: null,
+              },
+            ],
+          }),
+        }),
+      })
+    );
+    expect(result.current.ultimoEvento).toContain(
+      'Informe final de cuadrilla recibido en INC-2026-0068: Terreno Controlado'
+    );
+  });
+
+  it('HU-68: emite onMisionActualizada en mision:actualizada COMPLETADA sin sintetizar incidente:actualizado y procesa recurso:actualizado', () => {
+    const socket = getSocket();
+    const onIncidenteActualizado = vi.fn();
+    const onMisionActualizada = vi.fn();
+    const onRecursoActualizado = vi.fn();
+
+    renderHook(() =>
+      useEncargadoKanbanSocket({
+        onIncidenteActualizado,
+        onMisionActualizada,
+        onRecursoActualizado,
+      })
+    );
+
+    act(() => {
+      const trigger = (socket as unknown as { _trigger: (ev: string, p: unknown) => void })._trigger;
+      trigger('mision:actualizada', {
+        id: 'mis-cuad-68',
+        codigo: 'MIS-2026-0068',
+        tipoMision: 'ATENCION_CUADRILLA',
+        estado: 'COMPLETADA',
+        fechaCierre: '2026-11-18T18:05:00Z',
+        hito: 'MISION_COMPLETADA',
+        incidenteId: 'inc-cuad-68',
+        cuadrillaId: 'cuad-68',
+      });
+      trigger('recurso:actualizado', {
+        id: 'rec-sacos',
+        nombre: 'Sacos de arena',
+        estado: 'BAJO_STOCK',
+        cantidad_inventario: 15,
+        cantidad_en_uso: 0,
+        cantidad_minima: 20,
+      });
+    });
+
+    expect(onIncidenteActualizado).not.toHaveBeenCalled();
+    expect(onMisionActualizada).toHaveBeenCalledWith(
+      expect.objectContaining({
+        misionId: 'mis-cuad-68',
+        estado: 'COMPLETADA',
+        hito: 'MISION_COMPLETADA',
+      })
+    );
+    expect(onRecursoActualizado).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: 'rec-sacos',
+        nombre: 'Sacos de arena',
+        estado: 'BAJO_STOCK',
+        cantidadInventario: 15,
+        cantidadDisponible: 15,
+      })
+    );
   });
 });

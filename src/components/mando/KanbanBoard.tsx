@@ -12,7 +12,28 @@ import { useToast } from '@/components/ui/Toast';
 import type { EstadoIncidente, IncidenteResumen } from '@/services/incidentesService';
 import type { EventoPrevencionDTO } from '@/types/evento-prevencion';
 import type { EventoRecuperacionResponse } from '@/types/recuperacion';
-import type { MisionRechazadaPayload } from '@/hooks/useEncargadoKanbanSocket';
+import type {
+  MisionRechazadaPayload,
+  MisionActualizadaPayload,
+  CuadrillaActualizadaPayload,
+  RecursoActualizadoPayload,
+  IncidenteActualizadoPayload,
+  IncidenteCreadoPayload,
+} from '@/hooks/useEncargadoKanbanSocket';
+import {
+  esJustificacionSinCambios,
+  esReporteCierreCuadrilla,
+  esReporteVerificacionCierre,
+  formatearCantidadMaterial,
+  formatearDictamenTerreno,
+  formatearEstadoTerreno,
+  formatearHorasHombre,
+  formatearPrioridad,
+  formatearCompromisoVivienda,
+  formatearEstado,
+  fueTipologiaModificada,
+  normalizarMaterialesConsumidos,
+} from '@/lib/utils/estadoUtils';
 import { KanbanHeader } from './KanbanHeader';
 import { KanbanFiltros } from './KanbanFiltros';
 import { KanbanColumn } from './KanbanColumn';
@@ -30,7 +51,6 @@ import { KanbanViewSwitcher } from './KanbanViewSwitcher';
 import CuadrillaDetalleDrawer from '@/components/admin/cuadrillas/CuadrillaDetalleDrawer';
 import { cuadrillasService } from '@/services/cuadrillasService';
 import type { CuadrillaItem } from '@/types/cuadrilla';
-import { Zap } from 'lucide-react';
 import { usePuedeAsignarMision } from '@/hooks/usePuedeAsignarMision';
 import { extraerEstadoInicialNotificacion } from '@/lib/socket/trazabilidadConfig';
 import { setTrazabilidadEstado } from '@/lib/socket/trazabilidadStore';
@@ -38,7 +58,7 @@ import InlineNotice from '@/components/ui/InlineNotice';
 import styles from '@/styles/mando.module.css';
 
 const TITULOS_COLUMNAS = {
-  REPORTADO: 'Pendiente / Reportado',
+  REPORTADO: 'Reportado',
   VERIFICANDO: 'En Verificación',
   EN_ATENCION: 'En Atención',
   RESUELTO: 'Resuelto',
@@ -46,12 +66,24 @@ const TITULOS_COLUMNAS = {
 } as const;
 
 export const KanbanBoard: React.FC = () => {
-  const { showInfo, showWarning } = useToast();
+  const { showInfo, showWarning, showSuccess } = useToast();
   const searchParams = useSearchParams();
+  const incidenteIdParam = searchParams?.get('incidenteId') ?? null;
   const [vistaActiva, setVistaActiva] = useState<'kanban' | 'mapa'>('kanban');
   const [misionesModalAbierto, setMisionesModalAbierto] = useState(false);
   const [patrullasModalAbierto, setPatrullasModalAbierto] = useState(false);
   const [misionSeleccionadaId, setMisionSeleccionadaId] = useState<string | null>(null);
+  const [incidenteSeleccionadoId, setIncidenteSeleccionadoId] = useState<string | null>(
+    incidenteIdParam
+  );
+  const [prevIncidenteIdParam, setPrevIncidenteIdParam] = useState<string | null>(incidenteIdParam);
+  if (incidenteIdParam !== prevIncidenteIdParam) {
+    setPrevIncidenteIdParam(incidenteIdParam);
+    if (incidenteIdParam) {
+      setIncidenteSeleccionadoId(incidenteIdParam);
+    }
+  }
+  const [kpiRefreshTick, setKpiRefreshTick] = useState(0);
   const [modalPrevencionAbierto, setModalPrevencionAbierto] = useState(false);
   const [modalRecuperacionAbierto, setModalRecuperacionAbierto] = useState(false);
   const [eventosPrevencion, setEventosPrevencion] = useState<EventoPrevencionDTO[]>([]);
@@ -80,14 +112,542 @@ export const KanbanBoard: React.FC = () => {
     return cargarCuadrillas();
   }, [cargarCuadrillas]);
 
-  // HU-69: el handler real depende de `refrescarKpis`, que se inicializa más abajo.
-  // Se usa un puente por ref para evitar dependencias circulares de hooks.
-  const onMisionRechazadaRef = React.useRef<(payload: MisionRechazadaPayload) => void>(
-    () => undefined
+  const ultimosToastsReporteRef = React.useRef<Map<string, number>>(new Map());
+
+  const mostrarToastCierreCuadrilla = React.useCallback(
+    (params: {
+      incidenteId: string;
+      codigo?: string | null;
+      prioridad?: IncidenteResumen['prioridad'];
+      reporte?: IncidenteActualizadoPayload['datos']['reporteTerreno'];
+      misionId?: string;
+    }) => {
+      const { incidenteId, codigo, prioridad, reporte, misionId } = params;
+      const repId = reporte?.id || misionId || '1';
+      const ahora = Date.now();
+      const claveDedup = `cierre-cuadrilla:${incidenteId}:${repId}`;
+      const ultimaVez = ultimosToastsReporteRef.current.get(claveDedup);
+      if (ultimaVez && ahora - ultimaVez < 4000) {
+        return;
+      }
+      ultimosToastsReporteRef.current.set(claveDedup, ahora);
+
+      const materiales = normalizarMaterialesConsumidos(reporte?.materialesConsumidos);
+      const resumenMateriales =
+        materiales.length > 0
+          ? materiales
+              .slice(0, 2)
+              .map(
+                (m) =>
+                  `${m.nombre || 'Insumo'} (${formatearCantidadMaterial(m.cantidad, m.unidad)})`
+              )
+              .join(', ') +
+            (materiales.length > 2 ? ` y ${materiales.length - 2} más` : '')
+          : 'Sin consumo de insumos';
+
+      const estadoTerrenoNorm = (reporte?.estadoTerreno || '').trim().toUpperCase();
+      const requiereAlerta =
+        estadoTerrenoNorm === 'CRITICO' ||
+        estadoTerrenoNorm === 'INACCESIBLE' ||
+        estadoTerrenoNorm === 'REQUIERE_SEGUIMIENTO' ||
+        Boolean(reporte?.requiereApoyoAdicional) ||
+        prioridad === 'CRITICA';
+
+      const detallesCuadrilla: Array<{ label: string; value: string }> = [
+        {
+          label: 'Estado final del terreno',
+          value: formatearEstadoTerreno(reporte?.estadoTerreno),
+        },
+      ];
+      if (typeof reporte?.horasHombre === 'number') {
+        detallesCuadrilla.push({
+          label: 'Horas hombre',
+          value: formatearHorasHombre(reporte.horasHombre),
+        });
+      }
+      detallesCuadrilla.push({
+        label: 'Materiales consumidos',
+        value: resumenMateriales,
+      });
+      if (reporte?.requiereApoyoAdicional) {
+        detallesCuadrilla.push({
+          label: 'Apoyo adicional',
+          value: 'Solicitado en terreno',
+        });
+      }
+
+      const toastCuadrillaOptions = {
+        icon: 'cuadrilla' as const,
+        codeBadge: codigo || undefined,
+        priorityBadge: prioridad,
+        dedupKey: claveDedup,
+        details: detallesCuadrilla,
+        action: {
+          label: 'Ver incidente',
+          onClick: () => setIncidenteSeleccionadoId(incidenteId),
+        },
+      };
+
+      const mensajeCuadrilla = `La cuadrilla completó la misión en ${codigo || 'el incidente'}. La unidad volvió a estado Disponible; el incidente permanece En Atención para evaluación final.`;
+
+      if (requiereAlerta) {
+        showWarning(
+          mensajeCuadrilla,
+          'Cierre de Cuadrilla — Atención Requerida',
+          toastCuadrillaOptions
+        );
+      } else {
+        showSuccess(
+          mensajeCuadrilla,
+          'Informe Final de Cuadrilla Recibido',
+          toastCuadrillaOptions
+        );
+      }
+    },
+    [showWarning, showSuccess]
   );
-  const handleMisionRechazada = React.useCallback((payload: MisionRechazadaPayload) => {
-    onMisionRechazadaRef.current(payload);
+
+  const handleReporteTerrenoRecibido = React.useCallback(
+    (payload: IncidenteActualizadoPayload) => {
+      const rep = payload.datos.reporteTerreno;
+      if (!rep) return;
+
+      const ahora = Date.now();
+      const claveDedup = `${payload.datos.id}-${rep.id || rep.versionReporte || 1}`;
+      const ultimaVez = ultimosToastsReporteRef.current.get(claveDedup);
+      if (ultimaVez && ahora - ultimaVez < 4000) {
+        return;
+      }
+      ultimosToastsReporteRef.current.set(claveDedup, ahora);
+
+      const esCierreCuadrilla = esReporteCierreCuadrilla(rep);
+      if (esCierreCuadrilla) {
+        mostrarToastCierreCuadrilla({
+          incidenteId: payload.datos.id,
+          codigo: payload.datos.codigo,
+          prioridad: payload.datos.prioridad,
+          reporte: rep,
+          misionId: rep.misionId,
+        });
+
+        setKpiRefreshTick((prev) => prev + 1);
+        cargarCuadrillas();
+        return;
+      }
+
+      const numVersion = Number(rep.versionReporte || 1);
+      const esRect = Boolean(rep.esRectificacion || numVersion > 1);
+      const esCierre =
+        esReporteVerificacionCierre(rep) ||
+        payload.datos.nuevoEstado === 'NO_ABORDABLE' ||
+        Boolean(payload.datos.dictamen);
+      const dictamenCierre =
+        payload.datos.dictamen ??
+        rep.dictamen ??
+        (payload.datos.nuevoEstado === 'NO_ABORDABLE' ? 'NO_ABORDABLE' : 'REQUIERE_CUADRILLA');
+
+      const prioridadTexto = formatearPrioridad(payload.datos.prioridad);
+      const tituloToast = esCierre
+        ? dictamenCierre === 'NO_ABORDABLE'
+          ? 'Incidente Declarado No Abordable'
+          : 'Informe de Verificación y Cierre'
+        : esRect
+          ? `Reporte #${numVersion} (Rectificación en Terreno)`
+          : 'Reporte #1 (Evaluación en Terreno)';
+
+      const detallesToast: Array<{ label: string; value: string }> = [];
+
+      // Afectación registrada
+      const evalData = (rep.evaluacion || {}) as Record<string, unknown>;
+      const familiasRaw = Array.isArray(evalData.familias)
+        ? (evalData.familias as Record<string, unknown>[])
+        : undefined;
+      const familiasCount =
+        familiasRaw && familiasRaw.length > 0
+          ? familiasRaw.length
+          : typeof evalData.familiasAfectadas === 'number'
+            ? evalData.familiasAfectadas
+            : null;
+      const personas = rep.personasAfectadas !== null && rep.personasAfectadas !== undefined
+        ? Number(rep.personasAfectadas)
+        : null;
+      const viviendas = rep.evaluacion?.viviendasAfectadas !== null && rep.evaluacion?.viviendasAfectadas !== undefined
+        ? Number(rep.evaluacion.viviendasAfectadas)
+        : null;
+
+      if (esCierre) {
+        detallesToast.push({
+          label: 'Dictamen',
+          value: formatearDictamenTerreno(dictamenCierre),
+        });
+        const motivoNoAbordable =
+          payload.datos.motivoNoAbordable || rep.motivoNoAbordable;
+        if (dictamenCierre === 'NO_ABORDABLE' && motivoNoAbordable) {
+          detallesToast.push({
+            label: 'Motivo técnico',
+            value: motivoNoAbordable,
+          });
+        }
+        if (personas !== null) {
+          detallesToast.push({
+            label: 'Personas afectadas',
+            value: `${personas} persona(s)`,
+          });
+        }
+        const requiereFibeCierre = Boolean(
+          payload.datos.requiereAsistenciaSocial ?? rep.requiereAsistenciaSocial
+        );
+        if (requiereFibeCierre) {
+          detallesToast.push({
+            label: 'Asistencia social',
+            value: 'Requiere levantamiento de Ficha FIBE',
+          });
+        }
+      } else {
+        if (personas !== null || viviendas !== null || familiasCount !== null) {
+          const partesAfectacion: string[] = [];
+          if (familiasCount !== null) {
+            partesAfectacion.push(`${familiasCount} ${familiasCount === 1 ? 'familia' : 'familias'}`);
+          }
+          if (personas !== null) {
+            partesAfectacion.push(`${personas} persona(s)`);
+          }
+          if (viviendas !== null) {
+            const compromisoTexto = rep.evaluacion?.nivelCompromisoVivienda
+              ? ` (${formatearCompromisoVivienda(String(rep.evaluacion.nivelCompromisoVivienda))})`
+              : '';
+            partesAfectacion.push(`${viviendas} vivienda(s)${compromisoTexto}`);
+          }
+          detallesToast.push({
+            label: 'Afectación',
+            value: partesAfectacion.join(' | '),
+          });
+        }
+
+        // Prioridad evaluada / sugerida
+        if (
+          payload.datos.prioridadSugerida &&
+          payload.datos.prioridadSugerida !== payload.datos.prioridad
+        ) {
+          detallesToast.push({
+            label: 'Ajuste de prioridad',
+            value: `Asignada: ${prioridadTexto} (Sugerida por sistema: ${formatearPrioridad(payload.datos.prioridadSugerida)})`,
+          });
+        }
+
+        // Acciones realizadas (sin duplicar el string generado de personas/viviendas)
+        if (rep.accionesRealizadas && rep.accionesRealizadas.trim()) {
+          detallesToast.push({
+            label: 'Acciones realizadas',
+            value: rep.accionesRealizadas.trim(),
+          });
+        } else if (payload.datos.justificacion && payload.datos.justificacion.trim()) {
+          detallesToast.push({
+            label: 'Observación en terreno',
+            value: payload.datos.justificacion.trim(),
+          });
+        }
+      }
+
+      const mensajeBase = esCierre
+        ? dictamenCierre === 'NO_ABORDABLE'
+          ? `La patrulla cerró el incidente ${payload.datos.codigo || ''} declarándolo No Abordable.`
+          : `La patrulla finalizó la verificación en ${payload.datos.codigo || ''}. Listo para despacho de cuadrilla.`
+        : `Se registró una ${
+            esRect ? 'rectificación' : 'evaluación inicial'
+          } para el incidente ${payload.datos.codigo || ''}.`;
+
+      const toastOptions = {
+        icon: 'reporte' as const,
+        codeBadge: payload.datos.codigo,
+        priorityBadge: payload.datos.prioridad,
+        dedupKey: `reporte-terreno:${payload.datos.id}:${rep.id || numVersion}`,
+        details: detallesToast,
+        action: {
+          label: 'Ver incidente',
+          onClick: () => setIncidenteSeleccionadoId(payload.datos.id),
+        },
+      };
+
+      if (dictamenCierre === 'NO_ABORDABLE' || payload.datos.prioridad === 'CRITICA') {
+        showWarning(mensajeBase, tituloToast, toastOptions);
+      } else {
+        showInfo(mensajeBase, tituloToast, toastOptions);
+      }
+
+      setKpiRefreshTick((prev) => prev + 1);
+    },
+    [mostrarToastCierreCuadrilla, showInfo, showWarning, cargarCuadrillas]
+  );
+
+  const ultimosToastsIncidenteRef = React.useRef<Map<string, number>>(new Map());
+
+  const esToastIncidenteDuplicado = React.useCallback((clave: string, ventanaMs = 4000): boolean => {
+    const ahora = Date.now();
+    const ultimaVez = ultimosToastsIncidenteRef.current.get(clave);
+    if (ultimaVez && ahora - ultimaVez < ventanaMs) {
+      return true;
+    }
+    ultimosToastsIncidenteRef.current.set(clave, ahora);
+    return false;
   }, []);
+
+  const handleIncidenteCreadoSocket = React.useCallback(
+    (payload: IncidenteCreadoPayload) => {
+      const { datos } = payload;
+      if (!datos) return;
+      if (esToastIncidenteDuplicado(`creado:${datos.id}`)) return;
+
+      showInfo(
+        `Nuevo incidente ${datos.codigo} ingresado en ${datos.direccion || 'sector sin dirección'}.`,
+        'Nuevo Incidente Reportado',
+        {
+          icon: 'incidente',
+          codeBadge: datos.codigo,
+          priorityBadge: datos.prioridad,
+          dedupKey: `incidente-creado:${datos.id}`,
+          details: [
+            { label: 'Tipología', value: datos.tipoAfectacion || 'No clasificada' },
+            ...(datos.direccion ? [{ label: 'Ubicación', value: datos.direccion }] : []),
+          ],
+          action: {
+            label: 'Ver incidente',
+            onClick: () => setIncidenteSeleccionadoId(datos.id),
+          },
+        }
+      );
+
+      setKpiRefreshTick((prev) => prev + 1);
+    },
+    [showInfo, esToastIncidenteDuplicado]
+  );
+
+  const handleIncidenteActualizadoSocket = React.useCallback(
+    (payload: IncidenteActualizadoPayload) => {
+      const { datos } = payload;
+      if (!datos) return;
+
+      if (payload.esSintetico) {
+        setKpiRefreshTick((prev) => prev + 1);
+        return;
+      }
+
+      const claveDedup = `act:${datos.id}:${datos.nuevoEstado}:${datos.tipoAfectacion || ''}:${datos.dictamen || ''}`;
+      if (esToastIncidenteDuplicado(claveDedup)) return;
+
+      const esNoAbordable =
+        datos.nuevoEstado === 'NO_ABORDABLE' || datos.dictamen === 'NO_ABORDABLE';
+      const esEventoTipologia = Boolean(datos.tipoAfectacion && datos.justificacion);
+
+      if (esNoAbordable) {
+        showWarning(
+          `El incidente ${datos.codigo || ''} fue declarado No Abordable en terreno.`,
+          'Incidente Declarado No Abordable',
+          {
+            icon: 'reporte',
+            codeBadge: datos.codigo,
+            priorityBadge: datos.prioridad,
+            dedupKey: claveDedup,
+            details: [
+              { label: 'Dictamen', value: 'No Abordable' },
+              ...(datos.motivoNoAbordable
+                ? [{ label: 'Motivo técnico', value: datos.motivoNoAbordable }]
+                : []),
+            ],
+            action: {
+              label: 'Ver incidente',
+              onClick: () => setIncidenteSeleccionadoId(datos.id),
+            },
+          }
+        );
+      } else if (esEventoTipologia) {
+        const sinCambiosTipologia = datos.tipoAnterior
+          ? !fueTipologiaModificada(datos.tipoAnterior, datos.tipoAfectacion)
+          : esJustificacionSinCambios(datos.justificacion);
+
+        showInfo(
+          sinCambiosTipologia
+            ? `La patrulla ratificó la tipología ${datos.tipoAfectacion} sin modificaciones.`
+            : `Tipología reclasificada a ${datos.tipoAfectacion}.`,
+          sinCambiosTipologia ? 'Tipología Confirmada en Terreno' : 'Reclasificación en Terreno',
+          {
+            icon: sinCambiosTipologia ? 'patrulla' : 'reclasificacion',
+            codeBadge: datos.codigo,
+            priorityBadge: datos.prioridad,
+            dedupKey: claveDedup,
+            details: [
+              {
+                label: sinCambiosTipologia ? 'Tipología constatada' : 'Nueva tipología',
+                value: datos.tipoAfectacion || 'No especificada',
+              },
+              ...(datos.justificacion ? [{ label: 'Justificación', value: datos.justificacion }] : []),
+            ],
+            action: {
+              label: 'Ver incidente',
+              onClick: () => setIncidenteSeleccionadoId(datos.id),
+            },
+          }
+        );
+      } else {
+        showInfo(
+          `Incidente ${datos.codigo || ''} actualizado a estado ${formatearEstado(datos.nuevoEstado)}.`,
+          'Actualización de Incidente',
+          {
+            icon: 'incidente',
+            codeBadge: datos.codigo,
+            priorityBadge: datos.prioridad,
+            dedupKey: claveDedup,
+            action: {
+              label: 'Ver incidente',
+              onClick: () => setIncidenteSeleccionadoId(datos.id),
+            },
+          }
+        );
+      }
+
+      setKpiRefreshTick((prev) => prev + 1);
+    },
+    [showInfo, showWarning, esToastIncidenteDuplicado]
+  );
+
+  const ultimosToastsRechazoRef = React.useRef<Map<string, number>>(new Map());
+
+  const handleMisionRechazadaSocket = React.useCallback(
+    (payload: MisionRechazadaPayload) => {
+      const claveDedup = payload.misionId || payload.codigo;
+      const ahora = Date.now();
+      if (claveDedup) {
+        const ultimaVez = ultimosToastsRechazoRef.current.get(claveDedup);
+        if (ultimaVez && ahora - ultimaVez < 5000) {
+          return;
+        }
+        ultimosToastsRechazoRef.current.set(claveDedup, ahora);
+      }
+
+      const esCuadrilla =
+        payload.tipoMision === 'ATENCION_CUADRILLA' ||
+        Boolean(payload.cuadrillaId || payload.cuadrillaNombre);
+
+      const unidadTexto = esCuadrilla
+        ? payload.cuadrillaNombre
+          ? `La cuadrilla ${payload.cuadrillaNombre}`
+          : 'La cuadrilla operativa'
+        : payload.patrullaNombre
+          ? `La patrulla ${payload.patrullaNombre}`
+          : 'La patrulla verificadora';
+
+      const incidenteTexto = payload.incidenteCodigo
+        ? ` del incidente ${payload.incidenteCodigo}`
+        : '';
+      const motivoTexto =
+        payload.motivo || payload.justificacionRechazo || 'Sin justificación especificada';
+
+      showWarning(
+        `${unidadTexto} rechazó la misión ${payload.codigo}${incidenteTexto}. La unidad volvió a estado Disponible y la emergencia quedó lista para reasignación.`,
+        esCuadrilla ? 'Misión Rechazada por Cuadrilla' : 'Misión Rechazada por Patrulla',
+        {
+          icon: 'rechazo',
+          codeBadge: payload.incidenteCodigo || payload.codigo,
+          dedupKey: `mision-rechazada:${payload.misionId || payload.codigo}`,
+          details: [
+            {
+              label: esCuadrilla ? 'Cuadrilla' : 'Patrulla',
+              value:
+                (esCuadrilla ? payload.cuadrillaNombre : payload.patrullaNombre) ||
+                unidadTexto,
+            },
+            { label: 'Misión', value: payload.codigo },
+            { label: 'Motivo', value: motivoTexto },
+          ],
+          ...(payload.incidenteId
+            ? {
+                action: {
+                  label: 'Ver incidente',
+                  onClick: () => setIncidenteSeleccionadoId(payload.incidenteId!),
+                },
+              }
+            : {}),
+        }
+      );
+
+      setKpiRefreshTick((prev) => prev + 1);
+      cargarCuadrillas();
+    },
+    [showWarning, cargarCuadrillas]
+  );
+
+  const handleCuadrillaActualizadaSocket = React.useCallback(
+    (payload: CuadrillaActualizadaPayload) => {
+      const esDisponible = payload.estado.toUpperCase() === 'DISPONIBLE';
+      setCuadrillasOperativas((prev) => {
+        const existe = prev.some((c) => c.id === payload.id);
+        if (!existe) return prev;
+        return prev.map((c) =>
+          c.id === payload.id
+            ? {
+                ...c,
+                estado: payload.estado as CuadrillaItem['estado'],
+                nombre: payload.nombre || c.nombre,
+                misionActiva: esDisponible ? null : c.misionActiva,
+              }
+            : c
+        );
+      });
+      if (esDisponible) {
+        cargarCuadrillas();
+      }
+    },
+    [cargarCuadrillas]
+  );
+
+  const handleMisionActualizadaSocket = React.useCallback(
+    (payload: MisionActualizadaPayload) => {
+      if (payload.estado.toUpperCase() === 'COMPLETADA') {
+        if (
+          payload.tipoMision === 'ATENCION_CUADRILLA' &&
+          payload.incidenteId &&
+          payload.reporteTerreno
+        ) {
+          mostrarToastCierreCuadrilla({
+            incidenteId: payload.incidenteId,
+            codigo: payload.incidenteCodigo,
+            reporte: payload.reporteTerreno,
+            misionId: payload.misionId || payload.id,
+          });
+        }
+        setKpiRefreshTick((prev) => prev + 1);
+        cargarCuadrillas();
+      }
+    },
+    [cargarCuadrillas, mostrarToastCierreCuadrilla]
+  );
+
+  const handleRecursoActualizadoSocket = React.useCallback(
+    (payload: RecursoActualizadoPayload) => {
+      const estadoNorm = (payload.estado || '').toUpperCase();
+      if (estadoNorm === 'BAJO_STOCK' || estadoNorm === 'NO_DISPONIBLE') {
+        const nombreRecurso = payload.nombre || 'Recurso del inventario';
+        const detalleStock =
+          typeof payload.cantidadDisponible === 'number'
+            ? `${payload.cantidadDisponible} disponible(s)`
+            : `Estado: ${formatearEstado(estadoNorm)}`;
+
+        showWarning(
+          `El recurso "${nombreRecurso}" pasó a estado ${formatearEstado(estadoNorm)} tras consumo reportado en terreno.`,
+          estadoNorm === 'BAJO_STOCK' ? 'Alerta de Bajo Stock' : 'Recurso Sin Disponibilidad',
+          {
+            icon: 'inventario',
+            dedupKey: `recurso-alerta:${payload.id}:${estadoNorm}`,
+            details: [
+              { label: 'Recurso', value: nombreRecurso },
+              { label: 'Disponibilidad', value: detalleStock },
+            ],
+          }
+        );
+      }
+    },
+    [showWarning]
+  );
 
   const {
     userId,
@@ -105,26 +665,22 @@ export const KanbanBoard: React.FC = () => {
     cargarMas,
     recargar,
     moverIncidenteAEstado,
+    marcarIncidenteMisionDespachada,
     conectado,
     ultimoEvento,
     totalIncidentesVisibles,
-    incidenteSeleccionadoId,
-    setIncidenteSeleccionadoId,
     trazabilidadPorIncidente,
   } = useIncidentesKanban({
-    onMisionRechazada: handleMisionRechazada,
+    onMisionRechazada: handleMisionRechazadaSocket,
+    onMisionActualizada: handleMisionActualizadaSocket,
+    onCuadrillaActualizada: handleCuadrillaActualizadaSocket,
+    onRecursoActualizado: handleRecursoActualizadoSocket,
+    onReporteTerrenoRecibido: handleReporteTerrenoRecibido,
+    onIncidenteCreadoSocket: handleIncidenteCreadoSocket,
+    onIncidenteActualizadoSocket: handleIncidenteActualizadoSocket,
   });
 
-
   const [estadoEnfocado, setEstadoEnfocado] = useState<EstadoIncidente | null>(null);
-
-  // CA-5 (BUG-H22-WEB-03): Abrir incidente automáticamente si se accede con ?incidenteId=...
-  const incidenteIdParam = searchParams?.get('incidenteId');
-  useEffect(() => {
-    if (incidenteIdParam) {
-      setIncidenteSeleccionadoId(incidenteIdParam);
-    }
-  }, [incidenteIdParam, setIncidenteSeleccionadoId]);
 
   // Actualizar cuadrillas operativas ante eventos socket en tiempo real (BUG-H22-WEB-04)
   useEffect(() => {
@@ -143,41 +699,11 @@ export const KanbanBoard: React.FC = () => {
     conectado: conectadoKpis,
   } = useIncidentesKpis({ userId });
 
-  // HU-69: notificación de rechazo de misión por patrulla verificadora
-  const ultimosToastsRechazoRef = React.useRef<Map<string, number>>(new Map());
-
-  const handleMisionRechazadaSocket = React.useCallback(
-    (payload: MisionRechazadaPayload) => {
-      const ahora = Date.now();
-      if (payload.misionId) {
-        const ultimaVez = ultimosToastsRechazoRef.current.get(payload.misionId);
-        if (ultimaVez && ahora - ultimaVez < 5000) {
-          return;
-        }
-        ultimosToastsRechazoRef.current.set(payload.misionId, ahora);
-      }
-
-      const patrullaTexto = payload.patrullaNombre
-        ? `La patrulla ${payload.patrullaNombre}`
-        : 'La patrulla verificadora';
-      const incidenteTexto = payload.incidenteCodigo
-        ? ` del incidente ${payload.incidenteCodigo}`
-        : '';
-      const motivoTexto = payload.motivo || payload.justificacionRechazo || 'Sin justificación';
-
-      showWarning(
-        `${patrullaTexto} rechazó la misión ${payload.codigo}${incidenteTexto}. Motivo: "${motivoTexto}". El incidente retorna a estado Reportado para su reasignación.`,
-        'Misión Rechazada por Patrulla'
-      );
-
-      refrescarKpis(false);
-    },
-    [showWarning, refrescarKpis]
-  );
-
   useEffect(() => {
-    onMisionRechazadaRef.current = handleMisionRechazadaSocket;
-  }, [handleMisionRechazadaSocket]);
+    if (kpiRefreshTick > 0) {
+      refrescarKpis(false);
+    }
+  }, [kpiRefreshTick, refrescarKpis]);
 
   // Hook de tiempo real para eventos de prevención (HU-30)
   usePrevencionSocket({
@@ -188,8 +714,16 @@ export const KanbanBoard: React.FC = () => {
         return [nuevoEvento, ...prev];
       });
       showInfo(
-        `Nuevo evento de prevención en ${nuevoEvento.sector || 'sector'}: ${nuevoEvento.codigo}`,
-        'Operación Preventiva en Vivo'
+        `Nuevo operativo preventivo registrado en ${nuevoEvento.sector || 'sector asignado'}.`,
+        'Operación Preventiva en Vivo',
+        {
+          icon: 'operativo',
+          codeBadge: nuevoEvento.codigo,
+          details: [
+            { label: 'Sector', value: nuevoEvento.sector || 'No especificado' },
+            ...(nuevoEvento.puntoCritico?.nombre ? [{ label: 'Punto crítico', value: nuevoEvento.puntoCritico.nombre }] : []),
+          ],
+        }
       );
     },
   });
@@ -203,8 +737,16 @@ export const KanbanBoard: React.FC = () => {
         return [nuevoEvento, ...prev];
       });
       showInfo(
-        `Nuevo evento de recuperación en ${nuevoEvento.sector}: ${nuevoEvento.codigo}`,
-        'Operación Territorial en Vivo'
+        `Nuevo operativo de recuperación en ${nuevoEvento.sector}.`,
+        'Operación Territorial en Vivo',
+        {
+          icon: 'operativo',
+          codeBadge: nuevoEvento.codigo,
+          details: [
+            { label: 'Sector', value: nuevoEvento.sector },
+            ...(nuevoEvento.nombre ? [{ label: 'Operativo', value: nuevoEvento.nombre }] : []),
+          ],
+        }
       );
     },
   });
@@ -311,25 +853,6 @@ export const KanbanBoard: React.FC = () => {
             cargando={cargando}
           />
 
-          {ultimoEvento && (
-            <div
-              style={{
-                backgroundColor: 'var(--color-info-bg, #E0F2F1)',
-                color: 'var(--color-primary-teal, #1B6F7D)',
-                padding: '0.5rem 1rem',
-                fontSize: '0.8rem',
-                fontWeight: 600,
-                borderBottom: '1px solid var(--border-color-neutral, #DFE3E8)',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.4rem',
-              }}
-            >
-              <Zap size={14} color="var(--color-primary-teal, #1B6F7D)" />
-              <span>Actualización en vivo: {ultimoEvento}</span>
-            </div>
-          )}
-
           {/* Selector de visualización entre filtros y tablero */}
           <KanbanViewSwitcher
             vistaActiva={vistaActiva}
@@ -383,6 +906,9 @@ export const KanbanBoard: React.FC = () => {
 
           <IncidenteDetalleDrawer
             incidenteId={incidenteSeleccionadoId}
+            incidenteCodigo={
+              todosLosIncidentes.find((i) => i.id === incidenteSeleccionadoId)?.codigo ?? null
+            }
             userId={userId}
             onCerrar={() => setIncidenteSeleccionadoId(null)}
             onSelectCuadrilla={(cuadrillaId) => setCuadrillaSeleccionadaId(cuadrillaId)}
@@ -405,7 +931,7 @@ export const KanbanBoard: React.FC = () => {
             onAsignacionExitosa={(data) => {
               const estadoInicial = extraerEstadoInicialNotificacion(data);
               setTrazabilidadEstado(data.mision.id, estadoInicial, data.incidente.id);
-              moverIncidenteAEstado(data.incidente.id, 'VERIFICANDO');
+              marcarIncidenteMisionDespachada(data.incidente.id, true);
               recargar();
               refrescarKpis();
               cargarCuadrillas();
