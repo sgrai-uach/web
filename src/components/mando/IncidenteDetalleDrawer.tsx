@@ -30,6 +30,14 @@ import {
   extraerEstadoInicialNotificacion,
   resolverSiguienteEstadoTrazabilidad,
 } from '@/lib/socket/trazabilidadConfig';
+import {
+  actualizarEstadoMisionTiempoReal,
+  registrarHitoMisionTiempoReal,
+} from '@/lib/socket/misionesStore';
+import {
+  normalizarPayloadHitoMision,
+  normalizarPayloadMisionActualizada,
+} from '@/lib/utils/misionHitos';
 import { TrazabilidadIcon } from './TrazabilidadIcon';
 import InlineNotice from '@/components/ui/InlineNotice';
 import type { DespacharCuadrillaResponse, DespacharPatrullaResponseData } from '@/types/misiones';
@@ -223,12 +231,91 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
       });
     };
 
+    const handleMisionActualizada = (raw: unknown) => {
+      const normalized = normalizarPayloadMisionActualizada(raw);
+      if (!normalized) return;
+
+      actualizarEstadoMisionTiempoReal(normalized);
+
+      const detalleActual = detalleRef.current;
+      if (!detalleActual || detalleActual.id !== incidenteId) return;
+
+      const perteneceAlIncidente =
+        normalized.incidenteId === incidenteId ||
+        detalleActual.misiones.some((m) => m.id === normalized.misionId);
+      if (!perteneceAlIncidente) return;
+
+      setDetalle((prev) => {
+        if (!prev || prev.id !== incidenteId) return prev;
+        let huboCambio = false;
+        const misionesActualizadas = prev.misiones.map((m) => {
+          if (m.id !== normalized.misionId) return m;
+          huboCambio = true;
+          const esEnCurso = normalized.estado === 'EN_CURSO' || normalized.estado === 'EN_PROCESO';
+          return {
+            ...m,
+            estado: normalized.estado as typeof m.estado,
+            cuadrilla:
+              m.cuadrilla && esEnCurso
+                ? { ...m.cuadrilla, estado: 'EN_MISION' }
+                : m.cuadrilla,
+          };
+        });
+        if (!huboCambio) return prev;
+        const esCuadrillaEnCurso =
+          (Boolean(normalized.cuadrillaId) || normalized.tipoMision === 'ATENCION_CUADRILLA') &&
+          (normalized.estado === 'EN_CURSO' || normalized.estado === 'EN_PROCESO');
+        return {
+          ...prev,
+          estado: esCuadrillaEnCurso ? 'EN_ATENCION' : prev.estado,
+          misiones: misionesActualizadas,
+        };
+      });
+    };
+
+    const handleMisionHito = (raw: unknown) => {
+      const normalized = normalizarPayloadHitoMision(raw);
+      if (!normalized) return;
+
+      registrarHitoMisionTiempoReal(normalized);
+
+      const detalleActual = detalleRef.current;
+      if (!detalleActual || detalleActual.id !== incidenteId) return;
+      const perteneceAlIncidente = detalleActual.misiones.some(
+        (m) => m.id === normalized.misionId
+      );
+      if (!perteneceAlIncidente || !normalized.nuevoEstadoMision) return;
+
+      setDetalle((prev) => {
+        if (!prev || prev.id !== incidenteId) return prev;
+        return {
+          ...prev,
+          misiones: prev.misiones.map((m) =>
+            m.id === normalized.misionId
+              ? {
+                  ...m,
+                  estado: normalized.nuevoEstadoMision as typeof m.estado,
+                  cuadrilla:
+                    m.cuadrilla && normalized.nuevoEstadoMision === 'EN_CURSO'
+                      ? { ...m.cuadrilla, estado: 'EN_MISION' }
+                      : m.cuadrilla,
+                }
+              : m
+          ),
+        };
+      });
+    };
+
     socket.on('connect', asegurarSalasEncargado);
     socket.on('notificacion:trazabilidad_actualizada', handleTrazabilidad);
+    socket.on('mision:actualizada', handleMisionActualizada);
+    socket.on('mision:hito_registrado', handleMisionHito);
 
     return () => {
       socket.off('connect', asegurarSalasEncargado);
       socket.off('notificacion:trazabilidad_actualizada', handleTrazabilidad);
+      socket.off('mision:actualizada', handleMisionActualizada);
+      socket.off('mision:hito_registrado', handleMisionHito);
     };
   }, [incidenteId]);
 

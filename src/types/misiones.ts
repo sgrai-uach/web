@@ -69,11 +69,34 @@ export interface MisionHitoRegistradoPayload {
   nuevoEstadoMision?: string;
 }
 
+export interface MisionActualizadaHitoPayload {
+  id?: string;
+  hitoId?: string;
+  hito: string;
+  descripcion: string;
+  registradoPorId?: string | null;
+  registradoPorNombre?: string | null;
+  registradoPor?: {
+    id: string;
+    nombre: string;
+  } | null;
+  latitud?: number | null;
+  longitud?: number | null;
+  creadoEn?: string;
+  registradoEn?: string;
+}
+
 export interface MisionActualizadaPayload {
   misionId: string;
   codigo?: string;
   estado: string;
+  tipoMision?: TipoMision | string;
+  incidenteId?: string | null;
+  patrullaId?: string | null;
   cuadrillaId?: string | null;
+  cuadrillaNombre?: string | null;
+  fechaInicio?: string | null;
+  hito?: MisionActualizadaHitoPayload | null;
   actualizadoEn?: string;
 }
 

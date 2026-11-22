@@ -45,6 +45,37 @@ export function actualizarEstadoMisionTiempoReal(payload: MisionActualizadaPaylo
   if (!misionId || !payload.estado) return;
 
   misionEstadoCache.set(misionId, normalizarEstadoMision(payload.estado));
+
+  if (payload.hito && payload.hito.hito) {
+    const hitoPayload: MisionHitoRegistradoPayload = {
+      misionId,
+      codigoMision: payload.codigo,
+      hitoId: payload.hito.hitoId || payload.hito.id,
+      hito: payload.hito.hito,
+      descripcion: payload.hito.descripcion || '',
+      latitud: payload.hito.latitud ?? null,
+      longitud: payload.hito.longitud ?? null,
+      registradoPor: payload.hito.registradoPor
+        ? payload.hito.registradoPor
+        : payload.hito.registradoPorId || payload.hito.registradoPorNombre
+          ? {
+              id: payload.hito.registradoPorId || '',
+              nombre: payload.hito.registradoPorNombre || '',
+            }
+          : null,
+      registradoEn:
+        payload.hito.creadoEn ||
+        payload.hito.registradoEn ||
+        payload.actualizadoEn ||
+        new Date().toISOString(),
+      nuevoEstadoMision: payload.estado,
+    };
+
+    const hitoBitacora = convertirPayloadABitacoraHito(hitoPayload);
+    const actuales = misionHitosCache.get(misionId) ?? [];
+    misionHitosCache.set(misionId, combinarBitacoraConTiempoReal(actuales, [hitoBitacora]));
+  }
+
   notifyListeners();
 }
 

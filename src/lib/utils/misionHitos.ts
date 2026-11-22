@@ -11,6 +11,7 @@ export interface ConfigHitoMision {
   esLlegadaTerreno: boolean;
   esRechazo: boolean;
   esReporteTerreno: boolean;
+  esAceptacion: boolean;
 }
 
 const HITO_ETIQUETAS: Record<string, Omit<ConfigHitoMision, 'codigo'>> = {
@@ -19,42 +20,56 @@ const HITO_ETIQUETAS: Record<string, Omit<ConfigHitoMision, 'codigo'>> = {
     esLlegadaTerreno: true,
     esRechazo: false,
     esReporteTerreno: false,
+    esAceptacion: false,
   },
   MISION_RECHAZADA: {
     etiqueta: 'Misión Rechazada en Terreno',
     esLlegadaTerreno: false,
     esRechazo: true,
     esReporteTerreno: false,
+    esAceptacion: false,
   },
   RECHAZO_MISION: {
     etiqueta: 'Misión Rechazada en Terreno',
     esLlegadaTerreno: false,
     esRechazo: true,
     esReporteTerreno: false,
+    esAceptacion: false,
   },
   REPORTE_TERRENO: {
     etiqueta: 'Reporte Técnico Emitido',
     esLlegadaTerreno: false,
     esRechazo: false,
     esReporteTerreno: true,
+    esAceptacion: false,
   },
   MISION_ACEPTADA: {
     etiqueta: 'Misión Aceptada por Unidad',
     esLlegadaTerreno: false,
     esRechazo: false,
     esReporteTerreno: false,
+    esAceptacion: true,
+  },
+  ACEPTACION_MISION: {
+    etiqueta: 'Misión Aceptada por Unidad',
+    esLlegadaTerreno: false,
+    esRechazo: false,
+    esReporteTerreno: false,
+    esAceptacion: true,
   },
   CUADRILLA_DESPACHADA: {
     etiqueta: 'Cuadrilla Despachada',
     esLlegadaTerreno: false,
     esRechazo: false,
     esReporteTerreno: false,
+    esAceptacion: false,
   },
   PATRULLA_DESPACHADA: {
     etiqueta: 'Patrulla Verificadora Despachada',
     esLlegadaTerreno: false,
     esRechazo: false,
     esReporteTerreno: false,
+    esAceptacion: false,
   },
 };
 
@@ -188,12 +203,25 @@ export function obtenerConfigHito(hitoValor: string): ConfigHitoMision {
     };
   }
 
+  const esAceptacion =
+    clave === 'MISION_ACEPTADA' ||
+    clave === 'ACEPTACION_MISION' ||
+    limpio.toLowerCase().includes('misión aceptada') ||
+    limpio.toLowerCase().includes('mision aceptada');
+  if (esAceptacion) {
+    return {
+      codigo: 'MISION_ACEPTADA',
+      ...HITO_ETIQUETAS.MISION_ACEPTADA,
+    };
+  }
+
   return {
     codigo: clave || 'EVENTO',
     etiqueta: limpio || 'Evento Operativo',
     esLlegadaTerreno: false,
     esRechazo: false,
     esReporteTerreno: false,
+    esAceptacion: false,
   };
 }
 
@@ -288,11 +316,48 @@ export function normalizarPayloadMisionActualizada(raw: unknown): MisionActualiz
   const estado = typeof p.estado === 'string' ? p.estado.trim() : '';
   if (!misionId || !estado) return null;
 
+  let hitoNormalizado: MisionActualizadaPayload['hito'] = null;
+  if (p.hito && typeof p.hito === 'object') {
+    const h = p.hito as Record<string, unknown>;
+    const hitoCodigo = typeof h.hito === 'string' ? h.hito.trim() : '';
+    if (hitoCodigo) {
+      const regObj =
+        h.registradoPor && typeof h.registradoPor === 'object'
+          ? (h.registradoPor as Record<string, unknown>)
+          : null;
+      hitoNormalizado = {
+        id: typeof h.id === 'string' ? h.id : undefined,
+        hitoId: typeof h.hitoId === 'string' ? h.hitoId : undefined,
+        hito: hitoCodigo,
+        descripcion: typeof h.descripcion === 'string' ? h.descripcion : '',
+        registradoPorId: typeof h.registradoPorId === 'string' ? h.registradoPorId : null,
+        registradoPorNombre:
+          typeof h.registradoPorNombre === 'string' ? h.registradoPorNombre : null,
+        registradoPor: regObj
+          ? {
+              id: typeof regObj.id === 'string' ? regObj.id : '',
+              nombre: typeof regObj.nombre === 'string' ? regObj.nombre : '',
+            }
+          : null,
+        latitud: typeof h.latitud === 'number' ? h.latitud : null,
+        longitud: typeof h.longitud === 'number' ? h.longitud : null,
+        creadoEn: typeof h.creadoEn === 'string' ? h.creadoEn : undefined,
+        registradoEn: typeof h.registradoEn === 'string' ? h.registradoEn : undefined,
+      };
+    }
+  }
+
   return {
     misionId,
     codigo: typeof p.codigo === 'string' ? p.codigo : undefined,
     estado,
+    tipoMision: typeof p.tipoMision === 'string' ? p.tipoMision : undefined,
+    incidenteId: typeof p.incidenteId === 'string' ? p.incidenteId : null,
+    patrullaId: typeof p.patrullaId === 'string' ? p.patrullaId : null,
     cuadrillaId: typeof p.cuadrillaId === 'string' ? p.cuadrillaId : null,
+    cuadrillaNombre: typeof p.cuadrillaNombre === 'string' ? p.cuadrillaNombre : null,
+    fechaInicio: typeof p.fechaInicio === 'string' ? p.fechaInicio : null,
+    hito: hitoNormalizado,
     actualizadoEn: typeof p.actualizadoEn === 'string' ? p.actualizadoEn : undefined,
   };
 }
@@ -339,7 +404,7 @@ export function combinarBitacoraConTiempoReal(
       if (nuevo.id && existente.id && nuevo.id === existente.id) return true;
       const configExistente = obtenerConfigHito(existente.codigoHito || existente.hito);
       if (configExistente.codigo === configNuevo.codigo) {
-        if (configNuevo.esLlegadaTerreno) return true;
+        if (configNuevo.esLlegadaTerreno || configNuevo.esAceptacion) return true;
         if (existente.timestamp === nuevo.timestamp) return true;
       }
       return false;

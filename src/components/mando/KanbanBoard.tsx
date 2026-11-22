@@ -13,6 +13,7 @@ import type { EstadoIncidente, IncidenteResumen } from '@/services/incidentesSer
 import type { EventoPrevencionDTO } from '@/types/evento-prevencion';
 import type { EventoRecuperacionResponse } from '@/types/recuperacion';
 import type { MisionRechazadaPayload } from '@/hooks/useEncargadoKanbanSocket';
+import type { MisionActualizadaPayload } from '@/types/misiones';
 import { KanbanHeader } from './KanbanHeader';
 import { KanbanFiltros } from './KanbanFiltros';
 import { KanbanColumn } from './KanbanColumn';
@@ -82,13 +83,20 @@ export const KanbanBoard: React.FC = () => {
     return cargarCuadrillas();
   }, [cargarCuadrillas]);
 
-  // HU-69: el handler real depende de `refrescarKpis`, que se inicializa más abajo.
-  // Se usa un puente por ref para evitar dependencias circulares de hooks.
+  // HU-69 / HU-40: los handlers reales dependen de `refrescarKpis`, inicializado más abajo.
+  // Se usan puentes por ref para evitar dependencias circulares de hooks.
   const onMisionRechazadaRef = React.useRef<(payload: MisionRechazadaPayload) => void>(
     () => undefined
   );
   const handleMisionRechazada = React.useCallback((payload: MisionRechazadaPayload) => {
     onMisionRechazadaRef.current(payload);
+  }, []);
+
+  const onMisionAceptadaRef = React.useRef<(payload: MisionActualizadaPayload) => void>(
+    () => undefined
+  );
+  const handleMisionAceptada = React.useCallback((payload: MisionActualizadaPayload) => {
+    onMisionAceptadaRef.current(payload);
   }, []);
 
   const {
@@ -115,6 +123,7 @@ export const KanbanBoard: React.FC = () => {
     trazabilidadPorIncidente,
   } = useIncidentesKanban({
     onMisionRechazada: handleMisionRechazada,
+    onMisionAceptada: handleMisionAceptada,
   });
 
 
@@ -180,6 +189,19 @@ export const KanbanBoard: React.FC = () => {
   useEffect(() => {
     onMisionRechazadaRef.current = handleMisionRechazadaSocket;
   }, [handleMisionRechazadaSocket]);
+
+  const handleMisionAceptadaSocket = React.useCallback(
+    (_payload: MisionActualizadaPayload) => {
+      void _payload;
+      refrescarKpis(false);
+      cargarCuadrillas();
+    },
+    [refrescarKpis, cargarCuadrillas]
+  );
+
+  useEffect(() => {
+    onMisionAceptadaRef.current = handleMisionAceptadaSocket;
+  }, [handleMisionAceptadaSocket]);
 
   // Hook de tiempo real para eventos de prevención (HU-30)
   usePrevencionSocket({

@@ -10,6 +10,7 @@ import {
   UserCheck,
   AlertTriangle,
   FileCheck,
+  CheckCircle2,
 } from 'lucide-react';
 import Heading from '@/components/ui/Heading';
 import Button from '@/components/ui/Button';
@@ -65,7 +66,7 @@ export const MisionBitacoraSection: React.FC<MisionBitacoraSectionProps> = ({
 
               const responsable =
                 hito.registradoPorNombre ||
-                (config.esLlegadaTerreno ? delegadoNombreFallback : null);
+                (config.esLlegadaTerreno || config.esAceptacion ? delegadoNombreFallback : null);
 
               return (
                 <div
@@ -77,6 +78,10 @@ export const MisionBitacoraSection: React.FC<MisionBitacoraSectionProps> = ({
                   {config.esLlegadaTerreno ? (
                     <div className={styles.timelineDotIcon} aria-hidden="true">
                       <MapPinCheck size={12} />
+                    </div>
+                  ) : config.esAceptacion ? (
+                    <div className={styles.timelineDotIcon} aria-hidden="true">
+                      <CheckCircle2 size={12} />
                     </div>
                   ) : config.esRechazo ? (
                     <div
