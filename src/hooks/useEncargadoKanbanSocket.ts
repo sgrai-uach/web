@@ -129,6 +129,19 @@ export interface NotificacionTrazabilidadPayload {
   actualizadoEn?: string;
 }
 
+export interface AsistenciaSocialSocketPayload {
+  id: string;
+  codigo?: string;
+  incidenteId?: string | null;
+  asistenteSocialId?: string | null;
+  asistenteSocialNombre?: string | null;
+  estado: string;
+  requiereFibe?: boolean;
+  creadoEn?: string;
+  actualizadoEn?: string;
+  evento?: Record<string, unknown>;
+}
+
 export interface UseEncargadoKanbanSocketOptions {
   onIncidenteCreado?: (payload: IncidenteCreadoPayload) => void;
   onIncidenteActualizado?: (payload: IncidenteActualizadoPayload) => void;
@@ -137,13 +150,16 @@ export interface UseEncargadoKanbanSocketOptions {
   onCuadrillaActualizada?: (payload: CuadrillaActualizadaPayload) => void;
   onRecursoActualizado?: (payload: RecursoActualizadoPayload) => void;
   onNotificacionTrazabilidadActualizada?: (payload: NotificacionTrazabilidadPayload) => void;
+  onAsistenciaSocialCreada?: (payload: AsistenciaSocialSocketPayload) => void;
+  onAsistenciaSocialActualizada?: (payload: AsistenciaSocialSocketPayload) => void;
   enabled?: boolean;
 }
 
 /**
  * Hook para la conexión en tiempo real del Encargado de Centro de Mando.
  * Se une a la sala 'sala:encargados' y escucha la creación y actualización de incidentes,
- * rechazos, cierres y trazabilidad de misiones, disponibilidad de cuadrillas e inventario.
+ * rechazos, cierres y trazabilidad de misiones, disponibilidad de cuadrillas, inventario
+ * y derivaciones de asistencia social (FIBE).
  */
 export function useEncargadoKanbanSocket({
   onIncidenteCreado,
@@ -153,6 +169,8 @@ export function useEncargadoKanbanSocket({
   onCuadrillaActualizada,
   onRecursoActualizado,
   onNotificacionTrazabilidadActualizada,
+  onAsistenciaSocialCreada,
+  onAsistenciaSocialActualizada,
   enabled = true,
 }: UseEncargadoKanbanSocketOptions = {}) {
   const [conectado, setConectado] = useState(false);
@@ -165,6 +183,8 @@ export function useEncargadoKanbanSocket({
   const cuadrillaActualizadaRef = useRef(onCuadrillaActualizada);
   const recursoActualizadoRef = useRef(onRecursoActualizado);
   const trazabilidadRef = useRef(onNotificacionTrazabilidadActualizada);
+  const asistenciaSocialCreadaRef = useRef(onAsistenciaSocialCreada);
+  const asistenciaSocialActualizadaRef = useRef(onAsistenciaSocialActualizada);
   const eventosProcesadosRef = useRef<Map<string, number>>(new Map());
 
   useEffect(() => {
@@ -194,6 +214,14 @@ export function useEncargadoKanbanSocket({
   useEffect(() => {
     trazabilidadRef.current = onNotificacionTrazabilidadActualizada;
   }, [onNotificacionTrazabilidadActualizada]);
+
+  useEffect(() => {
+    asistenciaSocialCreadaRef.current = onAsistenciaSocialCreada;
+  }, [onAsistenciaSocialCreada]);
+
+  useEffect(() => {
+    asistenciaSocialActualizadaRef.current = onAsistenciaSocialActualizada;
+  }, [onAsistenciaSocialActualizada]);
 
   useEffect(() => {
     if (!enabled) return;
@@ -748,6 +776,105 @@ export function useEncargadoKanbanSocket({
       }
     };
 
+    const normalizarAsistenciaSocialPayload = (
+      payload: unknown
+    ): AsistenciaSocialSocketPayload | null => {
+      if (!payload || typeof payload !== 'object') return null;
+      const obj = payload as Record<string, unknown>;
+      const nested =
+        obj.evento && typeof obj.evento === 'object'
+          ? (obj.evento as Record<string, unknown>)
+          : obj.datos && typeof obj.datos === 'object'
+            ? (obj.datos as Record<string, unknown>)
+            : obj.data && typeof obj.data === 'object'
+              ? (obj.data as Record<string, unknown>)
+              : obj;
+
+      const idRaw = nested.id ?? obj.id;
+      const id = typeof idRaw === 'string' && idRaw.trim() ? idRaw : '';
+      if (!id) return null;
+
+      const codigoRaw = nested.codigo ?? obj.codigo;
+      const incidenteIdRaw =
+        nested.incidenteId ?? nested.incidente_id ?? obj.incidenteId ?? obj.incidente_id;
+      const asistenteObj =
+        nested.asistenteSocial && typeof nested.asistenteSocial === 'object'
+          ? (nested.asistenteSocial as Record<string, unknown>)
+          : null;
+      const asistenteSocialIdRaw =
+        nested.asistenteSocialId ??
+        nested.asistente_social_id ??
+        obj.asistenteSocialId ??
+        obj.asistente_social_id ??
+        asistenteObj?.id;
+      const asistenteSocialNombreRaw =
+        nested.asistenteSocialNombre ??
+        nested.asistente_social_nombre ??
+        obj.asistenteSocialNombre ??
+        obj.asistente_social_nombre ??
+        asistenteObj?.nombreCompleto ??
+        asistenteObj?.nombre;
+      const estadoRaw = nested.estado ?? obj.estado;
+      const requiereFibeRaw =
+        nested.requiereFibe ?? nested.requiere_fibe ?? obj.requiereFibe ?? obj.requiere_fibe;
+
+      return {
+        id,
+        codigo: typeof codigoRaw === 'string' ? codigoRaw : undefined,
+        incidenteId: typeof incidenteIdRaw === 'string' ? incidenteIdRaw : null,
+        asistenteSocialId: typeof asistenteSocialIdRaw === 'string' ? asistenteSocialIdRaw : null,
+        asistenteSocialNombre:
+          typeof asistenteSocialNombreRaw === 'string' ? asistenteSocialNombreRaw : null,
+        estado: typeof estadoRaw === 'string' ? estadoRaw : 'ASIGNADO',
+        requiereFibe: typeof requiereFibeRaw === 'boolean' ? requiereFibeRaw : undefined,
+        creadoEn:
+          typeof nested.creadoEn === 'string'
+            ? nested.creadoEn
+            : typeof nested.creado_en === 'string'
+              ? nested.creado_en
+              : undefined,
+        actualizadoEn:
+          typeof nested.actualizadoEn === 'string'
+            ? nested.actualizadoEn
+            : typeof nested.actualizado_en === 'string'
+              ? nested.actualizado_en
+              : undefined,
+        evento: nested,
+      };
+    };
+
+    const handleAsistenciaSocialCreada = (payload: unknown) => {
+      const normalizado = normalizarAsistenciaSocialPayload(payload);
+      if (!normalizado) return;
+      if (
+        esEventoDuplicado(
+          `asoc-creada:${normalizado.id}:${normalizado.estado}:${normalizado.asistenteSocialId ?? ''}`
+        )
+      ) {
+        return;
+      }
+      setUltimoEvento(
+        `Derivación social: ${normalizado.codigo ?? normalizado.id} (${normalizado.estado})`
+      );
+      asistenciaSocialCreadaRef.current?.(normalizado);
+    };
+
+    const handleAsistenciaSocialActualizada = (payload: unknown) => {
+      const normalizado = normalizarAsistenciaSocialPayload(payload);
+      if (!normalizado) return;
+      if (
+        esEventoDuplicado(
+          `asoc-act:${normalizado.id}:${normalizado.estado}:${normalizado.asistenteSocialId ?? ''}:${normalizado.actualizadoEn ?? ''}`
+        )
+      ) {
+        return;
+      }
+      setUltimoEvento(
+        `Asistencia social: ${normalizado.codigo ?? normalizado.id} (${normalizado.estado})`
+      );
+      asistenciaSocialActualizadaRef.current?.(normalizado);
+    };
+
     socket.on('connect', onConnect);
     socket.on('disconnect', onDisconnect);
     socket.on('incidente:creado', handleCreado);
@@ -758,6 +885,8 @@ export function useEncargadoKanbanSocket({
     socket.on('cuadrilla:actualizada', handleCuadrillaActualizada);
     socket.on('recurso:actualizado', handleRecursoActualizado);
     socket.on('notificacion:trazabilidad_actualizada', handleTrazabilidad);
+    socket.on('asistencia_social:creada', handleAsistenciaSocialCreada);
+    socket.on('asistencia_social:actualizada', handleAsistenciaSocialActualizada);
 
     return () => {
       socket.off('connect', onConnect);
@@ -770,6 +899,8 @@ export function useEncargadoKanbanSocket({
       socket.off('cuadrilla:actualizada', handleCuadrillaActualizada);
       socket.off('recurso:actualizado', handleRecursoActualizado);
       socket.off('notificacion:trazabilidad_actualizada', handleTrazabilidad);
+      socket.off('asistencia_social:creada', handleAsistenciaSocialCreada);
+      socket.off('asistencia_social:actualizada', handleAsistenciaSocialActualizada);
       desuscribirSalas();
     };
   }, [enabled]);

@@ -12,16 +12,37 @@ import {
 } from '@/services/asistenciaSocialService';
 import { normalizarDetallesEvaluacionSocial } from '@/lib/utils/asistenciaSocialIncidenteUtils';
 import { getSocket } from '@/lib/socket/client';
+import { suscribirSalasSocket } from '@/lib/socket/roomManager';
 import type { Socket } from 'socket.io-client';
 
 type EventoSocialSocketPayload = EventoAsistenciaSocialItem & {
   detalles_evaluacion?: unknown;
+  evento?: EventoSocialSocketPayload;
+  datos?: EventoSocialSocketPayload;
+  data?: EventoSocialSocketPayload;
 };
+
+function extraerPayloadEventoSocial(raw: unknown): EventoSocialSocketPayload | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const obj = raw as Record<string, unknown>;
+  const nested =
+    obj.evento && typeof obj.evento === 'object'
+      ? (obj.evento as EventoSocialSocketPayload)
+      : obj.datos && typeof obj.datos === 'object'
+        ? (obj.datos as EventoSocialSocketPayload)
+        : obj.data && typeof obj.data === 'object'
+          ? (obj.data as EventoSocialSocketPayload)
+          : (obj as unknown as EventoSocialSocketPayload);
+  return nested && typeof nested.id === 'string' && nested.id ? nested : null;
+}
 
 function normalizarEventoDesdeSocket(
   evento: EventoSocialSocketPayload
 ): EventoAsistenciaSocialItem {
-  const { detalles_evaluacion, ...resto } = evento;
+  const { detalles_evaluacion, evento: _ev, datos: _dt, data: _da, ...resto } = evento;
+  void _ev;
+  void _dt;
+  void _da;
   return {
     ...resto,
     detallesEvaluacion: normalizarDetallesEvaluacionSocial(
@@ -108,15 +129,14 @@ export function useEventosAsistenciaSocial(
 
   const agregarEventoLocalmente = useCallback(
     (nuevoEvento: EventoAsistenciaSocialItem) => {
-      const eventoNormalizado = normalizarEventoDesdeSocket(
-        nuevoEvento as EventoSocialSocketPayload
-      );
-      if (estado && eventoNormalizado.estado !== estado) {
-        return;
-      }
+      const unwrapped = extraerPayloadEventoSocial(nuevoEvento) ?? (nuevoEvento as EventoSocialSocketPayload);
+      const eventoNormalizado = normalizarEventoDesdeSocket(unwrapped);
 
       setData((prev) => {
         if (!prev) {
+          if (estado && eventoNormalizado.estado !== estado) {
+            return prev;
+          }
           return {
             data: [eventoNormalizado],
             total: 1,
@@ -126,13 +146,32 @@ export function useEventosAsistenciaSocial(
           };
         }
 
-        // Evitar duplicados
-        if (
-          prev.data.some(
-            (e) => e.id === eventoNormalizado.id || e.codigo === eventoNormalizado.codigo
-          )
-        ) {
-          return prev;
+        const existe = prev.data.some(
+          (e) => e.id === eventoNormalizado.id || e.codigo === eventoNormalizado.codigo
+        );
+
+        // Si hay filtro de estado activo y el nuevo estado ya no coincide, remover si existía (upsert PENDIENTE -> ASIGNADO)
+        if (estado && eventoNormalizado.estado !== estado) {
+          if (!existe) return prev;
+          const filtrados = prev.data.filter(
+            (e) => e.id !== eventoNormalizado.id && e.codigo !== eventoNormalizado.codigo
+          );
+          return {
+            ...prev,
+            data: filtrados,
+            total: Math.max(0, prev.total - 1),
+          };
+        }
+
+        if (existe) {
+          return {
+            ...prev,
+            data: prev.data.map((e) =>
+              e.id === eventoNormalizado.id || e.codigo === eventoNormalizado.codigo
+                ? { ...e, ...eventoNormalizado }
+                : e
+            ),
+          };
         }
 
         return {
@@ -190,42 +229,38 @@ export function useEventosAsistenciaSocial(
 
     if (!socketInstance) return;
 
-    const unirseASalas = () => {
-      const salas = ['asistente_social', 'sala:encargados', 'encargado', 'centro_mando'];
-      salas.forEach((sala) => {
-        socketInstance?.emit('join', sala);
-        socketInstance?.emit('unirse', sala);
-      });
-    };
+    const desuscribirSalas = suscribirSalasSocket(socketInstance, [
+      { sala: 'asistente_social', eventosJoin: ['join', 'unirse'], eventosLeave: ['leave', 'salir'] },
+      { sala: 'sala:encargados', eventosJoin: ['join', 'unirse'], eventosLeave: ['leave', 'salir'] },
+      { sala: 'encargado', eventosJoin: ['join', 'unirse'], eventosLeave: ['leave', 'salir'] },
+      { sala: 'centro_mando', eventosJoin: ['join', 'unirse'], eventosLeave: ['leave', 'salir'] },
+    ]);
 
-    if (socketInstance.connected) {
-      unirseASalas();
-    }
-
-    const handleAsistenciaSocialCreada = (nuevoEvento: EventoAsistenciaSocialItem) => {
-      if (nuevoEvento && nuevoEvento.id) {
-        agregarEventoLocalmente(nuevoEvento);
+    const handleAsistenciaSocialCreada = (payload: unknown) => {
+      const evento = extraerPayloadEventoSocial(payload);
+      if (evento) {
+        agregarEventoLocalmente(evento);
       } else {
         fetchData();
       }
     };
 
-    const handleAsistenciaSocialActualizada = (eventoActualizado: EventoAsistenciaSocialItem) => {
-      if (eventoActualizado && eventoActualizado.id) {
-        actualizarEventoLocalmente(eventoActualizado);
+    const handleAsistenciaSocialActualizada = (payload: unknown) => {
+      const evento = extraerPayloadEventoSocial(payload);
+      if (evento) {
+        actualizarEventoLocalmente(evento);
       } else {
         fetchData();
       }
     };
 
-    socketInstance.on('connect', unirseASalas);
     socketInstance.on('asistencia_social:creada', handleAsistenciaSocialCreada);
     socketInstance.on('asistencia_social:actualizada', handleAsistenciaSocialActualizada);
 
     return () => {
-      socketInstance?.off('connect', unirseASalas);
       socketInstance?.off('asistencia_social:creada', handleAsistenciaSocialCreada);
       socketInstance?.off('asistencia_social:actualizada', handleAsistenciaSocialActualizada);
+      desuscribirSalas();
     };
   }, [agregarEventoLocalmente, actualizarEventoLocalmente, fetchData]);
 

@@ -21,7 +21,9 @@ import {
   type CuadrillaActualizadaPayload,
   type RecursoActualizadoPayload,
   type NotificacionTrazabilidadPayload,
+  type AsistenciaSocialSocketPayload,
 } from './useEncargadoKanbanSocket';
+import type { ResumenAsistenciaSocialIncidente } from '@/types/asistenciaSocial';
 import {
   getIncidentePorMision,
   getSnapshotTrazabilidadIncidentes,
@@ -61,6 +63,8 @@ export interface UseIncidentesKanbanOptions {
   onReporteTerrenoRecibido?: (payload: IncidenteActualizadoPayload) => void;
   onIncidenteCreadoSocket?: (payload: IncidenteCreadoPayload) => void;
   onIncidenteActualizadoSocket?: (payload: IncidenteActualizadoPayload) => void;
+  onAsistenciaSocialCreada?: (payload: AsistenciaSocialSocketPayload) => void;
+  onAsistenciaSocialActualizada?: (payload: AsistenciaSocialSocketPayload) => void;
 }
 
 /**
@@ -121,6 +125,16 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
   useEffect(() => {
     onRecursoActualizadoRef.current = optionsObj.onRecursoActualizado;
   }, [optionsObj.onRecursoActualizado]);
+
+  const onAsistenciaSocialCreadaRef = useRef(optionsObj.onAsistenciaSocialCreada);
+  useEffect(() => {
+    onAsistenciaSocialCreadaRef.current = optionsObj.onAsistenciaSocialCreada;
+  }, [optionsObj.onAsistenciaSocialCreada]);
+
+  const onAsistenciaSocialActualizadaRef = useRef(optionsObj.onAsistenciaSocialActualizada);
+  useEffect(() => {
+    onAsistenciaSocialActualizadaRef.current = optionsObj.onAsistenciaSocialActualizada;
+  }, [optionsObj.onAsistenciaSocialActualizada]);
   let sessionUserId: string | undefined;
   let sessionSetUser: ((id: string) => void) | undefined;
   try {
@@ -930,6 +944,71 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
     []
   );
 
+  const marcarIncidenteDerivadoSocial = useCallback(
+    (incidenteId: string, evento: ResumenAsistenciaSocialIncidente) => {
+      setColumnas((prev) => {
+        let modificado = false;
+        const siguiente = { ...prev };
+        for (const estado of ESTADOS_KANBAN) {
+          const lista = prev[estado];
+          if (lista.some((inc) => inc.id === incidenteId)) {
+            siguiente[estado] = lista.map((inc) =>
+              inc.id === incidenteId
+                ? {
+                    ...inc,
+                    asistenciaSocial: {
+                      ...inc.asistenciaSocial,
+                      ...evento,
+                    },
+                    actualizadoEn: evento.actualizadoEn || new Date().toISOString(),
+                  }
+                : inc
+            );
+            modificado = true;
+          }
+        }
+        return modificado ? siguiente : prev;
+      });
+    },
+    []
+  );
+
+  const handleAsistenciaSocialEvento = useCallback(
+    (payload: AsistenciaSocialSocketPayload, esCreacion: boolean) => {
+      if (payload.incidenteId) {
+        marcarIncidenteDerivadoSocial(payload.incidenteId, {
+          id: payload.id,
+          codigo: payload.codigo || payload.id,
+          estado: payload.estado,
+          asistenteSocialId: payload.asistenteSocialId ?? null,
+          asistenteSocialNombre: payload.asistenteSocialNombre ?? null,
+          creadoEn: payload.creadoEn,
+          actualizadoEn: payload.actualizadoEn,
+        });
+      }
+      if (esCreacion) {
+        onAsistenciaSocialCreadaRef.current?.(payload);
+      } else {
+        onAsistenciaSocialActualizadaRef.current?.(payload);
+      }
+    },
+    [marcarIncidenteDerivadoSocial]
+  );
+
+  const handleAsistenciaSocialCreada = useCallback(
+    (payload: AsistenciaSocialSocketPayload) => {
+      handleAsistenciaSocialEvento(payload, true);
+    },
+    [handleAsistenciaSocialEvento]
+  );
+
+  const handleAsistenciaSocialActualizada = useCallback(
+    (payload: AsistenciaSocialSocketPayload) => {
+      handleAsistenciaSocialEvento(payload, false);
+    },
+    [handleAsistenciaSocialEvento]
+  );
+
   const handleTrazabilidadActualizada = useCallback(
     (payload: NotificacionTrazabilidadPayload) => {
       if (!payload?.misionId || getIncidentePorMision(payload.misionId)) {
@@ -957,6 +1036,8 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
     onCuadrillaActualizada: handleCuadrillaActualizada,
     onRecursoActualizado: handleRecursoActualizado,
     onNotificacionTrazabilidadActualizada: handleTrazabilidadActualizada,
+    onAsistenciaSocialCreada: handleAsistenciaSocialCreada,
+    onAsistenciaSocialActualizada: handleAsistenciaSocialActualizada,
     enabled: !esForbidden,
   });
 
@@ -982,6 +1063,7 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
     recargar: cargarTablero,
     moverIncidenteAEstado,
     marcarIncidenteMisionDespachada,
+    marcarIncidenteDerivadoSocial,
     conectado,
     ultimoEvento,
     totalIncidentesVisibles,
