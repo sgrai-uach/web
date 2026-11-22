@@ -16,6 +16,26 @@ export interface AdjuntoEvidencia {
   creadoEn: string;
 }
 
+export interface AdjuntoCreadoPayload extends AdjuntoEvidencia {
+  incidenteId: string | null;
+  reporteTerrenoId: string | null;
+}
+
+export function esPayloadAdjuntoCreadoValido(
+  payload: unknown
+): payload is AdjuntoCreadoPayload {
+  if (!payload || typeof payload !== 'object') return false;
+  const p = payload as Record<string, unknown>;
+  return (
+    typeof p.id === 'string' &&
+    typeof p.nombreArchivo === 'string' &&
+    typeof p.url === 'string' &&
+    typeof p.tipoMime === 'string' &&
+    typeof p.tamanoBytes === 'number' &&
+    typeof p.creadoEn === 'string'
+  );
+}
+
 export interface EvaluadorTerreno {
   id: string;
   nombre: string;
@@ -23,9 +43,67 @@ export interface EvaluadorTerreno {
   rut?: string | null;
 }
 
+export interface FamiliaAfectadaMisionDetalle {
+  id?: string;
+  referencia?: string;
+  nucleoFamiliarTotal?: number;
+  cantidadNinos?: number;
+  cantidadAdultosMayores?: number;
+  personasDiscapacitadas?: number;
+  personasElectrodependientes?: number;
+  mascotasAfectadas?: number;
+  nivelCompromisoVivienda?: string;
+  requiereAsistenciaSocial?: boolean;
+}
+
+export interface EvaluacionTerrenoMisionDetalle {
+  familias?: FamiliaAfectadaMisionDetalle[];
+  nucleoFamiliarTotal?: number;
+  familiasAfectadas?: number;
+  cantidadNinos?: number;
+  cantidadAdultosMayores?: number;
+  personasDiscapacitadas?: number;
+  personasElectrodependientes?: number;
+  mascotasAfectadas?: number;
+  viviendasAfectadas?: number;
+  nivelCompromisoVivienda?: 'SIN_DANO' | 'LEVE' | 'MODERADO' | 'GRAVE_INHABITABLE' | string;
+  requiereEvacuacion?: boolean;
+  requiereAsistenciaSocial?: boolean;
+  requiereApoyoAdicional?: boolean;
+  riesgosActivos?: {
+    riesgoElectrico?: boolean;
+    riesgoEstructural?: boolean;
+    riesgoQuimicoSanitario?: boolean;
+    aislamientoVial?: boolean;
+  };
+  detallesAdicionales?: string | null;
+  accionesRealizadas?: string | null;
+  danosEstimados?: string | null;
+  puntajeTotal?: number;
+  factoresGatillantes?: string[];
+  [key: string]: unknown;
+}
+
+export type TipoReporteTerreno = 'EVALUACION_PRIORIDAD' | 'VERIFICACION_CIERRE' | string;
+
+export type DictamenAtencionTerreno = 'REQUIERE_CUADRILLA' | 'NO_ABORDABLE';
+
 export interface ReporteTerrenoDetalle {
   id: string;
   misionId: string;
+  tipoReporte?: TipoReporteTerreno | null;
+  dictamen?: DictamenAtencionTerreno | null;
+  motivoNoAbordable?: string | null;
+  requiereAsistenciaSocial?: boolean;
+  personasAfectadasPrevias?: number | null;
+  personasAfectadasModificadas?: boolean;
+  versionReporte?: number;
+  esRectificacion?: boolean;
+  etiquetaReporte?: string;
+  prioridadSugerida?: 'BAJA' | 'MEDIA' | 'ALTA' | 'CRITICA' | null;
+  prioridadAsignada?: 'BAJA' | 'MEDIA' | 'ALTA' | 'CRITICA' | null;
+  justificacionPrioridad?: string | null;
+  detallesEvaluacion?: EvaluacionTerrenoMisionDetalle;
   evaluador: EvaluadorTerreno;
   resumenTecnico: string;
   accionesRealizadas: string | null;
@@ -51,6 +129,7 @@ export interface MisionBitacoraHito {
   longitud?: number | null;
   registradoPorId?: string | null;
   registradoPorNombre?: string | null;
+  metadatos?: Record<string, unknown> | null;
 }
 
 export interface MisionHitoRegistradoPayload {
@@ -111,6 +190,8 @@ export interface IncidenteMisionResumen {
   longitud: number;
   estado: string;
   prioridad: string;
+  prioridadSugerida?: string | null;
+  justificacionPrioridad?: string | null;
   requiereAsistenciaSocial: boolean;
   delegacionNombre: string | null;
 }

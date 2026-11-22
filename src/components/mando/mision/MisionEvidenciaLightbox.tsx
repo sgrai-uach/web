@@ -37,6 +37,8 @@ export const MisionEvidenciaLightbox: React.FC<MisionEvidenciaLightboxProps> = (
   };
 
   const esImagen = adjunto.tipoMime.startsWith('image/');
+  const esVideo = adjunto.tipoMime.startsWith('video/');
+  const esPdf = adjunto.tipoMime === 'application/pdf';
 
   return (
     <div
@@ -70,6 +72,64 @@ export const MisionEvidenciaLightbox: React.FC<MisionEvidenciaLightboxProps> = (
             alt={adjunto.nombreArchivo}
             className={styles.lightboxImg}
           />
+        ) : esVideo ? (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem' }}>
+            <video
+              controls
+              preload="metadata"
+              src={mediaUrl}
+              className={styles.lightboxVideo}
+              aria-label={adjunto.nombreArchivo}
+            />
+            <a
+              href={mediaUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              download={adjunto.nombreArchivo}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                backgroundColor: 'var(--color-accent-mint, #4FAE9B)',
+                color: '#FFFFFF',
+                padding: '8px 16px',
+                textDecoration: 'none',
+                fontWeight: 700,
+                fontSize: '14px',
+              }}
+            >
+              <Download size={16} />
+              <span>Descargar Video</span>
+            </a>
+          </div>
+        ) : esPdf ? (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem' }}>
+            <iframe
+              src={mediaUrl}
+              title={adjunto.nombreArchivo}
+              className={styles.lightboxPdf}
+            />
+            <a
+              href={mediaUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              download={adjunto.nombreArchivo}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                backgroundColor: 'var(--color-accent-mint, #4FAE9B)',
+                color: '#FFFFFF',
+                padding: '8px 16px',
+                textDecoration: 'none',
+                fontWeight: 700,
+                fontSize: '14px',
+              }}
+            >
+              <Download size={16} />
+              <span>Descargar PDF</span>
+            </a>
+          </div>
         ) : (
           <div
             style={{

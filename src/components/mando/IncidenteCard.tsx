@@ -1,5 +1,14 @@
 import React from 'react';
-import { MapPin, CheckCircle2, ShieldCheck, Hourglass } from 'lucide-react';
+import {
+  MapPin,
+  ShieldCheck,
+  CheckCircle2,
+  Hourglass,
+  SlidersHorizontal,
+  ClipboardCheck,
+  Ban,
+  HardHat,
+} from 'lucide-react';
 import type {
   EstadoTrazabilidadNotificacion,
   IncidenteResumen,
@@ -7,9 +16,12 @@ import type {
 import { TRAZABILIDAD_CONFIG } from '@/lib/socket/trazabilidadConfig';
 import { TrazabilidadIcon } from './TrazabilidadIcon';
 import { obtenerNombreDelegacion } from '@/lib/utils/delegacionUtils';
+import { formatearPrioridad } from '@/lib/utils/estadoUtils';
+import { obtenerVarianteChipPrioridad } from '@/lib/utils/chipVariants';
 import styles from '@/styles/mando.module.css';
 import Heading from '@/components/ui/Heading';
 import Button from '@/components/ui/Button';
+import Chip from '@/components/ui/Chip';
 
 interface IncidenteCardProps {
   incidente: IncidenteResumen;
@@ -32,19 +44,6 @@ export const IncidenteCard: React.FC<IncidenteCardProps> = ({
     ? TRAZABILIDAD_CONFIG[estadoTrazabilidad]
     : undefined;
   const estaVerificado = Boolean(incidente.verificado);
-  const getPrioridadClass = (prioridad: string) => {
-    switch (prioridad) {
-      case 'CRITICA':
-        return styles.prioridadCritica;
-      case 'ALTA':
-        return styles.prioridadAlta;
-      case 'MEDIA':
-        return styles.prioridadMedia;
-      case 'BAJA':
-      default:
-        return styles.prioridadBaja;
-    }
-  };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' || e.key === ' ') {
@@ -52,6 +51,27 @@ export const IncidenteCard: React.FC<IncidenteCardProps> = ({
       onClick(incidente);
     }
   };
+
+  const prioridadFueModificadaManual = Boolean(
+    (incidente.prioridadSugerida &&
+      incidente.prioridadSugerida !== incidente.prioridad) ||
+      incidente.justificacionPrioridad
+  );
+
+  const justificacionPrioridadTexto =
+    incidente.justificacionPrioridad || incidente.cambioPrioridadMotivo;
+
+  const tooltipPrioridad = prioridadFueModificadaManual
+    ? `Prioridad ajustada manualmente en terreno: ${formatearPrioridad(incidente.prioridad)}${
+        incidente.prioridadSugerida
+          ? ` (Sugerida por sistema: ${formatearPrioridad(incidente.prioridadSugerida)})`
+          : ''
+      }${justificacionPrioridadTexto ? `. Justificación: ${justificacionPrioridadTexto}` : ''}`
+    : incidente.prioridadSugerida
+      ? `Prioridad: ${formatearPrioridad(incidente.prioridad)} (Coincide con sugerencia del sistema)`
+      : `Prioridad: ${formatearPrioridad(incidente.prioridad)}`;
+
+  const totalReportes = Number(incidente.totalReportesTerreno ?? 0);
 
   return (
     <div
@@ -63,25 +83,27 @@ export const IncidenteCard: React.FC<IncidenteCardProps> = ({
       aria-label={`Ver detalles del incidente ${incidente.codigo} tipo ${incidente.tipoAfectacion}`}
     >
       <div className={styles.cardTopRow}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', flexWrap: 'wrap' }}>
-          <span className={styles.cardCodigo}>{incidente.codigo}</span>
-          {estaVerificado && (
-            <span
-              className={styles.badgeVerificado}
-              title="Diagnóstico técnico en terreno finalizado por patrulla"
-              data-testid="badge-verificado"
+        <span className={styles.cardCodigo}>{incidente.codigo}</span>
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
+          {prioridadFueModificadaManual && (
+            <Chip
+              data-testid="indicador-prioridad-ajustada"
+              variant="warning"
+              size="sm"
+              icon={<SlidersHorizontal size={11} />}
+              title={tooltipPrioridad}
             >
-              <CheckCircle2 size={11} aria-hidden="true" />
-              <span>Verificado</span>
-            </span>
+              Ajustada
+            </Chip>
           )}
+          <Chip
+            variant={obtenerVarianteChipPrioridad(incidente.prioridad)}
+            size="sm"
+            title={tooltipPrioridad}
+          >
+            {formatearPrioridad(incidente.prioridad)}
+          </Chip>
         </div>
-        <span
-          className={`${styles.badgePrioridad} ${getPrioridadClass(incidente.prioridad)}`}
-          title={`Prioridad: ${incidente.prioridad}`}
-        >
-          {incidente.prioridad}
-        </span>
       </div>
 
       <Heading as="h4" variant="h4" color="charcoal" className={styles.cardTipoAfectacion} noMargin>
@@ -93,25 +115,112 @@ export const IncidenteCard: React.FC<IncidenteCardProps> = ({
         <span>{incidente.direccion}</span>
       </p>
 
+      {incidente.estado === 'NO_ABORDABLE' && incidente.motivoNoAbordable && (
+        <div
+          data-testid="card-motivo-no-abordable"
+          title={incidente.motivoNoAbordable}
+          style={{
+            marginTop: '0.35rem',
+            marginBottom: '0.4rem',
+            padding: '5px 8px',
+            backgroundColor: 'var(--color-danger-bg, #FFEBEE)',
+            borderLeft: '3px solid var(--color-danger, #D32F2F)',
+            fontSize: '0.75rem',
+            color: 'var(--color-charcoal, #3B3F45)',
+            lineHeight: 1.3,
+            display: '-webkit-box',
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: 'vertical',
+            overflow: 'hidden',
+          }}
+        >
+          <strong style={{ color: 'var(--color-danger, #D32F2F)' }}>Motivo:</strong>{' '}
+          {incidente.motivoNoAbordable}
+        </div>
+      )}
+
       <div className={styles.cardFooter}>
         <div className={styles.cardMetaTags}>
           {incidente.requiereAsistenciaSocial && (
-            <span
-              className={styles.tagAsistenciaSocial}
+            <Chip
+              variant="warning"
+              size="sm"
               title="Este incidente requiere levantamiento de ficha FIBE"
             >
               FIBE
-            </span>
+            </Chip>
+          )}
+          {incidente.estado === 'NO_ABORDABLE' && (
+            <Chip
+              variant="danger"
+              size="sm"
+              icon={<Ban size={11} strokeWidth={2.2} />}
+              title={
+                incidente.motivoNoAbordable
+                  ? `Declarado No Abordable en terreno: ${incidente.motivoNoAbordable}`
+                  : 'Incidente declarado No Abordable en terreno'
+              }
+            >
+              No Abordable
+            </Chip>
+          )}
+          {incidente.dictamenTerreno === 'REQUIERE_CUADRILLA' &&
+            incidente.estado !== 'NO_ABORDABLE' && (
+              <Chip
+                variant="teal"
+                size="sm"
+                icon={<HardHat size={11} strokeWidth={2.2} />}
+                title="Verificación cerrada con dictamen: Requiere despacho de cuadrilla"
+              >
+                Requiere Cuadrilla
+              </Chip>
+            )}
+          {(incidente.reclasificadoEnTerreno || incidente.verificado) && (
+            <Chip
+              variant="success"
+              size="sm"
+              icon={<CheckCircle2 size={11} strokeWidth={2.2} />}
+              title={
+                incidente.reclasificadoEnTerreno
+                  ? incidente.justificacionReclasificacion
+                    ? `Tipología reclasificada en terreno: ${incidente.justificacionReclasificacion}${incidente.cambioPrioridadMotivo || incidente.justificacionPrioridad ? ` (Prioridad ajustada: ${formatearPrioridad(incidente.prioridad)})` : ''}`
+                    : `Tipología rectificada por patrulla en terreno (Prioridad: ${formatearPrioridad(incidente.prioridad)})`
+                  : incidente.justificacionPrioridad
+                    ? `Evaluación en terreno con ajuste de prioridad: ${incidente.justificacionPrioridad} (Prioridad: ${formatearPrioridad(incidente.prioridad)})`
+                    : `Tipología constatada en terreno sin modificaciones (Prioridad: ${formatearPrioridad(incidente.prioridad)})`
+              }
+            >
+              Verificado
+            </Chip>
+          )}
+          {totalReportes > 0 && (
+            <Chip
+              data-testid="badge-total-reportes-terreno"
+              variant={totalReportes > 1 ? 'teal' : 'neutral'}
+              size="sm"
+              icon={<ClipboardCheck size={11} />}
+              title={
+                totalReportes > 1
+                  ? `Se han recibido ${totalReportes} reportes de evaluación en terreno (último envío corresponde a Rectificación #${totalReportes})`
+                  : 'Se ha recibido 1 reporte de evaluación inicial desde terreno'
+              }
+            >
+              {totalReportes === 1
+                ? '1 reporte'
+                : `${totalReportes} reportes · Rectificado`}
+            </Chip>
           )}
           {incidente.totalMisiones > 0 && (
-            <span className={styles.tagMisiones}>
+            <Chip variant="neutral" size="sm">
               {incidente.totalMisiones}{' '}
               {incidente.totalMisiones === 1 ? 'misión' : 'misiones'}
-            </span>
+            </Chip>
           )}
         </div>
 
-        <span>{obtenerNombreDelegacion(incidente.delegacionNombre, 'Sin delegación')}</span>
+        <span className={styles.cardDelegacion}>
+          {obtenerNombreDelegacion(incidente.delegacionNombre, 'Sin delegación')}
+        </span>
       </div>
 
       {trazabilidadConfig ? (
@@ -217,7 +326,9 @@ export const IncidenteCard: React.FC<IncidenteCardProps> = ({
         )
       )}
 
-      {incidente.estado === 'REPORTADO' && (incidente.tieneMisionDespachada || (onAsignarPatrulla && puedeAsignarPatrulla)) && (
+      {incidente.estado === 'REPORTADO' &&
+        (incidente.tieneMisionDespachada ||
+          (!incidente.tieneMisionEnCurso && onAsignarPatrulla && puedeAsignarPatrulla)) && (
         <div style={{ marginTop: '0.625rem', paddingTop: '0.5rem', borderTop: '1px solid var(--border-color-neutral, #DFE3E8)' }}>
           {incidente.tieneMisionDespachada ? (
             <Button
@@ -241,7 +352,7 @@ export const IncidenteCard: React.FC<IncidenteCardProps> = ({
             >
               <span>Confirmación Pendiente</span>
             </Button>
-          ) : onAsignarPatrulla && puedeAsignarPatrulla ? (
+          ) : !incidente.tieneMisionEnCurso && onAsignarPatrulla && puedeAsignarPatrulla ? (
             <Button
               type="button"
               variant="primary"

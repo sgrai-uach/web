@@ -19,6 +19,11 @@ import {
   obtenerConfigHito,
 } from '@/lib/utils/misionHitos';
 import type { MisionBitacoraHito } from '@/types/misiones';
+import {
+  esHitoTipologiaSinCambios,
+  formatearHitoBitacora,
+  limpiarDescripcionBitacora,
+} from '@/lib/utils/estadoUtils';
 import styles from '@/styles/mision-detalle.module.css';
 
 interface MisionBitacoraSectionProps {
@@ -51,12 +56,31 @@ export const MisionBitacoraSection: React.FC<MisionBitacoraSectionProps> = ({
         ) : (
           <div className={styles.timelineList}>
             {bitacora.map((hito, index) => {
-              const config = obtenerConfigHito(hito.codigoHito || hito.hito);
+              const sinCambiosTipologia = esHitoTipologiaSinCambios(hito);
+              const claveHito = (hito.codigoHito || hito.hito || '').trim();
+              const config = obtenerConfigHito(claveHito);
+              const tieneEtiquetaPersonalizada =
+                Boolean(config.etiqueta) &&
+                config.codigo !== 'EVENTO' &&
+                config.etiqueta !== claveHito;
+              const tituloHito = sinCambiosTipologia
+                ? 'Tipología constatada en terreno (sin cambios)'
+                : tieneEtiquetaPersonalizada
+                  ? config.etiqueta
+                  : formatearHitoBitacora(hito.hito);
               const { fecha, hora } = hito.timestamp
                 ? formatearFechaHoraChile(hito.timestamp)
                 : { fecha: hito.fecha, hora: hito.hora };
               const fechaVisible = hito.timestamp && fecha !== hito.timestamp ? fecha : hito.fecha;
               const horaVisible = hito.timestamp && hora ? hora : hito.hora;
+
+              const descripcionLimpia = limpiarDescripcionBitacora(hito.descripcion || '');
+              const descripcionFinal = sinCambiosTipologia
+                ? descripcionLimpia.replace(
+                    /^Tipolog[íi]a reclasificada en terreno a:/i,
+                    'Tipología confirmada en terreno sin modificaciones:'
+                  )
+                : descripcionLimpia;
 
               const tieneCoordenadas =
                 typeof hito.latitud === 'number' &&
@@ -99,7 +123,7 @@ export const MisionBitacoraSection: React.FC<MisionBitacoraSectionProps> = ({
                   )}
 
                   <div className={styles.timelineHeader}>
-                    <span className={styles.timelineHito}>{config.etiqueta}</span>
+                    <span className={styles.timelineHito}>{tituloHito}</span>
                     <span className={styles.timelineDate}>
                       <Calendar size={12} aria-hidden="true" />
                       <span>{fechaVisible}</span>
@@ -108,8 +132,8 @@ export const MisionBitacoraSection: React.FC<MisionBitacoraSectionProps> = ({
                     </span>
                   </div>
 
-                  {hito.descripcion && (
-                    <p className={styles.timelineDesc}>{hito.descripcion}</p>
+                  {descripcionFinal && (
+                    <p className={styles.timelineDesc}>{descripcionFinal}</p>
                   )}
 
                   {(responsable || tieneCoordenadas) && (
@@ -136,7 +160,7 @@ export const MisionBitacoraSection: React.FC<MisionBitacoraSectionProps> = ({
                                 onUbicarEnMapa(
                                   hito.latitud!,
                                   hito.longitud!,
-                                  config.etiqueta
+                                  tituloHito
                                 )
                               }
                             >
