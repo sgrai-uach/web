@@ -1391,4 +1391,90 @@ describe('Componente MisionDetalleModal (HU-17)', () => {
       'Estado terreno: Controlado'
     );
   });
+
+  it('HU-40: actualiza estado a EN_CURSO, cuadrilla EN_MISION, fechaInicio y agrega hito Asignación Aceptada por Cuadrilla en bitácora por WebSocket', async () => {
+    const misionDespachada: MisionDetalleCompleto = {
+      ...mockMision,
+      id: '70000000-0000-4000-8000-000000000001',
+      codigo: 'MIS-2026-0005',
+      tipoMision: 'ATENCION_CUADRILLA',
+      estado: 'DESPACHADA',
+      fechaInicio: null,
+      incidente: mockMision.incidente
+        ? {
+            ...mockMision.incidente,
+            estado: 'VERIFICANDO',
+          }
+        : null,
+      cuadrilla: mockMision.cuadrilla
+        ? {
+            ...mockMision.cuadrilla,
+            id: '50000000-0000-4000-8000-000000000001',
+            nombre: 'Cuadrilla Vías y Canales 1',
+            estado: 'DISPONIBLE',
+          }
+        : null,
+      bitacoraTiempos: [
+        {
+          id: 'h-desp-1',
+          hito: 'MISION_DESPACHADA',
+          fecha: '22/11/2026',
+          hora: '13:30:00',
+          timestamp: '2026-11-22T13:30:00.000Z',
+          descripcion: 'Cuadrilla despachada al sector',
+        },
+      ],
+    };
+
+    vi.spyOn(misionesService, 'obtenerDetalleMision').mockResolvedValueOnce({
+      exito: true,
+      datos: misionDespachada,
+      mensaje: 'OK',
+    });
+
+    render(
+      <MisionDetalleModal
+        misionId="70000000-0000-4000-8000-000000000001"
+        onCerrar={vi.fn()}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Despachada')).toBeDefined();
+    });
+
+    const misionHandler = socketListeners['mision:actualizada']?.[0];
+    expect(misionHandler).toBeDefined();
+
+    act(() => {
+      misionHandler?.({
+        misionId: '70000000-0000-4000-8000-000000000001',
+        codigo: 'MIS-2026-0005',
+        estado: 'EN_CURSO',
+        tipoMision: 'ATENCION_CUADRILLA',
+        cuadrillaId: '50000000-0000-4000-8000-000000000001',
+        cuadrillaNombre: 'Cuadrilla Vías y Canales 1',
+        incidenteId: 'i001',
+        incidenteCodigo: 'INC-2026-0042',
+        prioridad: 'ALTA',
+        fechaInicio: '2026-11-22T14:00:00.000Z',
+        hito: {
+          id: '80000000-0000-4000-8000-000000000010',
+          hito: 'MISION_ACEPTADA',
+          descripcion: 'Asignación Aceptada por Cuadrilla',
+          registradoPorId: 'd0000000-0000-4000-8000-000000000001',
+          creadoEn: '2026-11-22T14:00:00.000Z',
+        },
+        actualizadoEn: '2026-11-22T14:00:00.000Z',
+      });
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText('En curso')).toBeDefined();
+    });
+    expect(screen.getByText('En misión')).toBeDefined();
+    expect(screen.getByText('En atención')).toBeDefined();
+    expect(screen.getByText('Asignación Aceptada por Cuadrilla')).toBeDefined();
+    expect(screen.getByText(/Bitácora Cronológica de Operaciones \(2\)/i)).toBeDefined();
+  });
 });

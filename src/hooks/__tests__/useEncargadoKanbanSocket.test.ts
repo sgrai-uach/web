@@ -652,4 +652,88 @@ describe('useEncargadoKanbanSocket', () => {
       })
     );
   });
+
+  it('HU-40: sintetiza incidente EN_ATENCION, normaliza hito MISION_ACEPTADA en mision:actualizada y refleja cuadrilla EN_MISION', () => {
+    const socket = getSocket();
+    const onIncidenteActualizado = vi.fn();
+    const onMisionActualizada = vi.fn();
+    const onCuadrillaActualizada = vi.fn();
+
+    const { result } = renderHook(() =>
+      useEncargadoKanbanSocket({
+        onIncidenteActualizado,
+        onMisionActualizada,
+        onCuadrillaActualizada,
+      })
+    );
+
+    act(() => {
+      const trigger = (socket as unknown as { _trigger: (ev: string, p: unknown) => void })._trigger;
+      trigger('mision:actualizada', {
+        misionId: '70000000-0000-4000-8000-000000000001',
+        codigo: 'MIS-2026-0005',
+        estado: 'EN_CURSO',
+        tipoMision: 'ATENCION_CUADRILLA',
+        cuadrillaId: '50000000-0000-4000-8000-000000000001',
+        cuadrillaNombre: 'Cuadrilla Vías y Canales 1',
+        patrullaId: null,
+        patrullaNombre: null,
+        incidenteId: '30000000-0000-4000-8000-000000000001',
+        incidenteCodigo: 'INC-2026-0001',
+        prioridad: 'ALTA',
+        fechaInicio: '2026-11-22T14:00:00.000Z',
+        hito: {
+          id: '80000000-0000-4000-8000-000000000010',
+          hito: 'MISION_ACEPTADA',
+          descripcion: 'Asignación Aceptada por Cuadrilla',
+          registradoPorId: 'd0000000-0000-4000-8000-000000000001',
+          creadoEn: '2026-11-22T14:00:00.000Z',
+        },
+        actualizadoEn: '2026-11-22T14:00:00.000Z',
+      });
+
+      trigger('cuadrilla:actualizada', {
+        id: '50000000-0000-4000-8000-000000000001',
+        nombre: 'Cuadrilla Vías y Canales 1',
+        estado: 'EN_MISION',
+        delegacionId: 'd1000000-0000-4000-8000-000000000001',
+      });
+    });
+
+    expect(onIncidenteActualizado).toHaveBeenCalledWith(
+      expect.objectContaining({
+        esSintetico: true,
+        datos: expect.objectContaining({
+          id: '30000000-0000-4000-8000-000000000001',
+          codigo: 'INC-2026-0001',
+          nuevoEstado: 'EN_ATENCION',
+          prioridad: 'ALTA',
+        }),
+      })
+    );
+    expect(onMisionActualizada).toHaveBeenCalledWith(
+      expect.objectContaining({
+        misionId: '70000000-0000-4000-8000-000000000001',
+        codigo: 'MIS-2026-0005',
+        estado: 'EN_CURSO',
+        tipoMision: 'ATENCION_CUADRILLA',
+        cuadrillaNombre: 'Cuadrilla Vías y Canales 1',
+        incidenteCodigo: 'INC-2026-0001',
+        prioridad: 'ALTA',
+        hito: expect.objectContaining({
+          hito: 'MISION_ACEPTADA',
+          descripcion: 'Asignación Aceptada por Cuadrilla',
+        }),
+      })
+    );
+    expect(onCuadrillaActualizada).toHaveBeenCalledWith({
+      id: '50000000-0000-4000-8000-000000000001',
+      nombre: 'Cuadrilla Vías y Canales 1',
+      estado: 'EN_MISION',
+      delegacionId: 'd1000000-0000-4000-8000-000000000001',
+    });
+    expect(result.current.ultimoEvento).toBe(
+      'Cuadrilla Cuadrilla Vías y Canales 1 en misión activa'
+    );
+  });
 });

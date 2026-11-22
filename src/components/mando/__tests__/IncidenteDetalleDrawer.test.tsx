@@ -1504,4 +1504,102 @@ describe('Componente IncidenteDetalleDrawer e integración HU-17', () => {
       expect(spyDetalle).toHaveBeenCalledTimes(2);
     });
   });
+
+  it('HU-40: actualiza optimísticamente estado EN_ATENCION, misión EN_CURSO y cuadrilla EN_MISION al recibir mision:actualizada y recarga el detalle', async () => {
+    const detalleVerificando: IncidenteDetalle = {
+      ...mockDetalleIncidente,
+      estado: 'VERIFICANDO',
+      misiones: [
+        {
+          ...mockDetalleIncidente.misiones[0],
+          estado: 'DESPACHADA',
+          fechaInicio: null,
+          cuadrilla: {
+            id: 'c1',
+            nombre: 'Cuadrilla Alfa 1',
+            estado: 'DISPONIBLE',
+          },
+        },
+      ],
+    };
+
+    const detalleEnAtencion: IncidenteDetalle = {
+      ...detalleVerificando,
+      estado: 'EN_ATENCION',
+      misiones: [
+        {
+          ...detalleVerificando.misiones[0],
+          estado: 'EN_CURSO',
+          fechaInicio: '2026-11-22T14:00:00Z',
+          cuadrilla: {
+            id: 'c1',
+            nombre: 'Cuadrilla Alfa 1',
+            estado: 'EN_MISION',
+          },
+        },
+      ],
+    };
+
+    let resolverRecarga!: (val: incidentesService.ResultadoDetalleIncidente) => void;
+    const promesaRecarga = new Promise<incidentesService.ResultadoDetalleIncidente>((resolve) => {
+      resolverRecarga = resolve;
+    });
+
+    const spyDetalle = vi
+      .spyOn(incidentesService, 'obtenerDetalleIncidente')
+      .mockResolvedValueOnce({
+        exito: true,
+        datos: detalleVerificando,
+        mensaje: 'OK',
+      })
+      .mockImplementationOnce(() => promesaRecarga);
+
+    render(
+      <IncidenteDetalleDrawer
+        incidenteId="i1000000-0000-4000-8000-000000000001"
+        incidenteCodigo="INC-2026-0042"
+        userId="user-test"
+        onCerrar={vi.fn()}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Despachada')).toBeDefined();
+    });
+    expect(screen.getByText(/Estado:\s*En verificación/i)).toBeDefined();
+
+    const misionHandler = socketListeners['mision:actualizada']?.[0];
+    expect(misionHandler).toBeDefined();
+
+    act(() => {
+      misionHandler?.({
+        misionId: 'm1000000-0000-4000-8000-000000000001',
+        codigo: 'MIS-2026-0001',
+        estado: 'EN_CURSO',
+        tipoMision: 'ATENCION_CUADRILLA',
+        incidenteId: 'i1000000-0000-4000-8000-000000000001',
+        fechaInicio: '2026-11-22T14:00:00Z',
+      });
+    });
+
+    // Actualización optimista inmediata previa a resolver HTTP reload
+    await waitFor(() => {
+      expect(screen.getByText(/Estado:\s*En atención/i)).toBeDefined();
+    });
+    expect(screen.getByText('En curso')).toBeDefined();
+    expect(screen.getByText('(En misión)')).toBeDefined();
+    expect(spyDetalle).toHaveBeenCalledTimes(2);
+
+    await act(async () => {
+      resolverRecarga({
+        exito: true,
+        datos: detalleEnAtencion,
+        mensaje: 'OK',
+      });
+      await Promise.resolve();
+    });
+
+    expect(screen.getByText(/Estado:\s*En atención/i)).toBeDefined();
+    expect(screen.getByText('En curso')).toBeDefined();
+  });
 });

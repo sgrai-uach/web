@@ -1187,4 +1187,95 @@ describe('useIncidentesKanban - HU-20 y BUG-04', () => {
     expect(actualizado?.horasHombreRegistradas).toBe(3);
     expect(actualizado?.totalReportesTerreno).toBe(1);
   });
+
+  it('HU-40: transiciona el incidente de VERIFICANDO a EN_ATENCION con tieneMisionEnCurso: true y limpia faenas previas ante aceptación', async () => {
+    let socketOptions: UseEncargadoKanbanSocketOptions | undefined;
+    vi.mocked(useEncargadoKanbanSocket).mockImplementation((opts) => {
+      socketOptions = opts;
+      return { conectado: true, ultimoEvento: null };
+    });
+
+    const incVerificando: incidentesService.IncidenteResumen = {
+      id: '30000000-0000-4000-8000-000000000001',
+      codigo: 'INC-2026-0001',
+      codigoSeguimiento: '20260001',
+      tipoAfectacion: 'Inundación',
+      descripcion: 'Anegamiento en vía pública',
+      direccion: 'Av. Picarte 1200',
+      latitud: -39.82,
+      longitud: -73.24,
+      estado: 'VERIFICANDO',
+      prioridad: 'ALTA',
+      requiereAsistenciaSocial: false,
+      fuenteOrigen: 'WEB',
+      informanteNombre: 'María',
+      delegacionNombre: 'Norte',
+      totalMisiones: 2,
+      verificado: true,
+      tieneMisionDespachada: true,
+      tieneMisionEnCurso: false,
+      faenasCuadrillaCompletadas: false,
+      creadoEn: '2026-11-22T12:00:00Z',
+    };
+
+    vi.mocked(incidentesService.listarIncidentes).mockImplementation(async (query) => {
+      if (query.estado === 'VERIFICANDO') {
+        return {
+          exito: true,
+          incidentes: [incVerificando],
+          paginacion: {
+            total: 1,
+            pagina: 1,
+            limite: 20,
+            totalPaginas: 1,
+            tieneSiguiente: false,
+            tieneAnterior: false,
+          },
+          mensaje: 'OK',
+        };
+      }
+      return {
+        exito: true,
+        incidentes: [],
+        paginacion: {
+          total: 0,
+          pagina: 1,
+          limite: 20,
+          totalPaginas: 0,
+          tieneSiguiente: false,
+          tieneAnterior: false,
+        },
+        mensaje: 'OK',
+      };
+    });
+
+    const { result } = renderHook(() => useIncidentesKanban());
+
+    await waitFor(() => {
+      expect(result.current.columnas.VERIFICANDO).toHaveLength(1);
+    });
+
+    act(() => {
+      socketOptions?.onIncidenteActualizado?.({
+        evento: 'incidente:actualizado',
+        esSintetico: true,
+        datos: {
+          id: '30000000-0000-4000-8000-000000000001',
+          codigo: 'INC-2026-0001',
+          nuevoEstado: 'EN_ATENCION',
+          prioridad: 'ALTA',
+          actualizadoEn: '2026-11-22T14:00:00.000Z',
+        },
+        emitidoEn: '2026-11-22T14:00:00.000Z',
+      });
+    });
+
+    expect(result.current.columnas.VERIFICANDO).toHaveLength(0);
+    expect(result.current.columnas.EN_ATENCION).toHaveLength(1);
+    const movido = result.current.columnas.EN_ATENCION[0];
+    expect(movido.estado).toBe('EN_ATENCION');
+    expect(movido.tieneMisionEnCurso).toBe(true);
+    expect(movido.tieneMisionDespachada).toBe(false);
+    expect(movido.faenasCuadrillaCompletadas).toBe(false);
+  });
 });

@@ -9,6 +9,7 @@ import {
   esJustificacionSinCambios,
   esHitoTipologiaSinCambios,
   formatearNombrePatrulla,
+  formatearNombreCuadrilla,
   limpiarDescripcionBitacora,
   formatearDictamenTerreno,
   esReporteVerificacionCierre,
@@ -352,6 +353,17 @@ describe('H68: utilidades para cierre de misión de cuadrilla (REPORTE_CUADRILLA
     ).toBe(
       'Misión cerrada por la Cuadrilla Norte. Estado terreno: Requiere seguimiento. Cuadrilla pasa a Disponible.'
     );
+  });
+
+  it('formatea nombres de cuadrillas evitando duplicar el prefijo Cuadrilla', () => {
+    expect(formatearNombreCuadrilla('Cuadrilla Vías y Canales 1')).toBe(
+      'Cuadrilla Vías y Canales 1'
+    );
+    expect(formatearNombreCuadrilla('Vías y Canales 2')).toBe(
+      'Cuadrilla Vías y Canales 2'
+    );
+    expect(formatearNombreCuadrilla('   ')).toBe('Cuadrilla Operativa');
+    expect(formatearNombreCuadrilla(null, 'Unidad Alpha')).toBe('Unidad Alpha');
   });
 });
 
