@@ -3,6 +3,7 @@ import type {
   FamiliaAfectadaSocialDTO,
   NivelCompromisoViviendaSocial,
   PrioridadEventoSocial,
+  ResumenAsistenciaSocialIncidente,
   TipoAfectacionSocial,
 } from '@/types/asistenciaSocial';
 
@@ -13,15 +14,24 @@ export interface IncidenteResumenCompatible {
   direccion?: string | null;
   estado?: string;
   requiereAsistenciaSocial?: boolean;
+  personasAfectadas?: number | null;
+  personas_afectadas?: number | null;
   verificado?: boolean;
   dictamenTerreno?: string | null;
   motivoNoAbordable?: string | null;
+  asistenciaSocial?: ResumenAsistenciaSocialIncidente | null;
+  ultimoReporte?: {
+    personasAfectadas?: number | null;
+    requiereAsistenciaSocial?: boolean | null;
+    tipoReporte?: string | null;
+  } | null;
+  reportesEvaluacionTerreno?: ReporteTerrenoCompatible[] | null;
 }
 
 export interface EvaluacionTerrenoCompatible {
   nucleoFamiliarTotal?: number | null;
   familiasAfectadas?: number | null;
-  familias?: Array<Record<string, unknown>> | null;
+  familias?: readonly object[] | null;
   cantidadNinos?: number | null;
   cantidadAdultosMayores?: number | null;
   personasDiscapacitadas?: number | null;
@@ -248,6 +258,119 @@ export function esReporteCierrePatrulla(reporte?: ReporteTerrenoCompatible | nul
     return dictNorm === 'REQUIERE_CUADRILLA' || dictNorm === 'NO_ABORDABLE';
   }
   return false;
+}
+
+/**
+ * Determina si un reporte de terreno corresponde al informe técnico final de cuadrilla (H68).
+ */
+export function esReporteCierreCuadrillaCompatible(
+  reporte?: ReporteTerrenoCompatible | null
+): boolean {
+  if (!reporte) return false;
+  return (
+    typeof reporte.tipoReporte === 'string' &&
+    reporte.tipoReporte.trim().toUpperCase() === 'REPORTE_CUADRILLA'
+  );
+}
+
+export interface ElegibilidadDerivacionSocialResult {
+  esResuelto: boolean;
+  personasAfectadas: number;
+  requiereAsistenciaSocial: boolean;
+  elegible: boolean;
+  yaDerivado: boolean;
+  tieneEventoPendiente: boolean;
+  eventoSocial: ResumenAsistenciaSocialIncidente | null;
+}
+
+/**
+ * Evalúa si un incidente en estado RESUELTO cumple los criterios de HU-25 para habilitar
+ * la derivación a Asistencia Social (DGRD — Ficha FIBE):
+ * - estado === 'RESUELTO'
+ * - personasAfectadas > 0 OR requiereAsistenciaSocial === true
+ * Consolida el conteo desde campos directos, REPORTE_CUADRILLA (H68), VERIFICACION_CIERRE (H39),
+ * ultimoReporte y evaluación de prioridad (H38).
+ */
+export function evaluarElegibilidadDerivacionSocial(
+  incidente?: IncidenteResumenCompatible | IncidenteDetalleCompatible | null
+): ElegibilidadDerivacionSocialResult {
+  if (!incidente) {
+    return {
+      esResuelto: false,
+      personasAfectadas: 0,
+      requiereAsistenciaSocial: false,
+      elegible: false,
+      yaDerivado: false,
+      tieneEventoPendiente: false,
+      eventoSocial: null,
+    };
+  }
+
+  const esResuelto = (incidente.estado || '').trim().toUpperCase() === 'RESUELTO';
+  const reportes = Array.isArray(incidente.reportesEvaluacionTerreno)
+    ? [...incidente.reportesEvaluacionTerreno]
+    : [];
+
+  const reporteCuadrilla = reportes.find((r) => esReporteCierreCuadrillaCompatible(r)) || null;
+  const reporteVerifCierre = reportes.find((r) => esReporteCierrePatrulla(r)) || null;
+  const reportePrioridad =
+    reportes.find(
+      (r) => !esReporteCierreCuadrillaCompatible(r) && !esReporteCierrePatrulla(r)
+    ) || null;
+
+  const incExt = incidente as IncidenteResumenCompatible & {
+    personasAfectadas?: number | null;
+    personas_afectadas?: number | null;
+    asistenciaSocial?: ResumenAsistenciaSocialIncidente | null;
+    ultimoReporte?: {
+      personasAfectadas?: number | null;
+      requiereAsistenciaSocial?: boolean | null;
+    } | null;
+  };
+
+  const candidatosPersonas: Array<number | null | undefined> = [
+    incExt.personasAfectadas,
+    incExt.personas_afectadas,
+    extraerPersonasDeReporte(reporteCuadrilla),
+    extraerPersonasDeReporte(reporteVerifCierre),
+    incExt.ultimoReporte?.personasAfectadas,
+    extraerPersonasDeReporte(reportePrioridad),
+  ];
+
+  let personasAfectadas = 0;
+  for (const cand of candidatosPersonas) {
+    if (typeof cand === 'number' && !Number.isNaN(cand) && cand > 0) {
+      personasAfectadas = Math.trunc(cand);
+      break;
+    }
+  }
+
+  const requiereAsistenciaSocial = Boolean(
+    incidente.requiereAsistenciaSocial ||
+      reporteCuadrilla?.requiereAsistenciaSocial ||
+      reporteVerifCierre?.requiereAsistenciaSocial ||
+      incExt.ultimoReporte?.requiereAsistenciaSocial
+  );
+
+  const eventoSocial = incExt.asistenciaSocial ?? null;
+  const estadoSocial = (eventoSocial?.estado || '').trim().toUpperCase();
+  const tieneEventoPendiente = Boolean(eventoSocial && estadoSocial === 'PENDIENTE');
+  const yaDerivado = Boolean(
+    eventoSocial &&
+      ['ASIGNADO', 'EN_EVALUACION_FIBE', 'FINALIZADO'].includes(estadoSocial)
+  );
+
+  const elegible = esResuelto && (personasAfectadas > 0 || requiereAsistenciaSocial);
+
+  return {
+    esResuelto,
+    personasAfectadas,
+    requiereAsistenciaSocial,
+    elegible,
+    yaDerivado,
+    tieneEventoPendiente,
+    eventoSocial,
+  };
 }
 
 function extraerFamiliasDeReporte(reporte?: ReporteTerrenoCompatible | null): number | null {
@@ -670,12 +793,22 @@ export function extraerContextoSocialDesdeIncidente(
     return tB - tA;
   });
 
+  const reporteCuadrilla =
+    reportes.find((r) => esReporteCierreCuadrillaCompatible(r)) || null;
   const reporteCierre = reportes.find((r) => esReporteCierrePatrulla(r)) || null;
-  const reportePrioridad = reportes.find((r) => !esReporteCierrePatrulla(r)) || null;
+  const reportePrioridad =
+    reportes.find(
+      (r) => !esReporteCierrePatrulla(r) && !esReporteCierreCuadrillaCompatible(r)
+    ) || null;
 
+  const personasCuadrilla = extraerPersonasDeReporte(reporteCuadrilla);
   const personasCierre = extraerPersonasDeReporte(reporteCierre);
   const personasDePrioridad = extraerPersonasDeReporte(reportePrioridad);
-  const personasAfectadas = personasCierre ?? personasDePrioridad ?? null;
+  const personasAfectadas =
+    (typeof personasCuadrilla === 'number' && personasCuadrilla > 0 ? personasCuadrilla : null) ??
+    personasCierre ??
+    personasDePrioridad ??
+    null;
 
   const personasPrevias =
     typeof reporteCierre?.personasAfectadasPrevias === 'number'

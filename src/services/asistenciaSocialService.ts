@@ -3,20 +3,77 @@ import { formatApiError } from '@/lib/utils/errorUtils';
 import { normalizarDetallesEvaluacionSocial } from '@/lib/utils/asistenciaSocialIncidenteUtils';
 import type {
   CrearEventoAsistenciaSocialDTO,
+  DerivarAsistenciaSocialDTO,
+  DerivarAsistenciaSocialResponse,
   EventoAsistenciaSocialItem,
   ListarEventosAsistenciaSocialResponse,
   FiltrosEventosAsistenciaSocialState,
   PrioridadEventoSocial,
 } from '@/types/asistenciaSocial';
 
+export const ENDPOINT_DERIVAR_INCIDENTE_SOCIAL = '/api/incidentes/{id}/asistencia-social' as const;
+
+export interface ContextoIncidenteDerivacion {
+  codigo?: string;
+  tipoAfectacion?: string;
+  descripcion?: string | null;
+  direccion?: string | null;
+  latitud?: number | null;
+  longitud?: number | null;
+  personasAfectadas?: number | null;
+  prioridad?: PrioridadEventoSocial | string | null;
+  delegacionId?: string | null;
+  delegacionNombre?: string | null;
+  contactoNombre?: string | null;
+  contactoTelefono?: string | null;
+  contactoRut?: string | null;
+  asistenteSocialNombre?: string | null;
+}
+
 function normalizarEventoSocial(
-  item: EventoAsistenciaSocialItem & { detalles_evaluacion?: unknown }
+  item: EventoAsistenciaSocialItem & {
+    detalles_evaluacion?: unknown;
+    tipo_afectacion?: string;
+    personas_afectadas?: number;
+    familias_afectadas?: number;
+    direccion_texto?: string;
+    contacto_nombre?: string | null;
+    contacto_telefono?: string | null;
+    contacto_rut?: string | null;
+    delegacion_id?: string | null;
+    delegacion_nombre?: string | null;
+    incidente_id?: string | null;
+    asistente_social_id?: string | null;
+    asistente_social_nombre?: string | null;
+    creado_en?: string;
+    actualizado_en?: string;
+  }
 ): EventoAsistenciaSocialItem {
   const detalles = normalizarDetallesEvaluacionSocial(
     item.detallesEvaluacion ?? item.detalles_evaluacion
   );
   return {
     ...item,
+    tipoAfectacion: item.tipoAfectacion ?? item.tipo_afectacion ?? 'OTRO_EXCEPCIONAL',
+    personasAfectadas: item.personasAfectadas ?? item.personas_afectadas ?? 0,
+    familiasAfectadas: item.familiasAfectadas ?? item.familias_afectadas ?? 0,
+    direccionTexto: item.direccionTexto ?? item.direccion_texto ?? '',
+    contactoNombre: item.contactoNombre !== undefined ? item.contactoNombre : (item.contacto_nombre ?? null),
+    contactoTelefono:
+      item.contactoTelefono !== undefined ? item.contactoTelefono : (item.contacto_telefono ?? null),
+    contactoRut: item.contactoRut !== undefined ? item.contactoRut : (item.contacto_rut ?? null),
+    delegacionId: item.delegacionId !== undefined ? item.delegacionId : (item.delegacion_id ?? null),
+    delegacionNombre:
+      item.delegacionNombre !== undefined ? item.delegacionNombre : (item.delegacion_nombre ?? null),
+    incidenteId: item.incidenteId !== undefined ? item.incidenteId : (item.incidente_id ?? null),
+    asistenteSocialId:
+      item.asistenteSocialId !== undefined ? item.asistenteSocialId : (item.asistente_social_id ?? null),
+    asistenteSocialNombre:
+      item.asistenteSocialNombre !== undefined
+        ? item.asistenteSocialNombre
+        : (item.asistente_social_nombre ?? null),
+    creadoEn: item.creadoEn ?? item.creado_en ?? new Date().toISOString(),
+    actualizadoEn: item.actualizadoEn ?? item.actualizado_en ?? new Date().toISOString(),
     detallesEvaluacion: detalles,
   };
 }
@@ -527,6 +584,246 @@ export async function asignarAsistenteSocial(
         item.id === eventoId ? actualizado : item
       );
       return actualizado;
+    }
+
+    throw new AsistenciaSocialServiceError(
+      'Error inesperado al conectar con el servicio de asistencia social.'
+    );
+  }
+}
+
+/**
+ * Deriva un incidente en estado RESUELTO hacia Asistencia Social (DGRD — Ficha FIBE)
+ * creando o actualizando el registro en evento_asistencia_social en estado ASIGNADO (HU-25).
+ */
+export async function derivarIncidenteAAsistenciaSocial(
+  payload: DerivarAsistenciaSocialDTO,
+  userId?: string,
+  contextoIncidente?: ContextoIncidenteDerivacion
+): Promise<DerivarAsistenciaSocialResponse> {
+  const incidenteId = payload.incidenteId.trim();
+  const body = {
+    asistenteSocialId: payload.asistenteSocialId.trim(),
+    ...(payload.observaciones?.trim() ? { observaciones: payload.observaciones.trim() } : {}),
+  };
+
+  try {
+    const { data, error, response } = await apiClient.POST(
+      ENDPOINT_DERIVAR_INCIDENTE_SOCIAL as unknown as Parameters<typeof apiClient.POST>[0],
+      {
+        params: {
+          path: { id: incidenteId },
+          header: {
+            ...(userId ? { 'x-user-id': userId } : {}),
+          },
+        },
+        headers: {
+          ...(userId ? { 'x-user-id': userId } : {}),
+        },
+        body: body as unknown as Parameters<typeof apiClient.POST>[1]['body'],
+      } as unknown as Parameters<typeof apiClient.POST>[1]
+    );
+
+    if ((response?.status === 201 || response?.status === 200) && data) {
+      const envelope = data as unknown as {
+        data?: {
+          evento?: EventoAsistenciaSocialItem;
+          accion?: 'CREADO' | 'ACTUALIZADO';
+          hitoRegistrado?: DerivarAsistenciaSocialResponse['hitoRegistrado'];
+        } & EventoAsistenciaSocialItem;
+        evento?: EventoAsistenciaSocialItem;
+        accion?: 'CREADO' | 'ACTUALIZADO';
+        hitoRegistrado?: DerivarAsistenciaSocialResponse['hitoRegistrado'];
+      };
+
+      const inner = envelope.data ?? (envelope as unknown as EventoAsistenciaSocialItem & {
+        evento?: EventoAsistenciaSocialItem;
+        accion?: 'CREADO' | 'ACTUALIZADO';
+        hitoRegistrado?: DerivarAsistenciaSocialResponse['hitoRegistrado'];
+      });
+
+      const rawEvento =
+        (inner as { evento?: EventoAsistenciaSocialItem }).evento ??
+        (inner as EventoAsistenciaSocialItem);
+
+      const eventoNormalizado = normalizarEventoSocial(rawEvento);
+      const statusNum = (response as { status?: number } | undefined)?.status;
+      const accion: 'CREADO' | 'ACTUALIZADO' =
+        (inner as { accion?: 'CREADO' | 'ACTUALIZADO' }).accion ??
+        (statusNum === 200 ? 'ACTUALIZADO' : 'CREADO');
+
+      const existeEnMemoria = eventosSocialesMemoria.some((e) => e.id === eventoNormalizado.id);
+      eventosSocialesMemoria = existeEnMemoria
+        ? eventosSocialesMemoria.map((e) => (e.id === eventoNormalizado.id ? eventoNormalizado : e))
+        : [eventoNormalizado, ...eventosSocialesMemoria];
+
+      return {
+        evento: eventoNormalizado,
+        accion,
+        hitoRegistrado:
+          (inner as { hitoRegistrado?: DerivarAsistenciaSocialResponse['hitoRegistrado'] })
+            .hitoRegistrado ?? null,
+      };
+    }
+
+    const statusCode = response?.status || 500;
+    const errorBody = (error || {}) as {
+      message?: string;
+      errors?: Array<{ campo: string; mensaje: string }>;
+    };
+
+    if (statusCode === 403) {
+      throw new AsistenciaSocialServiceError(
+        errorBody.message ||
+          'No cuenta con el permiso requerido (asistencia_social:crear) para derivar incidentes a Asistencia Social.',
+        { statusCode: 403 }
+      );
+    }
+
+    if (statusCode === 404) {
+      throw new AsistenciaSocialServiceError(
+        errorBody.message || 'Incidente o asistente social no encontrado.',
+        { statusCode: 404 }
+      );
+    }
+
+    if (statusCode === 409) {
+      throw new AsistenciaSocialServiceError(
+        errorBody.message ||
+          'El asistente social seleccionado ya no se encuentra disponible o el incidente ya posee una derivación activa.',
+        { statusCode: 409 }
+      );
+    }
+
+    if (statusCode === 422) {
+      throw new AsistenciaSocialServiceError(
+        errorBody.message ||
+          'El incidente debe encontrarse en estado RESUELTO y registrar personas afectadas o marca FIBE para derivar.',
+        { statusCode: 422 }
+      );
+    }
+
+    if (statusCode === 400 && Array.isArray(errorBody.errors)) {
+      const fieldErrors: Record<string, string> = {};
+      errorBody.errors.forEach((err: { campo: string; mensaje: string }) => {
+        if (err.campo) fieldErrors[err.campo] = err.mensaje;
+      });
+      throw new AsistenciaSocialServiceError(
+        errorBody.message || 'Error de validación al derivar el incidente a Asistencia Social.',
+        {
+          statusCode: 400,
+          errors: errorBody.errors,
+          fieldErrors,
+        }
+      );
+    }
+
+    const apiErr = formatApiError(errorBody);
+    throw new AsistenciaSocialServiceError(
+      apiErr.message ||
+        `Error HTTP ${statusCode}: No fue posible derivar el incidente a Asistencia Social.`,
+      { statusCode }
+    );
+  } catch (err: unknown) {
+    if (err instanceof AsistenciaSocialServiceError) {
+      throw err;
+    }
+
+    const isNetworkError =
+      err instanceof TypeError &&
+      (err.message.includes('fetch') ||
+        err.message.includes('Failed to fetch') ||
+        err.message.includes('NetworkError'));
+
+    if (isNetworkError) {
+      const existente = eventosSocialesMemoria.find(
+        (item) => item.incidenteId === incidenteId && item.estado !== 'DESCARTADO'
+      );
+      const ahora = new Date().toISOString();
+      const nombreAsistente =
+        contextoIncidente?.asistenteSocialNombre || 'Asistente Social Asignado';
+
+      if (existente) {
+        const actualizado: EventoAsistenciaSocialItem = {
+          ...existente,
+          estado: 'ASIGNADO',
+          asistenteSocialId: body.asistenteSocialId,
+          asistenteSocialNombre: nombreAsistente,
+          contactoNombre:
+            existente.contactoNombre ?? contextoIncidente?.contactoNombre ?? null,
+          contactoTelefono:
+            existente.contactoTelefono ?? contextoIncidente?.contactoTelefono ?? null,
+          contactoRut: existente.contactoRut ?? contextoIncidente?.contactoRut ?? null,
+          direccionTexto:
+            existente.direccionTexto || contextoIncidente?.direccion || 'Dirección del incidente',
+          actualizadoEn: ahora,
+        };
+        eventosSocialesMemoria = eventosSocialesMemoria.map((item) =>
+          item.id === existente.id ? actualizado : item
+        );
+        return {
+          evento: actualizado,
+          accion: 'ACTUALIZADO',
+          hitoRegistrado: {
+            hito: 'DERIVACION_ASISTENCIA_SOCIAL',
+            descripcion: `Incidente derivado a Asistencia Social (${actualizado.codigo}). Profesional asignado: ${nombreAsistente}.`,
+            creadoEn: ahora,
+          },
+        };
+      }
+
+      const correlativoNum = eventosSocialesMemoria.length + 1;
+      const prioridadRaw = (contextoIncidente?.prioridad || 'MEDIA').toUpperCase();
+      const prioridadNorm: PrioridadEventoSocial =
+        prioridadRaw === 'BAJA' ||
+        prioridadRaw === 'MEDIA' ||
+        prioridadRaw === 'ALTA' ||
+        prioridadRaw === 'CRITICA'
+          ? prioridadRaw
+          : 'MEDIA';
+
+      const nuevoMock: EventoAsistenciaSocialItem = {
+        id: `mock-deriv-${Date.now()}`,
+        codigo: `AS-2026-${String(correlativoNum).padStart(4, '0')}`,
+        descripcion:
+          payload.observaciones?.trim() ||
+          contextoIncidente?.descripcion?.trim() ||
+          `Derivación post-incidente ${contextoIncidente?.codigo || incidenteId} para levantamiento de Ficha FIBE (DGRD).`,
+        tipoAfectacion: contextoIncidente?.tipoAfectacion || 'OTRO_EXCEPCIONAL',
+        personasAfectadas: contextoIncidente?.personasAfectadas ?? 1,
+        familiasAfectadas: 1,
+        direccionTexto: contextoIncidente?.direccion?.trim() || 'Dirección del incidente',
+        latitud: contextoIncidente?.latitud ?? -39.8142,
+        longitud: contextoIncidente?.longitud ?? -73.2459,
+        prioridad: prioridadNorm,
+        estado: 'ASIGNADO',
+        contactoNombre: contextoIncidente?.contactoNombre ?? null,
+        contactoTelefono: contextoIncidente?.contactoTelefono ?? null,
+        contactoRut: contextoIncidente?.contactoRut ?? null,
+        delegacionId: contextoIncidente?.delegacionId ?? null,
+        delegacionNombre: contextoIncidente?.delegacionNombre ?? null,
+        incidenteId,
+        asistenteSocialId: body.asistenteSocialId,
+        asistenteSocialNombre: nombreAsistente,
+        detallesEvaluacion: null,
+        creadoPor: {
+          id: userId || '00000000-0000-4000-8000-000000000003',
+          nombre: 'Encargado de Operaciones',
+        },
+        creadoEn: ahora,
+        actualizadoEn: ahora,
+      };
+
+      eventosSocialesMemoria = [nuevoMock, ...eventosSocialesMemoria];
+      return {
+        evento: nuevoMock,
+        accion: 'CREADO',
+        hitoRegistrado: {
+          hito: 'DERIVACION_ASISTENCIA_SOCIAL',
+          descripcion: `Incidente derivado a Asistencia Social (${nuevoMock.codigo}). Profesional asignado: ${nombreAsistente}.`,
+          creadoEn: ahora,
+        },
+      };
     }
 
     throw new AsistenciaSocialServiceError(

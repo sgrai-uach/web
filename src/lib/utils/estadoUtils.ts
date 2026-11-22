@@ -73,6 +73,15 @@ export const MAPA_ESTADOS_LEGIBLES: Record<string, string> = {
   MISION_COMPLETADA: 'Misión completada',
   MISION_RECHAZADA: 'Misión rechazada',
   MISION_CANCELADA: 'Misión cancelada',
+  DERIVACION_ASISTENCIA_SOCIAL: 'Derivación a Asistencia Social (DGRD — Ficha FIBE)',
+  ASISTENCIA_SOCIAL_ASIGNADA: 'Asistente social asignado para levantamiento FIBE',
+  ASISTENCIA_SOCIAL_CREADA: 'Evento de asistencia social registrado (FIBE)',
+  ASISTENCIA_SOCIAL_DERIVADA: 'Incidente derivado a Asistencia Social (DGRD)',
+
+  // Estados de Eventos de Asistencia Social (H25 / H28 / H31)
+  PENDIENTE: 'Pendiente',
+  EN_EVALUACION_FIBE: 'En evaluación FIBE',
+  DESCARTADO: 'Descartado',
 
   // Nivel de compromiso de vivienda (HU-38)
   SIN_DANO: 'Sin daño habitacional',

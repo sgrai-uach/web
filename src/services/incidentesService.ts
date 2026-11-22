@@ -17,6 +17,7 @@ import type {
   MaterialConsumidoDetalle,
   TipoReporteTerreno,
 } from '@/types/misiones';
+import type { ResumenAsistenciaSocialIncidente } from '@/types/asistenciaSocial';
 
 export const DEFAULT_ENCARGADO_ID = '00000000-0000-4000-8000-000000000003';
 
@@ -146,6 +147,8 @@ export type IncidenteResumen = ListarIncidentesResponse['data'][number] & {
   cambioPrioridadMotivo?: string | null;
   tieneMisionDespachada?: boolean;
   tieneMisionEnCurso?: boolean;
+  personasAfectadas?: number | null;
+  asistenciaSocial?: ResumenAsistenciaSocialIncidente | null;
 };
 export type IncidenteDetalle = Omit<
   IncidenteDetalleResponse['data'],
@@ -169,6 +172,8 @@ export type IncidenteDetalle = Omit<
   ultimoReporte?: UltimoReporteIncidenteResumen | null;
   tieneMisionDespachada?: boolean;
   tieneMisionEnCurso?: boolean;
+  personasAfectadas?: number | null;
+  asistenciaSocial?: ResumenAsistenciaSocialIncidente | null;
 };
 
 export type MisionDetalle = IncidenteDetalleResponse['data']['misiones'][number];

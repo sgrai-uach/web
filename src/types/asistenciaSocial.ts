@@ -306,3 +306,50 @@ export const asignarAsistenteSocialSchema = z.object({
 });
 
 export type AsignarAsistenteSocialFormInput = z.infer<typeof asignarAsistenteSocialSchema>;
+
+export interface ResumenAsistenciaSocialIncidente {
+  id: string;
+  codigo: string;
+  estado: EstadoEventoSocial | string;
+  asistenteSocialId?: string | null;
+  asistenteSocialNombre?: string | null;
+  asignadoEn?: string | null;
+  creadoEn?: string | null;
+  actualizadoEn?: string | null;
+}
+
+export interface DerivarAsistenciaSocialDTO {
+  incidenteId: string;
+  asistenteSocialId: string;
+  observaciones?: string | null;
+}
+
+export interface DerivarAsistenciaSocialResponse {
+  evento: EventoAsistenciaSocialItem;
+  accion: 'CREADO' | 'ACTUALIZADO';
+  hitoRegistrado?: {
+    id?: string;
+    hito: string;
+    descripcion: string;
+    creadoEn?: string;
+  } | null;
+}
+
+export const derivarAsistenciaSocialSchema = z.object({
+  incidenteId: z
+    .string({ message: 'Identificador de incidente no válido.' })
+    .trim()
+    .min(1, 'Identificador de incidente no válido.'),
+  asistenteSocialId: z
+    .string({ message: 'Debe seleccionar un asistente social disponible.' })
+    .trim()
+    .min(1, 'Debe seleccionar un asistente social disponible.'),
+  observaciones: z
+    .string()
+    .trim()
+    .max(500, 'Las observaciones no pueden superar los 500 caracteres.')
+    .optional()
+    .or(z.literal('')),
+});
+
+export type DerivarAsistenciaSocialFormInput = z.infer<typeof derivarAsistenciaSocialSchema>;
