@@ -219,4 +219,28 @@ describe('AsistenciaSocialClient', () => {
       );
     });
   });
+
+  it('inicializa el filtro de estado en "Todos los estados" (undefined) por defecto', async () => {
+    const spyObtener = vi
+      .spyOn(asistenciaSocialService, 'obtenerEventosAsistenciaSocial')
+      .mockResolvedValueOnce({
+        data: [],
+        total: 0,
+        pagina: 1,
+        limite: 10,
+        totalPaginas: 1,
+      });
+
+    render(<AsistenciaSocialClient basePath="/gestion/asistente-social" />);
+
+    const selectEstado = screen.getByLabelText(/Estado del Caso/i) as HTMLSelectElement;
+    expect(selectEstado.value).toBe('');
+
+    await waitFor(() => {
+      expect(spyObtener).toHaveBeenCalledWith(
+        expect.objectContaining({ estado: undefined }),
+        '00000000-0000-4000-8000-000000000003'
+      );
+    });
+  });
 });

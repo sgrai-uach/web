@@ -33,11 +33,11 @@ const OPCIONES_PRIORIDAD = [
 ];
 
 const OPCIONES_ESTADO = [
+  { valor: '', etiqueta: 'Todos los estados' },
   { valor: 'PENDIENTE', etiqueta: 'Pendientes de asignación' },
   { valor: 'ASIGNADO', etiqueta: 'Asistente asignado' },
   { valor: 'EN_EVALUACION_FIBE', etiqueta: 'En evaluación FIBE' },
   { valor: 'FINALIZADO', etiqueta: 'Finalizados' },
-  { valor: '', etiqueta: 'Todos los estados' },
 ];
 
 export default function AsistenciaSocialFiltros({
@@ -91,13 +91,13 @@ export default function AsistenciaSocialFiltros({
       });
     }
 
-    if (filtros.estado && filtros.estado !== 'PENDIENTE') {
+    if (filtros.estado) {
       const match = OPCIONES_ESTADO.find((e) => e.valor === filtros.estado);
       chips.push({
         id: 'estado',
         etiqueta: 'Estado',
         valorVisible: match ? match.etiqueta : filtros.estado,
-        onRemove: () => onCambiarEstado('PENDIENTE'),
+        onRemove: () => onCambiarEstado(undefined),
       });
     }
 

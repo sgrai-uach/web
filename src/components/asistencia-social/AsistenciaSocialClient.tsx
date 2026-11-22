@@ -64,7 +64,7 @@ export default function AsistenciaSocialClient({
       ? undefined
       : estadoParam && ESTADOS_VALIDOS.includes(estadoParam as EstadoEventoSocial)
         ? (estadoParam as EstadoEventoSocial)
-        : 'PENDIENTE';
+        : undefined;
 
   const [filtros, setFiltros] = useState<FiltrosEventosAsistenciaSocialState>(() => ({
     pagina: 1,
@@ -103,7 +103,7 @@ export default function AsistenciaSocialClient({
       busqueda: '',
       delegacionId: undefined,
       prioridad: undefined,
-      estado: 'PENDIENTE',
+      estado: undefined,
     });
   }, []);
 
@@ -128,7 +128,7 @@ export default function AsistenciaSocialClient({
     Boolean(filtros.busqueda) ||
     Boolean(filtros.delegacionId) ||
     Boolean(filtros.prioridad) ||
-    (Boolean(filtros.estado) && filtros.estado !== 'PENDIENTE');
+    Boolean(filtros.estado);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6, 24px)' }}>
