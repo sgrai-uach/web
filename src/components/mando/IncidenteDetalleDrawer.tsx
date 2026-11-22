@@ -98,9 +98,11 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
     auth.usuario?.rolCodigo === 'ENCARGADO' ||
     auth.usuario?.rolCodigo === 'ADMINISTRADOR';
 
-  const cargarDetalle = useCallback(() => {
+  const cargarDetalle = useCallback((silencioso = false) => {
     if (!incidenteId) return;
-    setCargando(true);
+    if (!silencioso || !detalleRef.current) {
+      setCargando(true);
+    }
     setError(null);
 
     obtenerDetalleIncidente(incidenteId, userId)
@@ -115,7 +117,9 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
             const consolidado = getTrazabilidadEstado(m.id) ?? m.trazabilidadNotificacion;
             return consolidado ? { ...m, trazabilidadNotificacion: consolidado } : m;
           });
-          setDetalle({ ...res.datos, misiones: misionesHidratadas });
+          const detalleActualizado = { ...res.datos, misiones: misionesHidratadas };
+          detalleRef.current = detalleActualizado;
+          setDetalle(detalleActualizado);
         } else {
           setError(res.mensaje || 'Error al obtener el detalle del incidente.');
         }
@@ -506,10 +510,52 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
             : undefined;
       const pertenece =
         incId === incidenteId ||
-        (misId && detalleRef.current?.misiones.some((m) => m.id === misId));
-      if (pertenece) {
-        cargarDetalle();
+        Boolean(misId && detalleRef.current?.misiones.some((m) => m.id === misId));
+      if (!pertenece) return;
+
+      const estadoMisionEv = typeof raw?.estado === 'string' ? raw.estado.toUpperCase() : '';
+      const tipoMisionEv =
+        typeof raw?.tipoMision === 'string'
+          ? raw.tipoMision
+          : typeof raw?.tipo_mision === 'string'
+            ? raw.tipo_mision
+            : '';
+      const fechaInicioEv =
+        typeof raw?.fechaInicio === 'string'
+          ? raw.fechaInicio
+          : typeof raw?.fecha_inicio === 'string'
+            ? raw.fecha_inicio
+            : undefined;
+
+      if (estadoMisionEv === 'EN_CURSO') {
+        const esCuadrillaEv = tipoMisionEv === 'ATENCION_CUADRILLA';
+        setDetalle((prev) => {
+          if (!prev || prev.id !== incidenteId) return prev;
+          return {
+            ...prev,
+            estado: esCuadrillaEv
+              ? 'EN_ATENCION'
+              : prev.estado === 'REPORTADO'
+                ? 'VERIFICANDO'
+                : prev.estado,
+            misiones: prev.misiones.map((m) => {
+              if (misId && m.id !== misId) return m;
+              if (!misId && tipoMisionEv && m.tipoMision !== tipoMisionEv) return m;
+              return {
+                ...m,
+                estado: 'EN_CURSO',
+                fechaInicio: fechaInicioEv ?? m.fechaInicio,
+                cuadrilla:
+                  esCuadrillaEv && m.cuadrilla
+                    ? { ...m.cuadrilla, estado: 'EN_MISION' }
+                    : m.cuadrilla,
+              };
+            }),
+          };
+        });
       }
+
+      cargarDetalle(true);
     };
 
     const handleAdjuntoCreado = (rawPayload: unknown) => {

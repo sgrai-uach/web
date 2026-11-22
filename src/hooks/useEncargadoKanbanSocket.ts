@@ -89,18 +89,31 @@ export interface CuadrillaActualizadaPayload {
   delegacionId?: string | null;
 }
 
+export interface MisionHitoSocketPayload {
+  id?: string;
+  hito: string;
+  descripcion?: string;
+  registradoPorId?: string | null;
+  creadoEn?: string;
+}
+
 export interface MisionActualizadaPayload {
-  id: string;
+  id?: string;
   misionId: string;
   codigo: string;
   tipoMision?: string;
   estado: string;
+  prioridad?: PrioridadIncidente | string;
+  fechaInicio?: string | null;
   fechaCierre?: string | null;
-  hito?: string | null;
+  hito?: MisionHitoSocketPayload | string | null;
   incidenteId?: string | null;
   incidenteCodigo?: string | null;
   cuadrillaId?: string | null;
   cuadrillaNombre?: string | null;
+  patrullaId?: string | null;
+  patrullaNombre?: string | null;
+  actualizadoEn?: string;
   reporteTerreno?: ReporteEvaluacionTerreno | null;
 }
 
@@ -495,6 +508,7 @@ export function useEncargadoKanbanSocket({
             ? raw.incidente_id
             : undefined;
       const estadoMision = typeof raw?.estado === 'string' ? raw.estado : undefined;
+      const estadoMisionNorm = estadoMision ? estadoMision.toUpperCase() : '';
       const tipoMision =
         typeof raw?.tipoMision === 'string'
           ? raw.tipoMision
@@ -502,40 +516,134 @@ export function useEncargadoKanbanSocket({
             ? raw.tipo_mision
             : undefined;
       const codigoMision = typeof raw?.codigo === 'string' ? raw.codigo : '';
+      const incidenteCodigo =
+        typeof raw?.incidenteCodigo === 'string'
+          ? raw.incidenteCodigo
+          : typeof raw?.incidente_codigo === 'string'
+            ? raw.incidente_codigo
+            : '';
+      const cuadrillaId =
+        typeof raw?.cuadrillaId === 'string'
+          ? raw.cuadrillaId
+          : typeof raw?.cuadrilla_id === 'string'
+            ? raw.cuadrilla_id
+            : null;
+      const cuadrillaNombre =
+        typeof raw?.cuadrillaNombre === 'string'
+          ? raw.cuadrillaNombre
+          : typeof raw?.cuadrilla_nombre === 'string'
+            ? raw.cuadrilla_nombre
+            : null;
+      const patrullaId =
+        typeof raw?.patrullaId === 'string'
+          ? raw.patrullaId
+          : typeof raw?.patrulla_id === 'string'
+            ? raw.patrulla_id
+            : null;
+      const patrullaNombre =
+        typeof raw?.patrullaNombre === 'string'
+          ? raw.patrullaNombre
+          : typeof raw?.patrulla_nombre === 'string'
+            ? raw.patrulla_nombre
+            : null;
+      const fechaInicio =
+        typeof raw?.fechaInicio === 'string'
+          ? raw.fechaInicio
+          : typeof raw?.fecha_inicio === 'string'
+            ? raw.fecha_inicio
+            : null;
+      const actualizadoEn =
+        typeof raw?.actualizadoEn === 'string'
+          ? raw.actualizadoEn
+          : fechaInicio || new Date().toISOString();
 
-      // Regla de Negocio (H69): Solo cuando la patrulla ACEPTA la misión (estado EN_CURSO)
-      // el incidente transiciona a la columna VERIFICANDO.
-      if (incidenteId && (tipoMision === 'VERIFICACION' || !tipoMision)) {
-        if (estadoMision === 'EN_CURSO') {
-          if (esEventoDuplicado(`mision-ev:${incidenteId}:${estadoMision}`)) {
-            return;
-          }
+      let hitoNormalizado: MisionHitoSocketPayload | string | null = null;
+      if (typeof raw?.hito === 'string') {
+        hitoNormalizado = raw.hito;
+      } else if (raw?.hito && typeof raw.hito === 'object') {
+        const rawHito = raw.hito as Record<string, unknown>;
+        if (typeof rawHito.hito === 'string') {
+          hitoNormalizado = {
+            id: typeof rawHito.id === 'string' ? rawHito.id : undefined,
+            hito: rawHito.hito,
+            descripcion:
+              typeof rawHito.descripcion === 'string' ? rawHito.descripcion : undefined,
+            registradoPorId:
+              typeof rawHito.registradoPorId === 'string' ? rawHito.registradoPorId : null,
+            creadoEn: typeof rawHito.creadoEn === 'string' ? rawHito.creadoEn : undefined,
+          };
+        }
+      }
+
+      // Regla de Negocio (H69 / HU-40):
+      // - Patrulla VERIFICACION acepta misión (EN_CURSO) -> incidente pasa a VERIFICANDO.
+      // - Cuadrilla ATENCION_CUADRILLA acepta asignación (EN_CURSO) -> incidente pasa a EN_ATENCION.
+      const claveEnCurso = misionId || codigoMision || incidenteId;
+      if (
+        claveEnCurso &&
+        estadoMisionNorm === 'EN_CURSO' &&
+        (!tipoMision || tipoMision === 'VERIFICACION' || tipoMision === 'ATENCION_CUADRILLA')
+      ) {
+        const esCuadrilla = tipoMision === 'ATENCION_CUADRILLA';
+        if (esEventoDuplicado(`mision-ev:${incidenteId || claveEnCurso}:${estadoMisionNorm}:${misionId || codigoMision}`)) {
+          return;
+        }
+
+        const estadoIncidenteObjetivo: EstadoIncidente = esCuadrilla
+          ? 'EN_ATENCION'
+          : 'VERIFICANDO';
+
+        if (incidenteId && actualizadoRef.current) {
           const syntheticIncPayload: IncidenteActualizadoPayload = {
             evento: 'incidente:actualizado',
             esSintetico: true,
             datos: {
               id: incidenteId,
-              codigo: typeof raw?.incidenteCodigo === 'string' ? raw.incidenteCodigo : '',
-              nuevoEstado: 'VERIFICANDO',
+              codigo: incidenteCodigo,
+              nuevoEstado: estadoIncidenteObjetivo,
               prioridad: (raw?.prioridad as PrioridadIncidente) || 'MEDIA',
-              actualizadoEn:
-                typeof raw?.actualizadoEn === 'string'
-                  ? raw.actualizadoEn
-                  : new Date().toISOString(),
+              actualizadoEn,
             },
             emitidoEn: new Date().toISOString(),
           };
-          if (actualizadoRef.current) {
-            actualizadoRef.current(syntheticIncPayload);
-          }
-          setUltimoEvento(`Misión ${codigoMision} aceptada: Incidente en verificación`);
+          actualizadoRef.current(syntheticIncPayload);
         }
+
+        setUltimoEvento(
+          esCuadrilla
+            ? `Asignación ${codigoMision || misionId} aceptada por cuadrilla: Incidente en atención`
+            : `Misión ${codigoMision || misionId} aceptada: Incidente en verificación`
+        );
+
+        if (misionActualizadaRef.current) {
+          misionActualizadaRef.current({
+            id: misionId || codigoMision,
+            misionId: misionId || codigoMision,
+            codigo: codigoMision,
+            tipoMision,
+            estado: estadoMisionNorm,
+            prioridad:
+              typeof raw?.prioridad === 'string'
+                ? (raw.prioridad as PrioridadIncidente)
+                : undefined,
+            fechaInicio,
+            hito: hitoNormalizado,
+            incidenteId: incidenteId ?? null,
+            incidenteCodigo: incidenteCodigo || null,
+            cuadrillaId,
+            cuadrillaNombre,
+            patrullaId,
+            patrullaNombre,
+            actualizadoEn,
+          });
+        }
+        return;
       }
 
       // H68: Emitir callback dedicado para mision:actualizada COMPLETADA sin sintetizar incidente:actualizado
-      if (estadoMision === 'COMPLETADA') {
+      if (estadoMisionNorm === 'COMPLETADA') {
         const claveComp = misionId || codigoMision || incidenteId;
-        if (claveComp && esEventoDuplicado(`mision-comp:${claveComp}:${estadoMision}`)) {
+        if (claveComp && esEventoDuplicado(`mision-comp:${claveComp}:${estadoMisionNorm}`)) {
           return;
         }
         const repRaw =
@@ -547,33 +655,20 @@ export function useEncargadoKanbanSocket({
           misionId: misionId || codigoMision,
           codigo: codigoMision,
           tipoMision,
-          estado: estadoMision,
+          estado: estadoMisionNorm,
           fechaCierre:
             typeof raw?.fechaCierre === 'string'
               ? raw.fechaCierre
               : typeof raw?.fecha_cierre === 'string'
                 ? raw.fecha_cierre
                 : null,
-          hito: typeof raw?.hito === 'string' ? raw.hito : null,
+          hito: hitoNormalizado,
           incidenteId: incidenteId ?? null,
-          incidenteCodigo:
-            typeof raw?.incidenteCodigo === 'string'
-              ? raw.incidenteCodigo
-              : typeof raw?.incidente_codigo === 'string'
-                ? raw.incidente_codigo
-                : null,
-          cuadrillaId:
-            typeof raw?.cuadrillaId === 'string'
-              ? raw.cuadrillaId
-              : typeof raw?.cuadrilla_id === 'string'
-                ? raw.cuadrilla_id
-                : null,
-          cuadrillaNombre:
-            typeof raw?.cuadrillaNombre === 'string'
-              ? raw.cuadrillaNombre
-              : typeof raw?.cuadrilla_nombre === 'string'
-                ? raw.cuadrilla_nombre
-                : null,
+          incidenteCodigo: incidenteCodigo || null,
+          cuadrillaId,
+          cuadrillaNombre,
+          patrullaId,
+          patrullaNombre,
           reporteTerreno: repRaw,
         };
         if (codigoMision) {
@@ -649,6 +744,11 @@ export function useEncargadoKanbanSocket({
       const estado = typeof raw?.estado === 'string' ? raw.estado : '';
       if (!id || !estado) return;
 
+      const estadoUpper = estado.toUpperCase();
+      if (esEventoDuplicado(`cuadrilla-act:${id}:${estadoUpper}`)) {
+        return;
+      }
+
       const normalizedPayload: CuadrillaActualizadaPayload = {
         id,
         nombre: typeof raw?.nombre === 'string' ? raw.nombre : undefined,
@@ -661,9 +761,13 @@ export function useEncargadoKanbanSocket({
               : null,
       };
 
-      if (estado.toUpperCase() === 'DISPONIBLE') {
+      if (estadoUpper === 'DISPONIBLE') {
         setUltimoEvento(
           `Cuadrilla ${normalizedPayload.nombre || id} volvió a estado Disponible`
+        );
+      } else if (estadoUpper === 'EN_MISION') {
+        setUltimoEvento(
+          `Cuadrilla ${normalizedPayload.nombre || id} en misión activa`
         );
       }
 

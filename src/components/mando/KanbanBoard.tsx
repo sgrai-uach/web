@@ -28,6 +28,8 @@ import {
   formatearDictamenTerreno,
   formatearEstadoTerreno,
   formatearHorasHombre,
+  formatearNombreCuadrilla,
+  formatearNombrePatrulla,
   formatearPrioridad,
   formatearCompromisoVivienda,
   formatearEstado,
@@ -381,6 +383,7 @@ export const KanbanBoard: React.FC = () => {
   );
 
   const ultimosToastsIncidenteRef = React.useRef<Map<string, number>>(new Map());
+  const ultimasAceptacionesIncidenteRef = React.useRef<Map<string, number>>(new Map());
 
   const esToastIncidenteDuplicado = React.useCallback((clave: string, ventanaMs = 4000): boolean => {
     const ahora = Date.now();
@@ -438,6 +441,15 @@ export const KanbanBoard: React.FC = () => {
       const esNoAbordable =
         datos.nuevoEstado === 'NO_ABORDABLE' || datos.dictamen === 'NO_ABORDABLE';
       const esEventoTipologia = Boolean(datos.tipoAfectacion && datos.justificacion);
+
+      if (!esNoAbordable && !esEventoTipologia) {
+        const tsAceptacion = ultimasAceptacionesIncidenteRef.current.get(
+          `${datos.id}:${datos.nuevoEstado}`
+        );
+        if (tsAceptacion && Date.now() - tsAceptacion < 6000) {
+          return;
+        }
+      }
 
       if (esNoAbordable) {
         showWarning(
@@ -602,7 +614,65 @@ export const KanbanBoard: React.FC = () => {
 
   const handleMisionActualizadaSocket = React.useCallback(
     (payload: MisionActualizadaPayload) => {
-      if (payload.estado.toUpperCase() === 'COMPLETADA') {
+      const estadoNorm = (payload.estado || '').toUpperCase();
+      const codigoHito =
+        typeof payload.hito === 'string'
+          ? payload.hito.toUpperCase()
+          : payload.hito && typeof payload.hito === 'object' && typeof payload.hito.hito === 'string'
+            ? payload.hito.hito.toUpperCase()
+            : '';
+
+      if (estadoNorm === 'EN_CURSO' && (!codigoHito || codigoHito === 'MISION_ACEPTADA')) {
+        const esCuadrilla = payload.tipoMision === 'ATENCION_CUADRILLA';
+        const misionIdRef = payload.misionId || payload.id || payload.codigo;
+        const incId = payload.incidenteId;
+        const estadoIncidenteObjetivo = esCuadrilla ? 'EN_ATENCION' : 'VERIFICANDO';
+
+        if (incId) {
+          ultimasAceptacionesIncidenteRef.current.set(
+            `${incId}:${estadoIncidenteObjetivo}`,
+            Date.now()
+          );
+          esToastIncidenteDuplicado(`act:${incId}:${estadoIncidenteObjetivo}::`);
+        }
+
+        const tituloToast = esCuadrilla
+          ? 'Asignación Aceptada por Cuadrilla'
+          : 'Misión Aceptada por Patrulla';
+        const nombreUnidad = esCuadrilla
+          ? formatearNombreCuadrilla(payload.cuadrillaNombre)
+          : formatearNombrePatrulla(payload.patrullaNombre);
+        const mensajeToast = esCuadrilla
+          ? `${nombreUnidad} aceptó la asignación${payload.codigo ? ` (${payload.codigo})` : ''} e inicia desplazamiento al incidente.`
+          : `${nombreUnidad} aceptó la misión${payload.codigo ? ` (${payload.codigo})` : ''} e inicia verificación en terreno.`;
+
+        showInfo(mensajeToast, tituloToast, {
+          icon: esCuadrilla ? 'cuadrilla' : 'patrulla',
+          codeBadge: payload.incidenteCodigo || payload.codigo || undefined,
+          priorityBadge: payload.prioridad || undefined,
+          dedupKey: `mision-aceptada:${misionIdRef}`,
+          details: [
+            { label: esCuadrilla ? 'Cuadrilla' : 'Patrulla', value: nombreUnidad },
+            ...(payload.codigo ? [{ label: 'Misión', value: payload.codigo }] : []),
+            {
+              label: 'Estado Incidente',
+              value: esCuadrilla ? 'En Atención' : 'Verificando',
+            },
+          ],
+          action: incId
+            ? {
+                label: 'Ver incidente',
+                onClick: () => setIncidenteSeleccionadoId(incId),
+              }
+            : undefined,
+        });
+
+        setKpiRefreshTick((prev) => prev + 1);
+        cargarCuadrillas();
+        return;
+      }
+
+      if (estadoNorm === 'COMPLETADA') {
         if (
           payload.tipoMision === 'ATENCION_CUADRILLA' &&
           payload.incidenteId &&
@@ -619,7 +689,7 @@ export const KanbanBoard: React.FC = () => {
         cargarCuadrillas();
       }
     },
-    [cargarCuadrillas, mostrarToastCierreCuadrilla]
+    [cargarCuadrillas, esToastIncidenteDuplicado, mostrarToastCierreCuadrilla, showInfo]
   );
 
   const handleRecursoActualizadoSocket = React.useCallback(

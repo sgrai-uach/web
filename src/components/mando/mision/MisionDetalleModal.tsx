@@ -382,11 +382,114 @@ export const MisionDetalleModal: React.FC<MisionDetalleModalProps> = ({
             ? raw.id
             : '';
       const evEstado = typeof raw.estado === 'string' ? raw.estado.toUpperCase() : '';
-      if (evMisionId === misionId && evEstado === 'COMPLETADA') {
+      if (evMisionId !== misionId) return;
+
+      if (evEstado === 'COMPLETADA') {
         void obtenerDetalleMision(misionId, userId).then((res) => {
           if (res.exito && res.datos) {
             setMision(res.datos);
           }
+        });
+        return;
+      }
+
+      if (evEstado === 'EN_CURSO') {
+        const tipoMisionEv =
+          typeof raw.tipoMision === 'string'
+            ? raw.tipoMision
+            : typeof raw.tipo_mision === 'string'
+              ? raw.tipo_mision
+              : '';
+        const fechaInicioEv =
+          typeof raw.fechaInicio === 'string'
+            ? raw.fechaInicio
+            : typeof raw.fecha_inicio === 'string'
+              ? raw.fecha_inicio
+              : new Date().toISOString();
+        const rawHito =
+          raw.hito && typeof raw.hito === 'object'
+            ? (raw.hito as Record<string, unknown>)
+            : null;
+        const codigoHito =
+          rawHito && typeof rawHito.hito === 'string'
+            ? rawHito.hito
+            : typeof raw.hito === 'string'
+              ? raw.hito
+              : 'MISION_ACEPTADA';
+        const descripcionHito =
+          rawHito && typeof rawHito.descripcion === 'string'
+            ? rawHito.descripcion
+            : tipoMisionEv === 'ATENCION_CUADRILLA'
+              ? 'Asignación Aceptada por Cuadrilla'
+              : 'Misión aceptada en terreno';
+        const hitoId =
+          rawHito && typeof rawHito.id === 'string' ? rawHito.id : undefined;
+        const hitoTimestamp =
+          rawHito && typeof rawHito.creadoEn === 'string'
+            ? rawHito.creadoEn
+            : fechaInicioEv;
+
+        const fechaObj = new Date(hitoTimestamp);
+        const horaHito = Number.isNaN(fechaObj.getTime())
+          ? ''
+          : fechaObj.toLocaleTimeString('es-CL', {
+              hour: '2-digit',
+              minute: '2-digit',
+              second: '2-digit',
+            });
+        const fechaHito = Number.isNaN(fechaObj.getTime())
+          ? ''
+          : fechaObj.toLocaleDateString('es-CL');
+
+        setMision((prev) => {
+          if (!prev) return prev;
+          const esCuadrillaEv =
+            tipoMisionEv === 'ATENCION_CUADRILLA' || prev.tipoMision === 'ATENCION_CUADRILLA';
+          const yaExisteHito = prev.bitacoraTiempos.some(
+            (h) =>
+              (hitoId && h.id === hitoId) ||
+              (h.hito === codigoHito && h.descripcion === descripcionHito)
+          );
+          const bitacoraActualizada = yaExisteHito
+            ? prev.bitacoraTiempos
+            : [
+                ...prev.bitacoraTiempos,
+                {
+                  ...(hitoId ? { id: hitoId } : {}),
+                  hito: codigoHito,
+                  fecha: fechaHito,
+                  hora: horaHito,
+                  timestamp: hitoTimestamp,
+                  descripcion: descripcionHito,
+                },
+              ];
+
+          return {
+            ...prev,
+            estado: 'EN_CURSO',
+            fechaInicio: fechaInicioEv || prev.fechaInicio,
+            actualizadoEn:
+              typeof raw.actualizadoEn === 'string' ? raw.actualizadoEn : prev.actualizadoEn,
+            cuadrilla:
+              esCuadrillaEv && prev.cuadrilla
+                ? { ...prev.cuadrilla, estado: 'EN_MISION' }
+                : prev.cuadrilla,
+            patrulla:
+              !esCuadrillaEv && prev.patrulla
+                ? { ...prev.patrulla, estado: 'EN_MISION' }
+                : prev.patrulla,
+            incidente: prev.incidente
+              ? {
+                  ...prev.incidente,
+                  estado: esCuadrillaEv
+                    ? 'EN_ATENCION'
+                    : prev.incidente.estado === 'REPORTADO'
+                      ? 'VERIFICANDO'
+                      : prev.incidente.estado,
+                }
+              : null,
+            bitacoraTiempos: bitacoraActualizada,
+          };
         });
       }
     };

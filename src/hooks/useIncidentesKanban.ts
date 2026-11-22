@@ -536,6 +536,12 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
               esCierreCuadrilla && datos.nuevoEstado === 'RESUELTO'
                 ? (incActual.estado === 'EN_ATENCION' ? 'EN_ATENCION' : incActual.estado)
                 : datos.nuevoEstado;
+            const esInicioNuevaMision =
+              !esCierreCuadrilla &&
+              !esCierreNoAbordable &&
+              (Boolean(payload.esSintetico) ||
+                (estadoDestinoResuelto === 'EN_ATENCION' && est !== 'EN_ATENCION') ||
+                (estadoDestinoResuelto === 'VERIFICANDO' && est === 'REPORTADO'));
             const dictamenResuelto =
               datos.dictamen ??
               datos.reporteTerreno?.dictamen ??
@@ -577,7 +583,9 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
                     : true,
               faenasCuadrillaCompletadas: esCierreCuadrilla
                 ? true
-                : incActual.faenasCuadrillaCompletadas,
+                : esInicioNuevaMision
+                  ? false
+                  : incActual.faenasCuadrillaCompletadas,
               estadoTerrenoFinal: esCierreCuadrilla
                 ? datos.reporteTerreno?.estadoTerreno ?? incActual.estadoTerrenoFinal
                 : incActual.estadoTerrenoFinal,
@@ -588,8 +596,13 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
               motivoNoAbordable: motivoNoAbordableResuelto,
               fechaCierre: fechaCierreResuelta,
               tieneMisionEnCurso:
-                esCierreNoAbordable || esCierreCuadrilla ? false : incActual.tieneMisionEnCurso,
-              tieneMisionDespachada: esCierreNoAbordable ? false : incActual.tieneMisionDespachada,
+                esCierreNoAbordable || esCierreCuadrilla
+                  ? false
+                  : esInicioNuevaMision
+                    ? true
+                    : incActual.tieneMisionEnCurso,
+              tieneMisionDespachada:
+                esCierreNoAbordable || esInicioNuevaMision ? false : incActual.tieneMisionDespachada,
               reclasificadoEnTerreno: reclasificado,
               justificacionReclasificacion:
                 datos.justificacion || incActual.justificacionReclasificacion,
@@ -601,7 +614,9 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
               totalMisiones:
                 estadoDestinoResuelto === 'VERIFICANDO' && est === 'REPORTADO'
                   ? Math.max(1, (incActual.totalMisiones || 0) + 1)
-                  : incActual.totalMisiones,
+                  : esInicioNuevaMision && estadoDestinoResuelto === 'EN_ATENCION'
+                    ? Math.max(1, incActual.totalMisiones || 0)
+                    : incActual.totalMisiones,
               actualizadoEn: datos.actualizadoEn || new Date().toISOString(),
             };
             break;
