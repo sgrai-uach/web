@@ -120,15 +120,21 @@ describe('ModalAsignarCuadrilla (HU-21 / Regla ICS §3.2)', () => {
     expect(screen.getByText(/Regla de Negocio ICS §3.2 \(Relevo Táctico\)/i)).toBeDefined();
     expect(screen.getByText(/Patrulla Rápida Costa 1/i)).toBeDefined();
     expect(screen.getByText(/será automáticamente relevada a estado/i)).toBeDefined();
+    expect(screen.getByText(/Estado actual:/i).parentElement?.textContent).toContain(
+      'Estado actual: En verificación | Prioridad: Alta'
+    );
+    expect(screen.queryByText(/DISPONIBLE/)).toBeNull();
 
     // Esperar a que se listen las cuadrillas disponibles en el selector
     await waitFor(() => {
-      expect(screen.getByText(/Cuadrilla Vías y Canales 1/i)).toBeDefined();
+      expect(screen.getByText(/Cuadrilla Vías y Canales 1.*6 integrantes/i)).toBeDefined();
     });
 
     // El botón debe permanecer habilitable una vez seleccionada la cuadrilla (no vetado de antemano)
     const selectCuadrilla = screen.getByRole('combobox', { name: /Cuadrilla Operativa/i });
     fireEvent.change(selectCuadrilla, { target: { value: 'cuad-01' } });
+
+    expect(screen.getByText(/Dotación: 6 integrantes/i)).toBeDefined();
 
     const submitBtn = screen.getByRole('button', { name: /Confirmar y Despachar/i });
     expect(submitBtn.hasAttribute('disabled')).toBe(false);

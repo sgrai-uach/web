@@ -18,7 +18,6 @@ import type {
   DespacharPatrullaPayload,
   DespacharPatrullaResponse,
   ResultadoDespacharPatrulla,
-  EstadoMision,
   TipoMision,
   PrioridadMision,
 } from '@/types/misiones';
@@ -77,7 +76,8 @@ export const misionesService = {
     }
 
     if (filtros.estado && filtros.estado !== 'TODOS') {
-      query.estado = filtros.estado as EstadoMision;
+      const estadoApi = filtros.estado === 'EN_PROCESO' ? 'EN_CURSO' : filtros.estado;
+      query.estado = estadoApi as NonNullable<ListarMisionesQuery['estado']>;
     }
 
     if (filtros.tipoMision && filtros.tipoMision !== 'TODOS') {

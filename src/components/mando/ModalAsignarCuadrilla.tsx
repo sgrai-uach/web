@@ -12,8 +12,20 @@ import { misionesService } from '@/services/misionesService';
 import type { IncidenteDetalle } from '@/services/incidentesService';
 import type { CuadrillaItem } from '@/types/cuadrilla';
 import type { PrioridadMision, DespacharCuadrillaResponse } from '@/types/misiones';
+import { formatearEstado, formatearPrioridad } from '@/lib/utils/estadoUtils';
 import { HardHat, ShieldCheck, CheckCircle2, Truck } from 'lucide-react';
 import styles from './ModalAsignarCuadrilla.module.css';
+
+function calcularTotalIntegrantesCuadrilla(cuad: CuadrillaItem): number {
+  const trabajadores = Array.isArray(cuad.trabajadores) ? cuad.trabajadores : [];
+  const baseTrabajadores =
+    trabajadores.length > 0 ? trabajadores.length : (cuad.totalTrabajadores ?? 0);
+  const delegadoYaIncluido =
+    Boolean(cuad.delegado?.id) &&
+    trabajadores.some((t) => t.usuarioId === cuad.delegado?.id);
+  const sumaDelegado = cuad.delegado && !delegadoYaIncluido ? 1 : 0;
+  return baseTrabajadores + sumaDelegado;
+}
 
 export interface ModalAsignarCuadrillaProps {
   isOpen: boolean;
@@ -164,7 +176,8 @@ export const ModalAsignarCuadrilla: React.FC<ModalAsignarCuadrillaProps> = ({
             <strong>Ubicación:</strong> {incidente.direccion}
           </div>
           <div className={styles.incidenteInfoDetalle}>
-            <strong>Estado actual:</strong> {incidente.estado} | <strong>Prioridad:</strong> {incidente.prioridad}
+            <strong>Estado actual:</strong> {formatearEstado(incidente.estado)} |{' '}
+            <strong>Prioridad:</strong> {formatearPrioridad(incidente.prioridad)}
           </div>
         </div>
 
@@ -177,7 +190,7 @@ export const ModalAsignarCuadrilla: React.FC<ModalAsignarCuadrillaProps> = ({
               <div>
                 Al confirmar el despacho de la cuadrilla, la patrulla verificadora{' '}
                 <strong>{patrullaAsignada.nombre}</strong> será automáticamente relevada a estado{' '}
-                <strong>DISPONIBLE</strong> y su misión previa se marcará como <strong>COMPLETADA</strong>.
+                <strong>Disponible</strong> y su misión previa se marcará como <strong>Completada</strong>.
               </div>
             </div>
           </div>
@@ -192,7 +205,7 @@ export const ModalAsignarCuadrilla: React.FC<ModalAsignarCuadrillaProps> = ({
               <div>
                 Evaluación técnica en terreno finalizada por la patrulla{' '}
                 <strong>{patrullaAsignada.nombre}</strong>. La unidad ya se encuentra liberada y en estado{' '}
-                <strong>DISPONIBLE</strong>.
+                <strong>Disponible</strong>.
               </div>
             </div>
           </div>
@@ -239,14 +252,28 @@ export const ModalAsignarCuadrilla: React.FC<ModalAsignarCuadrillaProps> = ({
                 required
               >
                 <option value="">-- Seleccionar cuadrilla operativa disponible --</option>
-                {cuadrillasDisponibles.map((cuad) => (
-                  <option key={cuad.id} value={cuad.id}>
-                    {cuad.nombre} ({cuad.delegacion?.nombre || 'Valdivia'} -{' '}
-                    {cuad.totalTrabajadores ?? 0} integrantes)
-                  </option>
-                ))}
+                {cuadrillasDisponibles.map((cuad) => {
+                  const totalIntegrantes = calcularTotalIntegrantesCuadrilla(cuad);
+                  return (
+                    <option key={cuad.id} value={cuad.id}>
+                      {cuad.nombre} ({cuad.delegacion?.nombre || 'Valdivia'} -{' '}
+                      {totalIntegrantes} {totalIntegrantes === 1 ? 'integrante' : 'integrantes'})
+                    </option>
+                  );
+                })}
               </Select>
             )}
+            {cuadrillaId && (() => {
+              const seleccionada = cuadrillasDisponibles.find((c) => c.id === cuadrillaId);
+              if (!seleccionada) return null;
+              const totalIntegrantes = calcularTotalIntegrantesCuadrilla(seleccionada);
+              return (
+                <span className={styles.helperText}>
+                  Dotación: {totalIntegrantes} {totalIntegrantes === 1 ? 'integrante' : 'integrantes'}
+                  {seleccionada.delegado?.nombre ? ` • Delegado: ${seleccionada.delegado.nombre}` : ''}
+                </span>
+              );
+            })()}
           </div>
 
           {/* Selector de Prioridad */}

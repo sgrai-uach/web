@@ -122,6 +122,7 @@ export const IncidentesKpiCards: React.FC<IncidentesKpiCardsProps> = ({
     });
   }, []);
 
+  const estaCargando = isMounted && cargando;
   const contadores = kpis?.contadores || {
     reportado: 0,
     verificando: 0,
@@ -191,13 +192,13 @@ export const IncidentesKpiCards: React.FC<IncidentesKpiCardsProps> = ({
             variant="outline"
             size="sm"
             onClick={onRefrescar}
-            disabled={isMounted ? cargando : false}
+            disabled={estaCargando}
             suppressHydrationWarning
             aria-label="Actualizar contadores de incidentes"
             title="Actualizar datos"
           >
-            <RotateCw size={13} className={isMounted && cargando ? styles.spinner : undefined} />
-            <span>{isMounted && cargando ? 'Actualizando...' : 'Actualizar'}</span>
+            <RotateCw size={13} className={estaCargando ? styles.spinner : undefined} />
+            <span>{estaCargando ? 'Actualizando...' : 'Actualizar'}</span>
           </Button>
         </div>
       </div>
