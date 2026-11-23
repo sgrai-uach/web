@@ -135,6 +135,7 @@ export type IncidenteResumen = ListarIncidentesResponse['data'][number] & {
   cambioPrioridadMotivo?: string | null;
   tieneMisionDespachada?: boolean;
   tieneMisionEnCurso?: boolean;
+  cuadrillaEnTerreno?: boolean;
 };
 export type IncidenteDetalle = IncidenteDetalleResponse['data'] & {
   tipoIncidenteId?: string | null;
@@ -152,6 +153,7 @@ export type IncidenteDetalle = IncidenteDetalleResponse['data'] & {
   ultimoReporte?: UltimoReporteIncidenteResumen | null;
   tieneMisionDespachada?: boolean;
   tieneMisionEnCurso?: boolean;
+  cuadrillaEnTerreno?: boolean;
 };
 
 export type MisionDetalle = IncidenteDetalleResponse['data']['misiones'][number];

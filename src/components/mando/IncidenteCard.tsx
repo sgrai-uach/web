@@ -1,6 +1,7 @@
 import React from 'react';
 import {
   MapPin,
+  MapPinCheck,
   ShieldCheck,
   CheckCircle2,
   Hourglass,
@@ -214,6 +215,31 @@ export const IncidenteCard: React.FC<IncidenteCardProps> = ({
             <Chip variant="neutral" size="sm">
               {incidente.totalMisiones}{' '}
               {incidente.totalMisiones === 1 ? 'misión' : 'misiones'}
+            </Chip>
+          )}
+          {(incidente.cuadrillaEnTerreno || incidente.estado === 'EN_ATENCION') && (
+            <Chip
+              data-testid={
+                incidente.cuadrillaEnTerreno
+                  ? 'badge-llegada-terreno'
+                  : 'badge-sin-llegada-terreno'
+              }
+              variant={incidente.cuadrillaEnTerreno ? 'success' : 'warning'}
+              size="sm"
+              icon={
+                incidente.cuadrillaEnTerreno ? (
+                  <MapPinCheck size={11} strokeWidth={2.2} />
+                ) : (
+                  <Hourglass size={11} strokeWidth={2.2} />
+                )
+              }
+              title={
+                incidente.cuadrillaEnTerreno
+                  ? 'La cuadrilla reportó su llegada física a terreno'
+                  : 'La cuadrilla aún no ha reportado llegada a terreno'
+              }
+            >
+              {incidente.cuadrillaEnTerreno ? 'En terreno' : 'Sin llegada a terreno'}
             </Chip>
           )}
         </div>

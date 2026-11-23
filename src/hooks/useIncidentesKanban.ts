@@ -862,6 +862,19 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
       const etiquetaMision = payload.codigoMision?.trim() || payload.misionId;
 
       if (config.esLlegadaTerreno) {
+        const incidenteIdResuelto =
+          (payload as { incidenteId?: string }).incidenteId ||
+          getIncidentePorMision(payload.misionId);
+        if (incidenteIdResuelto) {
+          setColumnas((prev) => ({
+            ...prev,
+            EN_ATENCION: prev.EN_ATENCION.map((inc) =>
+              inc.id === incidenteIdResuelto
+                ? { ...inc, cuadrillaEnTerreno: true, tieneMisionEnCurso: true }
+                : inc
+            ),
+          }));
+        }
         toast?.showInfo(
           `La cuadrilla ha reportado su llegada a terreno para la misión ${etiquetaMision}.`,
           'Llegada a Terreno'
