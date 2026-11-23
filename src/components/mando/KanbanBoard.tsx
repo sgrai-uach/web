@@ -26,7 +26,8 @@ import { PanelPatrullasModal } from './patrullas/PanelPatrullasModal';
 import { ModalCrearEventoPrevencion } from './ModalCrearEventoPrevencion';
 import { ModalCrearEventoRecuperacion } from './ModalCrearEventoRecuperacion';
 import { MapaOperativoMando } from './MapaOperativoMando';
-import { KanbanViewSwitcher } from './KanbanViewSwitcher';
+import { KanbanViewSwitcher, type VistaCentroIncidentes } from './KanbanViewSwitcher';
+import EventosPrevencionView from './prevencion/EventosPrevencionView';
 import CuadrillaDetalleDrawer from '@/components/admin/cuadrillas/CuadrillaDetalleDrawer';
 import { cuadrillasService } from '@/services/cuadrillasService';
 import type { CuadrillaItem } from '@/types/cuadrilla';
@@ -49,7 +50,8 @@ const TITULOS_COLUMNAS = {
 export const KanbanBoard: React.FC = () => {
   const { showInfo, showWarning } = useToast();
   const searchParams = useSearchParams();
-  const [vistaActiva, setVistaActiva] = useState<'kanban' | 'mapa'>('kanban');
+  const tabInicial: VistaCentroIncidentes = searchParams?.get('tab') === 'prevencion' ? 'prevencion' : 'kanban';
+  const [vistaActiva, setVistaActiva] = useState<VistaCentroIncidentes>(tabInicial);
   const [misionesModalAbierto, setMisionesModalAbierto] = useState(false);
   const [patrullasModalAbierto, setPatrullasModalAbierto] = useState(false);
   const [misionSeleccionadaId, setMisionSeleccionadaId] = useState<string | null>(null);
@@ -293,44 +295,48 @@ export const KanbanBoard: React.FC = () => {
         <AccesoDenegado />
       ) : (
         <>
-          <IncidentesKpiCards
-            kpis={kpis}
-            cargando={cargandoKpis}
-            delegacionId={delegacionId}
-            onDelegacionChange={handleDelegacionChange}
-            delegaciones={delegaciones}
-            onRefrescar={handleRefrescoCompleto}
-            estadoSeleccionado={estadoEnfocado}
-            onSelectEstado={handleSelectEstado}
-            conectado={conectadoKpis || conectado}
-          />
+          {vistaActiva !== 'prevencion' && (
+            <>
+              <IncidentesKpiCards
+                kpis={kpis}
+                cargando={cargandoKpis}
+                delegacionId={delegacionId}
+                onDelegacionChange={handleDelegacionChange}
+                delegaciones={delegaciones}
+                onRefrescar={handleRefrescoCompleto}
+                estadoSeleccionado={estadoEnfocado}
+                onSelectEstado={handleSelectEstado}
+                conectado={conectadoKpis || conectado}
+              />
 
-          <KanbanFiltros
-            filtros={filtros}
-            onFiltrosChange={setFiltros}
-            onLimpiarFiltros={limpiarFiltros}
-            onRecargar={handleRefrescoCompleto}
-            contadoresPorEstado={contadoresPorEstado}
-            cargando={cargando}
-          />
+              <KanbanFiltros
+                filtros={filtros}
+                onFiltrosChange={setFiltros}
+                onLimpiarFiltros={limpiarFiltros}
+                onRecargar={handleRefrescoCompleto}
+                contadoresPorEstado={contadoresPorEstado}
+                cargando={cargando}
+              />
 
-          {ultimoEvento && (
-            <div
-              style={{
-                backgroundColor: 'var(--color-info-bg, #E0F2F1)',
-                color: 'var(--color-primary-teal, #1B6F7D)',
-                padding: '0.5rem 1rem',
-                fontSize: '0.8rem',
-                fontWeight: 600,
-                borderBottom: '1px solid var(--border-color-neutral, #DFE3E8)',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.4rem',
-              }}
-            >
-              <Zap size={14} color="var(--color-primary-teal, #1B6F7D)" />
-              <span>Actualización en vivo: {ultimoEvento}</span>
-            </div>
+              {ultimoEvento && (
+                <div
+                  style={{
+                    backgroundColor: 'var(--color-info-bg, #E0F2F1)',
+                    color: 'var(--color-primary-teal, #1B6F7D)',
+                    padding: '0.5rem 1rem',
+                    fontSize: '0.8rem',
+                    fontWeight: 600,
+                    borderBottom: '1px solid var(--border-color-neutral, #DFE3E8)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.4rem',
+                  }}
+                >
+                  <Zap size={14} color="var(--color-primary-teal, #1B6F7D)" />
+                  <span>Actualización en vivo: {ultimoEvento}</span>
+                </div>
+              )}
+            </>
           )}
 
           {/* Selector de visualización entre filtros y tablero */}
@@ -369,7 +375,7 @@ export const KanbanBoard: React.FC = () => {
                 ))}
               </div>
             </main>
-          ) : (
+          ) : vistaActiva === 'mapa' ? (
             <main style={{ marginTop: 'var(--space-4, 16px)' }}>
               <MapaOperativoMando
                 incidentes={todosLosIncidentes}
@@ -380,6 +386,12 @@ export const KanbanBoard: React.FC = () => {
                 onSelectCuadrilla={(cuadrillaId) => setCuadrillaSeleccionadaId(cuadrillaId)}
                 onCrearPrevencion={() => setModalPrevencionAbierto(true)}
                 onCrearRecuperacion={() => setModalRecuperacionAbierto(true)}
+              />
+            </main>
+          ) : (
+            <main style={{ marginTop: 'var(--space-4, 16px)' }}>
+              <EventosPrevencionView
+                onAbrirCrearPrevencion={() => setModalPrevencionAbierto(true)}
               />
             </main>
           )}

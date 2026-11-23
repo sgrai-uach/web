@@ -5674,7 +5674,203 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /**
+         * Listar eventos y misiones de prevención con paginación y filtros (H76 / H34)
+         * @description Retorna el listado paginado de eventos de prevención desplegados en puntos críticos comunales bajo el estándar H34, incluyendo delegación, estado, misión, patrulla o cuadrilla a cargo, recursos asignados y detalle georreferenciado PostGIS del punto crítico.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description Número de página (inicia en 1) */
+                    page?: number;
+                    /** @description Cantidad de elementos por página (máximo 100) */
+                    limit?: number;
+                    /** @description Filtrar por UUID de delegación municipal asignada */
+                    delegacionId?: string;
+                    /** @description Filtrar por estado operativo del evento preventivo */
+                    estado?: "PLANIFICADA" | "EN_CURSO" | "COMPLETADA" | "CANCELADA";
+                    /** @description Búsqueda textual insensible a mayúsculas por código, nombre, sector o punto crítico asociado */
+                    busqueda?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Listado paginado de eventos de prevención obtenido exitosamente */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example Eventos de prevención obtenidos exitosamente. */
+                            message: string;
+                            data: {
+                                /** Format: uuid */
+                                id: string;
+                                /** @example PREV-2026-0001 */
+                                codigo: string;
+                                /** @example Limpieza de sumideros en Angachilla */
+                                nombre: string;
+                                descripcion: string;
+                                sector: string | null;
+                                direccionTexto: string | null;
+                                /** @enum {string} */
+                                prioridad: "BAJA" | "MEDIA" | "ALTA" | "CRITICA";
+                                /** @enum {string} */
+                                estado: "PLANIFICADA" | "EN_CURSO" | "COMPLETADA" | "CANCELADA";
+                                latitud: number;
+                                longitud: number;
+                                /** @description Geometría PostGIS Point del evento en formato GeoJSON (EPSG:4326) */
+                                ubicacionGeoJson?: unknown;
+                                /** @description Detalle completo y PostGIS del punto crítico asociado (si existe) */
+                                puntoCritico: {
+                                    /** Format: uuid */
+                                    id: string;
+                                    /** @example PC-VAL-001 */
+                                    codigo: string;
+                                    /** @example Colector Humedal Angachilla */
+                                    nombre: string;
+                                    /** @example Zona baja propensa a anegamiento por lluvias */
+                                    descripcion: string | null;
+                                    /** @example Inundación */
+                                    tipoRiesgo: string | null;
+                                    /**
+                                     * @example ALTA
+                                     * @enum {string}
+                                     */
+                                    prioridad: "BAJA" | "MEDIA" | "ALTA" | "CRITICA";
+                                    /** @example -39.8456 */
+                                    latitud: number;
+                                    /** @example -73.2389 */
+                                    longitud: number;
+                                    /**
+                                     * @description Geometría PostGIS Point en formato GeoJSON (EPSG:4326)
+                                     * @example {
+                                     *       "type": "Point",
+                                     *       "coordinates": [
+                                     *         -73.2389,
+                                     *         -39.8456
+                                     *       ]
+                                     *     }
+                                     */
+                                    ubicacionGeoJson?: unknown;
+                                } | null;
+                                delegacion: {
+                                    /** Format: uuid */
+                                    id: string;
+                                    codigo: string;
+                                    nombre: string;
+                                } | null;
+                                mision: {
+                                    /**
+                                     * Format: uuid
+                                     * @example 60000000-0000-4000-8000-000000000001
+                                     */
+                                    id: string;
+                                    /** @example MIS-2026-0045 */
+                                    codigo: string;
+                                    /** @example Inspección preventiva y limpieza de colectores en Angachilla */
+                                    titulo: string;
+                                    /** @example DESPACHADA */
+                                    estado: string;
+                                    /** @example PREVENCION */
+                                    tipoMision: string;
+                                    /** @description Fecha de inicio de la misión (ISO 8601) */
+                                    fechaInicio: string | null;
+                                    /** @description Fecha de cierre de la misión (ISO 8601) */
+                                    fechaCierre: string | null;
+                                } | null;
+                                patrulla: {
+                                    /**
+                                     * Format: uuid
+                                     * @example 50000000-0000-4000-8000-000000000001
+                                     */
+                                    id: string;
+                                    /** @example Patrulla Verificadora Alfa */
+                                    nombre: string;
+                                    /** @example EN_PREVENCION */
+                                    estado: string;
+                                } | null;
+                                cuadrilla: {
+                                    /**
+                                     * Format: uuid
+                                     * @example 70000000-0000-4000-8000-000000000001
+                                     */
+                                    id: string;
+                                    /** @example Cuadrilla Mitigación Sur */
+                                    nombre: string;
+                                    /** @example EN_MISION */
+                                    estado: string;
+                                } | null;
+                                recursos: {
+                                    /**
+                                     * Format: uuid
+                                     * @example 00000000-0000-4000-8000-000000000001
+                                     */
+                                    recursoId: string;
+                                    /** @example Sacos de Arena 25kg */
+                                    nombre: string;
+                                    /** @example 5 */
+                                    cantidadAsignada: number;
+                                }[];
+                                fechaEstimadaFin?: string | null;
+                                /** Format: uuid */
+                                creadoPorId: string;
+                                /** Format: uuid */
+                                actualizadoPorId?: string | null;
+                                creadoEn: string;
+                                actualizadoEn: string;
+                            }[];
+                            meta: {
+                                /** @description Total de registros coincidentes */
+                                total: number;
+                                /** @description Página actual */
+                                page: number;
+                                /** @description Elementos por página */
+                                limit: number;
+                                /** @description Total de páginas */
+                                totalPages: number;
+                                /** @description ¿Existe página siguiente? */
+                                hasNext: boolean;
+                                /** @description ¿Existe página anterior? */
+                                hasPrev: boolean;
+                            };
+                        };
+                    };
+                };
+                /** @description Parámetros de consulta inválidos (delegacionId, estado o paginación) */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description No autenticado o token de sesión inválido */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Acceso denegado. Se requiere permiso 'prevencion:eventos:leer' */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Error interno del servidor */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
         put?: never;
         /**
          * Crear evento de prevención territorial y despachar misión (HU-30)
@@ -5762,6 +5958,12 @@ export interface paths {
                              */
                             cantidad: number;
                         }[];
+                        /**
+                         * Format: date-time
+                         * @description Fecha y hora estimada de finalización de las tareas preventivas (ISO 8601)
+                         * @example 2026-11-25T18:00:00.000Z
+                         */
+                        fechaEstimadaFin?: string | null;
                     };
                 };
             };
@@ -5862,11 +6064,18 @@ export interface paths {
                                     /** @example 5 */
                                     cantidadAsignada: number;
                                 }[];
+                                /** @description Fecha estimada de finalización ISO 8601 */
+                                fechaEstimadaFin?: string | null;
                                 /**
                                  * Format: uuid
                                  * @description Identificador del Encargado que creó el evento
                                  */
                                 creadoPorId: string;
+                                /**
+                                 * Format: uuid
+                                 * @description Identificador del usuario que realizó la última edición
+                                 */
+                                actualizadoPorId?: string | null;
                                 /** @description Fecha de registro ISO 8601 */
                                 creadoEn: string;
                                 /** @description Fecha de actualización ISO 8601 */
@@ -5923,6 +6132,238 @@ export interface paths {
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/api/eventos-atp/prevencion/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Editar planificación y recursos de un evento de prevención activo (H77)
+         * @description Permite modificar nombre, descripción de tareas, prioridad, fecha estimada de finalización y recursos materiales vinculados a un evento de prevención activo (PLANIFICADA o EN_CURSO). Bloquea con 409 Conflict si el evento está COMPLETADA, CANCELADA o inactivo. Registra auditoría (actualizado_en, actualizado_por_id) y sincroniza inventario y misión asociada.
+         */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description UUID del evento de prevención */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        /**
+                         * @description Nuevo título o nombre descriptivo de la operación preventiva
+                         * @example Limpieza urgente de colectores en Angachilla por alerta meteorológica
+                         */
+                        nombre?: string;
+                        /**
+                         * @description Nueva descripción de las tareas planificadas de mitigación
+                         * @example Despeje prioritario de rejillas y refuerzo con sacos de arena antes del frente de lluvia.
+                         */
+                        descripcion?: string;
+                        /**
+                         * @description Nueva prioridad territorial u operativa del evento
+                         * @example CRITICA
+                         * @enum {string}
+                         */
+                        prioridad?: "BAJA" | "MEDIA" | "ALTA" | "CRITICA";
+                        /**
+                         * Format: date-time
+                         * @description Nueva fecha y hora estimada de finalización (ISO 8601) o null para limpiar
+                         * @example 2026-11-26T20:00:00.000Z
+                         */
+                        fechaEstimadaFin?: string | null;
+                        /** @description Dotación completa de recursos materiales vinculados al evento (reemplaza la lista anterior) */
+                        recursos?: {
+                            /**
+                             * Format: uuid
+                             * @description UUID del recurso logístico en inventario
+                             * @example 00000000-0000-4000-8000-000000000001
+                             */
+                            recursoId: string;
+                            /**
+                             * @description Cantidad de unidades del recurso requeridas
+                             * @example 5
+                             */
+                            cantidad: number;
+                        }[];
+                    };
+                };
+            };
+            responses: {
+                /** @description Evento de prevención actualizado exitosamente */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example Evento de prevención actualizado exitosamente. */
+                            message: string;
+                            data: {
+                                /**
+                                 * Format: uuid
+                                 * @description Identificador único UUID del evento de prevención
+                                 */
+                                id: string;
+                                /**
+                                 * @description Código institucional único (ej. PREV-2026-0001)
+                                 * @example PREV-2026-0001
+                                 */
+                                codigo: string;
+                                /** @example Inspección preventiva y limpieza de colectores en Angachilla */
+                                nombre: string;
+                                /** @example Monitoreo preventivo del caudal y despeje de rejillas */
+                                descripcion: string;
+                                /** @example Humedal Angachilla */
+                                sector: string | null;
+                                /** @example Pasaje Los Robles s/n */
+                                direccionTexto: string | null;
+                                /**
+                                 * @example ALTA
+                                 * @enum {string}
+                                 */
+                                prioridad: "BAJA" | "MEDIA" | "ALTA" | "CRITICA";
+                                /**
+                                 * @example PLANIFICADA
+                                 * @enum {string}
+                                 */
+                                estado: "PLANIFICADA" | "EN_CURSO" | "COMPLETADA" | "CANCELADA";
+                                /** @example -39.8456 */
+                                latitud: number;
+                                /** @example -73.2389 */
+                                longitud: number;
+                                /** @description Punto crítico territorial asociado (si fue designado) */
+                                puntoCritico: {
+                                    /** Format: uuid */
+                                    id: string;
+                                    codigo: string;
+                                    nombre: string;
+                                } | null;
+                                /** @description Delegación territorial asignada */
+                                delegacion: {
+                                    /** Format: uuid */
+                                    id: string;
+                                    codigo: string;
+                                    nombre: string;
+                                } | null;
+                                /** @description Misión táctica asociada al evento (si existe) */
+                                mision: {
+                                    /**
+                                     * Format: uuid
+                                     * @example 60000000-0000-4000-8000-000000000001
+                                     */
+                                    id: string;
+                                    /** @example MIS-2026-0045 */
+                                    codigo: string;
+                                    /** @example Inspección preventiva y limpieza de colectores en Angachilla */
+                                    titulo: string;
+                                    /** @example DESPACHADA */
+                                    estado: string;
+                                    /** @example PREVENCION */
+                                    tipoMision: string;
+                                } | null;
+                                /** @description Patrulla asignada a la misión (si existe) */
+                                patrulla: {
+                                    /**
+                                     * Format: uuid
+                                     * @example 50000000-0000-4000-8000-000000000001
+                                     */
+                                    id: string;
+                                    /** @example Patrulla Verificadora Alfa */
+                                    nombre: string;
+                                    /** @example EN_PREVENCION */
+                                    estado: string;
+                                } | null;
+                                /** @description Recursos asignados al evento */
+                                recursos: {
+                                    /**
+                                     * Format: uuid
+                                     * @example 00000000-0000-4000-8000-000000000001
+                                     */
+                                    recursoId: string;
+                                    /** @example Sacos de Arena 25kg */
+                                    nombre: string;
+                                    /** @example 5 */
+                                    cantidadAsignada: number;
+                                }[];
+                                /** @description Fecha estimada de finalización ISO 8601 */
+                                fechaEstimadaFin?: string | null;
+                                /**
+                                 * Format: uuid
+                                 * @description Identificador del Encargado que creó el evento
+                                 */
+                                creadoPorId: string;
+                                /**
+                                 * Format: uuid
+                                 * @description Identificador del usuario que realizó la última edición
+                                 */
+                                actualizadoPorId?: string | null;
+                                /** @description Fecha de registro ISO 8601 */
+                                creadoEn: string;
+                                /** @description Fecha de actualización ISO 8601 */
+                                actualizadoEn: string;
+                            };
+                        };
+                    };
+                };
+                /** @description Identificador inválido o datos de entrada inválidos */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description No autenticado o token de sesión inválido */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Acceso denegado. Se requiere permiso 'prevencion:eventos:crear' */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Evento de prevención o recurso no encontrado */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description El evento está en estado COMPLETADA/CANCELADA/inactivo o no hay stock suficiente */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Error interno del servidor */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
         trace?: never;
     };
     "/api/patrullas": {
@@ -8953,6 +9394,152 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        EditarEventoPrevencionInput: {
+            /**
+             * @description Nuevo título o nombre descriptivo de la operación preventiva
+             * @example Limpieza urgente de colectores en Angachilla por alerta meteorológica
+             */
+            nombre?: string;
+            /**
+             * @description Nueva descripción de las tareas planificadas de mitigación
+             * @example Despeje prioritario de rejillas y refuerzo con sacos de arena antes del frente de lluvia.
+             */
+            descripcion?: string;
+            /**
+             * @description Nueva prioridad territorial u operativa del evento
+             * @example CRITICA
+             * @enum {string}
+             */
+            prioridad?: "BAJA" | "MEDIA" | "ALTA" | "CRITICA";
+            /**
+             * Format: date-time
+             * @description Nueva fecha y hora estimada de finalización (ISO 8601) o null para limpiar
+             * @example 2026-11-26T20:00:00.000Z
+             */
+            fechaEstimadaFin?: string | null;
+            /** @description Dotación completa de recursos materiales vinculados al evento (reemplaza la lista anterior) */
+            recursos?: {
+                /**
+                 * Format: uuid
+                 * @description UUID del recurso logístico en inventario
+                 * @example 00000000-0000-4000-8000-000000000001
+                 */
+                recursoId: string;
+                /**
+                 * @description Cantidad de unidades del recurso requeridas
+                 * @example 5
+                 */
+                cantidad: number;
+            }[];
+        };
+        EditarEventoPrevencionResponse: {
+            /** @example Evento de prevención actualizado exitosamente. */
+            message: string;
+            data: {
+                /**
+                 * Format: uuid
+                 * @description Identificador único UUID del evento de prevención
+                 */
+                id: string;
+                /**
+                 * @description Código institucional único (ej. PREV-2026-0001)
+                 * @example PREV-2026-0001
+                 */
+                codigo: string;
+                /** @example Inspección preventiva y limpieza de colectores en Angachilla */
+                nombre: string;
+                /** @example Monitoreo preventivo del caudal y despeje de rejillas */
+                descripcion: string;
+                /** @example Humedal Angachilla */
+                sector: string | null;
+                /** @example Pasaje Los Robles s/n */
+                direccionTexto: string | null;
+                /**
+                 * @example ALTA
+                 * @enum {string}
+                 */
+                prioridad: "BAJA" | "MEDIA" | "ALTA" | "CRITICA";
+                /**
+                 * @example PLANIFICADA
+                 * @enum {string}
+                 */
+                estado: "PLANIFICADA" | "EN_CURSO" | "COMPLETADA" | "CANCELADA";
+                /** @example -39.8456 */
+                latitud: number;
+                /** @example -73.2389 */
+                longitud: number;
+                /** @description Punto crítico territorial asociado (si fue designado) */
+                puntoCritico: {
+                    /** Format: uuid */
+                    id: string;
+                    codigo: string;
+                    nombre: string;
+                } | null;
+                /** @description Delegación territorial asignada */
+                delegacion: {
+                    /** Format: uuid */
+                    id: string;
+                    codigo: string;
+                    nombre: string;
+                } | null;
+                /** @description Misión táctica asociada al evento (si existe) */
+                mision: {
+                    /**
+                     * Format: uuid
+                     * @example 60000000-0000-4000-8000-000000000001
+                     */
+                    id: string;
+                    /** @example MIS-2026-0045 */
+                    codigo: string;
+                    /** @example Inspección preventiva y limpieza de colectores en Angachilla */
+                    titulo: string;
+                    /** @example DESPACHADA */
+                    estado: string;
+                    /** @example PREVENCION */
+                    tipoMision: string;
+                } | null;
+                /** @description Patrulla asignada a la misión (si existe) */
+                patrulla: {
+                    /**
+                     * Format: uuid
+                     * @example 50000000-0000-4000-8000-000000000001
+                     */
+                    id: string;
+                    /** @example Patrulla Verificadora Alfa */
+                    nombre: string;
+                    /** @example EN_PREVENCION */
+                    estado: string;
+                } | null;
+                /** @description Recursos asignados al evento */
+                recursos: {
+                    /**
+                     * Format: uuid
+                     * @example 00000000-0000-4000-8000-000000000001
+                     */
+                    recursoId: string;
+                    /** @example Sacos de Arena 25kg */
+                    nombre: string;
+                    /** @example 5 */
+                    cantidadAsignada: number;
+                }[];
+                /** @description Fecha estimada de finalización ISO 8601 */
+                fechaEstimadaFin?: string | null;
+                /**
+                 * Format: uuid
+                 * @description Identificador del Encargado que creó el evento
+                 */
+                creadoPorId: string;
+                /**
+                 * Format: uuid
+                 * @description Identificador del usuario que realizó la última edición
+                 */
+                actualizadoPorId?: string | null;
+                /** @description Fecha de registro ISO 8601 */
+                creadoEn: string;
+                /** @description Fecha de actualización ISO 8601 */
+                actualizadoEn: string;
+            };
+        };
         CrearRecursoInput: {
             nombre: string;
             /** @default false */
