@@ -22,6 +22,7 @@ import { useOptionalToast } from '@/components/ui/Toast';
 import { usePuedeAsignarMision } from '@/hooks/usePuedeAsignarMision';
 import {
   esReporteVerificacionCierre,
+  formatearEstado,
   fueTipologiaModificada,
 } from '@/lib/utils/estadoUtils';
 import Button from '@/components/ui/Button';
@@ -167,12 +168,6 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [onCerrar, misionSeleccionadaId, modalCuadrillaAbierto, modalAsignarPatrullaAbierto]);
 
-  // 1. Visibilidad: Mostrar acción táctica de despacho en estados VERIFICANDO y REPORTADO (CA-1 HU-21)
-  const puedeDespacharCuadrilla = useMemo(() => {
-    if (!tienePermisoAsignar || !detalle) return false;
-    return detalle.estado === 'VERIFICANDO' || detalle.estado === 'REPORTADO';
-  }, [tienePermisoAsignar, detalle]);
-
   // Misión de verificación previa
   const misionVerificacion = useMemo(() => {
     if (!detalle?.misiones) return null;
@@ -186,10 +181,29 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
     );
   }, [detalle]);
 
+  const tieneCuadrillaActiva = useMemo(() => {
+    if (!detalle?.misiones) return false;
+    return detalle.misiones.some(
+      (m) =>
+        (m.tipoMision === 'ATENCION_CUADRILLA' || Boolean(m.cuadrilla)) &&
+        ['PLANIFICADA', 'DESPACHADA', 'EN_CURSO'].includes(m.estado)
+    );
+  }, [detalle]);
+
+  // 1. Visibilidad: Mostrar acción táctica de despacho solo tras verificación completada y sin cuadrilla activa
+  const puedeDespacharCuadrilla = useMemo(() => {
+    if (!tienePermisoAsignar || !detalle) return false;
+    return (
+      detalle.estado === 'VERIFICANDO' &&
+      misionVerificacion?.estado === 'COMPLETADA' &&
+      !tieneCuadrillaActiva
+    );
+  }, [tienePermisoAsignar, detalle, misionVerificacion, tieneCuadrillaActiva]);
+
   const handleDespachoExitoso = (resultado: DespacharCuadrillaResponse['data']) => {
     if (resultado.patrullaLiberada) {
       toast?.showSuccess(
-        `Cuadrilla despachada exitosamente. La patrulla ${resultado.patrullaLiberada.nombre} ha sido liberada y ya se encuentra DISPONIBLE para nuevas asignaciones.`,
+        `Cuadrilla despachada exitosamente. La patrulla ${resultado.patrullaLiberada.nombre} ha sido liberada y ya se encuentra Disponible para nuevas asignaciones.`,
         'Despacho Táctico Confirmado'
       );
     } else {
@@ -698,7 +712,7 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
                         </span>
                       ) : (
                         <span style={{ color: 'var(--color-text-muted, #5F676E)' }}>
-                          Patrulla asignada: {misionVerificacion.patrulla.nombre} ({misionVerificacion.estado}).
+                          Patrulla asignada: {misionVerificacion.patrulla.nombre} ({formatearEstado(misionVerificacion.estado)}).
                         </span>
                       )
                     ) : (

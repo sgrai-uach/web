@@ -234,12 +234,11 @@ describe('Componente IncidenteDetalleDrawer e integración HU-17', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText(/Intervención Táctica Operativa/i)).toBeDefined();
-      expect(screen.getByText(/Patrulla asignada: Patrulla Alpha \(EN_SITIO\)/i)).toBeDefined();
+      expect(screen.getByText('INC-2026-0042')).toBeDefined();
     });
 
-    const btnDespachar = screen.getByRole('button', { name: /Despachar Cuadrilla Operativa/i });
-    expect(btnDespachar.hasAttribute('disabled')).toBe(false);
+    // Mientras la verificación siga en curso (no COMPLETADA), no debe mostrar el botón de despacho de cuadrilla
+    expect(screen.queryByRole('button', { name: /Despachar Cuadrilla Operativa/i })).toBeNull();
   });
 
   it('permite abrir ModalAsignarCuadrilla cuando la verificación concluyó', async () => {
@@ -319,7 +318,7 @@ describe('Componente IncidenteDetalleDrawer e integración HU-17', () => {
     expect(screen.queryByRole('button', { name: /Despachar Cuadrilla Operativa/i })).toBeNull();
   });
 
-  it('muestra el botón de despacho de cuadrilla en incidentes REPORTADO para despacho táctico directo', async () => {
+  it('no muestra el botón de despacho de cuadrilla en incidentes REPORTADO sin verificación completada', async () => {
     vi.spyOn(incidentesService, 'obtenerDetalleIncidente').mockResolvedValueOnce({
       exito: true,
       datos: {
@@ -342,8 +341,7 @@ describe('Componente IncidenteDetalleDrawer e integración HU-17', () => {
       expect(screen.getByText('INC-2026-0042')).toBeDefined();
     });
 
-    expect(screen.getByRole('button', { name: /Despachar Cuadrilla Operativa/i })).toBeDefined();
-    expect(screen.getByText(/Sin patrulla previa asignada \(despacho táctico directo\)/i)).toBeDefined();
+    expect(screen.queryByRole('button', { name: /Despachar Cuadrilla Operativa/i })).toBeNull();
   });
 
   it('muestra el botón "Despachar Patrulla Verificadora" cuando el incidente está en estado REPORTADO y abre el modal', async () => {
@@ -834,6 +832,7 @@ describe('Componente IncidenteDetalleDrawer e integración HU-17', () => {
       misiones: [
         {
           ...mockDetalleIncidente.misiones[0],
+          tipoMision: 'VERIFICACION',
           estado: 'COMPLETADA',
         },
       ],
