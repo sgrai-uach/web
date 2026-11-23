@@ -75,14 +75,16 @@ function ordenarIncidentesColumna(
   return incidentes;
 }
 
-export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | string) {
-  const initialUserId = typeof options === 'string' ? options : options?.initialUserId;
-  const onMisionRechazadaProp = typeof options === 'string' ? undefined : options?.onMisionRechazada;
-  const onMisionRechazadaRef = useRef(onMisionRechazadaProp);
+export function useIncidentesKanban(options?: string | UseIncidentesKanbanOptions) {
+  const optionsObj: UseIncidentesKanbanOptions =
+    typeof options === 'string' ? { initialUserId: options } : options || {};
+  const initialUserId = optionsObj.initialUserId;
 
+  const onMisionRechazadaRef = useRef(optionsObj.onMisionRechazada);
   useEffect(() => {
-    onMisionRechazadaRef.current = onMisionRechazadaProp;
-  }, [onMisionRechazadaProp]);
+    onMisionRechazadaRef.current = optionsObj.onMisionRechazada;
+  }, [optionsObj.onMisionRechazada]);
+
   let sessionUserId: string | undefined;
   let sessionSetUser: ((id: string) => void) | undefined;
   try {
@@ -110,6 +112,11 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
     RESUELTO: [],
     NO_ABORDABLE: [],
   });
+
+  const columnasRef = useRef(columnas);
+  useEffect(() => {
+    columnasRef.current = columnas;
+  }, [columnas]);
 
   const [paginacionColumna, setPaginacionColumna] = useState<
     Record<EstadoIncidente, PaginacionMeta | null>
@@ -236,7 +243,7 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
         columnasAConsultar.forEach((estado, idx) => {
           const res = resultados[idx];
           if (res.exito) {
-            nuevasColumnas[estado] = ordenarIncidentesColumna(res.incidentes, estado);
+            nuevasColumnas[estado] = res.incidentes;
             nuevasPaginaciones[estado] = res.paginacion || null;
           }
         });
@@ -276,7 +283,22 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
           }
         }
 
-        setColumnas(nuevasColumnas);
+        // Preservar la marca local de misión despachada mientras el backend la propaga
+        setColumnas((prev) => {
+          const preservadas: Record<EstadoIncidente, IncidenteResumen[]> = { ...nuevasColumnas };
+          columnasAConsultar.forEach((estado) => {
+            preservadas[estado] = ordenarIncidentesColumna(
+              nuevasColumnas[estado].map((inc) => {
+                const previo = prev[estado]?.find((p) => p.id === inc.id);
+                return previo?.tieneMisionDespachada
+                  ? { ...inc, tieneMisionDespachada: true }
+                  : inc;
+              }),
+              estado
+            );
+          });
+          return preservadas;
+        });
         setPaginacionColumna(nuevasPaginaciones);
       } catch {
         setError('Error al conectar con el servidor.');
@@ -589,7 +611,10 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
   const handleMisionRechazada = useCallback(
     (payload: MisionRechazadaPayload) => {
       if (payload.incidenteId) {
-        let columnaOrigenDetectada: EstadoIncidente | null = null;
+        const columnaOrigenDetectada =
+          ESTADOS_KANBAN.find((est) =>
+            columnasRef.current[est].some((i) => i.id === payload.incidenteId)
+          ) ?? null;
 
         setColumnas((prev) => {
           let incidenteEncontrado: IncidenteResumen | null = null;
@@ -605,7 +630,6 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
                 actualizadoEn: payload.rechazadoEn || new Date().toISOString(),
               };
               columnaOrigen = est;
-              columnaOrigenDetectada = est;
               break;
             }
           }

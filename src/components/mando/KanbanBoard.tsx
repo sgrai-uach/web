@@ -32,6 +32,7 @@ import { cuadrillasService } from '@/services/cuadrillasService';
 import type { CuadrillaItem } from '@/types/cuadrilla';
 import { Zap } from 'lucide-react';
 import { usePuedeAsignarMision } from '@/hooks/usePuedeAsignarMision';
+import { usePuedeCrearEventoAtp } from '@/hooks/usePuedeCrearEventoAtp';
 import { extraerEstadoInicialNotificacion } from '@/lib/socket/trazabilidadConfig';
 import { setTrazabilidadEstado } from '@/lib/socket/trazabilidadStore';
 import InlineNotice from '@/components/ui/InlineNotice';
@@ -60,6 +61,7 @@ export const KanbanBoard: React.FC = () => {
   const [cuadrillasOperativas, setCuadrillasOperativas] = useState<CuadrillaItem[]>([]);
   const [incidenteParaAsignar, setIncidenteParaAsignar] = useState<IncidenteResumen | null>(null);
   const puedeAsignar = usePuedeAsignarMision();
+  const puedeCrearEventoAtp = usePuedeCrearEventoAtp();
 
   const [estadoEnfocado, setEstadoEnfocado] = useState<EstadoIncidente | null>(null);
   const ultimosToastsRechazoRef = React.useRef<Map<string, number>>(new Map());
@@ -274,6 +276,7 @@ export const KanbanBoard: React.FC = () => {
         onAbrirPatrullas={() => setPatrullasModalAbierto(true)}
         onOpenCrearPrevencion={() => setModalPrevencionAbierto(true)}
         onOpenCrearRecuperacion={() => setModalRecuperacionAbierto(true)}
+        puedeCrearEventoAtp={puedeCrearEventoAtp}
       />
 
       {esForbidden ? (

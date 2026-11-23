@@ -4,7 +4,7 @@
  * Conforme a docs/architecture/architecture.md y contratos OpenAPI de sgrai-api.
  */
 
-import type { paths } from './api-generated';
+import type { components } from './api-generated';
 import type { PaginationMeta } from './common';
 
 export interface AdjuntoEvidencia {
@@ -206,55 +206,26 @@ export interface PatrullaLiberadaInfo {
   misionPreviaId?: string;
 }
 
-/** Respuesta de la API al despachar cuadrilla y liberar patrulla (HU-21) */
-export interface DespacharCuadrillaResponse {
-  message: string;
-  data: {
-    mision: {
-      id: string;
-      codigo: string;
-      tipoMision: TipoMision | string;
-      estado: EstadoMision | string;
-      fechaInicio: string | null;
-    };
-    cuadrilla: {
-      id: string;
-      nombre: string;
-      estado: string;
-    };
-    incidente: {
-      id: string;
-      codigo: string;
-      estado: string;
-      prioridad: string;
-    };
-    patrullaLiberada: PatrullaLiberadaInfo | null;
-    hitoCuadrilla?: {
-      hito: string;
-      descripcion: string;
-    };
-    hitoPatrulla?: {
-      hito: string;
-      descripcion: string;
-    };
-  };
-}
-
-export type CrearMisionRequestBody =
-  paths['/api/misiones']['post']['requestBody']['content']['application/json'];
+/**
+ * Contratos del endpoint unificado POST /api/misiones (HU-20 verificacion / HU-21 cuadrilla).
+ * La API expone el cuerpo como `anyOf`, por lo que se parametrizan los tipos por esquema
+ * concreto para mantener el tipado estricto en el cliente.
+ */
+export type CrearMisionVerificacionBody = components['schemas']['CrearMisionVerificacionInput'];
+export type AsignarCuadrillaMisionBody = components['schemas']['AsignarCuadrillaMisionInput'];
+export type CrearMisionRequestBody = CrearMisionVerificacionBody | AsignarCuadrillaMisionBody;
 export type CrearMisionResponse201 =
-  paths['/api/misiones']['post']['responses'][201]['content']['application/json'];
+  | components['schemas']['CrearMisionResponse']
+  | components['schemas']['AsignarCuadrillaMisionResponse'];
 
-type CrearMisionPatrullaBody = Extract<CrearMisionRequestBody, { patrullaId: string }>;
-
-export type DespacharPatrullaPayload = Omit<CrearMisionPatrullaBody, 'tipoMision'> & {
-  tipoMision?: CrearMisionPatrullaBody['tipoMision'];
+export type DespacharPatrullaPayload = Omit<CrearMisionVerificacionBody, 'tipoMision'> & {
+  tipoMision?: CrearMisionVerificacionBody['tipoMision'];
 };
-export type DespacharPatrullaResponseData = Extract<
-  CrearMisionResponse201['data'],
-  { patrulla: unknown }
->;
-export type DespacharPatrullaResponse = CrearMisionResponse201;
+export type DespacharPatrullaResponseData = components['schemas']['CrearMisionResponse']['data'];
+export type DespacharPatrullaResponse = components['schemas']['CrearMisionResponse'];
+export type DespacharCuadrillaResponse = components['schemas']['AsignarCuadrillaMisionResponse'];
+export type DespacharCuadrillaResponseData =
+  components['schemas']['AsignarCuadrillaMisionResponse']['data'];
 
 export interface ResultadoDespacharPatrulla {
   exito: boolean;

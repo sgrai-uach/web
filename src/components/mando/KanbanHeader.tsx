@@ -13,9 +13,11 @@ import {
   ShieldAlert,
   PackagePlus,
   HeartHandshake,
+  AlertTriangle,
   Plus,
   ChevronDown,
 } from 'lucide-react';
+import { RUTA_NUEVO_EVENTO_ATP } from '@/lib/constants/routes';
 import styles from '@/styles/mando.module.css';
 
 interface KanbanHeaderProps {
@@ -27,6 +29,8 @@ interface KanbanHeaderProps {
   onAbrirPatrullas?: () => void;
   onOpenCrearPrevencion?: () => void;
   onOpenCrearRecuperacion?: () => void;
+  /** Indica si el usuario puede registrar Eventos ATP (H61). */
+  puedeCrearEventoAtp?: boolean;
 }
 
 export const KanbanHeader: React.FC<KanbanHeaderProps> = ({
@@ -36,6 +40,7 @@ export const KanbanHeader: React.FC<KanbanHeaderProps> = ({
   onAbrirPatrullas,
   onOpenCrearPrevencion,
   onOpenCrearRecuperacion,
+  puedeCrearEventoAtp = false,
 }) => {
   const [menuNuevoEventoAbierto, setMenuNuevoEventoAbierto] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -110,6 +115,18 @@ export const KanbanHeader: React.FC<KanbanHeaderProps> = ({
               >
                 <ShieldCheck size={14} style={{ marginRight: '5px' }} />
                 <span>Patrullas</span>
+              </Button>
+            )}
+
+            {puedeCrearEventoAtp && (
+              <Button
+                href={RUTA_NUEVO_EVENTO_ATP}
+                variant="secondary"
+                size="sm"
+                title="Registrar Evento de Alerta Temprana Preventiva"
+                icon={<AlertTriangle size={14} />}
+              >
+                Evento ATP
               </Button>
             )}
 

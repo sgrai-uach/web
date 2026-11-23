@@ -1,4 +1,4 @@
-import apiClient, { DEFAULT_ADMIN_USER_ID } from '@/lib/api/client';
+import apiClient from '@/lib/api/client';
 import { formatApiError } from '@/lib/utils/errorUtils';
 import type {
   ActualizarPermisosRolResponse,
@@ -92,11 +92,10 @@ export { SeguridadServiceError as ApiError };
  * Requiere que el usuario especificado tenga rol de Administrador.
  */
 export async function listarRolesYPermisos(userId: string): Promise<ListarRolesResponse> {
-  const { data, error, response } = await apiClient.GET('/api/seguridad/roles', {
-    headers: {
-      'x-user-id': userId,
-    },
-  });
+  // El API ahora autentica con Authorization Bearer (JWT): el identificador de usuario
+  // se conserva por compatibilidad de firma y ya no se envía como cabecera x-user-id.
+  void userId;
+  const { data, error, response } = await apiClient.GET('/api/seguridad/roles');
 
   if (error || !data) {
     let mensaje = 'Error al consultar los roles y permisos del sistema';
@@ -124,12 +123,12 @@ export async function obtenerDetalleRol(
   id: string,
   userId?: string
 ): Promise<RolDetalleResponse> {
+  // El API ahora autentica con Authorization Bearer (JWT): el identificador de usuario
+  // se conserva por compatibilidad de firma y ya no se envía como cabecera x-user-id.
+  void userId;
   const { data, error, response } = await apiClient.GET('/api/seguridad/roles/{id}', {
     params: {
       path: { id },
-    },
-    headers: {
-      'x-user-id': userId || DEFAULT_ADMIN_USER_ID,
     },
   });
 

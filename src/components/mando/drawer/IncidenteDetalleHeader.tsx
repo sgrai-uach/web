@@ -21,6 +21,10 @@ export const IncidenteDetalleHeader: React.FC<IncidenteDetalleHeaderProps> = ({
   onAsignarPatrulla,
   puedeAsignar = true,
 }) => {
+  const tieneMisionDespachada = Boolean(
+    detalle?.misiones?.some((m) => m.estado === 'DESPACHADA' || m.estado === 'PLANIFICADA')
+  );
+
   return (
     <div className={styles.drawerHeader}>
       <div className={styles.drawerHeaderInfo}>
@@ -45,7 +49,7 @@ export const IncidenteDetalleHeader: React.FC<IncidenteDetalleHeaderProps> = ({
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-        {detalle?.estado === 'REPORTADO' && onAsignarPatrulla && puedeAsignar && (
+        {detalle?.estado === 'REPORTADO' && !tieneMisionDespachada && onAsignarPatrulla && puedeAsignar && (
           <Button
             type="button"
             variant="primary"

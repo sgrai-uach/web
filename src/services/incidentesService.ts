@@ -70,6 +70,9 @@ export const incidentesService = {
     query: ListarIncidentesQuery = {},
     userId: string = DEFAULT_ENCARGADO_ID
   ): Promise<ResultadoListadoIncidentes> {
+  // El API ahora autentica con Authorization Bearer (JWT): el identificador de usuario
+  // se conserva por compatibilidad de firma y ya no se envía como cabecera x-user-id.
+    void userId;
     try {
       const { data, error, response } = await apiClient.GET('/api/incidentes', {
         params: {
@@ -77,7 +80,6 @@ export const incidentesService = {
             paths['/api/incidentes']['get']['parameters']['query']
           >,
         },
-        headers: { 'x-user-id': userId },
       });
 
       if (response?.status === 403) {
@@ -151,6 +153,9 @@ export const incidentesService = {
     id: string,
     userId: string = DEFAULT_ENCARGADO_ID
   ): Promise<ResultadoDetalleIncidente> {
+  // El API ahora autentica con Authorization Bearer (JWT): el identificador de usuario
+  // se conserva por compatibilidad de firma y ya no se envía como cabecera x-user-id.
+    void userId;
     if (!id || !id.trim()) {
       return {
         exito: false,
@@ -164,7 +169,6 @@ export const incidentesService = {
         params: {
           path: { id: id.trim() },
         },
-        headers: { 'x-user-id': userId },
       });
 
       if (response?.status === 403) {
