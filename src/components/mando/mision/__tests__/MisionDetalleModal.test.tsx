@@ -1314,4 +1314,59 @@ describe('Componente MisionDetalleModal (HU-17)', () => {
       expect(screen.getByText('En Trabajos de Terreno')).toBeDefined();
     });
   });
+
+  it('estandariza despacho DESPACHADA de patrulla y usa líder de patrulla como fallback en bitácora', async () => {
+    const mockMisionPatrulla: MisionDetalleCompleto = {
+      ...mockMision,
+      id: 'm-patrulla-bitacora-std',
+      codigo: 'MIS-2026-0888',
+      tipoMision: 'VERIFICACION',
+      cuadrilla: null,
+      patrulla: {
+        id: 'pat-sur',
+        nombre: 'Patrulla Sur',
+        estado: 'EN_VERIFICACION',
+        delegacionNombre: 'Sur',
+        lider: {
+          id: 'u-lider-sur',
+          nombre: 'Laura Gómez',
+          email: 'laura@valdivia.cl',
+        },
+      },
+      bitacoraTiempos: [
+        {
+          id: 'h-desp',
+          hito: 'DESPACHADA',
+          descripcion: 'Misión de verificación asignada y despachada a la Patrulla Sur.',
+          fecha: '22-11-2026',
+          hora: '13:16:55',
+          timestamp: '2026-11-22T16:16:55.000Z',
+        },
+        {
+          id: 'h-acep',
+          hito: 'MISION_ACEPTADA',
+          descripcion: 'Misión Aceptada por Patrulla',
+          fecha: '22-11-2026',
+          hora: '13:17:31',
+          timestamp: '2026-11-22T16:17:31.000Z',
+        },
+      ],
+      reportesTerreno: [],
+    };
+
+    vi.spyOn(misionesService, 'obtenerDetalleMision').mockResolvedValueOnce({
+      exito: true,
+      datos: mockMisionPatrulla,
+      mensaje: 'OK',
+    });
+
+    render(<MisionDetalleModal misionId="m-patrulla-bitacora-std" onCerrar={vi.fn()} />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Patrulla Verificadora Despachada')).toBeDefined();
+    });
+
+    expect(screen.getByText('Misión Aceptada por Unidad')).toBeDefined();
+    expect(screen.getByText(/Reportado por: Laura Gómez/)).toBeDefined();
+  });
 });

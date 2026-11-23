@@ -11,6 +11,7 @@ import {
   AlertTriangle,
   FileCheck,
   CheckCircle2,
+  Send,
 } from 'lucide-react';
 import Heading from '@/components/ui/Heading';
 import Button from '@/components/ui/Button';
@@ -28,15 +29,20 @@ import styles from '@/styles/mision-detalle.module.css';
 
 interface MisionBitacoraSectionProps {
   bitacora: MisionBitacoraHito[];
+  tipoMision?: string | null;
   delegadoNombreFallback?: string | null;
+  responsableFallback?: string | null;
   onUbicarEnMapa?: (latitud: number, longitud: number, etiqueta?: string) => void;
 }
 
 export const MisionBitacoraSection: React.FC<MisionBitacoraSectionProps> = ({
   bitacora,
+  tipoMision,
   delegadoNombreFallback,
+  responsableFallback,
   onUbicarEnMapa,
 }) => {
+  const fallbackResponsable = responsableFallback ?? delegadoNombreFallback ?? null;
   return (
     <div className={styles.seccionBloque}>
       <div className={styles.seccionHeader}>
@@ -58,7 +64,7 @@ export const MisionBitacoraSection: React.FC<MisionBitacoraSectionProps> = ({
             {bitacora.map((hito, index) => {
               const sinCambiosTipologia = esHitoTipologiaSinCambios(hito);
               const claveHito = (hito.codigoHito || hito.hito || '').trim();
-              const config = obtenerConfigHito(claveHito);
+              const config = obtenerConfigHito(claveHito, tipoMision);
               const tieneEtiquetaPersonalizada =
                 Boolean(config.etiqueta) &&
                 config.codigo !== 'EVENTO' &&
@@ -90,13 +96,17 @@ export const MisionBitacoraSection: React.FC<MisionBitacoraSectionProps> = ({
 
               const responsable =
                 hito.registradoPorNombre ||
-                (config.esLlegadaTerreno || config.esAceptacion ? delegadoNombreFallback : null);
+                (config.esLlegadaTerreno || config.esAceptacion || config.esReporteTerreno
+                  ? fallbackResponsable
+                  : null);
 
               return (
                 <div
                   key={`${hito.id || hito.timestamp}-${index}`}
                   className={`${styles.timelineItem} ${
-                    config.esLlegadaTerreno ? styles.timelineItemLlegada : ''
+                    config.esLlegadaTerreno || config.categoriaIcono === 'cierre'
+                      ? styles.timelineItemLlegada
+                      : ''
                   }`}
                 >
                   {config.esLlegadaTerreno ? (
@@ -117,6 +127,10 @@ export const MisionBitacoraSection: React.FC<MisionBitacoraSectionProps> = ({
                   ) : config.esReporteTerreno ? (
                     <div className={styles.timelineDotIcon} aria-hidden="true">
                       <FileCheck size={12} />
+                    </div>
+                  ) : config.categoriaIcono === 'despacho' ? (
+                    <div className={styles.timelineDotIcon} aria-hidden="true">
+                      <Send size={11} />
                     </div>
                   ) : (
                     <div className={styles.timelineDot} />

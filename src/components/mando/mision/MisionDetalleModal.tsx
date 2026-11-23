@@ -508,7 +508,11 @@ export const MisionDetalleModal: React.FC<MisionDetalleModalProps> = ({
               {/* Bitácora de Tiempos */}
               <MisionBitacoraSection
                 bitacora={misionConTiempoReal.bitacoraTiempos || []}
-                delegadoNombreFallback={misionConTiempoReal.cuadrilla?.delegado?.nombre}
+                tipoMision={misionConTiempoReal.tipoMision}
+                responsableFallback={
+                  misionConTiempoReal.cuadrilla?.delegado?.nombre ??
+                  misionConTiempoReal.patrulla?.lider?.nombre
+                }
                 onUbicarEnMapa={onUbicarEnMapa}
               />
 

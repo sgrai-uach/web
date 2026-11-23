@@ -5,6 +5,15 @@ import type {
   MisionHitoRegistradoPayload,
 } from '@/types/misiones';
 
+export type CategoriaIconoHito =
+  | 'despacho'
+  | 'aceptacion'
+  | 'llegada'
+  | 'evaluacion'
+  | 'cierre'
+  | 'rechazo'
+  | 'neutro';
+
 export interface ConfigHitoMision {
   codigo: string;
   etiqueta: string;
@@ -12,6 +21,7 @@ export interface ConfigHitoMision {
   esRechazo: boolean;
   esReporteTerreno: boolean;
   esAceptacion: boolean;
+  categoriaIcono?: CategoriaIconoHito;
 }
 
 const HITO_ETIQUETAS: Record<string, Omit<ConfigHitoMision, 'codigo'>> = {
@@ -21,6 +31,7 @@ const HITO_ETIQUETAS: Record<string, Omit<ConfigHitoMision, 'codigo'>> = {
     esRechazo: false,
     esReporteTerreno: false,
     esAceptacion: false,
+    categoriaIcono: 'llegada',
   },
   MISION_RECHAZADA: {
     etiqueta: 'Misión Rechazada en Terreno',
@@ -28,6 +39,7 @@ const HITO_ETIQUETAS: Record<string, Omit<ConfigHitoMision, 'codigo'>> = {
     esRechazo: true,
     esReporteTerreno: false,
     esAceptacion: false,
+    categoriaIcono: 'rechazo',
   },
   RECHAZO_MISION: {
     etiqueta: 'Misión Rechazada en Terreno',
@@ -35,6 +47,7 @@ const HITO_ETIQUETAS: Record<string, Omit<ConfigHitoMision, 'codigo'>> = {
     esRechazo: true,
     esReporteTerreno: false,
     esAceptacion: false,
+    categoriaIcono: 'rechazo',
   },
   REPORTE_TERRENO: {
     etiqueta: 'Reporte Técnico Emitido',
@@ -42,6 +55,7 @@ const HITO_ETIQUETAS: Record<string, Omit<ConfigHitoMision, 'codigo'>> = {
     esRechazo: false,
     esReporteTerreno: true,
     esAceptacion: false,
+    categoriaIcono: 'evaluacion',
   },
   MISION_ACEPTADA: {
     etiqueta: 'Misión Aceptada por Unidad',
@@ -49,6 +63,7 @@ const HITO_ETIQUETAS: Record<string, Omit<ConfigHitoMision, 'codigo'>> = {
     esRechazo: false,
     esReporteTerreno: false,
     esAceptacion: true,
+    categoriaIcono: 'aceptacion',
   },
   ACEPTACION_MISION: {
     etiqueta: 'Misión Aceptada por Unidad',
@@ -56,6 +71,7 @@ const HITO_ETIQUETAS: Record<string, Omit<ConfigHitoMision, 'codigo'>> = {
     esRechazo: false,
     esReporteTerreno: false,
     esAceptacion: true,
+    categoriaIcono: 'aceptacion',
   },
   CUADRILLA_DESPACHADA: {
     etiqueta: 'Cuadrilla Despachada',
@@ -63,6 +79,7 @@ const HITO_ETIQUETAS: Record<string, Omit<ConfigHitoMision, 'codigo'>> = {
     esRechazo: false,
     esReporteTerreno: false,
     esAceptacion: false,
+    categoriaIcono: 'despacho',
   },
   PATRULLA_DESPACHADA: {
     etiqueta: 'Patrulla Verificadora Despachada',
@@ -70,6 +87,39 @@ const HITO_ETIQUETAS: Record<string, Omit<ConfigHitoMision, 'codigo'>> = {
     esRechazo: false,
     esReporteTerreno: false,
     esAceptacion: false,
+    categoriaIcono: 'despacho',
+  },
+  TIPOLOGIA_RECLASIFICADA: {
+    etiqueta: 'Tipología reclasificada en terreno',
+    esLlegadaTerreno: false,
+    esRechazo: false,
+    esReporteTerreno: true,
+    esAceptacion: false,
+    categoriaIcono: 'evaluacion',
+  },
+  PRIORIDAD_ASIGNADA: {
+    etiqueta: 'Prioridad evaluada y asignada en terreno',
+    esLlegadaTerreno: false,
+    esRechazo: false,
+    esReporteTerreno: true,
+    esAceptacion: false,
+    categoriaIcono: 'evaluacion',
+  },
+  VERIFICACION_COMPLETADA: {
+    etiqueta: 'Verificación completada',
+    esLlegadaTerreno: false,
+    esRechazo: false,
+    esReporteTerreno: true,
+    esAceptacion: false,
+    categoriaIcono: 'cierre',
+  },
+  VERIFICACION_FINALIZADA: {
+    etiqueta: 'Verificación completada',
+    esLlegadaTerreno: false,
+    esRechazo: false,
+    esReporteTerreno: true,
+    esAceptacion: false,
+    categoriaIcono: 'cierre',
   },
 };
 
@@ -184,9 +234,36 @@ export function obtenerBadgeEstadoMision(estado?: string | null): BadgeEstadoMis
 /**
  * Resuelve la configuración visual y etiqueta legible para un código o título de hito operativo.
  */
-export function obtenerConfigHito(hitoValor: string): ConfigHitoMision {
+export function obtenerConfigHito(
+  hitoValor: string,
+  tipoMision?: string | null
+): ConfigHitoMision {
   const limpio = (hitoValor || '').trim();
   const clave = limpio.toUpperCase();
+
+  if (clave === 'DESPACHADA' || clave === 'MISION_DESPACHADA') {
+    if (tipoMision === 'VERIFICACION') {
+      return {
+        codigo: 'PATRULLA_DESPACHADA',
+        ...HITO_ETIQUETAS.PATRULLA_DESPACHADA,
+      };
+    }
+    if (tipoMision === 'ATENCION_CUADRILLA') {
+      return {
+        codigo: 'CUADRILLA_DESPACHADA',
+        ...HITO_ETIQUETAS.CUADRILLA_DESPACHADA,
+      };
+    }
+    return {
+      codigo: 'DESPACHADA',
+      etiqueta: 'Misión Despachada',
+      esLlegadaTerreno: false,
+      esRechazo: false,
+      esReporteTerreno: false,
+      esAceptacion: false,
+      categoriaIcono: 'despacho',
+    };
+  }
 
   if (HITO_ETIQUETAS[clave]) {
     return {
