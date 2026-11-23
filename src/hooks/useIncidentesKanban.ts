@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   listarIncidentes,
   DEFAULT_ENCARGADO_ID,
@@ -16,6 +16,7 @@ import {
   useEncargadoKanbanSocket,
   type IncidenteCreadoPayload,
   type IncidenteActualizadoPayload,
+  type MisionRechazadaPayload,
   type NotificacionTrazabilidadPayload,
 } from './useEncargadoKanbanSocket';
 import {
@@ -69,7 +70,21 @@ function ordenarIncidentesColumna(
   return incidentes;
 }
 
-export function useIncidentesKanban(initialUserId?: string) {
+export interface UseIncidentesKanbanOptions {
+  initialUserId?: string;
+  onMisionRechazada?: (payload: MisionRechazadaPayload) => void;
+}
+
+export function useIncidentesKanban(options?: string | UseIncidentesKanbanOptions) {
+  const optionsObj: UseIncidentesKanbanOptions =
+    typeof options === 'string' ? { initialUserId: options } : options || {};
+  const initialUserId = optionsObj.initialUserId;
+
+  const onMisionRechazadaRef = useRef(optionsObj.onMisionRechazada);
+  useEffect(() => {
+    onMisionRechazadaRef.current = optionsObj.onMisionRechazada;
+  }, [optionsObj.onMisionRechazada]);
+
   let sessionUserId: string | undefined;
   let sessionSetUser: ((id: string) => void) | undefined;
   try {
@@ -223,12 +238,27 @@ export function useIncidentesKanban(initialUserId?: string) {
         columnasAConsultar.forEach((estado, idx) => {
           const res = resultados[idx];
           if (res.exito) {
-            nuevasColumnas[estado] = ordenarIncidentesColumna(res.incidentes, estado);
+            nuevasColumnas[estado] = res.incidentes;
             nuevasPaginaciones[estado] = res.paginacion || null;
           }
         });
 
-        setColumnas(nuevasColumnas);
+        // Preservar la marca local de misión despachada mientras el backend la propaga
+        setColumnas((prev) => {
+          const preservadas: Record<EstadoIncidente, IncidenteResumen[]> = { ...nuevasColumnas };
+          columnasAConsultar.forEach((estado) => {
+            preservadas[estado] = ordenarIncidentesColumna(
+              nuevasColumnas[estado].map((inc) => {
+                const previo = prev[estado]?.find((p) => p.id === inc.id);
+                return previo?.tieneMisionDespachada
+                  ? { ...inc, tieneMisionDespachada: true }
+                  : inc;
+              }),
+              estado
+            );
+          });
+          return preservadas;
+        });
         setPaginacionColumna(nuevasPaginaciones);
       } catch {
         setError('Error al conectar con el servidor.');
@@ -522,9 +552,87 @@ export function useIncidentesKanban(initialUserId?: string) {
     [userId]
   );
 
+  const handleMisionRechazada = useCallback(
+    (payload: MisionRechazadaPayload) => {
+      if (payload.incidenteId) {
+        let columnaOrigenDetectada: EstadoIncidente | null = null;
+
+        setColumnas((prev) => {
+          let incidenteEncontrado: IncidenteResumen | null = null;
+          let columnaOrigen: EstadoIncidente | null = null;
+
+          for (const est of ESTADOS_KANBAN) {
+            const idx = prev[est].findIndex((i) => i.id === payload.incidenteId);
+            if (idx !== -1) {
+              incidenteEncontrado = {
+                ...prev[est][idx],
+                estado: 'REPORTADO',
+                tieneMisionDespachada: false,
+                actualizadoEn: payload.rechazadoEn || new Date().toISOString(),
+              };
+              columnaOrigen = est;
+              columnaOrigenDetectada = est;
+              break;
+            }
+          }
+
+          if (!incidenteEncontrado) return prev;
+
+          if (columnaOrigen === 'REPORTADO') {
+            return {
+              ...prev,
+              REPORTADO: prev.REPORTADO.map((i) =>
+                i.id === payload.incidenteId ? incidenteEncontrado! : i
+              ),
+            };
+          }
+
+          return {
+            ...prev,
+            [columnaOrigen!]: prev[columnaOrigen!].filter((i) => i.id !== payload.incidenteId),
+            REPORTADO: [incidenteEncontrado, ...prev.REPORTADO],
+          };
+        });
+
+        setPaginacionColumna((prev) => {
+          if (!columnaOrigenDetectada || columnaOrigenDetectada === 'REPORTADO') {
+            return prev;
+          }
+
+          return {
+            ...prev,
+            REPORTADO: prev.REPORTADO ? { ...prev.REPORTADO, total: prev.REPORTADO.total + 1 } : null,
+            [columnaOrigenDetectada]: prev[columnaOrigenDetectada]
+              ? {
+                  ...prev[columnaOrigenDetectada]!,
+                  total: Math.max(0, prev[columnaOrigenDetectada]!.total - 1),
+                }
+              : null,
+          };
+        });
+      }
+
+      onMisionRechazadaRef.current?.(payload);
+    },
+    []
+  );
+
+  const marcarIncidenteMisionDespachada = useCallback(
+    (incidenteId: string, despachada: boolean = true) => {
+      setColumnas((prev) => ({
+        ...prev,
+        REPORTADO: prev.REPORTADO.map((inc) =>
+          inc.id === incidenteId ? { ...inc, tieneMisionDespachada: despachada } : inc
+        ),
+      }));
+    },
+    []
+  );
+
   const { conectado, ultimoEvento } = useEncargadoKanbanSocket({
     onIncidenteCreado: handleIncidenteCreado,
     onIncidenteActualizado: handleIncidenteActualizado,
+    onMisionRechazada: handleMisionRechazada,
     onNotificacionTrazabilidadActualizada: handleTrazabilidadActualizada,
     enabled: !esForbidden,
   });
@@ -550,6 +658,7 @@ export function useIncidentesKanban(initialUserId?: string) {
     cargarMas,
     recargar: cargarTablero,
     moverIncidenteAEstado,
+    marcarIncidenteMisionDespachada,
     conectado,
     ultimoEvento,
     totalIncidentesVisibles,

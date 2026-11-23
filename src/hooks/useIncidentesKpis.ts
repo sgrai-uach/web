@@ -116,9 +116,11 @@ export function useIncidentesKpis(options: UseIncidentesKpisOptions = {}) {
 
     const unirseSala = () => {
       setConectado(true);
-      // Enfoque defensivo: emitir tanto 'join' como 'unirse' para asegurar compatibilidad
+      // Enfoque defensivo: emitir tanto 'join' como 'unirse' para asegurar compatibilidad con salas de encargados
       socket.emit('join', 'sala:encargados');
       socket.emit('unirse', 'sala:encargados');
+      socket.emit('join', 'encargado');
+      socket.emit('unirse', 'encargado');
     };
 
     const handleConnect = () => {
@@ -146,14 +148,20 @@ export function useIncidentesKpis(options: UseIncidentesKpisOptions = {}) {
     socket.on('disconnect', handleDisconnect);
     socket.on('incidente:creado', handleActualizacionIncidente);
     socket.on('incidente:actualizado', handleActualizacionIncidente);
+    socket.on('mision:rechazada', handleActualizacionIncidente);
+    socket.on('mision:asignada', handleActualizacionIncidente);
 
     return () => {
       socket.emit('leave', 'sala:encargados');
       socket.emit('salir', 'sala:encargados');
+      socket.emit('leave', 'encargado');
+      socket.emit('salir', 'encargado');
       socket.off('connect', handleConnect);
       socket.off('disconnect', handleDisconnect);
       socket.off('incidente:creado', handleActualizacionIncidente);
       socket.off('incidente:actualizado', handleActualizacionIncidente);
+      socket.off('mision:rechazada', handleActualizacionIncidente);
+      socket.off('mision:asignada', handleActualizacionIncidente);
     };
   }, [enabled]);
 
