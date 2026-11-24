@@ -9,6 +9,8 @@ import {
   getTipoUnidadPorMision,
   getTrazabilidadEstado,
   getTrazabilidadPorIncidente,
+  limpiarTrazabilidadIncidente,
+  limpiarTrazabilidadMision,
   setTrazabilidadEstado,
   subscribeTrazabilidad,
   vincularMisionIncidente,
@@ -137,6 +139,43 @@ describe('trazabilidadStore', () => {
       reemplazarMisionActiva: true,
     });
     expect(getTrazabilidadPorIncidente('inc-multi-1')).toBe('LEIDA');
+  });
+
+  it('limpia trazabilidad por misión rechazada e incidente en memoria y localStorage sin afectar misiones más nuevas', () => {
+    setTrazabilidadEstado('mis-cuadrilla-rej', 'LEIDA', 'inc-limp-1', {
+      tipoUnidad: 'CUADRILLA',
+      reemplazarMisionActiva: true,
+    });
+    expect(getTrazabilidadPorIncidente('inc-limp-1')).toBe('LEIDA');
+
+    limpiarTrazabilidadMision('mis-cuadrilla-rej', 'inc-limp-1');
+
+    expect(getTrazabilidadEstado('mis-cuadrilla-rej')).toBeUndefined();
+    expect(getTrazabilidadPorIncidente('inc-limp-1')).toBeUndefined();
+    expect(getMisionActivaPorIncidente('inc-limp-1')).toBeUndefined();
+    expect(getTipoUnidadPorIncidente('inc-limp-1')).toBeUndefined();
+
+    const raw = window.localStorage.getItem('sgrai_trazabilidad_notificaciones_v2');
+    expect(JSON.parse(raw!).incidentes['inc-limp-1']).toBeUndefined();
+    expect(JSON.parse(raw!).misiones['mis-cuadrilla-rej']).toBeUndefined();
+
+    // Multi-cuadrilla: limpiar una misión anterior no borra la misión activa más nueva
+    setTrazabilidadEstado('mis-cuadrilla-a', 'LEIDA', 'inc-limp-2', {
+      tipoUnidad: 'CUADRILLA',
+      reemplazarMisionActiva: true,
+    });
+    setTrazabilidadEstado('mis-cuadrilla-b', 'RECIBIDA', 'inc-limp-2', {
+      tipoUnidad: 'CUADRILLA',
+      reemplazarMisionActiva: true,
+    });
+
+    limpiarTrazabilidadMision('mis-cuadrilla-a', 'inc-limp-2');
+    expect(getMisionActivaPorIncidente('inc-limp-2')).toBe('mis-cuadrilla-b');
+    expect(getTrazabilidadPorIncidente('inc-limp-2')).toBe('RECIBIDA');
+
+    limpiarTrazabilidadIncidente('inc-limp-2');
+    expect(getMisionActivaPorIncidente('inc-limp-2')).toBeUndefined();
+    expect(getTrazabilidadPorIncidente('inc-limp-2')).toBeUndefined();
   });
 });
 

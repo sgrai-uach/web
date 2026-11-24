@@ -582,4 +582,26 @@ describe('IncidenteCard', () => {
       'Cuadrilla adicional solicitada'
     );
   });
+
+  it('oculta "Leída por la cuadrilla" y "SIN ACUSE" en VERIFICANDO cuando ya fue verificado y no tiene misión activa tras rechazo', () => {
+    render(
+      <IncidenteCard
+        incidente={{
+          ...mockIncidente,
+          estado: 'VERIFICANDO',
+          verificado: true,
+          tieneMisionDespachada: false,
+          trazabilidadNotificacion: null,
+          trazabilidadMisionId: null,
+          trazabilidadTipoUnidad: null,
+        }}
+        onClick={vi.fn()}
+      />
+    );
+
+    expect(screen.queryByTestId('card-trazabilidad-inc-001')).toBeNull();
+    expect(screen.queryByTestId('card-trazabilidad-pendiente-inc-001')).toBeNull();
+    expect(screen.queryByText(/Leída por la cuadrilla/i)).toBeNull();
+    expect(screen.queryByText(/SIN ACUSE/i)).toBeNull();
+  });
 });

@@ -1179,7 +1179,10 @@ export const KanbanBoard: React.FC = () => {
             userId={userId}
             onAsignacionExitosa={(data) => {
               const estadoInicial = extraerEstadoInicialNotificacion(data);
-              setTrazabilidadEstado(data.mision.id, estadoInicial, data.incidente.id);
+              setTrazabilidadEstado(data.mision.id, estadoInicial, data.incidente.id, {
+                tipoUnidad: 'PATRULLA',
+                reemplazarMisionActiva: true,
+              });
               marcarIncidenteMisionDespachada(data.incidente.id, true);
               recargar();
               refrescarKpis();

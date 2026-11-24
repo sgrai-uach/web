@@ -4,9 +4,6 @@ import React, { useEffect, useState } from 'react';
 import type { EstadoMision, MisionItem } from '@/types/misiones';
 import type { EstadoTrazabilidadNotificacion } from '@/services/incidentesService';
 import {
-  obtenerConfigTrazabilidad,
-} from '@/lib/socket/trazabilidadConfig';
-import {
   getSnapshotTrazabilidadMisiones,
   subscribeTrazabilidad,
 } from '@/lib/socket/trazabilidadStore';
@@ -15,7 +12,7 @@ import {
   subscribeMisionesRealtime,
 } from '@/lib/socket/misionesStore';
 import { obtenerBadgeEstadoMision } from '@/lib/utils/misionHitos';
-import { TrazabilidadIcon } from '../TrazabilidadIcon';
+import { TrazabilidadLecturaBox } from '../TrazabilidadLecturaBox';
 import { AlertTriangle, Users, ShieldAlert } from 'lucide-react';
 import Button from '@/components/ui/Button';
 
@@ -142,9 +139,6 @@ export const MisionesTabla: React.FC<MisionesTablaProps> = ({
               : mision.patrullaNombre
                 ? 'PATRULLA'
                 : null;
-            const cfgTrazabilidad = estadoTrazabilidad
-              ? obtenerConfigTrazabilidad(estadoTrazabilidad, tipoUnidadMision)
-              : undefined;
 
             return (
               <tr
@@ -241,29 +235,14 @@ export const MisionesTabla: React.FC<MisionesTablaProps> = ({
                     {badge.label}
                   </span>
 
-                  {cfgTrazabilidad && (
+                  {estadoTrazabilidad && (
                     <div style={{ marginTop: '4px' }}>
-                      <span
-                        data-testid={`tabla-trazabilidad-${mision.id}`}
-                        style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '4px',
-                          padding: '2px 6px',
-                          backgroundColor: cfgTrazabilidad.bg,
-                          color: cfgTrazabilidad.color,
-                          border: '1px solid currentColor',
-                          borderRadius: 0,
-                          fontSize: '11px',
-                          fontWeight: 600,
-                        }}
-                        title={cfgTrazabilidad.texto}
-                      >
-                        <TrazabilidadIcon estado={estadoTrazabilidad} size={11} />
-                        <span>
-                          {cfgTrazabilidad.etiquetaLectura}: {cfgTrazabilidad.textoCorto}
-                        </span>
-                      </span>
+                      <TrazabilidadLecturaBox
+                        variante="compact"
+                        estado={estadoTrazabilidad}
+                        tipoUnidad={tipoUnidadMision}
+                        testId={`tabla-trazabilidad-${mision.id}`}
+                      />
                     </div>
                   )}
 

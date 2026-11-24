@@ -236,6 +236,58 @@ export function vincularMisionIncidente(misionId: string, incidenteId: string): 
 }
 
 /**
+ * Elimina la trazabilidad en caché asociada a una misión rechazada o cancelada.
+ * Si era la misión activa del incidente (o se pasa `incidenteId` sin otra misión
+ * activa distinta), limpia también la proyección del incidente para evitar mostrar
+ * estados obsoletos como "Leída por la cuadrilla".
+ */
+export function limpiarTrazabilidadMision(misionId: string, incidenteId?: string): void {
+  if (typeof misionId !== 'string' || !misionId.trim()) return;
+  ensureHydrated();
+
+  const resolvedIncidenteId =
+    (typeof incidenteId === 'string' && incidenteId.trim() ? incidenteId.trim() : undefined) ||
+    misionIncidenteMap.get(misionId);
+
+  let huboCambio = false;
+
+  if (misionEstadoCache.delete(misionId)) huboCambio = true;
+  if (misionTipoUnidadMap.delete(misionId)) huboCambio = true;
+  if (misionIncidenteMap.delete(misionId)) huboCambio = true;
+
+  if (resolvedIncidenteId) {
+    const misionActivaActual = incidenteMisionActivaMap.get(resolvedIncidenteId);
+    if (!misionActivaActual || misionActivaActual === misionId) {
+      if (incidenteMisionActivaMap.delete(resolvedIncidenteId)) huboCambio = true;
+      if (incidenteEstadoCache.delete(resolvedIncidenteId)) huboCambio = true;
+    }
+  }
+
+  if (huboCambio) {
+    persistCache();
+    notifyListeners();
+  }
+}
+
+/**
+ * Limpia la proyección de trazabilidad activa de un incidente cuando no quedan
+ * misiones activas (PLANIFICADA, DESPACHADA o EN_CURSO).
+ */
+export function limpiarTrazabilidadIncidente(incidenteId: string): void {
+  if (typeof incidenteId !== 'string' || !incidenteId.trim()) return;
+  ensureHydrated();
+
+  let huboCambio = false;
+  if (incidenteEstadoCache.delete(incidenteId)) huboCambio = true;
+  if (incidenteMisionActivaMap.delete(incidenteId)) huboCambio = true;
+
+  if (huboCambio) {
+    persistCache();
+    notifyListeners();
+  }
+}
+
+/**
  * Recupera el último estado de trazabilidad conocido para una misión operativa.
  */
 export function getTrazabilidadEstado(
