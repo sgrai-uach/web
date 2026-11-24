@@ -1654,7 +1654,7 @@ describe('Componente MisionDetalleModal (HU-17)', () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByText('En curso')).toBeDefined();
+      expect(screen.getByText('En Trabajos de Terreno')).toBeDefined();
     });
     expect(screen.getByText('En misión')).toBeDefined();
     expect(screen.getByText('En atención')).toBeDefined();

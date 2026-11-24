@@ -698,6 +698,39 @@ export function useEncargadoKanbanSocket({
         if (misionActualizadaRef.current) {
           misionActualizadaRef.current(misionPayload);
         }
+        return;
+      }
+
+      const claveGenerica = misionId || codigoMision || incidenteId;
+      if (claveGenerica && estadoMisionNorm) {
+        if (esEventoDuplicado(`mision-gen:${claveGenerica}:${estadoMisionNorm}`)) {
+          return;
+        }
+        setUltimoEvento(
+          `Misión actualizada: ${codigoMision || misionId} → ${estadoMisionNorm}`
+        );
+        if (misionActualizadaRef.current) {
+          misionActualizadaRef.current({
+            id: misionId || codigoMision,
+            misionId: misionId || codigoMision,
+            codigo: codigoMision,
+            tipoMision,
+            estado: estadoMisionNorm,
+            prioridad:
+              typeof raw?.prioridad === 'string'
+                ? (raw.prioridad as PrioridadIncidente)
+                : undefined,
+            fechaInicio,
+            hito: hitoNormalizado,
+            incidenteId: incidenteId ?? null,
+            incidenteCodigo: incidenteCodigo || null,
+            cuadrillaId,
+            cuadrillaNombre,
+            patrullaId,
+            patrullaNombre,
+            actualizadoEn,
+          });
+        }
       }
     };
 

@@ -887,6 +887,27 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
     []
   );
 
+  const notificarToastAceptacionCuadrilla = useCallback(
+    (misionId: string, codigo?: string) => {
+      const clave = misionId.trim();
+      const ahora = Date.now();
+      if (clave) {
+        const ultimaVez = toastAceptacionRef.current.get(clave);
+        if (ultimaVez && ahora - ultimaVez < 5000) {
+          return;
+        }
+        toastAceptacionRef.current.set(clave, ahora);
+      }
+
+      const etiquetaMision = codigo?.trim() || misionId;
+      toast?.showInfo(
+        `La cuadrilla ha aceptado la asignación de la misión ${etiquetaMision}. El equipo se encuentra Ocupado y el incidente pasa a En Atención.`,
+        'Asignación Aceptada por Cuadrilla'
+      );
+    },
+    [toast]
+  );
+
   const handleMisionActualizada = useCallback(
     (payload: MisionActualizadaPayload) => {
       if (
@@ -1004,27 +1025,6 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
         });
     },
     [userId]
-  );
-
-  const notificarToastAceptacionCuadrilla = useCallback(
-    (misionId: string, codigo?: string) => {
-      const clave = misionId.trim();
-      const ahora = Date.now();
-      if (clave) {
-        const ultimaVez = toastAceptacionRef.current.get(clave);
-        if (ultimaVez && ahora - ultimaVez < 5000) {
-          return;
-        }
-        toastAceptacionRef.current.set(clave, ahora);
-      }
-
-      const etiquetaMision = codigo?.trim() || misionId;
-      toast?.showInfo(
-        `La cuadrilla ha aceptado la asignación de la misión ${etiquetaMision}. El equipo se encuentra Ocupado y el incidente pasa a En Atención.`,
-        'Asignación Aceptada por Cuadrilla'
-      );
-    },
-    [toast]
   );
 
   const handleMisionHitoRegistrado = useCallback(

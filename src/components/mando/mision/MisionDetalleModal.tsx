@@ -130,19 +130,11 @@ export const MisionDetalleModal: React.FC<MisionDetalleModalProps> = ({
       registrarHitoMisionTiempoReal(normalized);
     };
 
-    const handleActualizada = (raw: unknown) => {
-      const normalized = normalizarPayloadMisionActualizada(raw);
-      if (!normalized || normalized.misionId !== misionId) return;
-      actualizarEstadoMisionTiempoReal(normalized);
-    };
-
     socket.on('mision:hito_registrado', handleHito);
-    socket.on('mision:actualizada', handleActualizada);
 
     return () => {
       unsubscribeStore();
       socket?.off('mision:hito_registrado', handleHito);
-      socket?.off('mision:actualizada', handleActualizada);
       socket?.emit('leave', misionRoom);
       socket?.emit('salir', misionRoom);
     };
@@ -452,6 +444,11 @@ export const MisionDetalleModal: React.FC<MisionDetalleModalProps> = ({
     };
 
     const handleMisionActualizada = (rawPayload: unknown) => {
+      const normalized = normalizarPayloadMisionActualizada(rawPayload);
+      if (normalized && normalized.misionId === misionId) {
+        actualizarEstadoMisionTiempoReal(normalized);
+      }
+
       const p = rawPayload as Record<string, unknown> | null | undefined;
       const raw = (p?.datos || p?.data || rawPayload) as Record<string, unknown> | null | undefined;
       if (!raw || typeof raw !== 'object') return;

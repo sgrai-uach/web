@@ -482,46 +482,74 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
       });
     };
 
-    const handleMisionActualizada = (raw: unknown) => {
-      const normalized = normalizarPayloadMisionActualizada(raw);
-      if (!normalized) return;
+    const handleMisionActualizada = (rawPayload: unknown) => {
+      const normalized = normalizarPayloadMisionActualizada(rawPayload);
+      if (normalized) {
+        actualizarEstadoMisionTiempoReal(normalized);
+      }
 
-      actualizarEstadoMisionTiempoReal(normalized);
+      const p = rawPayload as Record<string, unknown> | null | undefined;
+      const raw = (p?.datos || p?.data || p) as Record<string, unknown> | null | undefined;
+      const incId =
+        typeof raw?.incidenteId === 'string'
+          ? raw.incidenteId
+          : typeof raw?.incidente_id === 'string'
+            ? raw.incidente_id
+            : undefined;
+      const misId =
+        typeof raw?.misionId === 'string'
+          ? raw.misionId
+          : typeof raw?.id === 'string'
+            ? raw.id
+            : undefined;
+      const pertenece =
+        incId === incidenteId ||
+        Boolean(misId && detalleRef.current?.misiones.some((m) => m.id === misId));
+      if (!pertenece) return;
 
-      const detalleActual = detalleRef.current;
-      if (!detalleActual || detalleActual.id !== incidenteId) return;
+      const estadoMisionEv = typeof raw?.estado === 'string' ? raw.estado.toUpperCase() : '';
+      const tipoMisionEv =
+        typeof raw?.tipoMision === 'string'
+          ? raw.tipoMision
+          : typeof raw?.tipo_mision === 'string'
+            ? raw.tipo_mision
+            : '';
+      const fechaInicioEv =
+        typeof raw?.fechaInicio === 'string'
+          ? raw.fechaInicio
+          : typeof raw?.fecha_inicio === 'string'
+            ? raw.fecha_inicio
+            : undefined;
 
-      const perteneceAlIncidente =
-        normalized.incidenteId === incidenteId ||
-        detalleActual.misiones.some((m) => m.id === normalized.misionId);
-      if (!perteneceAlIncidente) return;
-
-      setDetalle((prev) => {
-        if (!prev || prev.id !== incidenteId) return prev;
-        let huboCambio = false;
-        const misionesActualizadas = prev.misiones.map((m) => {
-          if (m.id !== normalized.misionId) return m;
-          huboCambio = true;
-          const esEnCurso = normalized.estado === 'EN_CURSO' || normalized.estado === 'EN_PROCESO';
+      if (estadoMisionEv === 'EN_CURSO' || estadoMisionEv === 'EN_PROCESO') {
+        const esCuadrillaEv = tipoMisionEv === 'ATENCION_CUADRILLA';
+        setDetalle((prev) => {
+          if (!prev || prev.id !== incidenteId) return prev;
           return {
-            ...m,
-            estado: normalized.estado as typeof m.estado,
-            cuadrilla:
-              m.cuadrilla && esEnCurso
-                ? { ...m.cuadrilla, estado: 'EN_MISION' }
-                : m.cuadrilla,
+            ...prev,
+            estado: esCuadrillaEv
+              ? 'EN_ATENCION'
+              : prev.estado === 'REPORTADO'
+                ? 'VERIFICANDO'
+                : prev.estado,
+            misiones: prev.misiones.map((m) => {
+              if (misId && m.id !== misId) return m;
+              if (!misId && tipoMisionEv && m.tipoMision !== tipoMisionEv) return m;
+              return {
+                ...m,
+                estado: estadoMisionEv as typeof m.estado,
+                fechaInicio: fechaInicioEv ?? m.fechaInicio,
+                cuadrilla:
+                  esCuadrillaEv && m.cuadrilla
+                    ? { ...m.cuadrilla, estado: 'EN_MISION' }
+                    : m.cuadrilla,
+              };
+            }),
           };
         });
-        if (!huboCambio) return prev;
-        const esCuadrillaEnCurso =
-          (Boolean(normalized.cuadrillaId) || normalized.tipoMision === 'ATENCION_CUADRILLA') &&
-          (normalized.estado === 'EN_CURSO' || normalized.estado === 'EN_PROCESO');
-        return {
-          ...prev,
-          estado: esCuadrillaEnCurso ? 'EN_ATENCION' : prev.estado,
-          misiones: misionesActualizadas,
-        };
-      });
+      }
+
+      cargarDetalle(true);
     };
 
     const handleMisionHito = (raw: unknown) => {
@@ -578,71 +606,6 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
       if (id === incidenteId) {
         cargarDetalle();
       }
-    };
-
-    const handleMisionActualizada = (rawPayload: unknown) => {
-      const p = rawPayload as Record<string, unknown> | null | undefined;
-      const raw = (p?.datos || p?.data || p) as Record<string, unknown> | null | undefined;
-      const incId =
-        typeof raw?.incidenteId === 'string'
-          ? raw.incidenteId
-          : typeof raw?.incidente_id === 'string'
-            ? raw.incidente_id
-            : undefined;
-      const misId =
-        typeof raw?.misionId === 'string'
-          ? raw.misionId
-          : typeof raw?.id === 'string'
-            ? raw.id
-            : undefined;
-      const pertenece =
-        incId === incidenteId ||
-        Boolean(misId && detalleRef.current?.misiones.some((m) => m.id === misId));
-      if (!pertenece) return;
-
-      const estadoMisionEv = typeof raw?.estado === 'string' ? raw.estado.toUpperCase() : '';
-      const tipoMisionEv =
-        typeof raw?.tipoMision === 'string'
-          ? raw.tipoMision
-          : typeof raw?.tipo_mision === 'string'
-            ? raw.tipo_mision
-            : '';
-      const fechaInicioEv =
-        typeof raw?.fechaInicio === 'string'
-          ? raw.fechaInicio
-          : typeof raw?.fecha_inicio === 'string'
-            ? raw.fecha_inicio
-            : undefined;
-
-      if (estadoMisionEv === 'EN_CURSO') {
-        const esCuadrillaEv = tipoMisionEv === 'ATENCION_CUADRILLA';
-        setDetalle((prev) => {
-          if (!prev || prev.id !== incidenteId) return prev;
-          return {
-            ...prev,
-            estado: esCuadrillaEv
-              ? 'EN_ATENCION'
-              : prev.estado === 'REPORTADO'
-                ? 'VERIFICANDO'
-                : prev.estado,
-            misiones: prev.misiones.map((m) => {
-              if (misId && m.id !== misId) return m;
-              if (!misId && tipoMisionEv && m.tipoMision !== tipoMisionEv) return m;
-              return {
-                ...m,
-                estado: 'EN_CURSO',
-                fechaInicio: fechaInicioEv ?? m.fechaInicio,
-                cuadrilla:
-                  esCuadrillaEv && m.cuadrilla
-                    ? { ...m.cuadrilla, estado: 'EN_MISION' }
-                    : m.cuadrilla,
-              };
-            }),
-          };
-        });
-      }
-
-      cargarDetalle(true);
     };
 
     const handleAdjuntoCreado = (rawPayload: unknown) => {
