@@ -572,6 +572,7 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
 
             const esCierreNoAbordable = datos.nuevoEstado === 'NO_ABORDABLE';
             const esCierreCuadrilla = esReporteCierreCuadrilla(datos.reporteTerreno);
+            const esDespachoPendienteCuadrilla = datos.cuadrillaAceptada === false;
             // H68: El cierre de cuadrilla nunca cierra automáticamente el incidente a RESUELTO (espera H86)
             const estadoDestinoResuelto: EstadoIncidente =
               esCierreCuadrilla && datos.nuevoEstado === 'RESUELTO'
@@ -580,7 +581,9 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
             const esInicioNuevaMision =
               !esCierreCuadrilla &&
               !esCierreNoAbordable &&
+              !esDespachoPendienteCuadrilla &&
               (Boolean(payload.esSintetico) ||
+                (datos.cuadrillaAceptada === true && !incActual.cuadrillaAceptada) ||
                 (estadoDestinoResuelto === 'EN_ATENCION' && est !== 'EN_ATENCION') ||
                 (estadoDestinoResuelto === 'VERIFICANDO' && est === 'REPORTADO'));
             const dictamenResuelto =
@@ -637,13 +640,24 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
               motivoNoAbordable: motivoNoAbordableResuelto,
               fechaCierre: fechaCierreResuelta,
               tieneMisionEnCurso:
-                esCierreNoAbordable || esCierreCuadrilla
+                esCierreNoAbordable || esCierreCuadrilla || esDespachoPendienteCuadrilla
                   ? false
                   : esInicioNuevaMision
                     ? true
                     : incActual.tieneMisionEnCurso,
               tieneMisionDespachada:
-                esCierreNoAbordable || esInicioNuevaMision ? false : incActual.tieneMisionDespachada,
+                esCierreNoAbordable || esInicioNuevaMision
+                  ? false
+                  : esDespachoPendienteCuadrilla
+                    ? true
+                    : incActual.tieneMisionDespachada,
+              cuadrillaAceptada:
+                datos.cuadrillaAceptada !== undefined
+                  ? datos.cuadrillaAceptada
+                  : esCierreCuadrilla ||
+                      (esInicioNuevaMision && estadoDestinoResuelto === 'EN_ATENCION')
+                    ? true
+                    : incActual.cuadrillaAceptada,
               apoyoSolicitado:
                 datos.apoyoSolicitado !== undefined
                   ? datos.apoyoSolicitado
@@ -747,7 +761,12 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
 
   // Función para mover un incidente de columna de forma inmediata e imperativa
   const moverIncidenteAEstado = useCallback(
-    (incidenteId: string, nuevoEstado: EstadoIncidente, prioridad?: PrioridadIncidente) => {
+    (
+      incidenteId: string,
+      nuevoEstado: EstadoIncidente,
+      prioridad?: PrioridadIncidente,
+      updatesParciales?: Partial<IncidenteResumen>
+    ) => {
       let columnaOrigenDetectada: EstadoIncidente | null = null;
 
       setColumnas((prev) => {
@@ -769,6 +788,7 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
                 nuevoEstado === 'VERIFICANDO' && est === 'REPORTADO'
                   ? Math.max(1, (prev[est][idx].totalMisiones || 0) + 1)
                   : prev[est][idx].totalMisiones,
+              ...updatesParciales,
               actualizadoEn: new Date().toISOString(),
             };
             break;
@@ -848,6 +868,9 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
                 ...actual,
                 estado: estadoDestino,
                 tieneMisionDespachada: false,
+                ...(esRechazoCuadrilla
+                  ? { cuadrillaAceptada: false, tieneMisionEnCurso: false }
+                  : {}),
                 actualizadoEn: payload.rechazadoEn || new Date().toISOString(),
               };
               columnaOrigen = est;
@@ -961,6 +984,7 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
             ...actual,
             faenasCuadrillaCompletadas: true,
             tieneMisionEnCurso: false,
+            cuadrillaAceptada: true,
             estadoTerrenoFinal:
               payload.reporteTerreno?.estadoTerreno ?? actual.estadoTerrenoFinal,
             horasHombreRegistradas:
@@ -1001,7 +1025,12 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
 
       if (esAceptacion) {
         if (payload.incidenteId && esMisionCuadrilla) {
-          moverIncidenteAEstado(payload.incidenteId, 'EN_ATENCION');
+          moverIncidenteAEstado(payload.incidenteId, 'EN_ATENCION', undefined, {
+            cuadrillaAceptada: true,
+            tieneMisionEnCurso: true,
+            tieneMisionDespachada: false,
+            faenasCuadrillaCompletadas: false,
+          });
         }
         if (esMisionCuadrilla && !onMisionActualizadaRef.current) {
           notificarToastAceptacionCuadrilla(payload.misionId, payload.codigo);
@@ -1066,7 +1095,12 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
             ...prev,
             EN_ATENCION: prev.EN_ATENCION.map((inc) =>
               inc.id === incidenteIdResuelto
-                ? { ...inc, cuadrillaEnTerreno: true, tieneMisionEnCurso: true }
+                ? {
+                    ...inc,
+                    cuadrillaEnTerreno: true,
+                    tieneMisionEnCurso: true,
+                    cuadrillaAceptada: true,
+                  }
                 : inc
             ),
           }));

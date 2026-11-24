@@ -18,7 +18,11 @@ import type {
 import { TRAZABILIDAD_CONFIG } from '@/lib/socket/trazabilidadConfig';
 import { TrazabilidadIcon } from './TrazabilidadIcon';
 import { obtenerNombreDelegacion } from '@/lib/utils/delegacionUtils';
-import { formatearEstadoTerreno, formatearPrioridad } from '@/lib/utils/estadoUtils';
+import {
+  debeMostrarChipRequiereCuadrilla,
+  formatearEstadoTerreno,
+  formatearPrioridad,
+} from '@/lib/utils/estadoUtils';
 import {
   obtenerVarianteChipEstadoTerreno,
   obtenerVarianteChipPrioridad,
@@ -212,17 +216,17 @@ export const IncidenteCard: React.FC<IncidenteCardProps> = ({
               No Abordable
             </Chip>
           )}
-          {incidente.dictamenTerreno === 'REQUIERE_CUADRILLA' &&
-            incidente.estado !== 'NO_ABORDABLE' && (
-              <Chip
-                variant="teal"
-                size="sm"
-                icon={<HardHat size={11} strokeWidth={2.2} />}
-                title="Verificación cerrada con dictamen: Requiere despacho de cuadrilla"
-              >
-                Requiere Cuadrilla
-              </Chip>
-            )}
+          {debeMostrarChipRequiereCuadrilla(incidente) && (
+            <Chip
+              data-testid="badge-requiere-cuadrilla"
+              variant="teal"
+              size="sm"
+              icon={<HardHat size={11} strokeWidth={2.2} />}
+              title="Verificación cerrada con dictamen: Requiere despacho de cuadrilla"
+            >
+              Requiere Cuadrilla
+            </Chip>
+          )}
           {(incidente.reclasificadoEnTerreno || incidente.verificado) && (
             <Chip
               variant="success"

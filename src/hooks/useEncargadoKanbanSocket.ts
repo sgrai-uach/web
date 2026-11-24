@@ -69,6 +69,7 @@ export interface IncidenteActualizadoPayload {
     justificacionPrioridad?: string | null;
     requiereAsistenciaSocial?: boolean;
     verificado?: boolean;
+    cuadrillaAceptada?: boolean;
     apoyoSolicitado?: boolean;
     detalleApoyoRequerido?: string | null;
     dictamen?: DictamenAtencionTerreno | null;
@@ -454,6 +455,13 @@ export function useEncargadoKanbanSocket({
               ? rawReporte.detalleApoyoRequerido
               : undefined;
 
+      const cuadrillaAceptada =
+        typeof rawDatos?.cuadrillaAceptada === 'boolean'
+          ? rawDatos.cuadrillaAceptada
+          : typeof rawDatos?.cuadrilla_aceptada === 'boolean'
+            ? rawDatos.cuadrilla_aceptada
+            : undefined;
+
       const normalizedPayload: IncidenteActualizadoPayload = {
         evento: 'incidente:actualizado',
         datos: {
@@ -469,6 +477,7 @@ export function useEncargadoKanbanSocket({
           requiereAsistenciaSocial,
           verificado:
             typeof rawDatos?.verificado === 'boolean' ? rawDatos.verificado : undefined,
+          ...(cuadrillaAceptada !== undefined ? { cuadrillaAceptada } : {}),
           apoyoSolicitado,
           detalleApoyoRequerido,
           dictamen,
@@ -679,6 +688,7 @@ export function useEncargadoKanbanSocket({
               codigo: incidenteCodigo,
               nuevoEstado: estadoIncidenteObjetivo,
               prioridad: (raw?.prioridad as PrioridadIncidente) || 'MEDIA',
+              ...(esCuadrilla ? { cuadrillaAceptada: true } : {}),
               actualizadoEn,
             },
             emitidoEn: new Date().toISOString(),

@@ -518,6 +518,34 @@ export function esSolicitudApoyoCuadrilla(
 }
 
 /**
+ * Determina si debe mostrarse el chip operativo "Requiere Cuadrilla" en la tarjeta Kanban.
+ * Una vez que la cuadrilla acepta la misión (HU-40), llega a terreno o finaliza faenas,
+ * o cuando el incidente ya no es abordable/fue resuelto, el chip operativo debe ocultarse.
+ */
+export function debeMostrarChipRequiereCuadrilla(incidente: {
+  dictamenTerreno?: string | null;
+  estado?: string | null;
+  cuadrillaAceptada?: boolean | null;
+  cuadrillaEnTerreno?: boolean | null;
+  faenasCuadrillaCompletadas?: boolean | null;
+  tieneMisionEnCurso?: boolean | null;
+}): boolean {
+  if (incidente.dictamenTerreno !== 'REQUIERE_CUADRILLA') return false;
+  if (incidente.estado === 'NO_ABORDABLE' || incidente.estado === 'RESUELTO') return false;
+
+  const cuadrillaYaAcepto = Boolean(
+    incidente.cuadrillaAceptada ||
+      incidente.cuadrillaEnTerreno ||
+      incidente.faenasCuadrillaCompletadas ||
+      (incidente.cuadrillaAceptada === undefined &&
+        incidente.estado === 'EN_ATENCION' &&
+        Boolean(incidente.tieneMisionEnCurso))
+  );
+
+  return !cuadrillaYaAcepto;
+}
+
+/**
  * Retorna peso jerárquico para ordenar cronológicamente/semánticamente reportes de terreno:
  * REPORTE_CUADRILLA (2) > VERIFICACION_CIERRE (1) > Evaluación inicial / rectificación (0).
  */

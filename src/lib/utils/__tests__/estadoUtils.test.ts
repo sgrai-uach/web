@@ -14,6 +14,7 @@ import {
   formatearDictamenTerreno,
   esReporteVerificacionCierre,
   esSolicitudApoyoCuadrilla,
+  debeMostrarChipRequiereCuadrilla,
   calcularComparativaPersonasAfectadas,
   esReporteCierreCuadrilla,
   obtenerPesoOrdenReporte,
@@ -408,6 +409,74 @@ describe('H68: utilidades para cierre de misión de cuadrilla (REPORTE_CUADRILLA
       esSolicitudApoyoCuadrilla({
         tipoReporte: 'SOLICITUD_APOYO',
         requiereApoyoAdicional: false,
+      })
+    ).toBe(false);
+  });
+
+  it('determina visibilidad del chip Requiere Cuadrilla según aceptación y estado operativo (HU-40)', () => {
+    expect(
+      debeMostrarChipRequiereCuadrilla({
+        dictamenTerreno: 'REQUIERE_CUADRILLA',
+        estado: 'VERIFICANDO',
+        cuadrillaAceptada: false,
+      })
+    ).toBe(true);
+
+    expect(
+      debeMostrarChipRequiereCuadrilla({
+        dictamenTerreno: 'REQUIERE_CUADRILLA',
+        estado: 'EN_ATENCION',
+        cuadrillaAceptada: false,
+        tieneMisionEnCurso: false,
+      })
+    ).toBe(true);
+
+    expect(
+      debeMostrarChipRequiereCuadrilla({
+        dictamenTerreno: 'REQUIERE_CUADRILLA',
+        estado: 'EN_ATENCION',
+        cuadrillaAceptada: true,
+        tieneMisionEnCurso: true,
+      })
+    ).toBe(false);
+
+    expect(
+      debeMostrarChipRequiereCuadrilla({
+        dictamenTerreno: 'REQUIERE_CUADRILLA',
+        estado: 'EN_ATENCION',
+        cuadrillaEnTerreno: true,
+      })
+    ).toBe(false);
+
+    expect(
+      debeMostrarChipRequiereCuadrilla({
+        dictamenTerreno: 'REQUIERE_CUADRILLA',
+        estado: 'EN_ATENCION',
+        faenasCuadrillaCompletadas: true,
+      })
+    ).toBe(false);
+
+    expect(
+      debeMostrarChipRequiereCuadrilla({
+        dictamenTerreno: 'REQUIERE_CUADRILLA',
+        estado: 'EN_ATENCION',
+        tieneMisionEnCurso: true,
+      })
+    ).toBe(false);
+
+    expect(
+      debeMostrarChipRequiereCuadrilla({
+        dictamenTerreno: 'REQUIERE_CUADRILLA',
+        estado: 'RESUELTO',
+        cuadrillaAceptada: false,
+      })
+    ).toBe(false);
+
+    expect(
+      debeMostrarChipRequiereCuadrilla({
+        dictamenTerreno: 'REQUIERE_CUADRILLA',
+        estado: 'NO_ABORDABLE',
+        cuadrillaAceptada: false,
       })
     ).toBe(false);
   });

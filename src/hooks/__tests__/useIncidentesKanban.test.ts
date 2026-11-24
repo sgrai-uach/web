@@ -1674,4 +1674,121 @@ describe('useIncidentesKanban - HU-20 y BUG-04', () => {
       'Se solicita motoniveladora y cuadrilla adicional de despeje'
     );
   });
+
+  it('HU-40: mantiene cuadrillaAceptada=false al despachar, la marca true al aceptar (incluso si ya estaba en EN_ATENCION) y vuelve a false ante rechazo', async () => {
+    let socketOptions: UseEncargadoKanbanSocketOptions | undefined;
+    vi.mocked(useEncargadoKanbanSocket).mockImplementation((opts) => {
+      socketOptions = opts;
+      return { conectado: true, ultimoEvento: null };
+    });
+
+    const incVerificado: incidentesService.IncidenteResumen = {
+      id: '40000000-0000-4000-8000-000000000001',
+      codigo: 'INC-466106-503',
+      codigoSeguimiento: '46610650',
+      tipoAfectacion: 'Anegamiento',
+      descripcion: 'Anegamiento en acceso',
+      direccion: 'Vicente Pérez Rosales 774',
+      latitud: -39.82,
+      longitud: -73.24,
+      estado: 'EN_ATENCION',
+      prioridad: 'ALTA',
+      requiereAsistenciaSocial: false,
+      fuenteOrigen: 'WEB',
+      informanteNombre: 'Luis',
+      delegacionNombre: 'Sur',
+      totalMisiones: 2,
+      verificado: true,
+      dictamenTerreno: 'REQUIERE_CUADRILLA',
+      tieneMisionDespachada: true,
+      tieneMisionEnCurso: false,
+      cuadrillaAceptada: false,
+      faenasCuadrillaCompletadas: false,
+      creadoEn: '2026-11-23T20:00:00Z',
+    };
+
+    vi.mocked(incidentesService.listarIncidentes).mockImplementation(async (query) => ({
+      exito: true,
+      incidentes: query.estado === 'EN_ATENCION' ? [incVerificado] : [],
+      paginacion: {
+        total: query.estado === 'EN_ATENCION' ? 1 : 0,
+        pagina: 1,
+        limite: 20,
+        totalPaginas: query.estado === 'EN_ATENCION' ? 1 : 0,
+        tieneSiguiente: false,
+        tieneAnterior: false,
+      },
+      mensaje: 'OK',
+    }));
+
+    const { result } = renderHook(() => useIncidentesKanban());
+
+    await waitFor(() => {
+      expect(result.current.columnas.EN_ATENCION).toHaveLength(1);
+    });
+
+    // Mientras solo está DESPACHADA (cuadrillaAceptada: false), sigue en false
+    act(() => {
+      socketOptions?.onIncidenteActualizado?.({
+        evento: 'incidente:actualizado',
+        datos: {
+          id: incVerificado.id,
+          codigo: incVerificado.codigo,
+          nuevoEstado: 'EN_ATENCION',
+          prioridad: 'ALTA',
+          cuadrillaAceptada: false,
+          actualizadoEn: '2026-11-23T20:05:00Z',
+        },
+        emitidoEn: '2026-11-23T20:05:00Z',
+      });
+    });
+
+    expect(result.current.columnas.EN_ATENCION[0].cuadrillaAceptada).toBe(false);
+    expect(result.current.columnas.EN_ATENCION[0].tieneMisionEnCurso).toBe(false);
+
+    // Si rechaza, vuelve a VERIFICANDO manteniendo dictamenTerreno y cuadrillaAceptada=false
+    act(() => {
+      socketOptions?.onMisionRechazada?.({
+        misionId: 'mis-cuad-40',
+        codigo: 'MIS-2026-0040',
+        tipoMision: 'ATENCION_CUADRILLA',
+        incidenteId: incVerificado.id,
+        cuadrillaId: 'cuad-1',
+        justificacionRechazo: 'Vehículo en panne',
+        rechazadoEn: '2026-11-23T20:10:00Z',
+      });
+    });
+
+    expect(result.current.columnas.VERIFICANDO).toHaveLength(1);
+    expect(result.current.columnas.VERIFICANDO[0].cuadrillaAceptada).toBe(false);
+    expect(result.current.columnas.VERIFICANDO[0].dictamenTerreno).toBe('REQUIERE_CUADRILLA');
+
+    // Al despachar nuevamente y aceptar la cuadrilla (mision:actualizada EN_CURSO), marca cuadrillaAceptada=true
+    act(() => {
+      socketOptions?.onIncidenteActualizado?.({
+        evento: 'incidente:actualizado',
+        datos: {
+          id: incVerificado.id,
+          codigo: incVerificado.codigo,
+          nuevoEstado: 'EN_ATENCION',
+          prioridad: 'ALTA',
+          cuadrillaAceptada: false,
+          actualizadoEn: '2026-11-23T20:12:00Z',
+        },
+        emitidoEn: '2026-11-23T20:12:00Z',
+      });
+      socketOptions?.onMisionActualizada?.({
+        misionId: 'mis-cuad-41',
+        codigo: 'MIS-2026-0041',
+        tipoMision: 'ATENCION_CUADRILLA',
+        estado: 'EN_CURSO',
+        incidenteId: incVerificado.id,
+        cuadrillaId: 'cuad-2',
+      });
+    });
+
+    expect(result.current.columnas.EN_ATENCION).toHaveLength(1);
+    expect(result.current.columnas.EN_ATENCION[0].cuadrillaAceptada).toBe(true);
+    expect(result.current.columnas.EN_ATENCION[0].tieneMisionEnCurso).toBe(true);
+  });
 });

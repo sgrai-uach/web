@@ -1035,4 +1035,65 @@ describe('useEncargadoKanbanSocket', () => {
     expect(payloadRecibido?.datos?.apoyoSolicitado).toBeUndefined();
     expect(payloadRecibido?.datos?.detalleApoyoRequerido).toBeUndefined();
   });
+
+  it('normaliza cuadrillaAceptada/cuadrilla_aceptada en incidente:actualizado y la incluye al sintetizar desde mision:actualizada de cuadrilla (HU-40)', () => {
+    const socket = getSocket();
+    const onIncidenteActualizado = vi.fn();
+
+    renderHook(() =>
+      useEncargadoKanbanSocket({
+        onIncidenteActualizado,
+      })
+    );
+
+    const trigger = (socket as unknown as { _trigger: (ev: string, p: unknown) => void })._trigger;
+
+    act(() => {
+      trigger('incidente:actualizado', {
+        evento: 'incidente:actualizado',
+        datos: {
+          id: 'inc-desp-1',
+          codigo: 'INC-2026-0700',
+          nuevoEstado: 'EN_ATENCION',
+          prioridad: 'ALTA',
+          cuadrilla_aceptada: false,
+          actualizadoEn: '2026-11-23T22:00:00.000Z',
+        },
+      });
+    });
+
+    expect(onIncidenteActualizado).toHaveBeenCalledWith(
+      expect.objectContaining({
+        datos: expect.objectContaining({
+          id: 'inc-desp-1',
+          cuadrillaAceptada: false,
+        }),
+      })
+    );
+
+    act(() => {
+      trigger('mision:actualizada', {
+        misionId: 'mis-cuad-700',
+        codigo: 'MIS-2026-0700',
+        tipoMision: 'ATENCION_CUADRILLA',
+        estado: 'EN_CURSO',
+        prioridad: 'ALTA',
+        incidenteId: 'inc-desp-1',
+        incidenteCodigo: 'INC-2026-0700',
+        cuadrillaId: 'cuad-1',
+        cuadrillaNombre: 'Cuadrilla Norte 1',
+      });
+    });
+
+    expect(onIncidenteActualizado).toHaveBeenCalledWith(
+      expect.objectContaining({
+        esSintetico: true,
+        datos: expect.objectContaining({
+          id: 'inc-desp-1',
+          nuevoEstado: 'EN_ATENCION',
+          cuadrillaAceptada: true,
+        }),
+      })
+    );
+  });
 });

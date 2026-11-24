@@ -314,6 +314,82 @@ describe('IncidenteCard', () => {
     expect(screen.getByText('Requiere Cuadrilla')).toBeDefined();
   });
 
+  it('mantiene chip "Requiere Cuadrilla" si la cuadrilla aún está DESPACHADA sin aceptar y lo oculta al aceptar, llegar a terreno o completar faenas (HU-40)', () => {
+    const { rerender } = render(
+      <IncidenteCard
+        incidente={{
+          ...mockIncidente,
+          estado: 'EN_ATENCION',
+          verificado: true,
+          dictamenTerreno: 'REQUIERE_CUADRILLA',
+          cuadrillaAceptada: false,
+          tieneMisionDespachada: true,
+          tieneMisionEnCurso: false,
+        }}
+        onClick={vi.fn()}
+      />
+    );
+
+    expect(screen.getByTestId('badge-requiere-cuadrilla')).toBeDefined();
+
+    rerender(
+      <IncidenteCard
+        incidente={{
+          ...mockIncidente,
+          estado: 'EN_ATENCION',
+          verificado: true,
+          dictamenTerreno: 'REQUIERE_CUADRILLA',
+          cuadrillaAceptada: true,
+          tieneMisionEnCurso: true,
+        }}
+        onClick={vi.fn()}
+      />
+    );
+    expect(screen.queryByTestId('badge-requiere-cuadrilla')).toBeNull();
+
+    rerender(
+      <IncidenteCard
+        incidente={{
+          ...mockIncidente,
+          estado: 'EN_ATENCION',
+          verificado: true,
+          dictamenTerreno: 'REQUIERE_CUADRILLA',
+          cuadrillaEnTerreno: true,
+        }}
+        onClick={vi.fn()}
+      />
+    );
+    expect(screen.queryByTestId('badge-requiere-cuadrilla')).toBeNull();
+
+    rerender(
+      <IncidenteCard
+        incidente={{
+          ...mockIncidente,
+          estado: 'EN_ATENCION',
+          verificado: true,
+          dictamenTerreno: 'REQUIERE_CUADRILLA',
+          faenasCuadrillaCompletadas: true,
+        }}
+        onClick={vi.fn()}
+      />
+    );
+    expect(screen.queryByTestId('badge-requiere-cuadrilla')).toBeNull();
+
+    rerender(
+      <IncidenteCard
+        incidente={{
+          ...mockIncidente,
+          estado: 'RESUELTO',
+          verificado: true,
+          dictamenTerreno: 'REQUIERE_CUADRILLA',
+          cuadrillaAceptada: false,
+        }}
+        onClick={vi.fn()}
+      />
+    );
+    expect(screen.queryByTestId('badge-requiere-cuadrilla')).toBeNull();
+  });
+
   it('muestra el indicador directo de lectura/no lectura en la tarjeta Kanban según trazabilidadNotificacion', () => {
     const { rerender } = render(
       <IncidenteCard
