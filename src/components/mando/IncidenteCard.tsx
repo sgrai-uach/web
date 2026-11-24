@@ -15,7 +15,16 @@ import type {
   EstadoTrazabilidadNotificacion,
   IncidenteResumen,
 } from '@/services/incidentesService';
-import { TRAZABILIDAD_CONFIG } from '@/lib/socket/trazabilidadConfig';
+import {
+  obtenerConfigTrazabilidad,
+  type TipoUnidadTrazabilidad,
+} from '@/lib/socket/trazabilidadConfig';
+import {
+  getMisionActivaPorIncidente,
+  getTrazabilidadEstado,
+  getTipoUnidadPorIncidente,
+  getTipoUnidadPorMision,
+} from '@/lib/socket/trazabilidadStore';
 import { TrazabilidadIcon } from './TrazabilidadIcon';
 import { obtenerNombreDelegacion } from '@/lib/utils/delegacionUtils';
 import {
@@ -47,10 +56,19 @@ export const IncidenteCard: React.FC<IncidenteCardProps> = ({
   puedeAsignarPatrulla = true,
   trazabilidadNotificacion,
 }) => {
+  const misionTrazabilidadId =
+    incidente.trazabilidadMisionId ?? getMisionActivaPorIncidente(incidente.id);
   const estadoTrazabilidad =
-    trazabilidadNotificacion ?? incidente.trazabilidadNotificacion;
+    trazabilidadNotificacion ??
+    (misionTrazabilidadId ? getTrazabilidadEstado(misionTrazabilidadId) : undefined) ??
+    incidente.trazabilidadNotificacion;
+  const tipoUnidadTrazabilidad: TipoUnidadTrazabilidad | null =
+    incidente.trazabilidadTipoUnidad ??
+    (misionTrazabilidadId ? getTipoUnidadPorMision(misionTrazabilidadId) : undefined) ??
+    getTipoUnidadPorIncidente(incidente.id) ??
+    (incidente.estado === 'EN_ATENCION' ? 'CUADRILLA' : null);
   const trazabilidadConfig = estadoTrazabilidad
-    ? TRAZABILIDAD_CONFIG[estadoTrazabilidad]
+    ? obtenerConfigTrazabilidad(estadoTrazabilidad, tipoUnidadTrazabilidad)
     : undefined;
   const estaVerificado = Boolean(incidente.verificado);
   const tieneFaenasFinalizadas = Boolean(
@@ -421,7 +439,10 @@ export const IncidenteCard: React.FC<IncidenteCardProps> = ({
           </span>
         </div>
       ) : (
-        incidente.estado === 'VERIFICANDO' && (
+        (incidente.estado === 'VERIFICANDO' ||
+          (incidente.estado === 'EN_ATENCION' &&
+            (Boolean(incidente.tieneMisionDespachada) ||
+              Number(incidente.totalMisiones ?? 0) > 0))) && (
           <div
             data-testid={`card-trazabilidad-pendiente-${incidente.id}`}
             style={{
@@ -441,7 +462,7 @@ export const IncidenteCard: React.FC<IncidenteCardProps> = ({
               fontSize: '0.72rem',
               lineHeight: 1.25,
             }}
-            title="Aún no se registra confirmación de recepción o lectura desde la patrulla en terreno"
+            title="Aún no se registra confirmación de recepción o lectura desde la unidad en terreno"
           >
             <span
               style={{

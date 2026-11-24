@@ -155,7 +155,10 @@ export interface RecursoActualizadoPayload {
 export interface NotificacionTrazabilidadPayload {
   notificacionId: string;
   misionId: string;
-  patrullaId: string;
+  incidenteId?: string | null;
+  patrullaId?: string | null;
+  cuadrillaId?: string | null;
+  tipoUnidad?: 'PATRULLA' | 'CUADRILLA';
   estado: 'PENDIENTE_ENVIO' | 'ENVIADA' | 'RECIBIDA' | 'LEIDA';
   intentosEnvio?: number;
   creadaAt?: string;
@@ -1027,10 +1030,30 @@ export function useEncargadoKanbanSocket({
       if (!esPayloadTrazabilidadValido(payload)) return;
 
       const typedPayload = payload as NotificacionTrazabilidadPayload;
-      setTrazabilidadEstado(typedPayload.misionId, typedPayload.estado);
-      setUltimoEvento(`Trazabilidad misión: ${typedPayload.estado}`);
+      const tipoUnidadResuelto =
+        typedPayload.tipoUnidad ??
+        (typedPayload.cuadrillaId
+          ? 'CUADRILLA'
+          : typedPayload.patrullaId
+            ? 'PATRULLA'
+            : undefined);
+      const payloadEnriquecido: NotificacionTrazabilidadPayload = {
+        ...typedPayload,
+        ...(tipoUnidadResuelto ? { tipoUnidad: tipoUnidadResuelto } : {}),
+      };
+
+      setTrazabilidadEstado(
+        payloadEnriquecido.misionId,
+        payloadEnriquecido.estado,
+        payloadEnriquecido.incidenteId ?? undefined,
+        {
+          tipoUnidad: tipoUnidadResuelto,
+          reemplazarMisionActiva: Boolean(payloadEnriquecido.incidenteId),
+        }
+      );
+      setUltimoEvento(`Trazabilidad misión: ${payloadEnriquecido.estado}`);
       if (trazabilidadRef.current) {
-        trazabilidadRef.current(typedPayload);
+        trazabilidadRef.current(payloadEnriquecido);
       }
     };
 

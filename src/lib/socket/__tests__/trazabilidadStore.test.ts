@@ -2,8 +2,11 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import {
   clearTrazabilidadCache,
   getIncidentePorMision,
+  getMisionActivaPorIncidente,
   getSnapshotTrazabilidadIncidentes,
   getSnapshotTrazabilidadMisiones,
+  getTipoUnidadPorIncidente,
+  getTipoUnidadPorMision,
   getTrazabilidadEstado,
   getTrazabilidadPorIncidente,
   setTrazabilidadEstado,
@@ -98,6 +101,42 @@ describe('trazabilidadStore', () => {
     expect(listener).not.toHaveBeenCalled();
 
     unsubscribe();
+  });
+
+  it('soporta ciclo multi-misión (patrulla LEIDA -> cuadrilla ENVIADA -> RECIBIDA -> LEIDA) sin quedar bloqueado por la misión previa', () => {
+    // 1. Patrulla completa su ciclo y queda en LEIDA
+    setTrazabilidadEstado('mis-patrulla-1', 'LEIDA', 'inc-multi-1', {
+      tipoUnidad: 'PATRULLA',
+      reemplazarMisionActiva: true,
+    });
+    expect(getTrazabilidadPorIncidente('inc-multi-1')).toBe('LEIDA');
+    expect(getMisionActivaPorIncidente('inc-multi-1')).toBe('mis-patrulla-1');
+    expect(getTipoUnidadPorIncidente('inc-multi-1')).toBe('PATRULLA');
+
+    // 2. Se despacha cuadrilla para el mismo incidente: debe reiniciar la trazabilidad activa del incidente
+    setTrazabilidadEstado('mis-cuadrilla-2', 'ENVIADA', 'inc-multi-1', {
+      tipoUnidad: 'CUADRILLA',
+      reemplazarMisionActiva: true,
+    });
+    expect(getTrazabilidadPorIncidente('inc-multi-1')).toBe('ENVIADA');
+    expect(getMisionActivaPorIncidente('inc-multi-1')).toBe('mis-cuadrilla-2');
+    expect(getTipoUnidadPorMision('mis-cuadrilla-2')).toBe('CUADRILLA');
+    expect(getTipoUnidadPorIncidente('inc-multi-1')).toBe('CUADRILLA');
+    // La misión previa conserva su estado histórico
+    expect(getTrazabilidadEstado('mis-patrulla-1')).toBe('LEIDA');
+
+    // 3. Progresa hacia RECIBIDA y LEIDA
+    setTrazabilidadEstado('mis-cuadrilla-2', 'RECIBIDA', 'inc-multi-1', {
+      tipoUnidad: 'CUADRILLA',
+      reemplazarMisionActiva: true,
+    });
+    expect(getTrazabilidadPorIncidente('inc-multi-1')).toBe('RECIBIDA');
+
+    setTrazabilidadEstado('mis-cuadrilla-2', 'LEIDA', 'inc-multi-1', {
+      tipoUnidad: 'CUADRILLA',
+      reemplazarMisionActiva: true,
+    });
+    expect(getTrazabilidadPorIncidente('inc-multi-1')).toBe('LEIDA');
   });
 });
 

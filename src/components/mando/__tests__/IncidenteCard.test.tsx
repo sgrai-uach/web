@@ -435,6 +435,41 @@ describe('IncidenteCard', () => {
     expect(aviso.style.borderRadius).toBe('0px');
   });
 
+  it('muestra aviso SIN ACUSE en tarjetas EN_ATENCION con misión de cuadrilla sin acuse y etiquetas específicas para CUADRILLA', () => {
+    const { rerender } = render(
+      <IncidenteCard
+        incidente={{
+          ...mockIncidente,
+          estado: 'EN_ATENCION',
+          tieneMisionDespachada: true,
+          totalMisiones: 2,
+        }}
+        onClick={vi.fn()}
+      />
+    );
+
+    expect(screen.getByTestId('card-trazabilidad-pendiente-inc-001').textContent).toContain(
+      'SIN ACUSE'
+    );
+
+    rerender(
+      <IncidenteCard
+        incidente={{
+          ...mockIncidente,
+          estado: 'EN_ATENCION',
+          trazabilidadTipoUnidad: 'CUADRILLA',
+          totalMisiones: 2,
+        }}
+        onClick={vi.fn()}
+        trazabilidadNotificacion="LEIDA"
+      />
+    );
+
+    const cardCuadrilla = screen.getByTestId('card-trazabilidad-inc-001');
+    expect(cardCuadrilla.textContent).toContain('LEÍDA');
+    expect(cardCuadrilla.textContent).toContain('Leída por la cuadrilla');
+  });
+
   it('mantiene diseño apilado y contenido contenido dentro de la caja de trazabilidad ante direcciones extensas', () => {
     const direccionLarga = 'a'.repeat(120);
     render(

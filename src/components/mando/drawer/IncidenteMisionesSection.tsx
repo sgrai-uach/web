@@ -45,7 +45,7 @@ import {
   obtenerVarianteChipEstadoMision,
   obtenerVarianteChipEstadoTerreno,
 } from '@/lib/utils/chipVariants';
-import { TRAZABILIDAD_CONFIG } from '@/lib/socket/trazabilidadConfig';
+import { obtenerConfigTrazabilidad } from '@/lib/socket/trazabilidadConfig';
 import {
   getSnapshotEstadosMisiones,
   subscribeMisionesRealtime,
@@ -411,9 +411,17 @@ export const IncidenteMisionesSection: React.FC<IncidenteMisionesSectionProps> =
         )}
 
         {/* Trazabilidad de Notificación en Tiempo Real (HU-35) */}
-        {mision.trazabilidadNotificacion && TRAZABILIDAD_CONFIG[mision.trazabilidadNotificacion] ? (
+        {mision.trazabilidadNotificacion ? (
           (() => {
-            const cfg = TRAZABILIDAD_CONFIG[mision.trazabilidadNotificacion];
+            const tipoUnidadMision = mision.cuadrilla
+              ? 'CUADRILLA'
+              : mision.patrulla
+                ? 'PATRULLA'
+                : null;
+            const cfg = obtenerConfigTrazabilidad(
+              mision.trazabilidadNotificacion,
+              tipoUnidadMision
+            );
             const pasos = [
               {
                 numero: 1,
@@ -620,7 +628,7 @@ export const IncidenteMisionesSection: React.FC<IncidenteMisionesSectionProps> =
             );
           })()
         ) : (
-          mision.patrulla &&
+          (mision.patrulla || mision.cuadrilla) &&
           ['PLANIFICADA', 'DESPACHADA', 'EN_CURSO'].includes(mision.estado) && (
             <div
               data-testid={`aviso-trazabilidad-sin-acuse-${mision.id}`}
@@ -642,7 +650,8 @@ export const IncidenteMisionesSection: React.FC<IncidenteMisionesSectionProps> =
             >
               <TrazabilidadIcon size={13} />
               <span>
-                <strong>SIN CONFIRMACIÓN DE LECTURA:</strong> Aún no se registra recepción o lectura desde la patrulla en terreno.
+                <strong>SIN CONFIRMACIÓN DE LECTURA:</strong> Aún no se registra recepción o lectura desde{' '}
+                {mision.cuadrilla ? 'la cuadrilla en terreno.' : 'la patrulla en terreno.'}
               </span>
             </div>
           )

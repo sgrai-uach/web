@@ -153,6 +153,8 @@ export type IncidenteResumen = ListarIncidentesResponse['data'][number] & {
   tieneMisionEnCurso?: boolean;
   cuadrillaAceptada?: boolean;
   cuadrillaEnTerreno?: boolean;
+  trazabilidadMisionId?: string | null;
+  trazabilidadTipoUnidad?: 'PATRULLA' | 'CUADRILLA' | null;
   apoyoSolicitado?: boolean;
   requiereCuadrillaAdicional?: boolean;
   detalleApoyoRequerido?: string | null;
@@ -181,6 +183,8 @@ export type IncidenteDetalle = Omit<
   tieneMisionEnCurso?: boolean;
   cuadrillaAceptada?: boolean;
   cuadrillaEnTerreno?: boolean;
+  trazabilidadMisionId?: string | null;
+  trazabilidadTipoUnidad?: 'PATRULLA' | 'CUADRILLA' | null;
   apoyoSolicitado?: boolean;
   requiereCuadrillaAdicional?: boolean;
   detalleApoyoRequerido?: string | null;

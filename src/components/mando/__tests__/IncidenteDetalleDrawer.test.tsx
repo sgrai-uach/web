@@ -1053,7 +1053,7 @@ describe('Componente IncidenteDetalleDrawer e integración HU-17', () => {
         'badge-trazabilidad-m1000000-0000-4000-8000-000000000001'
       );
       expect(badge).toBeDefined();
-      expect(badge.textContent).toBe('Recibida en móvil de terreno');
+      expect(badge.textContent).toBe('Recibida en móvil de cuadrilla');
     });
 
     // Transición a LEIDA
@@ -1071,7 +1071,7 @@ describe('Componente IncidenteDetalleDrawer e integración HU-17', () => {
       const badge = screen.getByTestId(
         'badge-trazabilidad-m1000000-0000-4000-8000-000000000001'
       );
-      expect(badge.textContent).toBe('Leída por operador en terreno');
+      expect(badge.textContent).toBe('Leída por la cuadrilla');
     });
   });
 
@@ -1100,7 +1100,7 @@ describe('Componente IncidenteDetalleDrawer e integración HU-17', () => {
       'badge-trazabilidad-m1000000-0000-4000-8000-000000000001'
     );
     expect(badge).toBeDefined();
-    expect(badge.textContent).toBe('Recibida en móvil de terreno');
+    expect(badge.textContent).toBe('Recibida en móvil de cuadrilla');
   });
 
   it('muestra el resumen superior de lectura en terreno para patrulla activa y actualiza en vivo al recibir LEIDA', async () => {
@@ -1263,6 +1263,75 @@ describe('Componente IncidenteDetalleDrawer e integración HU-17', () => {
     );
     expect(screen.getByTestId('drawer-trazabilidad-resumen').textContent).toContain(
       'LEÍDA: Leída por operador en terreno'
+    );
+  });
+
+  it('actualiza en vivo la trazabilidad de misión de CUADRILLA (badge + resumen superior) ante notificacion:trazabilidad_actualizada', async () => {
+    const detalleCuadrilla = {
+      ...mockDetalleIncidente,
+      estado: 'EN_ATENCION' as const,
+      misiones: [
+        {
+          id: 'm-cuad-live-1',
+          codigo: 'MIS-2026-0888',
+          titulo: 'Atención de cuadrilla en calzada',
+          descripcion: null,
+          tipoMision: 'ATENCION_CUADRILLA' as const,
+          estado: 'DESPACHADA' as const,
+          prioridad: 'ALTA' as const,
+          justificacionRechazo: null,
+          fechaInicio: null,
+          fechaCierre: null,
+          creadoEn: '2026-11-24T12:00:00Z',
+          patrulla: null,
+          cuadrilla: {
+            id: 'cuad-88',
+            nombre: 'Cuadrilla Costa 2',
+            estado: 'EN_MISION',
+          },
+          trazabilidadNotificacion: 'ENVIADA' as const,
+        },
+      ],
+    };
+
+    vi.spyOn(incidentesService, 'obtenerDetalleIncidente').mockResolvedValueOnce({
+      exito: true,
+      datos: detalleCuadrilla,
+      mensaje: 'OK',
+    });
+
+    render(
+      <IncidenteDetalleDrawer
+        incidenteId={mockDetalleIncidente.id}
+        userId="user-test"
+        onCerrar={vi.fn()}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('badge-trazabilidad-m-cuad-live-1').textContent).toBe(
+        'Alerta emitida a la cuadrilla'
+      );
+    });
+
+    act(() => {
+      const handler = socketListeners['notificacion:trazabilidad_actualizada']?.[0];
+      handler?.({
+        notificacionId: 'notif-cuad-88',
+        misionId: 'm-cuad-live-1',
+        incidenteId: mockDetalleIncidente.id,
+        cuadrillaId: 'cuad-88',
+        patrullaId: null,
+        tipoUnidad: 'CUADRILLA',
+        estado: 'LEIDA',
+      });
+    });
+
+    expect(screen.getByTestId('badge-trazabilidad-m-cuad-live-1').textContent).toBe(
+      'Leída por la cuadrilla'
+    );
+    expect(screen.getByTestId('drawer-trazabilidad-resumen').textContent).toContain(
+      'LEÍDA: Leída por la cuadrilla'
     );
   });
 

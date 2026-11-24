@@ -4,8 +4,7 @@ import React, { useEffect, useState } from 'react';
 import type { EstadoMision, MisionItem } from '@/types/misiones';
 import type { EstadoTrazabilidadNotificacion } from '@/services/incidentesService';
 import {
-  TRAZABILIDAD_CONFIG,
-  seleccionarEstadoTrazabilidadMayor,
+  obtenerConfigTrazabilidad,
 } from '@/lib/socket/trazabilidadConfig';
 import {
   getSnapshotTrazabilidadMisiones,
@@ -136,12 +135,15 @@ export const MisionesTabla: React.FC<MisionesTablaProps> = ({
               color: 'var(--color-text-muted, #5F676E)',
               label: mision.prioridad,
             };
-            const estadoTrazabilidad = seleccionarEstadoTrazabilidadMayor(
-              mision.trazabilidadNotificacion,
-              trazabilidadMisiones[mision.id]
-            );
+            const estadoTrazabilidad =
+              trazabilidadMisiones[mision.id] ?? mision.trazabilidadNotificacion;
+            const tipoUnidadMision = mision.cuadrillaNombre
+              ? 'CUADRILLA'
+              : mision.patrullaNombre
+                ? 'PATRULLA'
+                : null;
             const cfgTrazabilidad = estadoTrazabilidad
-              ? TRAZABILIDAD_CONFIG[estadoTrazabilidad]
+              ? obtenerConfigTrazabilidad(estadoTrazabilidad, tipoUnidadMision)
               : undefined;
 
             return (

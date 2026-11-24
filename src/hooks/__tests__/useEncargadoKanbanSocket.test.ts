@@ -211,7 +211,10 @@ describe('useEncargadoKanbanSocket', () => {
       );
     });
 
-    expect(onNotificacionTrazabilidadActualizada).toHaveBeenCalledWith(payload);
+    expect(onNotificacionTrazabilidadActualizada).toHaveBeenCalledWith({
+      ...payload,
+      tipoUnidad: 'PATRULLA',
+    });
     expect(result.current.ultimoEvento).toBe('Trazabilidad misión: RECIBIDA');
     expect(getTrazabilidadEstado('mis-100')).toBe('RECIBIDA');
   });

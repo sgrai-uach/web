@@ -38,9 +38,9 @@ import {
   vincularMisionIncidente,
 } from '@/lib/socket/trazabilidadStore';
 import {
-  TRAZABILIDAD_CONFIG,
   esPayloadTrazabilidadValido,
   extraerEstadoInicialNotificacion,
+  obtenerConfigTrazabilidad,
   resolverSiguienteEstadoTrazabilidad,
 } from '@/lib/socket/trazabilidadConfig';
 import {
@@ -120,12 +120,36 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
           const incId = res.datos.id;
           const misionesHidratadas = res.datos.misiones.map((m) => {
             vincularMisionIncidente(m.id, incId);
+            const tipoUnidad = m.cuadrilla
+              ? 'CUADRILLA'
+              : m.patrulla
+                ? 'PATRULLA'
+                : undefined;
             if (m.trazabilidadNotificacion) {
-              setTrazabilidadEstado(m.id, m.trazabilidadNotificacion, incId);
+              setTrazabilidadEstado(m.id, m.trazabilidadNotificacion, incId, {
+                tipoUnidad,
+              });
             }
             const consolidado = getTrazabilidadEstado(m.id) ?? m.trazabilidadNotificacion;
             return consolidado ? { ...m, trazabilidadNotificacion: consolidado } : m;
           });
+          // Sincronizar la misión activa más reciente con el incidente en trazabilidadStore
+          const misionMasRecienteConTrazabilidad = [...misionesHidratadas]
+            .reverse()
+            .find((m) => Boolean(m.trazabilidadNotificacion));
+          if (misionMasRecienteConTrazabilidad?.trazabilidadNotificacion) {
+            const tipoUnidadReciente = misionMasRecienteConTrazabilidad.cuadrilla
+              ? 'CUADRILLA'
+              : misionMasRecienteConTrazabilidad.patrulla
+                ? 'PATRULLA'
+                : undefined;
+            setTrazabilidadEstado(
+              misionMasRecienteConTrazabilidad.id,
+              misionMasRecienteConTrazabilidad.trazabilidadNotificacion,
+              incId,
+              { tipoUnidad: tipoUnidadReciente, reemplazarMisionActiva: true }
+            );
+          }
           const detalleActualizado = { ...res.datos, misiones: misionesHidratadas };
           detalleRef.current = detalleActualizado;
           setDetalle(detalleActualizado);
@@ -257,6 +281,14 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
         details: detallesDespacho,
       }
     );
+    const estadoInicialCuadrilla = extraerEstadoInicialNotificacion(resultado);
+    setTrazabilidadEstado(
+      resultado.mision.id,
+      estadoInicialCuadrilla,
+      resultado.incidente.id,
+      { tipoUnidad: 'CUADRILLA', reemplazarMisionActiva: true }
+    );
+
     setDetalle((prev) =>
       prev
         ? {
@@ -503,7 +535,17 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
       );
       if (!perteneceAlIncidente) return;
 
-      setTrazabilidadEstado(payload.misionId, payload.estado, incidenteId);
+      const tipoUnidadEvento =
+        payload.tipoUnidad ??
+        (payload.cuadrillaId
+          ? 'CUADRILLA'
+          : payload.patrullaId
+            ? 'PATRULLA'
+            : undefined);
+      setTrazabilidadEstado(payload.misionId, payload.estado, incidenteId, {
+        tipoUnidad: tipoUnidadEvento,
+        reemplazarMisionActiva: true,
+      });
       setDetalle((prev) => {
         if (!prev || prev.id !== incidenteId) return prev;
         let cambio = false;
@@ -748,7 +790,10 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
 
   const handleAsignacionExitosa = (data: DespacharPatrullaResponseData) => {
     const estadoInicial = extraerEstadoInicialNotificacion(data);
-    setTrazabilidadEstado(data.mision.id, estadoInicial, data.incidente.id);
+    setTrazabilidadEstado(data.mision.id, estadoInicial, data.incidente.id, {
+      tipoUnidad: 'PATRULLA',
+      reemplazarMisionActiva: true,
+    });
 
     setDetalle((prev) => {
       if (!prev) return prev;
@@ -785,13 +830,22 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
 
   if (!incidenteId) return null;
 
-  const misionPatrullaActiva = detalle?.misiones.find(
-    (m) =>
-      Boolean(m.patrulla) &&
-      ['PLANIFICADA', 'DESPACHADA', 'EN_CURSO'].includes(m.estado)
-  );
-  const trazabilidadResumenCfg = misionPatrullaActiva?.trazabilidadNotificacion
-    ? TRAZABILIDAD_CONFIG[misionPatrullaActiva.trazabilidadNotificacion]
+  const misionUnidadActiva =
+    detalle?.misiones.find(
+      (m) =>
+        (Boolean(m.cuadrilla) || Boolean(m.patrulla)) &&
+        ['PLANIFICADA', 'DESPACHADA', 'EN_CURSO'].includes(m.estado)
+    ) ?? null;
+  const tipoUnidadActivaResumen = misionUnidadActiva?.cuadrilla
+    ? 'CUADRILLA'
+    : misionUnidadActiva?.patrulla
+      ? 'PATRULLA'
+      : null;
+  const trazabilidadResumenCfg = misionUnidadActiva?.trazabilidadNotificacion
+    ? obtenerConfigTrazabilidad(
+        misionUnidadActiva.trazabilidadNotificacion,
+        tipoUnidadActivaResumen
+      )
     : undefined;
   const estaVerificadoConcluido = misionVerificacion?.estado === 'COMPLETADA';
 
@@ -1145,7 +1199,7 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
 
             {!cargando && detalle && (
               <>
-                {misionPatrullaActiva && (
+                {misionUnidadActiva && (
                   <div
                     data-testid="drawer-trazabilidad-resumen"
                     style={{
@@ -1174,17 +1228,21 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
                   >
                     <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontWeight: 700 }}>
                       <TrazabilidadIcon
-                        estado={misionPatrullaActiva.trazabilidadNotificacion}
+                        estado={misionUnidadActiva.trazabilidadNotificacion}
                         size={15}
                       />
                       <span>
                         {trazabilidadResumenCfg
                           ? `${trazabilidadResumenCfg.etiquetaLectura}: ${trazabilidadResumenCfg.texto}`
-                          : 'SIN ACUSE: Lectura por patrulla aún no confirmada'}
+                          : tipoUnidadActivaResumen === 'CUADRILLA'
+                            ? 'SIN ACUSE: Lectura por cuadrilla aún no confirmada'
+                            : 'SIN ACUSE: Lectura por patrulla aún no confirmada'}
                       </span>
                     </span>
                     <span style={{ fontSize: '0.75rem', fontWeight: 600 }}>
-                      {misionPatrullaActiva.codigo} · {misionPatrullaActiva.patrulla?.nombre}
+                      {misionUnidadActiva.codigo} ·{' '}
+                      {misionUnidadActiva.cuadrilla?.nombre ??
+                        misionUnidadActiva.patrulla?.nombre}
                     </span>
                   </div>
                 )}

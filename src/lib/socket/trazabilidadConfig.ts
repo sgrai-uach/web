@@ -1,5 +1,7 @@
 import type { EstadoTrazabilidadNotificacion } from '@/services/incidentesService';
 
+export type TipoUnidadTrazabilidad = 'PATRULLA' | 'CUADRILLA';
+
 export interface TrazabilidadVisualSpec {
   estado: EstadoTrazabilidadNotificacion;
   /** Texto oficial HU-35 para badge de detalle de misión */
@@ -68,6 +70,49 @@ export const TRAZABILIDAD_CONFIG: Record<
   },
 };
 
+export const TRAZABILIDAD_CONFIG_CUADRILLA: Record<
+  EstadoTrazabilidadNotificacion,
+  TrazabilidadVisualSpec
+> = {
+  PENDIENTE_ENVIO: {
+    ...TRAZABILIDAD_CONFIG.PENDIENTE_ENVIO,
+    texto: 'Cuadrilla sin señal / offline',
+    textoCorto: 'Sin señal · esperando reconexión de cuadrilla',
+    tituloLectura: 'ORDEN NO LEÍDA POR CUADRILLA',
+  },
+  ENVIADA: {
+    ...TRAZABILIDAD_CONFIG.ENVIADA,
+    texto: 'Alerta emitida a la cuadrilla',
+    textoCorto: 'Enviada · pendiente confirmación de cuadrilla',
+    tituloLectura: 'ORDEN NO LEÍDA POR CUADRILLA',
+  },
+  RECIBIDA: {
+    ...TRAZABILIDAD_CONFIG.RECIBIDA,
+    texto: 'Recibida en móvil de cuadrilla',
+    textoCorto: 'Recibida · pendiente lectura de cuadrilla',
+    tituloLectura: 'RECIBIDA EN MÓVIL · SIN LECTURA',
+  },
+  LEIDA: {
+    ...TRAZABILIDAD_CONFIG.LEIDA,
+    texto: 'Leída por la cuadrilla',
+    textoCorto: 'Leída por la cuadrilla',
+    tituloLectura: 'LECTURA CONFIRMADA POR CUADRILLA',
+  },
+};
+
+/**
+ * Obtiene la especificación visual HU-35 parametrizada por unidad operativa (Patrulla o Cuadrilla).
+ */
+export function obtenerConfigTrazabilidad(
+  estado: EstadoTrazabilidadNotificacion,
+  tipoUnidad?: TipoUnidadTrazabilidad | null
+): TrazabilidadVisualSpec {
+  if (tipoUnidad === 'CUADRILLA') {
+    return TRAZABILIDAD_CONFIG_CUADRILLA[estado];
+  }
+  return TRAZABILIDAD_CONFIG[estado];
+}
+
 /**
  * Valida en tiempo de ejecución si un valor pertenece al dominio oficial
  * de estados de trazabilidad de notificación de misión.
@@ -122,7 +167,14 @@ export function seleccionarEstadoTrazabilidadMayor(
  */
 export function esPayloadTrazabilidadValido(
   payload: unknown
-): payload is { misionId: string; estado: EstadoTrazabilidadNotificacion } {
+): payload is {
+  misionId: string;
+  estado: EstadoTrazabilidadNotificacion;
+  incidenteId?: string | null;
+  patrullaId?: string | null;
+  cuadrillaId?: string | null;
+  tipoUnidad?: TipoUnidadTrazabilidad;
+} {
   if (!payload || typeof payload !== 'object') return false;
   const p = payload as Record<string, unknown>;
   return (

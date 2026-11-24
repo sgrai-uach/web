@@ -1,7 +1,7 @@
 # Manual de Usuario: H35 — Monitoreo de Notificación y Trazabilidad de ACKs en Centro de Mando
 
 > **Módulo:** Centro de Mando e Incidentes  
-> **Historia de Usuario:** HU-35 / H35 — Monitoreo de Notificación y Trazabilidad de Misión a Patrulla  
+> **Historia de Usuario:** HU-35 / H35 — Monitoreo estandarizado de Notificación y Trazabilidad de Misión (Patrulla y Cuadrilla)  
 > **Rol Destinatario:** Encargado de Operaciones / Centro de Mando (DGRD) y Administrador Municipal  
 > **Sistema:** SGRAI — Dirección de Gestión de Riesgos de Desastres, Municipalidad de Valdivia  
 > **Ruta de Acceso:** `/gestion/centro-incidentes`
@@ -11,7 +11,7 @@
 ## 1. Información General
 
 - **Rol al que está dirigido:** Encargado de Operaciones (Centro de Mando) y Administrador Municipal con acceso al tablero operativo.
-- **Objetivo de la funcionalidad:** Permitir al Encargado monitorear en tiempo real si una patrulla verificadora despachada recibió (`RECIBIDA`) y leyó (`LEIDA`) la orden táctica en terreno, o identificar de inmediato si el dispositivo móvil se encuentra sin señal o fuera de cobertura (`PENDIENTE_ENVIO`), sin necesidad de recargar el navegador.
+- **Objetivo de la funcionalidad:** Permitir al Encargado monitorear en tiempo real si la unidad despachada (Patrulla Verificadora o Cuadrilla Operativa) recibió (`RECIBIDA`) y leyó (`LEIDA`) la orden táctica en terreno, o identificar de inmediato si el dispositivo móvil se encuentra sin señal o fuera de cobertura (`PENDIENTE_ENVIO`), sin necesidad de recargar el navegador.
 - **Puntos de visualización en la plataforma web:**
   1. Tarjetas del Tablero Kanban (`IncidenteCard`) en `/gestion/centro-incidentes`.
   2. Panel lateral deslizante de detalle del incidente (`IncidenteDetalleDrawer`), tanto en el banner resumen superior como en la sección *"Misiones y Equipos en Terreno"*.
@@ -29,7 +29,7 @@ El sistema representa el avance de entrega y lectura de la orden táctica median
 | **`PENDIENTE_ENVIO`** | `NO LEÍDA` — *Sin señal / offline* | `Patrulla sin señal / offline` | Paso 1: *Sin señal (en cola)* (*En espera de red*) | La orden quedó en cola porque la patrulla no tiene conexión activa al momento del despacho. |
 | **`ENVIADA`** | `NO LEÍDA` — *Alerta emitida al móvil* | `Alerta emitida al móvil` | Paso 1 confirmado + Paso 2: *Esperando acuse* | El servidor emitió la alerta hacia el dispositivo en terreno; aún no se recibe acuse técnico de llegada. |
 | **`RECIBIDA`** | `RECIBIDA (SIN LEER)` — *Recibida · pendiente lectura* | `Recibida en móvil de terreno` | Pasos 1 y 2 confirmados + Paso 3: *Esperando lectura* | La PWA en terreno confirmó la recepción técnica del aviso (`ACK RECIBIDA`), pero el operador aún no abre la orden. |
-| **`LEIDA`** | `LEÍDA` — *Leída por operador en terreno* | `Leída por operador en terreno` | 3 pasos confirmados con riel continuo (*Confirmado*) | El operador en terreno abrió explícitamente la misión presionando **"Ver Misión"** (`ACK LEIDA`). |
+| **`LEIDA`** | `LEÍDA` — *Leída por operador en terreno* / *Leída por la cuadrilla* | `Leída por operador en terreno` / `Leída por la cuadrilla` | 3 pasos confirmados con riel continuo (*Confirmado*) | El operador en terreno (patrulla o cuadrilla) abrió la misión en su dispositivo (`ACK LEIDA` automático). |
 
 ---
 
@@ -85,5 +85,5 @@ El sistema representa el avance de entrega y lectura de la orden táctica median
 
 ## 5. Relación con Otros Repositorios del Sistema
 
-- **`sgrai-api`:** Emite y persiste la notificación al crear misiones (`POST /api/misiones`), procesa los acuses recibidos mediante el evento `notificacion:ack`, distribuye las actualizaciones de estado por Socket.io mediante `notificacion:trazabilidad_actualizada` hacia la sala de la misión (`mision:{misionId}`) y hacia los encargados en el Centro de Mando, y proyecta el último estado persistido (`trazabilidadNotificacion`) en `GET /api/incidentes`, `GET /api/incidentes/{id}`, `GET /api/misiones` y `GET /api/misiones/{id}` para conservar el estado tras recargar el navegador.
-- **`sgrai-pwa`:** Aplicación móvil en terreno operada por la patrulla verificadora. Envía automáticamente el acuse técnico **`RECIBIDA`** al recepcionar la notificación push/socket y emite el acuse operativo **`LEIDA`** cuando el operador presiona **"Ver Misión"** en su dispositivo.
+- **`sgrai-api`:** Emite y persiste la notificación al crear misiones de patrulla o cuadrilla (`POST /api/misiones`, `POST /api/misiones/asignar-cuadrilla`), procesa los acuses recibidos mediante el evento `notificacion:ack` o `PATCH /api/terreno/notificaciones/{id}/estado`, distribuye las actualizaciones de estado por Socket.io mediante `notificacion:trazabilidad_actualizada` (incluyendo `incidenteId`, `cuadrillaId`, `patrullaId` y `tipoUnidad`) hacia la sala de la misión y hacia los encargados en el Centro de Mando, y proyecta el último estado persistido (`trazabilidadNotificacion`, `trazabilidadMisionId`, `trazabilidadTipoUnidad`, `notificacionId`) para conservar el estado tras recargar el navegador.
+- **`sgrai-pwa`:** Aplicación móvil en terreno operada por la patrulla verificadora y el delegado de cuadrilla. Envía automáticamente el acuse técnico **`RECIBIDA`** al recepcionar la notificación socket/reconciliación y emite automáticamente el acuse operativo **`LEIDA`** cuando el operador abre el detalle de la misión en su dispositivo.

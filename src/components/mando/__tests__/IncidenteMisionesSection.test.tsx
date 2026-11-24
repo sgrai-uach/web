@@ -495,11 +495,17 @@ describe('Componente IncidenteMisionesSection', () => {
     ];
 
     estadosTrazabilidad.forEach(({ estado, textoEsperado, bg, color }) => {
-      it(`debe renderizar el badge de trazabilidad con texto y estilo correcto para estado ${estado}`, () => {
+      it(`debe renderizar el badge de trazabilidad con texto y estilo correcto para estado ${estado} (Patrulla)`, () => {
         const misionesConTrazabilidad: IncidenteDetalle['misiones'] = [
           {
             ...mockMisiones[0],
             id: `mision-${estado.toLowerCase()}`,
+            cuadrilla: null,
+            patrulla: {
+              id: 'pat-1',
+              nombre: 'Patrulla Norte',
+              estado: 'EN_VERIFICACION',
+            },
             trazabilidadNotificacion: estado,
           },
         ];
@@ -516,6 +522,38 @@ describe('Componente IncidenteMisionesSection', () => {
         expect(badge.style.color).toBe(color);
         expect(badge.style.border).toContain('1px solid');
       });
+    });
+
+    it('debe renderizar textos específicos de CUADRILLA en trazabilidad y SIN CONFIRMACIÓN DE LECTURA', () => {
+      const misionCuadrillaSinAcuse: IncidenteDetalle['misiones'] = [
+        {
+          ...mockMisiones[0],
+          id: 'mision-cuadrilla-sin-acuse',
+          estado: 'DESPACHADA',
+        },
+      ];
+
+      const { rerender } = render(
+        <IncidenteMisionesSection misiones={misionCuadrillaSinAcuse} />
+      );
+      expect(
+        screen.getByTestId('aviso-trazabilidad-sin-acuse-mision-cuadrilla-sin-acuse').textContent
+      ).toContain('la cuadrilla en terreno');
+
+      rerender(
+        <IncidenteMisionesSection
+          misiones={[
+            {
+              ...mockMisiones[0],
+              id: 'mision-cuadrilla-leida',
+              trazabilidadNotificacion: 'LEIDA',
+            },
+          ]}
+        />
+      );
+      expect(
+        screen.getByTestId('badge-trazabilidad-mision-cuadrilla-leida').textContent
+      ).toBe('Leída por la cuadrilla');
     });
 
     it('no debe renderizar el badge de trazabilidad si la misión no tiene trazabilidadNotificacion', () => {

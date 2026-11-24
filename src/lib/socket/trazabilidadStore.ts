@@ -2,6 +2,7 @@ import type { EstadoTrazabilidadNotificacion } from '@/services/incidentesServic
 import {
   esEstadoTrazabilidadValido,
   resolverSiguienteEstadoTrazabilidad,
+  type TipoUnidadTrazabilidad,
 } from './trazabilidadConfig';
 
 const STORAGE_KEY = 'sgrai_trazabilidad_notificaciones_v2';
@@ -10,11 +11,15 @@ interface PersistedTrazabilidadPayload {
   misiones: Record<string, EstadoTrazabilidadNotificacion>;
   incidentes: Record<string, EstadoTrazabilidadNotificacion>;
   misionIncidente: Record<string, string>;
+  incidenteMisionActiva?: Record<string, string>;
+  misionTipoUnidad?: Record<string, TipoUnidadTrazabilidad>;
 }
 
 const misionEstadoCache = new Map<string, EstadoTrazabilidadNotificacion>();
 const incidenteEstadoCache = new Map<string, EstadoTrazabilidadNotificacion>();
 const misionIncidenteMap = new Map<string, string>();
+const incidenteMisionActivaMap = new Map<string, string>();
+const misionTipoUnidadMap = new Map<string, TipoUnidadTrazabilidad>();
 const listeners = new Set<() => void>();
 
 let hydratedFromStorage = false;
@@ -63,6 +68,22 @@ function ensureHydrated(): void {
         }
       }
     }
+
+    if (parsed.incidenteMisionActiva && typeof parsed.incidenteMisionActiva === 'object') {
+      for (const [incidenteId, misionId] of Object.entries(parsed.incidenteMisionActiva)) {
+        if (typeof misionId === 'string' && misionId) {
+          incidenteMisionActivaMap.set(incidenteId, misionId);
+        }
+      }
+    }
+
+    if (parsed.misionTipoUnidad && typeof parsed.misionTipoUnidad === 'object') {
+      for (const [misionId, tipo] of Object.entries(parsed.misionTipoUnidad)) {
+        if (tipo === 'PATRULLA' || tipo === 'CUADRILLA') {
+          misionTipoUnidadMap.set(misionId, tipo);
+        }
+      }
+    }
   } catch {
     // Ignorar errores de acceso o parseo de localStorage
   }
@@ -77,6 +98,8 @@ function persistCache(): void {
       misiones: Object.fromEntries(misionEstadoCache.entries()),
       incidentes: Object.fromEntries(incidenteEstadoCache.entries()),
       misionIncidente: Object.fromEntries(misionIncidenteMap.entries()),
+      incidenteMisionActiva: Object.fromEntries(incidenteMisionActivaMap.entries()),
+      misionTipoUnidad: Object.fromEntries(misionTipoUnidadMap.entries()),
     };
     storage.setItem(STORAGE_KEY, JSON.stringify(payload));
   } catch {
@@ -94,7 +117,11 @@ function notifyListeners(): void {
   });
 }
 
-function sincronizarIncidenteDesdeMision(misionId: string, incidenteId?: string): boolean {
+function sincronizarIncidenteDesdeMision(
+  misionId: string,
+  incidenteId?: string,
+  reemplazarMisionActiva: boolean = false
+): boolean {
   const resolvedIncidenteId =
     (typeof incidenteId === 'string' && incidenteId.trim() ? incidenteId.trim() : undefined) ||
     misionIncidenteMap.get(misionId);
@@ -108,33 +135,65 @@ function sincronizarIncidenteDesdeMision(misionId: string, incidenteId?: string)
   }
 
   const estadoMision = misionEstadoCache.get(misionId);
-  const siguienteIncidente = resolverSiguienteEstadoTrazabilidad(
-    incidenteEstadoCache.get(resolvedIncidenteId),
-    estadoMision
-  );
-  if (siguienteIncidente) {
-    incidenteEstadoCache.set(resolvedIncidenteId, siguienteIncidente);
-    huboCambio = true;
+  const misionActivaActual = incidenteMisionActivaMap.get(resolvedIncidenteId);
+
+  if (reemplazarMisionActiva && misionActivaActual !== misionId) {
+    incidenteMisionActivaMap.set(resolvedIncidenteId, misionId);
+    if (estadoMision && incidenteEstadoCache.get(resolvedIncidenteId) !== estadoMision) {
+      incidenteEstadoCache.set(resolvedIncidenteId, estadoMision);
+    }
+    return true;
+  }
+
+  if (!misionActivaActual) {
+    incidenteMisionActivaMap.set(resolvedIncidenteId, misionId);
+  }
+
+  const esMisionActiva =
+    !misionActivaActual || misionActivaActual === misionId;
+  if (esMisionActiva) {
+    const siguienteIncidente = resolverSiguienteEstadoTrazabilidad(
+      incidenteEstadoCache.get(resolvedIncidenteId),
+      estadoMision
+    );
+    if (siguienteIncidente) {
+      incidenteEstadoCache.set(resolvedIncidenteId, siguienteIncidente);
+      huboCambio = true;
+    }
   }
 
   return huboCambio;
 }
 
+export interface SetTrazabilidadOpciones {
+  tipoUnidad?: TipoUnidadTrazabilidad;
+  reemplazarMisionActiva?: boolean;
+}
+
 /**
  * Registra en memoria y localStorage el último estado de trazabilidad conocido
  * para una misión operativa (y opcionalmente su incidente asociado), garantizando
- * progresión monotónica e idempotencia.
+ * progresión monotónica por misión y soporte multi-misión (patrulla -> cuadrilla).
  */
 export function setTrazabilidadEstado(
   misionId: string,
   estado: EstadoTrazabilidadNotificacion,
-  incidenteId?: string
+  incidenteId?: string,
+  opciones?: SetTrazabilidadOpciones
 ): void {
   if (typeof misionId !== 'string' || !misionId.trim()) return;
   if (!esEstadoTrazabilidadValido(estado)) return;
 
   ensureHydrated();
   let huboCambio = false;
+
+  if (
+    opciones?.tipoUnidad &&
+    misionTipoUnidadMap.get(misionId) !== opciones.tipoUnidad
+  ) {
+    misionTipoUnidadMap.set(misionId, opciones.tipoUnidad);
+    huboCambio = true;
+  }
 
   const siguienteMision = resolverSiguienteEstadoTrazabilidad(
     misionEstadoCache.get(misionId),
@@ -145,7 +204,13 @@ export function setTrazabilidadEstado(
     huboCambio = true;
   }
 
-  if (sincronizarIncidenteDesdeMision(misionId, incidenteId)) {
+  if (
+    sincronizarIncidenteDesdeMision(
+      misionId,
+      incidenteId,
+      Boolean(opciones?.reemplazarMisionActiva)
+    )
+  ) {
     huboCambio = true;
   }
 
@@ -198,6 +263,27 @@ export function getIncidentePorMision(misionId: string): string | undefined {
   return misionIncidenteMap.get(misionId);
 }
 
+export function getMisionActivaPorIncidente(incidenteId: string): string | undefined {
+  ensureHydrated();
+  return incidenteMisionActivaMap.get(incidenteId);
+}
+
+export function getTipoUnidadPorMision(
+  misionId: string
+): TipoUnidadTrazabilidad | undefined {
+  ensureHydrated();
+  return misionTipoUnidadMap.get(misionId);
+}
+
+export function getTipoUnidadPorIncidente(
+  incidenteId: string
+): TipoUnidadTrazabilidad | undefined {
+  ensureHydrated();
+  const misionActiva = incidenteMisionActivaMap.get(incidenteId);
+  if (!misionActiva) return undefined;
+  return misionTipoUnidadMap.get(misionActiva);
+}
+
 /**
  * Retorna una instantánea con todos los estados conocidos indexados por incidenteId.
  */
@@ -237,6 +323,8 @@ export function clearTrazabilidadCache(): void {
   misionEstadoCache.clear();
   incidenteEstadoCache.clear();
   misionIncidenteMap.clear();
+  incidenteMisionActivaMap.clear();
+  misionTipoUnidadMap.clear();
   hydratedFromStorage = false;
   const storage = getStorage();
   if (storage) {

@@ -25,8 +25,8 @@ import {
 import {
   getIncidentePorMision,
   getSnapshotTrazabilidadIncidentes,
+  setTrazabilidadEstado,
   subscribeTrazabilidad,
-  vincularMisionIncidente,
 } from '@/lib/socket/trazabilidadStore';
 import { obtenerConfigHito } from '@/lib/utils/misionHitos';
 import { useOptionalToast } from '@/components/ui/Toast';
@@ -344,6 +344,24 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
           }
         }
 
+        // Hidratar store de trazabilidad con la misión más reciente proyectada por REST
+        resultados.forEach((res) => {
+          if (!res.exito) return;
+          res.incidentes.forEach((inc) => {
+            if (inc.trazabilidadMisionId && inc.trazabilidadNotificacion) {
+              setTrazabilidadEstado(
+                inc.trazabilidadMisionId,
+                inc.trazabilidadNotificacion,
+                inc.id,
+                {
+                  tipoUnidad: inc.trazabilidadTipoUnidad ?? undefined,
+                  reemplazarMisionActiva: true,
+                }
+              );
+            }
+          });
+        });
+
         // Preservar la marca local de misión despachada mientras el backend la propaga
         setColumnas((prev) => {
           const preservadas: Record<EstadoIncidente, IncidenteResumen[]> = { ...nuevasColumnas };
@@ -464,6 +482,9 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
         delegacionNombre: null,
         totalMisiones: 0,
         verificado: false,
+        cuadrillaAceptada: false,
+        apoyoSolicitado: false,
+        requiereCuadrillaAdicional: false,
         creadoEn: datos.creadoEn,
         actualizadoEn: datos.creadoEn,
       };
@@ -1089,14 +1110,56 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
 
   const handleTrazabilidadActualizada = useCallback(
     (payload: NotificacionTrazabilidadPayload) => {
-      if (!payload?.misionId || getIncidentePorMision(payload.misionId)) {
+      if (!payload?.misionId) {
         return;
       }
+
+      const tipoUnidadResuelto =
+        payload.tipoUnidad ??
+        (payload.cuadrillaId
+          ? 'CUADRILLA'
+          : payload.patrullaId
+            ? 'PATRULLA'
+            : undefined);
+
+      const aplicarEnColumnas = (incId: string) => {
+        setColumnas((prev) => {
+          let cambio = false;
+          const actualizado: Record<EstadoIncidente, IncidenteResumen[]> = { ...prev };
+          (Object.keys(prev) as EstadoIncidente[]).forEach((est) => {
+            actualizado[est] = prev[est].map((inc) => {
+              if (inc.id !== incId) return inc;
+              cambio = true;
+              return {
+                ...inc,
+                trazabilidadNotificacion: payload.estado,
+                trazabilidadMisionId: payload.misionId,
+                ...(tipoUnidadResuelto
+                  ? { trazabilidadTipoUnidad: tipoUnidadResuelto }
+                  : {}),
+              };
+            });
+          });
+          return cambio ? actualizado : prev;
+        });
+      };
+
+      const incIdConocido =
+        payload.incidenteId ?? getIncidentePorMision(payload.misionId);
+      if (incIdConocido) {
+        aplicarEnColumnas(incIdConocido);
+        return;
+      }
+
       void obtenerDetalleMision(payload.misionId, userId)
         .then((res) => {
           const incId = res.exito ? res.datos?.incidente?.id : undefined;
           if (incId) {
-            vincularMisionIncidente(payload.misionId, incId);
+            setTrazabilidadEstado(payload.misionId, payload.estado, incId, {
+              tipoUnidad: tipoUnidadResuelto,
+              reemplazarMisionActiva: true,
+            });
+            aplicarEnColumnas(incId);
           }
         })
         .catch(() => {

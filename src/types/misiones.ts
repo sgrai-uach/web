@@ -330,6 +330,7 @@ export interface MisionItem {
   patrullaNombre?: string | null;
   justificacionRechazo?: string | null;
   trazabilidadNotificacion?: 'PENDIENTE_ENVIO' | 'ENVIADA' | 'RECIBIDA' | 'LEIDA';
+  notificacionId?: string | null;
   fechaInicio?: string | null;
   fechaCierre?: string | null;
   creadoEn: string;
@@ -361,6 +362,7 @@ export interface MisionDetalleCompleto {
   prioridad: PrioridadMision;
   justificacionRechazo: string | null;
   trazabilidadNotificacion?: 'PENDIENTE_ENVIO' | 'ENVIADA' | 'RECIBIDA' | 'LEIDA';
+  notificacionId?: string | null;
   fechaInicio: string | null;
   fechaCierre: string | null;
   creadoEn: string;
