@@ -487,6 +487,37 @@ export function esReporteCierreCuadrilla(
 }
 
 /**
+ * Determina si un reporte de terreno corresponde a una solicitud real de apoyo adicional
+ * emitida por una cuadrilla operativa (HU-44 / HU-68).
+ * Excluye explícitamente informes de verificación/evaluación de patrulla (HU-38 / HU-39).
+ */
+export function esSolicitudApoyoCuadrilla(
+  reporte?: {
+    requiereApoyoAdicional?: boolean | null;
+    tipoReporte?: string | null;
+    dictamen?: string | null;
+    etiquetaReporte?: string | null;
+    horasHombre?: number | null;
+    materialesConsumidos?: unknown;
+  } | null
+): boolean {
+  if (!reporte || !reporte.requiereApoyoAdicional) return false;
+  if (esReporteVerificacionCierre(reporte)) return false;
+
+  const tipoNorm =
+    typeof reporte.tipoReporte === 'string'
+      ? reporte.tipoReporte.trim().toUpperCase()
+      : '';
+
+  if (tipoNorm === 'SOLICITUD_APOYO') return true;
+  if (tipoNorm === 'EVALUACION_PRIORIDAD' || tipoNorm === 'VERIFICACION_CIERRE') {
+    return false;
+  }
+
+  return esReporteCierreCuadrilla(reporte);
+}
+
+/**
  * Retorna peso jerárquico para ordenar cronológicamente/semánticamente reportes de terreno:
  * REPORTE_CUADRILLA (2) > VERIFICACION_CIERRE (1) > Evaluación inicial / rectificación (0).
  */

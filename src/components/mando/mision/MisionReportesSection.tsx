@@ -31,6 +31,7 @@ import {
   esJustificacionSinCambios,
   esReporteCierreCuadrilla,
   esReporteVerificacionCierre,
+  esSolicitudApoyoCuadrilla,
   formatearCantidadMaterial,
   formatearDictamenTerreno,
   formatearEstado,
@@ -62,7 +63,7 @@ interface MisionReportesSectionProps {
 }
 
 const DetalleApoyoReportBlock: React.FC<{ reporte: ReporteTerrenoDetalle }> = ({ reporte }) => {
-  if (!reporte.requiereApoyoAdicional) return null;
+  if (!esSolicitudApoyoCuadrilla(reporte)) return null;
   return (
     <div
       data-testid={`detalle-apoyo-reporte-${reporte.id}`}
@@ -702,7 +703,9 @@ export const MisionReportesSection: React.FC<MisionReportesSectionProps> = ({
                   ? evalNorm.familias.length
                   : evalNorm?.familiasAfectadas;
 
-              const borderLeftColor = reporte.requiereApoyoAdicional
+              const esSolicitudApoyo = esSolicitudApoyoCuadrilla(reporte);
+
+              const borderLeftColor = esSolicitudApoyo
                 ? 'var(--color-danger, #D32F2F)'
                 : esCierreCuadrilla
                   ? esTerrenoCritico
@@ -814,7 +817,7 @@ export const MisionReportesSection: React.FC<MisionReportesSectionProps> = ({
                         </Chip>
                       ) : null}
 
-                      {reporte.requiereApoyoAdicional && (
+                      {esSolicitudApoyo && (
                         <Chip
                           data-testid={`badge-apoyo-reporte-${reporte.id}`}
                           variant="danger"

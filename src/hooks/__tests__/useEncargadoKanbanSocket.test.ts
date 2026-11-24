@@ -990,4 +990,49 @@ describe('useEncargadoKanbanSocket', () => {
       })
     );
   });
+
+  it('no deriva apoyoSolicitado=true cuando ultimoReporte en incidente:actualizado proviene de VERIFICACION_CIERRE', () => {
+    const socket = getSocket();
+    const onIncidenteActualizado = vi.fn();
+
+    renderHook(() =>
+      useEncargadoKanbanSocket({
+        onIncidenteActualizado,
+      })
+    );
+
+    const trigger = (socket as unknown as { _trigger: (ev: string, p: unknown) => void })._trigger;
+
+    act(() => {
+      trigger('incidente:actualizado', {
+        evento: 'incidente:actualizado',
+        datos: {
+          id: 'inc-verif-1',
+          codigo: 'INC-466106-503',
+          nuevoEstado: 'VERIFICANDO',
+          prioridad: 'ALTA',
+          actualizadoEn: '2026-11-23T21:00:00.000Z',
+          ultimoReporte: {
+            origen: 'REPORTE_TERRENO',
+            reporteId: 'rep-verif-1',
+            misionId: 'mis-verif-1',
+            misionCodigo: 'MIS-2026-0100',
+            evaluadorNombre: 'Patrulla Costa 1',
+            creadoEn: '2026-11-23T21:00:00.000Z',
+            resumen: 'Cierre de verificación que requiere cuadrilla',
+            prioridadAsignada: 'ALTA',
+            tipoReporte: 'VERIFICACION_CIERRE',
+            dictamen: 'REQUIERE_CUADRILLA',
+            requiereApoyoAdicional: true,
+            detalleApoyoRequerido: 'Requiere cuadrilla hidráulica',
+          },
+        },
+      });
+    });
+
+    expect(onIncidenteActualizado).toHaveBeenCalledTimes(1);
+    const payloadRecibido = onIncidenteActualizado.mock.calls[0]?.[0];
+    expect(payloadRecibido?.datos?.apoyoSolicitado).toBeUndefined();
+    expect(payloadRecibido?.datos?.detalleApoyoRequerido).toBeUndefined();
+  });
 });

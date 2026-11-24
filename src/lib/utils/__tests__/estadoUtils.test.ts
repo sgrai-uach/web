@@ -13,6 +13,7 @@ import {
   limpiarDescripcionBitacora,
   formatearDictamenTerreno,
   esReporteVerificacionCierre,
+  esSolicitudApoyoCuadrilla,
   calcularComparativaPersonasAfectadas,
   esReporteCierreCuadrilla,
   obtenerPesoOrdenReporte,
@@ -364,6 +365,51 @@ describe('H68: utilidades para cierre de misión de cuadrilla (REPORTE_CUADRILLA
     );
     expect(formatearNombreCuadrilla('   ')).toBe('Cuadrilla Operativa');
     expect(formatearNombreCuadrilla(null, 'Unidad Alpha')).toBe('Unidad Alpha');
+  });
+
+  it('distingue solicitudes reales de apoyo de cuadrilla frente a reportes de verificación de patrulla', () => {
+    expect(
+      esSolicitudApoyoCuadrilla({
+        tipoReporte: 'VERIFICACION_CIERRE',
+        dictamen: 'REQUIERE_CUADRILLA',
+        requiereApoyoAdicional: true,
+      })
+    ).toBe(false);
+
+    expect(
+      esSolicitudApoyoCuadrilla({
+        tipoReporte: 'EVALUACION_PRIORIDAD',
+        requiereApoyoAdicional: true,
+      })
+    ).toBe(false);
+
+    expect(
+      esSolicitudApoyoCuadrilla({
+        etiquetaReporte: 'Reporte de Evaluación #2 (Rectificación)',
+        requiereApoyoAdicional: true,
+      })
+    ).toBe(false);
+
+    expect(
+      esSolicitudApoyoCuadrilla({
+        tipoReporte: 'SOLICITUD_APOYO',
+        requiereApoyoAdicional: true,
+      })
+    ).toBe(true);
+
+    expect(
+      esSolicitudApoyoCuadrilla({
+        tipoReporte: 'REPORTE_CUADRILLA',
+        requiereApoyoAdicional: true,
+      })
+    ).toBe(true);
+
+    expect(
+      esSolicitudApoyoCuadrilla({
+        tipoReporte: 'SOLICITUD_APOYO',
+        requiereApoyoAdicional: false,
+      })
+    ).toBe(false);
   });
 });
 

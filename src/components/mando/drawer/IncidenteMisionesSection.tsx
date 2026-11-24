@@ -830,7 +830,7 @@ export const IncidenteMisionesSection: React.FC<IncidenteMisionesSectionProps> =
                       {formatearHorasHombre(ultimoReporte.horasHombre)}
                     </Chip>
                   )}
-                  {ultimoReporte.requiereApoyoAdicional && (
+                  {esCierreCuadrilla && ultimoReporte.requiereApoyoAdicional && (
                     <Chip variant="warning" size="sm">
                       Requiere Apoyo
                     </Chip>

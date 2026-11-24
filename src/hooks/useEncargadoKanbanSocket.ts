@@ -30,6 +30,7 @@ import {
   esJustificacionSinCambios,
   esReporteCierreCuadrilla,
   esReporteVerificacionCierre,
+  esSolicitudApoyoCuadrilla,
   formatearDictamenTerreno,
   formatearEstado,
   formatearEstadoTerreno,
@@ -419,21 +420,37 @@ export function useEncargadoKanbanSocket({
               ? rawReporte.requiereAsistenciaSocial
               : undefined;
 
+      const esApoyoCuadrillaReporte = esSolicitudApoyoCuadrilla(
+        rawReporte as
+          | {
+              requiereApoyoAdicional?: boolean | null;
+              tipoReporte?: string | null;
+              dictamen?: string | null;
+              etiquetaReporte?: string | null;
+              horasHombre?: number | null;
+              materialesConsumidos?: unknown;
+            }
+          | null
+          | undefined
+      );
+
       const apoyoSolicitado =
         typeof rawDatos?.apoyoSolicitado === 'boolean'
           ? rawDatos.apoyoSolicitado
           : typeof rawDatos?.apoyo_solicitado === 'boolean'
             ? rawDatos.apoyo_solicitado
-            : typeof rawReporte?.requiereApoyoAdicional === 'boolean'
-              ? rawReporte.requiereApoyoAdicional
-              : undefined;
+            : esApoyoCuadrillaReporte
+              ? true
+              : rawReporte?.requiereApoyoAdicional === false
+                ? false
+                : undefined;
 
       const detalleApoyoRequerido =
         typeof rawDatos?.detalleApoyoRequerido === 'string'
           ? rawDatos.detalleApoyoRequerido
           : typeof rawDatos?.detalle_apoyo_requerido === 'string'
             ? rawDatos.detalle_apoyo_requerido
-            : rawReporte?.detalleApoyoRequerido !== undefined
+            : esApoyoCuadrillaReporte && rawReporte?.detalleApoyoRequerido !== undefined
               ? rawReporte.detalleApoyoRequerido
               : undefined;
 

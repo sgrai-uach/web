@@ -14,6 +14,7 @@ import {
   esJustificacionSinCambios,
   esReporteCierreCuadrilla,
   esReporteVerificacionCierre,
+  esSolicitudApoyoCuadrilla,
   formatearCantidadMaterial,
   formatearDictamenTerreno,
   formatearEstadoTerreno,
@@ -150,21 +151,24 @@ export const IncidenteUltimoReporteSection: React.FC<IncidenteUltimoReporteSecti
 
   const requiereApoyoActual = React.useMemo(() => {
     if (!ultimoReporte || ultimoReporte.origen === 'RECLASIFICACION') return false;
-    return Boolean(
-      reporteTerrenoReciente?.requiereApoyoAdicional ??
-        ultimoReporte.requiereApoyoAdicional
-    );
+    const reporteEvaluarApoyo =
+      reporteTerrenoReciente && reporteTerrenoReciente.id === ultimoReporte.reporteId
+        ? { ...ultimoReporte, ...reporteTerrenoReciente }
+        : ultimoReporte;
+    return esSolicitudApoyoCuadrilla(reporteEvaluarApoyo);
   }, [ultimoReporte, reporteTerrenoReciente]);
 
   const detalleApoyoActual = React.useMemo(() => {
-    if (!ultimoReporte || ultimoReporte.origen === 'RECLASIFICACION') return null;
+    if (!requiereApoyoActual || !ultimoReporte || ultimoReporte.origen === 'RECLASIFICACION') {
+      return null;
+    }
     return (
       reporteTerrenoReciente?.detalleApoyoRequerido ??
       ultimoReporte.detalleApoyoRequerido ??
       detalle.detalleApoyoRequerido ??
       null
     );
-  }, [ultimoReporte, reporteTerrenoReciente, detalle.detalleApoyoRequerido]);
+  }, [requiereApoyoActual, ultimoReporte, reporteTerrenoReciente, detalle.detalleApoyoRequerido]);
 
   const dictamenCierre = React.useMemo(() => {
     if (!esCierre) return null;

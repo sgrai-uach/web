@@ -545,6 +545,7 @@ describe('Componente IncidenteDetalleDrawer e integración HU-17', () => {
     expect(bloqueUltimo).toBeDefined();
     expect(bloqueUltimo.textContent).toContain('Reporte #2 — Rectificación Vigente');
     expect(bloqueUltimo.textContent).toContain('Segundo reporte rectificado desde terreno.');
+    expect(screen.queryByTestId('ultimo-reporte-badge-apoyo')).toBeNull();
 
     // Clic en "Ver Todos los Reportes (2)" para abrir el detalle de la misión enfocado en reportes
     const btnVerTodos = screen.getByRole('button', {
@@ -1625,6 +1626,7 @@ describe('Componente IncidenteDetalleDrawer e integración HU-17', () => {
         prioridadAsignada: 'ALTA',
         versionReporte: 1,
         esRectificacion: false,
+        tipoReporte: 'SOLICITUD_APOYO',
         requiereApoyoAdicional: true,
         detalleApoyoRequerido: 'Se solicita motoniveladora y cuadrilla adicional de despeje',
       },
@@ -1690,5 +1692,158 @@ describe('Componente IncidenteDetalleDrawer e integración HU-17', () => {
     expect(screen.getByTestId('ultimo-reporte-detalle-apoyo').textContent).toContain(
       'Se solicita motoniveladora y cuadrilla adicional de despeje'
     );
+  });
+
+  it('no muestra banner ni badge de Apoyo Solicitado cuando el último reporte es VERIFICACION_CIERRE de patrulla sin cuadrilla asignada', async () => {
+    const detalleSoloVerificacion: IncidenteDetalle = {
+      ...mockDetalleIncidente,
+      estado: 'VERIFICANDO',
+      apoyoSolicitado: false,
+      detalleApoyoRequerido: null,
+      misiones: [
+        {
+          id: 'm-verif-cierre-1',
+          codigo: 'MIS-2026-0099',
+          titulo: 'Verificación en terreno',
+          descripcion: null,
+          tipoMision: 'VERIFICACION',
+          estado: 'COMPLETADA',
+          prioridad: 'ALTA',
+          justificacionRechazo: null,
+          patrulla: { id: 'p1', nombre: 'Patrulla Costa 1', estado: 'DISPONIBLE' },
+          cuadrilla: null,
+          fechaInicio: '2026-11-23T20:05:00Z',
+          fechaCierre: '2026-11-23T20:30:00Z',
+          creadoEn: '2026-11-23T20:00:00Z',
+        },
+      ],
+      ultimoReporte: {
+        origen: 'REPORTE_TERRENO',
+        reporteId: 'rep-verif-cierre-1',
+        misionId: 'm-verif-cierre-1',
+        misionCodigo: 'MIS-2026-0099',
+        evaluadorNombre: 'Patrulla Costa 1',
+        creadoEn: '2026-11-23T20:30:00Z',
+        resumen: 'Verificación finalizada: se requiere cuadrilla.',
+        prioridadAsignada: 'ALTA',
+        versionReporte: 2,
+        esRectificacion: false,
+        tipoReporte: 'VERIFICACION_CIERRE',
+        dictamen: 'REQUIERE_CUADRILLA',
+        etiquetaReporte: 'Informe de Verificación y Cierre',
+        requiereApoyoAdicional: true,
+        detalleApoyoRequerido: 'Requiere cuadrilla de despeje',
+      },
+      reportesEvaluacionTerreno: [
+        {
+          id: 'rep-verif-cierre-1',
+          misionId: 'm-verif-cierre-1',
+          versionReporte: 2,
+          esRectificacion: false,
+          tipoReporte: 'VERIFICACION_CIERRE',
+          dictamen: 'REQUIERE_CUADRILLA',
+          etiquetaReporte: 'Informe de Verificación y Cierre',
+          prioridadSugerida: 'ALTA',
+          prioridadAsignada: 'ALTA',
+          justificacionPrioridad: 'Anegamiento activo en acceso.',
+          resumenTecnico: 'Verificación finalizada: se requiere cuadrilla.',
+          accionesRealizadas: null,
+          danosEstimados: null,
+          observaciones: null,
+          personasAfectadas: 3,
+          requiereApoyoAdicional: true,
+          detalleApoyoRequerido: 'Requiere cuadrilla de despeje',
+          evaluacion: { nucleoFamiliarTotal: 3 },
+          evaluador: {
+            id: 'u-pat-1',
+            nombre: 'Patrulla Costa 1',
+            email: 'patrulla@valdivia.cl',
+          },
+          creadoEn: '2026-11-23T20:30:00Z',
+        },
+      ],
+    };
+
+    vi.spyOn(incidentesService, 'obtenerDetalleIncidente').mockResolvedValueOnce({
+      exito: true,
+      datos: detalleSoloVerificacion,
+      mensaje: 'OK',
+    });
+
+    vi.spyOn(misionesService, 'obtenerDetalleMision').mockResolvedValueOnce({
+      exito: true,
+      datos: {
+        ...mockMisionDetalle,
+        id: 'm-verif-cierre-1',
+        codigo: 'MIS-2026-0099',
+        tipoMision: 'VERIFICACION',
+        estado: 'COMPLETADA',
+        cuadrilla: null,
+        patrulla: {
+          id: 'p1',
+          nombre: 'Patrulla Costa 1',
+          estado: 'DISPONIBLE',
+          delegacionNombre: 'Costa',
+          responsable: null,
+          vehiculo: null,
+        },
+        reportesTerreno: [
+          {
+            id: 'rep-verif-cierre-1',
+            misionId: 'm-verif-cierre-1',
+            versionReporte: 2,
+            esRectificacion: false,
+            tipoReporte: 'VERIFICACION_CIERRE',
+            dictamen: 'REQUIERE_CUADRILLA',
+            etiquetaReporte: 'Informe de Verificación y Cierre',
+            prioridadSugerida: 'ALTA',
+            prioridadAsignada: 'ALTA',
+            justificacionPrioridad: 'Anegamiento activo en acceso.',
+            resumenTecnico: 'Verificación finalizada: se requiere cuadrilla.',
+            accionesRealizadas: null,
+            danosEstimados: null,
+            observaciones: null,
+            personasAfectadas: 3,
+            requiereApoyoAdicional: true,
+            detalleApoyoRequerido: 'Requiere cuadrilla de despeje',
+            evaluacion: { nucleoFamiliarTotal: 3 },
+            evaluador: {
+              id: 'u-pat-1',
+              nombre: 'Patrulla Costa 1',
+              email: 'patrulla@valdivia.cl',
+            },
+            creadoEn: '2026-11-23T20:30:00Z',
+          },
+        ],
+      },
+      mensaje: 'Mision OK',
+    });
+
+    render(
+      <IncidenteDetalleDrawer
+        incidenteId="i1000000-0000-4000-8000-000000000001"
+        userId="user-test"
+        onCerrar={vi.fn()}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('INC-2026-0042')).toBeDefined();
+    });
+
+    expect(screen.queryByTestId('banner-apoyo-solicitado')).toBeNull();
+    expect(screen.queryByTestId('ultimo-reporte-badge-apoyo')).toBeNull();
+    expect(screen.queryByTestId('ultimo-reporte-detalle-apoyo')).toBeNull();
+
+    const btnVerTodos = screen.getByRole('button', {
+      name: /Ver todos los reportes de la misión MIS-2026-0099/i,
+    });
+    fireEvent.click(btnVerTodos);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('mision-reportes-section')).toBeDefined();
+    });
+
+    expect(screen.queryByTestId('badge-apoyo-reporte-rep-verif-cierre-1')).toBeNull();
   });
 });
