@@ -20,8 +20,8 @@ Conforme a la **Regla de Negocio Crítica ICS §3.2 (Incident Command System)**,
 ## 2. Reglas de Operación y Validación
 
 1. **Estados del Incidente Elegibles:**
-   - La opción de asignación de cuadrilla únicamente se encuentra disponible en incidentes en estado **`REPORTADO`** o **`VERIFICANDO`**.
-   - Si el incidente ya se encuentra en **`EN_ATENCION`**, **`RESUELTO`** o **`NO_ABORDABLE`**, el control no se desplegará.
+   - La opción de asignación de cuadrilla se encuentra disponible en incidentes en estado **`VERIFICANDO`** (con evaluación técnica completada) y siempre habilitada mientras el incidente esté en **`EN_ATENCION`** (para despachar cuadrillas adicionales de apoyo con una misión distinta, tanto con cuadrilla activa en terreno como tras cierre de faenas H68).
+   - Si el incidente ya se encuentra en **`RESUELTO`** o **`NO_ABORDABLE`**, el control no se desplegará.
 2. **Validación Preventiva de Verificación Técnica en Terreno:**
    - Si el incidente tiene una patrulla verificadora en terreno con misión activa (`PLANIFICADA`, `ASIGNADA`, `DESPACHADA`, `EN_CAMINO`, `EN_SITIO` o `EN_CURSO`), **el sistema bloquea preventivamente el despacho de cuadrillas**.
    - El Encargado debe aguardar a que la patrulla concluya la evaluación técnica y registre su informe para desplegar la respuesta de intervención pesada.
@@ -55,12 +55,14 @@ Conforme a la **Regla de Negocio Crítica ICS §3.2 (Incident Command System)**,
 2. **Revisión de Relevo ICS §3.2:**  
    Si existía una patrulla previa, una tarjeta verde destacada informará:  
    *«Regla de Negocio ICS §3.2: Al confirmar el despacho, la patrulla verificadora [Nombre] será automáticamente relevada a estado DISPONIBLE y su misión previa se marcará como COMPLETADA.»*
-3. **Selección de Cuadrilla:**  
-   En el selector **"Cuadrilla Operativa"**, elija la dotación disponible idónea según delegación territorial y cantidad de operarios.
-4. **Prioridad de Despacho:**  
+3. **Selección de Cuadrilla y Dotación Actual:**  
+   En el selector **"Cuadrilla Operativa"**, elija la dotación disponible idónea; el formulario mostrará automáticamente la dotación humana y los recursos actuales asignados a esa cuadrilla.
+4. **Recursos Adicionales del Inventario (Opcional):**  
+   Puede incorporar recursos adicionales disponibles (maquinaria, vehículos o insumos), los cuales quedarán vinculados de forma permanente a la dotación activa de la cuadrilla seleccionada hasta su edición posterior.
+5. **Prioridad de Despacho:**  
    Viene precargada con la prioridad actual del incidente (`BAJA`, `MEDIA`, `ALTA` o `CRITICA`). Puede ajustarla si la contingencia lo amerita.
-5. **Título e Instrucciones Tácticas (Opcional):**  
-   Consigne instrucciones de trabajo para el Delegado de Cuadrilla (ej. *"Despeje urgente de árbol con motosierra y retiro de escombros"*).
+6. **Título e Instrucciones Tácticas (Opcional):**  
+   Consigne instrucciones de trabajo para el Delegado de Cuadrilla (ej. *"Despeje urgente de árbol con motosierra y retiro de escombros"*). En incidentes en `EN_ATENCION`, el título sugerido inicia como *"Apoyo táctico - ..."* para diferenciar la nueva misión.
 
 ---
 

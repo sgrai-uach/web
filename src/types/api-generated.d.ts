@@ -12398,6 +12398,12 @@ export interface components {
              * @enum {string}
              */
             prioridad?: "BAJA" | "MEDIA" | "ALTA" | "CRITICA";
+            /** @description Recursos adicionales permanentes a asignar a la cuadrilla al momento del despacho */
+            recursosAdicionales?: {
+                /** Format: uuid */
+                recursoId: string;
+                cantidad: number;
+            }[];
         };
         AsignarCuadrillaMisionResponse: {
             /** @example Cuadrilla asignada y despachada exitosamente al incidente. Patrulla verificadora liberada. */
@@ -12442,6 +12448,14 @@ export interface components {
                     descripcion: string;
                     creadoEn: string;
                 } | null;
+                recursosAdicionalesAsignados?: {
+                    /** Format: uuid */
+                    id: string;
+                    nombre: string;
+                    cantidadAsignada: number;
+                    cantidadEnUsoActual: number;
+                    estado: string;
+                }[];
             };
         };
         /** @description Datos de la patrulla verificadora previa que fue liberada automáticamente (null si no había patrulla) */

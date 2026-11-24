@@ -14,34 +14,34 @@ Alertar de forma inmediata y prioritaria al **Centro de Mando** cuando un **Dele
 
 ## 2. Recepción de Alerta Prioritaria en Tiempo Real
 
-Cuando el Delegado de Cuadrilla marca la casilla **"Requiere apoyo adicional"** e ingresa el detalle del refuerzo en `sgrai-pwa`, `sgrai-api` emite el evento WebSocket `mision:apoyo_solicitado` hacia las salas del Centro de Mando (`encargado` / `sala:encargados`). En `sgrai-web` ocurre lo siguiente de forma automática:
+Cuando el Delegado de Cuadrilla marca la casilla **"Requiere apoyo adicional"** (y opcionalmente **"Requiere cuadrilla adicional"**) e ingresa el detalle del refuerzo en `sgrai-pwa`, `sgrai-api` emite el evento WebSocket `mision:apoyo_solicitado` hacia las salas del Centro de Mando (`encargado` / `sala:encargados`). En `sgrai-web` ocurre lo siguiente de forma automática:
 
-1. **Notificación Prioritaria (Toast):**
-   - Aparece en pantalla una alerta destacada en rojo con el título **"Apoyo Adicional Solicitado en Terreno"**, indicando:
-     - Código del incidente y/o misión asociada.
-     - Nombre de la cuadrilla y del evaluador que solicitó el apoyo.
-     - Texto completo del requerimiento (ej. *"Se solicita motoniveladora y cuadrilla adicional de despeje"*).
-   - Incluye el botón de acción directa **"Ver incidente"** (o **"Ver misión"**) para abrir el detalle en un solo clic.
+1. **Notificación Prioritaria (Toast) con Destacado Escalonado:**
+   - Si se marcó **"Requiere cuadrilla adicional"** (`requiereCuadrillaAdicional: true`), aparece una alerta en **rojo prioritario** con el título **"Cuadrilla Adicional Solicitada en Terreno"**.
+   - Si solo se marcó apoyo adicional sin requerir nueva cuadrilla (`requiereCuadrillaAdicional: false`), aparece una alerta en **ámbar** con el título **"Apoyo Adicional Solicitado en Terreno"**.
+   - Ambas muestran código del incidente/misión, nombre de la cuadrilla, evaluador y el texto completo del requerimiento, con acceso directo **"Ver incidente"** / **"Ver misión"**.
 2. **Banner Superior Descartable en el Tablero:**
-   - En la parte superior del Centro de Incidentes se mantiene visible un aviso prioritario (`Apoyo Adicional Solicitado`) con acceso directo **"Revisar incidente"** hasta que el Encargado cierre o descarte la notificación.
+   - En la parte superior del Centro de Incidentes se mantiene visible un aviso prioritario (`Cuadrilla Adicional Solicitada` en rojo o `Apoyo Adicional Solicitado` en ámbar) con acceso directo **"Revisar incidente"**, el cual se limpia automáticamente si se despacha una nueva cuadrilla al incidente.
 
 ---
 
-## 3. Identificación en el Tablero Kanban, Drawer y Detalle de Misión
+## 3. Identificación en el Tablero Kanban, Drawer, Despacho de Cuadrilla y Detalle de Misión
 
 ### Paso 1: Identificar la tarjeta en el Tablero Kanban
-- La tarjeta del incidente (`IncidenteCard`) exhibe un borde izquierdo rojo de alta prioridad, el badge destacado **"Apoyo Solicitado"** y un extracto visible con el detalle del refuerzo solicitado.
-- En la columna **En Atención** (`EN_ATENCION`), los incidentes con solicitud de apoyo activa se ordenan automáticamente en la parte superior para atención inmediata.
+- La tarjeta del incidente (`IncidenteCard`) exhibe un borde izquierdo rojo y el badge **"Cuadrilla adicional solicitada"** cuando `requiereCuadrillaAdicional` es verdadero, o borde ámbar cuando solo se solicita apoyo logístico/material sin cuadrilla adicional.
+- En la columna **En Atención** (`EN_ATENCION`), los incidentes con `requiereCuadrillaAdicional` se ordenan primero en la parte superior, seguidos por los de apoyo simple y luego el resto.
 
-### Paso 2: Revisar el detalle completo en el Drawer del Incidente
+### Paso 2: Revisar el detalle completo y despachar refuerzos desde el Drawer
 1. Haz clic sobre la tarjeta del incidente (o en **"Ver incidente"** desde la alerta).
-2. En la zona superior del Drawer se muestra el banner **"Apoyo Adicional Solicitado en Terreno"** con el texto íntegro del requerimiento.
-3. En la sección **"Último Reporte de Terreno"** se muestra el chip **"Apoyo Solicitado"** y el bloque **"Detalle de apoyo requerido"**.
+2. En la zona superior del Drawer se muestra el banner de apoyo (rojo o ámbar) con el texto íntegro del requerimiento.
+3. En la barra **"Intervención Táctica Operativa"**, el botón **"Despachar Cuadrilla"** permanece siempre habilitado mientras el incidente esté en estado `EN_ATENCION` (tanto con cuadrilla activa en terreno como tras cierre de faenas H68), destacando en **rojo destructivo + badge "Cuadrilla adicional solicitada"** cuando se pidió otra cuadrilla, o en **ámbar** cuando es apoyo general.
+4. Al abrir **"Despachar Cuadrilla Operativa"**, puedes revisar las cuadrillas actualmente desplegadas, la dotación actual de recursos de la cuadrilla disponible elegida y añadir opcionalmente **recursos adicionales del inventario** (vehículos, maquinaria o insumos con stock disponible), los cuales quedan vinculados de forma permanente a la dotación activa de esa cuadrilla hasta edición posterior.
+5. Una vez despachada la nueva cuadrilla con su misión distinta (ej. *"Apoyo táctico - INC-..."*), los destacados activos de apoyo del incidente se apagan automáticamente, conservando el reporte en el historial de la misión (y reactivándose si esa nueva misión es rechazada).
 
 ### Paso 3: Auditar el reporte e hito en el Detalle de Misión
 1. Dentro del Drawer, presiona **"Ver Detalles"** sobre la misión de la cuadrilla.
-2. En **Bitácora Cronológica de Operaciones** figura el hito **"Apoyo Adicional Solicitado"** (`APOYO_SOLICITADO`) marcado con ícono de alerta en rojo y su marca horaria.
-3. En **Informes Técnicos y Reportes de Terreno**, el reporte correspondiente incluye el chip **"Apoyo Solicitado"** y el bloque **"Detalle de Apoyo Requerido"** con la descripción completa.
+2. En **Bitácora Cronológica de Operaciones** figura el hito **"Apoyo Adicional Solicitado"** (`APOYO_SOLICITADO`) marcado con ícono de alerta y su marca horaria.
+3. En **Informes Técnicos y Reportes de Terreno**, el reporte correspondiente incluye el chip **"Apoyo Solicitado"** (y **"Cuadrilla adicional solicitada"** si aplica) junto al bloque **"Detalle de Apoyo Requerido"** con la descripción completa.
 
 ---
 

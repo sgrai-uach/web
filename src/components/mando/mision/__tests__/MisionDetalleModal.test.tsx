@@ -1699,6 +1699,7 @@ describe('Componente MisionDetalleModal (HU-17)', () => {
           resumenTecnico: 'Derrumbe secundario bloquea acceso norte.',
           accionesRealizadas: null,
           requiereApoyoAdicional: true,
+          requiereCuadrillaAdicional: true,
           detalleApoyoRequerido: 'Se solicita motoniveladora y cuadrilla adicional de despeje',
           danosEstimados: null,
           observaciones: null,
@@ -1750,6 +1751,9 @@ describe('Componente MisionDetalleModal (HU-17)', () => {
 
     expect(screen.getByTestId('badge-apoyo-reporte-rep-h44-1').textContent).toContain(
       'Apoyo Solicitado'
+    );
+    expect(screen.getByTestId('badge-cuadrilla-adicional-reporte-rep-h44-1').textContent).toContain(
+      'Cuadrilla adicional solicitada'
     );
     expect(screen.getByTestId('detalle-apoyo-reporte-rep-h44-1').textContent).toContain(
       'Se solicita motoniveladora y cuadrilla adicional de despeje'

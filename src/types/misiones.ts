@@ -70,6 +70,7 @@ export interface EvaluacionTerrenoMisionDetalle {
   requiereEvacuacion?: boolean;
   requiereAsistenciaSocial?: boolean;
   requiereApoyoAdicional?: boolean;
+  requiereCuadrillaAdicional?: boolean;
   detalleApoyoRequerido?: string | null;
   riesgosActivos?: {
     riesgoElectrico?: boolean;
@@ -140,6 +141,7 @@ export interface ReporteTerrenoDetalle {
   resumenFaenas?: string | null;
   accionesRealizadas: string | null;
   requiereApoyoAdicional: boolean;
+  requiereCuadrillaAdicional?: boolean;
   detalleApoyoRequerido?: string | null;
   danosEstimados: string | null;
   observaciones: string | null;
@@ -194,6 +196,7 @@ export interface MisionApoyoSolicitadoPayload {
   evaluadorId?: string | null;
   evaluadorNombre?: string | null;
   requiereApoyoAdicional: boolean;
+  requiereCuadrillaAdicional?: boolean;
   detalleApoyoRequerido: string | null;
   prioridadAlerta?: 'ALTA' | 'CRITICA' | string;
   solicitadoEn: string;
@@ -378,7 +381,12 @@ export interface MisionDetalleResponse {
   message: string;
   data: MisionDetalleCompleto;
 }
-/** DTO de entrada para despachar cuadrilla operativa a un incidente (HU-21) */
+export interface RecursoAdicionalDespachoDTO {
+  recursoId: string;
+  cantidad: number;
+}
+
+/** DTO de entrada para despachar cuadrilla operativa a un incidente (HU-21 / HU-44) */
 export interface DespacharCuadrillaDTO {
   tipoMision: 'ATENCION_CUADRILLA';
   incidenteId: string;
@@ -386,6 +394,7 @@ export interface DespacharCuadrillaDTO {
   titulo?: string;
   descripcion?: string;
   prioridad?: PrioridadMision;
+  recursosAdicionales?: RecursoAdicionalDespachoDTO[];
 }
 
 /** Información de la patrulla verificadora liberada según regla ICS §3.2 (HU-21) */

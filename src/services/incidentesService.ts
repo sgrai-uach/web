@@ -46,6 +46,7 @@ export interface EvaluacionTerrenoDetalle {
   requiereEvacuacion?: boolean;
   requiereAsistenciaSocial?: boolean;
   requiereApoyoAdicional?: boolean;
+  requiereCuadrillaAdicional?: boolean;
   riesgosActivos?: RiesgosActivosEvaluacion;
   detallesAdicionales?: string | null;
   accionesRealizadas?: string | null;
@@ -80,6 +81,7 @@ export interface ReporteEvaluacionTerreno {
   detallesAdicionales?: string | null;
   personasAfectadas: number;
   requiereApoyoAdicional: boolean;
+  requiereCuadrillaAdicional?: boolean;
   detalleApoyoRequerido?: string | null;
   horasHombre?: number | null;
   materialesConsumidos?: MaterialConsumidoDetalle[] | null;
@@ -122,6 +124,7 @@ export interface UltimoReporteIncidenteResumen {
   etiquetaReporte?: string | null;
   requiereAsistenciaSocial?: boolean;
   requiereApoyoAdicional?: boolean;
+  requiereCuadrillaAdicional?: boolean;
   detalleApoyoRequerido?: string | null;
   horasHombre?: number | null;
   materialesConsumidos?: MaterialConsumidoDetalle[] | null;
@@ -151,6 +154,7 @@ export type IncidenteResumen = ListarIncidentesResponse['data'][number] & {
   cuadrillaAceptada?: boolean;
   cuadrillaEnTerreno?: boolean;
   apoyoSolicitado?: boolean;
+  requiereCuadrillaAdicional?: boolean;
   detalleApoyoRequerido?: string | null;
 };
 export type IncidenteDetalle = Omit<
@@ -178,6 +182,7 @@ export type IncidenteDetalle = Omit<
   cuadrillaAceptada?: boolean;
   cuadrillaEnTerreno?: boolean;
   apoyoSolicitado?: boolean;
+  requiereCuadrillaAdicional?: boolean;
   detalleApoyoRequerido?: string | null;
 };
 

@@ -1791,4 +1791,171 @@ describe('useIncidentesKanban - HU-20 y BUG-04', () => {
     expect(result.current.columnas.EN_ATENCION[0].cuadrillaAceptada).toBe(true);
     expect(result.current.columnas.EN_ATENCION[0].tieneMisionEnCurso).toBe(true);
   });
+
+  it('HU-44 A3: prioriza requiereCuadrillaAdicional arriba de apoyo simple en EN_ATENCION y apaga apoyoSolicitado cuando llega incidente:actualizado con apoyoSolicitado=false', async () => {
+    let socketOptions: UseEncargadoKanbanSocketOptions | undefined;
+    vi.mocked(useEncargadoKanbanSocket).mockImplementation((opts) => {
+      socketOptions = opts;
+      return { conectado: true, ultimoEvento: null };
+    });
+
+    const incApoyoSimple: incidentesService.IncidenteResumen = {
+      id: 'inc-apoyo-simple',
+      codigo: 'INC-2026-0050',
+      codigoSeguimiento: '20260050',
+      tipoAfectacion: 'Inundación',
+      descripcion: 'Aniego de calzada',
+      direccion: 'Calle A',
+      latitud: -39.82,
+      longitud: -73.24,
+      estado: 'EN_ATENCION',
+      prioridad: 'ALTA',
+      requiereAsistenciaSocial: false,
+      fuenteOrigen: 'CHATBOT',
+      informanteNombre: 'Luis',
+      delegacionNombre: 'Sur',
+      totalMisiones: 1,
+      creadoEn: '2026-11-23T19:00:00Z',
+      actualizadoEn: '2026-11-23T19:00:00Z',
+      apoyoSolicitado: true,
+      requiereCuadrillaAdicional: false,
+      detalleApoyoRequerido: 'Combustible adicional',
+    };
+
+    const incApoyoCuadrilla: incidentesService.IncidenteResumen = {
+      ...incApoyoSimple,
+      id: 'inc-apoyo-cuad',
+      codigo: 'INC-2026-0051',
+      codigoSeguimiento: '20260051',
+      apoyoSolicitado: true,
+      requiereCuadrillaAdicional: true,
+      detalleApoyoRequerido: 'Segunda cuadrilla',
+    };
+
+    vi.mocked(incidentesService.listarIncidentes).mockImplementation(async (query) => ({
+      exito: true,
+      incidentes: query.estado === 'EN_ATENCION' ? [incApoyoSimple, incApoyoCuadrilla] : [],
+      paginacion: {
+        total: query.estado === 'EN_ATENCION' ? 2 : 0,
+        pagina: 1,
+        limite: 20,
+        totalPaginas: 1,
+        tieneSiguiente: false,
+        tieneAnterior: false,
+      },
+      mensaje: 'OK',
+    }));
+
+    const { result } = renderHook(() => useIncidentesKanban());
+
+    await waitFor(() => {
+      expect(result.current.columnas.EN_ATENCION).toHaveLength(2);
+    });
+
+    // Cuadrilla adicional solicitada (peso 2) se ordena antes que apoyo simple (peso 1)
+    expect(result.current.columnas.EN_ATENCION[0].id).toBe('inc-apoyo-cuad');
+    expect(result.current.columnas.EN_ATENCION[1].id).toBe('inc-apoyo-simple');
+
+    // Al despacharse cuadrilla adicional, A3 emite apoyoSolicitado=false -> apaga ambos flags y reordena
+    act(() => {
+      socketOptions?.onIncidenteActualizado?.({
+        evento: 'incidente:actualizado',
+        datos: {
+          id: 'inc-apoyo-cuad',
+          codigo: 'INC-2026-0051',
+          nuevoEstado: 'EN_ATENCION',
+          prioridad: 'ALTA',
+          apoyoSolicitado: false,
+          requiereCuadrillaAdicional: false,
+          detalleApoyoRequerido: null,
+          tieneMisionEnCurso: true,
+          faenasCuadrillaCompletadas: false,
+          actualizadoEn: '2026-11-23T21:00:00Z',
+        },
+        emitidoEn: '2026-11-23T21:00:00Z',
+      });
+    });
+
+    const incDespues = result.current.columnas.EN_ATENCION.find(
+      (i) => i.id === 'inc-apoyo-cuad'
+    );
+    expect(incDespues?.apoyoSolicitado).toBe(false);
+    expect(incDespues?.requiereCuadrillaAdicional).toBe(false);
+    expect(incDespues?.detalleApoyoRequerido).toBeNull();
+    expect(result.current.columnas.EN_ATENCION[0].id).toBe('inc-apoyo-simple');
+  });
+
+  it('HU-44 multi-cuadrilla: al recibir mision:rechazada con incidenteEstado EN_ATENCION mantiene el incidente en EN_ATENCION y preserva cuadrillaAceptada/apoyo', async () => {
+    let socketOptions: UseEncargadoKanbanSocketOptions | undefined;
+    vi.mocked(useEncargadoKanbanSocket).mockImplementation((opts) => {
+      socketOptions = opts;
+      return { conectado: true, ultimoEvento: null };
+    });
+
+    const incEnAtencionMulti: incidentesService.IncidenteResumen = {
+      id: 'inc-multi-rej',
+      codigo: 'INC-2026-0088',
+      codigoSeguimiento: '20260088',
+      tipoAfectacion: 'Deslizamiento',
+      descripcion: 'Remoción en masa',
+      direccion: 'Sector Norte',
+      latitud: -39.81,
+      longitud: -73.23,
+      estado: 'EN_ATENCION',
+      prioridad: 'CRITICA',
+      requiereAsistenciaSocial: false,
+      fuenteOrigen: 'CHATBOT',
+      informanteNombre: 'Ana',
+      delegacionNombre: 'Norte',
+      totalMisiones: 2,
+      creadoEn: '2026-11-24T10:00:00Z',
+      actualizadoEn: '2026-11-24T10:30:00Z',
+      cuadrillaAceptada: true,
+      tieneMisionEnCurso: true,
+      tieneMisionDespachada: true,
+      apoyoSolicitado: true,
+      requiereCuadrillaAdicional: true,
+      detalleApoyoRequerido: 'Se requiere otra cuadrilla',
+    };
+
+    vi.mocked(incidentesService.listarIncidentes).mockImplementation(async (query) => ({
+      exito: true,
+      incidentes: query.estado === 'EN_ATENCION' ? [incEnAtencionMulti] : [],
+      paginacion: {
+        total: query.estado === 'EN_ATENCION' ? 1 : 0,
+        pagina: 1,
+        limite: 20,
+        totalPaginas: 1,
+        tieneSiguiente: false,
+        tieneAnterior: false,
+      },
+      mensaje: 'OK',
+    }));
+
+    const { result } = renderHook(() => useIncidentesKanban());
+
+    await waitFor(() => {
+      expect(result.current.columnas.EN_ATENCION).toHaveLength(1);
+    });
+
+    act(() => {
+      socketOptions?.onMisionRechazada?.({
+        misionId: 'mis-extra-rech',
+        codigo: 'MIS-2026-0089',
+        tipoMision: 'ATENCION_CUADRILLA',
+        incidenteId: 'inc-multi-rej',
+        incidenteEstado: 'EN_ATENCION',
+        justificacion: 'Sin acceso por corte de puente',
+        rechazadoEn: '2026-11-24T11:00:00Z',
+      });
+    });
+
+    expect(result.current.columnas.VERIFICANDO).toHaveLength(0);
+    expect(result.current.columnas.EN_ATENCION).toHaveLength(1);
+    expect(result.current.columnas.EN_ATENCION[0].cuadrillaAceptada).toBe(true);
+    expect(result.current.columnas.EN_ATENCION[0].tieneMisionEnCurso).toBe(true);
+    expect(result.current.columnas.EN_ATENCION[0].tieneMisionDespachada).toBe(false);
+    expect(result.current.columnas.EN_ATENCION[0].apoyoSolicitado).toBe(true);
+    expect(result.current.columnas.EN_ATENCION[0].requiereCuadrillaAdicional).toBe(true);
+  });
 });

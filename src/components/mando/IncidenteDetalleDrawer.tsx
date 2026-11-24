@@ -199,9 +199,10 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
     );
   }, [detalle]);
 
-  // 1. Visibilidad: Mostrar acción táctica de despacho solo tras verificación completada y sin cuadrilla activa
+  // 1. Visibilidad: Mostrar acción táctica de despacho en EN_ATENCION (siempre) o VERIFICANDO con evaluación completada
   const puedeDespacharCuadrilla = useMemo(() => {
     if (!tienePermisoAsignar || !detalle) return false;
+    if (detalle.estado === 'EN_ATENCION') return true;
     return (
       detalle.estado === 'VERIFICANDO' &&
       misionVerificacion?.estado === 'COMPLETADA' &&
@@ -255,6 +256,16 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
         dedupKey: `despacho-cuadrilla:${resultado.incidente.id}:${resultado.cuadrilla.id}`,
         details: detallesDespacho,
       }
+    );
+    setDetalle((prev) =>
+      prev
+        ? {
+            ...prev,
+            apoyoSolicitado: false,
+            requiereCuadrillaAdicional: false,
+            detalleApoyoRequerido: null,
+          }
+        : prev
     );
     cargarDetalle();
     onIncidenteActualizado?.();
@@ -369,9 +380,9 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
             tipoAfectacion: nuevoTipo,
             misiones: prev.misiones.map((m) => {
               if (esCierreCuadrilla && m.tipoMision === 'ATENCION_CUADRILLA') {
-                const coincide =
-                  (reporteEntranteRef?.misionId && m.id === reporteEntranteRef.misionId) ||
-                  ['PLANIFICADA', 'DESPACHADA', 'EN_CURSO'].includes(m.estado);
+                const coincide = reporteEntranteRef?.misionId
+                  ? m.id === reporteEntranteRef.misionId
+                  : ['PLANIFICADA', 'DESPACHADA', 'EN_CURSO'].includes(m.estado);
                 if (coincide) {
                   return {
                     ...m,
@@ -416,9 +427,37 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
                 : esCierreVerificacion
                   ? true
                   : prev.verificado,
-            faenasCuadrillaCompletadas: esCierreCuadrilla
-              ? true
-              : prev.faenasCuadrillaCompletadas,
+            faenasCuadrillaCompletadas:
+              typeof rawDatos?.faenasCuadrillaCompletadas === 'boolean'
+                ? rawDatos.faenasCuadrillaCompletadas
+                : esCierreCuadrilla
+                  ? true
+                  : prev.faenasCuadrillaCompletadas,
+            apoyoSolicitado:
+              typeof rawDatos?.apoyoSolicitado === 'boolean'
+                ? rawDatos.apoyoSolicitado
+                : reporteEntranteRef?.requiereApoyoAdicional !== undefined
+                  ? Boolean(reporteEntranteRef.requiereApoyoAdicional) || Boolean(prev.apoyoSolicitado)
+                  : prev.apoyoSolicitado,
+            requiereCuadrillaAdicional:
+              rawDatos?.apoyoSolicitado === false
+                ? false
+                : typeof rawDatos?.requiereCuadrillaAdicional === 'boolean'
+                  ? rawDatos.requiereCuadrillaAdicional
+                  : typeof rawDatos?.requiere_cuadrilla_adicional === 'boolean'
+                    ? rawDatos.requiere_cuadrilla_adicional
+                    : reporteEntranteRef?.requiereCuadrillaAdicional !== undefined
+                      ? Boolean(reporteEntranteRef.requiereCuadrillaAdicional) ||
+                        Boolean(prev.requiereCuadrillaAdicional)
+                      : prev.requiereCuadrillaAdicional,
+            detalleApoyoRequerido:
+              rawDatos?.apoyoSolicitado === false
+                ? null
+                : typeof rawDatos?.detalleApoyoRequerido === 'string'
+                  ? rawDatos.detalleApoyoRequerido
+                  : reporteEntranteRef?.detalleApoyoRequerido !== undefined
+                    ? reporteEntranteRef.detalleApoyoRequerido
+                    : prev.detalleApoyoRequerido,
             estadoTerrenoFinal: esCierreCuadrilla
               ? reporteEntranteRef?.estadoTerreno ?? prev.estadoTerrenoFinal
               : prev.estadoTerrenoFinal,
@@ -660,13 +699,24 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
           : typeof raw.requiere_apoyo_adicional === 'boolean'
             ? raw.requiere_apoyo_adicional
             : true;
+      const requiereCuadrillaAdicional =
+        requiereApoyo === false
+          ? false
+          : typeof raw.requiereCuadrillaAdicional === 'boolean'
+            ? raw.requiereCuadrillaAdicional
+            : typeof raw.requiere_cuadrilla_adicional === 'boolean'
+              ? raw.requiere_cuadrilla_adicional
+              : false;
 
       setDetalle((prev) => {
         if (!prev || prev.id !== incidenteId) return prev;
         return {
           ...prev,
           apoyoSolicitado: Boolean(requiereApoyo),
-          detalleApoyoRequerido: detalleApoyo ?? prev.detalleApoyoRequerido ?? null,
+          requiereCuadrillaAdicional,
+          detalleApoyoRequerido: Boolean(requiereApoyo)
+            ? detalleApoyo ?? prev.detalleApoyoRequerido ?? null
+            : null,
         };
       });
 
@@ -886,12 +936,18 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
               data-testid="banner-apoyo-solicitado"
               style={{
                 padding: 'var(--space-2, 8px) var(--space-4, 16px)',
-                borderBottom: '1px solid #FFCDD2',
+                borderBottom: detalle.requiereCuadrillaAdicional
+                  ? '1px solid #FFCDD2'
+                  : '1px solid #FFE0B2',
               }}
             >
               <InlineNotice
-                variant="error"
-                title="Apoyo Adicional Solicitado en Terreno"
+                variant={detalle.requiereCuadrillaAdicional ? 'error' : 'warning'}
+                title={
+                  detalle.requiereCuadrillaAdicional
+                    ? 'Cuadrilla Adicional Solicitada en Terreno'
+                    : 'Apoyo Adicional Solicitado en Terreno'
+                }
                 icon={<AlertTriangle size={18} aria-hidden="true" />}
               >
                 <p style={{ margin: 0, fontSize: '0.8125rem' }}>
@@ -902,91 +958,175 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
             </div>
           )}
 
-          {/* Barra táctica de despacho de cuadrilla operativa (HU-21 / Regla ICS §3.2) */}
-          {puedeDespacharCuadrilla && detalle && (
-            <div
-              style={{
-                backgroundColor: 'var(--color-bg-light, #ECEFF3)',
-                padding: 'var(--space-3, 12px) var(--space-4, 16px)',
-                borderBottom: '2px solid var(--border-color-neutral, #DFE3E8)',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '0.5rem',
-              }}
-            >
+          {/* Barra táctica de despacho de cuadrilla operativa (HU-21 / Regla ICS §3.2 / HU-44) */}
+          {puedeDespacharCuadrilla && detalle && (() => {
+            const apoyoActivo = Boolean(detalle.apoyoSolicitado);
+            const apoyoCuadrillaRojo = Boolean(apoyoActivo && detalle.requiereCuadrillaAdicional);
+            const apoyoAmbar = Boolean(apoyoActivo && !detalle.requiereCuadrillaAdicional);
+
+            return (
               <div
+                data-testid="barra-tactica-despacho-cuadrilla"
                 style={{
+                  backgroundColor: apoyoCuadrillaRojo
+                    ? 'var(--color-danger-bg, #FFEBEE)'
+                    : apoyoAmbar
+                      ? 'var(--color-warning-bg, #FFF3E0)'
+                      : 'var(--color-bg-light, #ECEFF3)',
+                  padding: 'var(--space-3, 12px) var(--space-4, 16px)',
+                  borderBottom: apoyoCuadrillaRojo
+                    ? '2px solid #FFCDD2'
+                    : apoyoAmbar
+                      ? '2px solid #FFE0B2'
+                      : '2px solid var(--border-color-neutral, #DFE3E8)',
+                  borderLeft: apoyoCuadrillaRojo
+                    ? '4px solid var(--color-danger, #D32F2F)'
+                    : apoyoAmbar
+                      ? '4px solid var(--color-warning, #E65100)'
+                      : 'none',
+                  borderRadius: 0,
                   display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  flexWrap: 'wrap',
+                  flexDirection: 'column',
                   gap: '0.5rem',
                 }}
               >
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                    <strong style={{ fontSize: '0.875rem', color: 'var(--color-primary-teal-dark, #14505A)' }}>
-                      Intervención Táctica Operativa
-                    </strong>
-                    {detalle.estado === 'VERIFICANDO' && estaVerificadoConcluido && (
-                      <span
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    flexWrap: 'wrap',
+                    gap: '0.5rem',
+                  }}
+                >
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                      <strong
                         style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '4px',
-                          backgroundColor: 'var(--color-success-bg, #E8F5E9)',
-                          color: 'var(--color-success, #2E7D32)',
-                          border: '1px solid #C8E6C9',
-                          fontSize: '0.6875rem',
-                          fontWeight: 700,
-                          padding: '1px 6px',
-                          textTransform: 'uppercase',
-                          letterSpacing: '0.02em',
+                          fontSize: '0.875rem',
+                          color: apoyoCuadrillaRojo
+                            ? 'var(--color-danger, #D32F2F)'
+                            : apoyoAmbar
+                              ? 'var(--color-warning, #E65100)'
+                              : 'var(--color-primary-teal-dark, #14505A)',
                         }}
                       >
-                        <CheckCircle2 size={12} />
-                        <span>Verificación Completada</span>
-                      </span>
-                    )}
-                  </div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--color-text-dark, #2B2B2B)', marginTop: '2px' }}>
-                    {detalle.estado === 'REPORTADO' ? (
-                      <span style={{ color: 'var(--color-text-muted, #5F676E)' }}>
-                        Sin patrulla previa asignada (despacho táctico directo).
-                      </span>
-                    ) : misionVerificacion?.patrulla ? (
-                      estaVerificadoConcluido ? (
-                        <span>
-                          Diagnóstico técnico en terreno finalizado por{' '}
-                          <strong>{misionVerificacion.patrulla.nombre}</strong>. Listo para despacho de cuadrilla.
+                        Intervención Táctica Operativa
+                      </strong>
+                      {apoyoCuadrillaRojo && (
+                        <Chip
+                          data-testid="badge-cuadrilla-adicional-despacho"
+                          variant="danger"
+                          size="sm"
+                          icon={<AlertTriangle size={11} strokeWidth={2.2} />}
+                        >
+                          Cuadrilla adicional solicitada
+                        </Chip>
+                      )}
+                      {apoyoAmbar && (
+                        <Chip
+                          data-testid="badge-apoyo-adicional-despacho"
+                          variant="warning"
+                          size="sm"
+                          icon={<AlertTriangle size={11} strokeWidth={2.2} />}
+                        >
+                          Apoyo adicional solicitado
+                        </Chip>
+                      )}
+                      {detalle.estado === 'VERIFICANDO' && estaVerificadoConcluido && (
+                        <span
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            backgroundColor: 'var(--color-success-bg, #E8F5E9)',
+                            color: 'var(--color-success, #2E7D32)',
+                            border: '1px solid #C8E6C9',
+                            fontSize: '0.6875rem',
+                            fontWeight: 700,
+                            padding: '1px 6px',
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.02em',
+                            borderRadius: 0,
+                          }}
+                        >
+                          <CheckCircle2 size={12} />
+                          <span>Verificación Completada</span>
                         </span>
+                      )}
+                    </div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--color-text-dark, #2B2B2B)', marginTop: '2px' }}>
+                      {detalle.estado === 'EN_ATENCION' ? (
+                        apoyoCuadrillaRojo ? (
+                          <span>
+                            Una cuadrilla en terreno solicitó{' '}
+                            <strong>cuadrilla adicional</strong>. Despacha una nueva cuadrilla con misión de apoyo distinta.
+                          </span>
+                        ) : apoyoAmbar ? (
+                          <span>
+                            Cuadrilla en terreno reportó requerimiento de apoyo adicional. Puedes despachar refuerzo operativo si es necesario.
+                          </span>
+                        ) : tieneCuadrillaActiva ? (
+                          <span style={{ color: 'var(--color-text-muted, #5F676E)' }}>
+                            Cuadrilla actualmente en atención. Puedes despachar una cuadrilla adicional con una misión distinta.
+                          </span>
+                        ) : (
+                          <span style={{ color: 'var(--color-text-muted, #5F676E)' }}>
+                            Faenas previas cerradas. Puedes despachar una nueva cuadrilla operativa antes de resolver el incidente.
+                          </span>
+                        )
+                      ) : detalle.estado === 'REPORTADO' ? (
+                        <span style={{ color: 'var(--color-text-muted, #5F676E)' }}>
+                          Sin patrulla previa asignada (despacho táctico directo).
+                        </span>
+                      ) : misionVerificacion?.patrulla ? (
+                        estaVerificadoConcluido ? (
+                          <span>
+                            Diagnóstico técnico en terreno finalizado por{' '}
+                            <strong>{misionVerificacion.patrulla.nombre}</strong>. Listo para despacho de cuadrilla.
+                          </span>
+                        ) : (
+                          <span style={{ color: 'var(--color-text-muted, #5F676E)' }}>
+                            Patrulla asignada: {misionVerificacion.patrulla.nombre} ({formatearEstado(misionVerificacion.estado)}).
+                          </span>
+                        )
                       ) : (
                         <span style={{ color: 'var(--color-text-muted, #5F676E)' }}>
-                          Patrulla asignada: {misionVerificacion.patrulla.nombre} ({formatearEstado(misionVerificacion.estado)}).
+                          Verificación técnica registrada.
                         </span>
-                      )
-                    ) : (
-                      <span style={{ color: 'var(--color-text-muted, #5F676E)' }}>
-                        Verificación técnica registrada.
-                      </span>
-                    )}
+                      )}
+                    </div>
                   </div>
-                </div>
 
-                <Button
-                  type="button"
-                  variant="primary"
-                  size="sm"
-                  onClick={() => setModalCuadrillaAbierto(true)}
-                  title="Despachar cuadrilla operativa a este incidente"
-                  aria-label="Despachar Cuadrilla Operativa"
-                >
-                  <HardHat size={15} style={{ marginRight: '6px' }} />
-                  <span>Despachar Cuadrilla</span>
-                </Button>
+                  <Button
+                    type="button"
+                    variant={apoyoCuadrillaRojo ? 'destructive' : 'primary'}
+                    size="sm"
+                    onClick={() => setModalCuadrillaAbierto(true)}
+                    style={
+                      apoyoAmbar
+                        ? {
+                            backgroundColor: 'var(--color-warning, #E65100)',
+                            borderColor: '#BF360C',
+                            color: '#FFFFFF',
+                            borderRadius: 0,
+                          }
+                        : { borderRadius: 0 }
+                    }
+                    title={
+                      detalle.estado === 'EN_ATENCION'
+                        ? 'Despachar cuadrilla adicional con misión de apoyo táctico'
+                        : 'Despachar cuadrilla operativa a este incidente'
+                    }
+                    aria-label="Despachar Cuadrilla Operativa"
+                  >
+                    <HardHat size={15} style={{ marginRight: '6px' }} />
+                    <span>Despachar Cuadrilla</span>
+                  </Button>
+                </div>
               </div>
-            </div>
-          )}
+            );
+          })()}
 
           <div className={styles.drawerBody}>
             {cargando && (

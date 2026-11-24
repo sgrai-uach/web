@@ -931,6 +931,7 @@ describe('useEncargadoKanbanSocket', () => {
       evaluadorId: 'usr-del-44',
       evaluadorNombre: 'Juan Pérez',
       requiereApoyoAdicional: true,
+      requiereCuadrillaAdicional: true,
       detalleApoyoRequerido: 'Se solicita motoniveladora y cuadrilla adicional de despeje',
       prioridadAlerta: 'ALTA',
       solicitadoEn: '2026-11-23T20:15:00.000Z',
@@ -943,6 +944,7 @@ describe('useEncargadoKanbanSocket', () => {
         reporte_id: 'rep-apoyo-44',
         mision_id: 'mis-44',
         incidente_id: 'inc-44',
+        requiere_cuadrilla_adicional: true,
         detalle_apoyo_requerido: 'Se solicita motoniveladora y cuadrilla adicional de despeje',
         solicitado_en: '2026-11-23T20:15:00.000Z',
       });
@@ -959,6 +961,7 @@ describe('useEncargadoKanbanSocket', () => {
         cuadrillaNombre: 'Cuadrilla Norte 1',
         evaluadorNombre: 'Juan Pérez',
         requiereApoyoAdicional: true,
+        requiereCuadrillaAdicional: true,
         detalleApoyoRequerido: 'Se solicita motoniveladora y cuadrilla adicional de despeje',
         prioridadAlerta: 'ALTA',
       })
@@ -974,6 +977,7 @@ describe('useEncargadoKanbanSocket', () => {
           nuevoEstado: 'EN_ATENCION',
           prioridad: 'ALTA',
           apoyoSolicitado: true,
+          requiereCuadrillaAdicional: true,
           detalleApoyoRequerido: 'Se solicita motoniveladora y cuadrilla adicional de despeje',
           actualizadoEn: '2026-11-23T20:15:00.000Z',
         },
@@ -985,6 +989,7 @@ describe('useEncargadoKanbanSocket', () => {
         datos: expect.objectContaining({
           id: 'inc-44',
           apoyoSolicitado: true,
+          requiereCuadrillaAdicional: true,
           detalleApoyoRequerido: 'Se solicita motoniveladora y cuadrilla adicional de despeje',
         }),
       })
@@ -1093,6 +1098,39 @@ describe('useEncargadoKanbanSocket', () => {
           nuevoEstado: 'EN_ATENCION',
           cuadrillaAceptada: true,
         }),
+      })
+    );
+  });
+
+  it('normaliza incidenteEstado/incidente_estado en mision:rechazada (HU-44 multi-cuadrilla)', () => {
+    const socket = getSocket();
+    const onMisionRechazada = vi.fn();
+
+    renderHook(() =>
+      useEncargadoKanbanSocket({
+        onMisionRechazada,
+      })
+    );
+
+    const trigger = (socket as unknown as { _trigger: (ev: string, p: unknown) => void })._trigger;
+
+    act(() => {
+      trigger('mision:rechazada', {
+        misionId: 'mis-cuad-extra',
+        codigo: 'MIS-2026-0888',
+        tipoMision: 'ATENCION_CUADRILLA',
+        incidenteId: 'inc-multi-1',
+        incidente_estado: 'EN_ATENCION',
+        justificacion: 'Ruta bloqueada',
+        rechazadoEn: '2026-11-24T11:30:00.000Z',
+      });
+    });
+
+    expect(onMisionRechazada).toHaveBeenCalledWith(
+      expect.objectContaining({
+        misionId: 'mis-cuad-extra',
+        incidenteId: 'inc-multi-1',
+        incidenteEstado: 'EN_ATENCION',
       })
     );
   });

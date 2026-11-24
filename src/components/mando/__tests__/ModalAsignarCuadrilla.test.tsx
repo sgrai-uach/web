@@ -4,6 +4,7 @@ import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import { ModalAsignarCuadrilla } from '../ModalAsignarCuadrilla';
 import { cuadrillasService } from '@/services/cuadrillasService';
 import { misionesService } from '@/services/misionesService';
+import * as recursosService from '@/services/recursosService';
 import { getSocket } from '@/lib/socket/client';
 import type { IncidenteDetalle } from '@/services/incidentesService';
 import type { CuadrillaItem } from '@/types/cuadrilla';
@@ -349,6 +350,300 @@ describe('ModalAsignarCuadrilla (HU-21 / Regla ICS §3.2)', () => {
     await waitFor(() => {
       expect(spyObtener).toHaveBeenCalledTimes(2);
       expect(screen.getByText(/Cuadrilla Vías y Canales 1/i)).toBeDefined();
+    });
+  });
+
+  it('HU-44: en EN_ATENCION muestra cuadrillas activas, contexto de apoyo, dotación actual, permite agregar recursos adicionales sin filtrar estado=DISPONIBLE y preserva selección ante re-render con mismo id', async () => {
+    vi.spyOn(cuadrillasService, 'obtenerCuadrillas').mockResolvedValueOnce({
+      cuadrillas: [
+        {
+          ...mockCuadrillasDisponibles[0],
+          recursos: [
+            {
+              id: 'cr-1',
+              recursoId: 'rec-ya',
+              nombre: 'Motosierra Stihl',
+              cantidadAsignada: 2,
+              esIndividual: false,
+            },
+          ],
+        },
+      ],
+      meta: { total: 1, pagina: 1, limite: 10, paginasTotales: 1 },
+    });
+
+    const spyGetRecursos = vi.spyOn(recursosService, 'getRecursos').mockResolvedValueOnce({
+      data: [
+        {
+          id: 'rec-extra-1',
+          nombre: 'Motobomba Honda',
+          tipo: 'Vehículo o Maquinaria',
+          esIndividual: true,
+          estado: 'DISPONIBLE',
+          cantidadInventario: 1,
+          cantidadEnUso: 0,
+          cantidadDisponible: 1,
+          cantidadMinima: 0,
+          latitud: -39.81,
+          longitud: -73.24,
+          descripcion: null,
+          detalles: {},
+          delegacion: null,
+          creadoPorId: 'u1',
+          creadoEn: '2026-01-01T00:00:00Z',
+          actualizadoEn: '2026-01-01T00:00:00Z',
+        },
+        {
+          id: 'rec-extra-2',
+          nombre: 'Sacos de arena 25kg',
+          tipo: 'Material o Insumo',
+          esIndividual: false,
+          estado: 'BAJO_STOCK',
+          cantidadInventario: 20,
+          cantidadEnUso: 12,
+          cantidadDisponible: 8,
+          cantidadMinima: 10,
+          latitud: -39.81,
+          longitud: -73.24,
+          descripcion: null,
+          detalles: {},
+          delegacion: null,
+          creadoPorId: 'u1',
+          creadoEn: '2026-01-01T00:00:00Z',
+          actualizadoEn: '2026-01-01T00:00:00Z',
+        },
+      ],
+      meta: { total: 2, pagina: 1, limite: 100, totalPaginas: 1 },
+    });
+
+    const spyDespachar = vi.spyOn(misionesService, 'despacharCuadrilla').mockResolvedValueOnce({
+      exito: true,
+      datos: {
+        mision: {
+          id: 'mis-apoyo-2',
+          codigo: 'MIS-2026-0099',
+          titulo: 'Apoyo táctico - INC-2026-0090',
+          descripcion: null,
+          tipoMision: 'ATENCION_CUADRILLA',
+          estado: 'DESPACHADA',
+          prioridad: 'ALTA',
+          incidenteId: 'inc-atencion-1',
+          cuadrillaId: 'cuad-01',
+          encargadoId: 'user-enc-1',
+          creadoPorId: 'user-enc-1',
+          fechaInicio: null,
+          creadoEn: '2026-11-24T12:00:00Z',
+        },
+        cuadrilla: {
+          id: 'cuad-01',
+          nombre: 'Cuadrilla Vías y Canales 1',
+          estado: 'EN_MISION',
+        },
+        incidente: {
+          id: 'inc-atencion-1',
+          codigo: 'INC-2026-0090',
+          estado: 'EN_ATENCION',
+          prioridad: 'ALTA',
+        },
+        patrullaLiberada: null as never,
+        hitoCuadrilla: {
+          id: 'h-1',
+          misionId: 'mis-apoyo-2',
+          hito: 'CUADRILLA_DESPACHADA',
+          descripcion: 'Despachada',
+          creadoEn: '2026-11-24T12:00:00Z',
+        },
+      },
+      mensaje: 'OK',
+    });
+
+    const incidenteEnAtencion: IncidenteDetalle = {
+      ...mockIncidenteVerificacionConcluida,
+      id: 'inc-atencion-1',
+      codigo: 'INC-2026-0090',
+      estado: 'EN_ATENCION',
+      apoyoSolicitado: true,
+      requiereCuadrillaAdicional: true,
+      detalleApoyoRequerido: 'Se requiere segunda cuadrilla con motobomba y sacos',
+      misiones: [
+        {
+          id: 'mis-act-1',
+          codigo: 'MIS-2026-0011',
+          titulo: 'Atención táctica',
+          descripcion: null,
+          tipoMision: 'ATENCION_CUADRILLA',
+          estado: 'EN_CURSO',
+          prioridad: 'ALTA',
+          justificacionRechazo: null,
+          patrulla: null,
+          cuadrilla: {
+            id: 'cuad-99',
+            nombre: 'Cuadrilla Norte',
+            estado: 'EN_MISION',
+          },
+          fechaInicio: '2026-11-24T10:00:00Z',
+          fechaCierre: null,
+          creadoEn: '2026-11-24T09:50:00Z',
+        },
+      ],
+    };
+
+    const { rerender } = render(
+      <ModalAsignarCuadrilla
+        isOpen={true}
+        onClose={vi.fn()}
+        incidente={incidenteEnAtencion}
+        userId="user-enc-1"
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('modal-cuadrillas-activas').textContent).toContain('Cuadrilla Norte');
+      expect(screen.getByTestId('modal-contexto-apoyo').textContent).toContain(
+        'Cuadrilla adicional solicitada desde terreno'
+      );
+    });
+
+    // Verifica llamada sin filtro estado='DISPONIBLE' (permite BAJO_STOCK con disponible > 0)
+    expect(spyGetRecursos).toHaveBeenCalledWith({ pagina: 1, limite: 100 }, 'user-enc-1');
+
+    // Selecciona cuadrilla y verifica dotación actual
+    fireEvent.change(screen.getByRole('combobox', { name: /Cuadrilla Operativa/i }), {
+      target: { value: 'cuad-01' },
+    });
+    expect(screen.getByTestId('dotacion-actual-cuadrilla').textContent).toContain(
+      'Motosierra Stihl (×2)'
+    );
+
+    // Agrega recurso con BAJO_STOCK y cantidad 4
+    fireEvent.change(screen.getByRole('combobox', { name: /Recurso adicional para la cuadrilla/i }), {
+      target: { value: 'rec-extra-2' },
+    });
+    fireEvent.change(screen.getByRole('spinbutton', { name: /Cantidad de recurso adicional/i }), {
+      target: { value: '4' },
+    });
+    fireEvent.click(screen.getByTestId('btn-agregar-recurso-adicional'));
+
+    expect(screen.getByTestId('lista-recursos-adicionales-seleccionados').textContent).toContain(
+      'Sacos de arena 25kg'
+    );
+
+    // Re-render con nuevo objeto de incidente pero MISMO id -> no debe limpiar la selección
+    rerender(
+      <ModalAsignarCuadrilla
+        isOpen={true}
+        onClose={vi.fn()}
+        incidente={{ ...incidenteEnAtencion, actualizadoEn: '2026-11-24T12:01:00Z' }}
+        userId="user-enc-1"
+      />
+    );
+
+    expect(
+      (screen.getByRole('combobox', { name: /Cuadrilla Operativa/i }) as HTMLSelectElement).value
+    ).toBe('cuad-01');
+    expect(screen.getByTestId('lista-recursos-adicionales-seleccionados').textContent).toContain(
+      'Sacos de arena 25kg'
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /Confirmar y Despachar/i }));
+
+    await waitFor(() => {
+      expect(spyDespachar).toHaveBeenCalledWith(
+        expect.objectContaining({
+          tipoMision: 'ATENCION_CUADRILLA',
+          incidenteId: 'inc-atencion-1',
+          cuadrillaId: 'cuad-01',
+          titulo: 'Apoyo táctico - INC-2026-0090',
+          recursosAdicionales: [{ recursoId: 'rec-extra-2', cantidad: 4 }],
+        }),
+        'user-enc-1'
+      );
+    });
+  });
+
+  it('HU-44: al seleccionar un recurso individual primero y cambiar a una cuadrilla que ya lo posee, lo retira de recursosAdicionales para evitar 409', async () => {
+    vi.spyOn(cuadrillasService, 'obtenerCuadrillas').mockResolvedValueOnce({
+      cuadrillas: [
+        mockCuadrillasDisponibles[0],
+        {
+          ...mockCuadrillasDisponibles[1],
+          recursos: [
+            {
+              id: 'cr-ind-1',
+              recursoId: 'rec-extra-ind',
+              nombre: 'Motobomba Honda',
+              cantidadAsignada: 1,
+              esIndividual: true,
+            },
+          ],
+        },
+      ],
+      meta: { total: 2, pagina: 1, limite: 10, paginasTotales: 1 },
+    });
+
+    vi.spyOn(recursosService, 'getRecursos').mockResolvedValueOnce({
+      data: [
+        {
+          id: 'rec-extra-ind',
+          nombre: 'Motobomba Honda',
+          tipo: 'Vehículo o Maquinaria',
+          esIndividual: true,
+          estado: 'DISPONIBLE',
+          cantidadInventario: 1,
+          cantidadEnUso: 0,
+          cantidadDisponible: 1,
+          cantidadMinima: 0,
+          latitud: -39.81,
+          longitud: -73.24,
+          descripcion: null,
+          detalles: {},
+          delegacion: null,
+          creadoPorId: 'u1',
+          creadoEn: '2026-01-01T00:00:00Z',
+          actualizadoEn: '2026-01-01T00:00:00Z',
+        },
+      ],
+      meta: { total: 1, pagina: 1, limite: 100, totalPaginas: 1 },
+    });
+
+    render(
+      <ModalAsignarCuadrilla
+        isOpen={true}
+        onClose={vi.fn()}
+        incidente={mockIncidenteVerificacionConcluida}
+        userId="user-enc-1"
+      />
+    );
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole('combobox', { name: /Recurso adicional para la cuadrilla/i })
+      ).toBeDefined();
+    });
+
+    // Seleccionar primero cuadrilla 1 (que no tiene la motobomba) y agregar Motobomba Honda
+    fireEvent.change(screen.getByRole('combobox', { name: /Cuadrilla Operativa/i }), {
+      target: { value: 'cuad-01' },
+    });
+    fireEvent.change(
+      screen.getByRole('combobox', { name: /Recurso adicional para la cuadrilla/i }),
+      {
+        target: { value: 'rec-extra-ind' },
+      }
+    );
+    fireEvent.click(screen.getByTestId('btn-agregar-recurso-adicional'));
+
+    expect(screen.getByTestId('lista-recursos-adicionales-seleccionados').textContent).toContain(
+      'Motobomba Honda'
+    );
+
+    // Cambiar a cuadrilla 2 (que ya posee Motobomba Honda como recurso individual)
+    fireEvent.change(screen.getByRole('combobox', { name: /Cuadrilla Operativa/i }), {
+      target: { value: 'cuad-02' },
+    });
+
+    await waitFor(() => {
+      expect(screen.queryByTestId('lista-recursos-adicionales-seleccionados')).toBeNull();
     });
   });
 });

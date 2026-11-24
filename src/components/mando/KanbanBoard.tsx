@@ -436,6 +436,12 @@ export const KanbanBoard: React.FC = () => {
       const { datos } = payload;
       if (!datos) return;
 
+      if (datos.apoyoSolicitado === false) {
+        setAlertasApoyoActivas((prev) =>
+          prev.filter((item) => item.incidenteId !== datos.id)
+        );
+      }
+
       if (payload.esSintetico) {
         setKpiRefreshTick((prev) => prev + 1);
         return;
@@ -560,8 +566,13 @@ export const KanbanBoard: React.FC = () => {
       const motivoTexto =
         payload.motivo || payload.justificacionRechazo || 'Sin justificación especificada';
 
+      const mensajeRechazo =
+        payload.incidenteEstado === 'EN_ATENCION'
+          ? `${unidadTexto} rechazó la misión ${payload.codigo}${incidenteTexto}. La unidad volvió a estado Disponible y el incidente se mantiene En Atención para reasignar el apoyo.`
+          : `${unidadTexto} rechazó la misión ${payload.codigo}${incidenteTexto}. La unidad volvió a estado Disponible y la emergencia quedó lista para reasignación.`;
+
       showWarning(
-        `${unidadTexto} rechazó la misión ${payload.codigo}${incidenteTexto}. La unidad volvió a estado Disponible y la emergencia quedó lista para reasignación.`,
+        mensajeRechazo,
         esCuadrilla ? 'Misión Rechazada por Cuadrilla' : 'Misión Rechazada por Patrulla',
         {
           icon: 'rechazo',
@@ -727,6 +738,17 @@ export const KanbanBoard: React.FC = () => {
 
   const handleMisionApoyoSolicitadoSocket = React.useCallback(
     (payload: MisionApoyoSolicitadoPayload) => {
+      if (payload.requiereApoyoAdicional === false) {
+        setAlertasApoyoActivas((prev) =>
+          prev.filter(
+            (item) =>
+              item.incidenteId !== payload.incidenteId &&
+              item.misionId !== payload.misionId
+          )
+        );
+        return;
+      }
+
       const claveDedup = `apoyo-solicitado:${payload.reporteId || payload.misionId}:${payload.solicitadoEn}`;
       const ahora = Date.now();
       const ultimaVez = ultimosToastsReporteRef.current.get(claveDedup);
@@ -758,12 +780,20 @@ export const KanbanBoard: React.FC = () => {
         ...(payload.evaluadorNombre
           ? [{ label: 'Solicitado por', value: payload.evaluadorNombre }]
           : []),
+        ...(payload.requiereCuadrillaAdicional
+          ? [{ label: 'Escalamiento', value: 'Cuadrilla adicional solicitada' }]
+          : []),
         { label: 'Requerimiento', value: detalleTexto },
       ];
 
-      showError(
-        `${nombreCuadrilla} solicitó apoyo adicional urgente en ${refObjetivo}.`,
-        'Apoyo Adicional Solicitado en Terreno',
+      const notificarToast = payload.requiereCuadrillaAdicional ? showError : showWarning;
+      notificarToast(
+        payload.requiereCuadrillaAdicional
+          ? `${nombreCuadrilla} solicitó una cuadrilla adicional urgente en ${refObjetivo}.`
+          : `${nombreCuadrilla} solicitó apoyo adicional en ${refObjetivo}.`,
+        payload.requiereCuadrillaAdicional
+          ? 'Cuadrilla Adicional Solicitada en Terreno'
+          : 'Apoyo Adicional Solicitado en Terreno',
         {
           durationMs: 12000,
           icon: 'cuadrilla',
@@ -785,7 +815,7 @@ export const KanbanBoard: React.FC = () => {
         }
       );
     },
-    [showError]
+    [showError, showWarning]
   );
 
   const {
@@ -1021,12 +1051,17 @@ export const KanbanBoard: React.FC = () => {
               {alertasApoyoActivas.map((alerta) => {
                 const clave = `${alerta.reporteId || alerta.misionId}-${alerta.solicitadoEn}`;
                 const refTitulo = alerta.incidenteCodigo || alerta.misionCodigo || 'Terreno';
+                const requiereCuadrilla = Boolean(alerta.requiereCuadrillaAdicional);
                 return (
                   <InlineNotice
                     key={clave}
-                    variant="error"
+                    variant={requiereCuadrilla ? 'error' : 'warning'}
                     icon={<AlertTriangle size={18} aria-hidden="true" />}
-                    title={`Apoyo Adicional Solicitado — ${refTitulo}`}
+                    title={
+                      requiereCuadrilla
+                        ? `Cuadrilla Adicional Solicitada — ${refTitulo}`
+                        : `Apoyo Adicional Solicitado — ${refTitulo}`
+                    }
                     onClose={() =>
                       setAlertasApoyoActivas((prev) =>
                         prev.filter(
@@ -1058,7 +1093,7 @@ export const KanbanBoard: React.FC = () => {
                       {alerta.incidenteId ? (
                         <Button
                           type="button"
-                          variant="destructive"
+                          variant={requiereCuadrilla ? 'destructive' : 'primary'}
                           size="sm"
                           onClick={() => setIncidenteSeleccionadoId(alerta.incidenteId!)}
                         >
@@ -1067,7 +1102,7 @@ export const KanbanBoard: React.FC = () => {
                       ) : alerta.misionId ? (
                         <Button
                           type="button"
-                          variant="destructive"
+                          variant={requiereCuadrilla ? 'destructive' : 'primary'}
                           size="sm"
                           onClick={() => setMisionSeleccionadaId(alerta.misionId)}
                         >

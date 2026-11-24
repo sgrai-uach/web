@@ -494,7 +494,8 @@ describe('IncidenteCard', () => {
       <IncidenteCard incidente={incidenteConApoyo} onClick={vi.fn()} />
     );
 
-    expect((container.firstChild as HTMLElement).className).toContain('incidenteApoyoSolicitado');
+    expect((container.firstChild as HTMLElement).className).toContain('incidenteApoyoAmbar');
+    expect((container.firstChild as HTMLElement).className).not.toContain('incidenteApoyoSolicitado');
     const badge = screen.getByTestId('badge-apoyo-solicitado');
     expect(badge.textContent).toContain('Apoyo Solicitado');
     expect(badge.getAttribute('title')).toContain(
@@ -514,5 +515,36 @@ describe('IncidenteCard', () => {
 
     expect(screen.queryByTestId('badge-apoyo-solicitado')).toBeNull();
     expect(screen.queryByTestId('card-detalle-apoyo')).toBeNull();
+  });
+
+  it('HU-44: diferencia destacado ámbar (sin cuadrilla adicional) vs rojo + badge "Cuadrilla adicional solicitada"', () => {
+    const incAmbar: IncidenteResumen = {
+      ...mockIncidente,
+      estado: 'EN_ATENCION',
+      apoyoSolicitado: true,
+      requiereCuadrillaAdicional: false,
+      detalleApoyoRequerido: 'Se requiere combustible adicional',
+    };
+
+    const { container, rerender } = render(<IncidenteCard incidente={incAmbar} onClick={vi.fn()} />);
+    expect((container.firstChild as HTMLElement).className).toContain('incidenteApoyoAmbar');
+    expect(screen.getByTestId('badge-apoyo-solicitado')).toBeDefined();
+    expect(screen.queryByTestId('badge-cuadrilla-adicional-solicitada')).toBeNull();
+
+    rerender(
+      <IncidenteCard
+        incidente={{
+          ...incAmbar,
+          requiereCuadrillaAdicional: true,
+          detalleApoyoRequerido: 'Se requiere segunda cuadrilla electrica',
+        }}
+        onClick={vi.fn()}
+      />
+    );
+    expect((container.firstChild as HTMLElement).className).not.toContain('incidenteApoyoAmbar');
+    expect((container.firstChild as HTMLElement).className).toContain('incidenteApoyoSolicitado');
+    expect(screen.getByTestId('badge-cuadrilla-adicional-solicitada').textContent).toContain(
+      'Cuadrilla adicional solicitada'
+    );
   });
 });

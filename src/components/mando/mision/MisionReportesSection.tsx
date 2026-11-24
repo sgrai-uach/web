@@ -64,14 +64,19 @@ interface MisionReportesSectionProps {
 
 const DetalleApoyoReportBlock: React.FC<{ reporte: ReporteTerrenoDetalle }> = ({ reporte }) => {
   if (!esSolicitudApoyoCuadrilla(reporte)) return null;
+  const requiereCuadrilla = Boolean(reporte.requiereCuadrillaAdicional);
   return (
     <div
       data-testid={`detalle-apoyo-reporte-${reporte.id}`}
       style={{
         padding: '10px 12px',
-        backgroundColor: 'var(--color-danger-bg, #FFEBEE)',
-        border: '1px solid #FFCDD2',
-        borderLeft: '4px solid var(--color-danger, #D32F2F)',
+        backgroundColor: requiereCuadrilla
+          ? 'var(--color-danger-bg, #FFEBEE)'
+          : 'var(--color-warning-bg, #FFF3E0)',
+        border: `1px solid ${requiereCuadrilla ? '#FFCDD2' : '#FFE0B2'}`,
+        borderLeft: `4px solid ${
+          requiereCuadrilla ? 'var(--color-danger, #D32F2F)' : 'var(--color-warning, #E65100)'
+        }`,
       }}
     >
       <div
@@ -80,17 +85,29 @@ const DetalleApoyoReportBlock: React.FC<{ reporte: ReporteTerrenoDetalle }> = ({
           alignItems: 'center',
           gap: '6px',
           marginBottom: '4px',
+          flexWrap: 'wrap',
         }}
       >
-        <AlertTriangle size={14} color="var(--color-danger, #D32F2F)" aria-hidden="true" />
+        <AlertTriangle
+          size={14}
+          color={requiereCuadrilla ? 'var(--color-danger, #D32F2F)' : 'var(--color-warning, #E65100)'}
+          aria-hidden="true"
+        />
         <strong
           style={{
             fontSize: '13px',
-            color: 'var(--color-danger, #D32F2F)',
+            color: requiereCuadrilla
+              ? 'var(--color-danger, #D32F2F)'
+              : 'var(--color-warning, #E65100)',
           }}
         >
           Detalle de Apoyo Requerido
         </strong>
+        {requiereCuadrilla && (
+          <Chip variant="danger" size="sm">
+            Cuadrilla adicional solicitada
+          </Chip>
+        )}
       </div>
       <p
         style={{
@@ -818,19 +835,31 @@ export const MisionReportesSection: React.FC<MisionReportesSectionProps> = ({
                       ) : null}
 
                       {esSolicitudApoyo && (
-                        <Chip
-                          data-testid={`badge-apoyo-reporte-${reporte.id}`}
-                          variant="danger"
-                          size="sm"
-                          icon={<AlertTriangle size={11} strokeWidth={2.2} />}
-                          title={
-                            reporte.detalleApoyoRequerido
-                              ? `Apoyo adicional solicitado: ${reporte.detalleApoyoRequerido}`
-                              : 'El equipo en terreno requiere refuerzos o apoyo adicional'
-                          }
-                        >
-                          Apoyo Solicitado
-                        </Chip>
+                        <>
+                          <Chip
+                            data-testid={`badge-apoyo-reporte-${reporte.id}`}
+                            variant={reporte.requiereCuadrillaAdicional ? 'danger' : 'warning'}
+                            size="sm"
+                            icon={<AlertTriangle size={11} strokeWidth={2.2} />}
+                            title={
+                              reporte.detalleApoyoRequerido
+                                ? `Apoyo adicional solicitado: ${reporte.detalleApoyoRequerido}`
+                                : 'El equipo en terreno requiere refuerzos o apoyo adicional'
+                            }
+                          >
+                            Apoyo Solicitado
+                          </Chip>
+                          {reporte.requiereCuadrillaAdicional && (
+                            <Chip
+                              data-testid={`badge-cuadrilla-adicional-reporte-${reporte.id}`}
+                              variant="danger"
+                              size="sm"
+                              icon={<AlertTriangle size={11} strokeWidth={2.2} />}
+                            >
+                              Cuadrilla adicional solicitada
+                            </Chip>
+                          )}
+                        </>
                       )}
                     </>
                   }

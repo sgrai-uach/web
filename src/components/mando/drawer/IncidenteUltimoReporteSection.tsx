@@ -91,6 +91,7 @@ export const IncidenteUltimoReporteSection: React.FC<IncidenteUltimoReporteSecti
         etiquetaReporte: top.etiquetaReporte,
         requiereAsistenciaSocial: top.requiereAsistenciaSocial,
         requiereApoyoAdicional: top.requiereApoyoAdicional,
+        requiereCuadrillaAdicional: top.requiereCuadrillaAdicional,
         detalleApoyoRequerido: top.detalleApoyoRequerido ?? null,
         horasHombre: top.horasHombre,
         materialesConsumidos: top.materialesConsumidos,
@@ -157,6 +158,14 @@ export const IncidenteUltimoReporteSection: React.FC<IncidenteUltimoReporteSecti
         : ultimoReporte;
     return esSolicitudApoyoCuadrilla(reporteEvaluarApoyo);
   }, [ultimoReporte, reporteTerrenoReciente]);
+
+  const requiereCuadrillaAdicionalActual = React.useMemo(() => {
+    if (!requiereApoyoActual) return false;
+    return Boolean(
+      reporteTerrenoReciente?.requiereCuadrillaAdicional ??
+        ultimoReporte?.requiereCuadrillaAdicional
+    );
+  }, [requiereApoyoActual, reporteTerrenoReciente, ultimoReporte]);
 
   const detalleApoyoActual = React.useMemo(() => {
     if (!requiereApoyoActual || !ultimoReporte || ultimoReporte.origen === 'RECLASIFICACION') {
@@ -232,6 +241,13 @@ export const IncidenteUltimoReporteSection: React.FC<IncidenteUltimoReporteSecti
     }
     if (esCierre) {
       return reporteTerrenoReciente?.etiquetaReporte || 'Informe de Verificación y Cierre';
+    }
+    if (ultimoReporte.tipoReporte === 'SOLICITUD_APOYO') {
+      return (
+        reporteTerrenoReciente?.etiquetaReporte ||
+        ultimoReporte.etiquetaReporte ||
+        'Solicitud de Apoyo Adicional en Terreno'
+      );
     }
     const ver = ultimoReporte.versionReporte ?? 1;
     return ultimoReporte.esRectificacion || ver > 1
@@ -501,7 +517,7 @@ export const IncidenteUltimoReporteSection: React.FC<IncidenteUltimoReporteSecti
               )}
               {requiereApoyoActual && (
                 <Chip
-                  variant="danger"
+                  variant={requiereCuadrillaAdicionalActual ? 'danger' : 'warning'}
                   size="sm"
                   icon={<AlertTriangle size={11} />}
                   data-testid="ultimo-reporte-badge-apoyo"
@@ -512,6 +528,17 @@ export const IncidenteUltimoReporteSection: React.FC<IncidenteUltimoReporteSecti
                   }
                 >
                   Apoyo Solicitado
+                </Chip>
+              )}
+              {requiereCuadrillaAdicionalActual && (
+                <Chip
+                  variant="danger"
+                  size="sm"
+                  icon={<AlertTriangle size={11} />}
+                  data-testid="ultimo-reporte-badge-cuadrilla-adicional"
+                  title="La cuadrilla solicitó el despacho de una cuadrilla adicional"
+                >
+                  Cuadrilla adicional solicitada
                 </Chip>
               )}
               {esCierre && dictamenCierre && (
@@ -597,22 +624,34 @@ export const IncidenteUltimoReporteSection: React.FC<IncidenteUltimoReporteSecti
               data-testid="ultimo-reporte-detalle-apoyo"
               style={{
                 padding: '6px 10px',
-                backgroundColor: 'var(--color-danger-bg, #FFEBEE)',
-                borderLeft: '3px solid var(--color-danger, #D32F2F)',
+                backgroundColor: requiereCuadrillaAdicionalActual
+                  ? 'var(--color-danger-bg, #FFEBEE)'
+                  : 'var(--color-warning-bg, #FFF3E0)',
+                borderLeft: `3px solid ${
+                  requiereCuadrillaAdicionalActual
+                    ? 'var(--color-danger, #D32F2F)'
+                    : 'var(--color-warning, #E65100)'
+                }`,
                 fontSize: '0.78rem',
                 color: 'var(--color-text-dark, #2B2B2B)',
               }}
             >
               <strong
                 style={{
-                  color: 'var(--color-danger, #D32F2F)',
+                  color: requiereCuadrillaAdicionalActual
+                    ? 'var(--color-danger, #D32F2F)'
+                    : 'var(--color-warning, #E65100)',
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '4px',
                 }}
               >
                 <AlertTriangle size={12} aria-hidden="true" />
-                <span>Detalle de apoyo requerido:</span>
+                <span>
+                  {requiereCuadrillaAdicionalActual
+                    ? 'Detalle de apoyo (cuadrilla adicional):'
+                    : 'Detalle de apoyo requerido:'}
+                </span>
               </strong>{' '}
               <span>{detalleApoyoActual}</span>
             </div>

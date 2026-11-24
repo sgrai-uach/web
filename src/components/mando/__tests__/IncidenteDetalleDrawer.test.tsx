@@ -293,17 +293,26 @@ describe('Componente IncidenteDetalleDrawer e integración HU-17', () => {
     });
   });
 
-  it('no muestra el botón de despacho táctico en incidentes que ya están EN_ATENCION', async () => {
-    vi.spyOn(incidentesService, 'obtenerDetalleIncidente').mockResolvedValueOnce({
-      exito: true,
-      datos: {
-        ...mockDetalleIncidente,
-        estado: 'EN_ATENCION',
-      },
-      mensaje: 'OK',
-    });
+  it('muestra el botón de despacho táctico habilitado en incidentes EN_ATENCION y lo oculta en RESUELTO', async () => {
+    vi.spyOn(incidentesService, 'obtenerDetalleIncidente')
+      .mockResolvedValueOnce({
+        exito: true,
+        datos: {
+          ...mockDetalleIncidente,
+          estado: 'EN_ATENCION',
+        },
+        mensaje: 'OK',
+      })
+      .mockResolvedValueOnce({
+        exito: true,
+        datos: {
+          ...mockDetalleIncidente,
+          estado: 'RESUELTO',
+        },
+        mensaje: 'OK',
+      });
 
-    render(
+    const { rerender } = render(
       <IncidenteDetalleDrawer
         incidenteId="i1000000-0000-4000-8000-000000000001"
         userId="user-test"
@@ -315,7 +324,20 @@ describe('Componente IncidenteDetalleDrawer e integración HU-17', () => {
       expect(screen.getByText('INC-2026-0042')).toBeDefined();
     });
 
-    expect(screen.queryByRole('button', { name: /Despachar Cuadrilla Operativa/i })).toBeNull();
+    const btnDespachar = screen.getByRole('button', { name: /Despachar Cuadrilla Operativa/i });
+    expect(btnDespachar.hasAttribute('disabled')).toBe(false);
+
+    rerender(
+      <IncidenteDetalleDrawer
+        incidenteId="i1000000-0000-4000-8000-000000000002"
+        userId="user-test"
+        onCerrar={vi.fn()}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.queryByRole('button', { name: /Despachar Cuadrilla Operativa/i })).toBeNull();
+    });
   });
 
   it('no muestra el botón de despacho de cuadrilla en incidentes REPORTADO sin verificación completada', async () => {
@@ -1468,7 +1490,7 @@ describe('Componente IncidenteDetalleDrawer e integración HU-17', () => {
     const banner = screen.getByTestId('banner-faenas-cuadrilla-completadas');
     expect(banner.textContent).toContain('Faenas de cuadrilla finalizadas — Cuadrilla liberada');
     expect(banner.textContent).toContain('H86');
-    expect(screen.queryByText('Despachar Cuadrilla')).toBeNull();
+    expect(screen.getByRole('button', { name: /Despachar Cuadrilla Operativa/i })).toBeDefined();
 
     const ultimoReporte = screen.getByTestId('incidente-ultimo-reporte-section');
     expect(ultimoReporte.textContent).toContain('Informe Técnico Final de Cuadrilla (Cierre de Misión)');
@@ -1845,5 +1867,81 @@ describe('Componente IncidenteDetalleDrawer e integración HU-17', () => {
     });
 
     expect(screen.queryByTestId('badge-apoyo-reporte-rep-verif-cierre-1')).toBeNull();
+  });
+
+  it('HU-44: aplica destacado escalonado rojo (cuadrilla adicional) vs ámbar (solo apoyo) y limpia alertas cuando llega incidente:actualizado con apoyoSolicitado=false (A3)', async () => {
+    const detalleCuadrillaRojo: IncidenteDetalle = {
+      ...mockDetalleIncidente,
+      estado: 'EN_ATENCION',
+      apoyoSolicitado: true,
+      requiereCuadrillaAdicional: true,
+      detalleApoyoRequerido: 'Se requiere segunda cuadrilla forestal',
+    };
+
+    vi.spyOn(incidentesService, 'obtenerDetalleIncidente').mockResolvedValueOnce({
+      exito: true,
+      datos: detalleCuadrillaRojo,
+      mensaje: 'OK',
+    });
+
+    render(
+      <IncidenteDetalleDrawer
+        incidenteId="i1000000-0000-4000-8000-000000000001"
+        userId="user-test"
+        onCerrar={vi.fn()}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('badge-cuadrilla-adicional-despacho')).toBeDefined();
+    });
+    expect(screen.getByTestId('badge-cuadrilla-adicional-despacho').textContent).toContain(
+      'Cuadrilla adicional solicitada'
+    );
+    expect(screen.getByTestId('banner-apoyo-solicitado').textContent).toContain(
+      'Cuadrilla Adicional Solicitada en Terreno'
+    );
+
+    // Recibe mision:apoyo_solicitado sin cuadrilla adicional -> cambia a destacado ámbar
+    const apoyoHandler = socketListeners['mision:apoyo_solicitado']?.[0];
+    act(() => {
+      apoyoHandler?.({
+        reporteId: 'rep-apoyo-ambar',
+        misionId: 'm1000000-0000-4000-8000-000000000001',
+        incidenteId: 'i1000000-0000-4000-8000-000000000001',
+        requiereApoyoAdicional: true,
+        requiereCuadrillaAdicional: false,
+        detalleApoyoRequerido: 'Solo se requiere generador adicional',
+        solicitadoEn: '2026-11-24T12:00:00Z',
+      });
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId('badge-apoyo-adicional-despacho')).toBeDefined();
+    });
+    expect(screen.queryByTestId('badge-cuadrilla-adicional-despacho')).toBeNull();
+
+    // Recibe incidente:actualizado con apoyoSolicitado=false (A3) -> apaga banner y destacado
+    const actHandler = socketListeners['incidente:actualizado']?.[0];
+    act(() => {
+      actHandler?.({
+        evento: 'incidente:actualizado',
+        datos: {
+          id: 'i1000000-0000-4000-8000-000000000001',
+          codigo: 'INC-2026-0042',
+          nuevoEstado: 'EN_ATENCION',
+          prioridad: 'ALTA',
+          apoyoSolicitado: false,
+          requiereCuadrillaAdicional: false,
+          detalleApoyoRequerido: null,
+          actualizadoEn: '2026-11-24T12:05:00Z',
+        },
+      });
+    });
+
+    await waitFor(() => {
+      expect(screen.queryByTestId('banner-apoyo-solicitado')).toBeNull();
+      expect(screen.queryByTestId('badge-apoyo-adicional-despacho')).toBeNull();
+    });
   });
 });

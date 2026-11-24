@@ -70,7 +70,10 @@ export interface IncidenteActualizadoPayload {
     requiereAsistenciaSocial?: boolean;
     verificado?: boolean;
     cuadrillaAceptada?: boolean;
+    tieneMisionEnCurso?: boolean;
+    faenasCuadrillaCompletadas?: boolean;
     apoyoSolicitado?: boolean;
+    requiereCuadrillaAdicional?: boolean;
     detalleApoyoRequerido?: string | null;
     dictamen?: DictamenAtencionTerreno | null;
     motivoNoAbordable?: string | null;
@@ -97,6 +100,7 @@ export interface MisionRechazadaPayload {
   patrullaNombre?: string | null;
   incidenteId?: string | null;
   incidenteCodigo?: string | null;
+  incidenteEstado?: EstadoIncidente | string | null;
   rechazadoPorId?: string | null;
   rechazadoEn?: string;
 }
@@ -352,6 +356,13 @@ export function useEncargadoKanbanSocket({
                   ? rawReporteObj.detalle_apoyo_requerido
                   : (rawReporteObj as unknown as ReporteEvaluacionTerreno).detalleApoyoRequerido ??
                     null,
+            requiereCuadrillaAdicional:
+              typeof rawReporteObj.requiereCuadrillaAdicional === 'boolean'
+                ? rawReporteObj.requiereCuadrillaAdicional
+                : typeof rawReporteObj.requiere_cuadrilla_adicional === 'boolean'
+                  ? rawReporteObj.requiere_cuadrilla_adicional
+                  : (rawReporteObj as unknown as ReporteEvaluacionTerreno)
+                      .requiereCuadrillaAdicional,
           })
         : undefined;
 
@@ -388,11 +399,19 @@ export function useEncargadoKanbanSocket({
       const tipoReporteKey = rawReporte?.tipoReporte || '';
       const tipoKey = typeof rawDatos?.tipoAfectacion === 'string' ? rawDatos.tipoAfectacion : '';
       const dictamenKey = dictamen || '';
+      const apoyoKey =
+        typeof rawDatos?.apoyoSolicitado === 'boolean'
+          ? `${String(rawDatos.apoyoSolicitado)}:${
+              typeof rawDatos?.requiereCuadrillaAdicional === 'boolean'
+                ? String(rawDatos.requiereCuadrillaAdicional)
+                : ''
+            }`
+          : '';
       const estadoFallback =
         rawReporte && esReporteCierreCuadrilla(rawReporte) ? 'EN_ATENCION' : 'VERIFICANDO';
       if (
         esEventoDuplicado(
-          `inc-act:${id}:${nuevoEstado || estadoFallback}:${tipoReporteKey}:${reporteKey}:${tipoKey}:${dictamenKey}`
+          `inc-act:${id}:${nuevoEstado || estadoFallback}:${tipoReporteKey}:${reporteKey}:${tipoKey}:${dictamenKey}:${apoyoKey}`
         )
       ) {
         return;
@@ -446,20 +465,53 @@ export function useEncargadoKanbanSocket({
                 ? false
                 : undefined;
 
+      const requiereCuadrillaAdicional =
+        apoyoSolicitado === false
+          ? false
+          : typeof rawDatos?.requiereCuadrillaAdicional === 'boolean'
+            ? rawDatos.requiereCuadrillaAdicional
+            : typeof rawDatos?.requiere_cuadrilla_adicional === 'boolean'
+              ? rawDatos.requiere_cuadrilla_adicional
+              : esApoyoCuadrillaReporte &&
+                  typeof rawReporte?.requiereCuadrillaAdicional === 'boolean'
+                ? rawReporte.requiereCuadrillaAdicional
+                : rawReporte?.requiereApoyoAdicional === false
+                  ? false
+                  : undefined;
+
       const detalleApoyoRequerido =
-        typeof rawDatos?.detalleApoyoRequerido === 'string'
-          ? rawDatos.detalleApoyoRequerido
-          : typeof rawDatos?.detalle_apoyo_requerido === 'string'
-            ? rawDatos.detalle_apoyo_requerido
-            : esApoyoCuadrillaReporte && rawReporte?.detalleApoyoRequerido !== undefined
-              ? rawReporte.detalleApoyoRequerido
-              : undefined;
+        apoyoSolicitado === false
+          ? null
+          : typeof rawDatos?.detalleApoyoRequerido === 'string'
+            ? rawDatos.detalleApoyoRequerido
+            : typeof rawDatos?.detalle_apoyo_requerido === 'string'
+              ? rawDatos.detalle_apoyo_requerido
+              : rawDatos?.detalleApoyoRequerido === null ||
+                  rawDatos?.detalle_apoyo_requerido === null
+                ? null
+                : esApoyoCuadrillaReporte && rawReporte?.detalleApoyoRequerido !== undefined
+                  ? rawReporte.detalleApoyoRequerido
+                  : undefined;
 
       const cuadrillaAceptada =
         typeof rawDatos?.cuadrillaAceptada === 'boolean'
           ? rawDatos.cuadrillaAceptada
           : typeof rawDatos?.cuadrilla_aceptada === 'boolean'
             ? rawDatos.cuadrilla_aceptada
+            : undefined;
+
+      const tieneMisionEnCurso =
+        typeof rawDatos?.tieneMisionEnCurso === 'boolean'
+          ? rawDatos.tieneMisionEnCurso
+          : typeof rawDatos?.tiene_mision_en_curso === 'boolean'
+            ? rawDatos.tiene_mision_en_curso
+            : undefined;
+
+      const faenasCuadrillaCompletadas =
+        typeof rawDatos?.faenasCuadrillaCompletadas === 'boolean'
+          ? rawDatos.faenasCuadrillaCompletadas
+          : typeof rawDatos?.faenas_cuadrilla_completadas === 'boolean'
+            ? rawDatos.faenas_cuadrilla_completadas
             : undefined;
 
       const normalizedPayload: IncidenteActualizadoPayload = {
@@ -478,7 +530,10 @@ export function useEncargadoKanbanSocket({
           verificado:
             typeof rawDatos?.verificado === 'boolean' ? rawDatos.verificado : undefined,
           ...(cuadrillaAceptada !== undefined ? { cuadrillaAceptada } : {}),
+          ...(tieneMisionEnCurso !== undefined ? { tieneMisionEnCurso } : {}),
+          ...(faenasCuadrillaCompletadas !== undefined ? { faenasCuadrillaCompletadas } : {}),
           apoyoSolicitado,
+          ...(requiereCuadrillaAdicional !== undefined ? { requiereCuadrillaAdicional } : {}),
           detalleApoyoRequerido,
           dictamen,
           motivoNoAbordable,
@@ -817,6 +872,12 @@ export function useEncargadoKanbanSocket({
       const patrullaNombre = typeof raw?.patrullaNombre === 'string' ? raw.patrullaNombre : null;
       const incidenteId = typeof raw?.incidenteId === 'string' ? raw.incidenteId : null;
       const incidenteCodigo = typeof raw?.incidenteCodigo === 'string' ? raw.incidenteCodigo : null;
+      const incidenteEstado =
+        typeof raw?.incidenteEstado === 'string'
+          ? raw.incidenteEstado
+          : typeof raw?.incidente_estado === 'string'
+            ? raw.incidente_estado
+            : null;
       const rechazadoPorId = typeof raw?.rechazadoPorId === 'string' ? raw.rechazadoPorId : null;
       const rechazadoEn =
         typeof raw?.rechazadoEn === 'string' ? raw.rechazadoEn : new Date().toISOString();
@@ -839,6 +900,7 @@ export function useEncargadoKanbanSocket({
         patrullaNombre,
         incidenteId,
         incidenteCodigo,
+        ...(incidenteEstado !== null ? { incidenteEstado } : {}),
         rechazadoPorId,
         rechazadoEn,
       };
@@ -1086,6 +1148,14 @@ export function useEncargadoKanbanSocket({
           : typeof raw.requiere_apoyo_adicional === 'boolean'
             ? raw.requiere_apoyo_adicional
             : true;
+      const requiereCuadrillaAdicional =
+        requiereApoyoAdicional === false
+          ? false
+          : typeof raw.requiereCuadrillaAdicional === 'boolean'
+            ? raw.requiereCuadrillaAdicional
+            : typeof raw.requiere_cuadrilla_adicional === 'boolean'
+              ? raw.requiere_cuadrilla_adicional
+              : false;
       const prioridadAlerta =
         typeof raw.prioridadAlerta === 'string'
           ? raw.prioridadAlerta
@@ -1104,6 +1174,7 @@ export function useEncargadoKanbanSocket({
         evaluadorId,
         evaluadorNombre,
         requiereApoyoAdicional,
+        requiereCuadrillaAdicional,
         detalleApoyoRequerido,
         prioridadAlerta,
         solicitadoEn,

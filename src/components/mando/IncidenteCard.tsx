@@ -57,6 +57,12 @@ export const IncidenteCard: React.FC<IncidenteCardProps> = ({
     incidente.estado === 'EN_ATENCION' && incidente.faenasCuadrillaCompletadas
   );
   const tieneApoyoSolicitado = Boolean(incidente.apoyoSolicitado);
+  const requiereCuadrillaAdicional = Boolean(
+    tieneApoyoSolicitado && incidente.requiereCuadrillaAdicional
+  );
+  const apoyoSoloAmbar = Boolean(
+    tieneApoyoSolicitado && !requiereCuadrillaAdicional
+  );
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' || e.key === ' ') {
@@ -88,7 +94,7 @@ export const IncidenteCard: React.FC<IncidenteCardProps> = ({
 
   return (
     <div
-      className={`${styles.incidenteCard} ${estaVerificado ? styles.incidenteVerificado : ''} ${tieneFaenasFinalizadas ? styles.incidenteFaenasFinalizadas : ''} ${tieneApoyoSolicitado ? styles.incidenteApoyoSolicitado : ''}`}
+      className={`${styles.incidenteCard} ${estaVerificado ? styles.incidenteVerificado : ''} ${tieneFaenasFinalizadas ? styles.incidenteFaenasFinalizadas : ''} ${requiereCuadrillaAdicional ? styles.incidenteApoyoSolicitado : apoyoSoloAmbar ? styles.incidenteApoyoAmbar : ''}`}
       onClick={() => onClick(incidente)}
       onKeyDown={handleKeyDown}
       role="button"
@@ -160,8 +166,12 @@ export const IncidenteCard: React.FC<IncidenteCardProps> = ({
             marginTop: '0.35rem',
             marginBottom: '0.4rem',
             padding: '5px 8px',
-            backgroundColor: 'var(--color-danger-bg, #FFEBEE)',
-            borderLeft: '3px solid var(--color-danger, #D32F2F)',
+            backgroundColor: apoyoSoloAmbar
+              ? 'var(--color-warning-bg, #FFF3E0)'
+              : 'var(--color-danger-bg, #FFEBEE)',
+            borderLeft: `3px solid ${
+              apoyoSoloAmbar ? 'var(--color-warning, #E65100)' : 'var(--color-danger, #D32F2F)'
+            }`,
             fontSize: '0.75rem',
             color: 'var(--color-charcoal, #3B3F45)',
             lineHeight: 1.3,
@@ -171,7 +181,15 @@ export const IncidenteCard: React.FC<IncidenteCardProps> = ({
             overflow: 'hidden',
           }}
         >
-          <strong style={{ color: 'var(--color-danger, #D32F2F)' }}>Apoyo requerido:</strong>{' '}
+          <strong
+            style={{
+              color: apoyoSoloAmbar
+                ? 'var(--color-warning, #E65100)'
+                : 'var(--color-danger, #D32F2F)',
+            }}
+          >
+            {requiereCuadrillaAdicional ? 'Cuadrilla adicional:' : 'Apoyo requerido:'}
+          </strong>{' '}
           {incidente.detalleApoyoRequerido}
         </div>
       )}
@@ -181,7 +199,7 @@ export const IncidenteCard: React.FC<IncidenteCardProps> = ({
           {tieneApoyoSolicitado && (
             <Chip
               data-testid="badge-apoyo-solicitado"
-              variant="danger"
+              variant={apoyoSoloAmbar ? 'warning' : 'danger'}
               size="sm"
               icon={<AlertTriangle size={11} strokeWidth={2.3} />}
               title={
@@ -191,6 +209,17 @@ export const IncidenteCard: React.FC<IncidenteCardProps> = ({
               }
             >
               Apoyo Solicitado
+            </Chip>
+          )}
+          {requiereCuadrillaAdicional && (
+            <Chip
+              data-testid="badge-cuadrilla-adicional-solicitada"
+              variant="danger"
+              size="sm"
+              icon={<AlertTriangle size={11} strokeWidth={2.3} />}
+              title="La cuadrilla en terreno solicitó el despacho de una cuadrilla adicional"
+            >
+              Cuadrilla adicional solicitada
             </Chip>
           )}
           {incidente.requiereAsistenciaSocial && (

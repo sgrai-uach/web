@@ -92,10 +92,10 @@ function ordenarIncidentesColumna(
   }
   if (estado === 'EN_ATENCION') {
     return [...incidentes].sort((a, b) => {
-      const aApoyo = a.apoyoSolicitado ? 1 : 0;
-      const bApoyo = b.apoyoSolicitado ? 1 : 0;
+      const aApoyo = a.apoyoSolicitado ? (a.requiereCuadrillaAdicional ? 2 : 1) : 0;
+      const bApoyo = b.apoyoSolicitado ? (b.requiereCuadrillaAdicional ? 2 : 1) : 0;
       if (aApoyo !== bApoyo) {
-        return bApoyo - aApoyo; // Solicitud de apoyo urgente primero (H44)
+        return bApoyo - aApoyo; // Cuadrilla adicional (2) > Apoyo simple (1) > Normal (0)
       }
       const aFin = a.faenasCuadrillaCompletadas ? 1 : 0;
       const bFin = b.faenasCuadrillaCompletadas ? 1 : 0;
@@ -625,11 +625,14 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
                   : payload.esSintetico
                     ? Boolean(incActual.verificado)
                     : true,
-              faenasCuadrillaCompletadas: esCierreCuadrilla
-                ? true
-                : esInicioNuevaMision
-                  ? false
-                  : incActual.faenasCuadrillaCompletadas,
+              faenasCuadrillaCompletadas:
+                datos.faenasCuadrillaCompletadas !== undefined
+                  ? datos.faenasCuadrillaCompletadas
+                  : esCierreCuadrilla
+                    ? true
+                    : esInicioNuevaMision
+                      ? false
+                      : incActual.faenasCuadrillaCompletadas,
               estadoTerrenoFinal: esCierreCuadrilla
                 ? datos.reporteTerreno?.estadoTerreno ?? incActual.estadoTerrenoFinal
                 : incActual.estadoTerrenoFinal,
@@ -640,11 +643,13 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
               motivoNoAbordable: motivoNoAbordableResuelto,
               fechaCierre: fechaCierreResuelta,
               tieneMisionEnCurso:
-                esCierreNoAbordable || esCierreCuadrilla || esDespachoPendienteCuadrilla
-                  ? false
-                  : esInicioNuevaMision
-                    ? true
-                    : incActual.tieneMisionEnCurso,
+                datos.tieneMisionEnCurso !== undefined
+                  ? datos.tieneMisionEnCurso
+                  : esCierreNoAbordable || esCierreCuadrilla || esDespachoPendienteCuadrilla
+                    ? false
+                    : esInicioNuevaMision
+                      ? true
+                      : incActual.tieneMisionEnCurso,
               tieneMisionDespachada:
                 esCierreNoAbordable || esInicioNuevaMision
                   ? false
@@ -665,12 +670,23 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
                     ? Boolean(datos.reporteTerreno.requiereApoyoAdicional) ||
                       Boolean(incActual.apoyoSolicitado)
                     : incActual.apoyoSolicitado,
+              requiereCuadrillaAdicional:
+                datos.apoyoSolicitado === false
+                  ? false
+                  : datos.requiereCuadrillaAdicional !== undefined
+                    ? datos.requiereCuadrillaAdicional
+                    : datos.reporteTerreno?.requiereCuadrillaAdicional !== undefined
+                      ? Boolean(datos.reporteTerreno.requiereCuadrillaAdicional) ||
+                        Boolean(incActual.requiereCuadrillaAdicional)
+                      : incActual.requiereCuadrillaAdicional,
               detalleApoyoRequerido:
-                datos.detalleApoyoRequerido !== undefined
-                  ? datos.detalleApoyoRequerido
-                  : datos.reporteTerreno?.detalleApoyoRequerido !== undefined
-                    ? datos.reporteTerreno.detalleApoyoRequerido
-                    : incActual.detalleApoyoRequerido,
+                datos.apoyoSolicitado === false
+                  ? null
+                  : datos.detalleApoyoRequerido !== undefined
+                    ? datos.detalleApoyoRequerido
+                    : datos.reporteTerreno?.detalleApoyoRequerido !== undefined
+                      ? datos.reporteTerreno.detalleApoyoRequerido
+                      : incActual.detalleApoyoRequerido,
               reclasificadoEnTerreno: reclasificado,
               justificacionReclasificacion:
                 datos.justificacion || incActual.justificacionReclasificacion,
@@ -860,15 +876,24 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
                 payload.tipoMision === 'ATENCION_CUADRILLA' ||
                 Boolean(payload.cuadrillaId || payload.cuadrillaNombre);
 
+              const estadoBackend =
+                typeof payload.incidenteEstado === 'string'
+                  ? (payload.incidenteEstado.toUpperCase() as EstadoIncidente)
+                  : null;
+              const mantieneEnAtencion = estadoBackend === 'EN_ATENCION';
               const estadoDestino: EstadoIncidente =
-                esRechazoCuadrilla && actual.verificado ? 'VERIFICANDO' : 'REPORTADO';
+                estadoBackend && ESTADOS_KANBAN.includes(estadoBackend)
+                  ? estadoBackend
+                  : esRechazoCuadrilla && actual.verificado
+                    ? 'VERIFICANDO'
+                    : 'REPORTADO';
 
               columnaDestinoDetectada = estadoDestino;
               incidenteEncontrado = {
                 ...actual,
                 estado: estadoDestino,
                 tieneMisionDespachada: false,
-                ...(esRechazoCuadrilla
+                ...(esRechazoCuadrilla && !mantieneEnAtencion
                   ? { cuadrillaAceptada: false, tieneMisionEnCurso: false }
                   : {}),
                 actualizadoEn: payload.rechazadoEn || new Date().toISOString(),
@@ -1134,11 +1159,16 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
             if (idx !== -1) {
               huboCambio = true;
               const actual = prev[est][idx];
+              const apoyoActivo = Boolean(payload.requiereApoyoAdicional ?? true);
               const actualizado: IncidenteResumen = {
                 ...actual,
-                apoyoSolicitado: Boolean(payload.requiereApoyoAdicional ?? true),
-                detalleApoyoRequerido:
-                  payload.detalleApoyoRequerido ?? actual.detalleApoyoRequerido ?? null,
+                apoyoSolicitado: apoyoActivo,
+                requiereCuadrillaAdicional: apoyoActivo
+                  ? Boolean(payload.requiereCuadrillaAdicional)
+                  : false,
+                detalleApoyoRequerido: apoyoActivo
+                  ? payload.detalleApoyoRequerido ?? actual.detalleApoyoRequerido ?? null
+                  : null,
                 actualizadoEn: payload.solicitadoEn || new Date().toISOString(),
               };
               const nuevaLista = prev[est].map((item, i) =>
