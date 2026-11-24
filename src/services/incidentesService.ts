@@ -21,7 +21,6 @@ export type IncidenteDetalle = IncidenteDetalleResponse['data'];
 export type EstadoTrazabilidadNotificacion = NonNullable<
   MisionDetalle['trazabilidadNotificacion']
 >;
-
 export type PaginacionMeta = ListarIncidentesResponse['paginacion'];
 export type EstadoIncidente = IncidenteResumen['estado'];
 export type PrioridadIncidente = IncidenteResumen['prioridad'];
@@ -71,15 +70,16 @@ export const incidentesService = {
     query: ListarIncidentesQuery = {},
     userId: string = DEFAULT_ENCARGADO_ID
   ): Promise<ResultadoListadoIncidentes> {
+  // El API ahora autentica con Authorization Bearer (JWT): el identificador de usuario
+  // se conserva por compatibilidad de firma y ya no se envía como cabecera x-user-id.
+    void userId;
     try {
       const { data, error, response } = await apiClient.GET('/api/incidentes', {
         params: {
           query: query as unknown as NonNullable<
             paths['/api/incidentes']['get']['parameters']['query']
           >,
-          header: { 'x-user-id': userId },
         },
-        headers: { 'x-user-id': userId },
       });
 
       if (response?.status === 403) {
@@ -153,6 +153,9 @@ export const incidentesService = {
     id: string,
     userId: string = DEFAULT_ENCARGADO_ID
   ): Promise<ResultadoDetalleIncidente> {
+  // El API ahora autentica con Authorization Bearer (JWT): el identificador de usuario
+  // se conserva por compatibilidad de firma y ya no se envía como cabecera x-user-id.
+    void userId;
     if (!id || !id.trim()) {
       return {
         exito: false,
@@ -165,9 +168,7 @@ export const incidentesService = {
       const { data, error, response } = await apiClient.GET('/api/incidentes/{id}', {
         params: {
           path: { id: id.trim() },
-          header: { 'x-user-id': userId },
         },
-        headers: { 'x-user-id': userId },
       });
 
       if (response?.status === 403) {

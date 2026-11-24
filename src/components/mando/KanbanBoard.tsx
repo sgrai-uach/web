@@ -16,6 +16,7 @@ import type {
   DetalleEventoRecuperacionResponse,
   RecursoAsignadoItem,
 } from '@/types/recuperacion';
+import type { MisionRechazadaPayload } from '@/hooks/useEncargadoKanbanSocket';
 import { KanbanHeader } from './KanbanHeader';
 import { KanbanFiltros } from './KanbanFiltros';
 import { KanbanColumn } from './KanbanColumn';
@@ -36,13 +37,14 @@ import { listarEventosRecuperacion } from '@/services/recuperacionService';
 import type { CuadrillaItem } from '@/types/cuadrilla';
 import { Zap } from 'lucide-react';
 import { usePuedeAsignarMision } from '@/hooks/usePuedeAsignarMision';
+import { usePuedeCrearEventoAtp } from '@/hooks/usePuedeCrearEventoAtp';
 import { extraerEstadoInicialNotificacion } from '@/lib/socket/trazabilidadConfig';
 import { setTrazabilidadEstado } from '@/lib/socket/trazabilidadStore';
 import InlineNotice from '@/components/ui/InlineNotice';
 import styles from '@/styles/mando.module.css';
 
 const TITULOS_COLUMNAS = {
-  REPORTADO: 'Pendiente / Reportado',
+  REPORTADO: 'Reportado',
   VERIFICANDO: 'En Verificación',
   EN_ATENCION: 'En Atención',
   RESUELTO: 'Resuelto',
@@ -50,7 +52,7 @@ const TITULOS_COLUMNAS = {
 } as const;
 
 export const KanbanBoard: React.FC = () => {
-  const { showInfo } = useToast();
+  const { showInfo, showWarning } = useToast();
   const searchParams = useSearchParams();
   const [vistaActiva, setVistaActiva] = useState<'kanban' | 'mapa'>('kanban');
   const [misionesModalAbierto, setMisionesModalAbierto] = useState(false);
@@ -66,6 +68,40 @@ export const KanbanBoard: React.FC = () => {
   const [cuadrillasOperativas, setCuadrillasOperativas] = useState<CuadrillaItem[]>([]);
   const [incidenteParaAsignar, setIncidenteParaAsignar] = useState<IncidenteResumen | null>(null);
   const puedeAsignar = usePuedeAsignarMision();
+  const puedeCrearEventoAtp = usePuedeCrearEventoAtp();
+
+  const [estadoEnfocado, setEstadoEnfocado] = useState<EstadoIncidente | null>(null);
+  const ultimosToastsRechazoRef = React.useRef<Map<string, number>>(new Map());
+  const refrescarKpisRef = React.useRef<((mostrarCargando?: boolean) => void) | null>(null);
+
+  const handleMisionRechazadaSocket = React.useCallback(
+    (payload: MisionRechazadaPayload) => {
+      const ahora = Date.now();
+      if (payload.misionId) {
+        const ultimaVez = ultimosToastsRechazoRef.current.get(payload.misionId);
+        if (ultimaVez && ahora - ultimaVez < 5000) {
+          return;
+        }
+        ultimosToastsRechazoRef.current.set(payload.misionId, ahora);
+      }
+
+      const patrullaTexto = payload.patrullaNombre
+        ? `La patrulla ${payload.patrullaNombre}`
+        : 'La patrulla verificadora';
+      const incidenteTexto = payload.incidenteCodigo
+        ? ` del incidente ${payload.incidenteCodigo}`
+        : '';
+      const motivoTexto = payload.motivo || payload.justificacionRechazo || 'Sin justificación';
+
+      showWarning(
+        `${patrullaTexto} rechazó la misión ${payload.codigo}${incidenteTexto}. Motivo: "${motivoTexto}". El incidente retorna a estado Reportado para su reasignación.`,
+        'Misión Rechazada por Patrulla'
+      );
+
+      refrescarKpisRef.current?.(false);
+    },
+    [showWarning]
+  );
 
   const cargarCuadrillas = useCallback(() => {
     let isMounted = true;
@@ -121,16 +157,16 @@ export const KanbanBoard: React.FC = () => {
     cargarMas,
     recargar,
     moverIncidenteAEstado,
+    marcarIncidenteMisionDespachada,
     conectado,
     ultimoEvento,
     totalIncidentesVisibles,
     incidenteSeleccionadoId,
     setIncidenteSeleccionadoId,
     trazabilidadPorIncidente,
-  } = useIncidentesKanban();
-
-
-  const [estadoEnfocado, setEstadoEnfocado] = useState<EstadoIncidente | null>(null);
+  } = useIncidentesKanban({
+    onMisionRechazada: handleMisionRechazadaSocket,
+  });
 
   // CA-5 (BUG-H22-WEB-03): Abrir incidente automáticamente si se accede con ?incidenteId=...
   const incidenteIdParam = searchParams?.get('incidenteId');
@@ -156,6 +192,10 @@ export const KanbanBoard: React.FC = () => {
     refrescarKpis,
     conectado: conectadoKpis,
   } = useIncidentesKpis({ userId });
+
+  useEffect(() => {
+    refrescarKpisRef.current = refrescarKpis;
+  }, [refrescarKpis]);
 
   // Hook de tiempo real para eventos de prevención (HU-30)
   usePrevencionSocket({
@@ -298,6 +338,7 @@ export const KanbanBoard: React.FC = () => {
         onAbrirPatrullas={() => setPatrullasModalAbierto(true)}
         onOpenCrearPrevencion={() => setModalPrevencionAbierto(true)}
         onOpenCrearRecuperacion={() => setModalRecuperacionAbierto(true)}
+        puedeCrearEventoAtp={puedeCrearEventoAtp}
       />
 
       {esForbidden ? (
@@ -419,7 +460,7 @@ export const KanbanBoard: React.FC = () => {
             onAsignacionExitosa={(data) => {
               const estadoInicial = extraerEstadoInicialNotificacion(data);
               setTrazabilidadEstado(data.mision.id, estadoInicial, data.incidente.id);
-              moverIncidenteAEstado(data.incidente.id, 'VERIFICANDO');
+              marcarIncidenteMisionDespachada(data.incidente.id, true);
               recargar();
               refrescarKpis();
               cargarCuadrillas();

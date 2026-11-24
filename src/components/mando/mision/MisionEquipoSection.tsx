@@ -4,6 +4,7 @@ import React from 'react';
 import { Users, Truck, Shield, Box } from 'lucide-react';
 import Heading from '@/components/ui/Heading';
 import type { CuadrillaMisionDetalle, PatrullaMisionDetalle } from '@/types/misiones';
+import { formatearEstado } from '@/lib/utils/estadoUtils';
 import styles from '@/styles/mision-detalle.module.css';
 
 interface MisionEquipoSectionProps {
@@ -45,7 +46,7 @@ export const MisionEquipoSection: React.FC<MisionEquipoSectionProps> = ({
               <div className={styles.dataItem}>
                 <span className={styles.dataLabel}>Estado Operativo</span>
                 <span className={styles.dataValue} style={{ fontWeight: 600 }}>
-                  {cuadrilla.estado}
+                  {formatearEstado(cuadrilla.estado)}
                 </span>
               </div>
 
@@ -129,7 +130,7 @@ export const MisionEquipoSection: React.FC<MisionEquipoSectionProps> = ({
             <div className={styles.dataItem}>
               <span className={styles.dataLabel}>Estado Operativo</span>
               <span className={styles.dataValue} style={{ fontWeight: 600 }}>
-                {patrulla.estado}
+                {formatearEstado(patrulla.estado)}
               </span>
             </div>
 

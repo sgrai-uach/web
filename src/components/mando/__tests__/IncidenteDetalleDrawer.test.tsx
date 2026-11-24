@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import React from 'react';
-import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within, act } from '@testing-library/react';
 import { IncidenteDetalleDrawer } from '../IncidenteDetalleDrawer';
 import * as incidentesService from '@/services/incidentesService';
 import * as misionesService from '@/services/misionesService';
@@ -174,7 +174,8 @@ describe('Componente IncidenteDetalleDrawer e integración HU-17', () => {
     // Esperar a que cargue el incidente
     await waitFor(() => {
       expect(screen.getByText('INC-2026-0042')).toBeDefined();
-      expect(screen.getByText('MIS-2026-0001: Despeje de cables')).toBeDefined();
+      expect(screen.getByText('MIS-2026-0001')).toBeDefined();
+      expect(screen.getByText('Despeje de cables')).toBeDefined();
     });
 
     // Clic en el botón "Ver Detalles" de la misión
@@ -411,6 +412,45 @@ describe('Componente IncidenteDetalleDrawer e integración HU-17', () => {
     // En estado EN_ATENCION, no debe estar el botón
     const btnDespachar = screen.queryByRole('button', { name: /Despachar Patrulla/i });
     expect(btnDespachar).toBeNull();
+  });
+
+  it('renderiza estados y prioridades legibles y muestra bloque de justificación de reclasificación técnica (H37)', async () => {
+    const mockIncidenteReclasificado: IncidenteDetalle = {
+      ...mockDetalleIncidente,
+      tipoAfectacion: 'Inundación Mayor',
+      prioridad: 'CRITICA',
+      reclasificadoEnTerreno: true,
+      justificacionReclasificacion: 'Desborde de río constatado con riesgo inminente a personas.',
+    };
+
+    vi.spyOn(incidentesService, 'obtenerDetalleIncidente').mockResolvedValueOnce({
+      exito: true,
+      datos: mockIncidenteReclasificado,
+      mensaje: 'OK',
+    });
+
+    render(
+      <IncidenteDetalleDrawer
+        incidenteId="i1000000-0000-4000-8000-000000000001"
+        userId="user-test"
+        onCerrar={vi.fn()}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('INC-2026-0042')).toBeDefined();
+    });
+
+    // Validar strings legibles y sin enums en crudo
+    expect(screen.getByText('Estado: En atención')).toBeDefined();
+    expect(screen.getByText('Prioridad: Crítica')).toBeDefined();
+
+    // Validar bloque informativo de reclasificación técnica en terreno
+    const bloque = screen.getByTestId('bloque-reclasificacion-terreno');
+    expect(bloque).toBeDefined();
+    expect(within(bloque).getByText(/Reclasificación Técnica en Terreno/i)).toBeDefined();
+    expect(within(bloque).getByText(/Inundación Mayor/i)).toBeDefined();
+    expect(within(bloque).getByText(/Desborde de río constatado con riesgo inminente a personas/i)).toBeDefined();
   });
 
   it('actualiza reactivamente el estado de trazabilidad de la misión ante notificacion:trazabilidad_actualizada', async () => {
@@ -706,5 +746,45 @@ describe('Componente IncidenteDetalleDrawer e integración HU-17', () => {
       expect.any(Function)
     );
     expect(mockSocket.emit).not.toHaveBeenCalledWith('salir', 'sala:encargados');
+  });
+
+  it('BUG-H37-WEB-05: limpia el detalle previo cuando se cambia a otro incidente cuya consulta retorna error 403', async () => {
+    vi.spyOn(incidentesService, 'obtenerDetalleIncidente')
+      .mockResolvedValueOnce({
+        exito: true,
+        datos: mockDetalleIncidente,
+        mensaje: 'OK',
+      })
+      .mockResolvedValueOnce({
+        exito: false,
+        codigoError: 403,
+        mensaje: 'Acceso denegado al incidente B.',
+      });
+
+    const { rerender } = render(
+      <IncidenteDetalleDrawer
+        incidenteId="i1000000-0000-4000-8000-000000000001"
+        userId="user-test"
+        onCerrar={vi.fn()}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('INC-2026-0042')).toBeDefined();
+    });
+
+    rerender(
+      <IncidenteDetalleDrawer
+        incidenteId="i2000000-0000-4000-8000-000000000002"
+        userId="user-test"
+        onCerrar={vi.fn()}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Acceso denegado al incidente B.')).toBeDefined();
+    });
+
+    expect(screen.queryByText('INC-2026-0042')).toBeNull();
   });
 });
