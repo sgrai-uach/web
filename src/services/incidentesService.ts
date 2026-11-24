@@ -80,6 +80,7 @@ export interface ReporteEvaluacionTerreno {
   detallesAdicionales?: string | null;
   personasAfectadas: number;
   requiereApoyoAdicional: boolean;
+  detalleApoyoRequerido?: string | null;
   horasHombre?: number | null;
   materialesConsumidos?: MaterialConsumidoDetalle[] | null;
   evaluacion: EvaluacionTerrenoDetalle;
@@ -121,6 +122,7 @@ export interface UltimoReporteIncidenteResumen {
   etiquetaReporte?: string | null;
   requiereAsistenciaSocial?: boolean;
   requiereApoyoAdicional?: boolean;
+  detalleApoyoRequerido?: string | null;
   horasHombre?: number | null;
   materialesConsumidos?: MaterialConsumidoDetalle[] | null;
   personasAfectadas?: number | null;
@@ -147,6 +149,8 @@ export type IncidenteResumen = ListarIncidentesResponse['data'][number] & {
   tieneMisionDespachada?: boolean;
   tieneMisionEnCurso?: boolean;
   cuadrillaEnTerreno?: boolean;
+  apoyoSolicitado?: boolean;
+  detalleApoyoRequerido?: string | null;
 };
 export type IncidenteDetalle = Omit<
   IncidenteDetalleResponse['data'],
@@ -171,6 +175,8 @@ export type IncidenteDetalle = Omit<
   tieneMisionDespachada?: boolean;
   tieneMisionEnCurso?: boolean;
   cuadrillaEnTerreno?: boolean;
+  apoyoSolicitado?: boolean;
+  detalleApoyoRequerido?: string | null;
 };
 
 export type MisionDetalle = IncidenteDetalleResponse['data']['misiones'][number];

@@ -12,6 +12,7 @@ export type CategoriaIconoHito =
   | 'evaluacion'
   | 'cierre'
   | 'rechazo'
+  | 'alerta'
   | 'neutro';
 
 export interface ConfigHitoMision {
@@ -21,6 +22,7 @@ export interface ConfigHitoMision {
   esRechazo: boolean;
   esReporteTerreno: boolean;
   esAceptacion: boolean;
+  esApoyoSolicitado?: boolean;
   categoriaIcono?: CategoriaIconoHito;
 }
 
@@ -120,6 +122,15 @@ const HITO_ETIQUETAS: Record<string, Omit<ConfigHitoMision, 'codigo'>> = {
     esReporteTerreno: true,
     esAceptacion: false,
     categoriaIcono: 'cierre',
+  },
+  APOYO_SOLICITADO: {
+    etiqueta: 'Apoyo Adicional Solicitado',
+    esLlegadaTerreno: false,
+    esRechazo: false,
+    esReporteTerreno: true,
+    esAceptacion: false,
+    esApoyoSolicitado: true,
+    categoriaIcono: 'alerta',
   },
 };
 

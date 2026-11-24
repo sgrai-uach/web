@@ -70,6 +70,7 @@ export interface EvaluacionTerrenoMisionDetalle {
   requiereEvacuacion?: boolean;
   requiereAsistenciaSocial?: boolean;
   requiereApoyoAdicional?: boolean;
+  detalleApoyoRequerido?: string | null;
   riesgosActivos?: {
     riesgoElectrico?: boolean;
     riesgoEstructural?: boolean;
@@ -139,6 +140,7 @@ export interface ReporteTerrenoDetalle {
   resumenFaenas?: string | null;
   accionesRealizadas: string | null;
   requiereApoyoAdicional: boolean;
+  detalleApoyoRequerido?: string | null;
   danosEstimados: string | null;
   observaciones: string | null;
   personasAfectadas: number;
@@ -179,6 +181,22 @@ export interface MisionHitoRegistradoPayload {
   } | null;
   registradoEn: string;
   nuevoEstadoMision?: string;
+}
+
+export interface MisionApoyoSolicitadoPayload {
+  reporteId: string;
+  misionId: string;
+  misionCodigo?: string | null;
+  incidenteId?: string | null;
+  incidenteCodigo?: string | null;
+  cuadrillaId?: string | null;
+  cuadrillaNombre?: string | null;
+  evaluadorId?: string | null;
+  evaluadorNombre?: string | null;
+  requiereApoyoAdicional: boolean;
+  detalleApoyoRequerido: string | null;
+  prioridadAlerta?: 'ALTA' | 'CRITICA' | string;
+  solicitadoEn: string;
 }
 
 export interface MisionActualizadaHitoPayload {

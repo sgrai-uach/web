@@ -73,6 +73,7 @@ export const MAPA_ESTADOS_LEGIBLES: Record<string, string> = {
   MISION_COMPLETADA: 'Misión completada',
   MISION_RECHAZADA: 'Misión rechazada',
   MISION_CANCELADA: 'Misión cancelada',
+  APOYO_SOLICITADO: 'Apoyo adicional solicitado en terreno',
 
   // Nivel de compromiso de vivienda (HU-38)
   SIN_DANO: 'Sin daño habitacional',
@@ -695,6 +696,7 @@ export function limpiarDescripcionBitacora(desc?: string | null): string {
     .replace(/\(RESUELTO\)/gi, '(Resuelto)')
     .replace(/\(NO_ABORDABLE\)/gi, '(No abordable)')
     // Dictámenes operativos y estados de terreno final
+    .replace(/\bAPOYO_SOLICITADO\b/g, 'Apoyo adicional solicitado en terreno')
     .replace(/\bNO_ABORDABLE\b/g, 'No Abordable')
     .replace(/\bREQUIERE_CUADRILLA\b/g, 'Requiere Cuadrilla')
     .replace(/\bREQUIERE_SEGUIMIENTO\b/g, 'Requiere seguimiento')
