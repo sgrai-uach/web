@@ -17,7 +17,6 @@ import {
   WifiOff,
   Hourglass,
 } from 'lucide-react';
-import Heading from '@/components/ui/Heading';
 import Button from '@/components/ui/Button';
 import Chip from '@/components/ui/Chip';
 import { DrawerSectionHeader } from './DrawerSectionHeader';
@@ -28,16 +27,23 @@ import type {
 import type { EstadoMision } from '@/types/misiones';
 import {
   calcularComparativaPersonasAfectadas,
+  esReporteCierreCuadrilla,
   esReporteVerificacionCierre,
+  formatearCantidadMaterial,
   formatearDictamenTerreno,
   formatearEstado,
+  formatearEstadoTerreno,
+  formatearHorasHombre,
   formatearPrioridad,
   formatearTipoMision,
   formatearCompromisoVivienda,
+  normalizarMaterialesConsumidos,
+  obtenerPesoOrdenReporte,
 } from '@/lib/utils/estadoUtils';
 import {
   obtenerVarianteChipDictamen,
   obtenerVarianteChipEstadoMision,
+  obtenerVarianteChipEstadoTerreno,
 } from '@/lib/utils/chipVariants';
 import { TRAZABILIDAD_CONFIG } from '@/lib/socket/trazabilidadConfig';
 import {
@@ -170,9 +176,9 @@ export const IncidenteMisionesSection: React.FC<IncidenteMisionesSectionProps> =
   const reportesPorMision = useMemo(() => {
     const mapa = new Map<string, ReporteEvaluacionTerreno[]>();
     const ordenados = [...reportesEvaluacionTerreno].sort((a, b) => {
-      const cierreA = esReporteVerificacionCierre(a) ? 1 : 0;
-      const cierreB = esReporteVerificacionCierre(b) ? 1 : 0;
-      if (cierreA !== cierreB) return cierreB - cierreA;
+      const pesoA = obtenerPesoOrdenReporte(a);
+      const pesoB = obtenerPesoOrdenReporte(b);
+      if (pesoA !== pesoB) return pesoB - pesoA;
       const verA = Number(a.versionReporte ?? 0);
       const verB = Number(b.versionReporte ?? 0);
       if (verA !== verB) return verB - verA;
@@ -347,6 +353,15 @@ export const IncidenteMisionesSection: React.FC<IncidenteMisionesSectionProps> =
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: 'var(--color-text-muted, #5F676E)' }}>
                 <Clock size={12} aria-hidden="true" />
                 <span>{fechaLegible}</span>
+              </span>
+            </>
+          )}
+          {mision.estado === 'COMPLETADA' && mision.fechaCierre && formatFechaHora(mision.fechaCierre) && (
+            <>
+              <span>&bull;</span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: 'var(--color-success, #2E7D32)', fontWeight: 600 }}>
+                <Clock size={12} aria-hidden="true" />
+                <span>Cierre: {formatFechaHora(mision.fechaCierre)}</span>
               </span>
             </>
           )}
@@ -662,7 +677,11 @@ export const IncidenteMisionesSection: React.FC<IncidenteMisionesSectionProps> =
           if (reportesMision.length === 0) return null;
 
           const ultimoReporte = reportesMision[0];
-          const esCierre = esReporteVerificacionCierre(ultimoReporte);
+          const esCierreCuadrilla = esReporteCierreCuadrilla(ultimoReporte);
+          const esCierre = !esCierreCuadrilla && esReporteVerificacionCierre(ultimoReporte);
+          const materialesCuadrilla = esCierreCuadrilla
+            ? normalizarMaterialesConsumidos(ultimoReporte.materialesConsumidos)
+            : [];
           const comparativaPersonas = esCierre
             ? calcularComparativaPersonasAfectadas(ultimoReporte, reportesMision)
             : null;
@@ -670,11 +689,13 @@ export const IncidenteMisionesSection: React.FC<IncidenteMisionesSectionProps> =
           const esRectificacion = Boolean(
             ultimoReporte.esRectificacion || numVersion > 1
           );
-          const etiquetaUltimo = esCierre
-            ? ultimoReporte.etiquetaReporte || 'Informe de Verificación y Cierre'
-            : esRectificacion
-              ? `Reporte #${numVersion} — Rectificación Vigente`
-              : 'Reporte #1 — Evaluación Inicial';
+          const etiquetaUltimo = esCierreCuadrilla
+            ? ultimoReporte.etiquetaReporte || 'Informe Técnico Final de Cuadrilla (Cierre de Misión)'
+            : esCierre
+              ? ultimoReporte.etiquetaReporte || 'Informe de Verificación y Cierre'
+              : esRectificacion
+                ? `Reporte #${numVersion} — Rectificación Vigente`
+                : 'Reporte #1 — Evaluación Inicial';
 
           const prioridadAjustadaManual = Boolean(
             (ultimoReporte.prioridadSugerida &&
@@ -786,6 +807,59 @@ export const IncidenteMisionesSection: React.FC<IncidenteMisionesSectionProps> =
                 )}
               </div>
 
+              {/* Badges de Cierre de Cuadrilla (H68) */}
+              {esCierreCuadrilla && (
+                <div
+                  style={{
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    gap: '6px',
+                    marginBottom: '6px',
+                  }}
+                >
+                  {ultimoReporte.estadoTerreno && (
+                    <Chip
+                      variant={obtenerVarianteChipEstadoTerreno(ultimoReporte.estadoTerreno)}
+                      size="sm"
+                    >
+                      Terreno: {formatearEstadoTerreno(ultimoReporte.estadoTerreno)}
+                    </Chip>
+                  )}
+                  {typeof ultimoReporte.horasHombre === 'number' && (
+                    <Chip variant="neutral" size="sm">
+                      {formatearHorasHombre(ultimoReporte.horasHombre)}
+                    </Chip>
+                  )}
+                  {ultimoReporte.requiereApoyoAdicional && (
+                    <Chip variant="warning" size="sm">
+                      Requiere Apoyo
+                    </Chip>
+                  )}
+                </div>
+              )}
+
+              {/* Resumen de insumos consumidos en cierre de cuadrilla (H68) */}
+              {esCierreCuadrilla && (
+                <div
+                  data-testid={`mision-materiales-resumen-${mision.id}`}
+                  style={{
+                    fontSize: '0.75rem',
+                    color: 'var(--color-charcoal, #3B3F45)',
+                    marginBottom: '6px',
+                  }}
+                >
+                  <strong>Materiales consumidos:</strong>{' '}
+                  {materialesCuadrilla.length > 0
+                    ? materialesCuadrilla
+                        .map(
+                          (mat) =>
+                            `${mat.nombre || 'Recurso'} (${formatearCantidadMaterial(mat.cantidad, mat.unidad)})`
+                        )
+                        .join(' · ')
+                    : 'Sin insumos consumidos'}
+                </div>
+              )}
+
               {/* Badges de Dictamen y FIBE cuando es Informe de Verificación y Cierre (H39) */}
               {esCierre && (
                 <div
@@ -885,7 +959,8 @@ export const IncidenteMisionesSection: React.FC<IncidenteMisionesSectionProps> =
                 </p>
               )}
 
-              {/* Resumen demográfico rápido */}
+              {/* Resumen demográfico rápido (solo patrulla H38/H39, nunca en cierre de cuadrilla H68) */}
+              {!esCierreCuadrilla && (
               <div
                 style={{
                   display: 'flex',
@@ -939,9 +1014,10 @@ export const IncidenteMisionesSection: React.FC<IncidenteMisionesSectionProps> =
                   </span>
                 )}
               </div>
+              )}
 
               {/* Detalle compacto de familias si hay desglose (solo en reportes de evaluación H38, sin FIBE) */}
-              {!esCierre &&
+              {!esCierreCuadrilla && !esCierre &&
                 familiasRaw &&
                 familiasRaw.length > 0 &&
                 (familiasRaw.length > 1 || Boolean(familiasRaw[0].referencia)) && (

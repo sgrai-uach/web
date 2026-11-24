@@ -1,7 +1,9 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { misionesService } from '@/services/misionesService';
+import { getSocket } from '@/lib/socket/client';
+import { suscribirSalasSocket } from '@/lib/socket/roomManager';
 import type { FiltrosMisiones, MisionItem } from '@/types/misiones';
 import { DEFAULT_ENCARGADO_ID } from '@/services/incidentesService';
 
@@ -15,7 +17,10 @@ export const FILTROS_MISIONES_DEFECTO: FiltrosMisiones = {
   limit: 10,
 };
 
-export function useMisiones(userId: string = DEFAULT_ENCARGADO_ID) {
+export function useMisiones(
+  userId: string = DEFAULT_ENCARGADO_ID,
+  enabled: boolean = true
+) {
   const [filtros, setFiltrosState] = useState<FiltrosMisiones>(FILTROS_MISIONES_DEFECTO);
   const [misiones, setMisiones] = useState<MisionItem[]>([]);
   const [meta, setMeta] = useState({
@@ -26,8 +31,13 @@ export function useMisiones(userId: string = DEFAULT_ENCARGADO_ID) {
     hasNext: false,
     hasPrev: false,
   });
-  const [cargando, setCargando] = useState<boolean>(true);
+  const [cargando, setCargando] = useState<boolean>(enabled);
   const [error, setError] = useState<string | null>(null);
+
+  const filtrosRef = useRef(filtros);
+  useEffect(() => {
+    filtrosRef.current = filtros;
+  }, [filtros]);
 
   const consultar = useCallback(
     async (filtrosActuales: FiltrosMisiones) => {
@@ -50,12 +60,18 @@ export function useMisiones(userId: string = DEFAULT_ENCARGADO_ID) {
     [userId]
   );
 
+  const consultarRef = useRef(consultar);
   useEffect(() => {
+    consultarRef.current = consultar;
+  }, [consultar]);
+
+  useEffect(() => {
+    if (!enabled) return;
     let activo = true;
 
     const timer = setTimeout(() => {
       if (activo) {
-        consultar(filtros);
+        void consultar(filtros);
       }
     }, 0);
 
@@ -63,7 +79,72 @@ export function useMisiones(userId: string = DEFAULT_ENCARGADO_ID) {
       activo = false;
       clearTimeout(timer);
     };
-  }, [consultar, filtros]);
+  }, [enabled, consultar, filtros]);
+
+  // Suscripción en tiempo real a mision:actualizada (H68)
+  useEffect(() => {
+    if (!enabled) return;
+    try {
+      const socket = getSocket();
+      if (!socket || typeof socket.on !== 'function') return;
+
+      if (!socket.connected && typeof socket.connect === 'function') {
+        socket.connect();
+      }
+
+      const desuscribirSalas = suscribirSalasSocket(socket, [
+        { sala: 'encargado', eventosJoin: ['join'], eventosLeave: ['leave'] },
+        { sala: 'sala:encargados', eventosJoin: ['unirse'], eventosLeave: ['salir'] },
+      ]);
+
+      const handleMisionActualizada = (rawPayload: unknown) => {
+        const p = rawPayload as Record<string, unknown> | null | undefined;
+        const raw = (p?.datos || p?.data || rawPayload) as Record<string, unknown> | null | undefined;
+        if (!raw || typeof raw !== 'object') return;
+
+        const misionId =
+          typeof raw.misionId === 'string'
+            ? raw.misionId
+            : typeof raw.id === 'string'
+              ? raw.id
+              : '';
+        const estado = typeof raw.estado === 'string' ? raw.estado : '';
+        if (!misionId || !estado) return;
+
+        const fechaCierre =
+          typeof raw.fechaCierre === 'string'
+            ? raw.fechaCierre
+            : typeof raw.fecha_cierre === 'string'
+              ? raw.fecha_cierre
+              : undefined;
+
+        setMisiones((prev) =>
+          prev.map((m) =>
+            m.id === misionId
+              ? {
+                  ...m,
+                  estado: estado as MisionItem['estado'],
+                  fechaCierre: fechaCierre !== undefined ? fechaCierre : m.fechaCierre,
+                }
+              : m
+          )
+        );
+
+        if (filtrosRef.current.estado !== 'TODOS') {
+          void consultarRef.current(filtrosRef.current);
+        }
+      };
+
+      socket.on('mision:actualizada', handleMisionActualizada);
+
+      return () => {
+        socket.off('mision:actualizada', handleMisionActualizada);
+        desuscribirSalas();
+      };
+    } catch {
+      // Ignorar fallo de socket en entornos de prueba aislados
+    }
+  }, [enabled]);
 
   // Actualizar filtros reseteando siempre a página 1 (coherencia en paginación)
   const setFiltros = useCallback((actualizador: Partial<FiltrosMisiones> | ((prev: FiltrosMisiones) => FiltrosMisiones)) => {

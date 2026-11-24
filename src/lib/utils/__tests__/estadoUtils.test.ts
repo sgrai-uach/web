@@ -9,11 +9,19 @@ import {
   esJustificacionSinCambios,
   esHitoTipologiaSinCambios,
   formatearNombrePatrulla,
+  formatearNombreCuadrilla,
   limpiarDescripcionBitacora,
   formatearDictamenTerreno,
   esReporteVerificacionCierre,
   calcularComparativaPersonasAfectadas,
+  esReporteCierreCuadrilla,
+  obtenerPesoOrdenReporte,
+  formatearEstadoTerreno,
+  formatearHorasHombre,
+  normalizarMaterialesConsumidos,
+  formatearCantidadMaterial,
 } from '../estadoUtils';
+import { obtenerVarianteChipEstadoTerreno } from '../chipVariants';
 
 describe('formatearEstado', () => {
   it('formatea estados de recursos y vehículos a lenguaje natural institucional', () => {
@@ -246,6 +254,116 @@ describe('H39: formatearDictamenTerreno, esReporteVerificacionCierre y comparati
         personasAfectadasPrevias: 3,
       })
     ).toEqual({ personasPrevias: 3, fueModificado: true });
+  });
+});
+
+describe('H68: utilidades para cierre de misión de cuadrilla (REPORTE_CUADRILLA)', () => {
+  it('distingue REPORTE_CUADRILLA de reportes de patrulla y asigna mayor peso de orden', () => {
+    const repPrioridad = { tipoReporte: 'EVALUACION_PRIORIDAD', personasAfectadas: 4 };
+    const repPatrulla = { tipoReporte: 'VERIFICACION_CIERRE', dictamen: 'REQUIERE_CUADRILLA' };
+    const repCuadrilla = {
+      tipoReporte: 'REPORTE_CUADRILLA',
+      horasHombre: 5.5,
+      materialesConsumidos: [{ recursoId: 'r-1', cantidad: 10 }],
+    };
+
+    expect(esReporteCierreCuadrilla(repCuadrilla)).toBe(true);
+    expect(esReporteCierreCuadrilla(repPatrulla)).toBe(false);
+    expect(esReporteCierreCuadrilla(repPrioridad)).toBe(false);
+    expect(
+      esReporteCierreCuadrilla({
+        etiquetaReporte: 'Informe Técnico Final de Cuadrilla (Cierre de Misión)',
+      })
+    ).toBe(true);
+
+    expect(obtenerPesoOrdenReporte(repCuadrilla)).toBe(2);
+    expect(obtenerPesoOrdenReporte(repPatrulla)).toBe(1);
+    expect(obtenerPesoOrdenReporte(repPrioridad)).toBe(0);
+
+    // No debe contaminar comparativa de personas afectadas de patrulla
+    expect(
+      calcularComparativaPersonasAfectadas(repPatrulla, [repPrioridad, repCuadrilla, repPatrulla])
+    ).toEqual({ personasPrevias: 4, fueModificado: false });
+  });
+
+  it('formatea estado final del terreno, variantes semánticas de Chip y horas hombre', () => {
+    expect(formatearEstadoTerreno('CONTROLADO')).toBe('Controlado');
+    expect(formatearEstadoTerreno('REQUIERE_SEGUIMIENTO')).toBe('Requiere seguimiento');
+    expect(formatearEstadoTerreno('CRITICO')).toBe('Crítico');
+    expect(formatearEstadoTerreno('INACCESIBLE')).toBe('Inaccesible');
+    expect(formatearEstadoTerreno(null)).toBe('No especificado');
+
+    expect(obtenerVarianteChipEstadoTerreno('CONTROLADO')).toBe('success');
+    expect(obtenerVarianteChipEstadoTerreno('ESTABLE')).toBe('success');
+    expect(obtenerVarianteChipEstadoTerreno('FINALIZADO')).toBe('success');
+    expect(obtenerVarianteChipEstadoTerreno('REQUIERE_SEGUIMIENTO')).toBe('warning');
+    expect(obtenerVarianteChipEstadoTerreno('CRITICO')).toBe('danger');
+    expect(obtenerVarianteChipEstadoTerreno('INACCESIBLE')).toBe('danger');
+    expect(obtenerVarianteChipEstadoTerreno('')).toBe('neutral');
+
+    expect(formatearHorasHombre(1)).toBe('1 hora hombre');
+    expect(formatearHorasHombre(6)).toBe('6 horas hombre');
+    expect(formatearHorasHombre(4.5)).toBe('4,5 horas hombre');
+    expect(formatearHorasHombre(null)).toBe('No registrado');
+  });
+
+  it('normaliza materiales consumidos en camelCase/snake_case, formatea cantidades y limpia bitácora', () => {
+    const normalizados = normalizarMaterialesConsumidos([
+      {
+        recurso_id: 'rec-1',
+        nombre_recurso: 'Sacos de arena',
+        cantidad: 20,
+        unidad: 'sacos',
+        observacion: 'Contención en acceso sur',
+      },
+      {
+        recursoId: 'rec-2',
+        nombre: 'Polietileno',
+        cantidad: 2,
+      },
+      { recursoId: '', cantidad: 5 },
+      { recursoId: 'rec-invalid', cantidad: 0 },
+    ]);
+
+    expect(normalizados).toEqual([
+      {
+        recursoId: 'rec-1',
+        nombre: 'Sacos de arena',
+        cantidad: 20,
+        unidad: 'sacos',
+        observacion: 'Contención en acceso sur',
+      },
+      {
+        recursoId: 'rec-2',
+        nombre: 'Polietileno',
+        cantidad: 2,
+        unidad: null,
+        observacion: null,
+      },
+    ]);
+
+    expect(formatearCantidadMaterial(20, 'sacos')).toBe('20 sacos');
+    expect(formatearCantidadMaterial(1)).toBe('1 unidad');
+    expect(formatearCantidadMaterial(3)).toBe('3 unidades');
+
+    expect(
+      limpiarDescripcionBitacora(
+        'Misión cerrada por la cuadrilla Cuadrilla Norte. Estado terreno: REQUIERE_SEGUIMIENTO. Cuadrilla pasa a DISPONIBLE.'
+      )
+    ).toBe(
+      'Misión cerrada por la Cuadrilla Norte. Estado terreno: Requiere seguimiento. Cuadrilla pasa a Disponible.'
+    );
+  });
+
+  it('formatea nombres de cuadrillas evitando duplicar el prefijo Cuadrilla', () => {
+    expect(formatearNombreCuadrilla('Cuadrilla Vías y Canales 1')).toBe(
+      'Cuadrilla Vías y Canales 1'
+    );
+    expect(formatearNombreCuadrilla('Vías y Canales 2')).toBe(
+      'Cuadrilla Vías y Canales 2'
+    );
+    expect(formatearNombreCuadrilla('   ')).toBe('Cuadrilla Operativa');
+    expect(formatearNombreCuadrilla(null, 'Unidad Alpha')).toBe('Unidad Alpha');
   });
 });
 

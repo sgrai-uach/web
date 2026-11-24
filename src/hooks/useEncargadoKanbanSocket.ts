@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { getSocket } from '@/lib/socket/client';
+import { suscribirSalasSocket } from '@/lib/socket/roomManager';
 import { esPayloadTrazabilidadValido } from '@/lib/socket/trazabilidadConfig';
 import { setTrazabilidadEstado } from '@/lib/socket/trazabilidadStore';
 import {
@@ -20,17 +21,21 @@ import type {
 } from '@/services/incidentesService';
 import type {
   DictamenAtencionTerreno,
-  MisionActualizadaPayload,
+  MisionActualizadaPayload as MisionActualizadaStorePayload,
   MisionHitoRegistradoPayload,
 } from '@/types/misiones';
 import {
   esJustificacionSinCambios,
+  esReporteCierreCuadrilla,
   esReporteVerificacionCierre,
   formatearDictamenTerreno,
   formatearEstado,
+  formatearEstadoTerreno,
   formatearPrioridad,
   fueTipologiaModificada,
+  normalizarMaterialesConsumidos,
 } from '@/lib/utils/estadoUtils';
+import type { EstadoRecurso } from '@/types/recurso';
 
 export interface IncidenteCreadoPayload {
   evento: 'incidente:creado';
@@ -97,6 +102,46 @@ export interface CuadrillaActualizadaPayload {
   delegacionId?: string | null;
 }
 
+export interface MisionHitoSocketPayload {
+  id?: string;
+  hito: string;
+  descripcion?: string;
+  registradoPorId?: string | null;
+  creadoEn?: string;
+}
+
+export interface MisionActualizadaPayload {
+  id?: string;
+  misionId: string;
+  codigo: string;
+  tipoMision?: string;
+  estado: string;
+  prioridad?: PrioridadIncidente | string;
+  fechaInicio?: string | null;
+  fechaCierre?: string | null;
+  hito?: MisionHitoSocketPayload | string | null;
+  incidenteId?: string | null;
+  incidenteCodigo?: string | null;
+  cuadrillaId?: string | null;
+  cuadrillaNombre?: string | null;
+  patrullaId?: string | null;
+  patrullaNombre?: string | null;
+  actualizadoEn?: string;
+  reporteTerreno?: ReporteEvaluacionTerreno | null;
+}
+
+export interface RecursoActualizadoPayload {
+  id: string;
+  nombre?: string;
+  estado: EstadoRecurso | string;
+  cantidadInventario?: number;
+  cantidadEnUso?: number;
+  cantidadDisponible?: number;
+  cantidadMinima?: number;
+  esIndividual?: boolean;
+  delegacionId?: string | null;
+}
+
 export interface NotificacionTrazabilidadPayload {
   notificacionId: string;
   misionId: string;
@@ -114,10 +159,11 @@ export interface UseEncargadoKanbanSocketOptions {
   onIncidenteCreado?: (payload: IncidenteCreadoPayload) => void;
   onIncidenteActualizado?: (payload: IncidenteActualizadoPayload) => void;
   onMisionRechazada?: (payload: MisionRechazadaPayload) => void;
+  onMisionActualizada?: (payload: MisionActualizadaPayload) => void;
   onCuadrillaActualizada?: (payload: CuadrillaActualizadaPayload) => void;
+  onRecursoActualizado?: (payload: RecursoActualizadoPayload) => void;
   onNotificacionTrazabilidadActualizada?: (payload: NotificacionTrazabilidadPayload) => void;
   onMisionHitoRegistrado?: (payload: MisionHitoRegistradoPayload) => void;
-  onMisionActualizada?: (payload: MisionActualizadaPayload) => void;
   enabled?: boolean;
 }
 
@@ -125,16 +171,17 @@ export interface UseEncargadoKanbanSocketOptions {
  * Hook para la conexión en tiempo real del Encargado de Centro de Mando.
  * Se une a la sala 'sala:encargados' y escucha la creación y actualización de incidentes,
  * aceptación y actualización de misiones (H36/H40), llegada a terreno (H42),
- * trazabilidad (H35), rechazos de misiones (H41/H69) y disponibilidad de cuadrillas.
+ * rechazos (H41/H69), cierres (H68), trazabilidad (H35), disponibilidad de cuadrillas e inventario.
  */
 export function useEncargadoKanbanSocket({
   onIncidenteCreado,
   onIncidenteActualizado,
   onMisionRechazada,
+  onMisionActualizada,
   onCuadrillaActualizada,
+  onRecursoActualizado,
   onNotificacionTrazabilidadActualizada,
   onMisionHitoRegistrado,
-  onMisionActualizada,
   enabled = true,
 }: UseEncargadoKanbanSocketOptions = {}) {
   const [conectado, setConectado] = useState(false);
@@ -143,11 +190,12 @@ export function useEncargadoKanbanSocket({
   const creadoRef = useRef(onIncidenteCreado);
   const actualizadoRef = useRef(onIncidenteActualizado);
   const rechazadaRef = useRef(onMisionRechazada);
-  const cuadrillaActualizadaRef = useRef(onCuadrillaActualizada);
-  const eventosProcesadosRef = useRef<Map<string, number>>(new Map());
-  const trazabilidadRef = useRef(onNotificacionTrazabilidadActualizada);
-  const misionHitoRef = useRef(onMisionHitoRegistrado);
   const misionActualizadaRef = useRef(onMisionActualizada);
+  const cuadrillaActualizadaRef = useRef(onCuadrillaActualizada);
+  const recursoActualizadoRef = useRef(onRecursoActualizado);
+  const trazabilidadRef = useRef(onNotificacionTrazabilidadActualizada);
+  const eventosProcesadosRef = useRef<Map<string, number>>(new Map());
+  const misionHitoRef = useRef(onMisionHitoRegistrado);
 
   useEffect(() => {
     creadoRef.current = onIncidenteCreado;
@@ -162,8 +210,16 @@ export function useEncargadoKanbanSocket({
   }, [onMisionRechazada]);
 
   useEffect(() => {
+    misionActualizadaRef.current = onMisionActualizada;
+  }, [onMisionActualizada]);
+
+  useEffect(() => {
     cuadrillaActualizadaRef.current = onCuadrillaActualizada;
   }, [onCuadrillaActualizada]);
+
+  useEffect(() => {
+    recursoActualizadoRef.current = onRecursoActualizado;
+  }, [onRecursoActualizado]);
 
   useEffect(() => {
     trazabilidadRef.current = onNotificacionTrazabilidadActualizada;
@@ -174,10 +230,6 @@ export function useEncargadoKanbanSocket({
   }, [onMisionHitoRegistrado]);
 
   useEffect(() => {
-    misionActualizadaRef.current = onMisionActualizada;
-  }, [onMisionActualizada]);
-
-  useEffect(() => {
     if (!enabled) return;
 
     const socket = getSocket();
@@ -186,12 +238,14 @@ export function useEncargadoKanbanSocket({
       socket.connect();
     }
 
+    const desuscribirSalas = suscribirSalasSocket(socket, [
+      { sala: 'encargado', eventosJoin: ['join'], eventosLeave: ['leave'] },
+      { sala: 'sala:encargados', eventosJoin: ['unirse'], eventosLeave: ['salir'] },
+      { sala: 'mapa', eventosJoin: ['join', 'unirse'], eventosLeave: ['leave', 'salir'] },
+    ]);
+
     const onConnect = () => {
       setConectado(true);
-      socket.emit('join', 'encargado');
-      socket.emit('unirse', 'sala:encargados');
-      socket.emit('join', 'mapa');
-      socket.emit('unirse', 'mapa');
     };
 
     const onDisconnect = () => {
@@ -199,10 +253,6 @@ export function useEncargadoKanbanSocket({
     };
 
     if (socket.connected) {
-      socket.emit('join', 'encargado');
-      socket.emit('unirse', 'sala:encargados');
-      socket.emit('join', 'mapa');
-      socket.emit('unirse', 'mapa');
       queueMicrotask(() => {
         setConectado(true);
       });
@@ -246,10 +296,43 @@ export function useEncargadoKanbanSocket({
             : undefined;
       if (!id) return;
 
-      const rawReporte =
+      const rawReporteObj =
         rawDatos?.reporteTerreno && typeof rawDatos.reporteTerreno === 'object'
-          ? (rawDatos.reporteTerreno as ReporteEvaluacionTerreno)
+          ? (rawDatos.reporteTerreno as Record<string, unknown>)
           : undefined;
+
+      const rawReporte: ReporteEvaluacionTerreno | undefined = rawReporteObj
+        ? ({
+            ...(rawReporteObj as unknown as ReporteEvaluacionTerreno),
+            resumenTecnico:
+              typeof rawReporteObj.resumenTecnico === 'string'
+                ? rawReporteObj.resumenTecnico
+                : typeof rawReporteObj.resumenFaenas === 'string'
+                  ? rawReporteObj.resumenFaenas
+                  : typeof rawReporteObj.resumen_faenas === 'string'
+                    ? rawReporteObj.resumen_faenas
+                    : '',
+            resumenFaenas:
+              typeof rawReporteObj.resumenFaenas === 'string'
+                ? rawReporteObj.resumenFaenas
+                : typeof rawReporteObj.resumen_faenas === 'string'
+                  ? rawReporteObj.resumen_faenas
+                  : undefined,
+            horasHombre:
+              typeof rawReporteObj.horasHombre === 'number'
+                ? rawReporteObj.horasHombre
+                : typeof rawReporteObj.horas_hombre === 'number'
+                  ? rawReporteObj.horas_hombre
+                  : undefined,
+            materialesConsumidos: normalizarMaterialesConsumidos(
+              rawReporteObj.materialesConsumidos ?? rawReporteObj.materiales_consumidos
+            ),
+            etiquetaReporte:
+              typeof rawReporteObj.etiquetaReporte === 'string'
+                ? rawReporteObj.etiquetaReporte
+                : (rawReporteObj as unknown as ReporteEvaluacionTerreno).etiquetaReporte,
+          })
+        : undefined;
 
       const dictamenRaw =
         typeof rawDatos?.dictamen === 'string'
@@ -281,11 +364,14 @@ export function useEncargadoKanbanSocket({
             : undefined;
 
       const reporteKey = rawReporte?.id || rawReporte?.versionReporte || '';
+      const tipoReporteKey = rawReporte?.tipoReporte || '';
       const tipoKey = typeof rawDatos?.tipoAfectacion === 'string' ? rawDatos.tipoAfectacion : '';
       const dictamenKey = dictamen || '';
+      const estadoFallback =
+        rawReporte && esReporteCierreCuadrilla(rawReporte) ? 'EN_ATENCION' : 'VERIFICANDO';
       if (
         esEventoDuplicado(
-          `inc-act:${id}:${nuevoEstado || 'VERIFICANDO'}:${reporteKey}:${tipoKey}:${dictamenKey}`
+          `inc-act:${id}:${nuevoEstado || estadoFallback}:${tipoReporteKey}:${reporteKey}:${tipoKey}:${dictamenKey}`
         )
       ) {
         return;
@@ -319,7 +405,7 @@ export function useEncargadoKanbanSocket({
         datos: {
           id,
           codigo: typeof rawDatos?.codigo === 'string' ? rawDatos.codigo : '',
-          nuevoEstado: (nuevoEstado as EstadoIncidente) || 'VERIFICANDO',
+          nuevoEstado: (nuevoEstado as EstadoIncidente) || estadoFallback,
           prioridad:
             typeof rawDatos?.prioridad === 'string'
               ? (rawDatos.prioridad as PrioridadIncidente)
@@ -372,6 +458,16 @@ export function useEncargadoKanbanSocket({
           `Incidente ${normalizedPayload.datos.codigo || ''} declarado No Abordable en terreno${motivoTexto}`
         );
       } else if (
+        normalizedPayload.datos.reporteTerreno &&
+        esReporteCierreCuadrilla(normalizedPayload.datos.reporteTerreno)
+      ) {
+        const terrenoTexto = formatearEstadoTerreno(
+          normalizedPayload.datos.reporteTerreno.estadoTerreno
+        );
+        setUltimoEvento(
+          `Informe final de cuadrilla recibido en ${normalizedPayload.datos.codigo || 'incidente'}: Terreno ${terrenoTexto}`
+        );
+      } else if (
         normalizedPayload.datos.dictamen === 'REQUIERE_CUADRILLA' ||
         (normalizedPayload.datos.reporteTerreno &&
           esReporteVerificacionCierre(normalizedPayload.datos.reporteTerreno))
@@ -420,6 +516,12 @@ export function useEncargadoKanbanSocket({
     const handleMisionEvent = (payload: unknown) => {
       const p = payload as Record<string, unknown> | null | undefined;
       const raw = (p?.datos || p?.data || p) as Record<string, unknown> | null | undefined;
+      const misionId =
+        typeof raw?.misionId === 'string'
+          ? raw.misionId
+          : typeof raw?.id === 'string'
+            ? raw.id
+            : '';
       const incidenteId =
         typeof raw?.incidenteId === 'string'
           ? raw.incidenteId
@@ -427,6 +529,7 @@ export function useEncargadoKanbanSocket({
             ? raw.incidente_id
             : undefined;
       const estadoMision = typeof raw?.estado === 'string' ? raw.estado : undefined;
+      const estadoMisionNorm = estadoMision ? estadoMision.toUpperCase() : '';
       const tipoMision =
         typeof raw?.tipoMision === 'string'
           ? raw.tipoMision
@@ -434,33 +537,166 @@ export function useEncargadoKanbanSocket({
             ? raw.tipo_mision
             : undefined;
       const codigoMision = typeof raw?.codigo === 'string' ? raw.codigo : '';
+      const incidenteCodigo =
+        typeof raw?.incidenteCodigo === 'string'
+          ? raw.incidenteCodigo
+          : typeof raw?.incidente_codigo === 'string'
+            ? raw.incidente_codigo
+            : '';
+      const cuadrillaId =
+        typeof raw?.cuadrillaId === 'string'
+          ? raw.cuadrillaId
+          : typeof raw?.cuadrilla_id === 'string'
+            ? raw.cuadrilla_id
+            : null;
+      const cuadrillaNombre =
+        typeof raw?.cuadrillaNombre === 'string'
+          ? raw.cuadrillaNombre
+          : typeof raw?.cuadrilla_nombre === 'string'
+            ? raw.cuadrilla_nombre
+            : null;
+      const patrullaId =
+        typeof raw?.patrullaId === 'string'
+          ? raw.patrullaId
+          : typeof raw?.patrulla_id === 'string'
+            ? raw.patrulla_id
+            : null;
+      const patrullaNombre =
+        typeof raw?.patrullaNombre === 'string'
+          ? raw.patrullaNombre
+          : typeof raw?.patrulla_nombre === 'string'
+            ? raw.patrulla_nombre
+            : null;
+      const fechaInicio =
+        typeof raw?.fechaInicio === 'string'
+          ? raw.fechaInicio
+          : typeof raw?.fecha_inicio === 'string'
+            ? raw.fecha_inicio
+            : null;
+      const actualizadoEn =
+        typeof raw?.actualizadoEn === 'string'
+          ? raw.actualizadoEn
+          : fechaInicio || new Date().toISOString();
 
-      // Regla de Negocio (H69): Solo cuando la patrulla ACEPTA la misión (estado EN_CURSO)
-      // el incidente transiciona a la columna VERIFICANDO.
-      if (incidenteId && (tipoMision === 'VERIFICACION' || !tipoMision)) {
-        if (estadoMision === 'EN_CURSO') {
-          if (esEventoDuplicado(`mision-ev:${incidenteId}:${estadoMision}`)) {
-            return;
-          }
+      let hitoNormalizado: MisionHitoSocketPayload | string | null = null;
+      if (typeof raw?.hito === 'string') {
+        hitoNormalizado = raw.hito;
+      } else if (raw?.hito && typeof raw.hito === 'object') {
+        const rawHito = raw.hito as Record<string, unknown>;
+        if (typeof rawHito.hito === 'string') {
+          hitoNormalizado = {
+            id: typeof rawHito.id === 'string' ? rawHito.id : undefined,
+            hito: rawHito.hito,
+            descripcion:
+              typeof rawHito.descripcion === 'string' ? rawHito.descripcion : undefined,
+            registradoPorId:
+              typeof rawHito.registradoPorId === 'string' ? rawHito.registradoPorId : null,
+            creadoEn: typeof rawHito.creadoEn === 'string' ? rawHito.creadoEn : undefined,
+          };
+        }
+      }
+
+      // Regla de Negocio (H69 / HU-40):
+      // - Patrulla VERIFICACION acepta misión (EN_CURSO) -> incidente pasa a VERIFICANDO.
+      // - Cuadrilla ATENCION_CUADRILLA acepta asignación (EN_CURSO) -> incidente pasa a EN_ATENCION.
+      const claveEnCurso = misionId || codigoMision || incidenteId;
+      if (
+        claveEnCurso &&
+        estadoMisionNorm === 'EN_CURSO' &&
+        (!tipoMision || tipoMision === 'VERIFICACION' || tipoMision === 'ATENCION_CUADRILLA')
+      ) {
+        const esCuadrilla = tipoMision === 'ATENCION_CUADRILLA';
+        if (esEventoDuplicado(`mision-ev:${incidenteId || claveEnCurso}:${estadoMisionNorm}:${misionId || codigoMision}`)) {
+          return;
+        }
+
+        const estadoIncidenteObjetivo: EstadoIncidente = esCuadrilla
+          ? 'EN_ATENCION'
+          : 'VERIFICANDO';
+
+        if (incidenteId && actualizadoRef.current) {
           const syntheticIncPayload: IncidenteActualizadoPayload = {
             evento: 'incidente:actualizado',
             esSintetico: true,
             datos: {
               id: incidenteId,
-              codigo: typeof raw?.incidenteCodigo === 'string' ? raw.incidenteCodigo : '',
-              nuevoEstado: 'VERIFICANDO',
+              codigo: incidenteCodigo,
+              nuevoEstado: estadoIncidenteObjetivo,
               prioridad: (raw?.prioridad as PrioridadIncidente) || 'MEDIA',
-              actualizadoEn:
-                typeof raw?.actualizadoEn === 'string'
-                  ? raw.actualizadoEn
-                  : new Date().toISOString(),
+              actualizadoEn,
             },
             emitidoEn: new Date().toISOString(),
           };
-          if (actualizadoRef.current) {
-            actualizadoRef.current(syntheticIncPayload);
-          }
-          setUltimoEvento(`Misión ${codigoMision} aceptada: Incidente en verificación`);
+          actualizadoRef.current(syntheticIncPayload);
+        }
+
+        setUltimoEvento(
+          esCuadrilla
+            ? `Asignación ${codigoMision || misionId} aceptada por cuadrilla: Incidente en atención`
+            : `Misión ${codigoMision || misionId} aceptada: Incidente en verificación`
+        );
+
+        if (misionActualizadaRef.current) {
+          misionActualizadaRef.current({
+            id: misionId || codigoMision,
+            misionId: misionId || codigoMision,
+            codigo: codigoMision,
+            tipoMision,
+            estado: estadoMisionNorm,
+            prioridad:
+              typeof raw?.prioridad === 'string'
+                ? (raw.prioridad as PrioridadIncidente)
+                : undefined,
+            fechaInicio,
+            hito: hitoNormalizado,
+            incidenteId: incidenteId ?? null,
+            incidenteCodigo: incidenteCodigo || null,
+            cuadrillaId,
+            cuadrillaNombre,
+            patrullaId,
+            patrullaNombre,
+            actualizadoEn,
+          });
+        }
+        return;
+      }
+
+      // H68: Emitir callback dedicado para mision:actualizada COMPLETADA sin sintetizar incidente:actualizado
+      if (estadoMisionNorm === 'COMPLETADA') {
+        const claveComp = misionId || codigoMision || incidenteId;
+        if (claveComp && esEventoDuplicado(`mision-comp:${claveComp}:${estadoMisionNorm}`)) {
+          return;
+        }
+        const repRaw =
+          raw?.reporteTerreno && typeof raw.reporteTerreno === 'object'
+            ? (raw.reporteTerreno as ReporteEvaluacionTerreno)
+            : null;
+        const misionPayload: MisionActualizadaPayload = {
+          id: misionId || codigoMision,
+          misionId: misionId || codigoMision,
+          codigo: codigoMision,
+          tipoMision,
+          estado: estadoMisionNorm,
+          fechaCierre:
+            typeof raw?.fechaCierre === 'string'
+              ? raw.fechaCierre
+              : typeof raw?.fecha_cierre === 'string'
+                ? raw.fecha_cierre
+                : null,
+          hito: hitoNormalizado,
+          incidenteId: incidenteId ?? null,
+          incidenteCodigo: incidenteCodigo || null,
+          cuadrillaId,
+          cuadrillaNombre,
+          patrullaId,
+          patrullaNombre,
+          reporteTerreno: repRaw,
+        };
+        if (codigoMision) {
+          setUltimoEvento(`Misión ${codigoMision} completada`);
+        }
+        if (misionActualizadaRef.current) {
+          misionActualizadaRef.current(misionPayload);
         }
       }
     };
@@ -518,19 +754,111 @@ export function useEncargadoKanbanSocket({
     const handleCuadrillaActualizada = (payload: unknown) => {
       const p = payload as Record<string, unknown> | null | undefined;
       const raw = (p?.datos || p?.data || p) as Record<string, unknown> | null | undefined;
-      const id = typeof raw?.id === 'string' ? raw.id : '';
+      const id =
+        typeof raw?.id === 'string'
+          ? raw.id
+          : typeof raw?.cuadrillaId === 'string'
+            ? raw.cuadrillaId
+            : typeof raw?.cuadrilla_id === 'string'
+              ? raw.cuadrilla_id
+              : '';
       const estado = typeof raw?.estado === 'string' ? raw.estado : '';
       if (!id || !estado) return;
+
+      const estadoUpper = estado.toUpperCase();
+      if (esEventoDuplicado(`cuadrilla-act:${id}:${estadoUpper}`)) {
+        return;
+      }
 
       const normalizedPayload: CuadrillaActualizadaPayload = {
         id,
         nombre: typeof raw?.nombre === 'string' ? raw.nombre : undefined,
         estado,
-        delegacionId: typeof raw?.delegacionId === 'string' ? raw.delegacionId : null,
+        delegacionId:
+          typeof raw?.delegacionId === 'string'
+            ? raw.delegacionId
+            : typeof raw?.delegacion_id === 'string'
+              ? raw.delegacion_id
+              : null,
       };
+
+      if (estadoUpper === 'DISPONIBLE') {
+        setUltimoEvento(
+          `Cuadrilla ${normalizedPayload.nombre || id} volvió a estado Disponible`
+        );
+      } else if (estadoUpper === 'EN_MISION') {
+        setUltimoEvento(
+          `Cuadrilla ${normalizedPayload.nombre || id} en misión activa`
+        );
+      }
 
       if (cuadrillaActualizadaRef.current) {
         cuadrillaActualizadaRef.current(normalizedPayload);
+      }
+    };
+
+    const handleRecursoActualizado = (payload: unknown) => {
+      const p = payload as Record<string, unknown> | null | undefined;
+      const raw = (p?.datos || p?.data || p) as Record<string, unknown> | null | undefined;
+      const id =
+        typeof raw?.id === 'string'
+          ? raw.id
+          : typeof raw?.recursoId === 'string'
+            ? raw.recursoId
+            : typeof raw?.recurso_id === 'string'
+              ? raw.recurso_id
+              : '';
+      const estado = typeof raw?.estado === 'string' ? raw.estado : '';
+      if (!id || !estado) return;
+
+      const cantInvRaw = raw?.cantidadInventario ?? raw?.cantidad_inventario;
+      const cantUsoRaw = raw?.cantidadEnUso ?? raw?.cantidad_en_uso;
+      const cantDispRaw = raw?.cantidadDisponible ?? raw?.cantidad_disponible;
+      const cantMinRaw = raw?.cantidadMinima ?? raw?.cantidad_minima;
+
+      const cantidadInventario =
+        typeof cantInvRaw === 'number' ? cantInvRaw : undefined;
+      const cantidadEnUso = typeof cantUsoRaw === 'number' ? cantUsoRaw : undefined;
+      const cantidadDisponible =
+        typeof cantDispRaw === 'number'
+          ? cantDispRaw
+          : cantidadInventario !== undefined && cantidadEnUso !== undefined
+            ? Math.max(0, cantidadInventario - cantidadEnUso)
+            : undefined;
+      const cantidadMinima = typeof cantMinRaw === 'number' ? cantMinRaw : undefined;
+
+      if (
+        esEventoDuplicado(
+          `rec-act:${id}:${estado}:${cantidadInventario ?? ''}:${cantidadEnUso ?? ''}`
+        )
+      ) {
+        return;
+      }
+
+      const normalizedPayload: RecursoActualizadoPayload = {
+        id,
+        nombre: typeof raw?.nombre === 'string' ? raw.nombre : undefined,
+        estado,
+        cantidadInventario,
+        cantidadEnUso,
+        cantidadDisponible,
+        cantidadMinima,
+        esIndividual:
+          typeof raw?.esIndividual === 'boolean'
+            ? raw.esIndividual
+            : typeof raw?.es_individual === 'boolean'
+              ? raw.es_individual
+              : undefined,
+        delegacionId:
+          typeof raw?.delegacionId === 'string'
+            ? raw.delegacionId
+            : typeof raw?.delegacion_id === 'string'
+              ? raw.delegacion_id
+              : null,
+      };
+
+      if (recursoActualizadoRef.current) {
+        recursoActualizadoRef.current(normalizedPayload);
       }
     };
 
@@ -559,17 +887,17 @@ export function useEncargadoKanbanSocket({
       }
     };
 
-    const handleMisionActualizada = (payload: unknown) => {
+    const handleMisionActualizadaStore = (payload: unknown): MisionActualizadaStorePayload | null => {
       const normalized = normalizarPayloadMisionActualizada(payload);
-      if (!normalized) return;
+      if (!normalized) return null;
 
       actualizarEstadoMisionTiempoReal(normalized);
-      setUltimoEvento(
-        `Misión actualizada: ${normalized.codigo || normalized.misionId} → ${normalized.estado}`
-      );
-      if (misionActualizadaRef.current) {
-        misionActualizadaRef.current(normalized);
-      }
+      return normalized;
+    };
+
+    const handleMisionEventSync = (payload: unknown) => {
+      handleMisionActualizadaStore(payload);
+      handleMisionEvent(payload);
     };
 
     socket.on('connect', onConnect);
@@ -577,12 +905,12 @@ export function useEncargadoKanbanSocket({
     socket.on('incidente:creado', handleCreado);
     socket.on('incidente:actualizado', handleActualizado);
     socket.on('mision:creada', handleMisionEvent);
-    socket.on('mision:actualizada', handleMisionEvent);
+    socket.on('mision:actualizada', handleMisionEventSync);
     socket.on('mision:rechazada', handleRechazada);
     socket.on('cuadrilla:actualizada', handleCuadrillaActualizada);
+    socket.on('recurso:actualizado', handleRecursoActualizado);
     socket.on('notificacion:trazabilidad_actualizada', handleTrazabilidad);
     socket.on('mision:hito_registrado', handleMisionHitoRegistrado);
-    socket.on('mision:actualizada', handleMisionActualizada);
 
     return () => {
       socket.off('connect', onConnect);
@@ -590,16 +918,13 @@ export function useEncargadoKanbanSocket({
       socket.off('incidente:creado', handleCreado);
       socket.off('incidente:actualizado', handleActualizado);
       socket.off('mision:creada', handleMisionEvent);
-      socket.off('mision:actualizada', handleMisionEvent);
+      socket.off('mision:actualizada', handleMisionEventSync);
       socket.off('mision:rechazada', handleRechazada);
       socket.off('cuadrilla:actualizada', handleCuadrillaActualizada);
+      socket.off('recurso:actualizado', handleRecursoActualizado);
       socket.off('notificacion:trazabilidad_actualizada', handleTrazabilidad);
       socket.off('mision:hito_registrado', handleMisionHitoRegistrado);
-      socket.off('mision:actualizada', handleMisionActualizada);
-      socket.emit('leave', 'encargado');
-      socket.emit('salir', 'sala:encargados');
-      socket.emit('leave', 'mapa');
-      socket.emit('salir', 'mapa');
+      desuscribirSalas();
     };
   }, [enabled]);
 

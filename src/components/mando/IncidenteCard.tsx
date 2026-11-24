@@ -17,8 +17,11 @@ import type {
 import { TRAZABILIDAD_CONFIG } from '@/lib/socket/trazabilidadConfig';
 import { TrazabilidadIcon } from './TrazabilidadIcon';
 import { obtenerNombreDelegacion } from '@/lib/utils/delegacionUtils';
-import { formatearPrioridad } from '@/lib/utils/estadoUtils';
-import { obtenerVarianteChipPrioridad } from '@/lib/utils/chipVariants';
+import { formatearEstadoTerreno, formatearPrioridad } from '@/lib/utils/estadoUtils';
+import {
+  obtenerVarianteChipEstadoTerreno,
+  obtenerVarianteChipPrioridad,
+} from '@/lib/utils/chipVariants';
 import styles from '@/styles/mando.module.css';
 import Heading from '@/components/ui/Heading';
 import Button from '@/components/ui/Button';
@@ -45,6 +48,9 @@ export const IncidenteCard: React.FC<IncidenteCardProps> = ({
     ? TRAZABILIDAD_CONFIG[estadoTrazabilidad]
     : undefined;
   const estaVerificado = Boolean(incidente.verificado);
+  const tieneFaenasFinalizadas = Boolean(
+    incidente.estado === 'EN_ATENCION' && incidente.faenasCuadrillaCompletadas
+  );
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' || e.key === ' ') {
@@ -76,7 +82,7 @@ export const IncidenteCard: React.FC<IncidenteCardProps> = ({
 
   return (
     <div
-      className={`${styles.incidenteCard} ${estaVerificado ? styles.incidenteVerificado : ''}`}
+      className={`${styles.incidenteCard} ${estaVerificado ? styles.incidenteVerificado : ''} ${tieneFaenasFinalizadas ? styles.incidenteFaenasFinalizadas : ''}`}
       onClick={() => onClick(incidente)}
       onKeyDown={handleKeyDown}
       role="button"
@@ -194,21 +200,62 @@ export const IncidenteCard: React.FC<IncidenteCardProps> = ({
               Verificado
             </Chip>
           )}
+          {incidente.estado === 'EN_ATENCION' && incidente.faenasCuadrillaCompletadas && (
+            <Chip
+              data-testid="badge-faenas-finalizadas"
+              variant="success"
+              size="sm"
+              icon={<CheckCircle2 size={11} strokeWidth={2.2} />}
+              title="La cuadrilla completó las faenas y envió su informe técnico final. Pendiente resolución final del incidente (H86)."
+            >
+              Faenas finalizadas
+            </Chip>
+          )}
+          {incidente.estado === 'EN_ATENCION' &&
+            incidente.faenasCuadrillaCompletadas &&
+            incidente.estadoTerrenoFinal &&
+            ['CRITICO', 'INACCESIBLE', 'REQUIERE_SEGUIMIENTO'].includes(
+              incidente.estadoTerrenoFinal.trim().toUpperCase()
+            ) && (
+              <Chip
+                data-testid="badge-estado-terreno-card"
+                variant={obtenerVarianteChipEstadoTerreno(incidente.estadoTerrenoFinal)}
+                size="sm"
+                title={`Estado final del terreno reportado al cierre: ${formatearEstadoTerreno(incidente.estadoTerrenoFinal)}`}
+              >
+                Terreno: {formatearEstadoTerreno(incidente.estadoTerrenoFinal)}
+              </Chip>
+            )}
           {totalReportes > 0 && (
             <Chip
               data-testid="badge-total-reportes-terreno"
-              variant={totalReportes > 1 ? 'teal' : 'neutral'}
+              variant={
+                totalReportes > 1 &&
+                !incidente.faenasCuadrillaCompletadas &&
+                incidente.estado !== 'EN_ATENCION' &&
+                incidente.estado !== 'RESUELTO'
+                  ? 'teal'
+                  : 'neutral'
+              }
               size="sm"
               icon={<ClipboardCheck size={11} />}
               title={
                 totalReportes > 1
-                  ? `Se han recibido ${totalReportes} reportes de evaluación en terreno (último envío corresponde a Rectificación #${totalReportes})`
+                  ? incidente.faenasCuadrillaCompletadas ||
+                    incidente.estado === 'EN_ATENCION' ||
+                    incidente.estado === 'RESUELTO'
+                    ? `Se han registrado ${totalReportes} reportes técnicos en terreno`
+                    : `Se han recibido ${totalReportes} reportes de evaluación en terreno (último envío corresponde a Rectificación #${totalReportes})`
                   : 'Se ha recibido 1 reporte de evaluación inicial desde terreno'
               }
             >
               {totalReportes === 1
                 ? '1 reporte'
-                : `${totalReportes} reportes · Rectificado`}
+                : incidente.faenasCuadrillaCompletadas ||
+                    incidente.estado === 'EN_ATENCION' ||
+                    incidente.estado === 'RESUELTO'
+                  ? `${totalReportes} reportes`
+                  : `${totalReportes} reportes · Rectificado`}
             </Chip>
           )}
           {incidente.totalMisiones > 0 && (

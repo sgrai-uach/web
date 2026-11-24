@@ -31,7 +31,7 @@ export const MisionesModal: React.FC<MisionesModalProps> = ({
     limpiarFiltros,
     recargar,
     hayFiltrosActivos,
-  } = useMisiones(userId);
+  } = useMisiones(userId, isOpen);
 
   if (!isOpen) return null;
 

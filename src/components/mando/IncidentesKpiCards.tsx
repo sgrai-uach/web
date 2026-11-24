@@ -114,15 +114,14 @@ export const IncidentesKpiCards: React.FC<IncidentesKpiCardsProps> = ({
   onSelectEstado,
   conectado,
 }) => {
-  const [isMounted, setIsMounted] = React.useState(false);
-
-  React.useEffect(() => {
-    queueMicrotask(() => {
-      setIsMounted(true);
-    });
-  }, []);
+  const isMounted = React.useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false
+  );
 
   const estaCargando = isMounted && cargando;
+
   const contadores = kpis?.contadores || {
     reportado: 0,
     verificando: 0,

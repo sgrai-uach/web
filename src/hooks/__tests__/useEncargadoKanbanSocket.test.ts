@@ -702,4 +702,207 @@ describe('useEncargadoKanbanSocket', () => {
 
     expect(onCuadrillaActualizada).toHaveBeenCalledWith(payload);
   });
+
+  it('HU-68: normaliza incidente:actualizado con REPORTE_CUADRILLA manteniendo estado EN_ATENCION', () => {
+    const socket = getSocket();
+    const onIncidenteActualizado = vi.fn();
+
+    const { result } = renderHook(() =>
+      useEncargadoKanbanSocket({
+        onIncidenteActualizado,
+      })
+    );
+
+    act(() => {
+      const trigger = (socket as unknown as { _trigger: (ev: string, p: unknown) => void })._trigger;
+      trigger('incidente:actualizado', {
+        evento: 'incidente:actualizado',
+        datos: {
+          id: 'inc-cuad-68',
+          codigo: 'INC-2026-0068',
+          nuevoEstado: 'EN_ATENCION',
+          prioridad: 'ALTA',
+          reporteTerreno: {
+            id: 'rep-cuad-68',
+            misionId: 'mis-cuad-68',
+            tipoReporte: 'REPORTE_CUADRILLA',
+            etiquetaReporte: 'Informe Técnico Final de Cuadrilla (Cierre de Misión)',
+            resumenFaenas: 'Se despeja colector pluvial obstruido y se instalan sacos de arena.',
+            horas_hombre: 6.5,
+            estadoTerreno: 'CONTROLADO',
+            materiales_consumidos: [
+              { recurso_id: 'rec-sacos', nombre: 'Sacos de arena', cantidad: 30, unidad: 'sacos' },
+            ],
+          },
+          actualizadoEn: '2026-11-18T18:00:00Z',
+        },
+      });
+    });
+
+    expect(onIncidenteActualizado).toHaveBeenCalledTimes(1);
+    expect(onIncidenteActualizado).toHaveBeenCalledWith(
+      expect.objectContaining({
+        datos: expect.objectContaining({
+          id: 'inc-cuad-68',
+          nuevoEstado: 'EN_ATENCION',
+          reporteTerreno: expect.objectContaining({
+            tipoReporte: 'REPORTE_CUADRILLA',
+            horasHombre: 6.5,
+            estadoTerreno: 'CONTROLADO',
+            materialesConsumidos: [
+              {
+                recursoId: 'rec-sacos',
+                nombre: 'Sacos de arena',
+                cantidad: 30,
+                unidad: 'sacos',
+                observacion: null,
+              },
+            ],
+          }),
+        }),
+      })
+    );
+    expect(result.current.ultimoEvento).toContain(
+      'Informe final de cuadrilla recibido en INC-2026-0068: Terreno Controlado'
+    );
+  });
+
+  it('HU-68: emite onMisionActualizada en mision:actualizada COMPLETADA sin sintetizar incidente:actualizado y procesa recurso:actualizado', () => {
+    const socket = getSocket();
+    const onIncidenteActualizado = vi.fn();
+    const onMisionActualizada = vi.fn();
+    const onRecursoActualizado = vi.fn();
+
+    renderHook(() =>
+      useEncargadoKanbanSocket({
+        onIncidenteActualizado,
+        onMisionActualizada,
+        onRecursoActualizado,
+      })
+    );
+
+    act(() => {
+      const trigger = (socket as unknown as { _trigger: (ev: string, p: unknown) => void })._trigger;
+      trigger('mision:actualizada', {
+        id: 'mis-cuad-68',
+        codigo: 'MIS-2026-0068',
+        tipoMision: 'ATENCION_CUADRILLA',
+        estado: 'COMPLETADA',
+        fechaCierre: '2026-11-18T18:05:00Z',
+        hito: 'MISION_COMPLETADA',
+        incidenteId: 'inc-cuad-68',
+        cuadrillaId: 'cuad-68',
+      });
+      trigger('recurso:actualizado', {
+        id: 'rec-sacos',
+        nombre: 'Sacos de arena',
+        estado: 'BAJO_STOCK',
+        cantidad_inventario: 15,
+        cantidad_en_uso: 0,
+        cantidad_minima: 20,
+      });
+    });
+
+    expect(onIncidenteActualizado).not.toHaveBeenCalled();
+    expect(onMisionActualizada).toHaveBeenCalledWith(
+      expect.objectContaining({
+        misionId: 'mis-cuad-68',
+        estado: 'COMPLETADA',
+        hito: 'MISION_COMPLETADA',
+      })
+    );
+    expect(onRecursoActualizado).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: 'rec-sacos',
+        nombre: 'Sacos de arena',
+        estado: 'BAJO_STOCK',
+        cantidadInventario: 15,
+        cantidadDisponible: 15,
+      })
+    );
+  });
+
+  it('HU-40: sintetiza incidente EN_ATENCION, normaliza hito MISION_ACEPTADA en mision:actualizada y refleja cuadrilla EN_MISION', () => {
+    const socket = getSocket();
+    const onIncidenteActualizado = vi.fn();
+    const onMisionActualizada = vi.fn();
+    const onCuadrillaActualizada = vi.fn();
+
+    const { result } = renderHook(() =>
+      useEncargadoKanbanSocket({
+        onIncidenteActualizado,
+        onMisionActualizada,
+        onCuadrillaActualizada,
+      })
+    );
+
+    act(() => {
+      const trigger = (socket as unknown as { _trigger: (ev: string, p: unknown) => void })._trigger;
+      trigger('mision:actualizada', {
+        misionId: '70000000-0000-4000-8000-000000000001',
+        codigo: 'MIS-2026-0005',
+        estado: 'EN_CURSO',
+        tipoMision: 'ATENCION_CUADRILLA',
+        cuadrillaId: '50000000-0000-4000-8000-000000000001',
+        cuadrillaNombre: 'Cuadrilla Vías y Canales 1',
+        patrullaId: null,
+        patrullaNombre: null,
+        incidenteId: '30000000-0000-4000-8000-000000000001',
+        incidenteCodigo: 'INC-2026-0001',
+        prioridad: 'ALTA',
+        fechaInicio: '2026-11-22T14:00:00.000Z',
+        hito: {
+          id: '80000000-0000-4000-8000-000000000010',
+          hito: 'MISION_ACEPTADA',
+          descripcion: 'Asignación Aceptada por Cuadrilla',
+          registradoPorId: 'd0000000-0000-4000-8000-000000000001',
+          creadoEn: '2026-11-22T14:00:00.000Z',
+        },
+        actualizadoEn: '2026-11-22T14:00:00.000Z',
+      });
+
+      trigger('cuadrilla:actualizada', {
+        id: '50000000-0000-4000-8000-000000000001',
+        nombre: 'Cuadrilla Vías y Canales 1',
+        estado: 'EN_MISION',
+        delegacionId: 'd1000000-0000-4000-8000-000000000001',
+      });
+    });
+
+    expect(onIncidenteActualizado).toHaveBeenCalledWith(
+      expect.objectContaining({
+        esSintetico: true,
+        datos: expect.objectContaining({
+          id: '30000000-0000-4000-8000-000000000001',
+          codigo: 'INC-2026-0001',
+          nuevoEstado: 'EN_ATENCION',
+          prioridad: 'ALTA',
+        }),
+      })
+    );
+    expect(onMisionActualizada).toHaveBeenCalledWith(
+      expect.objectContaining({
+        misionId: '70000000-0000-4000-8000-000000000001',
+        codigo: 'MIS-2026-0005',
+        estado: 'EN_CURSO',
+        tipoMision: 'ATENCION_CUADRILLA',
+        cuadrillaNombre: 'Cuadrilla Vías y Canales 1',
+        incidenteCodigo: 'INC-2026-0001',
+        prioridad: 'ALTA',
+        hito: expect.objectContaining({
+          hito: 'MISION_ACEPTADA',
+          descripcion: 'Asignación Aceptada por Cuadrilla',
+        }),
+      })
+    );
+    expect(onCuadrillaActualizada).toHaveBeenCalledWith({
+      id: '50000000-0000-4000-8000-000000000001',
+      nombre: 'Cuadrilla Vías y Canales 1',
+      estado: 'EN_MISION',
+      delegacionId: 'd1000000-0000-4000-8000-000000000001',
+    });
+    expect(result.current.ultimoEvento).toBe(
+      'Cuadrilla Cuadrilla Vías y Canales 1 en misión activa'
+    );
+  });
 });

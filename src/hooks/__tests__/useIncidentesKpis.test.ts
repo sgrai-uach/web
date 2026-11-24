@@ -233,4 +233,25 @@ describe('useIncidentesKpis', () => {
     expect(socket.emit).toHaveBeenCalledWith('leave', 'sala:encargados');
     expect(socket.emit).toHaveBeenCalledWith('salir', 'sala:encargados');
   });
+
+  it('HU-68: refresca los KPIs al recibir mision:actualizada vía WebSockets', async () => {
+    renderHook(() => useIncidentesKpis());
+
+    await waitFor(() => {
+      expect(obtenerKpisIncidentes).toHaveBeenCalledTimes(1);
+    });
+
+    const socket = getSocket() as unknown as { _trigger: (ev: string, data?: unknown) => void };
+    await act(async () => {
+      socket._trigger('mision:actualizada', {
+        id: 'mis-cuad-68',
+        estado: 'COMPLETADA',
+        hito: 'MISION_COMPLETADA',
+      });
+    });
+
+    await waitFor(() => {
+      expect(obtenerKpisIncidentes).toHaveBeenCalledTimes(2);
+    });
+  });
 });

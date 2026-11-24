@@ -383,4 +383,26 @@ describe('IncidenteCard', () => {
     expect(cardBox.textContent).toContain('Recibida · pendiente lectura');
     expect(screen.getByText(direccionLarga)).toBeDefined();
   });
+
+  it('HU-68: muestra chip "Faenas finalizadas", chip de terreno en alerta y omite "Rectificado" cuando está EN_ATENCION', () => {
+    const incidenteCuadrillaCerrada: IncidenteResumen = {
+      ...mockIncidente,
+      estado: 'EN_ATENCION',
+      verificado: true,
+      faenasCuadrillaCompletadas: true,
+      estadoTerrenoFinal: 'REQUIERE_SEGUIMIENTO',
+      totalReportesTerreno: 3,
+    };
+
+    const { container } = render(<IncidenteCard incidente={incidenteCuadrillaCerrada} onClick={vi.fn()} />);
+
+    expect((container.firstChild as HTMLElement).className).toContain('incidenteFaenasFinalizadas');
+    expect(screen.getByTestId('badge-faenas-finalizadas').textContent).toContain('Faenas finalizadas');
+    expect(screen.getByTestId('badge-estado-terreno-card').textContent).toContain(
+      'Terreno: Requiere seguimiento'
+    );
+    const badgeReportes = screen.getByTestId('badge-total-reportes-terreno');
+    expect(badgeReportes.textContent).toBe('3 reportes');
+    expect(badgeReportes.textContent).not.toContain('Rectificado');
+  });
 });

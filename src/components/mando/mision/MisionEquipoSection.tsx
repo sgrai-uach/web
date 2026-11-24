@@ -4,7 +4,7 @@ import React from 'react';
 import { Users, Truck, Shield, Box } from 'lucide-react';
 import Heading from '@/components/ui/Heading';
 import type { CuadrillaMisionDetalle, PatrullaMisionDetalle } from '@/types/misiones';
-import { formatearEstado } from '@/lib/utils/estadoUtils';
+import { formatearCantidadMaterial, formatearEstado } from '@/lib/utils/estadoUtils';
 import styles from '@/styles/mision-detalle.module.css';
 
 interface MisionEquipoSectionProps {
@@ -95,9 +95,19 @@ export const MisionEquipoSection: React.FC<MisionEquipoSectionProps> = ({
                       {cuadrilla.recursos.map((rec) => (
                         <tr key={rec.id}>
                           <td style={{ fontWeight: 600 }}>{rec.nombre}</td>
-                          <td>{rec.tipo}</td>
+                          <td>
+                            {rec.tipo}
+                            {typeof rec.esIndividual === 'boolean' && (
+                              <span style={{ color: 'var(--color-text-muted, #5F676E)', fontSize: '12px' }}>
+                                {' '}
+                                ({rec.esIndividual ? 'Individual' : 'Granel'})
+                              </span>
+                            )}
+                          </td>
                           <td style={{ textAlign: 'right', fontWeight: 700 }}>
-                            {rec.cantidadAsignada}
+                            {rec.unidad
+                              ? formatearCantidadMaterial(rec.cantidadAsignada, rec.unidad)
+                              : rec.cantidadAsignada}
                           </td>
                         </tr>
                       ))}

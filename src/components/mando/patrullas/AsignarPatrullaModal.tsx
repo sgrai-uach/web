@@ -14,7 +14,7 @@ import {
 import Heading from '@/components/ui/Heading';
 import Button from '@/components/ui/Button';
 import InlineNotice from '@/components/ui/InlineNotice';
-import { useToast } from '@/components/ui/Toast';
+import { useToast, type ToastOptions } from '@/components/ui/Toast';
 import { listarPatrullasDisponibles } from '@/services/patrullasService';
 import { despacharPatrullaVerificadora } from '@/services/misionesService';
 import type { PatrullaVerificadoraDTO } from '@/types/patrullas';
@@ -44,8 +44,8 @@ export const AsignarPatrullaModal: React.FC<AsignarPatrullaModalProps> = ({
   userId,
   onAsignacionExitosa,
 }) => {
-  let showSuccess: (msg: string, title?: string) => void = () => {};
-  let showError: (msg: string, title?: string) => void = () => {};
+  let showSuccess: (msg: string, title?: string, options?: ToastOptions) => void = () => {};
+  let showError: (msg: string, title?: string, options?: ToastOptions) => void = () => {};
   try {
     const toast = useToast();
     showSuccess = toast.showSuccess;
@@ -185,8 +185,18 @@ export const AsignarPatrullaModal: React.FC<AsignarPatrullaModalProps> = ({
 
       if (res.exito && res.data) {
         showSuccess(
-          `Misión ${res.data.mision.codigo} creada. Patrulla "${res.data.patrulla.nombre}" despachada exitosamente.`,
-          'Despacho Confirmado'
+          `Misión ${res.data.mision.codigo} creada. Patrulla "${res.data.patrulla.nombre}" despachada al incidente ${incidente.codigo}.`,
+          'Despacho Confirmado',
+          {
+            icon: 'patrulla',
+            codeBadge: incidente.codigo,
+            priorityBadge: incidente.prioridad,
+            dedupKey: `despacho-patrulla:${res.data.mision.id}`,
+            details: [
+              { label: 'Patrulla', value: res.data.patrulla.nombre },
+              { label: 'Misión', value: res.data.mision.codigo },
+            ],
+          }
         );
         onAsignacionExitosa(res.data);
         onClose();

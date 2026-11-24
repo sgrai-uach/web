@@ -86,6 +86,42 @@ Las tarjetas de reportes de terreno representan la evidencia técnica directa le
 └──────────────────────────────────────────────────────────────────────────┘
 ```
 
+### 2.2 Anatomía del Informe Técnico Final de Cuadrilla (`tipoReporte === 'REPORTE_CUADRILLA'`, HU-68)
+
+```
+┌──────────────────────────────────────────────────────────────────────────┐
+│ [HardHat] Nombre Delegado (Cuadrilla · RUT)            [Clock] Fecha [ v ]│
+│ [Informe Técnico Final de Cuadrilla (Cierre de Misión)]                  │
+│ [Estado terreno: Controlado] [4.5 horas hombre] [Vigente] [Requiere Apoyo]│
+├──────────────────────────────────────────────────────────────────────────┤
+│ (Si CRITICO / INACCESIBLE / REQUIERE_SEGUIMIENTO)                        │
+│ ┌─ Condición Final del Terreno ────────────────────────────────────────┐ │
+│ │ Alerta contextual para evaluación del Encargado antes de cierre H86  │ │
+│ └──────────────────────────────────────────────────────────────────────┘ │
+│                                                                          │
+│ Resumen de Faenas Ejecutadas: "Despeje completo de calzada y retiro..." │
+│                                                                          │
+│ ┌─ Métricas de Cierre y Estado Final ──────────────────────────────────┐ │
+│ │ Estado Final del Terreno: Controlado | Horas Hombre: 4.5 horas hombre│ │
+│ │ Daños Materiales Estimados: "..."    | Ficha FIBE (si consta): [...] │ │
+│ └──────────────────────────────────────────────────────────────────────┘ │
+│                                                                          │
+│ ┌─ Materiales e Insumos Consumidos (N) ────────────────────────────────┐ │
+│ │ Material / Insumo    | Cantidad Consumida | Observación              │ │
+│ │ Sacos de arena       | 25 sacos           | Contención perimetral    │ │
+│ └──────────────────────────────────────────────────────────────────────┘ │
+│                                                                          │
+│ Observaciones Generales: "..."                                           │
+│ Galería de Evidencias (Fotos, videos y PDFs en tiempo real — HU-43)      │
+└──────────────────────────────────────────────────────────────────────────┘
+```
+
+- **Reglas específicas de `REPORTE_CUADRILLA`:**
+  - A diferencia de los reportes de patrulla (`EVALUACION_PRIORIDAD` y `VERIFICACION_CIERRE`), donde el `estadoTerreno` permanece oculto, el informe de cuadrilla **exige** desplegar el **Estado Final del Terreno** mediante chip semántico (`success` para `CONTROLADO`/`ESTABLE`/`FINALIZADO`, `warning` para `REQUIERE_SEGUIMIENTO`, `danger` para `CRITICO`/`INACCESIBLE`).
+  - **Borde izquierdo semántico:** Verde menta (`--color-accent-mint`) en estados favorables, ámbar (`--color-warning`) en `REQUIERE_SEGUIMIENTO` o cuando solicita apoyo adicional, y rojo (`--color-danger`) en `CRITICO` o `INACCESIBLE`.
+  - **Orden de precedencia unificado:** `REPORTE_CUADRILLA` (peso `2`) > `VERIFICACION_CIERRE` (peso `1`) > evaluación/rectificación inicial (peso `0`).
+  - **Panel lateral sin datos demográficos de patrulla:** `IncidenteUltimoReporteSection` e `IncidenteMisionesSection` omiten el conteo de familias/viviendas cuando el reporte corresponde a `REPORTE_CUADRILLA`, priorizando estado del terreno, horas hombre y materiales consumidos.
+
 ---
 
 ## 3. Modelo de Afectación: Relación 1 a 1 entre Familia y Vivienda

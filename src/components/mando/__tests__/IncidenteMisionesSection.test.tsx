@@ -638,4 +638,67 @@ describe('Componente IncidenteMisionesSection', () => {
       ).toBeDefined();
     });
   });
+
+  describe('HU-68: Informe Técnico Final de Cuadrilla en tarjeta de misión', () => {
+    it('muestra estado de terreno, horas hombre, materiales consumidos y fecha de cierre sin métricas demográficas', () => {
+      const misionCompletada: IncidenteDetalle['misiones'][number] = {
+        ...mockMisiones[0],
+        id: 'mis-cuad-completada',
+        codigo: 'MIS-2026-0068',
+        estado: 'COMPLETADA',
+        cuadrilla: {
+          id: 'c1',
+          nombre: 'Cuadrilla Alfa 1',
+          estado: 'DISPONIBLE',
+        },
+        fechaCierre: '2026-11-18T18:00:00Z',
+      };
+
+      render(
+        <IncidenteMisionesSection
+          incidenteEstado="EN_ATENCION"
+          misiones={[misionCompletada]}
+          reportesEvaluacionTerreno={[
+            {
+              id: 'rep-cuad-68',
+              misionId: 'mis-cuad-completada',
+              tipoReporte: 'REPORTE_CUADRILLA',
+              etiquetaReporte: 'Informe Técnico Final de Cuadrilla (Cierre de Misión)',
+              estadoTerreno: 'ESTABLE',
+              horasHombre: 4,
+              materialesConsumidos: [
+                { recursoId: 'rec-1', nombre: 'Sacos de arena', cantidad: 12, unidad: 'sacos' },
+              ],
+              versionReporte: 1,
+              esRectificacion: false,
+              prioridadSugerida: null,
+              prioridadAsignada: null,
+              justificacionPrioridad: null,
+              resumenTecnico: 'Limpieza de cámara y reposición de tapa.',
+              accionesRealizadas: null,
+              danosEstimados: null,
+              observaciones: null,
+              personasAfectadas: 0,
+              requiereApoyoAdicional: false,
+              evaluacion: {},
+              evaluador: { id: 'u-del', nombre: 'Carlos Delegado' },
+              creadoEn: '2026-11-18T18:00:00Z',
+            },
+          ]}
+        />
+      );
+
+      const bloqueUltimo = screen.getByTestId('ultimo-reporte-mision-mis-cuad-completada');
+      expect(bloqueUltimo.textContent).toContain(
+        'Informe Técnico Final de Cuadrilla (Cierre de Misión)'
+      );
+      expect(bloqueUltimo.textContent).toContain('Terreno: Estable');
+      expect(bloqueUltimo.textContent).toContain('4 horas hombre');
+      expect(screen.getByTestId('mision-materiales-resumen-mis-cuad-completada').textContent).toContain(
+        'Sacos de arena (12 sacos)'
+      );
+      expect(bloqueUltimo.textContent).not.toContain('Núcleo familiar');
+      expect(screen.getByText(/Cierre:/i)).toBeDefined();
+    });
+  });
 });

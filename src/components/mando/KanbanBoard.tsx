@@ -14,19 +14,28 @@ import type { EventoPrevencionDTO } from '@/types/evento-prevencion';
 import type { EventoRecuperacionResponse } from '@/types/recuperacion';
 import type {
   MisionRechazadaPayload,
+  MisionActualizadaPayload,
   CuadrillaActualizadaPayload,
+  RecursoActualizadoPayload,
   IncidenteActualizadoPayload,
   IncidenteCreadoPayload,
 } from '@/hooks/useEncargadoKanbanSocket';
 import type { MisionActualizadaPayload } from '@/types/misiones';
 import {
   esJustificacionSinCambios,
+  esReporteCierreCuadrilla,
   esReporteVerificacionCierre,
+  formatearCantidadMaterial,
   formatearDictamenTerreno,
+  formatearEstadoTerreno,
+  formatearHorasHombre,
+  formatearNombreCuadrilla,
+  formatearNombrePatrulla,
   formatearPrioridad,
   formatearCompromisoVivienda,
   formatearEstado,
   fueTipologiaModificada,
+  normalizarMaterialesConsumidos,
 } from '@/lib/utils/estadoUtils';
 import { KanbanHeader } from './KanbanHeader';
 import { KanbanFiltros } from './KanbanFiltros';
@@ -45,7 +54,6 @@ import { KanbanViewSwitcher } from './KanbanViewSwitcher';
 import CuadrillaDetalleDrawer from '@/components/admin/cuadrillas/CuadrillaDetalleDrawer';
 import { cuadrillasService } from '@/services/cuadrillasService';
 import type { CuadrillaItem } from '@/types/cuadrilla';
-import { Zap } from 'lucide-react';
 import { usePuedeAsignarMision } from '@/hooks/usePuedeAsignarMision';
 import { usePuedeCrearEventoAtp } from '@/hooks/usePuedeCrearEventoAtp';
 import { extraerEstadoInicialNotificacion } from '@/lib/socket/trazabilidadConfig';
@@ -62,12 +70,24 @@ const TITULOS_COLUMNAS = {
 } as const;
 
 export const KanbanBoard: React.FC = () => {
-  const { showInfo, showWarning } = useToast();
+  const { showInfo, showWarning, showSuccess } = useToast();
   const searchParams = useSearchParams();
+  const incidenteIdParam = searchParams?.get('incidenteId') ?? null;
   const [vistaActiva, setVistaActiva] = useState<'kanban' | 'mapa'>('kanban');
   const [misionesModalAbierto, setMisionesModalAbierto] = useState(false);
   const [patrullasModalAbierto, setPatrullasModalAbierto] = useState(false);
   const [misionSeleccionadaId, setMisionSeleccionadaId] = useState<string | null>(null);
+  const [incidenteSeleccionadoId, setIncidenteSeleccionadoId] = useState<string | null>(
+    incidenteIdParam
+  );
+  const [prevIncidenteIdParam, setPrevIncidenteIdParam] = useState<string | null>(incidenteIdParam);
+  if (incidenteIdParam !== prevIncidenteIdParam) {
+    setPrevIncidenteIdParam(incidenteIdParam);
+    if (incidenteIdParam) {
+      setIncidenteSeleccionadoId(incidenteIdParam);
+    }
+  }
+  const [kpiRefreshTick, setKpiRefreshTick] = useState(0);
   const [modalPrevencionAbierto, setModalPrevencionAbierto] = useState(false);
   const [modalRecuperacionAbierto, setModalRecuperacionAbierto] = useState(false);
   const [eventosPrevencion, setEventosPrevencion] = useState<EventoPrevencionDTO[]>([]);
@@ -78,7 +98,119 @@ export const KanbanBoard: React.FC = () => {
   const puedeAsignar = usePuedeAsignarMision();
   const puedeCrearEventoAtp = usePuedeCrearEventoAtp();
 
+  const cargarCuadrillas = useCallback(() => {
+    let isMounted = true;
+    cuadrillasService
+      .obtenerCuadrillas({ pagina: 1, limite: 100 })
+      .then((res) => {
+        if (isMounted && res.cuadrillas) {
+          setCuadrillasOperativas(res.cuadrillas);
+        }
+      })
+      .catch(() => {});
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    return cargarCuadrillas();
+  }, [cargarCuadrillas]);
+
   const ultimosToastsReporteRef = React.useRef<Map<string, number>>(new Map());
+
+  const mostrarToastCierreCuadrilla = React.useCallback(
+    (params: {
+      incidenteId: string;
+      codigo?: string | null;
+      prioridad?: IncidenteResumen['prioridad'];
+      reporte?: IncidenteActualizadoPayload['datos']['reporteTerreno'];
+      misionId?: string;
+    }) => {
+      const { incidenteId, codigo, prioridad, reporte, misionId } = params;
+      const repId = reporte?.id || misionId || '1';
+      const ahora = Date.now();
+      const claveDedup = `cierre-cuadrilla:${incidenteId}:${repId}`;
+      const ultimaVez = ultimosToastsReporteRef.current.get(claveDedup);
+      if (ultimaVez && ahora - ultimaVez < 4000) {
+        return;
+      }
+      ultimosToastsReporteRef.current.set(claveDedup, ahora);
+
+      const materiales = normalizarMaterialesConsumidos(reporte?.materialesConsumidos);
+      const resumenMateriales =
+        materiales.length > 0
+          ? materiales
+              .slice(0, 2)
+              .map(
+                (m) =>
+                  `${m.nombre || 'Insumo'} (${formatearCantidadMaterial(m.cantidad, m.unidad)})`
+              )
+              .join(', ') +
+            (materiales.length > 2 ? ` y ${materiales.length - 2} más` : '')
+          : 'Sin consumo de insumos';
+
+      const estadoTerrenoNorm = (reporte?.estadoTerreno || '').trim().toUpperCase();
+      const requiereAlerta =
+        estadoTerrenoNorm === 'CRITICO' ||
+        estadoTerrenoNorm === 'INACCESIBLE' ||
+        estadoTerrenoNorm === 'REQUIERE_SEGUIMIENTO' ||
+        Boolean(reporte?.requiereApoyoAdicional) ||
+        prioridad === 'CRITICA';
+
+      const detallesCuadrilla: Array<{ label: string; value: string }> = [
+        {
+          label: 'Estado final del terreno',
+          value: formatearEstadoTerreno(reporte?.estadoTerreno),
+        },
+      ];
+      if (typeof reporte?.horasHombre === 'number') {
+        detallesCuadrilla.push({
+          label: 'Horas hombre',
+          value: formatearHorasHombre(reporte.horasHombre),
+        });
+      }
+      detallesCuadrilla.push({
+        label: 'Materiales consumidos',
+        value: resumenMateriales,
+      });
+      if (reporte?.requiereApoyoAdicional) {
+        detallesCuadrilla.push({
+          label: 'Apoyo adicional',
+          value: 'Solicitado en terreno',
+        });
+      }
+
+      const toastCuadrillaOptions = {
+        icon: 'cuadrilla' as const,
+        codeBadge: codigo || undefined,
+        priorityBadge: prioridad,
+        dedupKey: claveDedup,
+        details: detallesCuadrilla,
+        action: {
+          label: 'Ver incidente',
+          onClick: () => setIncidenteSeleccionadoId(incidenteId),
+        },
+      };
+
+      const mensajeCuadrilla = `La cuadrilla completó la misión en ${codigo || 'el incidente'}. La unidad volvió a estado Disponible; el incidente permanece En Atención para evaluación final.`;
+
+      if (requiereAlerta) {
+        showWarning(
+          mensajeCuadrilla,
+          'Cierre de Cuadrilla — Atención Requerida',
+          toastCuadrillaOptions
+        );
+      } else {
+        showSuccess(
+          mensajeCuadrilla,
+          'Informe Final de Cuadrilla Recibido',
+          toastCuadrillaOptions
+        );
+      }
+    },
+    [showWarning, showSuccess]
+  );
 
   const handleReporteTerrenoRecibido = React.useCallback(
     (payload: IncidenteActualizadoPayload) => {
@@ -92,6 +224,21 @@ export const KanbanBoard: React.FC = () => {
         return;
       }
       ultimosToastsReporteRef.current.set(claveDedup, ahora);
+
+      const esCierreCuadrilla = esReporteCierreCuadrilla(rep);
+      if (esCierreCuadrilla) {
+        mostrarToastCierreCuadrilla({
+          incidenteId: payload.datos.id,
+          codigo: payload.datos.codigo,
+          prioridad: payload.datos.prioridad,
+          reporte: rep,
+          misionId: rep.misionId,
+        });
+
+        setKpiRefreshTick((prev) => prev + 1);
+        cargarCuadrillas();
+        return;
+      }
 
       const numVersion = Number(rep.versionReporte || 1);
       const esRect = Boolean(rep.esRectificacion || numVersion > 1);
@@ -219,6 +366,7 @@ export const KanbanBoard: React.FC = () => {
         icon: 'reporte' as const,
         codeBadge: payload.datos.codigo,
         priorityBadge: payload.datos.prioridad,
+        dedupKey: `reporte-terreno:${payload.datos.id}:${rep.id || numVersion}`,
         details: detallesToast,
         action: {
           label: 'Ver incidente',
@@ -232,12 +380,13 @@ export const KanbanBoard: React.FC = () => {
         showInfo(mensajeBase, tituloToast, toastOptions);
       }
 
-      refrescarKpisRef.current(false);
+      setKpiRefreshTick((prev) => prev + 1);
     },
-    [showInfo, showWarning]
+    [mostrarToastCierreCuadrilla, showInfo, showWarning, cargarCuadrillas]
   );
 
   const ultimosToastsIncidenteRef = React.useRef<Map<string, number>>(new Map());
+  const ultimasAceptacionesIncidenteRef = React.useRef<Map<string, number>>(new Map());
 
   const esToastIncidenteDuplicado = React.useCallback((clave: string, ventanaMs = 4000): boolean => {
     const ahora = Date.now();
@@ -274,7 +423,7 @@ export const KanbanBoard: React.FC = () => {
         }
       );
 
-      refrescarKpisRef.current(false);
+      setKpiRefreshTick((prev) => prev + 1);
     },
     [showInfo, esToastIncidenteDuplicado]
   );
@@ -285,7 +434,7 @@ export const KanbanBoard: React.FC = () => {
       if (!datos) return;
 
       if (payload.esSintetico) {
-        refrescarKpisRef.current(false);
+        setKpiRefreshTick((prev) => prev + 1);
         return;
       }
 
@@ -295,6 +444,15 @@ export const KanbanBoard: React.FC = () => {
       const esNoAbordable =
         datos.nuevoEstado === 'NO_ABORDABLE' || datos.dictamen === 'NO_ABORDABLE';
       const esEventoTipologia = Boolean(datos.tipoAfectacion && datos.justificacion);
+
+      if (!esNoAbordable && !esEventoTipologia) {
+        const tsAceptacion = ultimasAceptacionesIncidenteRef.current.get(
+          `${datos.id}:${datos.nuevoEstado}`
+        );
+        if (tsAceptacion && Date.now() - tsAceptacion < 6000) {
+          return;
+        }
+      }
 
       if (esNoAbordable) {
         showWarning(
@@ -362,31 +520,11 @@ export const KanbanBoard: React.FC = () => {
         );
       }
 
-      refrescarKpisRef.current(false);
+      setKpiRefreshTick((prev) => prev + 1);
     },
     [showInfo, showWarning, esToastIncidenteDuplicado]
   );
 
-  const cargarCuadrillas = useCallback(() => {
-    let isMounted = true;
-    cuadrillasService
-      .obtenerCuadrillas({ pagina: 1, limite: 100 })
-      .then((res) => {
-        if (isMounted && res.cuadrillas) {
-          setCuadrillasOperativas(res.cuadrillas);
-        }
-      })
-      .catch(() => {});
-    return () => {
-      isMounted = false;
-    };
-  }, []);
-
-  useEffect(() => {
-    return cargarCuadrillas();
-  }, [cargarCuadrillas]);
-
-  const refrescarKpisRef = React.useRef<(silent?: boolean) => void>(() => {});
   const ultimosToastsRechazoRef = React.useRef<Map<string, number>>(new Map());
 
   const handleMisionRechazadaSocket = React.useCallback(
@@ -420,11 +558,34 @@ export const KanbanBoard: React.FC = () => {
         payload.motivo || payload.justificacionRechazo || 'Sin justificación especificada';
 
       showWarning(
-        `${unidadTexto} rechazó la misión ${payload.codigo}${incidenteTexto}. Motivo: "${motivoTexto}". La unidad volvió a estado Disponible y la emergencia quedó lista para reasignación.`,
-        esCuadrilla ? 'Misión Rechazada por Cuadrilla' : 'Misión Rechazada por Patrulla'
+        `${unidadTexto} rechazó la misión ${payload.codigo}${incidenteTexto}. La unidad volvió a estado Disponible y la emergencia quedó lista para reasignación.`,
+        esCuadrilla ? 'Misión Rechazada por Cuadrilla' : 'Misión Rechazada por Patrulla',
+        {
+          icon: 'rechazo',
+          codeBadge: payload.incidenteCodigo || payload.codigo,
+          dedupKey: `mision-rechazada:${payload.misionId || payload.codigo}`,
+          details: [
+            {
+              label: esCuadrilla ? 'Cuadrilla' : 'Patrulla',
+              value:
+                (esCuadrilla ? payload.cuadrillaNombre : payload.patrullaNombre) ||
+                unidadTexto,
+            },
+            { label: 'Misión', value: payload.codigo },
+            { label: 'Motivo', value: motivoTexto },
+          ],
+          ...(payload.incidenteId
+            ? {
+                action: {
+                  label: 'Ver incidente',
+                  onClick: () => setIncidenteSeleccionadoId(payload.incidenteId!),
+                },
+              }
+            : {}),
+        }
       );
 
-      refrescarKpisRef.current(false);
+      setKpiRefreshTick((prev) => prev + 1);
       cargarCuadrillas();
     },
     [showWarning, cargarCuadrillas]
@@ -432,6 +593,7 @@ export const KanbanBoard: React.FC = () => {
 
   const handleCuadrillaActualizadaSocket = React.useCallback(
     (payload: CuadrillaActualizadaPayload) => {
+      const esDisponible = payload.estado.toUpperCase() === 'DISPONIBLE';
       setCuadrillasOperativas((prev) => {
         const existe = prev.some((c) => c.id === payload.id);
         if (!existe) return prev;
@@ -441,21 +603,123 @@ export const KanbanBoard: React.FC = () => {
                 ...c,
                 estado: payload.estado as CuadrillaItem['estado'],
                 nombre: payload.nombre || c.nombre,
+                misionActiva: esDisponible ? null : c.misionActiva,
               }
             : c
         );
       });
-    },
-    []
-  );
-
-  const handleMisionAceptadaSocket = React.useCallback(
-    (_payload: MisionActualizadaPayload) => {
-      void _payload;
-      refrescarKpisRef.current(false);
-      cargarCuadrillas();
+      if (esDisponible) {
+        cargarCuadrillas();
+      }
     },
     [cargarCuadrillas]
+  );
+
+  const handleMisionActualizadaSocket = React.useCallback(
+    (payload: MisionActualizadaPayload) => {
+      const estadoNorm = (payload.estado || '').toUpperCase();
+      const codigoHito =
+        typeof payload.hito === 'string'
+          ? payload.hito.toUpperCase()
+          : payload.hito && typeof payload.hito === 'object' && typeof payload.hito.hito === 'string'
+            ? payload.hito.hito.toUpperCase()
+            : '';
+
+      if (estadoNorm === 'EN_CURSO' && (!codigoHito || codigoHito === 'MISION_ACEPTADA')) {
+        const esCuadrilla = payload.tipoMision === 'ATENCION_CUADRILLA';
+        const misionIdRef = payload.misionId || payload.id || payload.codigo;
+        const incId = payload.incidenteId;
+        const estadoIncidenteObjetivo = esCuadrilla ? 'EN_ATENCION' : 'VERIFICANDO';
+
+        if (incId) {
+          ultimasAceptacionesIncidenteRef.current.set(
+            `${incId}:${estadoIncidenteObjetivo}`,
+            Date.now()
+          );
+          esToastIncidenteDuplicado(`act:${incId}:${estadoIncidenteObjetivo}::`);
+        }
+
+        const tituloToast = esCuadrilla
+          ? 'Asignación Aceptada por Cuadrilla'
+          : 'Misión Aceptada por Patrulla';
+        const nombreUnidad = esCuadrilla
+          ? formatearNombreCuadrilla(payload.cuadrillaNombre)
+          : formatearNombrePatrulla(payload.patrullaNombre);
+        const mensajeToast = esCuadrilla
+          ? `${nombreUnidad} aceptó la asignación${payload.codigo ? ` (${payload.codigo})` : ''} e inicia desplazamiento al incidente.`
+          : `${nombreUnidad} aceptó la misión${payload.codigo ? ` (${payload.codigo})` : ''} e inicia verificación en terreno.`;
+
+        showInfo(mensajeToast, tituloToast, {
+          icon: esCuadrilla ? 'cuadrilla' : 'patrulla',
+          codeBadge: payload.incidenteCodigo || payload.codigo || undefined,
+          priorityBadge: payload.prioridad || undefined,
+          dedupKey: `mision-aceptada:${misionIdRef}`,
+          details: [
+            { label: esCuadrilla ? 'Cuadrilla' : 'Patrulla', value: nombreUnidad },
+            ...(payload.codigo ? [{ label: 'Misión', value: payload.codigo }] : []),
+            {
+              label: 'Estado Incidente',
+              value: esCuadrilla ? 'En Atención' : 'Verificando',
+            },
+          ],
+          action: incId
+            ? {
+                label: 'Ver incidente',
+                onClick: () => setIncidenteSeleccionadoId(incId),
+              }
+            : undefined,
+        });
+
+        setKpiRefreshTick((prev) => prev + 1);
+        cargarCuadrillas();
+        return;
+      }
+
+      if (estadoNorm === 'COMPLETADA') {
+        if (
+          payload.tipoMision === 'ATENCION_CUADRILLA' &&
+          payload.incidenteId &&
+          payload.reporteTerreno
+        ) {
+          mostrarToastCierreCuadrilla({
+            incidenteId: payload.incidenteId,
+            codigo: payload.incidenteCodigo,
+            reporte: payload.reporteTerreno,
+            misionId: payload.misionId || payload.id,
+          });
+        }
+        setKpiRefreshTick((prev) => prev + 1);
+        cargarCuadrillas();
+      }
+    },
+    [cargarCuadrillas, esToastIncidenteDuplicado, mostrarToastCierreCuadrilla, showInfo]
+  );
+
+  const handleRecursoActualizadoSocket = React.useCallback(
+    (payload: RecursoActualizadoPayload) => {
+      const estadoNorm = (payload.estado || '').toUpperCase();
+      if (estadoNorm === 'BAJO_STOCK' || estadoNorm === 'NO_DISPONIBLE') {
+        const nombreRecurso = payload.nombre || 'Recurso del inventario';
+        const detalleStock =
+          typeof payload.cantidadDisponible === 'number'
+            ? `${payload.cantidadDisponible} disponible(s)`
+            : `Estado: ${formatearEstado(estadoNorm)}`;
+
+        showWarning(
+          `El recurso "${nombreRecurso}" pasó a estado ${formatearEstado(estadoNorm)} tras consumo reportado en terreno.`,
+          estadoNorm === 'BAJO_STOCK' ? 'Alerta de Bajo Stock' : 'Recurso Sin Disponibilidad',
+          {
+            icon: 'inventario',
+            dedupKey: `recurso-alerta:${payload.id}:${estadoNorm}`,
+            details: [
+              { label: 'Recurso', value: nombreRecurso },
+              { label: 'Disponibilidad', value: detalleStock },
+            ],
+          }
+        );
+      }
+    },
+    [showWarning]
   );
 
   const {
@@ -478,27 +742,18 @@ export const KanbanBoard: React.FC = () => {
     conectado,
     ultimoEvento,
     totalIncidentesVisibles,
-    incidenteSeleccionadoId,
-    setIncidenteSeleccionadoId,
     trazabilidadPorIncidente,
   } = useIncidentesKanban({
     onMisionRechazada: handleMisionRechazadaSocket,
-    onMisionAceptada: handleMisionAceptadaSocket,
+    onMisionActualizada: handleMisionActualizadaSocket,
     onCuadrillaActualizada: handleCuadrillaActualizadaSocket,
+    onRecursoActualizado: handleRecursoActualizadoSocket,
     onReporteTerrenoRecibido: handleReporteTerrenoRecibido,
     onIncidenteCreadoSocket: handleIncidenteCreadoSocket,
     onIncidenteActualizadoSocket: handleIncidenteActualizadoSocket,
   });
 
   const [estadoEnfocado, setEstadoEnfocado] = useState<EstadoIncidente | null>(null);
-
-  // CA-5 (BUG-H22-WEB-03): Abrir incidente automáticamente si se accede con ?incidenteId=...
-  const incidenteIdParam = searchParams?.get('incidenteId');
-  useEffect(() => {
-    if (incidenteIdParam) {
-      setIncidenteSeleccionadoId(incidenteIdParam);
-    }
-  }, [incidenteIdParam, setIncidenteSeleccionadoId]);
 
   // Actualizar cuadrillas operativas ante eventos socket en tiempo real (BUG-H22-WEB-04)
   useEffect(() => {
@@ -518,8 +773,10 @@ export const KanbanBoard: React.FC = () => {
   } = useIncidentesKpis({ userId });
 
   useEffect(() => {
-    refrescarKpisRef.current = refrescarKpis;
-  }, [refrescarKpis]);
+    if (kpiRefreshTick > 0) {
+      refrescarKpis(false);
+    }
+  }, [kpiRefreshTick, refrescarKpis]);
 
   // Hook de tiempo real para eventos de prevención (HU-30)
   usePrevencionSocket({

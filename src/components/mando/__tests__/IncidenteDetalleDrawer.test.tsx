@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import React from 'react';
-import { render, screen, fireEvent, waitFor, within, act } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import { IncidenteDetalleDrawer } from '../IncidenteDetalleDrawer';
 import * as incidentesService from '@/services/incidentesService';
 import * as misionesService from '@/services/misionesService';
@@ -1345,10 +1345,260 @@ describe('Componente IncidenteDetalleDrawer e integración HU-17', () => {
       });
     });
 
-    await waitFor(() => {
+      await waitFor(() => {
       expect(spyDetalle).toHaveBeenCalledTimes(2);
       expect(screen.getByTestId('incidente-evidencias-section')).toBeDefined();
       expect(screen.getByText('foto_dano.webp')).toBeDefined();
     });
+  });
+
+  it('HU-68: muestra banner de faenas finalizadas (espera H86), prioriza REPORTE_CUADRILLA con materiales/horas y oculta despacho de cuadrilla', async () => {
+    const mockIncidenteH68: IncidenteDetalle = {
+      ...mockDetalleIncidente,
+      estado: 'EN_ATENCION',
+      misiones: [
+        {
+          id: 'mis-verif-1',
+          codigo: 'MIS-2026-0040',
+          titulo: 'Verificación previa',
+          descripcion: null,
+          tipoMision: 'VERIFICACION',
+          estado: 'COMPLETADA',
+          prioridad: 'ALTA',
+          justificacionRechazo: null,
+          patrulla: { id: 'pat-1', nombre: 'Patrulla Norte', estado: 'DISPONIBLE' },
+          cuadrilla: null,
+          fechaInicio: '2026-11-18T10:00:00Z',
+          fechaCierre: '2026-11-18T11:00:00Z',
+          creadoEn: '2026-11-18T09:30:00Z',
+        },
+        {
+          id: 'mis-cuad-68',
+          codigo: 'MIS-2026-0068',
+          titulo: 'Despeje de calzada y contención',
+          descripcion: 'Mitigación por cuadrilla',
+          tipoMision: 'ATENCION_CUADRILLA',
+          estado: 'COMPLETADA',
+          prioridad: 'ALTA',
+          justificacionRechazo: null,
+          patrulla: null,
+          cuadrilla: { id: 'cuad-1', nombre: 'Cuadrilla Vías y Canales 1', estado: 'DISPONIBLE' },
+          fechaInicio: '2026-11-18T12:00:00Z',
+          fechaCierre: '2026-11-18T17:30:00Z',
+          creadoEn: '2026-11-18T11:30:00Z',
+        },
+      ],
+      reportesEvaluacionTerreno: [
+        {
+          id: 'rep-verif-previo',
+          misionId: 'mis-verif-1',
+          tipoReporte: 'VERIFICACION_CIERRE',
+          dictamen: 'REQUIERE_CUADRILLA',
+          versionReporte: 1,
+          esRectificacion: false,
+          etiquetaReporte: 'Informe de Verificación y Cierre',
+          prioridadSugerida: null,
+          prioridadAsignada: null,
+          justificacionPrioridad: null,
+          resumenTecnico: 'Requiere retiro de árbol y contención.',
+          accionesRealizadas: null,
+          danosEstimados: null,
+          observaciones: null,
+          personasAfectadas: 4,
+          requiereApoyoAdicional: false,
+          evaluacion: {},
+          evaluador: { id: 'u-p', nombre: 'Patrulla Norte' },
+          creadoEn: '2026-11-18T11:00:00Z',
+        },
+        {
+          id: 'rep-cuad-final',
+          misionId: 'mis-cuad-68',
+          tipoReporte: 'REPORTE_CUADRILLA',
+          estadoTerreno: 'CONTROLADO',
+          etiquetaReporte: 'Informe Técnico Final de Cuadrilla (Cierre de Misión)',
+          horasHombre: 5.5,
+          materialesConsumidos: [
+            { recursoId: 'rec-sacos', nombre: 'Sacos de arena', cantidad: 25, unidad: 'sacos' },
+          ],
+          versionReporte: 1,
+          esRectificacion: false,
+          prioridadSugerida: null,
+          prioridadAsignada: null,
+          justificacionPrioridad: null,
+          resumenTecnico: 'Se ejecutó despeje completo de calzada y contención perimetral.',
+          accionesRealizadas: null,
+          danosEstimados: 'Solera dañada en 4 metros',
+          observaciones: 'Sector queda habilitado al tránsito.',
+          personasAfectadas: 0,
+          requiereApoyoAdicional: false,
+          evaluacion: {},
+          evaluador: { id: 'u-del', nombre: 'Carlos Delegado' },
+          creadoEn: '2026-11-18T17:30:00Z',
+        },
+      ],
+    };
+
+    const spyDetalle = vi
+      .spyOn(incidentesService, 'obtenerDetalleIncidente')
+      .mockResolvedValueOnce({
+        exito: true,
+        datos: mockIncidenteH68,
+        mensaje: 'OK',
+      })
+      .mockResolvedValueOnce({
+        exito: true,
+        datos: mockIncidenteH68,
+        mensaje: 'OK',
+      });
+
+    render(
+      <IncidenteDetalleDrawer
+        incidenteId="i1000000-0000-4000-8000-000000000001"
+        incidenteCodigo="INC-2026-0042"
+        userId="user-test"
+        onCerrar={vi.fn()}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('banner-faenas-cuadrilla-completadas')).toBeDefined();
+    });
+
+    const banner = screen.getByTestId('banner-faenas-cuadrilla-completadas');
+    expect(banner.textContent).toContain('Faenas de cuadrilla finalizadas — Cuadrilla liberada');
+    expect(banner.textContent).toContain('H86');
+    expect(screen.queryByText('Despachar Cuadrilla')).toBeNull();
+
+    const ultimoReporte = screen.getByTestId('incidente-ultimo-reporte-section');
+    expect(ultimoReporte.textContent).toContain('Informe Técnico Final de Cuadrilla (Cierre de Misión)');
+    expect(screen.getByTestId('ultimo-reporte-badge-estado-terreno').textContent).toContain(
+      'Terreno: Controlado'
+    );
+    expect(screen.getByTestId('ultimo-reporte-badge-horas-hombre').textContent).toContain(
+      '5,5 horas hombre'
+    );
+    expect(screen.getByTestId('ultimo-reporte-materiales-resumen').textContent).toContain(
+      'Sacos de arena: 25 sacos'
+    );
+    expect(ultimoReporte.textContent).toContain(
+      'Se ejecutó despeje completo de calzada y contención perimetral.'
+    );
+
+    // Recarga ante adjunto:creado vinculado únicamente por reporteTerrenoId (HU-43 + HU-68)
+    const adjuntoHandler = socketListeners['adjunto:creado']?.[0];
+    act(() => {
+      adjuntoHandler?.({
+        id: 'adj-cuad-tardio',
+        nombreArchivo: 'cierre_cuadrilla.jpg',
+        url: '/uploads/evidencia/cierre_cuadrilla.jpg',
+        tipoMime: 'image/jpeg',
+        tamanoBytes: 98000,
+        incidenteId: null,
+        reporteTerrenoId: 'rep-cuad-final',
+        creadoEn: '2026-11-18T17:35:00Z',
+      });
+    });
+
+    await waitFor(() => {
+      expect(spyDetalle).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  it('HU-40: actualiza optimísticamente estado EN_ATENCION, misión EN_CURSO y cuadrilla EN_MISION al recibir mision:actualizada y recarga el detalle', async () => {
+    const detalleVerificando: IncidenteDetalle = {
+      ...mockDetalleIncidente,
+      estado: 'VERIFICANDO',
+      misiones: [
+        {
+          ...mockDetalleIncidente.misiones[0],
+          estado: 'DESPACHADA',
+          fechaInicio: null,
+          cuadrilla: {
+            id: 'c1',
+            nombre: 'Cuadrilla Alfa 1',
+            estado: 'DISPONIBLE',
+          },
+        },
+      ],
+    };
+
+    const detalleEnAtencion: IncidenteDetalle = {
+      ...detalleVerificando,
+      estado: 'EN_ATENCION',
+      misiones: [
+        {
+          ...detalleVerificando.misiones[0],
+          estado: 'EN_CURSO',
+          fechaInicio: '2026-11-22T14:00:00Z',
+          cuadrilla: {
+            id: 'c1',
+            nombre: 'Cuadrilla Alfa 1',
+            estado: 'EN_MISION',
+          },
+        },
+      ],
+    };
+
+    let resolverRecarga!: (val: incidentesService.ResultadoDetalleIncidente) => void;
+    const promesaRecarga = new Promise<incidentesService.ResultadoDetalleIncidente>((resolve) => {
+      resolverRecarga = resolve;
+    });
+
+    const spyDetalle = vi
+      .spyOn(incidentesService, 'obtenerDetalleIncidente')
+      .mockResolvedValueOnce({
+        exito: true,
+        datos: detalleVerificando,
+        mensaje: 'OK',
+      })
+      .mockImplementationOnce(() => promesaRecarga);
+
+    render(
+      <IncidenteDetalleDrawer
+        incidenteId="i1000000-0000-4000-8000-000000000001"
+        incidenteCodigo="INC-2026-0042"
+        userId="user-test"
+        onCerrar={vi.fn()}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Despachada')).toBeDefined();
+    });
+    expect(screen.getByText(/Estado:\s*En verificación/i)).toBeDefined();
+
+    const misionHandler = socketListeners['mision:actualizada']?.[0];
+    expect(misionHandler).toBeDefined();
+
+    act(() => {
+      misionHandler?.({
+        misionId: 'm1000000-0000-4000-8000-000000000001',
+        codigo: 'MIS-2026-0001',
+        estado: 'EN_CURSO',
+        tipoMision: 'ATENCION_CUADRILLA',
+        incidenteId: 'i1000000-0000-4000-8000-000000000001',
+        fechaInicio: '2026-11-22T14:00:00Z',
+      });
+    });
+
+    // Actualización optimista inmediata previa a resolver HTTP reload
+    await waitFor(() => {
+      expect(screen.getByText(/Estado:\s*En atención/i)).toBeDefined();
+    });
+    expect(screen.getByText('En curso')).toBeDefined();
+    expect(screen.getByText('(En misión)')).toBeDefined();
+    expect(spyDetalle).toHaveBeenCalledTimes(2);
+
+    await act(async () => {
+      resolverRecarga({
+        exito: true,
+        datos: detalleEnAtencion,
+        mensaje: 'OK',
+      });
+      await Promise.resolve();
+    });
+
+    expect(screen.getByText(/Estado:\s*En atención/i)).toBeDefined();
+    expect(screen.getByText('En curso')).toBeDefined();
   });
 });

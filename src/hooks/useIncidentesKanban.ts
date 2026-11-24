@@ -17,7 +17,9 @@ import {
   type IncidenteCreadoPayload,
   type IncidenteActualizadoPayload,
   type MisionRechazadaPayload,
+  type MisionActualizadaPayload,
   type CuadrillaActualizadaPayload,
+  type RecursoActualizadoPayload,
   type NotificacionTrazabilidadPayload,
 } from './useEncargadoKanbanSocket';
 import {
@@ -29,7 +31,6 @@ import {
 import { obtenerConfigHito } from '@/lib/utils/misionHitos';
 import { useOptionalToast } from '@/components/ui/Toast';
 import type {
-  MisionActualizadaPayload,
   MisionHitoRegistradoPayload,
 } from '@/types/misiones';
 
@@ -43,7 +44,7 @@ export const ESTADOS_KANBAN: EstadoIncidente[] = [
 
 import { catalogosService } from '@/services/catalogosService';
 import { useSimulatedSession } from '@/context/SimulatedSessionContext';
-import { fueTipologiaModificada } from '@/lib/utils/estadoUtils';
+import { esReporteCierreCuadrilla, fueTipologiaModificada } from '@/lib/utils/estadoUtils';
 
 export interface FiltrosKanban {
   busqueda: string;
@@ -60,7 +61,9 @@ export interface UseIncidentesKanbanOptions {
   initialUserId?: string;
   onMisionRechazada?: (payload: MisionRechazadaPayload) => void;
   onMisionAceptada?: (payload: MisionActualizadaPayload) => void;
+  onMisionActualizada?: (payload: MisionActualizadaPayload) => void;
   onCuadrillaActualizada?: (payload: CuadrillaActualizadaPayload) => void;
+  onRecursoActualizado?: (payload: RecursoActualizadoPayload) => void;
   onReporteTerrenoRecibido?: (payload: IncidenteActualizadoPayload) => void;
   onIncidenteCreadoSocket?: (payload: IncidenteCreadoPayload) => void;
   onIncidenteActualizadoSocket?: (payload: IncidenteActualizadoPayload) => void;
@@ -81,6 +84,16 @@ function ordenarIncidentesColumna(
       const bVerif = b.verificado ? 1 : 0;
       if (aVerif !== bVerif) {
         return bVerif - aVerif; // Verificados (1) primero
+      }
+      return new Date(b.creadoEn).getTime() - new Date(a.creadoEn).getTime();
+    });
+  }
+  if (estado === 'EN_ATENCION') {
+    return [...incidentes].sort((a, b) => {
+      const aFin = a.faenasCuadrillaCompletadas ? 1 : 0;
+      const bFin = b.faenasCuadrillaCompletadas ? 1 : 0;
+      if (aFin !== bFin) {
+        return bFin - aFin; // Faenas finalizadas (1) primero
       }
       return new Date(b.creadoEn).getTime() - new Date(a.creadoEn).getTime();
     });
@@ -112,6 +125,16 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
   useEffect(() => {
     onCuadrillaActualizadaRef.current = optionsObj.onCuadrillaActualizada;
   }, [optionsObj.onCuadrillaActualizada]);
+
+  const onMisionActualizadaRef = useRef(optionsObj.onMisionActualizada);
+  useEffect(() => {
+    onMisionActualizadaRef.current = optionsObj.onMisionActualizada;
+  }, [optionsObj.onMisionActualizada]);
+
+  const onRecursoActualizadoRef = useRef(optionsObj.onRecursoActualizado);
+  useEffect(() => {
+    onRecursoActualizadoRef.current = optionsObj.onRecursoActualizado;
+  }, [optionsObj.onRecursoActualizado]);
   let sessionUserId: string | undefined;
   let sessionSetUser: ((id: string) => void) | undefined;
   try {
@@ -144,6 +167,8 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
   useEffect(() => {
     columnasRef.current = columnas;
   }, [columnas]);
+
+  const reportesContadosRef = useRef<Set<string>>(new Set());
 
   const [paginacionColumna, setPaginacionColumna] = useState<
     Record<EstadoIncidente, PaginacionMeta | null>
@@ -463,6 +488,16 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
       const { datos } = payload;
       if (!datos || !datos.id) return;
 
+      const reporteIdClave = datos.reporteTerreno?.id
+        ? `${datos.id}:${datos.reporteTerreno.id}`
+        : null;
+      const yaContado = reporteIdClave
+        ? reportesContadosRef.current.has(reporteIdClave)
+        : false;
+      if (reporteIdClave) {
+        reportesContadosRef.current.add(reporteIdClave);
+      }
+
       let columnaOrigenDetectada: EstadoIncidente | null = null;
       let tipoAnteriorDetectado: string | undefined;
 
@@ -512,13 +547,30 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
 
             const totalReportesPrevios = Number(incActual.totalReportesTerreno ?? 0);
             const nuevoTotalReportes = datos.reporteTerreno
-              ? Math.max(
-                  Number(datos.reporteTerreno.versionReporte || 1),
-                  totalReportesPrevios + 1
-                )
+              ? yaContado
+                ? Math.max(
+                    Number(datos.reporteTerreno.versionReporte || 1),
+                    totalReportesPrevios
+                  )
+                : Math.max(
+                    Number(datos.reporteTerreno.versionReporte || 1),
+                    totalReportesPrevios + 1
+                  )
               : totalReportesPrevios;
 
             const esCierreNoAbordable = datos.nuevoEstado === 'NO_ABORDABLE';
+            const esCierreCuadrilla = esReporteCierreCuadrilla(datos.reporteTerreno);
+            // H68: El cierre de cuadrilla nunca cierra automáticamente el incidente a RESUELTO (espera H86)
+            const estadoDestinoResuelto: EstadoIncidente =
+              esCierreCuadrilla && datos.nuevoEstado === 'RESUELTO'
+                ? (incActual.estado === 'EN_ATENCION' ? 'EN_ATENCION' : incActual.estado)
+                : datos.nuevoEstado;
+            const esInicioNuevaMision =
+              !esCierreCuadrilla &&
+              !esCierreNoAbordable &&
+              (Boolean(payload.esSintetico) ||
+                (estadoDestinoResuelto === 'EN_ATENCION' && est !== 'EN_ATENCION') ||
+                (estadoDestinoResuelto === 'VERIFICANDO' && est === 'REPORTADO'));
             const dictamenResuelto =
               datos.dictamen ??
               datos.reporteTerreno?.dictamen ??
@@ -531,11 +583,15 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
                   ? datos.reporteTerreno.motivoNoAbordable
                   : incActual.motivoNoAbordable;
             const fechaCierreResuelta =
-              datos.fechaCierre !== undefined ? datos.fechaCierre : incActual.fechaCierre;
+              esCierreCuadrilla
+                ? incActual.fechaCierre
+                : datos.fechaCierre !== undefined
+                  ? datos.fechaCierre
+                  : incActual.fechaCierre;
 
             incidenteEncontrado = {
               ...incActual,
-              estado: datos.nuevoEstado,
+              estado: estadoDestinoResuelto,
               prioridad: nuevaPrioridad,
               prioridadSugerida: nuevaPrioridadSugerida,
               justificacionPrioridad: nuevaJustificacionPrioridad,
@@ -543,7 +599,9 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
               requiereAsistenciaSocial:
                 datos.requiereAsistenciaSocial !== undefined
                   ? datos.requiereAsistenciaSocial
-                  : incActual.requiereAsistenciaSocial,
+                  : datos.reporteTerreno?.requiereAsistenciaSocial !== undefined
+                    ? datos.reporteTerreno.requiereAsistenciaSocial
+                    : incActual.requiereAsistenciaSocial,
               tipoAfectacion: nuevoTipo,
               tipoIncidenteId: datos.tipoIncidenteId || incActual.tipoIncidenteId,
               verificado:
@@ -552,11 +610,28 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
                   : payload.esSintetico
                     ? Boolean(incActual.verificado)
                     : true,
+              faenasCuadrillaCompletadas: esCierreCuadrilla
+                ? true
+                : esInicioNuevaMision
+                  ? false
+                  : incActual.faenasCuadrillaCompletadas,
+              estadoTerrenoFinal: esCierreCuadrilla
+                ? datos.reporteTerreno?.estadoTerreno ?? incActual.estadoTerrenoFinal
+                : incActual.estadoTerrenoFinal,
+              horasHombreRegistradas: esCierreCuadrilla
+                ? datos.reporteTerreno?.horasHombre ?? incActual.horasHombreRegistradas
+                : incActual.horasHombreRegistradas,
               dictamenTerreno: dictamenResuelto,
               motivoNoAbordable: motivoNoAbordableResuelto,
               fechaCierre: fechaCierreResuelta,
-              tieneMisionEnCurso: esCierreNoAbordable ? false : incActual.tieneMisionEnCurso,
-              tieneMisionDespachada: esCierreNoAbordable ? false : incActual.tieneMisionDespachada,
+              tieneMisionEnCurso:
+                esCierreNoAbordable || esCierreCuadrilla
+                  ? false
+                  : esInicioNuevaMision
+                    ? true
+                    : incActual.tieneMisionEnCurso,
+              tieneMisionDespachada:
+                esCierreNoAbordable || esInicioNuevaMision ? false : incActual.tieneMisionDespachada,
               reclasificadoEnTerreno: reclasificado,
               justificacionReclasificacion:
                 datos.justificacion || incActual.justificacionReclasificacion,
@@ -566,9 +641,11 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
                   'Ajustada tras verificación presencial en terreno'
                 : incActual.cambioPrioridadMotivo,
               totalMisiones:
-                datos.nuevoEstado === 'VERIFICANDO' && est === 'REPORTADO'
+                estadoDestinoResuelto === 'VERIFICANDO' && est === 'REPORTADO'
                   ? Math.max(1, (incActual.totalMisiones || 0) + 1)
-                  : incActual.totalMisiones,
+                  : esInicioNuevaMision && estadoDestinoResuelto === 'EN_ATENCION'
+                    ? Math.max(1, incActual.totalMisiones || 0)
+                    : incActual.totalMisiones,
               actualizadoEn: datos.actualizadoEn || new Date().toISOString(),
             };
             break;
@@ -579,8 +656,10 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
           return prev;
         }
 
+        const estadoFinalColumna = incidenteEncontrado.estado;
+
         // Si el estado no cambió de columna, solo actualizarlo in situ y mantener orden de verificación
-        if (columnaOrigen === datos.nuevoEstado) {
+        if (columnaOrigen === estadoFinalColumna) {
           return {
             ...prev,
             [columnaOrigen]: ordenarIncidentesColumna(
@@ -596,21 +675,25 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
         return {
           ...prev,
           [columnaOrigen!]: prev[columnaOrigen!].filter((i) => i.id !== datos.id),
-          [datos.nuevoEstado]: ordenarIncidentesColumna([incidenteEncontrado, ...prev[datos.nuevoEstado]], datos.nuevoEstado),
+          [estadoFinalColumna]: ordenarIncidentesColumna([incidenteEncontrado, ...prev[estadoFinalColumna]], estadoFinalColumna),
         };
       });
 
       // Actualizar dinámicamente paginacionColumna si cambió de columna
-      if (columnaOrigenDetectada && columnaOrigenDetectada !== datos.nuevoEstado) {
+      const estadoObjetivo =
+        esReporteCierreCuadrilla(datos.reporteTerreno) && datos.nuevoEstado === 'RESUELTO'
+          ? 'EN_ATENCION'
+          : datos.nuevoEstado;
+      if (columnaOrigenDetectada && columnaOrigenDetectada !== estadoObjetivo) {
         setPaginacionColumna((prev) => {
           const metaOrigen = prev[columnaOrigenDetectada!];
-          const metaDestino = prev[datos.nuevoEstado];
+          const metaDestino = prev[estadoObjetivo];
           return {
             ...prev,
             [columnaOrigenDetectada!]: metaOrigen
               ? { ...metaOrigen, total: Math.max(0, metaOrigen.total - 1) }
               : null,
-            [datos.nuevoEstado]: metaDestino
+            [estadoObjetivo]: metaDestino
               ? { ...metaDestino, total: metaDestino.total + 1 }
               : null,
           };
@@ -804,6 +887,94 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
     []
   );
 
+  const handleMisionActualizada = useCallback(
+    (payload: MisionActualizadaPayload) => {
+      if (
+        payload.estado?.toUpperCase() === 'COMPLETADA' &&
+        payload.tipoMision === 'ATENCION_CUADRILLA' &&
+        payload.incidenteId
+      ) {
+        const repIdClave = payload.reporteTerreno?.id
+          ? `${payload.incidenteId}:${payload.reporteTerreno.id}`
+          : null;
+        const yaContado = repIdClave
+          ? reportesContadosRef.current.has(repIdClave)
+          : false;
+        if (repIdClave) {
+          reportesContadosRef.current.add(repIdClave);
+        }
+
+        setColumnas((prev) => {
+          const idx = prev.EN_ATENCION.findIndex(
+            (i) => i.id === payload.incidenteId
+          );
+          if (idx === -1) return prev;
+          const actual = prev.EN_ATENCION[idx];
+          const prevReportes = Number(actual.totalReportesTerreno ?? 0);
+          const actualizado: IncidenteResumen = {
+            ...actual,
+            faenasCuadrillaCompletadas: true,
+            tieneMisionEnCurso: false,
+            estadoTerrenoFinal:
+              payload.reporteTerreno?.estadoTerreno ?? actual.estadoTerrenoFinal,
+            horasHombreRegistradas:
+              typeof payload.reporteTerreno?.horasHombre === 'number'
+                ? payload.reporteTerreno.horasHombre
+                : actual.horasHombreRegistradas,
+            totalReportesTerreno: yaContado
+              ? Math.max(1, prevReportes)
+              : actual.faenasCuadrillaCompletadas
+                ? prevReportes
+                : Math.max(1, prevReportes + 1),
+            actualizadoEn: payload.fechaCierre || new Date().toISOString(),
+          };
+          const nuevaLista = prev.EN_ATENCION.map((item, i) =>
+            i === idx ? actualizado : item
+          );
+          return {
+            ...prev,
+            EN_ATENCION: ordenarIncidentesColumna(nuevaLista, 'EN_ATENCION'),
+          };
+        });
+        onMisionActualizadaRef.current?.(payload);
+        return;
+      }
+
+      const esMisionCuadrilla =
+        Boolean(payload.cuadrillaId) || payload.tipoMision === 'ATENCION_CUADRILLA';
+      const hitoCodigo =
+        typeof payload.hito === 'string'
+          ? payload.hito
+          : payload.hito && typeof payload.hito === 'object'
+            ? payload.hito.hito
+            : undefined;
+      const hitoConfig = hitoCodigo ? obtenerConfigHito(hitoCodigo) : null;
+      const esAceptacion =
+        Boolean(hitoConfig?.esAceptacion) ||
+        (payload.estado === 'EN_CURSO' && esMisionCuadrilla);
+
+      if (esAceptacion) {
+        if (payload.incidenteId && esMisionCuadrilla) {
+          moverIncidenteAEstado(payload.incidenteId, 'EN_ATENCION');
+        }
+        if (esMisionCuadrilla && !onMisionActualizadaRef.current) {
+          notificarToastAceptacionCuadrilla(payload.misionId, payload.codigo);
+        }
+        onMisionAceptadaRef.current?.(payload);
+      }
+
+      onMisionActualizadaRef.current?.(payload);
+    },
+    [moverIncidenteAEstado, notificarToastAceptacionCuadrilla]
+  );
+
+  const handleRecursoActualizado = useCallback(
+    (payload: RecursoActualizadoPayload) => {
+      onRecursoActualizadoRef.current?.(payload);
+    },
+    []
+  );
+
   const marcarIncidenteMisionDespachada = useCallback(
     (incidenteId: string, despachada: boolean = true) => {
       setColumnas((prev) => ({
@@ -889,38 +1060,15 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
     [notificarToastAceptacionCuadrilla, toast]
   );
 
-  const handleMisionActualizada = useCallback(
-    (payload: MisionActualizadaPayload) => {
-      const esMisionCuadrilla =
-        Boolean(payload.cuadrillaId) || payload.tipoMision === 'ATENCION_CUADRILLA';
-      const hitoConfig = payload.hito?.hito ? obtenerConfigHito(payload.hito.hito) : null;
-      const esAceptacion =
-        Boolean(hitoConfig?.esAceptacion) ||
-        (payload.estado === 'EN_CURSO' && esMisionCuadrilla);
-
-      if (!esAceptacion) return;
-
-      if (payload.incidenteId && esMisionCuadrilla) {
-        moverIncidenteAEstado(payload.incidenteId, 'EN_ATENCION');
-      }
-
-      if (esMisionCuadrilla) {
-        notificarToastAceptacionCuadrilla(payload.misionId, payload.codigo);
-      }
-
-      onMisionAceptadaRef.current?.(payload);
-    },
-    [moverIncidenteAEstado, notificarToastAceptacionCuadrilla]
-  );
-
   const { conectado, ultimoEvento } = useEncargadoKanbanSocket({
     onIncidenteCreado: handleIncidenteCreado,
     onIncidenteActualizado: handleIncidenteActualizado,
     onMisionRechazada: handleMisionRechazada,
+    onMisionActualizada: handleMisionActualizada,
     onCuadrillaActualizada: handleCuadrillaActualizada,
+    onRecursoActualizado: handleRecursoActualizado,
     onNotificacionTrazabilidadActualizada: handleTrazabilidadActualizada,
     onMisionHitoRegistrado: handleMisionHitoRegistrado,
-    onMisionActualizada: handleMisionActualizada,
     enabled: !esForbidden,
   });
 

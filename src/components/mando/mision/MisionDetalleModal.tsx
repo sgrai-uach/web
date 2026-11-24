@@ -28,13 +28,18 @@ import {
   type MisionDetalleCompleto,
   type ReporteTerrenoDetalle,
 } from '@/types/misiones';
-import { esReporteVerificacionCierre } from '@/lib/utils/estadoUtils';
+import {
+  esReporteCierreCuadrilla,
+  esReporteVerificacionCierre,
+  normalizarMaterialesConsumidos,
+} from '@/lib/utils/estadoUtils';
 import { MisionSkeletonLoader } from './MisionSkeletonLoader';
 import { MisionDetalleHeader } from './MisionDetalleHeader';
 import { MisionContextoSection } from './MisionContextoSection';
 import { MisionEquipoSection } from './MisionEquipoSection';
 import { MisionBitacoraSection } from './MisionBitacoraSection';
 import { MisionReportesSection } from './MisionReportesSection';
+import { MisionEvidenciasGallery } from './MisionEvidenciasGallery';
 import styles from '@/styles/mision-detalle.module.css';
 
 interface MisionDetalleModalProps {
@@ -243,6 +248,13 @@ export const MisionDetalleModal: React.FC<MisionDetalleModalProps> = ({
 
         if (candidato.incidenteId && prev.incidente?.id === candidato.incidenteId) {
           requiereRecarga = true;
+          const actuales = Array.isArray(prev.adjuntos) ? prev.adjuntos : [];
+          if (!actuales.some((a) => a.id === nuevoAdjunto.id)) {
+            return {
+              ...prev,
+              adjuntos: [...actuales, nuevoAdjunto],
+            };
+          }
         }
         return prev;
       });
@@ -261,6 +273,8 @@ export const MisionDetalleModal: React.FC<MisionDetalleModalProps> = ({
       const rawDatos = (p?.datos || p?.data || p) as Record<string, unknown> | null | undefined;
       const repRaw = rawDatos?.reporteTerreno as Record<string, unknown> | undefined;
       if (!repRaw || repRaw.misionId !== misionId) return;
+
+      let requiereRecargaPorCierreCuadrilla = false;
 
       setMision((prev) => {
         if (!prev) return prev;
@@ -317,7 +331,15 @@ export const MisionDetalleModal: React.FC<MisionDetalleModalProps> = ({
                       : null,
                 }
               : { id: 'patrulla', nombre: 'Patrulla en Terreno', email: '' },
-          resumenTecnico: String(repRaw.resumenTecnico || ''),
+          resumenTecnico: String(
+            repRaw.resumenTecnico || repRaw.resumenFaenas || repRaw.resumen_faenas || ''
+          ),
+          resumenFaenas:
+            typeof repRaw.resumenFaenas === 'string'
+              ? repRaw.resumenFaenas
+              : typeof repRaw.resumen_faenas === 'string'
+                ? repRaw.resumen_faenas
+                : null,
           accionesRealizadas:
             typeof repRaw.accionesRealizadas === 'string' ? repRaw.accionesRealizadas : null,
           requiereApoyoAdicional: Boolean(repRaw.requiereApoyoAdicional),
@@ -331,6 +353,15 @@ export const MisionDetalleModal: React.FC<MisionDetalleModalProps> = ({
           personasAfectadas: Number(repRaw.personasAfectadas ?? 0),
           estadoTerreno:
             typeof repRaw.estadoTerreno === 'string' ? repRaw.estadoTerreno : 'EN_PROGRESO',
+          horasHombre:
+            typeof repRaw.horasHombre === 'number'
+              ? repRaw.horasHombre
+              : typeof repRaw.horas_hombre === 'number'
+                ? repRaw.horas_hombre
+                : null,
+          materialesConsumidos: normalizarMaterialesConsumidos(
+            repRaw.materialesConsumidos ?? repRaw.materiales_consumidos
+          ),
           adjuntos: Array.isArray(repRaw.adjuntos)
             ? (repRaw.adjuntos as AdjuntoEvidencia[])
             : [],
@@ -346,8 +377,15 @@ export const MisionDetalleModal: React.FC<MisionDetalleModalProps> = ({
             ? prev.reportesTerreno.map((r, i) => (i === existeIdx ? nuevoReporte : r))
             : [nuevoReporte, ...prev.reportesTerreno];
 
+        const esCierreCuadrilla = esReporteCierreCuadrilla(nuevoReporte);
         const esCierre =
-          esReporteVerificacionCierre(nuevoReporte) || rawDatos?.nuevoEstado === 'NO_ABORDABLE';
+          esReporteVerificacionCierre(nuevoReporte) ||
+          esCierreCuadrilla ||
+          rawDatos?.nuevoEstado === 'NO_ABORDABLE';
+
+        if (esCierreCuadrilla) {
+          requiereRecargaPorCierreCuadrilla = true;
+        }
 
         return {
           ...prev,
@@ -362,6 +400,17 @@ export const MisionDetalleModal: React.FC<MisionDetalleModalProps> = ({
             typeof rawDatos?.prioridad === 'string'
               ? (rawDatos.prioridad as MisionDetalleCompleto['prioridad'])
               : prev.prioridad,
+          cuadrilla:
+            esCierreCuadrilla && prev.cuadrilla
+              ? { ...prev.cuadrilla, estado: 'DISPONIBLE' }
+              : prev.cuadrilla,
+          evaluaciones: esCierreCuadrilla
+            ? {
+                ...(prev.evaluaciones || {}),
+                reporteCuadrillaEnviado: true,
+                reporteCuadrillaEnviadoEn: nuevoReporte.creadoEn,
+              }
+            : prev.evaluaciones,
           incidente: prev.incidente
             ? {
                 ...prev.incidente,
@@ -392,15 +441,148 @@ export const MisionDetalleModal: React.FC<MisionDetalleModalProps> = ({
           reportesTerreno: nuevosReportes,
         };
       });
+
+      if (requiereRecargaPorCierreCuadrilla) {
+        void obtenerDetalleMision(misionId, userId).then((res) => {
+          if (res.exito && res.datos) {
+            setMision(res.datos);
+          }
+        });
+      }
+    };
+
+    const handleMisionActualizada = (rawPayload: unknown) => {
+      const p = rawPayload as Record<string, unknown> | null | undefined;
+      const raw = (p?.datos || p?.data || rawPayload) as Record<string, unknown> | null | undefined;
+      if (!raw || typeof raw !== 'object') return;
+      const evMisionId =
+        typeof raw.misionId === 'string'
+          ? raw.misionId
+          : typeof raw.id === 'string'
+            ? raw.id
+            : '';
+      const evEstado = typeof raw.estado === 'string' ? raw.estado.toUpperCase() : '';
+      if (evMisionId !== misionId) return;
+
+      if (evEstado === 'COMPLETADA') {
+        void obtenerDetalleMision(misionId, userId).then((res) => {
+          if (res.exito && res.datos) {
+            setMision(res.datos);
+          }
+        });
+        return;
+      }
+
+      if (evEstado === 'EN_CURSO') {
+        const tipoMisionEv =
+          typeof raw.tipoMision === 'string'
+            ? raw.tipoMision
+            : typeof raw.tipo_mision === 'string'
+              ? raw.tipo_mision
+              : '';
+        const fechaInicioEv =
+          typeof raw.fechaInicio === 'string'
+            ? raw.fechaInicio
+            : typeof raw.fecha_inicio === 'string'
+              ? raw.fecha_inicio
+              : new Date().toISOString();
+        const rawHito =
+          raw.hito && typeof raw.hito === 'object'
+            ? (raw.hito as Record<string, unknown>)
+            : null;
+        const codigoHito =
+          rawHito && typeof rawHito.hito === 'string'
+            ? rawHito.hito
+            : typeof raw.hito === 'string'
+              ? raw.hito
+              : 'MISION_ACEPTADA';
+        const descripcionHito =
+          rawHito && typeof rawHito.descripcion === 'string'
+            ? rawHito.descripcion
+            : tipoMisionEv === 'ATENCION_CUADRILLA'
+              ? 'Asignación Aceptada por Cuadrilla'
+              : 'Misión aceptada en terreno';
+        const hitoId =
+          rawHito && typeof rawHito.id === 'string' ? rawHito.id : undefined;
+        const hitoTimestamp =
+          rawHito && typeof rawHito.creadoEn === 'string'
+            ? rawHito.creadoEn
+            : fechaInicioEv;
+
+        const fechaObj = new Date(hitoTimestamp);
+        const horaHito = Number.isNaN(fechaObj.getTime())
+          ? ''
+          : fechaObj.toLocaleTimeString('es-CL', {
+              hour: '2-digit',
+              minute: '2-digit',
+              second: '2-digit',
+            });
+        const fechaHito = Number.isNaN(fechaObj.getTime())
+          ? ''
+          : fechaObj.toLocaleDateString('es-CL');
+
+        setMision((prev) => {
+          if (!prev) return prev;
+          const esCuadrillaEv =
+            tipoMisionEv === 'ATENCION_CUADRILLA' || prev.tipoMision === 'ATENCION_CUADRILLA';
+          const yaExisteHito = prev.bitacoraTiempos.some(
+            (h) =>
+              (hitoId && h.id === hitoId) ||
+              (h.hito === codigoHito && h.descripcion === descripcionHito)
+          );
+          const bitacoraActualizada = yaExisteHito
+            ? prev.bitacoraTiempos
+            : [
+                ...prev.bitacoraTiempos,
+                {
+                  ...(hitoId ? { id: hitoId } : {}),
+                  hito: codigoHito,
+                  fecha: fechaHito,
+                  hora: horaHito,
+                  timestamp: hitoTimestamp,
+                  descripcion: descripcionHito,
+                },
+              ];
+
+          return {
+            ...prev,
+            estado: 'EN_CURSO',
+            fechaInicio: fechaInicioEv || prev.fechaInicio,
+            actualizadoEn:
+              typeof raw.actualizadoEn === 'string' ? raw.actualizadoEn : prev.actualizadoEn,
+            cuadrilla:
+              esCuadrillaEv && prev.cuadrilla
+                ? { ...prev.cuadrilla, estado: 'EN_MISION' }
+                : prev.cuadrilla,
+            patrulla:
+              !esCuadrillaEv && prev.patrulla
+                ? { ...prev.patrulla, estado: 'EN_MISION' }
+                : prev.patrulla,
+            incidente: prev.incidente
+              ? {
+                  ...prev.incidente,
+                  estado: esCuadrillaEv
+                    ? 'EN_ATENCION'
+                    : prev.incidente.estado === 'REPORTADO'
+                      ? 'VERIFICANDO'
+                      : prev.incidente.estado,
+                }
+              : null,
+            bitacoraTiempos: bitacoraActualizada,
+          };
+        });
+      }
     };
 
     socket.on('connect', asegurarSalasEncargado);
     socket.on('adjunto:creado', handleAdjuntoCreado);
     socket.on('incidente:actualizado', handleIncidenteActualizado);
+    socket.on('mision:actualizada', handleMisionActualizada);
     return () => {
       socket.off('connect', asegurarSalasEncargado);
       socket.off('adjunto:creado', handleAdjuntoCreado);
       socket.off('incidente:actualizado', handleIncidenteActualizado);
+      socket.off('mision:actualizada', handleMisionActualizada);
     };
   }, [misionId, userId]);
 
@@ -522,10 +704,35 @@ export const MisionDetalleModal: React.FC<MisionDetalleModalProps> = ({
                 reportes={misionConTiempoReal.reportesTerreno || []}
                 bitacora={misionConTiempoReal.bitacoraTiempos || []}
                 patrulla={misionConTiempoReal.patrulla}
+                cuadrilla={misionConTiempoReal.cuadrilla}
                 incidente={misionConTiempoReal.incidente}
                 reporteDestacadoId={reporteDestacadoId}
                 seccionRef={seccionReportesRef}
               />
+
+              {/* Evidencia multimedia preliminar (cargada durante la misión en curso antes de consolidarse en un informe) */}
+              {(() => {
+                const idsEnReportes = new Set(
+                  (mision.reportesTerreno || []).flatMap((r) =>
+                    (r.adjuntos || []).map((a) => a.id)
+                  )
+                );
+                const adjuntosPreliminares = (mision.adjuntos || []).filter(
+                  (a) => !idsEnReportes.has(a.id)
+                );
+                if (adjuntosPreliminares.length === 0) return null;
+                return (
+                  <div
+                    style={{
+                      padding: '12px 16px',
+                      backgroundColor: 'var(--color-bg-light, #ECEFF3)',
+                      border: '1px solid var(--border-color-neutral-dark, #CCD2D9)',
+                    }}
+                  >
+                    <MisionEvidenciasGallery adjuntos={adjuntosPreliminares} />
+                  </div>
+                );
+              })()}
             </div>
 
             <footer className={styles.modalFooter}>

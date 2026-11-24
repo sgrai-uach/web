@@ -84,9 +84,39 @@ export interface EvaluacionTerrenoMisionDetalle {
   [key: string]: unknown;
 }
 
-export type TipoReporteTerreno = 'EVALUACION_PRIORIDAD' | 'VERIFICACION_CIERRE' | string;
+export type TipoReporteTerreno =
+  | 'EVALUACION_PRIORIDAD'
+  | 'VERIFICACION_CIERRE'
+  | 'REPORTE_CUADRILLA'
+  | string;
 
 export type DictamenAtencionTerreno = 'REQUIERE_CUADRILLA' | 'NO_ABORDABLE';
+
+export type EstadoTerrenoCierreCuadrilla =
+  | 'CONTROLADO'
+  | 'ESTABLE'
+  | 'FINALIZADO'
+  | 'REQUIERE_SEGUIMIENTO'
+  | 'CRITICO'
+  | 'INACCESIBLE'
+  | string;
+
+export interface MaterialConsumidoDetalle {
+  recursoId: string;
+  nombre?: string | null;
+  cantidad: number;
+  unidad?: string | null;
+  observacion?: string | null;
+}
+
+export interface MisionEvaluacionesResumen {
+  tipologiaEvaluada?: boolean;
+  prioridadEvaluada?: boolean;
+  verificacionCerrada?: boolean;
+  reporteCuadrillaEnviado?: boolean;
+  reporteCuadrillaEnviadoEn?: string | null;
+  [key: string]: unknown;
+}
 
 export interface ReporteTerrenoDetalle {
   id: string;
@@ -106,12 +136,15 @@ export interface ReporteTerrenoDetalle {
   detallesEvaluacion?: EvaluacionTerrenoMisionDetalle;
   evaluador: EvaluadorTerreno;
   resumenTecnico: string;
+  resumenFaenas?: string | null;
   accionesRealizadas: string | null;
   requiereApoyoAdicional: boolean;
   danosEstimados: string | null;
   observaciones: string | null;
   personasAfectadas: number;
   estadoTerreno: string;
+  horasHombre?: number | null;
+  materialesConsumidos?: MaterialConsumidoDetalle[] | null;
   adjuntos: AdjuntoEvidencia[];
   creadoEn: string;
   actualizadoEn: string;
@@ -211,6 +244,8 @@ export interface RecursoAsignadoMision {
   nombre: string;
   tipo: string;
   cantidadAsignada: number;
+  esIndividual?: boolean;
+  unidad?: string | null;
 }
 
 export interface CuadrillaMisionDetalle {
@@ -317,6 +352,8 @@ export interface MisionDetalleCompleto {
   patrulla: PatrullaMisionDetalle | null;
   bitacoraTiempos: MisionBitacoraHito[];
   reportesTerreno: ReporteTerrenoDetalle[];
+  adjuntos?: AdjuntoEvidencia[];
+  evaluaciones?: MisionEvaluacionesResumen | null;
 }
 
 export interface MisionDetalleResponse {

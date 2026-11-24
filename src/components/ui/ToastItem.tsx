@@ -14,11 +14,14 @@ import {
   UserX,
   Shield,
   ArrowRight,
+  HardHat,
+  Package,
 } from 'lucide-react';
 import Button from './Button';
 import Chip from './Chip';
 import type { ToastMessage } from './Toast';
 import { obtenerVarianteChipPrioridad } from '@/lib/utils/chipVariants';
+import { formatearPrioridad } from '@/lib/utils/estadoUtils';
 
 interface ToastItemProps {
   toast: ToastMessage;
@@ -45,7 +48,7 @@ export default function ToastItem({ toast, onRemove }: ToastItemProps) {
 
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const remainingTimeRef = useRef<number>(toast.durationMs ?? 6000);
-  const startTimeRef = useRef<number>(Date.now());
+  const startTimeRef = useRef<number>(0);
 
   const startTimer = () => {
     if (remainingTimeRef.current <= 0) return;
@@ -90,6 +93,10 @@ export default function ToastItem({ toast, onRemove }: ToastItemProps) {
             return <BellRing size={18} color={iconColors.color} />;
           case 'patrulla':
             return <ShieldCheck size={18} color={iconColors.color} />;
+          case 'cuadrilla':
+            return <HardHat size={18} color={iconColors.color} />;
+          case 'inventario':
+            return <Package size={18} color={iconColors.color} />;
           case 'rechazo':
             return <UserX size={18} color={iconColors.color} />;
           case 'operativo':
@@ -185,7 +192,7 @@ export default function ToastItem({ toast, onRemove }: ToastItemProps) {
             )}
             {toast.priorityBadge && (
               <Chip variant={obtenerVarianteChipPrioridad(toast.priorityBadge)} size="sm">
-                {toast.priorityBadge}
+                {formatearPrioridad(toast.priorityBadge)}
               </Chip>
             )}
           </div>

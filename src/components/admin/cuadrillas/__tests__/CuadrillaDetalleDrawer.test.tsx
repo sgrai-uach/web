@@ -1,9 +1,38 @@
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import CuadrillaDetalleDrawer from '../CuadrillaDetalleDrawer';
 import { cuadrillasService, CuadrillaServiceError } from '@/services/cuadrillasService';
+import { getSocket } from '@/lib/socket/client';
 import type { CuadrillaItem } from '@/types/cuadrilla';
+
+vi.mock('@/lib/socket/client', () => {
+  const listeners: Record<string, ((data: unknown) => void)[]> = {};
+  const mockSocket = {
+    connected: true,
+    connect: vi.fn(),
+    emit: vi.fn(),
+    on: vi.fn((event: string, cb: (data: unknown) => void) => {
+      if (!listeners[event]) listeners[event] = [];
+      listeners[event].push(cb);
+    }),
+    off: vi.fn((event: string, cb: (data: unknown) => void) => {
+      if (!listeners[event]) return;
+      listeners[event] = listeners[event].filter((c) => c !== cb);
+    }),
+    _trigger: (event: string, data: unknown) => {
+      if (listeners[event]) {
+        listeners[event].forEach((cb) => cb(data));
+      }
+    },
+    _clear: () => {
+      Object.keys(listeners).forEach((k) => delete listeners[k]);
+    },
+  };
+  return {
+    getSocket: () => mockSocket,
+  };
+});
 
 const mockCuadrillaDisponible: CuadrillaItem = {
   id: 'c-100',
@@ -317,5 +346,45 @@ describe('CuadrillaDetalleDrawer (HU-22 & H80)', () => {
     expect(await screen.findByText('Cuadrilla Histórica Desactivada')).toBeInTheDocument();
     expect(screen.getByTestId('cuadrilla-inactiva-notice')).toBeInTheDocument();
     expect(screen.getByTestId('cuadrilla-audit-eliminado')).toHaveTextContent(/Eliminado \/ Dado de baja/);
+  });
+
+  it('HU-68: actualiza en vivo la cuadrilla desde EN_MISION a DISPONIBLE ante cuadrilla:actualizada y desbloquea edición', async () => {
+    const spyDetalle = vi
+      .spyOn(cuadrillasService, 'obtenerCuadrillaPorId')
+      .mockResolvedValueOnce(mockCuadrillaEnMision)
+      .mockResolvedValueOnce({
+        ...mockCuadrillaEnMision,
+        estado: 'DISPONIBLE',
+        misionActiva: null,
+        recursos: [],
+      });
+
+    render(
+      <CuadrillaDetalleDrawer
+        cuadrillaId="c-200"
+        isOpen={true}
+        onCerrar={vi.fn()}
+        onEditar={vi.fn()}
+        puedeEditar={true}
+      />
+    );
+
+    expect(await screen.findByTestId('cuadrilla-badge-en-mision')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Editar Cuadrilla/i })).toBeDisabled();
+
+    const socket = getSocket() as unknown as { _trigger: (ev: string, data: unknown) => void };
+    act(() => {
+      socket._trigger('cuadrilla:actualizada', {
+        id: 'c-200',
+        estado: 'DISPONIBLE',
+      });
+    });
+
+    await waitFor(() => {
+      expect(spyDetalle).toHaveBeenCalledTimes(2);
+      expect(screen.getByTestId('cuadrilla-badge-disponible')).toBeInTheDocument();
+      expect(screen.queryByTestId('cuadrilla-mision-activa-card')).toBeNull();
+      expect(screen.getByRole('button', { name: /Editar Cuadrilla/i })).not.toBeDisabled();
+    });
   });
 });

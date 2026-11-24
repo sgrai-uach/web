@@ -292,7 +292,7 @@ export default function CuadrillasTabla({
                       fontWeight: 600,
                     }}
                   >
-                    {cuadrilla.delegacion.nombre}
+                    {cuadrilla.delegacion?.nombre || 'Sin delegación'}
                   </span>
                 </td>
 

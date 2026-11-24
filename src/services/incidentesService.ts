@@ -14,6 +14,7 @@ import type {
   AdjuntoEvidencia,
   DictamenAtencionTerreno,
   FamiliaAfectadaMisionDetalle,
+  MaterialConsumidoDetalle,
   TipoReporteTerreno,
 } from '@/types/misiones';
 
@@ -72,12 +73,15 @@ export interface ReporteEvaluacionTerreno {
   prioridadAsignada: 'BAJA' | 'MEDIA' | 'ALTA' | 'CRITICA' | null;
   justificacionPrioridad: string | null;
   resumenTecnico: string;
+  resumenFaenas?: string | null;
   accionesRealizadas: string | null;
   danosEstimados: string | null;
   observaciones: string | null;
   detallesAdicionales?: string | null;
   personasAfectadas: number;
   requiereApoyoAdicional: boolean;
+  horasHombre?: number | null;
+  materialesConsumidos?: MaterialConsumidoDetalle[] | null;
   evaluacion: EvaluacionTerrenoDetalle;
   evaluador: {
     id: string;
@@ -114,7 +118,11 @@ export interface UltimoReporteIncidenteResumen {
   dictamen?: DictamenAtencionTerreno | null;
   motivoNoAbordable?: string | null;
   estadoTerreno?: string | null;
+  etiquetaReporte?: string | null;
   requiereAsistenciaSocial?: boolean;
+  requiereApoyoAdicional?: boolean;
+  horasHombre?: number | null;
+  materialesConsumidos?: MaterialConsumidoDetalle[] | null;
   personasAfectadas?: number | null;
   personasAfectadasPrevias?: number | null;
   personasAfectadasModificadas?: boolean;
@@ -127,6 +135,9 @@ export type IncidenteResumen = ListarIncidentesResponse['data'][number] & {
   totalReportesTerreno?: number;
   /** Indica si la patrulla verificadora completó el informe/diagnóstico en terreno */
   verificado?: boolean;
+  faenasCuadrillaCompletadas?: boolean;
+  estadoTerrenoFinal?: string | null;
+  horasHombreRegistradas?: number | null;
   dictamenTerreno?: DictamenAtencionTerreno | null;
   motivoNoAbordable?: string | null;
   fechaCierre?: string | null;
@@ -137,12 +148,18 @@ export type IncidenteResumen = ListarIncidentesResponse['data'][number] & {
   tieneMisionEnCurso?: boolean;
   cuadrillaEnTerreno?: boolean;
 };
-export type IncidenteDetalle = IncidenteDetalleResponse['data'] & {
+export type IncidenteDetalle = Omit<
+  IncidenteDetalleResponse['data'],
+  'reportesEvaluacionTerreno' | 'ultimoReporte'
+> & {
   tipoIncidenteId?: string | null;
   prioridadSugerida?: 'BAJA' | 'MEDIA' | 'ALTA' | 'CRITICA' | null;
   justificacionPrioridad?: string | null;
   reportesEvaluacionTerreno?: ReporteEvaluacionTerreno[];
   verificado?: boolean;
+  faenasCuadrillaCompletadas?: boolean;
+  estadoTerrenoFinal?: string | null;
+  horasHombreRegistradas?: number | null;
   dictamenTerreno?: DictamenAtencionTerreno | null;
   motivoNoAbordable?: string | null;
   fechaCierre?: string | null;

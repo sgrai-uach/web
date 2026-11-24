@@ -1369,4 +1369,296 @@ describe('Componente MisionDetalleModal (HU-17)', () => {
     expect(screen.getByText('Misión Aceptada por Unidad')).toBeDefined();
     expect(screen.getByText(/Reportado por: Laura Gómez/)).toBeDefined();
   });
+
+  it('HU-68: renderiza informe técnico final de cuadrilla con insumos consumidos, horas hombre, unidad en equipo y actualiza vía WebSocket + adjunto:creado', async () => {
+    const misionCuadrillaBase: MisionDetalleCompleto = {
+      ...mockMision,
+      id: 'm-h68-con-insumos',
+      codigo: 'MIS-2026-0068',
+      tipoMision: 'ATENCION_CUADRILLA',
+      estado: 'EN_CURSO',
+      cuadrilla: {
+        id: 'c001',
+        nombre: 'Cuadrilla Alfa 1',
+        estado: 'EN_MISION',
+        delegacionNombre: 'Collico',
+        delegado: {
+          id: 'u002',
+          nombre: 'Carlos Delegado',
+          email: 'carlos@valdivia.cl',
+        },
+        recursos: [
+          {
+            id: 'r-sacos',
+            nombre: 'Sacos de arena',
+            tipo: 'INSUMO',
+            esIndividual: false,
+            unidad: 'sacos',
+            cantidadAsignada: 25,
+          },
+        ],
+      },
+      reportesTerreno: [],
+    };
+
+    const misionCuadrillaCerrada: MisionDetalleCompleto = {
+      ...misionCuadrillaBase,
+      estado: 'COMPLETADA',
+      fechaCierre: '2026-11-18T19:00:00.000Z',
+      cuadrilla: {
+        ...misionCuadrillaBase.cuadrilla!,
+        estado: 'DISPONIBLE',
+        recursos: [],
+      },
+      evaluaciones: {
+        reporteCuadrillaEnviado: true,
+        reporteCuadrillaEnviadoEn: '2026-11-18T19:00:00.000Z',
+      },
+      reportesTerreno: [
+        {
+          id: 'rep-h68-1',
+          misionId: 'm-h68-con-insumos',
+          tipoReporte: 'REPORTE_CUADRILLA',
+          etiquetaReporte: 'Informe Técnico Final de Cuadrilla (Cierre de Misión)',
+          evaluador: {
+            id: 'u002',
+            nombre: 'Carlos Delegado',
+            email: 'carlos@valdivia.cl',
+            rut: '12.345.678-9',
+          },
+          resumenTecnico: 'Contención perimetral y despeje total de sumidero de aguas lluvias.',
+          accionesRealizadas: null,
+          requiereApoyoAdicional: true,
+          danosEstimados: 'Tapa de cámara fracturada',
+          observaciones: 'Se solicita reposición de tapa metálica.',
+          personasAfectadas: 0,
+          estadoTerreno: 'REQUIERE_SEGUIMIENTO',
+          horasHombre: 6.5,
+          materialesConsumidos: [
+            {
+              recursoId: 'r-sacos',
+              nombre: 'Sacos de arena',
+              cantidad: 25,
+              unidad: 'sacos',
+              observacion: 'Instalados en acceso principal',
+            },
+          ],
+          adjuntos: [],
+          creadoEn: '2026-11-18T19:00:00.000Z',
+          actualizadoEn: '2026-11-18T19:00:00.000Z',
+        },
+      ],
+    };
+
+    vi.spyOn(misionesService, 'obtenerDetalleMision')
+      .mockResolvedValueOnce({
+        exito: true,
+        datos: misionCuadrillaBase,
+        mensaje: 'OK',
+      })
+      .mockResolvedValueOnce({
+        exito: true,
+        datos: misionCuadrillaCerrada,
+        mensaje: 'OK',
+      });
+
+    render(<MisionDetalleModal misionId="m-h68-con-insumos" onCerrar={vi.fn()} />);
+
+    await waitFor(() => {
+      expect(screen.getByText('25 sacos')).toBeDefined();
+    });
+
+    // Simular cierre de cuadrilla vía WebSocket incidente:actualizado
+    const incHandler = socketListeners['incidente:actualizado']?.[0];
+    expect(incHandler).toBeDefined();
+
+    act(() => {
+      incHandler?.({
+        evento: 'incidente:actualizado',
+        datos: {
+          id: 'i001',
+          codigo: 'INC-2026-0042',
+          nuevoEstado: 'EN_ATENCION',
+          fechaCierre: '2026-11-18T19:00:00.000Z',
+          reporteTerreno: misionCuadrillaCerrada.reportesTerreno[0],
+        },
+      });
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId('reporte-cierre-cuadrilla-rep-h68-1')).toBeDefined();
+    });
+
+    expect(screen.getByTestId('badge-estado-terreno-rep-h68-1').textContent).toContain(
+      'Estado terreno: Requiere seguimiento'
+    );
+    expect(screen.getByTestId('badge-horas-hombre-rep-h68-1').textContent).toContain(
+      '6,5 horas hombre'
+    );
+    const tablaMat = screen.getByTestId('tabla-materiales-consumidos-rep-h68-1');
+    expect(tablaMat.textContent).toContain('Sacos de arena');
+    expect(tablaMat.textContent).toContain('25 sacos');
+    expect(tablaMat.textContent).toContain('Instalados en acceso principal');
+    expect(screen.getByText('Completada')).toBeDefined();
+    expect(screen.getByText('Disponible')).toBeDefined();
+
+    // Evidencia multimedia posterior al cierre vinculada al reporte de cuadrilla (HU-43 + HU-68)
+    const adjHandler = socketListeners['adjunto:creado']?.[0];
+    act(() => {
+      adjHandler?.({
+        id: 'adj-cuad-ws',
+        nombreArchivo: 'trabajo_final.jpg',
+        url: '/uploads/evidencia/trabajo_final.jpg',
+        tipoMime: 'image/jpeg',
+        tamanoBytes: 150000,
+        incidenteId: 'i001',
+        reporteTerrenoId: 'rep-h68-1',
+        creadoEn: '2026-11-18T19:05:00.000Z',
+      });
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText('trabajo_final.jpg')).toBeDefined();
+    });
+  });
+
+  it('HU-68: renderiza informe técnico final de cuadrilla sin consumo de insumos mostrando estado vacío limpio', async () => {
+    const misionSinInsumos: MisionDetalleCompleto = {
+      ...mockMision,
+      id: 'm-h68-sin-insumos',
+      codigo: 'MIS-2026-0069',
+      tipoMision: 'ATENCION_CUADRILLA',
+      estado: 'COMPLETADA',
+      reportesTerreno: [
+        {
+          id: 'rep-h68-vacio',
+          misionId: 'm-h68-sin-insumos',
+          tipoReporte: 'REPORTE_CUADRILLA',
+          etiquetaReporte: 'Informe Técnico Final de Cuadrilla (Cierre de Misión)',
+          evaluador: {
+            id: 'u002',
+            nombre: 'Carlos Delegado',
+            email: 'carlos@valdivia.cl',
+          },
+          resumenTecnico: 'Corte y retiro manual de rama caída sin uso de consumibles.',
+          accionesRealizadas: null,
+          requiereApoyoAdicional: false,
+          danosEstimados: null,
+          observaciones: null,
+          personasAfectadas: 0,
+          estadoTerreno: 'CONTROLADO',
+          horasHombre: 2,
+          materialesConsumidos: [],
+          adjuntos: [],
+          creadoEn: '2026-11-18T20:00:00.000Z',
+          actualizadoEn: '2026-11-18T20:00:00.000Z',
+        },
+      ],
+    };
+
+    vi.spyOn(misionesService, 'obtenerDetalleMision').mockResolvedValueOnce({
+      exito: true,
+      datos: misionSinInsumos,
+      mensaje: 'OK',
+    });
+
+    render(<MisionDetalleModal misionId="m-h68-sin-insumos" onCerrar={vi.fn()} />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('reporte-cierre-cuadrilla-rep-h68-vacio')).toBeDefined();
+    });
+
+    expect(screen.getByTestId('tabla-materiales-consumidos-rep-h68-vacio').textContent).toContain(
+      'No se registró consumo de insumos materiales durante esta faena.'
+    );
+    expect(screen.getByTestId('badge-estado-terreno-rep-h68-vacio').textContent).toContain(
+      'Estado terreno: Controlado'
+    );
+  });
+
+  it('HU-40: actualiza estado a EN_CURSO, cuadrilla EN_MISION, fechaInicio y agrega hito Asignación Aceptada por Cuadrilla en bitácora por WebSocket', async () => {
+    const misionDespachada: MisionDetalleCompleto = {
+      ...mockMision,
+      id: '70000000-0000-4000-8000-000000000001',
+      codigo: 'MIS-2026-0005',
+      tipoMision: 'ATENCION_CUADRILLA',
+      estado: 'DESPACHADA',
+      fechaInicio: null,
+      incidente: mockMision.incidente
+        ? {
+            ...mockMision.incidente,
+            estado: 'VERIFICANDO',
+          }
+        : null,
+      cuadrilla: mockMision.cuadrilla
+        ? {
+            ...mockMision.cuadrilla,
+            id: '50000000-0000-4000-8000-000000000001',
+            nombre: 'Cuadrilla Vías y Canales 1',
+            estado: 'DISPONIBLE',
+          }
+        : null,
+      bitacoraTiempos: [
+        {
+          id: 'h-desp-1',
+          hito: 'MISION_DESPACHADA',
+          fecha: '22/11/2026',
+          hora: '13:30:00',
+          timestamp: '2026-11-22T13:30:00.000Z',
+          descripcion: 'Cuadrilla despachada al sector',
+        },
+      ],
+    };
+
+    vi.spyOn(misionesService, 'obtenerDetalleMision').mockResolvedValueOnce({
+      exito: true,
+      datos: misionDespachada,
+      mensaje: 'OK',
+    });
+
+    render(
+      <MisionDetalleModal
+        misionId="70000000-0000-4000-8000-000000000001"
+        onCerrar={vi.fn()}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Despachada')).toBeDefined();
+    });
+
+    const misionHandler = socketListeners['mision:actualizada']?.[0];
+    expect(misionHandler).toBeDefined();
+
+    act(() => {
+      misionHandler?.({
+        misionId: '70000000-0000-4000-8000-000000000001',
+        codigo: 'MIS-2026-0005',
+        estado: 'EN_CURSO',
+        tipoMision: 'ATENCION_CUADRILLA',
+        cuadrillaId: '50000000-0000-4000-8000-000000000001',
+        cuadrillaNombre: 'Cuadrilla Vías y Canales 1',
+        incidenteId: 'i001',
+        incidenteCodigo: 'INC-2026-0042',
+        prioridad: 'ALTA',
+        fechaInicio: '2026-11-22T14:00:00.000Z',
+        hito: {
+          id: '80000000-0000-4000-8000-000000000010',
+          hito: 'MISION_ACEPTADA',
+          descripcion: 'Asignación Aceptada por Cuadrilla',
+          registradoPorId: 'd0000000-0000-4000-8000-000000000001',
+          creadoEn: '2026-11-22T14:00:00.000Z',
+        },
+        actualizadoEn: '2026-11-22T14:00:00.000Z',
+      });
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText('En curso')).toBeDefined();
+    });
+    expect(screen.getByText('En misión')).toBeDefined();
+    expect(screen.getByText('En atención')).toBeDefined();
+    expect(screen.getByText('Asignación Aceptada por Cuadrilla')).toBeDefined();
+    expect(screen.getByText(/Bitácora Cronológica de Operaciones \(2\)/i)).toBeDefined();
+  });
 });

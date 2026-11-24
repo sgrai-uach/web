@@ -1,15 +1,45 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import { ModalAsignarCuadrilla } from '../ModalAsignarCuadrilla';
 import { cuadrillasService } from '@/services/cuadrillasService';
 import { misionesService } from '@/services/misionesService';
+import { getSocket } from '@/lib/socket/client';
 import type { IncidenteDetalle } from '@/services/incidentesService';
 import type { CuadrillaItem } from '@/types/cuadrilla';
+
+vi.mock('@/lib/socket/client', () => {
+  const listeners: Record<string, ((data: unknown) => void)[]> = {};
+  const mockSocket = {
+    connected: true,
+    connect: vi.fn(),
+    emit: vi.fn(),
+    on: vi.fn((event: string, cb: (data: unknown) => void) => {
+      if (!listeners[event]) listeners[event] = [];
+      listeners[event].push(cb);
+    }),
+    off: vi.fn((event: string, cb: (data: unknown) => void) => {
+      if (!listeners[event]) return;
+      listeners[event] = listeners[event].filter((c) => c !== cb);
+    }),
+    _trigger: (event: string, data: unknown) => {
+      if (listeners[event]) {
+        listeners[event].forEach((cb) => cb(data));
+      }
+    },
+    _clear: () => {
+      Object.keys(listeners).forEach((k) => delete listeners[k]);
+    },
+  };
+  return {
+    getSocket: () => mockSocket,
+  };
+});
 
 describe('ModalAsignarCuadrilla (HU-21 / Regla ICS §3.2)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    (getSocket() as unknown as { _clear: () => void })._clear();
   });
 
   const mockIncidenteConPatrullaEnCurso: IncidenteDetalle = {
@@ -281,5 +311,44 @@ describe('ModalAsignarCuadrilla (HU-21 / Regla ICS §3.2)', () => {
 
     // No debe haber texto de ayuda debajo
     expect(screen.queryByText(/Únicamente se listan dotaciones/i)).toBeNull();
+  });
+
+  it('HU-68: recarga cuadrillas disponibles en vivo cuando llega cuadrilla:actualizada con estado DISPONIBLE', async () => {
+    const spyObtener = vi
+      .spyOn(cuadrillasService, 'obtenerCuadrillas')
+      .mockResolvedValueOnce({
+        cuadrillas: [],
+        meta: { total: 0, pagina: 1, limite: 10, paginasTotales: 0 },
+      })
+      .mockResolvedValueOnce({
+        cuadrillas: [mockCuadrillasDisponibles[0]],
+        meta: { total: 1, pagina: 1, limite: 10, paginasTotales: 1 },
+      });
+
+    render(
+      <ModalAsignarCuadrilla
+        isOpen={true}
+        onClose={vi.fn()}
+        incidente={mockIncidenteVerificacionConcluida}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('No hay cuadrillas operativas disponibles en este momento.')).toBeDefined();
+    });
+
+    const socket = getSocket() as unknown as { _trigger: (ev: string, data: unknown) => void };
+    act(() => {
+      socket._trigger('cuadrilla:actualizada', {
+        id: 'cuad-01',
+        nombre: 'Cuadrilla Vías y Canales 1',
+        estado: 'DISPONIBLE',
+      });
+    });
+
+    await waitFor(() => {
+      expect(spyObtener).toHaveBeenCalledTimes(2);
+      expect(screen.getByText(/Cuadrilla Vías y Canales 1/i)).toBeDefined();
+    });
   });
 });

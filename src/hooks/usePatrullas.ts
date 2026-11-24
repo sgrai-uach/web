@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { patrullasService, DEFAULT_ENCARGADO_ID } from '@/services/patrullasService';
 import { getSocket } from '@/lib/socket/client';
+import { suscribirSalasSocket } from '@/lib/socket/roomManager';
 import type {
   FiltrosPatrullas,
   PatrullaVerificadoraDTO,
@@ -122,16 +123,14 @@ export function usePatrullas({
       socket.connect();
     }
 
-    const unirseSalas = () => {
-      setConectado(true);
-      socket.emit('join', 'encargado');
-      socket.emit('unirse', 'sala:encargados');
-      socket.emit('join', 'mapa');
-      socket.emit('unirse', 'mapa');
-    };
+    const desuscribirSalas = suscribirSalasSocket(socket, [
+      { sala: 'encargado', eventosJoin: ['join'], eventosLeave: ['leave'] },
+      { sala: 'sala:encargados', eventosJoin: ['unirse'], eventosLeave: ['salir'] },
+      { sala: 'mapa', eventosJoin: ['join', 'unirse'], eventosLeave: ['leave', 'salir'] },
+    ]);
 
     const onConnect = () => {
-      unirseSalas();
+      setConectado(true);
     };
 
     const onDisconnect = () => {
@@ -139,7 +138,9 @@ export function usePatrullas({
     };
 
     if (socket.connected) {
-      unirseSalas();
+      queueMicrotask(() => {
+        setConectado(true);
+      });
     }
 
     const handlePatrullaActualizada = (payload: PatrullaActualizadaSocketPayload) => {
@@ -268,10 +269,7 @@ export function usePatrullas({
       socket.off('mision:asignada', handleMisionAsignada);
       socket.off('patrulla:creada', handlePatrullaCreada);
       socket.off('patrulla:desactivada', handlePatrullaDesactivada);
-      socket.emit('leave', 'encargado');
-      socket.emit('salir', 'sala:encargados');
-      socket.emit('leave', 'mapa');
-      socket.emit('salir', 'mapa');
+      desuscribirSalas();
     };
   }, [enabled]);
 
