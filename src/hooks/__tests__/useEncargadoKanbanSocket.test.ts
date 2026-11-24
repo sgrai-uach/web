@@ -1137,4 +1137,46 @@ describe('useEncargadoKanbanSocket', () => {
       })
     );
   });
+
+  it('no deriva apoyoSolicitado=true cuando reporteTerreno en incidente:actualizado proviene de VERIFICACION_CIERRE con dictamen REQUIERE_CUADRILLA', () => {
+    const socket = getSocket();
+    const onIncidenteActualizado = vi.fn();
+
+    renderHook(() =>
+      useEncargadoKanbanSocket({
+        onIncidenteActualizado,
+      })
+    );
+
+    const trigger = (socket as unknown as { _trigger: (ev: string, p: unknown) => void })._trigger;
+
+    act(() => {
+      trigger('incidente:actualizado', {
+        evento: 'incidente:actualizado',
+        datos: {
+          id: 'inc-verif-real-1',
+          codigo: 'INC-466106-504',
+          nuevoEstado: 'VERIFICANDO',
+          prioridad: 'ALTA',
+          dictamen: 'REQUIERE_CUADRILLA',
+          actualizadoEn: '2026-11-24T16:00:00.000Z',
+          reporteTerreno: {
+            id: 'rep-verif-real-1',
+            misionId: 'mis-verif-real-1',
+            tipoReporte: 'VERIFICACION_CIERRE',
+            dictamen: 'REQUIERE_CUADRILLA',
+            requiereApoyoAdicional: true,
+            resumenTecnico: 'Cierre de verificación que requiere cuadrilla',
+            creadoEn: '2026-11-24T16:00:00.000Z',
+          },
+        },
+      });
+    });
+
+    expect(onIncidenteActualizado).toHaveBeenCalledTimes(1);
+    const payloadRecibido = onIncidenteActualizado.mock.calls[0]?.[0];
+    expect(payloadRecibido?.datos?.dictamen).toBe('REQUIERE_CUADRILLA');
+    expect(payloadRecibido?.datos?.apoyoSolicitado).toBeUndefined();
+    expect(payloadRecibido?.datos?.detalleApoyoRequerido).toBeUndefined();
+  });
 });

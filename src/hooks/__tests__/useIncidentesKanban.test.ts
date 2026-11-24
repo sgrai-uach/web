@@ -1958,4 +1958,355 @@ describe('useIncidentesKanban - HU-20 y BUG-04', () => {
     expect(result.current.columnas.EN_ATENCION[0].apoyoSolicitado).toBe(true);
     expect(result.current.columnas.EN_ATENCION[0].requiereCuadrillaAdicional).toBe(true);
   });
+
+  it('no activa apoyoSolicitado cuando incidente:actualizado trae reporteTerreno VERIFICACION_CIERRE o EVALUACION_PRIORIDAD con requiereApoyoAdicional=true, pero sí ante REPORTE_CUADRILLA', async () => {
+    let socketOptions: UseEncargadoKanbanSocketOptions | undefined;
+    vi.mocked(useEncargadoKanbanSocket).mockImplementation((opts) => {
+      socketOptions = opts;
+      return { conectado: true, ultimoEvento: null };
+    });
+
+    const incVerif: incidentesService.IncidenteResumen = {
+      id: 'inc-verif-apoyo-false',
+      codigo: 'INC-2026-0991',
+      codigoSeguimiento: '20260991',
+      tipoAfectacion: 'Anegamiento',
+      descripcion: 'Anegamiento en calle',
+      direccion: 'Sector Sur',
+      latitud: -39.82,
+      longitud: -73.24,
+      estado: 'VERIFICANDO',
+      prioridad: 'ALTA',
+      requiereAsistenciaSocial: false,
+      fuenteOrigen: 'WEB',
+      informanteNombre: 'Luis',
+      delegacionNombre: 'Sur',
+      totalMisiones: 1,
+      verificado: false,
+      apoyoSolicitado: false,
+      requiereCuadrillaAdicional: false,
+      creadoEn: '2026-11-24T10:00:00Z',
+      actualizadoEn: '2026-11-24T10:15:00Z',
+    };
+
+    const incCuad: incidentesService.IncidenteResumen = {
+      ...incVerif,
+      id: 'inc-cuad-apoyo-true',
+      codigo: 'INC-2026-0992',
+      codigoSeguimiento: '20260992',
+      estado: 'EN_ATENCION',
+      verificado: true,
+      cuadrillaAceptada: true,
+    };
+
+    vi.mocked(incidentesService.listarIncidentes).mockImplementation(async (query) => ({
+      exito: true,
+      incidentes:
+        query.estado === 'VERIFICANDO'
+          ? [incVerif]
+          : query.estado === 'EN_ATENCION'
+            ? [incCuad]
+            : [],
+      paginacion: {
+        total:
+          query.estado === 'VERIFICANDO' || query.estado === 'EN_ATENCION' ? 1 : 0,
+        pagina: 1,
+        limite: 20,
+        totalPaginas: 1,
+        tieneSiguiente: false,
+        tieneAnterior: false,
+      },
+      mensaje: 'OK',
+    }));
+
+    const { result } = renderHook(() => useIncidentesKanban());
+
+    await waitFor(() => {
+      expect(result.current.columnas.VERIFICANDO).toHaveLength(1);
+      expect(result.current.columnas.EN_ATENCION).toHaveLength(1);
+    });
+
+    // 1. EVALUACION_PRIORIDAD con requiereApoyoAdicional=true no debe activar apoyoSolicitado
+    act(() => {
+      socketOptions?.onIncidenteActualizado?.({
+        evento: 'incidente:actualizado',
+        datos: {
+          id: 'inc-verif-apoyo-false',
+          codigo: 'INC-2026-0991',
+          nuevoEstado: 'VERIFICANDO',
+          prioridad: 'ALTA',
+          verificado: true,
+          reporteTerreno: {
+            id: 'rep-eval-1',
+            misionId: 'mis-verif-1',
+            tipoReporte: 'EVALUACION_PRIORIDAD',
+            versionReporte: 1,
+            esRectificacion: false,
+            etiquetaReporte: 'Evaluación Inicial',
+            prioridadSugerida: 'ALTA',
+            prioridadAsignada: 'ALTA',
+            justificacionPrioridad: null,
+            resumenTecnico: 'Evaluación inicial de patrulla',
+            accionesRealizadas: null,
+            danosEstimados: null,
+            observaciones: null,
+            personasAfectadas: 2,
+            requiereApoyoAdicional: true,
+            evaluacion: {},
+            evaluador: { id: 'u1', nombre: 'Patrulla 1' },
+            creadoEn: '2026-11-24T10:20:00Z',
+          },
+          actualizadoEn: '2026-11-24T10:20:00Z',
+        },
+        emitidoEn: '2026-11-24T10:20:00Z',
+      });
+    });
+
+    expect(result.current.columnas.VERIFICANDO[0].apoyoSolicitado).toBe(false);
+    expect(result.current.columnas.VERIFICANDO[0].requiereCuadrillaAdicional).toBe(false);
+
+    // 2. VERIFICACION_CIERRE con dictamen REQUIERE_CUADRILLA y requiereApoyoAdicional=true
+    // sin apoyoSolicitado en raíz debe reflejar dictamenTerreno='REQUIERE_CUADRILLA' y apoyoSolicitado=false
+    act(() => {
+      socketOptions?.onIncidenteActualizado?.({
+        evento: 'incidente:actualizado',
+        datos: {
+          id: 'inc-verif-apoyo-false',
+          codigo: 'INC-2026-0991',
+          nuevoEstado: 'VERIFICANDO',
+          prioridad: 'ALTA',
+          verificado: true,
+          dictamen: 'REQUIERE_CUADRILLA',
+          reporteTerreno: {
+            id: 'rep-verif-cierre',
+            misionId: 'mis-verif-1',
+            tipoReporte: 'VERIFICACION_CIERRE',
+            dictamen: 'REQUIERE_CUADRILLA',
+            versionReporte: 2,
+            esRectificacion: false,
+            etiquetaReporte: 'Informe Técnico de Verificación (Cierre — Requiere Cuadrilla)',
+            prioridadSugerida: 'ALTA',
+            prioridadAsignada: 'ALTA',
+            justificacionPrioridad: null,
+            resumenTecnico: 'Se requiere despacho de cuadrilla hidráulica.',
+            accionesRealizadas: null,
+            danosEstimados: null,
+            observaciones: null,
+            personasAfectadas: 2,
+            requiereApoyoAdicional: true,
+            evaluacion: {},
+            evaluador: { id: 'u1', nombre: 'Patrulla 1' },
+            creadoEn: '2026-11-24T10:30:00Z',
+          },
+          actualizadoEn: '2026-11-24T10:30:00Z',
+        },
+        emitidoEn: '2026-11-24T10:30:00Z',
+      });
+    });
+
+    const incVerifDespues = result.current.columnas.VERIFICANDO[0];
+    expect(incVerifDespues.dictamenTerreno).toBe('REQUIERE_CUADRILLA');
+    expect(incVerifDespues.verificado).toBe(true);
+    expect(incVerifDespues.apoyoSolicitado).toBe(false);
+    expect(incVerifDespues.requiereCuadrillaAdicional).toBe(false);
+
+    // 3. REPORTE_CUADRILLA con requiereApoyoAdicional=true sí debe activar apoyoSolicitado=true
+    act(() => {
+      socketOptions?.onIncidenteActualizado?.({
+        evento: 'incidente:actualizado',
+        datos: {
+          id: 'inc-cuad-apoyo-true',
+          codigo: 'INC-2026-0992',
+          nuevoEstado: 'EN_ATENCION',
+          prioridad: 'ALTA',
+          reporteTerreno: {
+            id: 'rep-cuad-1',
+            misionId: 'mis-cuad-1',
+            tipoReporte: 'REPORTE_CUADRILLA',
+            versionReporte: 1,
+            esRectificacion: false,
+            etiquetaReporte: 'Informe Técnico Final de Cuadrilla',
+            prioridadSugerida: 'ALTA',
+            prioridadAsignada: 'ALTA',
+            justificacionPrioridad: null,
+            resumenTecnico: 'Faenas parciales, se requiere apoyo adicional.',
+            accionesRealizadas: null,
+            danosEstimados: null,
+            observaciones: null,
+            personasAfectadas: 2,
+            requiereApoyoAdicional: true,
+            requiereCuadrillaAdicional: true,
+            detalleApoyoRequerido: 'Se solicita segunda cuadrilla',
+            evaluacion: {},
+            evaluador: { id: 'u2', nombre: 'Cuadrilla 1' },
+            creadoEn: '2026-11-24T10:40:00Z',
+          },
+          actualizadoEn: '2026-11-24T10:40:00Z',
+        },
+        emitidoEn: '2026-11-24T10:40:00Z',
+      });
+    });
+
+    const incCuadDespues = result.current.columnas.EN_ATENCION[0];
+    expect(incCuadDespues.apoyoSolicitado).toBe(true);
+    expect(incCuadDespues.requiereCuadrillaAdicional).toBe(true);
+    expect(incCuadDespues.detalleApoyoRequerido).toBe('Se solicita segunda cuadrilla');
+  });
+
+  it('limpia trazabilidad "LEIDA" de cuadrilla en la tarjeta y en trazabilidadStore al recibir mision:rechazada', async () => {
+    let socketOptions: UseEncargadoKanbanSocketOptions | undefined;
+    vi.mocked(useEncargadoKanbanSocket).mockImplementation((opts) => {
+      socketOptions = opts;
+      return { conectado: true, ultimoEvento: null };
+    });
+
+    const incEnAtencion: incidentesService.IncidenteResumen = {
+      id: 'inc-rej-traz-1',
+      codigo: 'INC-2026-0910',
+      codigoSeguimiento: '20260910',
+      tipoAfectacion: 'Derrumbe',
+      descripcion: 'Caída de muro',
+      direccion: 'Av. Libertad 45',
+      latitud: -39.81,
+      longitud: -73.24,
+      estado: 'EN_ATENCION',
+      prioridad: 'ALTA',
+      requiereAsistenciaSocial: false,
+      fuenteOrigen: 'CHATBOT',
+      informanteNombre: 'Carlos',
+      delegacionNombre: 'Centro',
+      totalMisiones: 2,
+      verificado: true,
+      tieneMisionDespachada: true,
+      cuadrillaAceptada: false,
+      tieneMisionEnCurso: false,
+      trazabilidadNotificacion: 'LEIDA',
+      trazabilidadMisionId: 'mis-cuad-rej-1',
+      trazabilidadTipoUnidad: 'CUADRILLA',
+      creadoEn: '2026-11-24T10:00:00Z',
+      actualizadoEn: '2026-11-24T10:05:00Z',
+    };
+
+    vi.mocked(incidentesService.listarIncidentes).mockImplementation(async (query) => ({
+      exito: true,
+      incidentes: query.estado === 'EN_ATENCION' ? [incEnAtencion] : [],
+      paginacion: {
+        total: query.estado === 'EN_ATENCION' ? 1 : 0,
+        pagina: 1,
+        limite: 20,
+        totalPaginas: 1,
+        tieneSiguiente: false,
+        tieneAnterior: false,
+      },
+      mensaje: 'OK',
+    }));
+
+    const { result } = renderHook(() => useIncidentesKanban());
+
+    await waitFor(() => {
+      expect(result.current.columnas.EN_ATENCION).toHaveLength(1);
+    });
+    expect(result.current.trazabilidadPorIncidente['inc-rej-traz-1']).toBe('LEIDA');
+
+    act(() => {
+      socketOptions?.onMisionRechazada?.({
+        misionId: 'mis-cuad-rej-1',
+        codigo: 'MIS-2026-0910',
+        tipoMision: 'ATENCION_CUADRILLA',
+        incidenteId: 'inc-rej-traz-1',
+        incidenteEstado: 'VERIFICANDO',
+        justificacion: 'Ruta bloqueada',
+        rechazadoEn: '2026-11-24T10:15:00Z',
+      });
+    });
+
+    await waitFor(() => {
+      expect(result.current.columnas.VERIFICANDO).toHaveLength(1);
+    });
+    const incRetornado = result.current.columnas.VERIFICANDO[0];
+    expect(incRetornado.trazabilidadNotificacion).toBeUndefined();
+    expect(incRetornado.trazabilidadMisionId).toBeNull();
+    expect(incRetornado.trazabilidadTipoUnidad).toBeNull();
+    expect(result.current.trazabilidadPorIncidente['inc-rej-traz-1']).toBeUndefined();
+  });
+
+  it('limpia trazabilidad "LEIDA" de patrulla verificadora en la tarjeta y en trazabilidadStore al recibir mision:rechazada', async () => {
+    let socketOptions: UseEncargadoKanbanSocketOptions | undefined;
+    vi.mocked(useEncargadoKanbanSocket).mockImplementation((opts) => {
+      socketOptions = opts;
+      return { conectado: true, ultimoEvento: null };
+    });
+
+    const incVerificando: incidentesService.IncidenteResumen = {
+      id: 'inc-rej-pat-1',
+      codigo: 'INC-2026-0911',
+      codigoSeguimiento: '20260911',
+      tipoAfectacion: 'Aniegos',
+      descripcion: 'Calle inundada',
+      direccion: 'Av. Alemania 120',
+      latitud: -39.82,
+      longitud: -73.25,
+      estado: 'VERIFICANDO',
+      prioridad: 'ALTA',
+      requiereAsistenciaSocial: false,
+      fuenteOrigen: 'CHATBOT',
+      informanteNombre: 'Lucía',
+      delegacionNombre: 'Sur',
+      totalMisiones: 1,
+      verificado: false,
+      tieneMisionDespachada: true,
+      cuadrillaAceptada: false,
+      tieneMisionEnCurso: false,
+      trazabilidadNotificacion: 'LEIDA',
+      trazabilidadMisionId: 'mis-pat-rej-1',
+      trazabilidadTipoUnidad: 'PATRULLA',
+      creadoEn: '2026-11-24T11:00:00Z',
+      actualizadoEn: '2026-11-24T11:05:00Z',
+    };
+
+    vi.mocked(incidentesService.listarIncidentes).mockImplementation(async (query) => ({
+      exito: true,
+      incidentes: query.estado === 'VERIFICANDO' ? [incVerificando] : [],
+      paginacion: {
+        total: query.estado === 'VERIFICANDO' ? 1 : 0,
+        pagina: 1,
+        limite: 20,
+        totalPaginas: 1,
+        tieneSiguiente: false,
+        tieneAnterior: false,
+      },
+      mensaje: 'OK',
+    }));
+
+    const { result } = renderHook(() => useIncidentesKanban());
+
+    await waitFor(() => {
+      expect(result.current.columnas.VERIFICANDO).toHaveLength(1);
+    });
+    expect(result.current.trazabilidadPorIncidente['inc-rej-pat-1']).toBe('LEIDA');
+
+    act(() => {
+      socketOptions?.onMisionRechazada?.({
+        misionId: 'mis-pat-rej-1',
+        codigo: 'MIS-2026-0911',
+        tipoMision: 'VERIFICACION',
+        patrullaId: 'pat-1',
+        patrullaNombre: 'Patrulla Sur 1',
+        incidenteId: 'inc-rej-pat-1',
+        incidenteEstado: 'REPORTADO',
+        justificacion: 'Vehículo en panne',
+        rechazadoEn: '2026-11-24T11:15:00Z',
+      });
+    });
+
+    await waitFor(() => {
+      expect(result.current.columnas.REPORTADO).toHaveLength(1);
+    });
+    const incRetornado = result.current.columnas.REPORTADO[0];
+    expect(incRetornado.tieneMisionDespachada).toBe(false);
+    expect(incRetornado.trazabilidadNotificacion).toBeUndefined();
+    expect(incRetornado.trazabilidadMisionId).toBeNull();
+    expect(incRetornado.trazabilidadTipoUnidad).toBeNull();
+    expect(result.current.trazabilidadPorIncidente['inc-rej-pat-1']).toBeUndefined();
+  });
 });

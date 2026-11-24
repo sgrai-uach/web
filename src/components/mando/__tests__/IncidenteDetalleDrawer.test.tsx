@@ -2013,4 +2013,65 @@ describe('Componente IncidenteDetalleDrawer e integración HU-17', () => {
       expect(screen.queryByTestId('badge-apoyo-adicional-despacho')).toBeNull();
     });
   });
+
+  it('no activa banner-apoyo-solicitado en vivo al recibir incidente:actualizado con reporteTerreno VERIFICACION_CIERRE y requiereApoyoAdicional=true', async () => {
+    const detalleVerificando: IncidenteDetalle = {
+      ...mockDetalleIncidente,
+      estado: 'VERIFICANDO',
+      apoyoSolicitado: false,
+      requiereCuadrillaAdicional: false,
+      detalleApoyoRequerido: null,
+    };
+
+    vi.spyOn(incidentesService, 'obtenerDetalleIncidente').mockResolvedValueOnce({
+      exito: true,
+      datos: detalleVerificando,
+      mensaje: 'OK',
+    });
+
+    render(
+      <IncidenteDetalleDrawer
+        incidenteId="i1000000-0000-4000-8000-000000000001"
+        userId="user-test"
+        onCerrar={vi.fn()}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('INC-2026-0042')).toBeDefined();
+    });
+
+    const actHandler = socketListeners['incidente:actualizado']?.[0];
+    act(() => {
+      actHandler?.({
+        evento: 'incidente:actualizado',
+        datos: {
+          id: 'i1000000-0000-4000-8000-000000000001',
+          codigo: 'INC-2026-0042',
+          nuevoEstado: 'VERIFICANDO',
+          prioridad: 'ALTA',
+          verificado: true,
+          dictamen: 'REQUIERE_CUADRILLA',
+          reporteTerreno: {
+            id: 'rep-verif-live-1',
+            misionId: 'm-verif-live-1',
+            tipoReporte: 'VERIFICACION_CIERRE',
+            dictamen: 'REQUIERE_CUADRILLA',
+            requiereApoyoAdicional: true,
+            resumenTecnico: 'Requiere despacho de cuadrilla en terreno.',
+            personasAfectadas: 2,
+            evaluacion: { nucleoFamiliarTotal: 2 },
+            evaluador: { id: 'u-pat-1', nombre: 'Patrulla Norte 1' },
+            creadoEn: '2026-11-24T16:10:00Z',
+          },
+          actualizadoEn: '2026-11-24T16:10:00Z',
+        },
+      });
+    });
+
+    await waitFor(() => {
+      expect(screen.queryByTestId('banner-apoyo-solicitado')).toBeNull();
+    });
+    expect(screen.queryByTestId('badge-apoyo-adicional-despacho')).toBeNull();
+  });
 });

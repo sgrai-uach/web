@@ -25,6 +25,8 @@ import {
 import {
   getIncidentePorMision,
   getSnapshotTrazabilidadIncidentes,
+  limpiarTrazabilidadIncidente,
+  limpiarTrazabilidadMision,
   setTrazabilidadEstado,
   subscribeTrazabilidad,
 } from '@/lib/socket/trazabilidadStore';
@@ -45,7 +47,11 @@ export const ESTADOS_KANBAN: EstadoIncidente[] = [
 
 import { catalogosService } from '@/services/catalogosService';
 import { useSimulatedSession } from '@/context/SimulatedSessionContext';
-import { esReporteCierreCuadrilla, fueTipologiaModificada } from '@/lib/utils/estadoUtils';
+import {
+  esReporteCierreCuadrilla,
+  esSolicitudApoyoCuadrilla,
+  fueTipologiaModificada,
+} from '@/lib/utils/estadoUtils';
 
 export interface FiltrosKanban {
   busqueda: string;
@@ -358,6 +364,8 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
                   reemplazarMisionActiva: true,
                 }
               );
+            } else if (!inc.tieneMisionDespachada) {
+              limpiarTrazabilidadIncidente(inc.id);
             }
           });
         });
@@ -593,6 +601,7 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
 
             const esCierreNoAbordable = datos.nuevoEstado === 'NO_ABORDABLE';
             const esCierreCuadrilla = esReporteCierreCuadrilla(datos.reporteTerreno);
+            const esApoyoCuadrillaReporte = esSolicitudApoyoCuadrilla(datos.reporteTerreno);
             const esDespachoPendienteCuadrilla = datos.cuadrillaAceptada === false;
             // H68: El cierre de cuadrilla nunca cierra automáticamente el incidente a RESUELTO (espera H86)
             const estadoDestinoResuelto: EstadoIncidente =
@@ -687,16 +696,16 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
               apoyoSolicitado:
                 datos.apoyoSolicitado !== undefined
                   ? datos.apoyoSolicitado
-                  : datos.reporteTerreno?.requiereApoyoAdicional !== undefined
-                    ? Boolean(datos.reporteTerreno.requiereApoyoAdicional) ||
-                      Boolean(incActual.apoyoSolicitado)
+                  : esApoyoCuadrillaReporte
+                    ? true
                     : incActual.apoyoSolicitado,
               requiereCuadrillaAdicional:
                 datos.apoyoSolicitado === false
                   ? false
                   : datos.requiereCuadrillaAdicional !== undefined
                     ? datos.requiereCuadrillaAdicional
-                    : datos.reporteTerreno?.requiereCuadrillaAdicional !== undefined
+                    : esApoyoCuadrillaReporte &&
+                        datos.reporteTerreno?.requiereCuadrillaAdicional !== undefined
                       ? Boolean(datos.reporteTerreno.requiereCuadrillaAdicional) ||
                         Boolean(incActual.requiereCuadrillaAdicional)
                       : incActual.requiereCuadrillaAdicional,
@@ -705,7 +714,8 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
                   ? null
                   : datos.detalleApoyoRequerido !== undefined
                     ? datos.detalleApoyoRequerido
-                    : datos.reporteTerreno?.detalleApoyoRequerido !== undefined
+                    : esApoyoCuadrillaReporte &&
+                        datos.reporteTerreno?.detalleApoyoRequerido !== undefined
                       ? datos.reporteTerreno.detalleApoyoRequerido
                       : incActual.detalleApoyoRequerido,
               reclasificadoEnTerreno: reclasificado,
@@ -882,6 +892,12 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
   const handleMisionRechazada = useCallback(
     (payload: MisionRechazadaPayload) => {
       if (payload.incidenteId) {
+        if (payload.misionId) {
+          limpiarTrazabilidadMision(payload.misionId, payload.incidenteId);
+        } else {
+          limpiarTrazabilidadIncidente(payload.incidenteId);
+        }
+
         let columnaOrigenDetectada: EstadoIncidente | null = null;
         let columnaDestinoDetectada: EstadoIncidente = 'REPORTADO';
 
@@ -910,10 +926,21 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
                     : 'REPORTADO';
 
               columnaDestinoDetectada = estadoDestino;
+              const limpiarTrazabilidadTarjeta =
+                !mantieneEnAtencion ||
+                !payload.misionId ||
+                actual.trazabilidadMisionId === payload.misionId;
               incidenteEncontrado = {
                 ...actual,
                 estado: estadoDestino,
                 tieneMisionDespachada: false,
+                ...(limpiarTrazabilidadTarjeta
+                  ? {
+                      trazabilidadNotificacion: undefined,
+                      trazabilidadMisionId: null,
+                      trazabilidadTipoUnidad: null,
+                    }
+                  : {}),
                 ...(esRechazoCuadrilla && !mantieneEnAtencion
                   ? { cuadrillaAceptada: false, tieneMisionEnCurso: false }
                   : {}),

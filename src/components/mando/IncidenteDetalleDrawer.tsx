@@ -23,6 +23,7 @@ import { usePuedeAsignarMision } from '@/hooks/usePuedeAsignarMision';
 import {
   esReporteCierreCuadrilla,
   esReporteVerificacionCierre,
+  esSolicitudApoyoCuadrilla,
   formatearEstado,
   formatearEstadoTerreno,
   formatearHorasHombre,
@@ -34,13 +35,14 @@ import Button from '@/components/ui/Button';
 import { getSocket } from '@/lib/socket/client';
 import {
   getTrazabilidadEstado,
+  limpiarTrazabilidadIncidente,
+  limpiarTrazabilidadMision,
   setTrazabilidadEstado,
   vincularMisionIncidente,
 } from '@/lib/socket/trazabilidadStore';
 import {
   esPayloadTrazabilidadValido,
   extraerEstadoInicialNotificacion,
-  obtenerConfigTrazabilidad,
   resolverSiguienteEstadoTrazabilidad,
 } from '@/lib/socket/trazabilidadConfig';
 import {
@@ -51,7 +53,7 @@ import {
   normalizarPayloadHitoMision,
   normalizarPayloadMisionActualizada,
 } from '@/lib/utils/misionHitos';
-import { TrazabilidadIcon } from './TrazabilidadIcon';
+import { TrazabilidadLecturaBox } from './TrazabilidadLecturaBox';
 import InlineNotice from '@/components/ui/InlineNotice';
 import {
   esPayloadAdjuntoCreadoValido,
@@ -133,22 +135,28 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
             const consolidado = getTrazabilidadEstado(m.id) ?? m.trazabilidadNotificacion;
             return consolidado ? { ...m, trazabilidadNotificacion: consolidado } : m;
           });
-          // Sincronizar la misión activa más reciente con el incidente en trazabilidadStore
-          const misionMasRecienteConTrazabilidad = [...misionesHidratadas]
+          // Sincronizar únicamente la misión activa más reciente con el incidente en trazabilidadStore
+          const misionActivaMasRecienteConTrazabilidad = [...misionesHidratadas]
             .reverse()
-            .find((m) => Boolean(m.trazabilidadNotificacion));
-          if (misionMasRecienteConTrazabilidad?.trazabilidadNotificacion) {
-            const tipoUnidadReciente = misionMasRecienteConTrazabilidad.cuadrilla
+            .find(
+              (m) =>
+                ['PLANIFICADA', 'DESPACHADA', 'EN_CURSO'].includes(m.estado) &&
+                Boolean(m.trazabilidadNotificacion)
+            );
+          if (misionActivaMasRecienteConTrazabilidad?.trazabilidadNotificacion) {
+            const tipoUnidadReciente = misionActivaMasRecienteConTrazabilidad.cuadrilla
               ? 'CUADRILLA'
-              : misionMasRecienteConTrazabilidad.patrulla
+              : misionActivaMasRecienteConTrazabilidad.patrulla
                 ? 'PATRULLA'
                 : undefined;
             setTrazabilidadEstado(
-              misionMasRecienteConTrazabilidad.id,
-              misionMasRecienteConTrazabilidad.trazabilidadNotificacion,
+              misionActivaMasRecienteConTrazabilidad.id,
+              misionActivaMasRecienteConTrazabilidad.trazabilidadNotificacion,
               incId,
               { tipoUnidad: tipoUnidadReciente, reemplazarMisionActiva: true }
             );
+          } else {
+            limpiarTrazabilidadIncidente(incId);
           }
           const detalleActualizado = { ...res.datos, misiones: misionesHidratadas };
           detalleRef.current = detalleActualizado;
@@ -407,6 +415,8 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
               ? prev.estado
               : nuevoEstado;
 
+          const esApoyoCuadrillaEntrante = esSolicitudApoyoCuadrilla(reporteEntranteRef);
+
           return {
             ...prev,
             tipoAfectacion: nuevoTipo,
@@ -468,8 +478,8 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
             apoyoSolicitado:
               typeof rawDatos?.apoyoSolicitado === 'boolean'
                 ? rawDatos.apoyoSolicitado
-                : reporteEntranteRef?.requiereApoyoAdicional !== undefined
-                  ? Boolean(reporteEntranteRef.requiereApoyoAdicional) || Boolean(prev.apoyoSolicitado)
+                : esApoyoCuadrillaEntrante
+                  ? true
                   : prev.apoyoSolicitado,
             requiereCuadrillaAdicional:
               rawDatos?.apoyoSolicitado === false
@@ -478,7 +488,8 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
                   ? rawDatos.requiereCuadrillaAdicional
                   : typeof rawDatos?.requiere_cuadrilla_adicional === 'boolean'
                     ? rawDatos.requiere_cuadrilla_adicional
-                    : reporteEntranteRef?.requiereCuadrillaAdicional !== undefined
+                    : esApoyoCuadrillaEntrante &&
+                        reporteEntranteRef?.requiereCuadrillaAdicional !== undefined
                       ? Boolean(reporteEntranteRef.requiereCuadrillaAdicional) ||
                         Boolean(prev.requiereCuadrillaAdicional)
                       : prev.requiereCuadrillaAdicional,
@@ -487,7 +498,8 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
                 ? null
                 : typeof rawDatos?.detalleApoyoRequerido === 'string'
                   ? rawDatos.detalleApoyoRequerido
-                  : reporteEntranteRef?.detalleApoyoRequerido !== undefined
+                  : esApoyoCuadrillaEntrante &&
+                      reporteEntranteRef?.detalleApoyoRequerido !== undefined
                     ? reporteEntranteRef.detalleApoyoRequerido
                     : prev.detalleApoyoRequerido,
             estadoTerrenoFinal: esCierreCuadrilla
@@ -670,7 +682,13 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
       const p = payload as Record<string, unknown> | null | undefined;
       const raw = (p?.datos || p?.data || p) as Record<string, unknown> | null | undefined;
       const incId = typeof raw?.incidenteId === 'string' ? raw.incidenteId : undefined;
+      const misId = typeof raw?.misionId === 'string' ? raw.misionId : undefined;
       if (incId === incidenteId) {
+        if (misId) {
+          limpiarTrazabilidadMision(misId, incId);
+        } else {
+          limpiarTrazabilidadIncidente(incId);
+        }
         cargarDetalle();
       }
     };
@@ -841,12 +859,6 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
     : misionUnidadActiva?.patrulla
       ? 'PATRULLA'
       : null;
-  const trazabilidadResumenCfg = misionUnidadActiva?.trazabilidadNotificacion
-    ? obtenerConfigTrazabilidad(
-        misionUnidadActiva.trazabilidadNotificacion,
-        tipoUnidadActivaResumen
-      )
-    : undefined;
   const estaVerificadoConcluido = misionVerificacion?.estado === 'COMPLETADA';
 
   return (
@@ -1200,51 +1212,16 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
             {!cargando && detalle && (
               <>
                 {misionUnidadActiva && (
-                  <div
-                    data-testid="drawer-trazabilidad-resumen"
-                    style={{
-                      marginBottom: 'var(--space-3, 12px)',
-                      padding: '8px 12px',
-                      borderRadius: 0,
-                      border: trazabilidadResumenCfg
-                        ? '1px solid currentColor'
-                        : '1px dashed #94A3B8',
-                      borderLeft: trazabilidadResumenCfg
-                        ? '4px solid currentColor'
-                        : '4px solid #94A3B8',
-                      backgroundColor: trazabilidadResumenCfg
-                        ? trazabilidadResumenCfg.bg
-                        : '#F8FAFC',
-                      color: trazabilidadResumenCfg
-                        ? trazabilidadResumenCfg.color
-                        : '#5F676E',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      flexWrap: 'wrap',
-                      gap: '8px',
-                      fontSize: '0.8rem',
-                    }}
-                  >
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontWeight: 700 }}>
-                      <TrazabilidadIcon
-                        estado={misionUnidadActiva.trazabilidadNotificacion}
-                        size={15}
-                      />
-                      <span>
-                        {trazabilidadResumenCfg
-                          ? `${trazabilidadResumenCfg.etiquetaLectura}: ${trazabilidadResumenCfg.texto}`
-                          : tipoUnidadActivaResumen === 'CUADRILLA'
-                            ? 'SIN ACUSE: Lectura por cuadrilla aún no confirmada'
-                            : 'SIN ACUSE: Lectura por patrulla aún no confirmada'}
-                      </span>
-                    </span>
-                    <span style={{ fontSize: '0.75rem', fontWeight: 600 }}>
-                      {misionUnidadActiva.codigo} ·{' '}
-                      {misionUnidadActiva.cuadrilla?.nombre ??
-                        misionUnidadActiva.patrulla?.nombre}
-                    </span>
-                  </div>
+                  <TrazabilidadLecturaBox
+                    variante="drawer"
+                    estado={misionUnidadActiva.trazabilidadNotificacion}
+                    tipoUnidad={tipoUnidadActivaResumen}
+                    testId="drawer-trazabilidad-resumen"
+                    metaDerecha={`${misionUnidadActiva.codigo} · ${
+                      misionUnidadActiva.cuadrilla?.nombre ??
+                      misionUnidadActiva.patrulla?.nombre
+                    }`}
+                  />
                 )}
                 <IncidenteResumenSection
                   detalle={detalle}
