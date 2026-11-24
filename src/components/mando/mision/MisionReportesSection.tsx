@@ -348,7 +348,7 @@ export const MisionReportesSection: React.FC<MisionReportesSectionProps> = ({
   let tipoAnteriorMeta: string | null = null;
   let tipoNuevoMeta: string | null = null;
   if (hitoReclasificacion) {
-    const match = hitoReclasificacion.descripcion.match(/Justificación:\s*(.+)$/i);
+    const match = hitoReclasificacion.descripcion.match(/Justificación:\s*([\s\S]+)$/i);
     justificacionExtraida = match ? match[1].trim() : hitoReclasificacion.descripcion;
     const meta = hitoReclasificacion.metadatos;
     if (meta && typeof meta === 'object') {

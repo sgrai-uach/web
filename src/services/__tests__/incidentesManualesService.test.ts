@@ -33,7 +33,7 @@ describe('Servicio incidentes-manuales', () => {
   });
 
   describe('verificarDuplicado', () => {
-    it('debe enviar X-User-Id y retornar coincidencias si existen', async () => {
+    it('debe consultar por apiClient y retornar coincidencias si existen', async () => {
       const mockPost = vi.spyOn(apiClient, 'POST').mockResolvedValueOnce({
         data: {
           hayDuplicados: true,
@@ -62,8 +62,8 @@ describe('Servicio incidentes-manuales', () => {
       expect(mockPost).toHaveBeenCalledWith(
         '/api/incidentes/verificar-duplicado',
         expect.objectContaining({
-          headers: expect.objectContaining({
-            'x-user-id': 'operador-uuid-123',
+          body: expect.objectContaining({
+            tipoAfectacion: 'Anegamiento',
           }),
         })
       );

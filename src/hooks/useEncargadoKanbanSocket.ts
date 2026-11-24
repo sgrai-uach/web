@@ -358,49 +358,61 @@ export function useEncargadoKanbanSocket({
       }
     };
 
-    const handleRechazada = (payload: unknown) => {
+    const handleMisionRechazada = (payload: unknown) => {
       const p = payload as Record<string, unknown> | null | undefined;
       const raw = (p?.datos || p?.data || p) as Record<string, unknown> | null | undefined;
+      const misionId =
+        typeof raw?.misionId === 'string'
+          ? raw.misionId
+          : typeof raw?.id === 'string'
+            ? raw.id
+            : '';
+      const ahora = Date.now();
 
-      const misionId = typeof raw?.misionId === 'string' ? raw.misionId : (raw?.id as string) || '';
-      const codigo = typeof raw?.codigo === 'string' ? raw.codigo : '';
-      const tipoMision = typeof raw?.tipoMision === 'string' ? raw.tipoMision : 'VERIFICACION';
-      const motivo =
-        typeof raw?.motivo === 'string'
-          ? raw.motivo
-          : typeof raw?.justificacionRechazo === 'string'
-            ? raw.justificacionRechazo
-            : 'Sin justificación';
-      const patrullaId = typeof raw?.patrullaId === 'string' ? raw.patrullaId : null;
-      const patrullaNombre = typeof raw?.patrullaNombre === 'string' ? raw.patrullaNombre : null;
-      const incidenteId = typeof raw?.incidenteId === 'string' ? raw.incidenteId : null;
-      const incidenteCodigo = typeof raw?.incidenteCodigo === 'string' ? raw.incidenteCodigo : null;
-      const rechazadoPorId = typeof raw?.rechazadoPorId === 'string' ? raw.rechazadoPorId : null;
-      const rechazadoEn =
-        typeof raw?.rechazadoEn === 'string' ? raw.rechazadoEn : new Date().toISOString();
+      if (!misionId && typeof raw?.codigo !== 'string') return;
 
-      if (!misionId && !codigo) return;
-
-      if (esEventoDuplicado(`${misionId || codigo}-RECHAZADA`, 3000)) {
-        return;
+      // Deduplicación reactiva ante emisiones múltiples por broadcast o varias salas concurrentes
+      if (misionId) {
+        const ultimaVez = eventosProcesadosRef.current.get(misionId);
+        if (ultimaVez && ahora - ultimaVez < 5000) {
+          return;
+        }
+        eventosProcesadosRef.current.set(misionId, ahora);
+        if (eventosProcesadosRef.current.size > 100) {
+          for (const [key, timestamp] of eventosProcesadosRef.current.entries()) {
+            if (ahora - timestamp > 10000) {
+              eventosProcesadosRef.current.delete(key);
+            }
+          }
+        }
       }
 
       const normalizedPayload: MisionRechazadaPayload = {
         misionId,
-        codigo,
-        tipoMision,
-        motivo,
-        justificacionRechazo: motivo,
-        patrullaId,
-        patrullaNombre,
-        incidenteId,
-        incidenteCodigo,
-        rechazadoPorId,
-        rechazadoEn,
+        codigo: typeof raw?.codigo === 'string' ? raw.codigo : '',
+        tipoMision: typeof raw?.tipoMision === 'string' ? raw.tipoMision : 'VERIFICACION',
+        motivo:
+          typeof raw?.motivo === 'string'
+            ? raw.motivo
+            : typeof raw?.justificacionRechazo === 'string'
+              ? raw.justificacionRechazo
+              : 'Sin motivo especificado',
+        justificacionRechazo:
+          typeof raw?.justificacionRechazo === 'string'
+            ? raw.justificacionRechazo
+            : typeof raw?.motivo === 'string'
+              ? raw.motivo
+              : undefined,
+        patrullaId: typeof raw?.patrullaId === 'string' ? raw.patrullaId : null,
+        patrullaNombre: typeof raw?.patrullaNombre === 'string' ? raw.patrullaNombre : null,
+        incidenteId: typeof raw?.incidenteId === 'string' ? raw.incidenteId : null,
+        incidenteCodigo: typeof raw?.incidenteCodigo === 'string' ? raw.incidenteCodigo : null,
+        rechazadoPorId: typeof raw?.rechazadoPorId === 'string' ? raw.rechazadoPorId : null,
+        rechazadoEn:
+          typeof raw?.rechazadoEn === 'string' ? raw.rechazadoEn : new Date().toISOString(),
       };
 
-      setUltimoEvento(`Misión rechazada: ${codigo} (${motivo})`);
-
+      setUltimoEvento(`Misión rechazada: ${normalizedPayload.codigo}`);
       if (rechazadaRef.current) {
         rechazadaRef.current(normalizedPayload);
       }
@@ -423,7 +435,7 @@ export function useEncargadoKanbanSocket({
     socket.on('incidente:actualizado', handleActualizado);
     socket.on('mision:creada', handleMisionEvent);
     socket.on('mision:actualizada', handleMisionEvent);
-    socket.on('mision:rechazada', handleRechazada);
+    socket.on('mision:rechazada', handleMisionRechazada);
     socket.on('notificacion:trazabilidad_actualizada', handleTrazabilidad);
 
     return () => {
@@ -433,7 +445,7 @@ export function useEncargadoKanbanSocket({
       socket.off('incidente:actualizado', handleActualizado);
       socket.off('mision:creada', handleMisionEvent);
       socket.off('mision:actualizada', handleMisionEvent);
-      socket.off('mision:rechazada', handleRechazada);
+      socket.off('mision:rechazada', handleMisionRechazada);
       socket.off('notificacion:trazabilidad_actualizada', handleTrazabilidad);
       socket.emit('leave', 'encargado');
       socket.emit('salir', 'sala:encargados');

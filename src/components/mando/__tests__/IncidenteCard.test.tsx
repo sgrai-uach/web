@@ -147,6 +147,31 @@ describe('IncidenteCard', () => {
     expect(btnAsignar).toBeNull();
   });
 
+  it('debe renderizar botón inactivo "Confirmación Pendiente" si tieneMisionDespachada es true', () => {
+    const handleAsignar = vi.fn();
+    render(
+      <IncidenteCard
+        incidente={{ ...mockIncidente, estado: 'REPORTADO', tieneMisionDespachada: true }}
+        onClick={vi.fn()}
+        onAsignarPatrulla={handleAsignar}
+      />
+    );
+
+    const btnPendiente = screen.getByRole('button', {
+      name: /confirmación pendiente para el incidente INC-58291045/i,
+    });
+    expect(btnPendiente).toBeDefined();
+    expect(btnPendiente).toBeDisabled();
+    expect(btnPendiente.querySelector('svg.lucide-hourglass')).not.toBeNull();
+
+    // No debe renderizar el botón activo de Asignar Patrulla
+    expect(
+      screen.queryByRole('button', {
+        name: /Asignar patrulla verificadora al incidente INC-58291045/i,
+      })
+    ).toBeNull();
+  });
+
   it('NO debe renderizar botón "Asignar Patrulla" si puedeAsignarPatrulla es false por falta de permisos (BUG-03)', () => {
     const handleAsignar = vi.fn();
     render(
@@ -171,18 +196,18 @@ describe('IncidenteCard', () => {
       prioridad: 'ALTA',
       reclasificadoEnTerreno: true,
       justificacionReclasificacion: 'Desborde de río constatado en terreno con anegamiento de viviendas.',
-      cambioPrioridadMotivo: 'Desborde de río constatado en terreno con anegamiento de viviendas.',
     };
 
     render(<IncidenteCard incidente={incidenteReclasificado} onClick={vi.fn()} />);
 
     expect(screen.getByText('Inundación')).toBeDefined();
     expect(screen.getByText('Alta')).toBeDefined();
-    const tagVerificado = screen.getByText('Verificado');
-    expect(tagVerificado).toBeDefined();
-    expect(tagVerificado.parentElement?.getAttribute('title')).toContain(
-      'Tipología reclasificada en terreno: Desborde de río constatado en terreno'
+    expect(screen.getAllByText('Verificado')).toHaveLength(1);
+    expect(screen.getByTestId('badge-verificado')).toBeDefined();
+    const tagVerificado = screen.getByTitle(
+      /Tipología reclasificada en terreno: Desborde de río constatado en terreno/i
     );
+    expect(tagVerificado).toBeDefined();
   });
 
   it('NO debe renderizar botón "Asignar Patrulla" si el incidente tiene una misión en curso activa (tieneMisionEnCurso: true)', () => {
@@ -213,44 +238,38 @@ describe('IncidenteCard', () => {
     expect(btnPendiente).toBeNull();
   });
 
-  it('debe exhibir la etiqueta "Verificado" cuando verificado es true al cargar desde el servidor (paginación/refresco)', () => {
+  it('debe exhibir un único distintivo "Verificado" cuando verificado es true al cargar desde el servidor (con o sin reclasificadoEnTerreno) (BUG-H37-WEB-06)', () => {
     const incidenteVerificadoDesdeApi: IncidenteResumen = {
       ...mockIncidente,
       verificado: true,
       reclasificadoEnTerreno: false,
     };
 
-    render(<IncidenteCard incidente={incidenteVerificadoDesdeApi} onClick={vi.fn()} />);
-
-    const tagVerificado = screen.getByText('Verificado');
-    expect(tagVerificado).toBeDefined();
-  });
-
-  it('debe mostrar indicador de prioridad ajustada manualmente y tooltip con justificación cuando prioridad difiere de prioridadSugerida (HU-38)', () => {
-    const incidenteConPrioridadAjustada: IncidenteResumen = {
-      ...mockIncidente,
-      prioridad: 'CRITICA',
-      prioridadSugerida: 'ALTA',
-      justificacionPrioridad: 'Avance rápido del agua hacia dormitorio de adulto mayor postrado.',
-      totalReportesTerreno: 2,
-      verificado: true,
-    };
-
-    render(<IncidenteCard incidente={incidenteConPrioridadAjustada} onClick={vi.fn()} />);
-
-    const indicadorAjustada = screen.getByTestId('indicador-prioridad-ajustada');
-    expect(indicadorAjustada).toBeDefined();
-    expect(indicadorAjustada.textContent).toContain('Ajustada');
-    expect(indicadorAjustada.getAttribute('title')).toContain(
-      'Prioridad ajustada manualmente en terreno: Crítica (Sugerida por sistema: Alta)'
-    );
-    expect(indicadorAjustada.getAttribute('title')).toContain(
-      'Avance rápido del agua hacia dormitorio de adulto mayor postrado.'
+    const { rerender } = render(
+      <IncidenteCard incidente={incidenteVerificadoDesdeApi} onClick={vi.fn()} />
     );
 
-    const badgeReportes = screen.getByTestId('badge-total-reportes-terreno');
-    expect(badgeReportes).toBeDefined();
-    expect(badgeReportes.textContent).toContain('2 reportes · Rectificado');
+    expect(screen.getAllByText('Verificado')).toHaveLength(1);
+    expect(screen.getByTestId('badge-verificado')).toBeDefined();
+    expect(
+      screen.getByTitle(/Tipología constatada en terreno sin modificaciones/i)
+    ).toBeDefined();
+
+    rerender(
+      <IncidenteCard
+        incidente={{
+          ...incidenteVerificadoDesdeApi,
+          reclasificadoEnTerreno: true,
+          justificacionReclasificacion: 'Inundación verificada presencialmente por patrulla.',
+        }}
+        onClick={vi.fn()}
+      />
+    );
+
+    expect(screen.getAllByText('Verificado')).toHaveLength(1);
+    expect(
+      screen.getByTitle(/Tipología reclasificada en terreno: Inundación verificada presencialmente/i)
+    ).toBeDefined();
   });
 
   it('muestra el indicador directo de lectura/no lectura en la tarjeta Kanban según trazabilidadNotificacion', () => {

@@ -5,6 +5,7 @@ import { ModalCrearEventoRecuperacion } from '../ModalCrearEventoRecuperacion';
 import { crearEventoRecuperacion, RecuperacionServiceError } from '@/services/recuperacionService';
 import { getRecursos } from '@/services/recursosService';
 import { getCatalogos } from '@/services/catalogosService';
+import { patrullasService } from '@/services/patrullasService';
 import type { EventoRecuperacionResponse } from '@/types/recuperacion';
 
 vi.mock('@/components/maps/LocationPickerMap', () => ({
@@ -30,6 +31,30 @@ vi.mock('@/services/catalogosService', () => ({
     especialidades: [],
     cargos: [],
   }),
+}));
+
+vi.mock('@/services/patrullasService', () => ({
+  patrullasService: {
+    listar: vi.fn().mockResolvedValue({
+      exito: true,
+      mensaje: 'OK',
+      data: [
+        {
+          id: 'f1000000-0000-4000-8000-000000000002',
+          nombre: 'Patrulla Rápida Centro-Sur',
+          estado: 'DISPONIBLE',
+          delegacion: { id: '30000000-0000-4000-8000-000000000002', codigo: 'DEL-SUR', nombre: 'Delegación Sur' },
+        },
+        {
+          id: 'f1000000-0000-4000-8000-000000000001',
+          nombre: 'Patrulla Rápida Costa-1',
+          estado: 'EN_VERIFICACION',
+          delegacion: { id: '30000000-0000-4000-8000-000000000003', codigo: 'DEL-COSTA', nombre: 'Delegación Costa' },
+        },
+      ],
+      meta: { total: 2, page: 1, limit: 100, totalPages: 1, hasNext: false, hasPrev: false },
+    }),
+  },
 }));
 
 vi.mock('@/services/recursosService', () => ({
@@ -150,6 +175,8 @@ describe('ModalCrearEventoRecuperacion (HU-29)', () => {
     await waitFor(() => {
       expect(getRecursos).toHaveBeenCalled();
       expect(getCatalogos).toHaveBeenCalled();
+      expect(patrullasService.listar).toHaveBeenCalled();
+      expect(screen.getByRole('option', { name: /Patrulla Rápida Centro-Sur — DISPONIBLE/i })).toBeInTheDocument();
     });
   });
 

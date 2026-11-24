@@ -11,7 +11,11 @@ import { useRecuperacionSocket } from '@/hooks/useRecuperacionSocket';
 import { useToast } from '@/components/ui/Toast';
 import type { EstadoIncidente, IncidenteResumen } from '@/services/incidentesService';
 import type { EventoPrevencionDTO } from '@/types/evento-prevencion';
-import type { EventoRecuperacionResponse } from '@/types/recuperacion';
+import type {
+  EventoRecuperacionResponse,
+  DetalleEventoRecuperacionResponse,
+  RecursoAsignadoItem,
+} from '@/types/recuperacion';
 import {
   MisionRechazadaPayload,
   IncidenteActualizadoPayload,
@@ -40,8 +44,10 @@ import { MapaOperativoMando } from './MapaOperativoMando';
 import { KanbanViewSwitcher } from './KanbanViewSwitcher';
 import CuadrillaDetalleDrawer from '@/components/admin/cuadrillas/CuadrillaDetalleDrawer';
 import { cuadrillasService } from '@/services/cuadrillasService';
+import { listarEventosRecuperacion } from '@/services/recuperacionService';
 import type { CuadrillaItem } from '@/types/cuadrilla';
 import { usePuedeAsignarMision } from '@/hooks/usePuedeAsignarMision';
+import { usePuedeCrearEventoAtp } from '@/hooks/usePuedeCrearEventoAtp';
 import { extraerEstadoInicialNotificacion } from '@/lib/socket/trazabilidadConfig';
 import { setTrazabilidadEstado } from '@/lib/socket/trazabilidadStore';
 import InlineNotice from '@/components/ui/InlineNotice';
@@ -65,11 +71,14 @@ export const KanbanBoard: React.FC = () => {
   const [modalPrevencionAbierto, setModalPrevencionAbierto] = useState(false);
   const [modalRecuperacionAbierto, setModalRecuperacionAbierto] = useState(false);
   const [eventosPrevencion, setEventosPrevencion] = useState<EventoPrevencionDTO[]>([]);
-  const [eventosRecuperacion, setEventosRecuperacion] = useState<EventoRecuperacionResponse[]>([]);
+  const [eventosRecuperacion, setEventosRecuperacion] = useState<
+    (EventoRecuperacionResponse | DetalleEventoRecuperacionResponse)[]
+  >([]);
   const [cuadrillaSeleccionadaId, setCuadrillaSeleccionadaId] = useState<string | null>(null);
   const [cuadrillasOperativas, setCuadrillasOperativas] = useState<CuadrillaItem[]>([]);
   const [incidenteParaAsignar, setIncidenteParaAsignar] = useState<IncidenteResumen | null>(null);
   const puedeAsignar = usePuedeAsignarMision();
+  const puedeCrearEventoAtp = usePuedeCrearEventoAtp();
 
   const [estadoEnfocado, setEstadoEnfocado] = useState<EstadoIncidente | null>(null);
   const refrescarKpisRef = React.useRef<((mostrarCargando?: boolean) => void) | null>(null);
@@ -363,9 +372,28 @@ export const KanbanBoard: React.FC = () => {
     };
   }, []);
 
+  const cargarEventosRecuperacion = useCallback(() => {
+    let isMounted = true;
+    listarEventosRecuperacion({ limite: 100 })
+      .then((res) => {
+        if (isMounted && res.data) {
+          setEventosRecuperacion(res.data);
+        }
+      })
+      .catch(() => {});
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   useEffect(() => {
-    return cargarCuadrillas();
-  }, [cargarCuadrillas]);
+    const cancelCuadrillas = cargarCuadrillas();
+    const cancelRecuperacion = cargarEventosRecuperacion();
+    return () => {
+      cancelCuadrillas?.();
+      cancelRecuperacion?.();
+    };
+  }, [cargarCuadrillas, cargarEventosRecuperacion]);
 
   const {
     userId,
@@ -453,7 +481,7 @@ export const KanbanBoard: React.FC = () => {
     },
   });
 
-  // Hook de tiempo real para eventos de recuperación (HU-29)
+  // Hook de tiempo real para eventos de recuperación (HU-29 / HU-32)
   useRecuperacionSocket({
     onRecuperacionCreada: (nuevoEvento) => {
       setEventosRecuperacion((prev) => {
@@ -473,6 +501,41 @@ export const KanbanBoard: React.FC = () => {
           ],
         }
       );
+    },
+    onRecuperacionActualizada: (payload) => {
+      const obj = payload && typeof payload === 'object' ? (payload as Record<string, unknown>) : null;
+      const eventoObj =
+        obj && 'evento' in obj && typeof obj.evento === 'object' && obj.evento !== null
+          ? (obj.evento as Record<string, unknown>)
+          : null;
+      const dataObj =
+        obj && 'data' in obj && typeof obj.data === 'object' && obj.data !== null
+          ? (obj.data as Record<string, unknown>)
+          : null;
+      const ev = (eventoObj || dataObj || obj) as EventoRecuperacionResponse | null;
+      if (ev?.id) {
+        const rootMision = obj?.mision ?? (dataObj?.mision as unknown);
+        const rootPatrulla = obj?.patrulla ?? (dataObj?.patrulla as unknown);
+        const rootRecursos = (obj?.recursos ?? dataObj?.recursos ?? obj?.recursosAsignados) as RecursoAsignadoItem[] | undefined;
+
+        setEventosRecuperacion((prev) =>
+          prev.map((item) => {
+            if (item.id !== ev.id) return item;
+            const updated = { ...item, ...ev };
+            if (rootMision !== undefined) {
+              updated.mision = rootMision as EventoRecuperacionResponse['mision'];
+            }
+            if (rootPatrulla !== undefined) {
+              updated.patrulla = rootPatrulla as EventoRecuperacionResponse['patrulla'];
+            }
+            if (rootRecursos !== undefined && Array.isArray(rootRecursos)) {
+              updated.recursos = rootRecursos;
+              updated.recursosAsignados = rootRecursos;
+            }
+            return updated;
+          })
+        );
+      }
     },
   });
 
@@ -528,6 +591,7 @@ export const KanbanBoard: React.FC = () => {
     refrescarKpis(true);
     recargar();
     cargarCuadrillas();
+    cargarEventosRecuperacion();
   };
 
   const contadoresPorEstado = useMemo(() => {
@@ -551,6 +615,7 @@ export const KanbanBoard: React.FC = () => {
         onAbrirPatrullas={() => setPatrullasModalAbierto(true)}
         onOpenCrearPrevencion={() => setModalPrevencionAbierto(true)}
         onOpenCrearRecuperacion={() => setModalRecuperacionAbierto(true)}
+        puedeCrearEventoAtp={puedeCrearEventoAtp}
       />
 
       {esForbidden ? (
@@ -705,6 +770,7 @@ export const KanbanBoard: React.FC = () => {
             userId={userId}
             onSuccess={(eventoCreado) => {
               setEventosRecuperacion((prev) => [eventoCreado, ...prev]);
+              setVistaActiva('mapa');
               handleRefrescoCompleto();
             }}
           />

@@ -85,6 +85,7 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
 
   const cargarDetalle = useCallback(() => {
     if (!incidenteId) return;
+    setDetalle(null);
     setCargando(true);
     setError(null);
 
@@ -102,10 +103,12 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
           });
           setDetalle({ ...res.datos, misiones: misionesHidratadas });
         } else {
+          setDetalle(null);
           setError(res.mensaje || 'Error al obtener el detalle del incidente.');
         }
       })
       .catch(() => {
+        setDetalle(null);
         setError('Error de comunicación con el servidor al cargar el incidente.');
       })
       .finally(() => {
@@ -580,6 +583,7 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
                 <IncidenteUbicacionSection detalle={detalle} />
                 <IncidenteInformanteSection detalle={detalle} />
                 <IncidenteMisionesSection
+                  key={detalle.id}
                   misiones={detalle.misiones}
                   reportesEvaluacionTerreno={detalle.reportesEvaluacionTerreno}
                   incidenteEstado={detalle.estado}

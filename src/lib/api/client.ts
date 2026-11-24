@@ -19,6 +19,7 @@ const RUTAS_PROTEGIDAS = [
   '/callcenter',
   '/asistente-social',
   '/dashboard',
+  '/eventos-atp',
 ];
 
 export function handleUnauthorizedSession() {

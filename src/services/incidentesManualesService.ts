@@ -47,7 +47,7 @@ export async function obtenerTiposAfectacion(): Promise<string[]> {
     if (error || !data?.data || !Array.isArray(data.data) || data.data.length === 0) {
       return TIPOS_AFECTACION_FALLBACK;
     }
-    return data.data;
+    return data.data.map((t) => (typeof t === 'string' ? t : t.nombre));
   } catch {
     return TIPOS_AFECTACION_FALLBACK;
   }
@@ -61,11 +61,11 @@ export async function verificarDuplicado(
   payload: VerificarDuplicadoPayload,
   operadorId: string = DEFAULT_CALLCENTER_OPERADOR_ID
 ): Promise<{ hayDuplicados: boolean; coincidencias: DuplicadoItem[] }> {
+  // El API ahora autentica con Authorization Bearer (JWT): el identificador de usuario
+  // se conserva por compatibilidad de firma y ya no se envía como cabecera x-user-id.
+  void operadorId;
   try {
     const { data, error, response } = await apiClient.POST('/api/incidentes/verificar-duplicado', {
-      headers: {
-        'x-user-id': operadorId,
-      },
       body: payload,
     });
 
@@ -128,11 +128,11 @@ export async function crearIncidenteManual(
   payload: CrearIncidenteManualPayload,
   operadorId: string = DEFAULT_CALLCENTER_OPERADOR_ID
 ): Promise<ResultadoCreacionManual> {
+  // El API ahora autentica con Authorization Bearer (JWT): el identificador de usuario
+  // se conserva por compatibilidad de firma y ya no se envía como cabecera x-user-id.
+  void operadorId;
   try {
     const { data, error, response } = await apiClient.POST('/api/incidentes/manual', {
-      headers: {
-        'x-user-id': operadorId,
-      },
       body: payload,
     });
 

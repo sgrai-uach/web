@@ -126,6 +126,7 @@ export const IncidenteCard: React.FC<IncidenteCardProps> = ({
           )}
           {(incidente.reclasificadoEnTerreno || incidente.verificado) && (
             <Chip
+              data-testid="badge-verificado"
               variant="success"
               size="sm"
               icon={<CheckCircle2 size={11} strokeWidth={2.2} />}
