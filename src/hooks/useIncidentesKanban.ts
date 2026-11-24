@@ -31,6 +31,7 @@ import {
 import { obtenerConfigHito } from '@/lib/utils/misionHitos';
 import { useOptionalToast } from '@/components/ui/Toast';
 import type {
+  MisionApoyoSolicitadoPayload,
   MisionHitoRegistradoPayload,
 } from '@/types/misiones';
 
@@ -62,6 +63,7 @@ export interface UseIncidentesKanbanOptions {
   onMisionRechazada?: (payload: MisionRechazadaPayload) => void;
   onMisionAceptada?: (payload: MisionActualizadaPayload) => void;
   onMisionActualizada?: (payload: MisionActualizadaPayload) => void;
+  onMisionApoyoSolicitado?: (payload: MisionApoyoSolicitadoPayload) => void;
   onCuadrillaActualizada?: (payload: CuadrillaActualizadaPayload) => void;
   onRecursoActualizado?: (payload: RecursoActualizadoPayload) => void;
   onReporteTerrenoRecibido?: (payload: IncidenteActualizadoPayload) => void;
@@ -90,6 +92,11 @@ function ordenarIncidentesColumna(
   }
   if (estado === 'EN_ATENCION') {
     return [...incidentes].sort((a, b) => {
+      const aApoyo = a.apoyoSolicitado ? 1 : 0;
+      const bApoyo = b.apoyoSolicitado ? 1 : 0;
+      if (aApoyo !== bApoyo) {
+        return bApoyo - aApoyo; // Solicitud de apoyo urgente primero (H44)
+      }
       const aFin = a.faenasCuadrillaCompletadas ? 1 : 0;
       const bFin = b.faenasCuadrillaCompletadas ? 1 : 0;
       if (aFin !== bFin) {
@@ -130,6 +137,11 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
   useEffect(() => {
     onMisionActualizadaRef.current = optionsObj.onMisionActualizada;
   }, [optionsObj.onMisionActualizada]);
+
+  const onMisionApoyoSolicitadoRef = useRef(optionsObj.onMisionApoyoSolicitado);
+  useEffect(() => {
+    onMisionApoyoSolicitadoRef.current = optionsObj.onMisionApoyoSolicitado;
+  }, [optionsObj.onMisionApoyoSolicitado]);
 
   const onRecursoActualizadoRef = useRef(optionsObj.onRecursoActualizado);
   useEffect(() => {
@@ -632,6 +644,19 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
                     : incActual.tieneMisionEnCurso,
               tieneMisionDespachada:
                 esCierreNoAbordable || esInicioNuevaMision ? false : incActual.tieneMisionDespachada,
+              apoyoSolicitado:
+                datos.apoyoSolicitado !== undefined
+                  ? datos.apoyoSolicitado
+                  : datos.reporteTerreno?.requiereApoyoAdicional !== undefined
+                    ? Boolean(datos.reporteTerreno.requiereApoyoAdicional) ||
+                      Boolean(incActual.apoyoSolicitado)
+                    : incActual.apoyoSolicitado,
+              detalleApoyoRequerido:
+                datos.detalleApoyoRequerido !== undefined
+                  ? datos.detalleApoyoRequerido
+                  : datos.reporteTerreno?.detalleApoyoRequerido !== undefined
+                    ? datos.reporteTerreno.detalleApoyoRequerido
+                    : incActual.detalleApoyoRequerido,
               reclasificadoEnTerreno: reclasificado,
               justificacionReclasificacion:
                 datos.justificacion || incActual.justificacionReclasificacion,
@@ -1060,11 +1085,51 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
     [notificarToastAceptacionCuadrilla, toast]
   );
 
+  const handleMisionApoyoSolicitado = useCallback(
+    (payload: MisionApoyoSolicitadoPayload) => {
+      const incidenteIdResuelto =
+        payload.incidenteId || getIncidentePorMision(payload.misionId);
+
+      if (incidenteIdResuelto) {
+        setColumnas((prev) => {
+          let huboCambio = false;
+          const siguientes = { ...prev };
+
+          for (const est of ESTADOS_KANBAN) {
+            const idx = prev[est].findIndex((i) => i.id === incidenteIdResuelto);
+            if (idx !== -1) {
+              huboCambio = true;
+              const actual = prev[est][idx];
+              const actualizado: IncidenteResumen = {
+                ...actual,
+                apoyoSolicitado: Boolean(payload.requiereApoyoAdicional ?? true),
+                detalleApoyoRequerido:
+                  payload.detalleApoyoRequerido ?? actual.detalleApoyoRequerido ?? null,
+                actualizadoEn: payload.solicitadoEn || new Date().toISOString(),
+              };
+              const nuevaLista = prev[est].map((item, i) =>
+                i === idx ? actualizado : item
+              );
+              siguientes[est] = ordenarIncidentesColumna(nuevaLista, est);
+              break;
+            }
+          }
+
+          return huboCambio ? siguientes : prev;
+        });
+      }
+
+      onMisionApoyoSolicitadoRef.current?.(payload);
+    },
+    []
+  );
+
   const { conectado, ultimoEvento } = useEncargadoKanbanSocket({
     onIncidenteCreado: handleIncidenteCreado,
     onIncidenteActualizado: handleIncidenteActualizado,
     onMisionRechazada: handleMisionRechazada,
     onMisionActualizada: handleMisionActualizada,
+    onMisionApoyoSolicitado: handleMisionApoyoSolicitado,
     onCuadrillaActualizada: handleCuadrillaActualizada,
     onRecursoActualizado: handleRecursoActualizado,
     onNotificacionTrazabilidadActualizada: handleTrazabilidadActualizada,

@@ -22,8 +22,10 @@ import type {
 import type {
   DictamenAtencionTerreno,
   MisionActualizadaPayload as MisionActualizadaStorePayload,
+  MisionApoyoSolicitadoPayload,
   MisionHitoRegistradoPayload,
 } from '@/types/misiones';
+export type { MisionApoyoSolicitadoPayload } from '@/types/misiones';
 import {
   esJustificacionSinCambios,
   esReporteCierreCuadrilla,
@@ -66,6 +68,8 @@ export interface IncidenteActualizadoPayload {
     justificacionPrioridad?: string | null;
     requiereAsistenciaSocial?: boolean;
     verificado?: boolean;
+    apoyoSolicitado?: boolean;
+    detalleApoyoRequerido?: string | null;
     dictamen?: DictamenAtencionTerreno | null;
     motivoNoAbordable?: string | null;
     fechaCierre?: string | null;
@@ -164,6 +168,7 @@ export interface UseEncargadoKanbanSocketOptions {
   onRecursoActualizado?: (payload: RecursoActualizadoPayload) => void;
   onNotificacionTrazabilidadActualizada?: (payload: NotificacionTrazabilidadPayload) => void;
   onMisionHitoRegistrado?: (payload: MisionHitoRegistradoPayload) => void;
+  onMisionApoyoSolicitado?: (payload: MisionApoyoSolicitadoPayload) => void;
   enabled?: boolean;
 }
 
@@ -171,7 +176,8 @@ export interface UseEncargadoKanbanSocketOptions {
  * Hook para la conexión en tiempo real del Encargado de Centro de Mando.
  * Se une a la sala 'sala:encargados' y escucha la creación y actualización de incidentes,
  * aceptación y actualización de misiones (H36/H40), llegada a terreno (H42),
- * rechazos (H41/H69), cierres (H68), trazabilidad (H35), disponibilidad de cuadrillas e inventario.
+ * solicitudes de apoyo adicional (H44), rechazos (H41/H69), cierres (H68), trazabilidad (H35),
+ * disponibilidad de cuadrillas e inventario.
  */
 export function useEncargadoKanbanSocket({
   onIncidenteCreado,
@@ -182,6 +188,7 @@ export function useEncargadoKanbanSocket({
   onRecursoActualizado,
   onNotificacionTrazabilidadActualizada,
   onMisionHitoRegistrado,
+  onMisionApoyoSolicitado,
   enabled = true,
 }: UseEncargadoKanbanSocketOptions = {}) {
   const [conectado, setConectado] = useState(false);
@@ -196,6 +203,7 @@ export function useEncargadoKanbanSocket({
   const trazabilidadRef = useRef(onNotificacionTrazabilidadActualizada);
   const eventosProcesadosRef = useRef<Map<string, number>>(new Map());
   const misionHitoRef = useRef(onMisionHitoRegistrado);
+  const misionApoyoSolicitadoRef = useRef(onMisionApoyoSolicitado);
 
   useEffect(() => {
     creadoRef.current = onIncidenteCreado;
@@ -228,6 +236,10 @@ export function useEncargadoKanbanSocket({
   useEffect(() => {
     misionHitoRef.current = onMisionHitoRegistrado;
   }, [onMisionHitoRegistrado]);
+
+  useEffect(() => {
+    misionApoyoSolicitadoRef.current = onMisionApoyoSolicitado;
+  }, [onMisionApoyoSolicitado]);
 
   useEffect(() => {
     if (!enabled) return;
@@ -331,6 +343,13 @@ export function useEncargadoKanbanSocket({
               typeof rawReporteObj.etiquetaReporte === 'string'
                 ? rawReporteObj.etiquetaReporte
                 : (rawReporteObj as unknown as ReporteEvaluacionTerreno).etiquetaReporte,
+            detalleApoyoRequerido:
+              typeof rawReporteObj.detalleApoyoRequerido === 'string'
+                ? rawReporteObj.detalleApoyoRequerido
+                : typeof rawReporteObj.detalle_apoyo_requerido === 'string'
+                  ? rawReporteObj.detalle_apoyo_requerido
+                  : (rawReporteObj as unknown as ReporteEvaluacionTerreno).detalleApoyoRequerido ??
+                    null,
           })
         : undefined;
 
@@ -400,6 +419,24 @@ export function useEncargadoKanbanSocket({
               ? rawReporte.requiereAsistenciaSocial
               : undefined;
 
+      const apoyoSolicitado =
+        typeof rawDatos?.apoyoSolicitado === 'boolean'
+          ? rawDatos.apoyoSolicitado
+          : typeof rawDatos?.apoyo_solicitado === 'boolean'
+            ? rawDatos.apoyo_solicitado
+            : typeof rawReporte?.requiereApoyoAdicional === 'boolean'
+              ? rawReporte.requiereApoyoAdicional
+              : undefined;
+
+      const detalleApoyoRequerido =
+        typeof rawDatos?.detalleApoyoRequerido === 'string'
+          ? rawDatos.detalleApoyoRequerido
+          : typeof rawDatos?.detalle_apoyo_requerido === 'string'
+            ? rawDatos.detalle_apoyo_requerido
+            : rawReporte?.detalleApoyoRequerido !== undefined
+              ? rawReporte.detalleApoyoRequerido
+              : undefined;
+
       const normalizedPayload: IncidenteActualizadoPayload = {
         evento: 'incidente:actualizado',
         datos: {
@@ -415,6 +452,8 @@ export function useEncargadoKanbanSocket({
           requiereAsistenciaSocial,
           verificado:
             typeof rawDatos?.verificado === 'boolean' ? rawDatos.verificado : undefined,
+          apoyoSolicitado,
+          detalleApoyoRequerido,
           dictamen,
           motivoNoAbordable,
           fechaCierre,
@@ -933,6 +972,125 @@ export function useEncargadoKanbanSocket({
       handleMisionEvent(payload);
     };
 
+    const handleApoyoSolicitado = (payload: unknown) => {
+      const p = payload as Record<string, unknown> | null | undefined;
+      const raw = (p?.datos || p?.data || p) as Record<string, unknown> | null | undefined;
+      if (!raw || typeof raw !== 'object') return;
+
+      const reporteId =
+        typeof raw.reporteId === 'string'
+          ? raw.reporteId
+          : typeof raw.reporte_id === 'string'
+            ? raw.reporte_id
+            : '';
+      const misionId =
+        typeof raw.misionId === 'string'
+          ? raw.misionId
+          : typeof raw.mision_id === 'string'
+            ? raw.mision_id
+            : '';
+      const incidenteId =
+        typeof raw.incidenteId === 'string'
+          ? raw.incidenteId
+          : typeof raw.incidente_id === 'string'
+            ? raw.incidente_id
+            : null;
+
+      if (!reporteId && !misionId && !incidenteId) return;
+
+      const solicitadoEn =
+        typeof raw.solicitadoEn === 'string'
+          ? raw.solicitadoEn
+          : typeof raw.solicitado_en === 'string'
+            ? raw.solicitado_en
+            : new Date().toISOString();
+
+      if (esEventoDuplicado(`apoyo-solicitado:${reporteId || misionId}:${solicitadoEn}`)) {
+        return;
+      }
+
+      const misionCodigo =
+        typeof raw.misionCodigo === 'string'
+          ? raw.misionCodigo
+          : typeof raw.mision_codigo === 'string'
+            ? raw.mision_codigo
+            : typeof raw.codigo === 'string'
+              ? raw.codigo
+              : null;
+      const incidenteCodigo =
+        typeof raw.incidenteCodigo === 'string'
+          ? raw.incidenteCodigo
+          : typeof raw.incidente_codigo === 'string'
+            ? raw.incidente_codigo
+            : null;
+      const cuadrillaId =
+        typeof raw.cuadrillaId === 'string'
+          ? raw.cuadrillaId
+          : typeof raw.cuadrilla_id === 'string'
+            ? raw.cuadrilla_id
+            : null;
+      const cuadrillaNombre =
+        typeof raw.cuadrillaNombre === 'string'
+          ? raw.cuadrillaNombre
+          : typeof raw.cuadrilla_nombre === 'string'
+            ? raw.cuadrilla_nombre
+            : null;
+      const evaluadorId =
+        typeof raw.evaluadorId === 'string'
+          ? raw.evaluadorId
+          : typeof raw.evaluador_id === 'string'
+            ? raw.evaluador_id
+            : null;
+      const evaluadorNombre =
+        typeof raw.evaluadorNombre === 'string'
+          ? raw.evaluadorNombre
+          : typeof raw.evaluador_nombre === 'string'
+            ? raw.evaluador_nombre
+            : null;
+      const detalleApoyoRequerido =
+        typeof raw.detalleApoyoRequerido === 'string'
+          ? raw.detalleApoyoRequerido
+          : typeof raw.detalle_apoyo_requerido === 'string'
+            ? raw.detalle_apoyo_requerido
+            : null;
+      const requiereApoyoAdicional =
+        typeof raw.requiereApoyoAdicional === 'boolean'
+          ? raw.requiereApoyoAdicional
+          : typeof raw.requiere_apoyo_adicional === 'boolean'
+            ? raw.requiere_apoyo_adicional
+            : true;
+      const prioridadAlerta =
+        typeof raw.prioridadAlerta === 'string'
+          ? raw.prioridadAlerta
+          : typeof raw.prioridad_alerta === 'string'
+            ? raw.prioridad_alerta
+            : 'ALTA';
+
+      const normalizedPayload: MisionApoyoSolicitadoPayload = {
+        reporteId: reporteId || misionId,
+        misionId,
+        misionCodigo,
+        incidenteId,
+        incidenteCodigo,
+        cuadrillaId,
+        cuadrillaNombre,
+        evaluadorId,
+        evaluadorNombre,
+        requiereApoyoAdicional,
+        detalleApoyoRequerido,
+        prioridadAlerta,
+        solicitadoEn,
+      };
+
+      setUltimoEvento(
+        `Apoyo adicional solicitado en ${incidenteCodigo || misionCodigo || 'terreno'}`
+      );
+
+      if (misionApoyoSolicitadoRef.current) {
+        misionApoyoSolicitadoRef.current(normalizedPayload);
+      }
+    };
+
     socket.on('connect', onConnect);
     socket.on('disconnect', onDisconnect);
     socket.on('incidente:creado', handleCreado);
@@ -944,6 +1102,7 @@ export function useEncargadoKanbanSocket({
     socket.on('recurso:actualizado', handleRecursoActualizado);
     socket.on('notificacion:trazabilidad_actualizada', handleTrazabilidad);
     socket.on('mision:hito_registrado', handleMisionHitoRegistrado);
+    socket.on('mision:apoyo_solicitado', handleApoyoSolicitado);
 
     return () => {
       socket.off('connect', onConnect);
@@ -957,6 +1116,7 @@ export function useEncargadoKanbanSocket({
       socket.off('recurso:actualizado', handleRecursoActualizado);
       socket.off('notificacion:trazabilidad_actualizada', handleTrazabilidad);
       socket.off('mision:hito_registrado', handleMisionHitoRegistrado);
+      socket.off('mision:apoyo_solicitado', handleApoyoSolicitado);
       desuscribirSalas();
     };
   }, [enabled]);
