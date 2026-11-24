@@ -86,9 +86,35 @@ Toda la aplicación utiliza **Noto Sans** como tipografía principal, administra
 
 ### Componentes Base Reutilizables
 
-Queda **estrictamente prohibido** escribir encabezados (`<h1>`-`<h6>`) o botones (`<button>`, `<Link>`) con estilos CSS arbitrarios o inline sueltos. Se debe utilizar siempre:
+Queda **estrictamente prohibido** escribir encabezados (`<h1>`-`<h6>`), botones (`<button>`, `<Link>`) o chips/badges de estado con estilos CSS arbitrarios o inline sueltos. Se debe utilizar siempre:
 - `<Heading as="..." variant="..." color="...">` ([`src/components/ui/Heading.tsx`](file:///home/zetastormy/Development/SGRAI/web/src/components/ui/Heading.tsx)).
 - `<Button variant="..." size="..." href="...">` ([`src/components/ui/Button.tsx`](file:///home/zetastormy/Development/SGRAI/web/src/components/ui/Button.tsx)).
+- `<Chip variant="..." size="..." icon="...">` ([`src/components/ui/Chip.tsx`](file:///home/zetastormy/Development/SGRAI/web/src/components/ui/Chip.tsx) y [`src/components/ui/Chip.module.css`](file:///home/zetastormy/Development/SGRAI/web/src/components/ui/Chip.module.css)).
+
+### Estándar de Chips y Badges Semánticos (`<Chip />`)
+
+Todos los chips y etiquetas semánticas del sistema (estados de incidente, estados de misión, niveles de prioridad, alertas FIBE y metadatos operativos) comparten un diseño estandarizado y sincronizado entre `sgrai-web` y `sgrai-pwa` (`web-app`):
+
+- **Geometría rectangular plana:** `border-radius: var(--radius-none, 0px)` (esquinas estrictamente rectas a `0px`, prohibido redondear chips), `border: 1px solid`, `display: inline-flex`, `align-items: center`, `justify-content: center`, `gap: 0.3rem`, `font-weight: 700`, `line-height: 1`, `letter-spacing: 0.02em`, `white-space: nowrap`, `box-sizing: border-box`, `user-select: none`.
+- **Criterios de usabilidad y ergonomía:**
+  - **Sentence Case de alto contraste:** Los textos de estados y prioridades se muestran en formato oración (`Crítica`, `En curso`, `Verificado`) en lugar de `ALL CAPS` para facilitar el escaneo rápido en tableros densos y bajo luz solar en terreno.
+  - **Jerarquía de tamaños (`ChipSize`):**
+    - `sm` (`height: 20px`, `padding: 0 8px`, `font-size: 0.6875rem` / `11px`): por defecto en tarjetas Kanban de alta densidad, filas secundarias del drawer y acordeones de reportes.
+    - `md` (`height: 24px`, `padding: 0 10px`, `font-size: 0.75rem` / `12px`): para cabeceras principales de modales (`MisionDetalleHeader`) y cabeceras móviles en terreno (`web-app`).
+  - **Affordance estático vs. interactivo:** Si `<Chip />` no recibe `onClick`, renderiza un `<span>` informativo (`cursor: default`). Si recibe `onClick`, renderiza un `<button type="button">` interactivo (`cursor: pointer`, estado `:hover` y anillo de foco `:focus-visible`) acompañado de un ícono explícito de acción.
+- **Variantes semánticas de color (`ChipVariant`) y mapeo (`src/lib/utils/chipVariants.ts`):**
+
+| Variante | Fondo (`background-color`) | Texto (`color`) | Borde (`border-color`) | Uso canónico en SGRAI |
+|---|---|---|---|---|
+| `neutral` | `var(--color-bg-light, #ECEFF3)` | `var(--color-charcoal, #3B3F45)` | `#CBD5E1` | Misiones finalizadas/cerradas, contadores de misiones, códigos neutros |
+| `info` | `var(--color-info-bg, #E0F2F1)` | `var(--color-primary-teal-dark, #14505A)` | `var(--color-primary-teal, #1B6F7D)` | Incidente `VERIFICANDO`, misión `DESPACHADA` / `ASIGNADA` / `PLANIFICACION`, prioridad `MEDIA` |
+| `success` | `var(--color-success-bg, #E8F5E9)` | `var(--color-success, #2E7D32)` | `#A5D6A7` | Incidente `RESUELTO`, misión `COMPLETADA`, reportes completados, prioridad `BAJA` |
+| `warning` | `var(--color-warning-bg, #FFF3E0)` | `var(--color-warning, #E65100)` | `#FFCC80` | Incidente `REPORTADO` / `EN_ATENCION`, misión `EN_CURSO` / `EN_RUTA` / `EN_TERRENO`, prioridad `ALTA`, etiqueta `FIBE` |
+| `danger` | `var(--color-danger-bg, #FFEBEE)` | `var(--color-danger, #D32F2F)` | `#EF9A9A` | Incidente `NO_ABORDABLE`, misión `RECHAZADA` / `CANCELADA` / `ABORTADA`, prioridad `CRITICA` |
+| `teal` | `var(--color-info-bg, #E0F2F1)` | `var(--color-primary-teal, #1B6F7D)` | `var(--color-primary-teal, #1B6F7D)` | Etiquetas de tipo de reporte técnico (`Reporte #N`, `Reclasificación en Terreno`) |
+| `solidTeal` | `var(--color-primary-teal, #1B6F7D)` | `var(--color-white, #FFFFFF)` | `var(--color-primary-teal-dark, #14505A)` | Badges destacados de vigencia (`Vigente`) o cabeceras institucionales |
+
+- **Funciones utilitarias de resolución (`src/lib/utils/chipVariants.ts`):** Utiliza siempre `obtenerVarianteChipPrioridad(prioridad)`, `obtenerVarianteChipEstadoIncidente(estado)` y `obtenerVarianteChipEstadoMision(estado)` para derivar la variante del chip sin repetir condicionales en las vistas.
 
 ### Estilo de componentes (observado del sitio de referencia)
 
@@ -174,7 +200,8 @@ Este repositorio consume `sgrai-api` como único origen de datos y lógica. Regl
 Cada funcionalidad de cara a un rol debe entregarse junto con su manual de usuario, no como una tarea aparte para después.
 
 - **Ubicación estándar:** `/docs/manuals/` en la raíz de este repositorio.
-- **Convención de nombre:** un archivo por historia de usuario o por funcionalidad agrupada, siguiendo el ID del backlog: `H<numero>-<slug-corto>.md` (ej. `H1-reportar-incidente.md`, `H18-dashboard-kpis-encargado.md`). Si varias HU conforman una sola pantalla/flujo coherente para el usuario final, se puede consolidar en un solo manual (ej. `H14-H34-centro-de-mando-encargado.md`), indicando en el encabezado qué HU cubre.
+- **Convención de nombre:** un archivo por historia de usuario o por funcionalidad agrupada, siguiendo el ID del backlog: `H<numero>-<slug-corto>.md` (ej. `H1-reportar-incidente.md`, `H18-dashboard-kpis-encargado.md`, `H38-evaluacion-prioridad-terreno-mando.md`). Si varias HU conforman una sola pantalla/flujo coherente para el usuario final, se puede consolidar en un solo manual (ej. `H14-H34-centro-de-mando-encargado.md`), indicando en el encabezado qué HU cubre.
+- **Estándares UI y Componentes:** Los lineamientos visuales y de diseño de tarjetas y componentes especializados se documentan en `/docs/manuals/` (ej. [`estandar-tarjetas-reportes-mando.md`](docs/manuals/estandar-tarjetas-reportes-mando.md) para tarjetas de reportes y hitos en Centro de Mando).
 - **Cuándo se crea:** como parte del mismo PR que implementa la funcionalidad — no se abre un PR aparte de documentación después. Si el PR no incluye el manual correspondiente, no debería pasar la Pair Review.
 - **Contenido mínimo de cada manual:**
   - Rol(es) al que está dirigido.

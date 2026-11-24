@@ -42,15 +42,26 @@ export const MAPA_ESTADOS_LEGIBLES: Record<string, string> = {
 
   // Hitos de Bitácora Operativa
   TIPOLOGIA_RECLASIFICADA: 'Tipología reclasificada en terreno',
+  PRIORIDAD_ASIGNADA: 'Prioridad evaluada y asignada en terreno',
+  PRIORIDAD_RECTIFICADA: 'Reporte de evaluación y prioridad rectificados en terreno',
   MISION_DESPACHADA: 'Misión despachada',
   MISION_ACEPTADA: 'Misión aceptada',
   EN_RUTA: 'En ruta al sitio',
   LLEGADA_A_SITIO: 'Llegada al lugar',
   EVALUACION_INICIADA: 'Evaluación iniciada',
   EVALUACION_FINALIZADA: 'Evaluación finalizada',
+  VERIFICACION_COMPLETADA: 'Verificación completada',
+  CUADRILLA_DESPACHADA: 'Cuadrilla despachada',
+  PATRULLA_LIBERADA: 'Patrulla verificadora liberada',
   MISION_COMPLETADA: 'Misión completada',
   MISION_RECHAZADA: 'Misión rechazada',
   MISION_CANCELADA: 'Misión cancelada',
+
+  // Nivel de compromiso de vivienda (HU-38)
+  SIN_DANO: 'Sin daño habitacional',
+  LEVE: 'Daño leve',
+  MODERADO: 'Daño moderado',
+  GRAVE_INHABITABLE: 'Grave / Inhabitable',
 
   // Personal y Funcionarios
   disponible: 'Disponible',
@@ -121,6 +132,45 @@ export function formatearPrioridad(
   };
 
   return mapaPrioridades[limpio] || formatearEstado(prioridad, fallback);
+}
+
+/**
+ * Retorna la denominación legible del nivel de compromiso de vivienda constatado en terreno (HU-38).
+ */
+export function formatearCompromisoVivienda(
+  nivel?: string | null,
+  fallback = 'No especificado'
+): string {
+  if (!nivel || typeof nivel !== 'string' || nivel.trim() === '') {
+    return fallback;
+  }
+
+  const limpio = nivel.trim().toUpperCase();
+  const mapaCompromiso: Record<string, string> = {
+    SIN_DANO: 'Sin daño habitacional',
+    LEVE: 'Daño leve (Habitable)',
+    LEVE_HABITABLE: 'Daño leve (Habitable)',
+    MODERADO: 'Daño moderado (Parcial)',
+    MODERADO_PARCIAL: 'Daño moderado (Parcial)',
+    GRAVE_INHABITABLE: 'Grave / Inhabitable',
+    DESTRUCCION_TOTAL: 'Destrucción total',
+  };
+
+  return mapaCompromiso[limpio] || formatearEstado(nivel, fallback);
+}
+
+/**
+ * Retorna la variante semántica de Chip para un nivel de compromiso habitacional.
+ */
+export function obtenerVarianteCompromisoVivienda(
+  nivel?: string | null
+): 'neutral' | 'teal' | 'warning' | 'danger' {
+  if (!nivel || typeof nivel !== 'string') return 'neutral';
+  const limpio = nivel.trim().toUpperCase();
+  if (limpio === 'DESTRUCCION_TOTAL' || limpio === 'GRAVE_INHABITABLE') return 'danger';
+  if (limpio === 'MODERADO_PARCIAL' || limpio === 'MODERADO') return 'warning';
+  if (limpio === 'LEVE_HABITABLE' || limpio === 'LEVE') return 'teal';
+  return 'neutral';
 }
 
 /**
@@ -237,5 +287,137 @@ export function obtenerChipEstadoMision(estado?: string | null): ChipEstadoMisio
       };
   }
 }
+
+export const MAPA_FUENTES_ORIGEN: Record<string, string> = {
+  WEB: 'Portal Web',
+  CHATBOT: 'Chatbot Municipal',
+  LLAMADA_TELEFONICA: 'Central Telefónica',
+  LLAMADA: 'Central Telefónica',
+  FUNCIONARIO_TERRENO: 'Funcionario en Terreno',
+  TERRENO: 'Funcionario en Terreno',
+  SENAPRED: 'SENAPRED',
+};
+
+/**
+ * Convierte un valor de enum de fuente u origen del reporte (ej. 'LLAMADA_TELEFONICA')
+ * en un texto amigable para el usuario final (ej. 'Central Telefónica').
+ */
+export function formatearFuenteOrigen(
+  fuente?: string | null,
+  fallback = 'No especificado'
+): string {
+  if (!fuente || typeof fuente !== 'string') {
+    return fallback;
+  }
+  const limpio = fuente.trim().toUpperCase();
+  if (!limpio) {
+    return fallback;
+  }
+  if (MAPA_FUENTES_ORIGEN[limpio]) {
+    return MAPA_FUENTES_ORIGEN[limpio];
+  }
+  return formatearEstado(fuente, fallback);
+}
+
+/**
+ * Determina si una justificación o descripción indica explícitamente que la
+ * tipología fue ratificada sin modificaciones en terreno.
+ */
+export function esJustificacionSinCambios(texto?: string | null): boolean {
+  if (!texto || typeof texto !== 'string') return false;
+  return /sin variaciones|sin cambios|sin modificaciones|ratificada en terreno/i.test(texto);
+}
+
+/**
+ * Determina si la tipología fue efectivamente modificada entre el valor previo
+ * y el constatado en terreno. Retorna false si ambos coinciden (ignorando
+ * mayúsculas y espacios) o si alguno no está definido.
+ */
+export function fueTipologiaModificada(
+  tipoAnterior?: string | null,
+  tipoNuevo?: string | null
+): boolean {
+  if (!tipoAnterior || !tipoNuevo) return false;
+  const ant = tipoAnterior.trim().toLowerCase();
+  const nue = tipoNuevo.trim().toLowerCase();
+  if (!ant || !nue) return false;
+  return ant !== nue;
+}
+
+/**
+ * Evalúa si un hito de bitácora de tipo TIPOLOGIA_RECLASIFICADA corresponde
+ * en realidad a una ratificación sin cambios de tipología.
+ */
+export function esHitoTipologiaSinCambios(hito: {
+  hito?: string | null;
+  descripcion?: string | null;
+  metadatos?: Record<string, unknown> | null;
+}): boolean {
+  if (hito.hito !== 'TIPOLOGIA_RECLASIFICADA') return false;
+  const meta = hito.metadatos;
+  if (meta && typeof meta === 'object') {
+    const ant = typeof meta.tipoAnterior === 'string' ? meta.tipoAnterior.trim() : '';
+    const nue = typeof meta.tipoNuevo === 'string' ? meta.tipoNuevo.trim() : '';
+    if (ant && nue) {
+      return !fueTipologiaModificada(ant, nue);
+    }
+  }
+  return esJustificacionSinCambios(hito.descripcion);
+}
+
+/**
+ * Formatea el nombre de una patrulla verificadora evitando duplicar el prefijo
+ * "Patrulla" cuando el nombre registrado ya lo incluye (ej. "Patrulla Lenteja").
+ */
+export function formatearNombrePatrulla(
+  nombre?: string | null,
+  fallback = 'Patrulla Verificadora'
+): string {
+  if (!nombre || typeof nombre !== 'string') return fallback;
+  const limpio = nombre.trim();
+  if (!limpio) return fallback;
+  return /^patrulla\b/i.test(limpio) ? limpio : `Patrulla ${limpio}`;
+}
+
+/**
+ * Reemplaza valores crudos de enums (estados, dictámenes, prioridades) y redundancias
+ * dentro de descripciones de la bitácora operativa por lenguaje natural institucional.
+ */
+export function limpiarDescripcionBitacora(desc?: string | null): string {
+  if (!desc || typeof desc !== 'string') return '';
+
+  const mapaPrioridades: Record<string, string> = {
+    BAJA: 'Baja',
+    MEDIA: 'Media',
+    ALTA: 'Alta',
+    CRITICA: 'Crítica',
+  };
+
+  return desc
+    // Estados entre paréntesis
+    .replace(/\(EN_CURSO\)/gi, '(En curso)')
+    .replace(/\(DESPACHADA\)/gi, '(Despachada)')
+    .replace(/\(PLANIFICADA\)/gi, '(Planificada)')
+    .replace(/\(COMPLETADA\)/gi, '(Completada)')
+    .replace(/\(RECHAZADA\)/gi, '(Rechazada)')
+    .replace(/\(CANCELADA\)/gi, '(Cancelada)')
+    .replace(/\(EN_VERIFICACION\)/gi, '(En verificación)')
+    .replace(/\(VERIFICANDO\)/gi, '(En verificación)')
+    .replace(/\(REPORTADO\)/gi, '(Reportado)')
+    .replace(/\(EN_ATENCION\)/gi, '(En atención)')
+    .replace(/\(RESUELTO\)/gi, '(Resuelto)')
+    .replace(/\(NO_ABORDABLE\)/gi, '(No abordable)')
+    // Dictámenes operativos
+    .replace(/\bNO_ABORDABLE\b/g, 'No Abordable')
+    .replace(/\bREQUIERE_CUADRILLA\b/g, 'Requiere Cuadrilla')
+    // Prioridades exactas en mayúsculas dentro de frases técnicas
+    .replace(
+      /\b(a|de|Sugerida:|Prioridad:|Prioridad sugerida:|Prioridad asignada:)\s+(BAJA|MEDIA|ALTA|CRITICA)\b/g,
+      (_match, prefijo: string, prio: string) => `${prefijo} ${mapaPrioridades[prio] || prio}`
+    )
+    // Evitar redundancia "a la patrulla Patrulla X"
+    .replace(/\bpatrulla\s+Patrulla\b/gi, 'Patrulla');
+}
+
 
 

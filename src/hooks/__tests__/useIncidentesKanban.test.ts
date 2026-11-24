@@ -782,4 +782,82 @@ describe('useIncidentesKanban - HU-20 y BUG-04', () => {
 
     expect(result.current.columnas.REPORTADO[0].tieneMisionDespachada).toBe(true);
   });
+  it('BUG-H38-WEB-02: evento sintético sin prioridad conserva prioridad y verificado del incidente en Kanban', async () => {
+    const mockReportadoCritica: incidentesService.IncidenteResumen = {
+      id: 'inc-h38-sint-1',
+      codigo: 'INC-2026-3802',
+      codigoSeguimiento: '38023802',
+      tipoAfectacion: 'Inundación',
+      descripcion: 'Agua en vivienda',
+      direccion: 'Av. Francia 200',
+      latitud: -39.82,
+      longitud: -73.24,
+      estado: 'REPORTADO',
+      prioridad: 'CRITICA',
+      requiereAsistenciaSocial: false,
+      fuenteOrigen: 'WEB',
+      informanteNombre: 'Ana',
+      delegacionNombre: 'Centro',
+      totalMisiones: 1,
+      verificado: false,
+      creadoEn: '2026-11-10T10:00:00Z',
+      actualizadoEn: '2026-11-10T10:00:00Z',
+    };
+
+    vi.mocked(incidentesService.listarIncidentes).mockImplementation(async (query) => {
+      if (query.estado === 'REPORTADO') {
+        return {
+          exito: true,
+          incidentes: [mockReportadoCritica],
+          paginacion: {
+            total: 1,
+            pagina: 1,
+            limite: 20,
+            totalPaginas: 1,
+            tieneSiguiente: false,
+            tieneAnterior: false,
+          },
+          mensaje: 'OK',
+        };
+      }
+      return {
+        exito: true,
+        incidentes: [],
+        paginacion: {
+          total: 0,
+          pagina: 1,
+          limite: 20,
+          totalPaginas: 0,
+          tieneSiguiente: false,
+          tieneAnterior: false,
+        },
+        mensaje: 'OK',
+      };
+    });
+
+    const { result } = renderHook(() => useIncidentesKanban());
+
+    await waitFor(() => {
+      expect(result.current.columnas.REPORTADO.length).toBe(1);
+    });
+
+    act(() => {
+      socketCallbacks.onIncidenteActualizado?.({
+        evento: 'incidente:actualizado',
+        esSintetico: true,
+        datos: {
+          id: 'inc-h38-sint-1',
+          codigo: 'INC-2026-3802',
+          nuevoEstado: 'VERIFICANDO',
+          actualizadoEn: '2026-11-10T10:05:00Z',
+        },
+        emitidoEn: '2026-11-10T10:05:00Z',
+      });
+    });
+
+    expect(result.current.columnas.VERIFICANDO.length).toBe(1);
+    const movido = result.current.columnas.VERIFICANDO[0];
+    expect(movido.prioridad).toBe('CRITICA');
+    expect(movido.verificado).toBe(false);
+  });
 });

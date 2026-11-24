@@ -36,6 +36,7 @@ export const ESTADOS_KANBAN: EstadoIncidente[] = [
 
 import { catalogosService } from '@/services/catalogosService';
 import { useSimulatedSession } from '@/context/SimulatedSessionContext';
+import { fueTipologiaModificada } from '@/lib/utils/estadoUtils';
 
 export interface FiltrosKanban {
   busqueda: string;
@@ -51,6 +52,9 @@ export interface FiltrosKanban {
 export interface UseIncidentesKanbanOptions {
   initialUserId?: string;
   onMisionRechazada?: (payload: MisionRechazadaPayload) => void;
+  onReporteTerrenoRecibido?: (payload: IncidenteActualizadoPayload) => void;
+  onIncidenteCreadoSocket?: (payload: IncidenteCreadoPayload) => void;
+  onIncidenteActualizadoSocket?: (payload: IncidenteActualizadoPayload) => void;
 }
 
 /**
@@ -75,16 +79,17 @@ function ordenarIncidentesColumna(
   return incidentes;
 }
 
-export function useIncidentesKanban(options?: string | UseIncidentesKanbanOptions) {
-  const optionsObj: UseIncidentesKanbanOptions =
-    typeof options === 'string' ? { initialUserId: options } : options || {};
+export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | string) {
+  const optionsObj: UseIncidentesKanbanOptions = useMemo(
+    () => (typeof options === 'string' ? { initialUserId: options } : options || {}),
+    [options]
+  );
   const initialUserId = optionsObj.initialUserId;
 
   const onMisionRechazadaRef = useRef(optionsObj.onMisionRechazada);
   useEffect(() => {
     onMisionRechazadaRef.current = optionsObj.onMisionRechazada;
   }, [optionsObj.onMisionRechazada]);
-
   let sessionUserId: string | undefined;
   let sessionSetUser: ((id: string) => void) | undefined;
   try {
@@ -428,8 +433,10 @@ export function useIncidentesKanban(options?: string | UseIncidentesKanbanOption
           },
         };
       });
+
+      optionsObj.onIncidenteCreadoSocket?.(payload);
     },
-    []
+    [optionsObj]
   );
 
   const handleIncidenteActualizado = useCallback(
@@ -438,6 +445,7 @@ export function useIncidentesKanban(options?: string | UseIncidentesKanbanOption
       if (!datos || !datos.id) return;
 
       let columnaOrigenDetectada: EstadoIncidente | null = null;
+      let tipoAnteriorDetectado: string | undefined;
 
       setColumnas((prev) => {
         let incidenteEncontrado: IncidenteResumen | null = null;
@@ -450,13 +458,26 @@ export function useIncidentesKanban(options?: string | UseIncidentesKanbanOption
             columnaOrigen = est;
             columnaOrigenDetectada = est;
             const incActual = prev[est][idx];
-            const nuevaPrioridad = datos.prioridad || incActual.prioridad;
+            tipoAnteriorDetectado = incActual.tipoAfectacion;
+            const esSintetico = Boolean(payload.esSintetico);
+            const nuevaPrioridad =
+              !esSintetico && datos.prioridad ? datos.prioridad : incActual.prioridad;
+            const nuevaPrioridadSugerida =
+              datos.prioridadSugerida !== undefined
+                ? datos.prioridadSugerida
+                : incActual.prioridadSugerida;
+            const nuevaJustificacionPrioridad =
+              datos.justificacionPrioridad !== undefined
+                ? datos.justificacionPrioridad
+                : incActual.justificacionPrioridad;
             const nuevoTipo = datos.tipoAfectacion || incActual.tipoAfectacion;
-            const huboCambioTipologia = Boolean(datos.tipoAfectacion && datos.tipoAfectacion !== incActual.tipoAfectacion);
-            const esEventoReclasificacion = Boolean(
-              datos.justificacion ||
-                datos.tipoIncidenteId ||
-                huboCambioTipologia
+            const huboCambioTipologia = fueTipologiaModificada(
+              incActual.tipoAfectacion,
+              datos.tipoAfectacion
+            );
+            const reclasificado = Boolean(
+              huboCambioTipologia ||
+              incActual.reclasificadoEnTerreno
             );
             const esTransicionAVerificando =
               datos.nuevoEstado === 'VERIFICANDO' && est === 'REPORTADO';
@@ -464,17 +485,46 @@ export function useIncidentesKanban(options?: string | UseIncidentesKanbanOption
               incActual.tieneMisionDespachada || (incActual.totalMisiones || 0) > 0
             );
 
+            const totalReportesPrevios = Number(incActual.totalReportesTerreno ?? 0);
+            const nuevoTotalReportes = datos.reporteTerreno
+              ? Math.max(
+                  Number(datos.reporteTerreno.versionReporte || 1),
+                  totalReportesPrevios + 1
+                )
+              : totalReportesPrevios;
+
+            const nuevoVerificado =
+              datos.verificado !== undefined
+                ? datos.verificado
+                : esSintetico
+                  ? Boolean(incActual.verificado)
+                  : Boolean(
+                      incActual.verificado ||
+                        datos.reporteTerreno ||
+                        huboCambioTipologia ||
+                        datos.justificacion
+                    );
+
+            const nuevaJustificacionReclasificacion =
+              !esSintetico && !datos.reporteTerreno && (huboCambioTipologia || datos.justificacion)
+                ? datos.justificacion || incActual.justificacionReclasificacion
+                : incActual.justificacionReclasificacion;
+
             incidenteEncontrado = {
               ...incActual,
               estado: datos.nuevoEstado,
               prioridad: nuevaPrioridad,
+              prioridadSugerida: nuevaPrioridadSugerida,
+              justificacionPrioridad: nuevaJustificacionPrioridad,
+              totalReportesTerreno: nuevoTotalReportes,
+              requiereAsistenciaSocial:
+                datos.requiereAsistenciaSocial !== undefined
+                  ? datos.requiereAsistenciaSocial
+                  : incActual.requiereAsistenciaSocial,
               tipoAfectacion: nuevoTipo,
-              verificado: esEventoReclasificacion ? true : Boolean(incActual.verificado),
-              reclasificadoEnTerreno: esEventoReclasificacion
-                ? true
-                : Boolean(incActual.reclasificadoEnTerreno),
-              justificacionReclasificacion:
-                datos.justificacion || incActual.justificacionReclasificacion,
+              verificado: nuevoVerificado,
+              reclasificadoEnTerreno: reclasificado,
+              justificacionReclasificacion: nuevaJustificacionReclasificacion,
               tieneMisionDespachada: esTransicionAVerificando
                 ? false
                 : incActual.tieneMisionDespachada,
@@ -529,8 +579,25 @@ export function useIncidentesKanban(options?: string | UseIncidentesKanbanOption
           };
         });
       }
+
+      const payloadEnriquecido: IncidenteActualizadoPayload =
+        datos.tipoAnterior || !tipoAnteriorDetectado
+          ? payload
+          : {
+              ...payload,
+              datos: {
+                ...datos,
+                tipoAnterior: tipoAnteriorDetectado,
+              },
+            };
+
+      if (datos.reporteTerreno) {
+        optionsObj.onReporteTerrenoRecibido?.(payloadEnriquecido);
+      } else {
+        optionsObj.onIncidenteActualizadoSocket?.(payloadEnriquecido);
+      }
     },
-    []
+    [optionsObj]
   );
 
   // Función para mover un incidente de columna de forma inmediata e imperativa

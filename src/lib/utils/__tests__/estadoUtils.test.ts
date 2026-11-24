@@ -5,6 +5,11 @@ import {
   formatearHitoBitacora,
   formatearTipoMision,
   obtenerChipEstadoMision,
+  fueTipologiaModificada,
+  esJustificacionSinCambios,
+  esHitoTipologiaSinCambios,
+  formatearNombrePatrulla,
+  limpiarDescripcionBitacora,
 } from '../estadoUtils';
 
 describe('formatearEstado', () => {
@@ -104,6 +109,73 @@ describe('obtenerChipEstadoMision', () => {
     expect(obtenerChipEstadoMision('RECHAZADA').label).toBe('Rechazada');
     expect(obtenerChipEstadoMision('RECHAZADA').color).toContain('danger');
     expect(obtenerChipEstadoMision('PLANIFICADA').label).toBe('Planificada');
+  });
+});
+
+describe('fueTipologiaModificada y detección de ratificación sin cambios', () => {
+  it('detecta correctamente cuando la tipología fue modificada vs cuando es igual', () => {
+    expect(fueTipologiaModificada('Anegamiento', 'Inundación')).toBe(true);
+    expect(fueTipologiaModificada('Deslizamiento', 'Deslizamiento')).toBe(false);
+    expect(fueTipologiaModificada('  Deslizamiento ', 'deslizamiento')).toBe(false);
+    expect(fueTipologiaModificada(null, 'Deslizamiento')).toBe(false);
+  });
+
+  it('detecta justificaciones de ratificación sin variaciones', () => {
+    expect(esJustificacionSinCambios('Tipología constatada y ratificada en terreno sin variaciones.')).toBe(true);
+    expect(esJustificacionSinCambios('Se constata rotura de matriz.')).toBe(false);
+  });
+
+  it('detecta hitos TIPOLOGIA_RECLASIFICADA sin cambios en metadatos o descripción', () => {
+    expect(
+      esHitoTipologiaSinCambios({
+        hito: 'TIPOLOGIA_RECLASIFICADA',
+        descripcion: 'Tipología reclasificada en terreno a: Deslizamiento.',
+        metadatos: { tipoAnterior: 'Deslizamiento', tipoNuevo: 'Deslizamiento' },
+      })
+    ).toBe(true);
+    expect(
+      esHitoTipologiaSinCambios({
+        hito: 'TIPOLOGIA_RECLASIFICADA',
+        descripcion: 'Tipología reclasificada en terreno a: Inundación.',
+        metadatos: { tipoAnterior: 'Anegamiento', tipoNuevo: 'Inundación' },
+      })
+    ).toBe(false);
+  });
+
+  it('formatea nombres de patrulla sin duplicar el prefijo Patrulla', () => {
+    expect(formatearNombrePatrulla('Patrulla Lenteja')).toBe('Patrulla Lenteja');
+    expect(formatearNombrePatrulla('Alfa 1')).toBe('Patrulla Alfa 1');
+    expect(formatearNombrePatrulla(null)).toBe('Patrulla Verificadora');
+  });
+
+  it('limpia enums crudos y redundancias en descripciones de bitácora operativa', () => {
+    expect(formatearHitoBitacora('VERIFICACION_COMPLETADA')).toBe('Verificación completada');
+    expect(
+      limpiarDescripcionBitacora(
+        'Misión de verificación asignada y despachada a la patrulla Patrulla Lenteja.'
+      )
+    ).toBe('Misión de verificación asignada y despachada a la Patrulla Lenteja.');
+    expect(
+      limpiarDescripcionBitacora(
+        'Reporte de evaluación #1: Prioridad asignada en terreno a BAJA (Sugerida: CRITICA). Justificación: Ajuste en sitio'
+      )
+    ).toBe(
+      'Reporte de evaluación #1: Prioridad asignada en terreno a Baja (Sugerida: Crítica). Justificación: Ajuste en sitio'
+    );
+    expect(
+      limpiarDescripcionBitacora(
+        'Informe técnico enviado y misión cerrada. Dictamen: NO_ABORDABLE. Motivo: Sin acceso'
+      )
+    ).toBe(
+      'Informe técnico enviado y misión cerrada. Dictamen: No Abordable. Motivo: Sin acceso'
+    );
+    expect(
+      limpiarDescripcionBitacora(
+        'Reporte de evaluación #5 (Rectificación): Prioridad actualizada en terreno de BAJA a CRITICA (Sugerida: ALTA).'
+      )
+    ).toBe(
+      'Reporte de evaluación #5 (Rectificación): Prioridad actualizada en terreno de Baja a Crítica (Sugerida: Alta).'
+    );
   });
 });
 

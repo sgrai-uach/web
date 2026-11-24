@@ -15,11 +15,30 @@ export const DEFAULT_ENCARGADO_ID = '00000000-0000-4000-8000-000000000003';
 
 export type ListarIncidentesResponse = components['schemas']['ListarIncidentesResponse'];
 export type IncidenteDetalleResponse = components['schemas']['IncidenteDetalleResponse'];
+export type NivelCompromisoVivienda = 'SIN_DANO' | 'LEVE' | 'MODERADO' | 'GRAVE_INHABITABLE';
+
+export interface RiesgosActivosEvaluacion {
+  riesgoElectrico?: boolean;
+  riesgoEstructural?: boolean;
+  riesgoQuimicoSanitario?: boolean;
+  aislamientoVial?: boolean;
+}
+
 export type IncidenteResumen = ListarIncidentesResponse['data'][number];
 export type MisionDetalle = IncidenteDetalleResponse['data']['misiones'][number];
 export type IncidenteDetalle = IncidenteDetalleResponse['data'];
 export type EstadoTrazabilidadNotificacion = NonNullable<
   MisionDetalle['trazabilidadNotificacion']
+>;
+export type ReporteEvaluacionTerreno = NonNullable<
+  IncidenteDetalle['reportesEvaluacionTerreno']
+>[number];
+export type EvaluacionTerrenoDetalle = ReporteEvaluacionTerreno['evaluacion'];
+export type ReclasificacionTipologiaResumen = NonNullable<
+  IncidenteDetalle['reclasificacionTipologia']
+>;
+export type UltimoReporteIncidenteResumen = NonNullable<
+  IncidenteDetalle['ultimoReporte']
 >;
 export type PaginacionMeta = ListarIncidentesResponse['paginacion'];
 export type EstadoIncidente = IncidenteResumen['estado'];

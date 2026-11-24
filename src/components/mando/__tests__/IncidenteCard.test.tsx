@@ -252,7 +252,7 @@ describe('IncidenteCard', () => {
     expect(screen.getAllByText('Verificado')).toHaveLength(1);
     expect(screen.getByTestId('badge-verificado')).toBeDefined();
     expect(
-      screen.getByTitle(/Tipología rectificada por patrulla en terreno/i)
+      screen.getByTitle(/Tipología constatada en terreno sin modificaciones/i)
     ).toBeDefined();
 
     rerender(

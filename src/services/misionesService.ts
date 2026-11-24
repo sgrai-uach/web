@@ -16,7 +16,6 @@ import type {
   DespacharCuadrillaDTO,
   DespacharCuadrillaResponse,
   DespacharPatrullaPayload,
-  DespacharPatrullaResponse,
   ResultadoDespacharPatrulla,
   EstadoMision,
   TipoMision,
@@ -66,6 +65,8 @@ export const misionesService = {
     type ListarMisionesQuery = NonNullable<
       paths['/api/misiones']['get']['parameters']['query']
     >;
+    type ListarMisionesHeader =
+      paths['/api/misiones']['get']['parameters']['header'];
 
     const query: ListarMisionesQuery = {
       page: filtros.page || 1,
@@ -106,9 +107,9 @@ export const misionesService = {
       const { data, error, response } = await apiClient.GET('/api/misiones', {
         params: {
           query,
-          header: {
-            authorization: token ? `Bearer ${token}` : '',
-          },
+          header: (token
+            ? { authorization: `Bearer ${token}` }
+            : {}) as ListarMisionesHeader,
         },
         headers: {
           'x-user-id': userId,
@@ -429,14 +430,18 @@ export const misionesService = {
         };
       }
 
-      // El endpoint unificado responde con `anyOf` (patrulla o cuadrilla): para el
-      // despacho de patrulla se toma el esquema de respuesta de verificación.
-      const respuesta = data as unknown as DespacharPatrullaResponse;
+      if (!('patrulla' in data.data)) {
+        return {
+          exito: false,
+          codigoError: 500,
+          mensaje: 'La respuesta de despacho no incluyó los datos de la patrulla verificadora.',
+        };
+      }
 
       return {
         exito: true,
-        data: respuesta.data,
-        mensaje: respuesta.message || 'Misión de verificación creada y patrulla despachada exitosamente.',
+        data: data.data,
+        mensaje: data.message || 'Misión de verificación creada y patrulla despachada exitosamente.',
       };
     } catch {
       return {
