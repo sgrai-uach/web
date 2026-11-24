@@ -1562,4 +1562,116 @@ describe('useIncidentesKanban - HU-20 y BUG-04', () => {
     expect(movido.tieneMisionDespachada).toBe(false);
     expect(movido.faenasCuadrillaCompletadas).toBe(false);
   });
+
+  it('HU-44: marca apoyoSolicitado y detalleApoyoRequerido ante mision:apoyo_solicitado, prioriza arriba en EN_ATENCION e invoca callback', async () => {
+    let socketOptions: UseEncargadoKanbanSocketOptions | undefined;
+    vi.mocked(useEncargadoKanbanSocket).mockImplementation((opts) => {
+      socketOptions = opts;
+      return { conectado: true, ultimoEvento: null };
+    });
+
+    const incPrimeroNormal: incidentesService.IncidenteResumen = {
+      id: 'inc-normal-atencion',
+      codigo: 'INC-2026-0011',
+      codigoSeguimiento: '11110011',
+      tipoAfectacion: 'Inundación',
+      descripcion: null,
+      direccion: 'Av. Francia 400',
+      latitud: -39.82,
+      longitud: -73.23,
+      estado: 'EN_ATENCION',
+      prioridad: 'MEDIA',
+      requiereAsistenciaSocial: false,
+      fuenteOrigen: 'WEB',
+      informanteNombre: 'Ana',
+      delegacionNombre: 'Sur',
+      totalMisiones: 1,
+      faenasCuadrillaCompletadas: true,
+      apoyoSolicitado: false,
+      creadoEn: '2026-11-23T12:00:00Z',
+      actualizadoEn: '2026-11-23T12:00:00Z',
+    };
+
+    const incConApoyoDespues: incidentesService.IncidenteResumen = {
+      ...incPrimeroNormal,
+      id: 'inc-apoyo-44',
+      codigo: 'INC-2026-0010',
+      codigoSeguimiento: '10100010',
+      tipoAfectacion: 'Deslizamiento',
+      faenasCuadrillaCompletadas: false,
+      apoyoSolicitado: false,
+      creadoEn: '2026-11-23T10:00:00Z',
+    };
+
+    vi.mocked(incidentesService.listarIncidentes).mockImplementation(async (query) => {
+      if (query.estado === 'EN_ATENCION') {
+        return {
+          exito: true,
+          incidentes: [incPrimeroNormal, incConApoyoDespues],
+          paginacion: {
+            total: 2,
+            pagina: 1,
+            limite: 20,
+            totalPaginas: 1,
+            tieneSiguiente: false,
+            tieneAnterior: false,
+          },
+          mensaje: 'OK',
+        };
+      }
+      return {
+        exito: true,
+        incidentes: [],
+        paginacion: {
+          total: 0,
+          pagina: 1,
+          limite: 20,
+          totalPaginas: 0,
+          tieneSiguiente: false,
+          tieneAnterior: false,
+        },
+        mensaje: 'OK',
+      };
+    });
+
+    const onMisionApoyoSolicitado = vi.fn();
+    const { result } = renderHook(() =>
+      useIncidentesKanban({ onMisionApoyoSolicitado })
+    );
+
+    await waitFor(() => {
+      expect(result.current.columnas.EN_ATENCION).toHaveLength(2);
+    });
+
+    // Antes del evento, el incidente con faenas completadas está arriba
+    expect(result.current.columnas.EN_ATENCION[0].id).toBe('inc-normal-atencion');
+
+    const payloadApoyo = {
+      reporteId: 'rep-apoyo-44',
+      misionId: 'mis-apoyo-44',
+      misionCodigo: 'MIS-2026-0042',
+      incidenteId: 'inc-apoyo-44',
+      incidenteCodigo: 'INC-2026-0010',
+      cuadrillaId: 'cuad-1',
+      cuadrillaNombre: 'Cuadrilla Norte 1',
+      evaluadorId: 'usr-1',
+      evaluadorNombre: 'Juan Pérez',
+      requiereApoyoAdicional: true,
+      detalleApoyoRequerido: 'Se solicita motoniveladora y cuadrilla adicional de despeje',
+      prioridadAlerta: 'ALTA',
+      solicitadoEn: '2026-11-23T20:15:00.000Z',
+    };
+
+    act(() => {
+      socketOptions?.onMisionApoyoSolicitado?.(payloadApoyo);
+    });
+
+    expect(onMisionApoyoSolicitado).toHaveBeenCalledWith(payloadApoyo);
+    // Tras el evento, el incidente con apoyoSolicitado sube al primer lugar en EN_ATENCION
+    expect(result.current.columnas.EN_ATENCION[0].id).toBe('inc-apoyo-44');
+    expect(result.current.columnas.EN_ATENCION[0].apoyoSolicitado).toBe(true);
+    expect(result.current.columnas.EN_ATENCION[0].detalleApoyoRequerido).toBe(
+      'Se solicita motoniveladora y cuadrilla adicional de despeje'
+    );
+  });
 });

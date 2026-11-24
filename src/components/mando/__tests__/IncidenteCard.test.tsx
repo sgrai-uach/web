@@ -405,4 +405,38 @@ describe('IncidenteCard', () => {
     expect(badgeReportes.textContent).toBe('3 reportes');
     expect(badgeReportes.textContent).not.toContain('Rectificado');
   });
+
+  it('HU-44: muestra badge "Apoyo Solicitado", extracto y tooltip cuando apoyoSolicitado es true y los oculta cuando es false', () => {
+    const incidenteConApoyo: IncidenteResumen = {
+      ...mockIncidente,
+      estado: 'EN_ATENCION',
+      apoyoSolicitado: true,
+      detalleApoyoRequerido: 'Se solicita motoniveladora y cuadrilla adicional de despeje',
+    };
+
+    const { container, rerender } = render(
+      <IncidenteCard incidente={incidenteConApoyo} onClick={vi.fn()} />
+    );
+
+    expect((container.firstChild as HTMLElement).className).toContain('incidenteApoyoSolicitado');
+    const badge = screen.getByTestId('badge-apoyo-solicitado');
+    expect(badge.textContent).toContain('Apoyo Solicitado');
+    expect(badge.getAttribute('title')).toContain(
+      'Se solicita motoniveladora y cuadrilla adicional de despeje'
+    );
+    const detalleBox = screen.getByTestId('card-detalle-apoyo');
+    expect(detalleBox.textContent).toContain(
+      'Se solicita motoniveladora y cuadrilla adicional de despeje'
+    );
+
+    rerender(
+      <IncidenteCard
+        incidente={{ ...mockIncidente, estado: 'EN_ATENCION', apoyoSolicitado: false }}
+        onClick={vi.fn()}
+      />
+    );
+
+    expect(screen.queryByTestId('badge-apoyo-solicitado')).toBeNull();
+    expect(screen.queryByTestId('card-detalle-apoyo')).toBeNull();
+  });
 });

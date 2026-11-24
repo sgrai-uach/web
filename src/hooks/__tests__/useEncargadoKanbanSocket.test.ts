@@ -905,4 +905,89 @@ describe('useEncargadoKanbanSocket', () => {
       'Cuadrilla Cuadrilla Vías y Canales 1 en misión activa'
     );
   });
+
+  it('HU-44: escucha mision:apoyo_solicitado, normaliza campos, deduplica emisiones y propaga apoyo en incidente:actualizado', () => {
+    const socket = getSocket();
+    const onMisionApoyoSolicitado = vi.fn();
+    const onIncidenteActualizado = vi.fn();
+
+    const { result } = renderHook(() =>
+      useEncargadoKanbanSocket({
+        onMisionApoyoSolicitado,
+        onIncidenteActualizado,
+      })
+    );
+
+    const trigger = (socket as unknown as { _trigger: (ev: string, p: unknown) => void })._trigger;
+
+    const payloadApoyo = {
+      reporteId: 'rep-apoyo-44',
+      misionId: 'mis-44',
+      misionCodigo: 'MIS-2026-0044',
+      incidenteId: 'inc-44',
+      incidenteCodigo: 'INC-2026-0044',
+      cuadrillaId: 'cuad-44',
+      cuadrillaNombre: 'Cuadrilla Norte 1',
+      evaluadorId: 'usr-del-44',
+      evaluadorNombre: 'Juan Pérez',
+      requiereApoyoAdicional: true,
+      detalleApoyoRequerido: 'Se solicita motoniveladora y cuadrilla adicional de despeje',
+      prioridadAlerta: 'ALTA',
+      solicitadoEn: '2026-11-23T20:15:00.000Z',
+    };
+
+    act(() => {
+      trigger('mision:apoyo_solicitado', payloadApoyo);
+      // Emisión duplicada desde segunda sala dentro de la ventana de deduplicación
+      trigger('mision:apoyo_solicitado', {
+        reporte_id: 'rep-apoyo-44',
+        mision_id: 'mis-44',
+        incidente_id: 'inc-44',
+        detalle_apoyo_requerido: 'Se solicita motoniveladora y cuadrilla adicional de despeje',
+        solicitado_en: '2026-11-23T20:15:00.000Z',
+      });
+    });
+
+    expect(onMisionApoyoSolicitado).toHaveBeenCalledTimes(1);
+    expect(onMisionApoyoSolicitado).toHaveBeenCalledWith(
+      expect.objectContaining({
+        reporteId: 'rep-apoyo-44',
+        misionId: 'mis-44',
+        misionCodigo: 'MIS-2026-0044',
+        incidenteId: 'inc-44',
+        incidenteCodigo: 'INC-2026-0044',
+        cuadrillaNombre: 'Cuadrilla Norte 1',
+        evaluadorNombre: 'Juan Pérez',
+        requiereApoyoAdicional: true,
+        detalleApoyoRequerido: 'Se solicita motoniveladora y cuadrilla adicional de despeje',
+        prioridadAlerta: 'ALTA',
+      })
+    );
+    expect(result.current.ultimoEvento).toContain('Apoyo adicional solicitado en INC-2026-0044');
+
+    act(() => {
+      trigger('incidente:actualizado', {
+        evento: 'incidente:actualizado',
+        datos: {
+          id: 'inc-44',
+          codigo: 'INC-2026-0044',
+          nuevoEstado: 'EN_ATENCION',
+          prioridad: 'ALTA',
+          apoyoSolicitado: true,
+          detalleApoyoRequerido: 'Se solicita motoniveladora y cuadrilla adicional de despeje',
+          actualizadoEn: '2026-11-23T20:15:00.000Z',
+        },
+      });
+    });
+
+    expect(onIncidenteActualizado).toHaveBeenCalledWith(
+      expect.objectContaining({
+        datos: expect.objectContaining({
+          id: 'inc-44',
+          apoyoSolicitado: true,
+          detalleApoyoRequerido: 'Se solicita motoniveladora y cuadrilla adicional de despeje',
+        }),
+      })
+    );
+  });
 });

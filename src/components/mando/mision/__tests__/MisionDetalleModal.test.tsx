@@ -1661,4 +1661,99 @@ describe('Componente MisionDetalleModal (HU-17)', () => {
     expect(screen.getByText('Asignación Aceptada por Cuadrilla')).toBeDefined();
     expect(screen.getByText(/Bitácora Cronológica de Operaciones \(2\)/i)).toBeDefined();
   });
+
+  it('HU-44: renderiza detalleApoyoRequerido en MisionReportesSection, humaniza hito APOYO_SOLICITADO y recarga vía mision:apoyo_solicitado', async () => {
+    const misionBase: MisionDetalleCompleto = {
+      ...mockMision,
+      id: 'm-h44-apoyo',
+      codigo: 'MIS-2026-0044',
+      tipoMision: 'ATENCION_CUADRILLA',
+      estado: 'EN_CURSO',
+      reportesTerreno: [],
+      bitacoraTiempos: [],
+    };
+
+    const misionConApoyo: MisionDetalleCompleto = {
+      ...misionBase,
+      bitacoraTiempos: [
+        {
+          id: 'h-apoyo-44',
+          hito: 'APOYO_SOLICITADO',
+          fecha: '23/11/2026',
+          hora: '20:15:00',
+          timestamp: '2026-11-23T20:15:00.000Z',
+          descripcion: 'Se solicita motoniveladora y cuadrilla adicional de despeje',
+        },
+      ],
+      reportesTerreno: [
+        {
+          id: 'rep-h44-1',
+          misionId: 'm-h44-apoyo',
+          tipoReporte: 'REPORTE_CUADRILLA',
+          etiquetaReporte: 'Informe Técnico Final de Cuadrilla (Cierre de Misión)',
+          evaluador: {
+            id: 'u-del-44',
+            nombre: 'Juan Pérez',
+            email: 'juan@valdivia.cl',
+          },
+          resumenTecnico: 'Derrumbe secundario bloquea acceso norte.',
+          accionesRealizadas: null,
+          requiereApoyoAdicional: true,
+          detalleApoyoRequerido: 'Se solicita motoniveladora y cuadrilla adicional de despeje',
+          danosEstimados: null,
+          observaciones: null,
+          personasAfectadas: 0,
+          estadoTerreno: 'CRITICO',
+          horasHombre: 3,
+          materialesConsumidos: [],
+          adjuntos: [],
+          creadoEn: '2026-11-23T20:15:00.000Z',
+          actualizadoEn: '2026-11-23T20:15:00.000Z',
+        },
+      ],
+    };
+
+    vi.spyOn(misionesService, 'obtenerDetalleMision')
+      .mockResolvedValueOnce({
+        exito: true,
+        datos: misionBase,
+        mensaje: 'OK',
+      })
+      .mockResolvedValueOnce({
+        exito: true,
+        datos: misionConApoyo,
+        mensaje: 'OK',
+      });
+
+    render(<MisionDetalleModal misionId="m-h44-apoyo" onCerrar={vi.fn()} />);
+
+    await waitFor(() => {
+      expect(screen.getByText('MIS-2026-0044')).toBeDefined();
+    });
+
+    const apoyoHandler = socketListeners['mision:apoyo_solicitado']?.[0];
+    expect(apoyoHandler).toBeDefined();
+
+    act(() => {
+      apoyoHandler?.({
+        reporteId: 'rep-h44-1',
+        misionId: 'm-h44-apoyo',
+        requiereApoyoAdicional: true,
+        detalleApoyoRequerido: 'Se solicita motoniveladora y cuadrilla adicional de despeje',
+        solicitadoEn: '2026-11-23T20:15:00.000Z',
+      });
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId('badge-apoyo-reporte-rep-h44-1')).toBeDefined();
+    });
+
+    expect(screen.getByTestId('badge-apoyo-reporte-rep-h44-1').textContent).toContain(
+      'Apoyo Solicitado'
+    );
+    expect(screen.getByTestId('detalle-apoyo-reporte-rep-h44-1').textContent).toContain(
+      'Se solicita motoniveladora y cuadrilla adicional de despeje'
+    );
+    expect(screen.getByText('Apoyo Adicional Solicitado')).toBeDefined();
+  });
 });

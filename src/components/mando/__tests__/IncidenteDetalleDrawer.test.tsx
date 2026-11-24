@@ -1601,4 +1601,94 @@ describe('Componente IncidenteDetalleDrawer e integración HU-17', () => {
     expect(screen.getByText(/Estado:\s*En atención/i)).toBeDefined();
     expect(screen.getByText('En curso')).toBeDefined();
   });
+
+  it('HU-44: muestra banner prioritario de Apoyo Adicional Solicitado con detalleApoyoRequerido y se actualiza en tiempo real vía mision:apoyo_solicitado', async () => {
+    const detalleSinApoyo: IncidenteDetalle = {
+      ...mockDetalleIncidente,
+      estado: 'EN_ATENCION',
+      apoyoSolicitado: false,
+      detalleApoyoRequerido: null,
+    };
+
+    const detalleConApoyo: IncidenteDetalle = {
+      ...detalleSinApoyo,
+      apoyoSolicitado: true,
+      detalleApoyoRequerido: 'Se solicita motoniveladora y cuadrilla adicional de despeje',
+      ultimoReporte: {
+        origen: 'REPORTE_TERRENO',
+        reporteId: 'rep-apoyo-44',
+        misionId: 'm1000000-0000-4000-8000-000000000001',
+        misionCodigo: 'MIS-2026-0001',
+        evaluadorNombre: 'Juan Pérez',
+        creadoEn: '2026-11-23T20:15:00.000Z',
+        resumen: 'Despeje en curso con derrumbe secundario.',
+        prioridadAsignada: 'ALTA',
+        versionReporte: 1,
+        esRectificacion: false,
+        requiereApoyoAdicional: true,
+        detalleApoyoRequerido: 'Se solicita motoniveladora y cuadrilla adicional de despeje',
+      },
+    };
+
+    vi.spyOn(incidentesService, 'obtenerDetalleIncidente')
+      .mockResolvedValueOnce({
+        exito: true,
+        datos: detalleSinApoyo,
+        mensaje: 'OK',
+      })
+      .mockResolvedValueOnce({
+        exito: true,
+        datos: detalleConApoyo,
+        mensaje: 'OK',
+      });
+
+    render(
+      <IncidenteDetalleDrawer
+        incidenteId="i1000000-0000-4000-8000-000000000001"
+        incidenteCodigo="INC-2026-0042"
+        userId="user-test"
+        onCerrar={vi.fn()}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('INC-2026-0042')).toBeDefined();
+    });
+    expect(screen.queryByTestId('banner-apoyo-solicitado')).toBeNull();
+
+    const apoyoHandler = socketListeners['mision:apoyo_solicitado']?.[0];
+    expect(apoyoHandler).toBeDefined();
+
+    act(() => {
+      apoyoHandler?.({
+        reporteId: 'rep-apoyo-44',
+        misionId: 'm1000000-0000-4000-8000-000000000001',
+        misionCodigo: 'MIS-2026-0001',
+        incidenteId: 'i1000000-0000-4000-8000-000000000001',
+        incidenteCodigo: 'INC-2026-0042',
+        cuadrillaNombre: 'Cuadrilla Norte 1',
+        evaluadorNombre: 'Juan Pérez',
+        requiereApoyoAdicional: true,
+        detalleApoyoRequerido: 'Se solicita motoniveladora y cuadrilla adicional de despeje',
+        prioridadAlerta: 'ALTA',
+        solicitadoEn: '2026-11-23T20:15:00.000Z',
+      });
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId('banner-apoyo-solicitado')).toBeDefined();
+    });
+
+    expect(screen.getByTestId('banner-apoyo-solicitado').textContent).toContain(
+      'Se solicita motoniveladora y cuadrilla adicional de despeje'
+    );
+    await waitFor(() => {
+      expect(screen.getByTestId('ultimo-reporte-badge-apoyo').textContent).toContain(
+        'Apoyo Solicitado'
+      );
+    });
+    expect(screen.getByTestId('ultimo-reporte-detalle-apoyo').textContent).toContain(
+      'Se solicita motoniveladora y cuadrilla adicional de despeje'
+    );
+  });
 });
