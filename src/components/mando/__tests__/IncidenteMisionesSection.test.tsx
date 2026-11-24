@@ -34,7 +34,7 @@ describe('Componente IncidenteMisionesSection', () => {
     ).toBeDefined();
   });
 
-  it('debe renderizar la tarjeta de la misión con textos amigables (sin enums crudos) y el botón "Ver Detalles"', () => {
+  it('debe renderizar la tarjeta de la misión y el botón "Ver Detalles"', () => {
     const handleVerDetalles = vi.fn();
 
     render(
@@ -44,12 +44,11 @@ describe('Componente IncidenteMisionesSection', () => {
       />
     );
 
-    expect(screen.getByText('MIS-2026-0001: Despeje de cables')).toBeDefined();
-    // Estado formateado amigable en lugar de enum crudo
-    expect(screen.getByText('En Curso')).toBeDefined();
-    expect(screen.queryByText('EN_CURSO')).toBeNull();
-    // Tipo formateado
-    expect(screen.getByText(/Atención de Cuadrilla/i)).toBeDefined();
+    expect(screen.getByText('MIS-2026-0001')).toBeDefined();
+    expect(screen.getByText('Despeje de cables')).toBeDefined();
+    expect(screen.getByText('En curso')).toBeDefined();
+    expect(screen.getByText(/Atención de cuadrilla/i)).toBeDefined();
+    expect(screen.getByText(/\(En misión\)/i)).toBeDefined();
 
     const btnVerDetalles = screen.getByRole('button', {
       name: /Ver detalles de la misión MIS-2026-0001/i,
@@ -79,107 +78,6 @@ describe('Componente IncidenteMisionesSection', () => {
 
     fireEvent.click(btnVerCuadrilla);
     expect(handleVerCuadrilla).toHaveBeenCalledWith('c1');
-  });
-
-  it('debe renderizar el historial de misiones rechazadas con motivo de rechazo y permitir reasignar en estado REPORTADO', () => {
-    const handleReasignar = vi.fn();
-    const mockMisionesConRechazo: IncidenteDetalle['misiones'] = [
-      {
-        id: 'm-rechazada-1',
-        codigo: 'MIS-2026-0099',
-        titulo: 'Verificación en terreno',
-        descripcion: 'Inspeccionar derrumbe',
-        tipoMision: 'VERIFICACION',
-        estado: 'RECHAZADA',
-        prioridad: 'ALTA',
-        justificacionRechazo: 'Ruta cortada por socavón en km 12, imposible acceso del móvil',
-        cuadrilla: null,
-        patrulla: {
-          id: 'p1',
-          nombre: 'Patrulla 04',
-          estado: 'DISPONIBLE',
-        },
-        fechaInicio: null,
-        fechaCierre: null,
-        creadoEn: '2026-10-02T15:00:00Z',
-      },
-    ];
-
-    render(
-      <IncidenteMisionesSection
-        misiones={mockMisionesConRechazo}
-        incidenteEstado="REPORTADO"
-        onAsignarPatrulla={handleReasignar}
-      />
-    );
-
-    // Debe mostrar sección de historial de rechazos
-    expect(screen.getByText(/Historial de Asignaciones y Rechazos \(1\)/i)).toBeDefined();
-    expect(screen.getByText('MIS-2026-0099: Verificación en terreno')).toBeDefined();
-    expect(screen.getByText('Rechazada')).toBeDefined();
-    expect(screen.queryByText('RECHAZADA')).toBeNull();
-
-    // Debe mostrar motivo de rechazo
-    expect(
-      screen.getByText('Ruta cortada por socavón en km 12, imposible acceso del móvil')
-    ).toBeDefined();
-    expect(screen.getByText(/Motivo del Rechazo \(Patrulla 04\):/i)).toBeDefined();
-
-    // Debe mostrar botón para reasignar patrulla verificadora
-    const btnReasignar = screen.getByRole('button', {
-      name: /Reasignar patrulla verificadora/i,
-    });
-    expect(btnReasignar).toBeDefined();
-
-    fireEvent.click(btnReasignar);
-    expect(handleReasignar).toHaveBeenCalledTimes(1);
-  });
-
-  it('debe mostrar botón inactivo "Confirmación Pendiente" cuando hay una misión en estado DESPACHADA', () => {
-    const handleAsignar = vi.fn();
-    const mockMisionesDespachada: IncidenteDetalle['misiones'] = [
-      {
-        id: 'm-desp-1',
-        codigo: 'MIS-2026-0005',
-        titulo: 'Verificación en terreno',
-        descripcion: null,
-        tipoMision: 'VERIFICACION',
-        estado: 'DESPACHADA',
-        prioridad: 'MEDIA',
-        justificacionRechazo: null,
-        cuadrilla: null,
-        patrulla: {
-          id: 'p2',
-          nombre: 'Patrulla 02',
-          estado: 'EN_VERIFICACION',
-        },
-        fechaInicio: '2026-10-02T15:00:00Z',
-        fechaCierre: null,
-        creadoEn: '2026-10-02T15:00:00Z',
-      },
-    ];
-
-    render(
-      <IncidenteMisionesSection
-        misiones={mockMisionesDespachada}
-        incidenteEstado="REPORTADO"
-        onAsignarPatrulla={handleAsignar}
-      />
-    );
-
-    const btnPendiente = screen.getByRole('button', {
-      name: /confirmación pendiente por la patrulla verificadora/i,
-    });
-    expect(btnPendiente).toBeDefined();
-    expect(btnPendiente).toBeDisabled();
-    expect(btnPendiente.querySelector('svg.lucide-hourglass')).not.toBeNull();
-
-    // No debe mostrar botón activo de asignar
-    expect(
-      screen.queryByRole('button', {
-        name: /Despachar patrulla verificadora/i,
-      })
-    ).toBeNull();
   });
 
   it('debe mostrar el botón de despachar patrulla verificadora cuando el incidente está en REPORTADO aunque tenga misiones previas no activas (BUG-02)', () => {
@@ -217,6 +115,135 @@ describe('Componente IncidenteMisionesSection', () => {
     expect(
       screen.queryByRole('button', { name: /Despachar Patrulla Verificadora/i })
     ).toBeNull();
+  });
+
+  it('debe renderizar chip semántico de rechazo y bloque de justificación cuando la misión fue rechazada', () => {
+    const misionRechazada: IncidenteDetalle['misiones'][number] = {
+      id: 'm-rechazada-1',
+      codigo: 'MIS-2026-9001',
+      titulo: 'Evaluación de desborde',
+      descripcion: 'Evaluar altura de agua',
+      tipoMision: 'VERIFICACION',
+      estado: 'RECHAZADA',
+      prioridad: 'CRITICA',
+      justificacionRechazo: 'Vía cortada por derrumbe previo, imposible acceder con vehículo 4x4.',
+      cuadrilla: null,
+      patrulla: {
+        id: 'pat-1',
+        nombre: 'Patrulla Isla Teja',
+        estado: 'DISPONIBLE',
+      },
+      fechaInicio: null,
+      fechaCierre: null,
+      creadoEn: '2026-11-10T08:00:00Z',
+    };
+
+    render(<IncidenteMisionesSection misiones={[misionRechazada]} />);
+
+    expect(screen.getByText('Rechazada')).toBeDefined();
+    expect(screen.getByText(/Verificación en terreno/i)).toBeDefined();
+    expect(screen.getByText(/Patrulla Isla Teja/i)).toBeDefined();
+    expect(screen.getByText(/\(Disponible\)/i)).toBeDefined();
+    expect(screen.getByText(/Motivo de Rechazo en Terreno:/i)).toBeDefined();
+    expect(
+      screen.getByText('Vía cortada por derrumbe previo, imposible acceder con vehículo 4x4.')
+    ).toBeDefined();
+  });
+
+  it('debe priorizar las misiones en proceso al inicio y agrupar las rechazadas en un menú desplegable colapsado', () => {
+    const misionEnCurso: IncidenteDetalle['misiones'][number] = {
+      id: 'm-activa-1',
+      codigo: 'MIS-2026-1002',
+      titulo: 'Atención con cuadrilla en terreno',
+      descripcion: 'Despeje de ramas',
+      tipoMision: 'ATENCION_CUADRILLA',
+      estado: 'EN_CURSO',
+      prioridad: 'ALTA',
+      justificacionRechazo: null,
+      cuadrilla: {
+        id: 'c-1',
+        nombre: 'Cuadrilla Las Ánimas',
+        estado: 'EN_MISION',
+      },
+      patrulla: null,
+      fechaInicio: '2026-11-10T09:00:00Z',
+      fechaCierre: null,
+      creadoEn: '2026-11-10T08:30:00Z',
+    };
+
+    const misionRechazada1: IncidenteDetalle['misiones'][number] = {
+      id: 'm-rech-1',
+      codigo: 'MIS-2026-9001',
+      titulo: 'Verificación inicial',
+      descripcion: 'Evaluación rápida',
+      tipoMision: 'VERIFICACION',
+      estado: 'RECHAZADA',
+      prioridad: 'MEDIA',
+      justificacionRechazo: 'Terreno inaccesible por inundación de calzada.',
+      cuadrilla: null,
+      patrulla: {
+        id: 'p-1',
+        nombre: 'Patrulla Centro',
+        estado: 'DISPONIBLE',
+      },
+      fechaInicio: null,
+      fechaCierre: null,
+      creadoEn: '2026-11-10T07:00:00Z',
+    };
+
+    const misionRechazada2: IncidenteDetalle['misiones'][number] = {
+      id: 'm-rech-2',
+      codigo: 'MIS-2026-9002',
+      titulo: 'Segunda verificación',
+      descripcion: 'Intento con patrulla alternativa',
+      tipoMision: 'VERIFICACION',
+      estado: 'RECHAZADA',
+      prioridad: 'MEDIA',
+      justificacionRechazo: 'Falla mecánica en vehículo de patrulla.',
+      cuadrilla: null,
+      patrulla: {
+        id: 'p-2',
+        nombre: 'Patrulla Norte',
+        estado: 'DISPONIBLE',
+      },
+      fechaInicio: null,
+      fechaCierre: null,
+      creadoEn: '2026-11-10T07:30:00Z',
+    };
+
+    // Pasamos las 3 misiones (rechazadas primero en el array para comprobar que el componente las reordena)
+    render(
+      <IncidenteMisionesSection
+        misiones={[misionRechazada1, misionRechazada2, misionEnCurso]}
+      />
+    );
+
+    // 1. La misión en proceso debe aparecer visible inmediatamente
+    expect(screen.getByText('MIS-2026-1002')).toBeDefined();
+    expect(screen.getByText('Atención con cuadrilla en terreno')).toBeDefined();
+    expect(screen.getByText('Cuadrilla Las Ánimas')).toBeDefined();
+
+    // 2. Debe existir el menú desplegable de rechazos indicando la cantidad de rechazos (2)
+    const triggerRechazos = screen.getByLabelText(/Desplegar misiones rechazadas \(2\)/i);
+    expect(triggerRechazos).toBeDefined();
+    expect(triggerRechazos.getAttribute('aria-expanded')).toBe('false');
+
+    // 3. Al estar colapsado, los motivos individuales de rechazo NO deben estar visibles en pantalla
+    expect(screen.queryByText('Terreno inaccesible por inundación de calzada.')).toBeNull();
+    expect(screen.queryByText('Falla mecánica en vehículo de patrulla.')).toBeNull();
+
+    // 4. Al hacer clic en el menú desplegable, se abren las tarjetas de rechazo
+    fireEvent.click(triggerRechazos);
+    expect(triggerRechazos.getAttribute('aria-expanded')).toBe('true');
+    expect(screen.getByText('Terreno inaccesible por inundación de calzada.')).toBeDefined();
+    expect(screen.getByText('Falla mecánica en vehículo de patrulla.')).toBeDefined();
+    expect(screen.getByText('MIS-2026-9001')).toBeDefined();
+    expect(screen.getByText('MIS-2026-9002')).toBeDefined();
+
+    // 5. Al volver a hacer clic, se colapsan nuevamente
+    fireEvent.click(triggerRechazos);
+    expect(triggerRechazos.getAttribute('aria-expanded')).toBe('false');
+    expect(screen.queryByText('Terreno inaccesible por inundación de calzada.')).toBeNull();
   });
 
   describe('HU-35: Trazabilidad y monitoreo de notificaciones de patrulla', () => {

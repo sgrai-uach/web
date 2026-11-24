@@ -21,7 +21,6 @@ export type IncidenteDetalle = IncidenteDetalleResponse['data'];
 export type EstadoTrazabilidadNotificacion = NonNullable<
   MisionDetalle['trazabilidadNotificacion']
 >;
-
 export type PaginacionMeta = ListarIncidentesResponse['paginacion'];
 export type EstadoIncidente = IncidenteResumen['estado'];
 export type PrioridadIncidente = IncidenteResumen['prioridad'];

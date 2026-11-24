@@ -39,7 +39,7 @@ import InlineNotice from '@/components/ui/InlineNotice';
 import styles from '@/styles/mando.module.css';
 
 const TITULOS_COLUMNAS = {
-  REPORTADO: 'Pendiente / Reportado',
+  REPORTADO: 'Reportado',
   VERIFICANDO: 'En Verificación',
   EN_ATENCION: 'En Atención',
   RESUELTO: 'Resuelto',
@@ -63,6 +63,39 @@ export const KanbanBoard: React.FC = () => {
   const puedeAsignar = usePuedeAsignarMision();
   const puedeCrearEventoAtp = usePuedeCrearEventoAtp();
 
+  const [estadoEnfocado, setEstadoEnfocado] = useState<EstadoIncidente | null>(null);
+  const ultimosToastsRechazoRef = React.useRef<Map<string, number>>(new Map());
+  const refrescarKpisRef = React.useRef<((mostrarCargando?: boolean) => void) | null>(null);
+
+  const handleMisionRechazadaSocket = React.useCallback(
+    (payload: MisionRechazadaPayload) => {
+      const ahora = Date.now();
+      if (payload.misionId) {
+        const ultimaVez = ultimosToastsRechazoRef.current.get(payload.misionId);
+        if (ultimaVez && ahora - ultimaVez < 5000) {
+          return;
+        }
+        ultimosToastsRechazoRef.current.set(payload.misionId, ahora);
+      }
+
+      const patrullaTexto = payload.patrullaNombre
+        ? `La patrulla ${payload.patrullaNombre}`
+        : 'La patrulla verificadora';
+      const incidenteTexto = payload.incidenteCodigo
+        ? ` del incidente ${payload.incidenteCodigo}`
+        : '';
+      const motivoTexto = payload.motivo || payload.justificacionRechazo || 'Sin justificación';
+
+      showWarning(
+        `${patrullaTexto} rechazó la misión ${payload.codigo}${incidenteTexto}. Motivo: "${motivoTexto}". El incidente retorna a estado Reportado para su reasignación.`,
+        'Misión Rechazada por Patrulla'
+      );
+
+      refrescarKpisRef.current?.(false);
+    },
+    [showWarning]
+  );
+
   const cargarCuadrillas = useCallback(() => {
     let isMounted = true;
     cuadrillasService
@@ -82,15 +115,6 @@ export const KanbanBoard: React.FC = () => {
     return cargarCuadrillas();
   }, [cargarCuadrillas]);
 
-  // HU-69: el handler real depende de `refrescarKpis`, que se inicializa más abajo.
-  // Se usa un puente por ref para evitar dependencias circulares de hooks.
-  const onMisionRechazadaRef = React.useRef<(payload: MisionRechazadaPayload) => void>(
-    () => undefined
-  );
-  const handleMisionRechazada = React.useCallback((payload: MisionRechazadaPayload) => {
-    onMisionRechazadaRef.current(payload);
-  }, []);
-
   const {
     userId,
     setUserId,
@@ -107,6 +131,7 @@ export const KanbanBoard: React.FC = () => {
     cargarMas,
     recargar,
     moverIncidenteAEstado,
+    marcarIncidenteMisionDespachada,
     conectado,
     ultimoEvento,
     totalIncidentesVisibles,
@@ -114,11 +139,8 @@ export const KanbanBoard: React.FC = () => {
     setIncidenteSeleccionadoId,
     trazabilidadPorIncidente,
   } = useIncidentesKanban({
-    onMisionRechazada: handleMisionRechazada,
+    onMisionRechazada: handleMisionRechazadaSocket,
   });
-
-
-  const [estadoEnfocado, setEstadoEnfocado] = useState<EstadoIncidente | null>(null);
 
   // CA-5 (BUG-H22-WEB-03): Abrir incidente automáticamente si se accede con ?incidenteId=...
   const incidenteIdParam = searchParams?.get('incidenteId');
@@ -145,41 +167,9 @@ export const KanbanBoard: React.FC = () => {
     conectado: conectadoKpis,
   } = useIncidentesKpis({ userId });
 
-  // HU-69: notificación de rechazo de misión por patrulla verificadora
-  const ultimosToastsRechazoRef = React.useRef<Map<string, number>>(new Map());
-
-  const handleMisionRechazadaSocket = React.useCallback(
-    (payload: MisionRechazadaPayload) => {
-      const ahora = Date.now();
-      if (payload.misionId) {
-        const ultimaVez = ultimosToastsRechazoRef.current.get(payload.misionId);
-        if (ultimaVez && ahora - ultimaVez < 5000) {
-          return;
-        }
-        ultimosToastsRechazoRef.current.set(payload.misionId, ahora);
-      }
-
-      const patrullaTexto = payload.patrullaNombre
-        ? `La patrulla ${payload.patrullaNombre}`
-        : 'La patrulla verificadora';
-      const incidenteTexto = payload.incidenteCodigo
-        ? ` del incidente ${payload.incidenteCodigo}`
-        : '';
-      const motivoTexto = payload.motivo || payload.justificacionRechazo || 'Sin justificación';
-
-      showWarning(
-        `${patrullaTexto} rechazó la misión ${payload.codigo}${incidenteTexto}. Motivo: "${motivoTexto}". El incidente retorna a estado Reportado para su reasignación.`,
-        'Misión Rechazada por Patrulla'
-      );
-
-      refrescarKpis(false);
-    },
-    [showWarning, refrescarKpis]
-  );
-
   useEffect(() => {
-    onMisionRechazadaRef.current = handleMisionRechazadaSocket;
-  }, [handleMisionRechazadaSocket]);
+    refrescarKpisRef.current = refrescarKpis;
+  }, [refrescarKpis]);
 
   // Hook de tiempo real para eventos de prevención (HU-30)
   usePrevencionSocket({
@@ -408,7 +398,7 @@ export const KanbanBoard: React.FC = () => {
             onAsignacionExitosa={(data) => {
               const estadoInicial = extraerEstadoInicialNotificacion(data);
               setTrazabilidadEstado(data.mision.id, estadoInicial, data.incidente.id);
-              moverIncidenteAEstado(data.incidente.id, 'VERIFICANDO');
+              marcarIncidenteMisionDespachada(data.incidente.id, true);
               recargar();
               refrescarKpis();
               cargarCuadrillas();

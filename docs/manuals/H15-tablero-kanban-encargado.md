@@ -30,13 +30,13 @@ El tablero organiza los casos en **5 columnas** que reflejan fielmente el ciclo 
 
 | Columna | Estado en Sistema | Significado Operativo | Distintivo Visual |
 |---|---|---|---|
-| **Reportado** | `REPORTADO` | Avisos ingresados desde chatbot o call center en espera de revisión táctica. | Franja Ámbar |
-| **En Verificación** | `VERIFICANDO` | Patrulla verificadora asignada o dirigiéndose a evaluar magnitud a terreno. | Franja Azul |
+| **Reportado** | `REPORTADO` | Avisos ingresados desde chatbot o call center. Al despachar una patrulla, el botón pasa a *"Confirmación Pendiente"* hasta que la patrulla confirme en terreno. Si la patrulla rechaza, el incidente permanece en esta columna y se reactiva el botón *"Asignar Patrulla"*. | Franja Ámbar |
+| **En Verificación** | `VERIFICANDO` | Patrulla verificadora ha aceptado la misión en terreno (`EN_CURSO`) y se encuentra evaluando presencialmente la emergencia. | Franja Azul |
 | **En Atención** | `EN_ATENCION` | Cuadrillas operativas y recursos asignados trabajando activamente en la mitigación. | Franja Naranja |
 | **Resuelto** | `RESUELTO` | Emergencia controlada y finalizada exitosamente por personal municipal. | Franja Verde |
 | **No Abordable** | `NO_ABORDABLE` | Caso descartado, duplicado o fuera de competencia municipal (ej. alta tensión). | Franja Gris Pizarra |
 
-Cada columna muestra en su cabecera un contador en formato `Visibles / Total Registrados`.
+Cada columna posee un ancho mínimo reforzado de **310px** para brindar holgura visual y muestra en su cabecera un contador en formato `Visibles / Total Registrados`.
 
 ---
 
@@ -72,7 +72,7 @@ En la parte superior del tablero dispones de herramientas para acotar los incide
 El tablero cuenta con reactividad automática mediante WebSockets:
 
 - En el encabezado superior verás el indicador **"Tiempo Real Activo"** con un punto verde.
-- **Nuevo incidente ingresado:** Cuando un informante reporta un caso por chatbot o un operador lo ingresa en Call Center, aparece instantáneamente en la columna *Reportado* sin recargar la página.
+- **Nuevo incidente ingresado:** Cuando un informante reporta un caso por chatbot o un operador lo ingresa en Call Center, aparece instantáneamente en la columna *Pendiente / Reportado* sin recargar la página.
 - **Cambio de estado:** Cuando una patrulla o cuadrilla actualiza el avance de una misión en terreno (a través de `sgrai-pwa`), la tarjeta se desplaza automáticamente a su nueva columna operativa en el tablero.
 
 ---

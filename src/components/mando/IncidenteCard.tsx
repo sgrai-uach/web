@@ -1,5 +1,5 @@
 import React from 'react';
-import { MapPin, CheckCircle2, ShieldCheck, Hourglass } from 'lucide-react';
+import { MapPin, ShieldCheck, CheckCircle2, Hourglass } from 'lucide-react';
 import type {
   EstadoTrazabilidadNotificacion,
   IncidenteResumen,
@@ -7,6 +7,7 @@ import type {
 import { TRAZABILIDAD_CONFIG } from '@/lib/socket/trazabilidadConfig';
 import { TrazabilidadIcon } from './TrazabilidadIcon';
 import { obtenerNombreDelegacion } from '@/lib/utils/delegacionUtils';
+import { formatearPrioridad } from '@/lib/utils/estadoUtils';
 import styles from '@/styles/mando.module.css';
 import Heading from '@/components/ui/Heading';
 import Button from '@/components/ui/Button';
@@ -63,24 +64,12 @@ export const IncidenteCard: React.FC<IncidenteCardProps> = ({
       aria-label={`Ver detalles del incidente ${incidente.codigo} tipo ${incidente.tipoAfectacion}`}
     >
       <div className={styles.cardTopRow}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', flexWrap: 'wrap' }}>
-          <span className={styles.cardCodigo}>{incidente.codigo}</span>
-          {estaVerificado && (
-            <span
-              className={styles.badgeVerificado}
-              title="Diagnóstico técnico en terreno finalizado por patrulla"
-              data-testid="badge-verificado"
-            >
-              <CheckCircle2 size={11} aria-hidden="true" />
-              <span>Verificado</span>
-            </span>
-          )}
-        </div>
+        <span className={styles.cardCodigo}>{incidente.codigo}</span>
         <span
           className={`${styles.badgePrioridad} ${getPrioridadClass(incidente.prioridad)}`}
-          title={`Prioridad: ${incidente.prioridad}`}
+          title={`Prioridad: ${formatearPrioridad(incidente.prioridad)}`}
         >
-          {incidente.prioridad}
+          {formatearPrioridad(incidente.prioridad)}
         </span>
       </div>
 
@@ -101,6 +90,31 @@ export const IncidenteCard: React.FC<IncidenteCardProps> = ({
               title="Este incidente requiere levantamiento de ficha FIBE"
             >
               FIBE
+            </span>
+          )}
+          {(estaVerificado || Boolean(incidente.reclasificadoEnTerreno)) && (
+            <span
+              data-testid="badge-verificado"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '3px',
+                padding: '1px 5px',
+                fontSize: '0.6875rem',
+                fontWeight: 600,
+                color: 'var(--color-primary-teal, #1B6F7D)',
+                backgroundColor: 'var(--color-bg-light, #ECEFF3)',
+                border: '1px solid var(--border-color-neutral, #DFE3E8)',
+                whiteSpace: 'nowrap',
+              }}
+              title={
+                incidente.justificacionReclasificacion
+                  ? `Tipología reclasificada en terreno: ${incidente.justificacionReclasificacion}`
+                  : `Tipología rectificada por patrulla en terreno (Prioridad: ${formatearPrioridad(incidente.prioridad)})`
+              }
+            >
+              <CheckCircle2 size={11} strokeWidth={2.2} color="var(--color-accent-mint, #4FAE9B)" aria-hidden="true" />
+              <span>Verificado</span>
             </span>
           )}
           {incidente.totalMisiones > 0 && (
@@ -217,7 +231,9 @@ export const IncidenteCard: React.FC<IncidenteCardProps> = ({
         )
       )}
 
-      {incidente.estado === 'REPORTADO' && (incidente.tieneMisionDespachada || (onAsignarPatrulla && puedeAsignarPatrulla)) && (
+      {incidente.estado === 'REPORTADO' &&
+        (incidente.tieneMisionDespachada ||
+          (!incidente.tieneMisionEnCurso && onAsignarPatrulla && puedeAsignarPatrulla)) && (
         <div style={{ marginTop: '0.625rem', paddingTop: '0.5rem', borderTop: '1px solid var(--border-color-neutral, #DFE3E8)' }}>
           {incidente.tieneMisionDespachada ? (
             <Button
@@ -241,7 +257,7 @@ export const IncidenteCard: React.FC<IncidenteCardProps> = ({
             >
               <span>Confirmación Pendiente</span>
             </Button>
-          ) : onAsignarPatrulla && puedeAsignarPatrulla ? (
+          ) : !incidente.tieneMisionEnCurso && onAsignarPatrulla && puedeAsignarPatrulla ? (
             <Button
               type="button"
               variant="primary"
