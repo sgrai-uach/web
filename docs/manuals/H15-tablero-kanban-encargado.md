@@ -74,6 +74,7 @@ El tablero cuenta con reactividad automática mediante WebSockets:
 - En el encabezado superior verás el indicador **"Tiempo Real Activo"** con un punto verde.
 - **Nuevo incidente ingresado:** Cuando un informante reporta un caso por chatbot o un operador lo ingresa en Call Center, aparece instantáneamente en la columna *Reportado* sin recargar la página.
 - **Cambio de estado:** Cuando una patrulla o cuadrilla actualiza el avance de una misión en terreno (a través de `sgrai-pwa`), la tarjeta se desplaza automáticamente a su nueva columna operativa en el tablero.
+- **Solicitud de apoyo adicional (HU-44):** Cuando una cuadrilla solicita refuerzos desde terreno (`mision:apoyo_solicitado`), el tablero muestra una alerta prioritaria y un banner superior descartable, marca la tarjeta con el badge **"Apoyo Solicitado"** junto con el extracto del requerimiento y la prioriza en la parte superior de la columna *En Atención*. Ver [H44-solicitar-apoyo-adicional-terreno.md](H44-solicitar-apoyo-adicional-terreno.md).
 
 ---
 

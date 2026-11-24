@@ -76,13 +76,14 @@ Si la cuadrilla en terreno rechazó la misión asignada, se exhibe un banner des
 Línea de tiempo vertical con los hitos operativos registrados en la misión:
 - Creación y despacho desde el Centro de Mando.
 - Llegada al sitio del suceso e inicio de labores.
+- Solicitudes de apoyo adicional en terreno (`Apoyo Adicional Solicitado` / `APOYO_SOLICITADO`, HU-44), destacadas con ícono de alerta en rojo.
 - Últimas actualizaciones emitidas desde terreno y cierre de misión (`Misión completada`).
 - Cada hito detalla fecha (`YYYY-MM-DD`), hora (`HH:MM:SS`) y glosa explicativa en lenguaje natural.
 
 #### 6. Informes Técnicos y Reportes de Terreno
 Desglose cronológico de las evaluaciones emitidas por los funcionarios municipales en terreno:
 - **Informes de Patrulla Verificadora (`EVALUACION_PRIORIDAD` / `VERIFICACION_CIERRE`):** Funcionario evaluador, diagnóstico técnico, comparativa de prioridad y afectación por familias/viviendas, dictamen operativo e indicador de Ficha FIBE.
-- **Informe Técnico Final de Cuadrilla (`REPORTE_CUADRILLA`, HU-68):** Delegado de cuadrilla evaluador, chip de estado final del terreno (`Controlado`, `Estable`, `Finalizado`, `Requiere seguimiento`, `Crítico` o `Inaccesible`), horas hombre invertidas, resumen de faenas ejecutadas, daños estimados, tabla de **Materiales e Insumos Consumidos** (con cantidad, unidad y observación) y distinción si la unidad *Requiere Apoyo* adicional en terreno.
+- **Informe Técnico Final de Cuadrilla (`REPORTE_CUADRILLA`, HU-68 / HU-44):** Delegado de cuadrilla evaluador, chip de estado final del terreno (`Controlado`, `Estable`, `Finalizado`, `Requiere seguimiento`, `Crítico` o `Inaccesible`), horas hombre invertidas, resumen de faenas ejecutadas, daños estimados, tabla de **Materiales e Insumos Consumidos** (con cantidad, unidad y observación) y, cuando corresponda, el chip **"Apoyo Solicitado"** junto al bloque **"Detalle de Apoyo Requerido"**.
 
 ---
 
