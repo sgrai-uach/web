@@ -9,6 +9,7 @@ import {
   ClipboardCheck,
   Ban,
   HardHat,
+  AlertTriangle,
 } from 'lucide-react';
 import type {
   EstadoTrazabilidadNotificacion,
@@ -51,6 +52,7 @@ export const IncidenteCard: React.FC<IncidenteCardProps> = ({
   const tieneFaenasFinalizadas = Boolean(
     incidente.estado === 'EN_ATENCION' && incidente.faenasCuadrillaCompletadas
   );
+  const tieneApoyoSolicitado = Boolean(incidente.apoyoSolicitado);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' || e.key === ' ') {
@@ -82,7 +84,7 @@ export const IncidenteCard: React.FC<IncidenteCardProps> = ({
 
   return (
     <div
-      className={`${styles.incidenteCard} ${estaVerificado ? styles.incidenteVerificado : ''} ${tieneFaenasFinalizadas ? styles.incidenteFaenasFinalizadas : ''}`}
+      className={`${styles.incidenteCard} ${estaVerificado ? styles.incidenteVerificado : ''} ${tieneFaenasFinalizadas ? styles.incidenteFaenasFinalizadas : ''} ${tieneApoyoSolicitado ? styles.incidenteApoyoSolicitado : ''}`}
       onClick={() => onClick(incidente)}
       onKeyDown={handleKeyDown}
       role="button"
@@ -146,8 +148,47 @@ export const IncidenteCard: React.FC<IncidenteCardProps> = ({
         </div>
       )}
 
+      {tieneApoyoSolicitado && incidente.detalleApoyoRequerido && (
+        <div
+          data-testid="card-detalle-apoyo"
+          title={incidente.detalleApoyoRequerido}
+          style={{
+            marginTop: '0.35rem',
+            marginBottom: '0.4rem',
+            padding: '5px 8px',
+            backgroundColor: 'var(--color-danger-bg, #FFEBEE)',
+            borderLeft: '3px solid var(--color-danger, #D32F2F)',
+            fontSize: '0.75rem',
+            color: 'var(--color-charcoal, #3B3F45)',
+            lineHeight: 1.3,
+            display: '-webkit-box',
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: 'vertical',
+            overflow: 'hidden',
+          }}
+        >
+          <strong style={{ color: 'var(--color-danger, #D32F2F)' }}>Apoyo requerido:</strong>{' '}
+          {incidente.detalleApoyoRequerido}
+        </div>
+      )}
+
       <div className={styles.cardFooter}>
         <div className={styles.cardMetaTags}>
+          {tieneApoyoSolicitado && (
+            <Chip
+              data-testid="badge-apoyo-solicitado"
+              variant="danger"
+              size="sm"
+              icon={<AlertTriangle size={11} strokeWidth={2.3} />}
+              title={
+                incidente.detalleApoyoRequerido
+                  ? `Apoyo adicional solicitado: ${incidente.detalleApoyoRequerido}`
+                  : 'La cuadrilla en terreno solicitó apoyo adicional'
+              }
+            >
+              Apoyo Solicitado
+            </Chip>
+          )}
           {incidente.requiereAsistenciaSocial && (
             <Chip
               variant="warning"

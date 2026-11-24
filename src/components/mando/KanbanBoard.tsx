@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { AlertTriangle } from 'lucide-react';
 import {
   useIncidentesKanban,
 } from '@/hooks/useIncidentesKanban';
@@ -9,18 +10,19 @@ import { useIncidentesKpis } from '@/hooks/useIncidentesKpis';
 import { usePrevencionSocket } from '@/hooks/usePrevencionSocket';
 import { useRecuperacionSocket } from '@/hooks/useRecuperacionSocket';
 import { useToast } from '@/components/ui/Toast';
+import Button from '@/components/ui/Button';
 import type { EstadoIncidente, IncidenteResumen } from '@/services/incidentesService';
 import type { EventoPrevencionDTO } from '@/types/evento-prevencion';
 import type { EventoRecuperacionResponse } from '@/types/recuperacion';
 import type {
   MisionRechazadaPayload,
   MisionActualizadaPayload,
+  MisionApoyoSolicitadoPayload,
   CuadrillaActualizadaPayload,
   RecursoActualizadoPayload,
   IncidenteActualizadoPayload,
   IncidenteCreadoPayload,
 } from '@/hooks/useEncargadoKanbanSocket';
-import type { MisionActualizadaPayload } from '@/types/misiones';
 import {
   esJustificacionSinCambios,
   esReporteCierreCuadrilla,
@@ -70,7 +72,8 @@ const TITULOS_COLUMNAS = {
 } as const;
 
 export const KanbanBoard: React.FC = () => {
-  const { showInfo, showWarning, showSuccess } = useToast();
+  const { showInfo, showWarning, showSuccess, showError } = useToast();
+  const [alertasApoyoActivas, setAlertasApoyoActivas] = useState<MisionApoyoSolicitadoPayload[]>([]);
   const searchParams = useSearchParams();
   const incidenteIdParam = searchParams?.get('incidenteId') ?? null;
   const [vistaActiva, setVistaActiva] = useState<'kanban' | 'mapa'>('kanban');
@@ -722,6 +725,69 @@ export const KanbanBoard: React.FC = () => {
     [showWarning]
   );
 
+  const handleMisionApoyoSolicitadoSocket = React.useCallback(
+    (payload: MisionApoyoSolicitadoPayload) => {
+      const claveDedup = `apoyo-solicitado:${payload.reporteId || payload.misionId}:${payload.solicitadoEn}`;
+      const ahora = Date.now();
+      const ultimaVez = ultimosToastsReporteRef.current.get(claveDedup);
+      if (ultimaVez && ahora - ultimaVez < 4000) {
+        return;
+      }
+      ultimosToastsReporteRef.current.set(claveDedup, ahora);
+
+      setAlertasApoyoActivas((prev) => {
+        const yaExiste = prev.some(
+          (a) =>
+            (payload.reporteId && a.reporteId === payload.reporteId) ||
+            (a.misionId === payload.misionId && a.solicitadoEn === payload.solicitadoEn)
+        );
+        if (yaExiste) return prev;
+        return [payload, ...prev].slice(0, 5);
+      });
+
+      const nombreCuadrilla = payload.cuadrillaNombre
+        ? formatearNombreCuadrilla(payload.cuadrillaNombre)
+        : 'Cuadrilla en terreno';
+      const refObjetivo = payload.incidenteCodigo || payload.misionCodigo || 'la faena en curso';
+      const detalleTexto =
+        payload.detalleApoyoRequerido?.trim() || 'Refuerzo adicional solicitado desde terreno';
+
+      const detallesApoyo: Array<{ label: string; value: string }> = [
+        { label: 'Cuadrilla', value: nombreCuadrilla },
+        ...(payload.misionCodigo ? [{ label: 'Misión', value: payload.misionCodigo }] : []),
+        ...(payload.evaluadorNombre
+          ? [{ label: 'Solicitado por', value: payload.evaluadorNombre }]
+          : []),
+        { label: 'Requerimiento', value: detalleTexto },
+      ];
+
+      showError(
+        `${nombreCuadrilla} solicitó apoyo adicional urgente en ${refObjetivo}.`,
+        'Apoyo Adicional Solicitado en Terreno',
+        {
+          durationMs: 12000,
+          icon: 'cuadrilla',
+          codeBadge: payload.incidenteCodigo || payload.misionCodigo || undefined,
+          priorityBadge: payload.prioridadAlerta || 'ALTA',
+          dedupKey: `toast-apoyo:${payload.reporteId || payload.misionId}`,
+          details: detallesApoyo,
+          action: payload.incidenteId
+            ? {
+                label: 'Ver incidente',
+                onClick: () => setIncidenteSeleccionadoId(payload.incidenteId!),
+              }
+            : payload.misionId
+              ? {
+                  label: 'Ver misión',
+                  onClick: () => setMisionSeleccionadaId(payload.misionId),
+                }
+              : undefined,
+        }
+      );
+    },
+    [showError]
+  );
+
   const {
     userId,
     setUserId,
@@ -746,6 +812,7 @@ export const KanbanBoard: React.FC = () => {
   } = useIncidentesKanban({
     onMisionRechazada: handleMisionRechazadaSocket,
     onMisionActualizada: handleMisionActualizadaSocket,
+    onMisionApoyoSolicitado: handleMisionApoyoSolicitadoSocket,
     onCuadrillaActualizada: handleCuadrillaActualizadaSocket,
     onRecursoActualizado: handleRecursoActualizadoSocket,
     onReporteTerrenoRecibido: handleReporteTerrenoRecibido,
@@ -938,6 +1005,79 @@ export const KanbanBoard: React.FC = () => {
               <InlineNotice variant="error">
                 {error}
               </InlineNotice>
+            </div>
+          )}
+
+          {alertasApoyoActivas.length > 0 && (
+            <div
+              data-testid="banner-alertas-apoyo-kanban"
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 'var(--space-2, 8px)',
+                marginBottom: 'var(--space-3, 12px)',
+              }}
+            >
+              {alertasApoyoActivas.map((alerta) => {
+                const clave = `${alerta.reporteId || alerta.misionId}-${alerta.solicitadoEn}`;
+                const refTitulo = alerta.incidenteCodigo || alerta.misionCodigo || 'Terreno';
+                return (
+                  <InlineNotice
+                    key={clave}
+                    variant="error"
+                    icon={<AlertTriangle size={18} aria-hidden="true" />}
+                    title={`Apoyo Adicional Solicitado — ${refTitulo}`}
+                    onClose={() =>
+                      setAlertasApoyoActivas((prev) =>
+                        prev.filter(
+                          (item) =>
+                            `${item.reporteId || item.misionId}-${item.solicitadoEn}` !== clave
+                        )
+                      )
+                    }
+                  >
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: '12px',
+                        flexWrap: 'wrap',
+                      }}
+                    >
+                      <span style={{ fontSize: '0.85rem' }}>
+                        <strong>
+                          {alerta.cuadrillaNombre
+                            ? formatearNombreCuadrilla(alerta.cuadrillaNombre)
+                            : 'Cuadrilla'}
+                          :
+                        </strong>{' '}
+                        {alerta.detalleApoyoRequerido ||
+                          'Se solicitaron refuerzos adicionales en terreno.'}
+                      </span>
+                      {alerta.incidenteId ? (
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => setIncidenteSeleccionadoId(alerta.incidenteId!)}
+                        >
+                          Revisar incidente
+                        </Button>
+                      ) : alerta.misionId ? (
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => setMisionSeleccionadaId(alerta.misionId)}
+                        >
+                          Revisar misión
+                        </Button>
+                      ) : null}
+                    </div>
+                  </InlineNotice>
+                );
+              })}
             </div>
           )}
 

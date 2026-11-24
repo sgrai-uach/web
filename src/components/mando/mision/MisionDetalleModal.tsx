@@ -571,15 +571,36 @@ export const MisionDetalleModal: React.FC<MisionDetalleModalProps> = ({
       }
     };
 
+    const handleMisionApoyoSolicitado = (rawPayload: unknown) => {
+      const p = rawPayload as Record<string, unknown> | null | undefined;
+      const raw = (p?.datos || p?.data || rawPayload) as Record<string, unknown> | null | undefined;
+      if (!raw || typeof raw !== 'object') return;
+      const evMisionId =
+        typeof raw.misionId === 'string'
+          ? raw.misionId
+          : typeof raw.mision_id === 'string'
+            ? raw.mision_id
+            : '';
+      if (evMisionId !== misionId) return;
+
+      void obtenerDetalleMision(misionId, userId).then((res) => {
+        if (res.exito && res.datos) {
+          setMision(res.datos);
+        }
+      });
+    };
+
     socket.on('connect', asegurarSalasEncargado);
     socket.on('adjunto:creado', handleAdjuntoCreado);
     socket.on('incidente:actualizado', handleIncidenteActualizado);
     socket.on('mision:actualizada', handleMisionActualizada);
+    socket.on('mision:apoyo_solicitado', handleMisionApoyoSolicitado);
     return () => {
       socket.off('connect', asegurarSalasEncargado);
       socket.off('adjunto:creado', handleAdjuntoCreado);
       socket.off('incidente:actualizado', handleIncidenteActualizado);
       socket.off('mision:actualizada', handleMisionActualizada);
+      socket.off('mision:apoyo_solicitado', handleMisionApoyoSolicitado);
     };
   }, [misionId, userId]);
 
@@ -710,11 +731,11 @@ export const MisionDetalleModal: React.FC<MisionDetalleModalProps> = ({
               {/* Evidencia multimedia preliminar (cargada durante la misión en curso antes de consolidarse en un informe) */}
               {(() => {
                 const idsEnReportes = new Set(
-                  (mision.reportesTerreno || []).flatMap((r) =>
+                  (misionConTiempoReal.reportesTerreno || []).flatMap((r) =>
                     (r.adjuntos || []).map((a) => a.id)
                   )
                 );
-                const adjuntosPreliminares = (mision.adjuntos || []).filter(
+                const adjuntosPreliminares = (misionConTiempoReal.adjuntos || []).filter(
                   (a) => !idsEnReportes.has(a.id)
                 );
                 if (adjuntosPreliminares.length === 0) return null;

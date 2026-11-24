@@ -61,6 +61,51 @@ interface MisionReportesSectionProps {
   seccionRef?: React.RefObject<HTMLDivElement | null>;
 }
 
+const DetalleApoyoReportBlock: React.FC<{ reporte: ReporteTerrenoDetalle }> = ({ reporte }) => {
+  if (!reporte.requiereApoyoAdicional) return null;
+  return (
+    <div
+      data-testid={`detalle-apoyo-reporte-${reporte.id}`}
+      style={{
+        padding: '10px 12px',
+        backgroundColor: 'var(--color-danger-bg, #FFEBEE)',
+        border: '1px solid #FFCDD2',
+        borderLeft: '4px solid var(--color-danger, #D32F2F)',
+      }}
+    >
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '6px',
+          marginBottom: '4px',
+        }}
+      >
+        <AlertTriangle size={14} color="var(--color-danger, #D32F2F)" aria-hidden="true" />
+        <strong
+          style={{
+            fontSize: '13px',
+            color: 'var(--color-danger, #D32F2F)',
+          }}
+        >
+          Detalle de Apoyo Requerido
+        </strong>
+      </div>
+      <p
+        style={{
+          margin: 0,
+          fontSize: '13px',
+          color: 'var(--color-text-dark, #2B2B2B)',
+          lineHeight: 1.4,
+        }}
+      >
+        {reporte.detalleApoyoRequerido?.trim() ||
+          'La unidad en terreno solicitó apoyo adicional sin especificar detalles.'}
+      </p>
+    </div>
+  );
+};
+
 function normalizarDetallesEvaluacion(
   raw?: EvaluacionTerrenoMisionDetalle | Record<string, unknown> | null
 ): EvaluacionTerrenoMisionDetalle | null {
@@ -657,19 +702,21 @@ export const MisionReportesSection: React.FC<MisionReportesSectionProps> = ({
                   ? evalNorm.familias.length
                   : evalNorm?.familiasAfectadas;
 
-              const borderLeftColor = esCierreCuadrilla
-                ? esTerrenoCritico
-                  ? 'var(--color-danger, #D32F2F)'
-                  : esTerrenoSeguimiento || reporte.requiereApoyoAdicional
-                    ? 'var(--color-warning, #E65100)'
-                    : 'var(--color-accent-mint, #4FAE9B)'
-                : esCierre
-                  ? reporte.dictamen === 'NO_ABORDABLE'
+              const borderLeftColor = reporte.requiereApoyoAdicional
+                ? 'var(--color-danger, #D32F2F)'
+                : esCierreCuadrilla
+                  ? esTerrenoCritico
                     ? 'var(--color-danger, #D32F2F)'
-                    : 'var(--color-accent-mint, #4FAE9B)'
-                  : prioridadModificada
-                    ? 'var(--color-warning, #E65100)'
-                    : 'var(--color-accent-mint, #4FAE9B)';
+                    : esTerrenoSeguimiento
+                      ? 'var(--color-warning, #E65100)'
+                      : 'var(--color-accent-mint, #4FAE9B)'
+                  : esCierre
+                    ? reporte.dictamen === 'NO_ABORDABLE'
+                      ? 'var(--color-danger, #D32F2F)'
+                      : 'var(--color-accent-mint, #4FAE9B)'
+                    : prioridadModificada
+                      ? 'var(--color-warning, #E65100)'
+                      : 'var(--color-accent-mint, #4FAE9B)';
 
               return (
                 <ReporteCardShell
@@ -769,11 +816,17 @@ export const MisionReportesSection: React.FC<MisionReportesSectionProps> = ({
 
                       {reporte.requiereApoyoAdicional && (
                         <Chip
-                          variant="warning"
+                          data-testid={`badge-apoyo-reporte-${reporte.id}`}
+                          variant="danger"
                           size="sm"
-                          title="El equipo en terreno requiere refuerzos o apoyo adicional"
+                          icon={<AlertTriangle size={11} strokeWidth={2.2} />}
+                          title={
+                            reporte.detalleApoyoRequerido
+                              ? `Apoyo adicional solicitado: ${reporte.detalleApoyoRequerido}`
+                              : 'El equipo en terreno requiere refuerzos o apoyo adicional'
+                          }
                         >
-                          Requiere Apoyo
+                          Apoyo Solicitado
                         </Chip>
                       )}
                     </>
@@ -975,6 +1028,8 @@ export const MisionReportesSection: React.FC<MisionReportesSectionProps> = ({
                         </div>
                       )}
 
+                      <DetalleApoyoReportBlock reporte={reporte} />
+
                       {/* Galería de Evidencias (HU-43) */}
                       <MisionEvidenciasGallery adjuntos={reporte.adjuntos} />
                     </>
@@ -1125,6 +1180,8 @@ export const MisionReportesSection: React.FC<MisionReportesSectionProps> = ({
                           </p>
                         </div>
                       )}
+
+                      <DetalleApoyoReportBlock reporte={reporte} />
 
                       {/* Galería de Evidencias */}
                       <MisionEvidenciasGallery adjuntos={reporte.adjuntos} />
@@ -1584,6 +1641,8 @@ export const MisionReportesSection: React.FC<MisionReportesSectionProps> = ({
                           </p>
                         </div>
                       )}
+
+                      <DetalleApoyoReportBlock reporte={reporte} />
 
                       {/* Galería de Evidencias */}
                       <MisionEvidenciasGallery adjuntos={reporte.adjuntos} />

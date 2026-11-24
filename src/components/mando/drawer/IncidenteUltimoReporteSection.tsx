@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Ban, ClipboardList, Clock, ExternalLink, HeartHandshake, Package, User, Wrench } from 'lucide-react';
+import { AlertTriangle, Ban, ClipboardList, Clock, ExternalLink, HeartHandshake, Package, User, Wrench } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import { Chip } from '@/components/ui/Chip';
 import {
@@ -90,6 +90,7 @@ export const IncidenteUltimoReporteSection: React.FC<IncidenteUltimoReporteSecti
         etiquetaReporte: top.etiquetaReporte,
         requiereAsistenciaSocial: top.requiereAsistenciaSocial,
         requiereApoyoAdicional: top.requiereApoyoAdicional,
+        detalleApoyoRequerido: top.detalleApoyoRequerido ?? null,
         horasHombre: top.horasHombre,
         materialesConsumidos: top.materialesConsumidos,
         personasAfectadas: top.personasAfectadas,
@@ -147,13 +148,23 @@ export const IncidenteUltimoReporteSection: React.FC<IncidenteUltimoReporteSecti
     );
   }, [esCierreCuadrilla, reporteTerrenoReciente, ultimoReporte]);
 
-  const requiereApoyoCuadrilla = React.useMemo(() => {
-    if (!esCierreCuadrilla) return false;
+  const requiereApoyoActual = React.useMemo(() => {
+    if (!ultimoReporte || ultimoReporte.origen === 'RECLASIFICACION') return false;
     return Boolean(
       reporteTerrenoReciente?.requiereApoyoAdicional ??
-        ultimoReporte?.requiereApoyoAdicional
+        ultimoReporte.requiereApoyoAdicional
     );
-  }, [esCierreCuadrilla, reporteTerrenoReciente, ultimoReporte]);
+  }, [ultimoReporte, reporteTerrenoReciente]);
+
+  const detalleApoyoActual = React.useMemo(() => {
+    if (!ultimoReporte || ultimoReporte.origen === 'RECLASIFICACION') return null;
+    return (
+      reporteTerrenoReciente?.detalleApoyoRequerido ??
+      ultimoReporte.detalleApoyoRequerido ??
+      detalle.detalleApoyoRequerido ??
+      null
+    );
+  }, [ultimoReporte, reporteTerrenoReciente, detalle.detalleApoyoRequerido]);
 
   const dictamenCierre = React.useMemo(() => {
     if (!esCierre) return null;
@@ -484,9 +495,19 @@ export const IncidenteUltimoReporteSection: React.FC<IncidenteUltimoReporteSecti
                   {formatearHorasHombre(horasHombreCuadrilla)}
                 </Chip>
               )}
-              {esCierreCuadrilla && requiereApoyoCuadrilla && (
-                <Chip variant="warning" size="sm">
-                  Requiere Apoyo
+              {requiereApoyoActual && (
+                <Chip
+                  variant="danger"
+                  size="sm"
+                  icon={<AlertTriangle size={11} />}
+                  data-testid="ultimo-reporte-badge-apoyo"
+                  title={
+                    detalleApoyoActual
+                      ? `Apoyo solicitado: ${detalleApoyoActual}`
+                      : 'El equipo en terreno requiere refuerzos o apoyo adicional'
+                  }
+                >
+                  Apoyo Solicitado
                 </Chip>
               )}
               {esCierre && dictamenCierre && (
@@ -563,6 +584,33 @@ export const IncidenteUltimoReporteSection: React.FC<IncidenteUltimoReporteSecti
                 <span>Motivo de No Abordabilidad:</span>
               </strong>{' '}
               <span>{motivoNoAbordableCierre || 'Declarado No Abordable en terreno.'}</span>
+            </div>
+          )}
+
+          {/* 1.2 Detalle de apoyo adicional solicitado (HU-44) */}
+          {requiereApoyoActual && detalleApoyoActual && (
+            <div
+              data-testid="ultimo-reporte-detalle-apoyo"
+              style={{
+                padding: '6px 10px',
+                backgroundColor: 'var(--color-danger-bg, #FFEBEE)',
+                borderLeft: '3px solid var(--color-danger, #D32F2F)',
+                fontSize: '0.78rem',
+                color: 'var(--color-text-dark, #2B2B2B)',
+              }}
+            >
+              <strong
+                style={{
+                  color: 'var(--color-danger, #D32F2F)',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                }}
+              >
+                <AlertTriangle size={12} aria-hidden="true" />
+                <span>Detalle de apoyo requerido:</span>
+              </strong>{' '}
+              <span>{detalleApoyoActual}</span>
             </div>
           )}
 

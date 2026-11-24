@@ -117,7 +117,7 @@ export const MisionBitacoraSection: React.FC<MisionBitacoraSectionProps> = ({
                     <div className={styles.timelineDotIcon} aria-hidden="true">
                       <CheckCircle2 size={12} />
                     </div>
-                  ) : config.esRechazo ? (
+                  ) : config.esRechazo || config.esApoyoSolicitado ? (
                     <div
                       className={`${styles.timelineDotIcon} ${styles.timelineDotRechazo}`}
                       aria-hidden="true"

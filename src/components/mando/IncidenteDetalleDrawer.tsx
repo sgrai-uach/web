@@ -61,7 +61,7 @@ import {
   type DictamenAtencionTerreno,
 } from '@/types/misiones';
 import type { EstadoIncidente } from '@/services/incidentesService';
-import { HardHat, CheckCircle2, Ban } from 'lucide-react';
+import { HardHat, CheckCircle2, Ban, AlertTriangle } from 'lucide-react';
 import styles from '@/styles/mando.module.css';
 
 export interface IncidenteDetalleDrawerProps {
@@ -626,6 +626,53 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
       }
     };
 
+    const handleMisionApoyoSolicitado = (rawPayload: unknown) => {
+      const p = rawPayload as Record<string, unknown> | null | undefined;
+      const raw = (p?.datos || p?.data || p) as Record<string, unknown> | null | undefined;
+      if (!raw || typeof raw !== 'object') return;
+      const incId =
+        typeof raw.incidenteId === 'string'
+          ? raw.incidenteId
+          : typeof raw.incidente_id === 'string'
+            ? raw.incidente_id
+            : undefined;
+      const misId =
+        typeof raw.misionId === 'string'
+          ? raw.misionId
+          : typeof raw.mision_id === 'string'
+            ? raw.mision_id
+            : undefined;
+
+      const pertenece =
+        incId === incidenteId ||
+        Boolean(misId && detalleRef.current?.misiones.some((m) => m.id === misId));
+      if (!pertenece) return;
+
+      const detalleApoyo =
+        typeof raw.detalleApoyoRequerido === 'string'
+          ? raw.detalleApoyoRequerido
+          : typeof raw.detalle_apoyo_requerido === 'string'
+            ? raw.detalle_apoyo_requerido
+            : null;
+      const requiereApoyo =
+        typeof raw.requiereApoyoAdicional === 'boolean'
+          ? raw.requiereApoyoAdicional
+          : typeof raw.requiere_apoyo_adicional === 'boolean'
+            ? raw.requiere_apoyo_adicional
+            : true;
+
+      setDetalle((prev) => {
+        if (!prev || prev.id !== incidenteId) return prev;
+        return {
+          ...prev,
+          apoyoSolicitado: Boolean(requiereApoyo),
+          detalleApoyoRequerido: detalleApoyo ?? prev.detalleApoyoRequerido ?? null,
+        };
+      });
+
+      cargarDetalle(true);
+    };
+
     socket.on('connect', asegurarSalasEncargado);
     socket.on('incidente:actualizado', handleActualizadoSocket);
     socket.on('notificacion:trazabilidad_actualizada', handleTrazabilidad);
@@ -634,6 +681,7 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
     socket.on('mision:rechazada', handleMisionRechazada);
     socket.on('incidente:actualizado', handleIncidenteActualizado);
     socket.on('adjunto:creado', handleAdjuntoCreado);
+    socket.on('mision:apoyo_solicitado', handleMisionApoyoSolicitado);
 
     return () => {
       socket.off('connect', asegurarSalasEncargado);
@@ -644,6 +692,7 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
       socket.off('mision:rechazada', handleMisionRechazada);
       socket.off('incidente:actualizado', handleIncidenteActualizado);
       socket.off('adjunto:creado', handleAdjuntoCreado);
+      socket.off('mision:apoyo_solicitado', handleMisionApoyoSolicitado);
     };
   }, [incidenteId, cargarDetalle]);
 
@@ -828,6 +877,28 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
                   )}
                 </div>
               )}
+            </div>
+          )}
+
+          {/* Banner prioritario de solicitud de apoyo adicional en terreno (HU-44) */}
+          {detalle && detalle.apoyoSolicitado && (
+            <div
+              data-testid="banner-apoyo-solicitado"
+              style={{
+                padding: 'var(--space-2, 8px) var(--space-4, 16px)',
+                borderBottom: '1px solid #FFCDD2',
+              }}
+            >
+              <InlineNotice
+                variant="error"
+                title="Apoyo Adicional Solicitado en Terreno"
+                icon={<AlertTriangle size={18} aria-hidden="true" />}
+              >
+                <p style={{ margin: 0, fontSize: '0.8125rem' }}>
+                  {detalle.detalleApoyoRequerido?.trim() ||
+                    'La cuadrilla en terreno solicitó refuerzos adicionales para continuar la atención.'}
+                </p>
+              </InlineNotice>
             </div>
           )}
 

@@ -351,6 +351,11 @@
   border-left: 4px solid var(--color-accent-mint, #4FAE9B) !important;
 }
 
+/* Indicador prioritario de solicitud de apoyo adicional desde terreno (HU-44) */
+.incidenteApoyoSolicitado {
+  border-left: 4px solid var(--color-danger, #D32F2F) !important;
+}
+
 .badgeVerificado {
   display: inline-flex;
   align-items: center;
