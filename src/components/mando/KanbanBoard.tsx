@@ -704,7 +704,11 @@ export const KanbanBoard: React.FC = () => {
             onSelectCuadrilla={(cuadrillaId) => setCuadrillaSeleccionadaId(cuadrillaId)}
             onIncidenteActualizado={(incId, nuevoEstado) => {
               if (incId && nuevoEstado) {
-                moverIncidenteAEstado(incId, nuevoEstado);
+                if (nuevoEstado === 'REPORTADO') {
+                  marcarIncidenteMisionDespachada(incId, true);
+                } else {
+                  moverIncidenteAEstado(incId, nuevoEstado);
+                }
               }
               recargar();
               refrescarKpis();

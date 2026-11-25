@@ -860,4 +860,190 @@ describe('useIncidentesKanban - HU-20 y BUG-04', () => {
     expect(movido.prioridad).toBe('CRITICA');
     expect(movido.verificado).toBe(false);
   });
+
+  it('BUG-INT-29: moverIncidenteAEstado desde VERIFICANDO hacia EN_ATENCION actualiza la paginación de la columna origen real', async () => {
+    const mockReportado: incidentesService.IncidenteResumen = {
+      id: 'inc-rep-keep',
+      codigo: 'INC-2026-9001',
+      codigoSeguimiento: '90019001',
+      tipoAfectacion: 'Anegamiento',
+      descripcion: 'Anegamiento en calzada',
+      direccion: 'Av. Picarte 500',
+      latitud: -39.82,
+      longitud: -73.24,
+      estado: 'REPORTADO',
+      prioridad: 'MEDIA',
+      requiereAsistenciaSocial: false,
+      fuenteOrigen: 'WEB',
+      informanteNombre: 'Rosa',
+      delegacionNombre: 'Centro',
+      totalMisiones: 0,
+      creadoEn: '2026-11-25T10:00:00Z',
+      actualizadoEn: '2026-11-25T10:00:00Z',
+    };
+
+    const mockVerificando: incidentesService.IncidenteResumen = {
+      ...mockReportado,
+      id: 'inc-verif-move',
+      codigo: 'INC-2026-9002',
+      codigoSeguimiento: '90029002',
+      estado: 'VERIFICANDO',
+      totalMisiones: 1,
+    };
+
+    vi.mocked(incidentesService.listarIncidentes).mockImplementation(async (query) => {
+      if (query.estado === 'REPORTADO') {
+        return {
+          exito: true,
+          incidentes: [mockReportado],
+          paginacion: {
+            total: 1,
+            pagina: 1,
+            limite: 20,
+            totalPaginas: 1,
+            tieneSiguiente: false,
+            tieneAnterior: false,
+          },
+          mensaje: 'OK',
+        };
+      }
+      if (query.estado === 'VERIFICANDO') {
+        return {
+          exito: true,
+          incidentes: [mockVerificando],
+          paginacion: {
+            total: 1,
+            pagina: 1,
+            limite: 20,
+            totalPaginas: 1,
+            tieneSiguiente: false,
+            tieneAnterior: false,
+          },
+          mensaje: 'OK',
+        };
+      }
+      return {
+        exito: true,
+        incidentes: [],
+        paginacion: {
+          total: 0,
+          pagina: 1,
+          limite: 20,
+          totalPaginas: 0,
+          tieneSiguiente: false,
+          tieneAnterior: false,
+        },
+        mensaje: 'OK',
+      };
+    });
+
+    const { result } = renderHook(() => useIncidentesKanban());
+
+    await waitFor(() => {
+      expect(result.current.columnas.REPORTADO.length).toBe(1);
+      expect(result.current.columnas.VERIFICANDO.length).toBe(1);
+    });
+
+    act(() => {
+      result.current.moverIncidenteAEstado('inc-verif-move', 'EN_ATENCION');
+    });
+
+    expect(result.current.columnas.REPORTADO.length).toBe(1);
+    expect(result.current.columnas.VERIFICANDO.length).toBe(0);
+    expect(result.current.columnas.EN_ATENCION.length).toBe(1);
+    expect(result.current.paginacionColumna.REPORTADO?.total).toBe(1);
+    expect(result.current.paginacionColumna.VERIFICANDO?.total).toBe(0);
+    expect(result.current.paginacionColumna.EN_ATENCION?.total).toBe(1);
+  });
+
+  it('BUG-INT-29: incidente:actualizado actualiza paginacionColumna y enriquece tipoAnterior desde columnasRef sin depender de updater síncrono', async () => {
+    const mockReportado: incidentesService.IncidenteResumen = {
+      id: 'inc-sock-29',
+      codigo: 'INC-2026-9029',
+      codigoSeguimiento: '90299029',
+      tipoAfectacion: 'Anegamiento menor',
+      descripcion: 'Agua acumulada',
+      direccion: 'Av. Francia 900',
+      latitud: -39.82,
+      longitud: -73.24,
+      estado: 'REPORTADO',
+      prioridad: 'MEDIA',
+      requiereAsistenciaSocial: false,
+      fuenteOrigen: 'WEB',
+      informanteNombre: 'Pedro',
+      delegacionNombre: 'Sur',
+      totalMisiones: 1,
+      tieneMisionDespachada: true,
+      creadoEn: '2026-11-25T10:00:00Z',
+      actualizadoEn: '2026-11-25T10:00:00Z',
+    };
+
+    vi.mocked(incidentesService.listarIncidentes).mockImplementation(async (query) => {
+      if (query.estado === 'REPORTADO') {
+        return {
+          exito: true,
+          incidentes: [mockReportado],
+          paginacion: {
+            total: 1,
+            pagina: 1,
+            limite: 20,
+            totalPaginas: 1,
+            tieneSiguiente: false,
+            tieneAnterior: false,
+          },
+          mensaje: 'OK',
+        };
+      }
+      return {
+        exito: true,
+        incidentes: [],
+        paginacion: {
+          total: 0,
+          pagina: 1,
+          limite: 20,
+          totalPaginas: 0,
+          tieneSiguiente: false,
+          tieneAnterior: false,
+        },
+        mensaje: 'OK',
+      };
+    });
+
+    const onIncidenteActualizadoSocket = vi.fn();
+    const { result } = renderHook(() =>
+      useIncidentesKanban({ onIncidenteActualizadoSocket })
+    );
+
+    await waitFor(() => {
+      expect(result.current.columnas.REPORTADO.length).toBe(1);
+    });
+
+    act(() => {
+      socketCallbacks.onIncidenteActualizado?.({
+        evento: 'incidente:actualizado',
+        datos: {
+          id: 'inc-sock-29',
+          codigo: 'INC-2026-9029',
+          nuevoEstado: 'VERIFICANDO',
+          prioridad: 'ALTA',
+          tipoAfectacion: 'Inundación',
+          justificacion: 'Desborde de estero confirmado en terreno.',
+          actualizadoEn: '2026-11-25T10:15:00Z',
+        },
+        emitidoEn: '2026-11-25T10:15:00Z',
+      });
+    });
+
+    expect(result.current.paginacionColumna.REPORTADO?.total).toBe(0);
+    expect(result.current.paginacionColumna.VERIFICANDO?.total).toBe(1);
+    expect(onIncidenteActualizadoSocket).toHaveBeenCalledWith(
+      expect.objectContaining({
+        datos: expect.objectContaining({
+          id: 'inc-sock-29',
+          tipoAnterior: 'Anegamiento menor',
+          tipoAfectacion: 'Inundación',
+        }),
+      })
+    );
+  });
 });

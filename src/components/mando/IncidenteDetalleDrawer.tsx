@@ -81,6 +81,7 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
     !auth ||
     auth.tienePermiso('misiones:asignar') ||
     auth.usuario?.rolCodigo === 'ENCARGADO' ||
+    auth.usuario?.rolCodigo === 'ADMIN' ||
     auth.usuario?.rolCodigo === 'ADMINISTRADOR';
 
   const cargarDetalle = useCallback(() => {
