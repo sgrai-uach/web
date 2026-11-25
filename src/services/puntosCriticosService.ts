@@ -382,6 +382,15 @@ export async function crearPuntoCritico(
   }
 }
 
+function extraerPuntoCriticoDetalle(
+  data: PuntoCriticoDetalleResponse | { data?: PuntoCriticoDetalleResponse }
+): PuntoCriticoDetalleResponse {
+  if ('data' in data && data.data) {
+    return data.data;
+  }
+  return data as PuntoCriticoDetalleResponse;
+}
+
 /**
  * Obtiene el detalle consolidado de un punto crítico por su ID para precargar el formulario (HU-55).
  */
@@ -391,8 +400,7 @@ export async function getPuntoCriticoById(
   signal?: AbortSignal
 ): Promise<PuntoCriticoDetalleResponse> {
   try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data, error, response } = await (apiClient as any).GET('/api/puntos-criticos/{id}', {
+    const { data, error, response } = await apiClient.GET('/api/puntos-criticos/{id}', {
       params: {
         path: { id },
         header: {
@@ -403,7 +411,9 @@ export async function getPuntoCriticoById(
     });
 
     if (response?.status === 200 && data) {
-      return (data.data || data) as PuntoCriticoDetalleResponse;
+      return extraerPuntoCriticoDetalle(
+        data as PuntoCriticoDetalleResponse | { data?: PuntoCriticoDetalleResponse }
+      );
     }
 
     if (error || (response && response.status >= 400)) {
@@ -480,8 +490,7 @@ export async function actualizarPuntoCritico(
   userId: string = DEFAULT_ADMIN_USER_ID
 ): Promise<PuntoCriticoDetalleResponse> {
   try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data, error, response } = await (apiClient as any).PUT('/api/puntos-criticos/{id}', {
+    const { data, error, response } = await apiClient.PUT('/api/puntos-criticos/{id}', {
       params: {
         path: { id },
         header: {
@@ -492,7 +501,9 @@ export async function actualizarPuntoCritico(
     });
 
     if (response?.status === 200 && data) {
-      return (data.data || data) as PuntoCriticoDetalleResponse;
+      return extraerPuntoCriticoDetalle(
+        data as PuntoCriticoDetalleResponse | { data?: PuntoCriticoDetalleResponse }
+      );
     }
 
     if (error || (response && response.status >= 400)) {

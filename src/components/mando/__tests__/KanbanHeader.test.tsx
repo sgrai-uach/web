@@ -110,4 +110,30 @@ describe('KanbanHeader (HU-30)', () => {
     const btnPatrullas = screen.queryByRole('button', { name: /Patrullas/i });
     expect(btnPatrullas).not.toBeInTheDocument();
   });
+
+  it('debe renderizar el acceso directo "Evento ATP" cuando el usuario tiene permiso', () => {
+    render(
+      <KanbanHeader
+        totalIncidentesVisibles={5}
+        conectado={true}
+        puedeCrearEventoAtp={true}
+      />
+    );
+
+    const linkAtp = screen.getByRole('link', { name: /Evento ATP/i });
+    expect(linkAtp).toBeInTheDocument();
+    expect(linkAtp).toHaveAttribute('href', '/gestion/admin/eventos-atp/nuevo');
+  });
+
+  it('no debe renderizar el acceso directo "Evento ATP" sin permiso', () => {
+    render(
+      <KanbanHeader
+        totalIncidentesVisibles={5}
+        conectado={true}
+        puedeCrearEventoAtp={false}
+      />
+    );
+
+    expect(screen.queryByRole('link', { name: /Evento ATP/i })).toBeNull();
+  });
 });

@@ -13,7 +13,6 @@ import {
   esJustificacionSinCambios,
   esReporteVerificacionCierre,
   formatearDictamenTerreno,
-  formatearEstado,
   formatearPrioridad,
   formatearCompromisoVivienda,
   fueTipologiaModificada,

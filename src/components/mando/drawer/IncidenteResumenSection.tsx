@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { CheckCircle2, FileText, GitCompareArrows } from 'lucide-react';
+import { CheckCircle2, FileText, GitCompareArrows, ShieldCheck } from 'lucide-react';
 import type { IncidenteDetalle } from '@/services/incidentesService';
 import {
   esJustificacionSinCambios,
@@ -10,6 +10,7 @@ import {
 } from '@/lib/utils/estadoUtils';
 import { DrawerSectionHeader } from './DrawerSectionHeader';
 import Chip from '@/components/ui/Chip';
+
 import styles from '@/styles/mando.module.css';
 
 interface IncidenteResumenSectionProps {
@@ -34,10 +35,13 @@ export const IncidenteResumenSection: React.FC<IncidenteResumenSectionProps> = (
       };
     }
 
-    if (
-      (detalle.reclasificadoEnTerreno || detalle.justificacionReclasificacion) &&
-      detalle.misiones.length > 0
-    ) {
+    const justif = detalle.justificacionReclasificacion?.trim() || '';
+    const esGlosaSoloPrioridad =
+      /^(?:Reporte de evaluaci[oó]n[^:]*:\s*)?Prioridad (?:actualizada|asignada)\b/i.test(
+        justif
+      );
+
+    if (justif.length > 0 && !esGlosaSoloPrioridad && detalle.misiones.length > 0) {
       const misionVerif =
         detalle.misiones.find((m) => m.tipoMision === 'VERIFICACION') || detalle.misiones[0];
       return {
@@ -122,6 +126,47 @@ export const IncidenteResumenSection: React.FC<IncidenteResumenSectionProps> = (
           </span>
         </div>
       </div>
+
+      {cambioAfectacion && huboCambioTipologia && (
+        <div
+          data-testid="bloque-reclasificacion-terreno"
+          style={{
+            marginTop: '1rem',
+            padding: '0.75rem 1rem',
+            backgroundColor: 'var(--color-info-bg, #E0F2F1)',
+            borderLeft: '4px solid var(--color-primary-teal, #1B6F7D)',
+          }}
+        >
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              marginBottom: '0.35rem',
+            }}
+          >
+            <ShieldCheck size={16} color="var(--color-primary-teal, #1B6F7D)" aria-hidden="true" />
+            <strong
+              style={{
+                fontSize: '0.8125rem',
+                color: 'var(--color-primary-teal-dark, #14505A)',
+                textTransform: 'uppercase',
+                letterSpacing: '0.5px',
+              }}
+            >
+              Reclasificación Técnica en Terreno
+            </strong>
+          </div>
+          <p style={{ margin: '0.2rem 0', fontSize: '0.8125rem', color: 'var(--color-charcoal, #3B3F45)' }}>
+            <strong>Tipología constatada:</strong> {detalle.tipoAfectacion}
+          </p>
+          {cambioAfectacion.justificacion && (
+            <p style={{ margin: '0.2rem 0', fontSize: '0.8125rem', color: 'var(--color-charcoal, #3B3F45)' }}>
+              <strong>Justificación de la patrulla:</strong> {cambioAfectacion.justificacion}
+            </p>
+          )}
+        </div>
+      )}
 
       <div style={{ marginTop: '0.75rem' }}>
         <span className={styles.drawerDataLabel}>Descripción del Relato</span>

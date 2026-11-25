@@ -5,13 +5,13 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import type { IncidenteResumen } from '@/services/incidentesService';
 import type { EventoPrevencionDTO } from '@/types/evento-prevencion';
-import type { EventoRecuperacionResponse } from '@/types/recuperacion';
+import type { EventoRecuperacionResponse, DetalleEventoRecuperacionResponse } from '@/types/recuperacion';
 import type { CuadrillaItem } from '@/types/cuadrilla';
 
 interface MapaOperativoMandoInnerProps {
   incidentes?: IncidenteResumen[];
   eventosPrevencion?: EventoPrevencionDTO[];
-  eventosRecuperacion?: EventoRecuperacionResponse[];
+  eventosRecuperacion?: (EventoRecuperacionResponse | DetalleEventoRecuperacionResponse)[];
   cuadrillas?: CuadrillaItem[];
 
   onSelectIncidente?: (id: string) => void;
@@ -339,6 +339,12 @@ export default function MapaOperativoMandoInner({
               <ul style="margin: 4px 0 0 16px; padding: 0;">
                 ${recursosList}
               </ul>
+            </div>
+
+            <div style="margin-top: 8px; padding-top: 6px; border-top: 1px solid #DFE3E8; text-align: center;">
+              <a href="/eventos-atp/recuperacion/${rec.id}" style="display: block; background-color: #1B6F7D; color: #FFFFFF; padding: 5px 8px; text-decoration: none; font-weight: 700; font-size: 11px;">
+                Ver Detalle y Asignar Recursos &rarr;
+              </a>
             </div>
           </div>
         `;

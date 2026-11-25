@@ -36,7 +36,7 @@ Al hacer clic sobre la tarjeta del incidente en el Tablero Kanban, se despliega 
    - Presenta un resumen rápido de los indicadores demográficos y habitacionales (tamaño del núcleo familiar, niños, adultos mayores, personas con discapacidad, mascotas y nivel de compromiso de la vivienda), seguido del diagnóstico técnico.
 3. En la esquina inferior derecha de dicho bloque, el Encargado dispone de dos accesos directos:
    - **`Ver Último Reporte`**: Abre el modal de detalle de la misión posicionando el foco directamente sobre el último reporte vigente.
-   - **`Ver Todos los Reportes (N)`**: Abre el modal de detalle de la misión desplazándose automáticamente a la sección completa de informes para auditar todas las versiones enviadas.
+   - **`Ver Reportes en Misión (1)`** / **`Ver Todos los Reportes (N)`**: Abre el modal de detalle de la misión desplazándose automáticamente a la sección completa de informes para auditar el reporte o todas las versiones enviadas.
 
 ![Acceso directo al último reporte en el Drawer del incidente](./assets/h38-evaluacion-prioridad-terreno-mando/drawer-acceso-ultimo-reporte.png)
 

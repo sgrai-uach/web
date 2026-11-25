@@ -147,6 +147,31 @@ describe('IncidenteCard', () => {
     expect(btnAsignar).toBeNull();
   });
 
+  it('debe renderizar botón inactivo "Confirmación Pendiente" si tieneMisionDespachada es true', () => {
+    const handleAsignar = vi.fn();
+    render(
+      <IncidenteCard
+        incidente={{ ...mockIncidente, estado: 'REPORTADO', tieneMisionDespachada: true }}
+        onClick={vi.fn()}
+        onAsignarPatrulla={handleAsignar}
+      />
+    );
+
+    const btnPendiente = screen.getByRole('button', {
+      name: /confirmación pendiente para el incidente INC-58291045/i,
+    });
+    expect(btnPendiente).toBeDefined();
+    expect(btnPendiente).toBeDisabled();
+    expect(btnPendiente.querySelector('svg.lucide-hourglass')).not.toBeNull();
+
+    // No debe renderizar el botón activo de Asignar Patrulla
+    expect(
+      screen.queryByRole('button', {
+        name: /Asignar patrulla verificadora al incidente INC-58291045/i,
+      })
+    ).toBeNull();
+  });
+
   it('NO debe renderizar botón "Asignar Patrulla" si puedeAsignarPatrulla es false por falta de permisos (BUG-03)', () => {
     const handleAsignar = vi.fn();
     render(
@@ -178,12 +203,13 @@ describe('IncidenteCard', () => {
 
     expect(screen.getByText('Inundación')).toBeDefined();
     expect(screen.getByText('Alta')).toBeDefined();
-    const tagVerificado = screen.getByText('Verificado');
-    expect(tagVerificado).toBeDefined();
-    expect(tagVerificado.parentElement?.getAttribute('title')).toContain(
-      'Tipología reclasificada en terreno: Desborde de río constatado en terreno'
+    expect(screen.getAllByText('Verificado')).toHaveLength(1);
+    expect(screen.getByTestId('badge-verificado')).toBeDefined();
+    const tagVerificado = screen.getByTitle(
+      /Tipología reclasificada en terreno: Desborde de río constatado en terreno/i
     );
-    expect(tagVerificado.parentElement?.getAttribute('title')).toContain('Prioridad ajustada: Alta');
+    expect(tagVerificado).toBeDefined();
+    expect(tagVerificado.getAttribute('title')).toContain('Prioridad ajustada: Alta');
   });
 
   it('NO debe renderizar botón "Asignar Patrulla" si el incidente tiene una misión en curso activa (tieneMisionEnCurso: true)', () => {
@@ -214,17 +240,38 @@ describe('IncidenteCard', () => {
     expect(btnPendiente).toBeNull();
   });
 
-  it('debe exhibir la etiqueta "Verificado" cuando verificado es true al cargar desde el servidor (paginación/refresco)', () => {
+  it('debe exhibir un único distintivo "Verificado" cuando verificado es true al cargar desde el servidor (con o sin reclasificadoEnTerreno) (BUG-H37-WEB-06)', () => {
     const incidenteVerificadoDesdeApi: IncidenteResumen = {
       ...mockIncidente,
       verificado: true,
       reclasificadoEnTerreno: false,
     };
 
-    render(<IncidenteCard incidente={incidenteVerificadoDesdeApi} onClick={vi.fn()} />);
+    const { rerender } = render(
+      <IncidenteCard incidente={incidenteVerificadoDesdeApi} onClick={vi.fn()} />
+    );
 
-    const tagVerificado = screen.getByText('Verificado');
-    expect(tagVerificado).toBeDefined();
+    expect(screen.getAllByText('Verificado')).toHaveLength(1);
+    expect(screen.getByTestId('badge-verificado')).toBeDefined();
+    expect(
+      screen.getByTitle(/Tipología constatada en terreno sin modificaciones/i)
+    ).toBeDefined();
+
+    rerender(
+      <IncidenteCard
+        incidente={{
+          ...incidenteVerificadoDesdeApi,
+          reclasificadoEnTerreno: true,
+          justificacionReclasificacion: 'Inundación verificada presencialmente por patrulla.',
+        }}
+        onClick={vi.fn()}
+      />
+    );
+
+    expect(screen.getAllByText('Verificado')).toHaveLength(1);
+    expect(
+      screen.getByTitle(/Tipología reclasificada en terreno: Inundación verificada presencialmente/i)
+    ).toBeDefined();
   });
 
   it('debe mostrar indicador de prioridad ajustada manualmente y tooltip con justificación cuando prioridad difiere de prioridadSugerida (HU-38)', () => {

@@ -36,6 +36,10 @@ vi.mock('@/lib/socket/client', () => ({
   getSocket: () => mockSocket,
 }));
 
+vi.mock('@/hooks/usePuedeAsignarMision', () => ({
+  usePuedeAsignarMision: () => true,
+}));
+
 vi.mock('@/components/ui/Toast', () => {
   const toastMock = {
     showSuccess: vi.fn(),
@@ -410,7 +414,7 @@ describe('Componente IncidenteDetalleDrawer e integración HU-17', () => {
     expect(btnDespachar).toBeNull();
   });
 
-  it('renderiza estados y prioridades legibles sin mostrar el antiguo recuadro de reclasificación técnica (reemplazado por Último Reporte e ícono de afectación)', async () => {
+  it('renderiza estados y prioridades legibles y muestra bloque de justificación de reclasificación técnica (H37)', async () => {
     const mockIncidenteReclasificado: IncidenteDetalle = {
       ...mockDetalleIncidente,
       tipoAfectacion: 'Inundación Mayor',
@@ -442,9 +446,12 @@ describe('Componente IncidenteDetalleDrawer e integración HU-17', () => {
     expect(screen.getByText('Estado: En atención')).toBeDefined();
     expect(screen.getByText('Prioridad: Crítica')).toBeDefined();
 
-    // El antiguo recuadro de reclasificación en el resumen ya no se renderiza
-    expect(screen.queryByTestId('bloque-reclasificacion-terreno')).toBeNull();
-    // Se muestra el botón clickeable de cambio de afectación y la sección Último Reporte de Terreno
+    // Validar bloque informativo de reclasificación técnica en terreno
+    const bloque = screen.getByTestId('bloque-reclasificacion-terreno');
+    expect(bloque).toBeDefined();
+    expect(within(bloque).getByText(/Reclasificación Técnica en Terreno/i)).toBeDefined();
+    expect(within(bloque).getByText(/Inundación Mayor/i)).toBeDefined();
+    expect(within(bloque).getByText(/Desborde de río constatado con riesgo inminente a personas/i)).toBeDefined();
     expect(screen.getByTestId('btn-ver-cambio-afectacion')).toBeDefined();
     expect(screen.getByTestId('incidente-ultimo-reporte-section')).toBeDefined();
   });
@@ -1283,5 +1290,83 @@ describe('Componente IncidenteDetalleDrawer e integración HU-17', () => {
       expect.any(Function)
     );
     expect(mockSocket.emit).not.toHaveBeenCalledWith('salir', 'sala:encargados');
+  });
+
+  it('BUG-H38-WEB-05: no muestra etiqueta Reclasificado cuando reclasificacionTipologia es null y la glosa es solo de prioridad', async () => {
+    const casosSoloPrioridad: Array<string | null> = [
+      'Reporte de evaluación #1: Prioridad asignada en terreno a CRITICA (Sugerida: ALTA).',
+      'Reporte de evaluación #4 (Rectificación): Prioridad actualizada en terreno de BAJA a CRITICA (Sugerida: ALTA).',
+      null,
+    ];
+
+    for (const justificacionReclasificacion of casosSoloPrioridad) {
+      const mockSoloPrioridad: incidentesService.IncidenteDetalle = {
+        ...mockDetalleIncidente,
+        reclasificadoEnTerreno: true,
+        reclasificacionTipologia: null,
+        justificacionReclasificacion,
+      };
+
+      vi.spyOn(incidentesService, 'obtenerDetalleIncidente').mockResolvedValueOnce({
+        exito: true,
+        datos: mockSoloPrioridad,
+        mensaje: 'OK',
+      });
+
+      const { unmount } = render(
+        <IncidenteDetalleDrawer
+          incidenteId={mockDetalleIncidente.id}
+          userId="user-test"
+          onCerrar={vi.fn()}
+        />
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText('INC-2026-0042')).toBeDefined();
+      });
+
+      expect(screen.queryByTestId('btn-ver-cambio-afectacion')).toBeNull();
+      unmount();
+    }
+  });
+
+  it('BUG-H37-WEB-05: limpia el detalle previo cuando se cambia a otro incidente cuya consulta retorna error 403', async () => {
+    vi.spyOn(incidentesService, 'obtenerDetalleIncidente')
+      .mockResolvedValueOnce({
+        exito: true,
+        datos: mockDetalleIncidente,
+        mensaje: 'OK',
+      })
+      .mockResolvedValueOnce({
+        exito: false,
+        codigoError: 403,
+        mensaje: 'Acceso denegado al incidente B.',
+      });
+
+    const { rerender } = render(
+      <IncidenteDetalleDrawer
+        incidenteId="i1000000-0000-4000-8000-000000000001"
+        userId="user-test"
+        onCerrar={vi.fn()}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('INC-2026-0042')).toBeDefined();
+    });
+
+    rerender(
+      <IncidenteDetalleDrawer
+        incidenteId="i2000000-0000-4000-8000-000000000002"
+        userId="user-test"
+        onCerrar={vi.fn()}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Acceso denegado al incidente B.')).toBeDefined();
+    });
+
+    expect(screen.queryByText('INC-2026-0042')).toBeNull();
   });
 });

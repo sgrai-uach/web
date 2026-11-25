@@ -3,6 +3,7 @@ import {
   misionesService,
   despacharCuadrilla,
   despacharPatrullaVerificadora,
+  obtenerDetalleMision,
   DEFAULT_ENCARGADO_ID,
 } from '../misionesService';
 import apiClient from '@/lib/api/client';
@@ -311,5 +312,164 @@ describe('Servicio API Misiones (HU-20: Despacho de Patrulla Verificadora)', () 
     expect(res.exito).toBe(false);
     expect(res.codigoError).toBe(500);
     expect(res.mensaje).toContain('Error de conexión con el servidor');
+  });
+});
+
+describe('Servicio API Misiones - listar y obtenerDetalle (Contrato OpenAPI + JWT Bearer)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    window.localStorage.clear();
+  });
+
+  it('debe consultar GET /api/misiones mediante apiClient enviando Bearer JWT y filtros activos', async () => {
+    window.localStorage.setItem('sgrai_auth_token', 'jwt-token-misiones');
+
+    vi.mocked(apiClient.GET).mockResolvedValueOnce({
+      data: {
+        message: 'Listado de misiones obtenido exitosamente',
+        data: [
+          {
+            id: 'mis-001',
+            codigo: 'MIS-2026-0001',
+            titulo: 'Verificación de anegamiento',
+            descripcion: null,
+            tipoMision: 'VERIFICACION',
+            estado: 'DESPACHADA',
+            prioridad: 'ALTA',
+            creadoEn: '2026-11-16T10:00:00.000Z',
+            actualizadoEn: '2026-11-16T10:00:00.000Z',
+          },
+        ],
+        meta: {
+          total: 1,
+          page: 1,
+          limit: 10,
+          totalPages: 1,
+          hasNext: false,
+          hasPrev: false,
+        },
+      },
+      error: undefined,
+      response: { ok: true, status: 200 } as Response,
+    });
+
+    const res = await misionesService.listar({
+      busqueda: 'anegamiento',
+      estado: 'DESPACHADA',
+      tipoMision: 'VERIFICACION',
+      prioridad: 'ALTA',
+      delegacion: 'TODAS',
+      page: 1,
+      limit: 10,
+    });
+
+    expect(apiClient.GET).toHaveBeenCalledWith(
+      '/api/misiones',
+      expect.objectContaining({
+        params: {
+          query: {
+            page: 1,
+            limit: 10,
+            busqueda: 'anegamiento',
+            estado: 'DESPACHADA',
+            tipoMision: 'VERIFICACION',
+            prioridad: 'ALTA',
+          },
+          header: {
+            authorization: 'Bearer jwt-token-misiones',
+          },
+        },
+        headers: expect.objectContaining({
+          'x-user-id': DEFAULT_ENCARGADO_ID,
+          Authorization: 'Bearer jwt-token-misiones',
+        }),
+      })
+    );
+    expect(res.exito).toBe(true);
+    expect(res.data).toHaveLength(1);
+    expect(res.data[0].codigo).toBe('MIS-2026-0001');
+  });
+
+  it('debe propagar error de autorización 401/403 al listar misiones', async () => {
+    vi.mocked(apiClient.GET).mockResolvedValueOnce({
+      data: undefined,
+      error: { message: 'Unauthorized' } as unknown as never,
+      response: { ok: false, status: 401 } as Response,
+    });
+
+    const res = await misionesService.listar({
+      busqueda: '',
+      estado: 'TODOS',
+      tipoMision: 'TODOS',
+      prioridad: '',
+      delegacion: 'TODAS',
+      page: 1,
+      limit: 10,
+    });
+
+    expect(apiClient.GET).toHaveBeenCalledWith(
+      '/api/misiones',
+      expect.objectContaining({
+        params: {
+          query: {
+            page: 1,
+            limit: 10,
+          },
+          header: {},
+        },
+        headers: {
+          'x-user-id': DEFAULT_ENCARGADO_ID,
+        },
+      })
+    );
+    expect(res.exito).toBe(false);
+    expect(res.data).toEqual([]);
+    expect(res.mensaje).toContain('Sesión no válida');
+  });
+
+  it('debe consultar GET /api/misiones/{id} mediante apiClient tipado sin casteos manuales', async () => {
+    vi.mocked(apiClient.GET).mockResolvedValueOnce({
+      data: {
+        message: 'Detalle de misión obtenido exitosamente.',
+        data: {
+          id: 'mis-det-1',
+          codigo: 'MIS-2026-0100',
+          titulo: 'Atención de emergencia',
+          descripcion: 'Despeje de vía',
+          tipoMision: 'ATENCION_CUADRILLA',
+          estado: 'EN_CURSO',
+          prioridad: 'CRITICA',
+          justificacionRechazo: null,
+          fechaInicio: '2026-11-16T12:00:00.000Z',
+          fechaCierre: null,
+          creadoEn: '2026-11-16T11:50:00.000Z',
+          actualizadoEn: '2026-11-16T12:00:00.000Z',
+          creadoPor: null,
+          encargado: null,
+          incidente: null,
+          prevencion: null,
+          cuadrilla: null,
+          patrulla: null,
+          bitacoraTiempos: [],
+          reportesTerreno: [],
+        },
+      },
+      error: undefined,
+      response: { ok: true, status: 200 } as Response,
+    });
+
+    const res = await obtenerDetalleMision('mis-det-1');
+
+    expect(apiClient.GET).toHaveBeenCalledWith(
+      '/api/misiones/{id}',
+      expect.objectContaining({
+        params: {
+          path: { id: 'mis-det-1' },
+          header: { 'x-user-id': DEFAULT_ENCARGADO_ID },
+        },
+      })
+    );
+    expect(res.exito).toBe(true);
+    expect(res.datos?.codigo).toBe('MIS-2026-0100');
   });
 });

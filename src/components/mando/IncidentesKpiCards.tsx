@@ -114,13 +114,7 @@ export const IncidentesKpiCards: React.FC<IncidentesKpiCardsProps> = ({
   onSelectEstado,
   conectado,
 }) => {
-  const [isMounted, setIsMounted] = React.useState(false);
-
-  React.useEffect(() => {
-    setIsMounted(true);
-  }, []);
-
-  const estaCargando = isMounted && cargando;
+  const estaCargando = cargando;
 
   const contadores = kpis?.contadores || {
     reportado: 0,

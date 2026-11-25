@@ -4,24 +4,18 @@
  * Conforme a docs/architecture/architecture.md y contratos OpenAPI de sgrai-api.
  */
 
-import type { paths } from './api-generated';
+import type { components, paths } from './api-generated';
 import type { PaginationMeta } from './common';
 
-export interface AdjuntoEvidencia {
-  id: string;
-  nombreArchivo: string;
-  url: string;
-  tipoMime: string;
-  tamanoBytes: number;
-  creadoEn: string;
-}
+type ListarMisiones200 =
+  paths['/api/misiones']['get']['responses'][200]['content']['application/json'];
+type MisionDetalle200 =
+  paths['/api/misiones/{id}']['get']['responses'][200]['content']['application/json'];
+type MisionDetalleDataOpenApi = MisionDetalle200['data'];
+type ReporteTerrenoOpenApi = MisionDetalleDataOpenApi['reportesTerreno'][number];
 
-export interface EvaluadorTerreno {
-  id: string;
-  nombre: string;
-  email: string;
-  rut?: string | null;
-}
+export type AdjuntoEvidencia = ReporteTerrenoOpenApi['adjuntos'][number];
+export type EvaluadorTerreno = ReporteTerrenoOpenApi['evaluador'];
 
 export interface FamiliaAfectadaMisionDetalle {
   id?: string;
@@ -68,144 +62,41 @@ export type TipoReporteTerreno = 'EVALUACION_PRIORIDAD' | 'VERIFICACION_CIERRE' 
 
 export type DictamenAtencionTerreno = 'REQUIERE_CUADRILLA' | 'NO_ABORDABLE';
 
-export interface ReporteTerrenoDetalle {
-  id: string;
-  misionId: string;
+export type ReporteTerrenoDetalle = Omit<ReporteTerrenoOpenApi, 'detallesEvaluacion'> & {
   tipoReporte?: TipoReporteTerreno | null;
   dictamen?: DictamenAtencionTerreno | null;
   motivoNoAbordable?: string | null;
   requiereAsistenciaSocial?: boolean;
   personasAfectadasPrevias?: number | null;
   personasAfectadasModificadas?: boolean;
-  versionReporte?: number;
-  esRectificacion?: boolean;
-  etiquetaReporte?: string;
-  prioridadSugerida?: 'BAJA' | 'MEDIA' | 'ALTA' | 'CRITICA' | null;
-  prioridadAsignada?: 'BAJA' | 'MEDIA' | 'ALTA' | 'CRITICA' | null;
-  justificacionPrioridad?: string | null;
   detallesEvaluacion?: EvaluacionTerrenoMisionDetalle;
-  evaluador: EvaluadorTerreno;
-  resumenTecnico: string;
-  accionesRealizadas: string | null;
-  requiereApoyoAdicional: boolean;
-  danosEstimados: string | null;
-  observaciones: string | null;
-  personasAfectadas: number;
-  estadoTerreno: string;
-  adjuntos: AdjuntoEvidencia[];
-  creadoEn: string;
-  actualizadoEn: string;
-}
+};
 
-export interface MisionBitacoraHito {
-  id?: string;
-  hito: string;
-  fecha: string;
-  hora: string;
-  timestamp: string;
-  descripcion: string;
+export type MisionBitacoraHito = MisionDetalleDataOpenApi['bitacoraTiempos'][number] & {
   metadatos?: Record<string, unknown> | null;
-}
+};
 
-export interface IncidenteMisionResumen {
-  id: string;
-  codigo: string;
-  codigoSeguimiento: string;
-  tipoAfectacion: string;
-  descripcion: string | null;
-  direccion: string;
-  latitud: number;
-  longitud: number;
-  estado: string;
-  prioridad: string;
+export type IncidenteMisionResumen = NonNullable<MisionDetalleDataOpenApi['incidente']> & {
   prioridadSugerida?: string | null;
   justificacionPrioridad?: string | null;
-  requiereAsistenciaSocial: boolean;
-  delegacionNombre: string | null;
-}
+};
 
-export interface PrevencionMisionResumen {
-  id: string;
-  codigo: string;
-  nombre: string;
-  descripcion: string | null;
-  latitud: number;
-  longitud: number;
-  delegacionNombre: string | null;
-}
+export type PrevencionMisionResumen = NonNullable<MisionDetalleDataOpenApi['prevencion']>;
+export type CuadrillaMisionDetalle = NonNullable<MisionDetalleDataOpenApi['cuadrilla']>;
+export type RecursoAsignadoMision = CuadrillaMisionDetalle['recursos'][number];
+export type PatrullaMisionDetalle = NonNullable<MisionDetalleDataOpenApi['patrulla']>;
 
-export interface RecursoAsignadoMision {
-  id: string;
-  nombre: string;
-  tipo: string;
-  cantidadAsignada: number;
-}
-
-export interface CuadrillaMisionDetalle {
-  id: string;
-  nombre: string;
-  estado: string;
-  delegacionNombre: string | null;
-  delegado: {
-    id: string;
-    nombre: string;
-    email: string;
-  } | null;
-  recursos: RecursoAsignadoMision[];
-}
-
-export interface PatrullaMisionDetalle {
-  id: string;
-  nombre: string;
-  estado: string;
-  delegacionNombre: string | null;
-  lider: {
-    id: string;
-    nombre: string;
-    email: string;
-  } | null;
-}
-
-export type TipoMision =
-  | 'VERIFICACION'
-  | 'ATENCION_CUADRILLA'
-  | 'PREVENCION'
-  | 'RECUPERACION'
-  | 'ASISTENCIA_SOCIAL';
-
-export type EstadoMision =
-  | 'PLANIFICADA'
-  | 'DESPACHADA'
-  | 'EN_CURSO'
-  | 'COMPLETADA'
-  | 'CANCELADA'
-  | 'RECHAZADA';
-
-export type PrioridadMision = 'BAJA' | 'MEDIA' | 'ALTA' | 'CRITICA';
-
-export interface MisionItem {
-  id: string;
-  codigo: string;
-  titulo: string;
+export type MisionItem = Omit<
+  ListarMisiones200['data'][number],
+  'descripcion' | 'actualizadoEn'
+> & {
   descripcion?: string | null;
-  tipoMision: TipoMision;
-  estado: EstadoMision;
-  prioridad: PrioridadMision;
-  delegacionId?: string | null;
-  delegacionNombre?: string | null;
-  incidenteId?: string | null;
-  incidenteCodigo?: string | null;
-  cuadrillaId?: string | null;
-  cuadrillaNombre?: string | null;
-  patrullaId?: string | null;
-  patrullaNombre?: string | null;
-  justificacionRechazo?: string | null;
-  trazabilidadNotificacion?: 'PENDIENTE_ENVIO' | 'ENVIADA' | 'RECIBIDA' | 'LEIDA';
-  fechaInicio?: string | null;
-  fechaCierre?: string | null;
-  creadoEn: string;
   actualizadoEn?: string;
-}
+};
+
+export type TipoMision = MisionItem['tipoMision'];
+export type EstadoMision = MisionItem['estado'];
+export type PrioridadMision = MisionItem['prioridad'];
 
 export interface FiltrosMisiones {
   busqueda: string;
@@ -222,34 +113,18 @@ export interface ListarMisionesResponse {
   meta: PaginationMeta;
 }
 
-export interface MisionDetalleCompleto {
-  id: string;
-  codigo: string;
-  titulo: string;
-  descripcion: string | null;
-  tipoMision: TipoMision;
-  estado: EstadoMision;
-  prioridad: PrioridadMision;
-  justificacionRechazo: string | null;
-  trazabilidadNotificacion?: 'PENDIENTE_ENVIO' | 'ENVIADA' | 'RECIBIDA' | 'LEIDA';
-  fechaInicio: string | null;
-  fechaCierre: string | null;
-  creadoEn: string;
-  actualizadoEn: string;
-  creadoPor: { id: string; nombre: string; email: string } | null;
-  encargado: { id: string; nombre: string; email: string } | null;
+export type MisionDetalleCompleto = Omit<
+  MisionDetalleDataOpenApi,
+  'incidente' | 'bitacoraTiempos' | 'reportesTerreno'
+> & {
   incidente: IncidenteMisionResumen | null;
-  prevencion: PrevencionMisionResumen | null;
-  cuadrilla: CuadrillaMisionDetalle | null;
-  patrulla: PatrullaMisionDetalle | null;
   bitacoraTiempos: MisionBitacoraHito[];
   reportesTerreno: ReporteTerrenoDetalle[];
-}
+};
 
-export interface MisionDetalleResponse {
-  message: string;
+export type MisionDetalleResponse = Omit<MisionDetalle200, 'data'> & {
   data: MisionDetalleCompleto;
-}
+};
 /** DTO de entrada para despachar cuadrilla operativa a un incidente (HU-21) */
 export interface DespacharCuadrillaDTO {
   tipoMision: 'ATENCION_CUADRILLA';
@@ -268,50 +143,26 @@ export interface PatrullaLiberadaInfo {
   misionPreviaId?: string;
 }
 
-/** Respuesta de la API al despachar cuadrilla y liberar patrulla (HU-21) */
-export interface DespacharCuadrillaResponse {
-  message: string;
-  data: {
-    mision: {
-      id: string;
-      codigo: string;
-      tipoMision: TipoMision | string;
-      estado: EstadoMision | string;
-      fechaInicio: string | null;
-    };
-    cuadrilla: {
-      id: string;
-      nombre: string;
-      estado: string;
-    };
-    incidente: {
-      id: string;
-      codigo: string;
-      estado: string;
-      prioridad: string;
-    };
-    patrullaLiberada: PatrullaLiberadaInfo | null;
-    hitoCuadrilla?: {
-      hito: string;
-      descripcion: string;
-    };
-    hitoPatrulla?: {
-      hito: string;
-      descripcion: string;
-    };
-  };
-}
-
-export type CrearMisionRequestBody =
-  paths['/api/misiones']['post']['requestBody']['content']['application/json'];
+/**
+ * Contratos del endpoint unificado POST /api/misiones (HU-20 verificacion / HU-21 cuadrilla).
+ * La API expone el cuerpo como `anyOf`, por lo que se parametrizan los tipos por esquema
+ * concreto para mantener el tipado estricto en el cliente.
+ */
+export type CrearMisionVerificacionBody = components['schemas']['CrearMisionVerificacionInput'];
+export type AsignarCuadrillaMisionBody = components['schemas']['AsignarCuadrillaMisionInput'];
+export type CrearMisionRequestBody = CrearMisionVerificacionBody | AsignarCuadrillaMisionBody;
 export type CrearMisionResponse201 =
-  paths['/api/misiones']['post']['responses'][201]['content']['application/json'];
+  | components['schemas']['CrearMisionResponse']
+  | components['schemas']['AsignarCuadrillaMisionResponse'];
 
-export type DespacharPatrullaPayload = Omit<CrearMisionRequestBody, 'tipoMision'> & {
-  tipoMision?: CrearMisionRequestBody['tipoMision'];
+export type DespacharPatrullaPayload = Omit<CrearMisionVerificacionBody, 'tipoMision'> & {
+  tipoMision?: CrearMisionVerificacionBody['tipoMision'];
 };
-export type DespacharPatrullaResponseData = CrearMisionResponse201['data'];
-export type DespacharPatrullaResponse = CrearMisionResponse201;
+export type DespacharPatrullaResponseData = components['schemas']['CrearMisionResponse']['data'];
+export type DespacharPatrullaResponse = components['schemas']['CrearMisionResponse'];
+export type DespacharCuadrillaResponse = components['schemas']['AsignarCuadrillaMisionResponse'];
+export type DespacharCuadrillaResponseData =
+  components['schemas']['AsignarCuadrillaMisionResponse']['data'];
 
 export interface ResultadoDespacharPatrulla {
   exito: boolean;

@@ -1,12 +1,23 @@
 import apiClient from '@/lib/api/client';
 import { DEFAULT_ENCARGADO_ID } from '@/services/incidentesService';
 import { formatApiError } from '@/lib/utils/errorUtils';
+import { getAuthCookie } from '@/lib/utils/cookieUtils';
 import type {
   CrearEventoRecuperacionInput,
   EventoRecuperacionResponse,
+  DetalleEventoRecuperacionResponse,
+  DetalleEventoRecuperacionDTO,
+  MisionRecuperacionItem,
+  AsignarRecursosRecuperacionInput,
+  AsignarRecursosRecuperacionResponse,
 } from '@/types/recuperacion';
 
-export type TipoConflictoRecuperacion = 'PATRULLA_OCUPADA' | 'STOCK_INSUFICIENTE' | 'OTRO';
+export type TipoConflictoRecuperacion =
+  | 'PATRULLA_OCUPADA'
+  | 'STOCK_INSUFICIENTE'
+  | 'ACTIVO_NO_DISPONIBLE'
+  | 'EVENTO_CERRADO'
+  | 'OTRO';
 
 export class RecuperacionServiceError extends Error {
   public statusCode?: number;
@@ -69,10 +80,18 @@ export async function crearEventoRecuperacion(
       const lower = mensajeError.toLowerCase();
       let tipoConflicto: TipoConflictoRecuperacion = 'OTRO';
 
-      if (lower.includes('patrulla') || lower.includes('disponible para asignación')) {
-        tipoConflicto = 'PATRULLA_OCUPADA';
-      } else if (lower.includes('stock') || lower.includes('bodega') || lower.includes('insuficiente')) {
+      if (lower.includes('stock') || lower.includes('bodega') || lower.includes('insuficiente')) {
         tipoConflicto = 'STOCK_INSUFICIENTE';
+      } else if (
+        lower.includes('mantencion') ||
+        lower.includes('mantención') ||
+        lower.includes('taller') ||
+        lower.includes('activo') ||
+        lower.includes('individual')
+      ) {
+        tipoConflicto = 'ACTIVO_NO_DISPONIBLE';
+      } else if (lower.includes('patrulla') || lower.includes('ocupada')) {
+        tipoConflicto = 'PATRULLA_OCUPADA';
       }
 
       throw new RecuperacionServiceError(mensajeError, {
@@ -138,6 +157,332 @@ export async function crearEventoRecuperacion(
     }
     const formatted = formatApiError(err);
     throw new RecuperacionServiceError(formatted.message || 'Error inesperado de comunicación con el servidor', {
+      statusCode: formatted.statusCode,
+      apiDetails: formatted,
+    });
+  }
+}
+
+/**
+ * Parámetros de consulta para listar eventos de recuperación (HU-73 / HU-32 / HU-5)
+ */
+export interface ListarEventosRecuperacionParams {
+  pagina?: number;
+  limite?: number;
+  delegacionId?: string;
+  estado?: 'PLANIFICADA' | 'EN_EJECUCION' | 'COMPLETADA' | 'CANCELADA';
+  prioridad?: 'BAJA' | 'MEDIA' | 'ALTA' | 'CRITICA';
+  busqueda?: string;
+}
+
+export interface ListarEventosRecuperacionResponse {
+  data: DetalleEventoRecuperacionResponse[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+/**
+ * Lista los eventos u operativos de recuperación comunal registrados (HU-73 / HU-32).
+ * Consume: GET /api/eventos-atp/recuperacion
+ */
+export async function listarEventosRecuperacion(
+  params?: ListarEventosRecuperacionParams,
+  _userId: string = DEFAULT_ENCARGADO_ID
+): Promise<ListarEventosRecuperacionResponse> {
+  void _userId;
+  try {
+    const token = typeof window !== 'undefined' ? getAuthCookie() : null;
+    const { data, error, response } = await apiClient.GET('/api/eventos-atp/recuperacion', {
+      params: {
+        header: {
+          authorization: token ? `Bearer ${token}` : '',
+        },
+      },
+    });
+
+    if (response.status === 200 && data) {
+      const items = (data.data || []).map((ev) => {
+        const mision = ev.mision ?? null;
+        const patrulla = ev.patrulla ?? null;
+        const recursos = (ev.recursos || []).map((r) => ({
+          id: r.recursoId,
+          recursoId: r.recursoId,
+          nombre: r.nombre,
+          cantidadAsignada: r.cantidadAsignada,
+          esIndividual: false,
+          misionId: mision?.id ?? null,
+          creadoEn: ev.creadoEn,
+        }));
+        const misiones: MisionRecuperacionItem[] = mision
+          ? [
+              {
+                id: mision.id,
+                codigo: mision.codigo,
+                titulo: mision.titulo,
+                estado: mision.estado,
+                tipoMision: mision.tipoMision,
+                creadoEn: ev.creadoEn,
+                patrulla,
+                recursos,
+              },
+            ]
+          : [];
+
+        return {
+          ...ev,
+          descripcion: ev.descripcion ?? null,
+          direccionTexto: ev.direccionTexto ?? null,
+          contactoNombre: ev.contactoNombre ?? null,
+          contactoTelefono: ev.contactoTelefono ?? null,
+          familiasAfectadas: ev.familiasAfectadas ?? 0,
+          delegacion: ev.delegacion ?? null,
+          mision,
+          misiones,
+          patrulla,
+          recursos,
+          recursosAsignados: recursos,
+        } as DetalleEventoRecuperacionResponse;
+      });
+
+      return {
+        data: items,
+        total: data.total ?? items.length,
+        page: params?.pagina ?? 1,
+        limit: params?.limite ?? (items.length || 100),
+        totalPages: params?.limite ? Math.ceil((data.total ?? items.length) / params.limite) : 1,
+      };
+    }
+
+    const status = response.status;
+    const errorData = (error || {}) as { message?: string; error?: string };
+    const mensajeError =
+      errorData.message || errorData.error || `Error HTTP ${status} al listar los eventos de recuperación.`;
+
+    throw new RecuperacionServiceError(mensajeError, {
+      statusCode: status,
+      apiDetails: errorData,
+    });
+  } catch (err: unknown) {
+    if (err instanceof RecuperacionServiceError) {
+      throw err;
+    }
+    const formatted = formatApiError(err);
+    throw new RecuperacionServiceError(formatted.message || 'Error inesperado al listar eventos de recuperación', {
+      statusCode: formatted.statusCode,
+      apiDetails: formatted,
+    });
+  }
+}
+
+/**
+ * Consulta la información consolidada de un evento de recuperación comunal (HU-32).
+ * Consume: GET /api/eventos-atp/recuperacion/{id}
+ */
+export async function obtenerEventoRecuperacion(
+  id: string,
+  _userId: string = DEFAULT_ENCARGADO_ID
+): Promise<DetalleEventoRecuperacionResponse> {
+  void _userId;
+  try {
+    const { data, error, response } = await apiClient.GET('/api/eventos-atp/recuperacion/{id}', {
+      params: {
+        path: { id },
+      },
+    });
+
+    if (response.status === 200 && data) {
+      const raw =
+        typeof data === 'object' && data !== null && 'data' in data
+          ? (data as { data: DetalleEventoRecuperacionDTO }).data
+          : (data as DetalleEventoRecuperacionDTO);
+
+      const recursosAsignados = raw.recursosAsignados || [];
+      const misiones = (raw.misiones || []).map((m) => ({
+        ...m,
+        patrulla: m.patrulla ?? null,
+      }));
+      const primeraMision = misiones[0] || null;
+      const patrulla = primeraMision?.patrulla ?? null;
+
+      const normalizado: DetalleEventoRecuperacionResponse = {
+        ...raw,
+        descripcion: raw.descripcion ?? null,
+        direccionTexto: raw.direccionTexto ?? null,
+        contactoNombre: raw.contactoNombre ?? null,
+        contactoTelefono: raw.contactoTelefono ?? null,
+        delegacion: raw.delegacion ?? null,
+        familiasAfectadas: raw.familiasAfectadas ?? 0,
+        mision: primeraMision
+          ? {
+              id: primeraMision.id,
+              codigo: primeraMision.codigo,
+              titulo: primeraMision.titulo,
+              estado: primeraMision.estado,
+              tipoMision: primeraMision.tipoMision,
+            }
+          : null,
+        misiones,
+        patrulla,
+        recursosAsignados,
+        recursos: recursosAsignados,
+      };
+
+      return normalizado;
+    }
+
+    const status = response.status;
+    const errorData = (error || {}) as { message?: string; error?: string };
+    const mensajeError =
+      errorData.message || errorData.error || `Error HTTP ${status} al consultar el evento de recuperación.`;
+
+    if (status === 404) {
+      throw new RecuperacionServiceError('El evento de recuperación especificado no fue encontrado.', {
+        statusCode: 404,
+        apiDetails: errorData,
+      });
+    }
+
+    if (status === 403) {
+      throw new RecuperacionServiceError('No posee permisos suficientes para consultar el evento de recuperación.', {
+        statusCode: 403,
+        apiDetails: errorData,
+      });
+    }
+
+    throw new RecuperacionServiceError(mensajeError, {
+      statusCode: status,
+      apiDetails: errorData,
+    });
+  } catch (err: unknown) {
+    if (err instanceof RecuperacionServiceError) {
+      throw err;
+    }
+    const formatted = formatApiError(err);
+    throw new RecuperacionServiceError(formatted.message || 'Error inesperado al consultar evento de recuperación', {
+      statusCode: formatted.statusCode,
+      apiDetails: formatted,
+    });
+  }
+}
+
+/**
+ * Asigna atómicamente una patrulla verificadora disponible y materiales de bodega a un evento de recuperación (HU-32).
+ * Consume: POST /api/eventos-atp/recuperacion/{id}/asignar
+ */
+export async function asignarRecursosRecuperacion(
+  id: string,
+  input: AsignarRecursosRecuperacionInput,
+  _userId: string = DEFAULT_ENCARGADO_ID
+): Promise<AsignarRecursosRecuperacionResponse> {
+  void _userId;
+  try {
+    const { data, error, response } = await apiClient.POST('/api/eventos-atp/recuperacion/{id}/asignar', {
+      params: {
+        path: { id },
+      },
+      body: input,
+    });
+
+    if (response.status === 200 && data) {
+      return data;
+    }
+
+    const status = response.status;
+    const errorData = (error || {}) as {
+      message?: string;
+      error?: string;
+      details?: Record<string, string[]>;
+      errors?: Array<{ campo?: string; field?: string; mensaje?: string; message?: string }>;
+    };
+
+    const mensajeError =
+      errorData.message || errorData.error || `Error HTTP ${status} al asignar recursos al evento de recuperación.`;
+
+    if (status === 409) {
+      const lower = mensajeError.toLowerCase();
+      let tipoConflicto: TipoConflictoRecuperacion = 'OTRO';
+
+      if (lower.includes('stock') || lower.includes('bodega') || lower.includes('insuficiente')) {
+        tipoConflicto = 'STOCK_INSUFICIENTE';
+      } else if (
+        lower.includes('mantencion') ||
+        lower.includes('mantención') ||
+        lower.includes('taller') ||
+        lower.includes('activo') ||
+        lower.includes('individual')
+      ) {
+        tipoConflicto = 'ACTIVO_NO_DISPONIBLE';
+      } else if (lower.includes('patrulla') || lower.includes('ocupada')) {
+        tipoConflicto = 'PATRULLA_OCUPADA';
+      } else if (lower.includes('cerrad') || lower.includes('completad') || lower.includes('cancelad')) {
+        tipoConflicto = 'EVENTO_CERRADO';
+      }
+
+      throw new RecuperacionServiceError(mensajeError, {
+        statusCode: 409,
+        tipoConflicto,
+        apiDetails: errorData,
+      });
+    }
+
+    if (status === 400) {
+      const fieldErrors: Record<string, string> = {};
+
+      if (Array.isArray(errorData.errors)) {
+        for (const err of errorData.errors) {
+          const field = err.campo || err.field;
+          const msg = err.mensaje || err.message;
+          if (field && msg) {
+            fieldErrors[field] = msg;
+          }
+        }
+      } else if (errorData.details && typeof errorData.details === 'object') {
+        for (const [key, msgs] of Object.entries(errorData.details)) {
+          if (Array.isArray(msgs) && msgs.length > 0) {
+            fieldErrors[key] = msgs.join('. ');
+          }
+        }
+      }
+
+      throw new RecuperacionServiceError(mensajeError, {
+        statusCode: 400,
+        fieldErrors,
+        apiDetails: errorData,
+      });
+    }
+
+    if (status === 403) {
+      throw new RecuperacionServiceError(
+        'No posee el permiso requerido: misiones:asignar. Requiere rol de Encargado o Administrador.',
+        {
+          statusCode: 403,
+          apiDetails: errorData,
+        }
+      );
+    }
+
+    if (status === 404) {
+      throw new RecuperacionServiceError(
+        mensajeError || 'El evento de recuperación, patrulla o insumo logístico no fue encontrado.',
+        {
+          statusCode: 404,
+          apiDetails: errorData,
+        }
+      );
+    }
+
+    throw new RecuperacionServiceError(mensajeError, {
+      statusCode: status,
+      apiDetails: errorData,
+    });
+  } catch (err: unknown) {
+    if (err instanceof RecuperacionServiceError) {
+      throw err;
+    }
+    const formatted = formatApiError(err);
+    throw new RecuperacionServiceError(formatted.message || 'Error inesperado al asignar recursos a recuperación', {
       statusCode: formatted.statusCode,
       apiDetails: formatted,
     });
