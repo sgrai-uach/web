@@ -3,10 +3,13 @@
 import React from 'react';
 import { ArrowUpDown, ArrowUp, ArrowDown, Eye } from 'lucide-react';
 import Button from '@/components/ui/Button';
+import { Chip, type ChipVariant } from '@/components/ui/Chip';
+import { obtenerVarianteChipPrioridad } from '@/lib/utils/chipVariants';
 import type {
   OperativoRecuperacionListadoItem,
   OrdenarPorRecuperacion,
   DireccionOrdenRecuperacion,
+  EstadoRecuperacion,
 } from '@/types/recuperacion';
 import {
   ETIQUETA_ESTADO_RECUPERACION,
@@ -14,6 +17,13 @@ import {
   formatearFechaChilena,
 } from './recuperacionLabels';
 import styles from './OperativosRecuperacion.module.css';
+
+const VARIANTE_ESTADO_RECUPERACION: Record<EstadoRecuperacion, ChipVariant> = {
+  PLANIFICADA: 'info',
+  EN_EJECUCION: 'warning',
+  COMPLETADA: 'success',
+  CANCELADA: 'danger',
+};
 
 export interface OperativosRecuperacionTablaProps {
   operativos: OperativoRecuperacionListadoItem[];
@@ -109,18 +119,14 @@ export const OperativosRecuperacionTabla: React.FC<OperativosRecuperacionTablaPr
                   {item.delegacion?.nombre || 'Sin delegación'}
                 </td>
                 <td className={styles.td}>
-                  <span
-                    className={`${styles.estadoBadge} ${styles[`estado${item.estado}`]}`}
-                  >
+                  <Chip variant={VARIANTE_ESTADO_RECUPERACION[item.estado] || 'neutral'} size="sm">
                     {ETIQUETA_ESTADO_RECUPERACION[item.estado] || item.estado}
-                  </span>
+                  </Chip>
                 </td>
                 <td className={styles.td}>
-                  <span
-                    className={`${styles.prioridadBadge} ${styles[`prioridad${item.prioridad}`]}`}
-                  >
+                  <Chip variant={obtenerVarianteChipPrioridad(item.prioridad)} size="sm">
                     {ETIQUETA_PRIORIDAD_RECUPERACION[item.prioridad] || item.prioridad}
-                  </span>
+                  </Chip>
                 </td>
                 <td className={styles.td} title={resumenTexto || undefined}>
                   <div className={styles.insumosCell}>
