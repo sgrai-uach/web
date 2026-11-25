@@ -184,7 +184,7 @@ describe('useIncidentesKpis', () => {
     });
   });
 
-  it('debe refrescar los KPIs al recibir el evento mision:rechazada vía WebSockets (HU-41)', async () => {
+  it('debe refrescar los KPIs al recibir el evento mision:rechazada vía WebSockets (HU-41 / HU-69)', async () => {
     renderHook(() => useIncidentesKpis());
 
     await waitFor(() => {

@@ -6,9 +6,8 @@ import RecursosFiltros from '../RecursosFiltros';
 import BadgeEstado from '../BadgeEstado';
 import AccesoDenegadoState from '../AccesoDenegadoState';
 import RecursoRow from '../RecursoRow';
-import { SimulatedSessionContext } from '@/context/SimulatedSessionContext';
 import { USUARIOS_SIMULADOS_SISTEMA, type UsuarioSimulado } from '@/config/usuariosSimulados';
-import type { RecursoItem, EstadoRecurso } from '@/types/recurso';
+import type { RecursoItem } from '@/types/recurso';
 
 // Mock de hook useCatalogos
 vi.mock('@/hooks/useCatalogos', () => ({

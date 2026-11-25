@@ -11,7 +11,6 @@ import type { CatalogoItem } from '@/types/catalogos';
 import type { RecursoItem } from '@/types/recurso';
 import type { EmpleadoUsuario } from '@/types/empleados';
 import type { PatrullaVerificadoraDTO, CrearPatrullaInputDTO } from '@/types/patrullas';
-import { formatearEstado } from '@/lib/utils/estadoUtils';
 import { sanitizarMensajeServidor } from '@/lib/utils/errorUtils';
 
 export const nuevaPatrullaSchema = z.object({
