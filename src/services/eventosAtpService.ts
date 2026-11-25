@@ -87,12 +87,6 @@ function esMensajeGenericoDePermisos(mensaje: string | null): boolean {
  *
  * El token JWT de sesión es inyectado automáticamente por el cliente tipado.
  */
-/**
- * Registra un nuevo Evento de Alerta Temprana Preventiva a través de
- * `POST /api/eventos-atp` (H61).
- *
- * El token JWT de sesión es inyectado automáticamente por el cliente tipado.
- */
 export async function crearEventoAtp(
   payload: CrearEventoAtpInput
 ): Promise<EventoAtpDetalle> {

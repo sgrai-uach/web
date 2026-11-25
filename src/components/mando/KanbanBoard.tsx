@@ -440,7 +440,7 @@ export const KanbanBoard: React.FC = () => {
   // Actualizar cuadrillas operativas ante eventos socket en tiempo real (BUG-H22-WEB-04)
   useEffect(() => {
     if (ultimoEvento) {
-      cargarCuadrillas();
+      return cargarCuadrillas();
     }
   }, [ultimoEvento, cargarCuadrillas]);
 
