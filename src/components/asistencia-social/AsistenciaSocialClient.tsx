@@ -58,6 +58,17 @@ export default function AsistenciaSocialClient({
     hasPermission('asistencia_social:leer') ||
     Boolean(auth?.tienePermiso && auth.tienePermiso('asistencia_social:leer'));
 
+  const tienePermisoFibe =
+    hasPermission('asistencia_social:fibe:gestionar') ||
+    Boolean(auth?.tienePermiso && auth.tienePermiso('asistencia_social:fibe:gestionar'));
+
+  const puedeGestionarFibe =
+    esAdmin ||
+    usuarioActivo.rol === 'Asistente Social' ||
+    auth?.usuario?.rolNombre === 'Asistente Social' ||
+    auth?.usuario?.rolCodigo === 'ASISTENTE_SOCIAL' ||
+    tienePermisoFibe;
+
   const estadoParam = searchParams.get('estado');
   const estadoInicial: EstadoEventoSocial | undefined =
     estadoParam === 'TODOS'
@@ -164,6 +175,7 @@ export default function AsistenciaSocialClient({
           onCambiarPagina={handleCambiarPagina}
           cargando={cargando}
           puedeAsignar={tienePermisoCrear}
+          puedeGestionarFibe={puedeGestionarFibe}
           usuarioId={usuarioActivo.id}
           onEventoActualizado={actualizarEventoLocalmente}
         />

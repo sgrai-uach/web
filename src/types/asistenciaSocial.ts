@@ -35,6 +35,13 @@ export const NIVELES_COMPROMISO_VIVIENDA: NivelCompromisoOption[] = [
   { value: 'GRAVE_INHABITABLE', label: 'Daño grave / Inhabitable' },
 ];
 
+export const NIVELES_DANO_VIVIENDA_FIBE: NivelCompromisoOption[] = [
+  { value: 'SIN_DANO', label: 'Sin daño' },
+  { value: 'LEVE', label: 'Leve' },
+  { value: 'MODERADO', label: 'Moderado' },
+  { value: 'GRAVE_INHABITABLE', label: 'Grave / No habitable' },
+];
+
 export interface FamiliaAfectadaSocialDTO {
   id?: string;
   referencia?: string;
@@ -141,6 +148,11 @@ export interface EventoAsistenciaSocialItem {
   asistenteSocialId: string | null;
   asistenteSocialNombre: string | null;
   detallesEvaluacion?: DetallesEvaluacionSocialDTO | null;
+  folioFibe?: string | null;
+  nivelDanoVivienda?: NivelCompromisoViviendaSocial | null;
+  observacionesFibe?: string | null;
+  fibeRegistradaEn?: string | null;
+  fibeRegistradaPorId?: string | null;
   creadoPor: {
     id: string;
     nombre: string;
@@ -353,3 +365,44 @@ export const derivarAsistenciaSocialSchema = z.object({
 });
 
 export type DerivarAsistenciaSocialFormInput = z.infer<typeof derivarAsistenciaSocialSchema>;
+
+export interface RegistrarFichaFibeDTO {
+  folioFibe: string;
+  personasAfectadas?: number | null;
+  nivelDanoVivienda?: NivelCompromisoViviendaSocial;
+  observacionesSociales?: string | null;
+}
+
+export const FOLIO_FIBE_REGEX = /^[A-Za-z0-9-]+$/;
+
+export const registrarFichaFibeSchema = z.object({
+  folioFibe: z
+    .string({ message: 'El folio oficial de la Ficha FIBE es obligatorio.' })
+    .trim()
+    .min(1, 'El folio oficial de la Ficha FIBE es obligatorio.')
+    .max(50, 'El folio FIBE no puede superar los 50 caracteres.')
+    .regex(
+      FOLIO_FIBE_REGEX,
+      'El folio FIBE solo puede contener letras, números y guiones (sin espacios).'
+    )
+    .transform((val) => val.toUpperCase()),
+  personasAfectadas: z
+    .number({ message: 'Debe ingresar un número entero válido.' })
+    .int('Debe ser un número entero.')
+    .min(0, 'La cantidad de integrantes evaluados no puede ser negativa.')
+    .nullable()
+    .optional(),
+  nivelDanoVivienda: z
+    .enum(['SIN_DANO', 'LEVE', 'MODERADO', 'GRAVE_INHABITABLE'], {
+      message: 'Debe seleccionar un nivel de daño en vivienda válido.',
+    })
+    .optional(),
+  observacionesSociales: z
+    .string()
+    .trim()
+    .max(2000, 'Las observaciones sociales no pueden superar los 2000 caracteres.')
+    .nullable()
+    .optional(),
+});
+
+export type RegistrarFichaFibeFormInput = z.infer<typeof registrarFichaFibeSchema>;
