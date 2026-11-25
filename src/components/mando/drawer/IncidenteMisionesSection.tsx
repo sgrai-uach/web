@@ -950,8 +950,14 @@ export const IncidenteMisionesSection: React.FC<IncidenteMisionesSectionProps> =
             style={{ flexShrink: 0, marginTop: '2px' }}
           />
           <span>
-            La cuadrilla asignada previamente rechazó la misión en terreno. Revise la justificación abajo y utilice{' '}
-            <strong>Despachar Cuadrilla</strong> para reasignar la emergencia de inmediato.
+            {puedeAsignar ? (
+              <>
+                La cuadrilla asignada previamente rechazó la misión en terreno. Revise la justificación abajo y utilice{' '}
+                <strong>Despachar Cuadrilla</strong> para reasignar la emergencia de inmediato.
+              </>
+            ) : (
+              'La cuadrilla asignada previamente rechazó la misión en terreno. Revise la justificación abajo; la emergencia quedó disponible para reasignación por un Encargado autorizado.'
+            )}
           </span>
         </div>
       )}

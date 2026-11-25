@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import Modal from '@/components/common/Modal';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
@@ -70,39 +70,64 @@ export const ModalAsignarCuadrilla: React.FC<ModalAsignarCuadrillaProps> = ({
 
   const patrullaAsignada = misionVerificacion?.patrulla;
 
-  // Cargar cuadrillas disponibles y reiniciar campos al abrir
+  // Cargar cuadrillas disponibles y reiniciar campos únicamente al abrir o cambiar de incidente.id
+  const incidenteRef = useRef(incidente);
+  const inicializadoParaIdRef = useRef<string | null>(null);
+
   useEffect(() => {
-    if (!isOpen || !incidente) return;
+    incidenteRef.current = incidente;
+  }, [incidente]);
+
+  const incidenteIdActual = incidente?.id ?? null;
+
+  useEffect(() => {
+    if (!isOpen || !incidenteIdActual) {
+      inicializadoParaIdRef.current = null;
+      return;
+    }
+
+    if (inicializadoParaIdRef.current === incidenteIdActual) {
+      return;
+    }
+    inicializadoParaIdRef.current = incidenteIdActual;
+
+    const incActual = incidenteRef.current;
+    if (!incActual) return;
 
     let isMounted = true;
 
-    Promise.resolve().then(() => {
-      if (!isMounted) return;
-      setPrioridad((incidente.prioridad as PrioridadMision) || 'MEDIA');
-      setTitulo(`Atención táctica - ${incidente.codigo}`);
-      setDescripcion('');
-      setCuadrillaId('');
-      setErrorApi(null);
-      setErrorCargaCuadrillas(null);
-      setCargandoCuadrillas(true);
+    Promise.resolve()
+      .then(() => {
+        if (!isMounted) return;
+        setPrioridad((incActual.prioridad as PrioridadMision) || 'MEDIA');
+        setTitulo(`Atención táctica - ${incActual.codigo}`);
+        setDescripcion('');
+        setCuadrillaId('');
+        setErrorApi(null);
+        setErrorCargaCuadrillas(null);
+        setCargandoCuadrillas(true);
 
-      return cuadrillasService.obtenerCuadrillas({ pagina: 1, limite: 100, estado: 'DISPONIBLE' });
-    })
-    .then((res) => {
-      if (!isMounted || !res) return;
-      setCuadrillasDisponibles(res.cuadrillas || []);
-      setCargandoCuadrillas(false);
-    })
-    .catch(() => {
-      if (!isMounted) return;
-      setErrorCargaCuadrillas('No se pudo cargar la dotación de cuadrillas disponibles.');
-      setCargandoCuadrillas(false);
-    });
+        return cuadrillasService.obtenerCuadrillas({
+          pagina: 1,
+          limite: 100,
+          estado: 'DISPONIBLE',
+        });
+      })
+      .then((res) => {
+        if (!isMounted || !res) return;
+        setCuadrillasDisponibles(res.cuadrillas || []);
+        setCargandoCuadrillas(false);
+      })
+      .catch(() => {
+        if (!isMounted) return;
+        setErrorCargaCuadrillas('No se pudo cargar la dotación de cuadrillas disponibles.');
+        setCargandoCuadrillas(false);
+      });
 
     return () => {
       isMounted = false;
     };
-  }, [isOpen, incidente]);
+  }, [isOpen, incidenteIdActual]);
 
   if (!isOpen || !incidente) return null;
 

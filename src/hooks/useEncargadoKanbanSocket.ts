@@ -304,9 +304,9 @@ export function useEncargadoKanbanSocket({
       } else if (normalizedPayload.datos.tipoAfectacion && normalizedPayload.datos.justificacion) {
         const sinCambiosTipologia = normalizedPayload.datos.tipoAnterior
           ? !fueTipologiaModificada(
-              normalizedPayload.datos.tipoAnterior,
-              normalizedPayload.datos.tipoAfectacion
-            )
+            normalizedPayload.datos.tipoAnterior,
+            normalizedPayload.datos.tipoAfectacion
+          )
           : esJustificacionSinCambios(normalizedPayload.datos.justificacion);
 
         setUltimoEvento(
@@ -407,7 +407,12 @@ export function useEncargadoKanbanSocket({
       const normalizedPayload: MisionRechazadaPayload = {
         misionId,
         codigo,
-        tipoMision: typeof raw?.tipoMision === 'string' ? raw.tipoMision : 'VERIFICACION',
+        tipoMision:
+          typeof raw?.tipoMision === 'string'
+            ? raw.tipoMision
+            : typeof raw?.tipo_mision === 'string'
+              ? raw.tipo_mision
+              : 'VERIFICACION',
         motivo:
           typeof raw?.motivo === 'string'
             ? raw.motivo
@@ -425,9 +430,9 @@ export function useEncargadoKanbanSocket({
           : {}),
         ...(raw && 'cuadrillaNombre' in raw
           ? {
-              cuadrillaNombre:
-                typeof raw.cuadrillaNombre === 'string' ? raw.cuadrillaNombre : null,
-            }
+            cuadrillaNombre:
+              typeof raw.cuadrillaNombre === 'string' ? raw.cuadrillaNombre : null,
+          }
           : {}),
         patrullaId: typeof raw?.patrullaId === 'string' ? raw.patrullaId : null,
         patrullaNombre: typeof raw?.patrullaNombre === 'string' ? raw.patrullaNombre : null,

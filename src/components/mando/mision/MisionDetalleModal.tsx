@@ -96,10 +96,11 @@ export const MisionDetalleModal: React.FC<MisionDetalleModalProps> = ({
     }
   }, [cargando, mision, enfocarReportes, reporteDestacadoId]);
 
-  // Sincronización en tiempo real de nuevos reportes o rectificaciones en la misión abierta
+  // Sincronización en tiempo real de nuevos reportes, rectificaciones o rechazo de la misión abierta
   useEffect(() => {
     if (!misionId) return;
 
+    let activo = true;
     const socket = getSocket();
     const handleIncidenteActualizado = (payload: unknown) => {
       const p = payload as Record<string, unknown> | null | undefined;
@@ -200,11 +201,32 @@ export const MisionDetalleModal: React.FC<MisionDetalleModalProps> = ({
       });
     };
 
-    socket.on('incidente:actualizado', handleIncidenteActualizado);
-    return () => {
-      socket.off('incidente:actualizado', handleIncidenteActualizado);
+    const handleMisionRechazada = (payload: unknown) => {
+      const p = payload as Record<string, unknown> | null | undefined;
+      const raw = (p?.datos || p?.data || p) as Record<string, unknown> | null | undefined;
+      const idPayload =
+        typeof raw?.misionId === 'string'
+          ? raw.misionId
+          : typeof raw?.id === 'string'
+            ? raw.id
+            : undefined;
+      if (idPayload !== misionId) return;
+
+      void obtenerDetalleMision(misionId, userId).then((res) => {
+        if (activo && res.exito && res.datos) {
+          setMision(res.datos);
+        }
+      });
     };
-  }, [misionId]);
+
+    socket.on('incidente:actualizado', handleIncidenteActualizado);
+    socket.on('mision:rechazada', handleMisionRechazada);
+    return () => {
+      activo = false;
+      socket.off('incidente:actualizado', handleIncidenteActualizado);
+      socket.off('mision:rechazada', handleMisionRechazada);
+    };
+  }, [misionId, userId]);
 
   // Manejo de tecla Escape
   useEffect(() => {

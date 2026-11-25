@@ -86,6 +86,7 @@ export const KanbanBoard: React.FC = () => {
   const setIncidenteSeleccionadoIdRef = React.useRef<((id: string | null) => void) | null>(null);
 
   const ultimosToastsRechazoRef = React.useRef<Map<string, number>>(new Map());
+  const ultimaCargaCuadrillasRef = React.useRef<number>(0);
 
   const ultimosToastsReporteRef = React.useRef<Map<string, number>>(new Map());
 
@@ -152,7 +153,7 @@ export const KanbanBoard: React.FC = () => {
       // Asistencia Social / FIBE
       const requiereFibe = Boolean(
         evalData.requiereAsistenciaSocial ||
-          (familiasRaw && familiasRaw.some((f) => f.requiereAsistenciaSocial))
+        (familiasRaw && familiasRaw.some((f) => f.requiereAsistenciaSocial))
       );
       if (requiereFibe) {
         detallesToast.push({
@@ -185,9 +186,8 @@ export const KanbanBoard: React.FC = () => {
         });
       }
 
-      const mensajeBase = `Se registró una ${
-        esRect ? 'rectificación' : 'evaluación inicial'
-      } para el incidente ${payload.datos.codigo || ''}.`;
+      const mensajeBase = `Se registró una ${esRect ? 'rectificación' : 'evaluación inicial'
+        } para el incidente ${payload.datos.codigo || ''}.`;
 
       const toastOptions = {
         icon: 'reporte' as const,
@@ -319,6 +319,12 @@ export const KanbanBoard: React.FC = () => {
   );
 
   const cargarCuadrillas = useCallback(() => {
+    const ahora = Date.now();
+    if (ahora - ultimaCargaCuadrillasRef.current < 300) {
+      return () => {};
+    }
+    ultimaCargaCuadrillasRef.current = ahora;
+
     let isMounted = true;
     cuadrillasService
       .obtenerCuadrillas({ pagina: 1, limite: 100 })
@@ -327,7 +333,7 @@ export const KanbanBoard: React.FC = () => {
           setCuadrillasOperativas(res.cuadrillas);
         }
       })
-      .catch(() => {});
+      .catch(() => { });
     return () => {
       isMounted = false;
     };
@@ -341,7 +347,7 @@ export const KanbanBoard: React.FC = () => {
           setEventosRecuperacion(res.data);
         }
       })
-      .catch(() => {});
+      .catch(() => { });
     return () => {
       isMounted = false;
     };
@@ -399,9 +405,9 @@ export const KanbanBoard: React.FC = () => {
           ],
           action: payload.incidenteId
             ? {
-                label: 'Ver incidente',
-                onClick: () => setIncidenteSeleccionadoIdRef.current?.(payload.incidenteId!),
-              }
+              label: 'Ver incidente',
+              onClick: () => setIncidenteSeleccionadoIdRef.current?.(payload.incidenteId!),
+            }
             : undefined,
         }
       );
@@ -425,6 +431,7 @@ export const KanbanBoard: React.FC = () => {
                 ...c,
                 estado: payload.estado as CuadrillaItem['estado'],
                 nombre: payload.nombre || c.nombre,
+                ...(payload.estado === 'DISPONIBLE' ? { misionActiva: undefined } : {}),
               }
             : c
         );
@@ -479,7 +486,7 @@ export const KanbanBoard: React.FC = () => {
   // Actualizar cuadrillas operativas ante eventos socket en tiempo real (BUG-H22-WEB-04)
   useEffect(() => {
     if (ultimoEvento) {
-      cargarCuadrillas();
+      return cargarCuadrillas();
     }
   }, [ultimoEvento, cargarCuadrillas]);
 
