@@ -535,5 +535,30 @@ describe('Componente IncidenteMisionesSection', () => {
         )
       ).toBeDefined();
     });
+
+    it('debe adaptar el aviso de rechazo cuando puedeAsignar es false sin instruir usar Despachar Cuadrilla (BUG-H41-WEB-05)', () => {
+      render(
+        <IncidenteMisionesSection
+          incidenteEstado="VERIFICANDO"
+          puedeAsignar={false}
+          misiones={[
+            {
+              ...mockMisiones[0],
+              estado: 'RECHAZADA',
+              justificacionRechazo: 'Camión tolva en pana.',
+              cuadrilla: {
+                id: 'c1',
+                nombre: 'Cuadrilla Vías y Canales 1',
+                estado: 'DISPONIBLE',
+              },
+            },
+          ]}
+        />
+      );
+
+      const aviso = screen.getByTestId('aviso-rechazo-cuadrilla-reasignacion');
+      expect(aviso.textContent).toContain('Encargado autorizado');
+      expect(aviso.textContent).not.toContain('Despachar Cuadrilla');
+    });
   });
 });
