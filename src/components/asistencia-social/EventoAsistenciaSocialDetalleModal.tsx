@@ -24,6 +24,7 @@ import Heading from '@/components/ui/Heading';
 import {
   TIPOS_AFECTACION_SOCIAL,
   NIVELES_COMPROMISO_VIVIENDA,
+  NIVELES_DANO_VIVIENDA_FIBE,
 } from '@/types/asistenciaSocial';
 import { normalizarDetallesEvaluacionSocial } from '@/lib/utils/asistenciaSocialIncidenteUtils';
 import type {
@@ -54,6 +55,10 @@ export interface DatosFichaAsistenciaSocial {
   estado?: string;
   asistenteSocialNombre?: string | null;
   detallesEvaluacion?: DetallesEvaluacionSocialDTO | null;
+  folioFibe?: string | null;
+  nivelDanoVivienda?: string | null;
+  observacionesFibe?: string | null;
+  fibeRegistradaEn?: string | null;
 }
 
 interface EventoAsistenciaSocialDetalleModalProps {
@@ -990,6 +995,81 @@ export default function EventoAsistenciaSocialDetalleModal({
             </div>
           )}
         </div>
+
+        {/* Ficha Básica de Emergencia (FIBE) — DGRD (HU-71) */}
+        {(datos.folioFibe || datos.nivelDanoVivienda || datos.observacionesFibe) && (
+          <div
+            data-testid="ficha-fibe-oficial-detalle"
+            style={{
+              padding: '14px 16px',
+              backgroundColor: '#E8EAF6',
+              border: '1px solid #9FA8DA',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '10px',
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: '8px',
+              }}
+            >
+              <span
+                style={{
+                  fontSize: '12px',
+                  fontWeight: 800,
+                  textTransform: 'uppercase',
+                  color: '#283593',
+                  letterSpacing: '0.4px',
+                }}
+              >
+                Ficha Básica de Emergencia (FIBE) — DGRD
+              </span>
+              {datos.fibeRegistradaEn && (
+                <span style={{ fontSize: '11px', color: '#283593' }}>
+                  Registrada el {new Date(datos.fibeRegistradaEn).toLocaleString('es-CL')}
+                </span>
+              )}
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px' }}>
+              <div>
+                <div style={{ fontSize: '11px', fontWeight: 700, color: '#3949AB', textTransform: 'uppercase' }}>
+                  Folio Oficial FIBE
+                </div>
+                <div style={{ fontSize: '14px', fontWeight: 800, fontFamily: 'monospace', color: '#1A237E', marginTop: '2px' }}>
+                  {datos.folioFibe || 'Sin folio'}
+                </div>
+              </div>
+
+              <div>
+                <div style={{ fontSize: '11px', fontWeight: 700, color: '#3949AB', textTransform: 'uppercase' }}>
+                  Nivel de Daño en Vivienda
+                </div>
+                <div style={{ fontSize: '13px', fontWeight: 700, color: '#1A237E', marginTop: '2px' }}>
+                  {NIVELES_DANO_VIVIENDA_FIBE.find((n) => n.value === datos.nivelDanoVivienda)?.label ||
+                    datos.nivelDanoVivienda ||
+                    'No especificado'}
+                </div>
+              </div>
+            </div>
+
+            {datos.observacionesFibe && (
+              <div>
+                <div style={{ fontSize: '11px', fontWeight: 700, color: '#3949AB', textTransform: 'uppercase' }}>
+                  Observaciones Sociales de Terreno
+                </div>
+                <div style={{ fontSize: '13px', color: 'var(--color-text-dark, #2B2B2B)', marginTop: '2px', lineHeight: 1.45 }}>
+                  {datos.observacionesFibe}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* 4. Trazabilidad Institucional */}
         <div

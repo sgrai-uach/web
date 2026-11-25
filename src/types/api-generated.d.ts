@@ -4,6 +4,50 @@
  */
 
 export interface paths {
+    "/api/health": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Verificar estado operativo de la API
+         * @description Endpoint de health check para monitoreo de disponibilidad y liveness probe.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Servicio operativo */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example ok */
+                            status: string;
+                            /** Format: date-time */
+                            timestamp: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/recursos": {
         parameters: {
             query?: never;
@@ -242,7 +286,7 @@ export interface paths {
                     };
                     content?: never;
                 };
-                /** @description No autenticado / cabecera X-User-Id ausente */
+                /** @description No autenticado / token Bearer ausente o inválido */
                 401: {
                     headers: {
                         [name: string]: unknown;
@@ -485,7 +529,7 @@ export interface paths {
                         "application/json": components["schemas"]["ListarRolesResponse"];
                     };
                 };
-                /** @description Cabecera de autenticación X-User-Id ausente o usuario no válido */
+                /** @description Token de autenticación Bearer ausente o inválido */
                 401: {
                     headers: {
                         [name: string]: unknown;
@@ -548,7 +592,7 @@ export interface paths {
                     };
                     content?: never;
                 };
-                /** @description Cabecera de autenticación X-User-Id ausente o usuario no válido */
+                /** @description Token de autenticación Bearer ausente o inválido */
                 401: {
                     headers: {
                         [name: string]: unknown;
@@ -608,7 +652,7 @@ export interface paths {
                         "application/json": components["schemas"]["ListarPermisosResponse"];
                     };
                 };
-                /** @description Cabecera de autenticación X-User-Id ausente o usuario no válido */
+                /** @description Token de autenticación Bearer ausente o inválido */
                 401: {
                     headers: {
                         [name: string]: unknown;
@@ -677,7 +721,7 @@ export interface paths {
                     };
                     content?: never;
                 };
-                /** @description Cabecera de autenticación X-User-Id ausente o usuario no válido */
+                /** @description Token de autenticación Bearer ausente o inválido */
                 401: {
                     headers: {
                         [name: string]: unknown;
@@ -736,7 +780,7 @@ export interface paths {
                         "application/json": components["schemas"]["UsuarioActivoResponse"];
                     };
                 };
-                /** @description Cabecera de autenticación ausente o usuario no registrado */
+                /** @description Token de autenticación Bearer ausente o usuario no registrado */
                 401: {
                     headers: {
                         [name: string]: unknown;
@@ -1296,7 +1340,7 @@ export interface paths {
                     };
                     content?: never;
                 };
-                /** @description No autenticado / cabecera X-User-Id ausente */
+                /** @description No autenticado / token Bearer ausente o inválido */
                 401: {
                     headers: {
                         [name: string]: unknown;
@@ -1408,7 +1452,7 @@ export interface paths {
                     };
                     content?: never;
                 };
-                /** @description No autenticado / cabecera X-User-Id ausente */
+                /** @description No autenticado / token Bearer ausente o inválido */
                 401: {
                     headers: {
                         [name: string]: unknown;
@@ -1663,6 +1707,28 @@ export interface paths {
                                 totalReportesTerreno?: number;
                                 /** @description Indica si se requiere derivación para ficha FIBE */
                                 requiereAsistenciaSocial: boolean;
+                                /**
+                                 * @description Cantidad de personas afectadas constatadas en terreno o asistencia social (HU-25)
+                                 * @example 4
+                                 */
+                                personasAfectadas?: number;
+                                /** @description Resumen del evento activo de asistencia social DGRD/FIBE vinculado al incidente (HU-25) */
+                                eventoAsistenciaSocial?: {
+                                    /** Format: uuid */
+                                    id: string;
+                                    /** @example AS-2026-0001 */
+                                    codigo: string;
+                                    /** @enum {string} */
+                                    estado: "PENDIENTE" | "ASIGNADO" | "EN_EVALUACION_FIBE" | "FINALIZADO" | "DESCARTADO";
+                                    /** Format: uuid */
+                                    asistenteSocialId: string | null;
+                                    asistenteSocialNombre: string | null;
+                                    personasAfectadas: number;
+                                    familiasAfectadas: number;
+                                    /** @enum {string} */
+                                    prioridad: "BAJA" | "MEDIA" | "ALTA" | "CRITICA";
+                                    actualizadoEn: string;
+                                } | null;
                                 /** @description Fecha y hora de cierre del incidente (si aplica) */
                                 fechaCierre?: string | null;
                                 /** @description Motivo fundado cuando el incidente fue declarado NO_ABORDABLE */
@@ -1689,6 +1755,17 @@ export interface paths {
                                  * @default false
                                  */
                                 verificado: boolean;
+                                /** @description Indica si la cuadrilla operativa finalizó sus faenas y envió el informe técnico final (HU-68) */
+                                faenasCuadrillaCompletadas?: boolean;
+                                /** @description Estado final del terreno informado por la cuadrilla al cierre (HU-68) */
+                                estadoTerrenoFinal?: string | null;
+                                /** @description Horas hombre invertidas reportadas en el último cierre de cuadrilla (HU-68) */
+                                horasHombreRegistradas?: number | null;
+                                /**
+                                 * @description Último dictamen técnico emitido por la patrulla verificadora (HU-39)
+                                 * @enum {string|null}
+                                 */
+                                dictamenTerreno?: "REQUIERE_CUADRILLA" | "NO_ABORDABLE" | null;
                                 /** @description Indica si el incidente fue verificado o reclasificado en terreno */
                                 reclasificadoEnTerreno?: boolean;
                                 /** @description Motivo o justificación técnica de la evaluación en terreno */
@@ -1737,7 +1814,7 @@ export interface paths {
                     };
                     content?: never;
                 };
-                /** @description No autenticado / cabecera X-User-Id ausente o inválida */
+                /** @description No autenticado / token Bearer ausente o inválido */
                 401: {
                     headers: {
                         [name: string]: unknown;
@@ -1822,6 +1899,28 @@ export interface paths {
                                 /** @description Justificación técnica de cambio de prioridad en terreno (HU-38) */
                                 justificacionPrioridad?: string | null;
                                 requiereAsistenciaSocial: boolean;
+                                /**
+                                 * @description Cantidad de personas afectadas constatadas en terreno o asistencia social (HU-25)
+                                 * @example 4
+                                 */
+                                personasAfectadas?: number;
+                                /** @description Resumen del evento activo de asistencia social DGRD/FIBE vinculado al incidente (HU-25) */
+                                eventoAsistenciaSocial?: {
+                                    /** Format: uuid */
+                                    id: string;
+                                    /** @example AS-2026-0001 */
+                                    codigo: string;
+                                    /** @enum {string} */
+                                    estado: "PENDIENTE" | "ASIGNADO" | "EN_EVALUACION_FIBE" | "FINALIZADO" | "DESCARTADO";
+                                    /** Format: uuid */
+                                    asistenteSocialId: string | null;
+                                    asistenteSocialNombre: string | null;
+                                    personasAfectadas: number;
+                                    familiasAfectadas: number;
+                                    /** @enum {string} */
+                                    prioridad: "BAJA" | "MEDIA" | "ALTA" | "CRITICA";
+                                    actualizadoEn: string;
+                                } | null;
                                 /** @description Fecha y hora de cierre del incidente (ej. al declararse NO_ABORDABLE o RESUELTO) */
                                 fechaCierre?: string | null;
                                 /** @description Motivo técnico fundado registrado por la patrulla verificadora si fue declarado NO_ABORDABLE (HU-39 / HU-86) */
@@ -1987,6 +2086,17 @@ export interface paths {
                                  * @default false
                                  */
                                 verificado: boolean;
+                                /** @description Indica si la cuadrilla operativa finalizó sus faenas y envió el informe técnico final (HU-68) */
+                                faenasCuadrillaCompletadas?: boolean;
+                                /** @description Estado final del terreno informado por la cuadrilla al cierre (HU-68) */
+                                estadoTerrenoFinal?: string | null;
+                                /** @description Horas hombre invertidas reportadas en el último cierre de cuadrilla (HU-68) */
+                                horasHombreRegistradas?: number | null;
+                                /**
+                                 * @description Último dictamen técnico emitido por la patrulla verificadora (HU-39)
+                                 * @enum {string|null}
+                                 */
+                                dictamenTerreno?: "REQUIERE_CUADRILLA" | "NO_ABORDABLE" | null;
                                 /**
                                  * @description Indica si fue verificado o reclasificado en terreno
                                  * @default false
@@ -2024,9 +2134,16 @@ export interface paths {
                                     dictamen?: "REQUIERE_CUADRILLA" | "NO_ABORDABLE" | null;
                                     motivoNoAbordable?: string | null;
                                     tipoReporte?: string | null;
+                                    estadoTerreno?: string | null;
+                                    etiquetaReporte?: string | null;
+                                    horasHombre?: number | null;
+                                    requiereApoyoAdicional?: boolean;
+                                    materialesConsumidos?: components["schemas"]["MaterialConsumidoDetalle"][] | null;
                                     versionReporte: number | null;
                                     esRectificacion: boolean;
                                 } | null;
+                                /** @description Bitácora cronológica de hitos de las misiones del incidente (mision_hito), incluyendo derivaciones a Asistencia Social (DGRD) */
+                                bitacoraHitos?: components["schemas"]["HitoIncidenteDetalle"][];
                                 creadoEn: string;
                                 actualizadoEn: string;
                             };
@@ -3475,8 +3592,8 @@ export interface paths {
         };
         put?: never;
         /**
-         * Asignar y despachar patrulla verificadora a un incidente (HU-20)
-         * @description Despacha una patrulla verificadora disponible a un incidente formal en estado REPORTADO. Ejecuta una transacción atómica que: (1) crea la misión con tipo VERIFICACION y estado DESPACHADA, (2) actualiza el incidente a estado VERIFICANDO, (3) actualiza la patrulla a estado EN_VERIFICACION, y (4) registra el hito inicial en mision_hito. Emite eventos WebSocket a las salas 'patrulla:{id}', 'encargado' y 'mapa'. Requiere permiso 'misiones:asignar'.
+         * Despachar misión operativa a patrulla verificadora (HU-20) o cuadrilla operativa (HU-21)
+         * @description Crea y despacha una misión en estado DESPACHADA. Si recibe `patrullaId` (HU-20), despacha una patrulla verificadora disponible sobre un incidente REPORTADO (cambiando el incidente a VERIFICANDO y la patrulla a EN_VERIFICACION). Si recibe `cuadrillaId` o `tipoMision: 'ATENCION_CUADRILLA'` (HU-21), despacha una cuadrilla disponible cambiando el incidente a EN_ATENCION y aplicando la Regla §3.2 ICS para concluir la verificación previa y liberar la patrulla a DISPONIBLE.
          */
         post: {
             parameters: {
@@ -3484,7 +3601,7 @@ export interface paths {
                 header?: {
                     /** @description Token Bearer JWT de sesión */
                     authorization?: string;
-                    /** @description UUID del usuario autenticado (entorno pruebas) */
+                    /** @description UUID del usuario autenticado con permiso misiones:asignar (entorno pruebas) */
                     "x-user-id"?: string;
                 };
                 path?: never;
@@ -3492,17 +3609,17 @@ export interface paths {
             };
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["CrearMisionVerificacionInput"];
+                    "application/json": components["schemas"]["CrearMisionVerificacionInput"] | components["schemas"]["AsignarCuadrillaMisionInput"];
                 };
             };
             responses: {
-                /** @description Misión de verificación creada y patrulla despachada exitosamente */
+                /** @description Misión despachada exitosamente (verificación por patrulla o atención por cuadrilla) */
                 201: {
                     headers: {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["CrearMisionResponse"];
+                        "application/json": components["schemas"]["CrearMisionResponse"] | components["schemas"]["AsignarCuadrillaMisionResponse"];
                     };
                 };
                 /** @description Datos de entrada inválidos o formato JSON malformado */
@@ -3514,7 +3631,7 @@ export interface paths {
                         "application/json": components["schemas"]["MensajeGenericoResponse"];
                     };
                 };
-                /** @description No autenticado o token ausente */
+                /** @description No autenticado / token ausente o inválido */
                 401: {
                     headers: {
                         [name: string]: unknown;
@@ -3523,7 +3640,7 @@ export interface paths {
                         "application/json": components["schemas"]["MensajeGenericoResponse"];
                     };
                 };
-                /** @description Acceso denegado. Se requiere permiso 'misiones:asignar'. */
+                /** @description Permisos insuficientes (requiere misiones:asignar) */
                 403: {
                     headers: {
                         [name: string]: unknown;
@@ -3532,7 +3649,7 @@ export interface paths {
                         "application/json": components["schemas"]["MensajeGenericoResponse"];
                     };
                 };
-                /** @description Incidente o patrulla no encontrado */
+                /** @description Incidente, patrulla o cuadrilla no encontrados */
                 404: {
                     headers: {
                         [name: string]: unknown;
@@ -3541,7 +3658,7 @@ export interface paths {
                         "application/json": components["schemas"]["MensajeGenericoResponse"];
                     };
                 };
-                /** @description Conflicto: la patrulla seleccionada ya no se encuentra DISPONIBLE o el incidente no está en estado REPORTADO */
+                /** @description Conflicto: la patrulla o cuadrilla no está disponible o el incidente no se encuentra en estado compatible */
                 409: {
                     headers: {
                         [name: string]: unknown;
@@ -3550,7 +3667,7 @@ export interface paths {
                         "application/json": components["schemas"]["MensajeGenericoResponse"];
                     };
                 };
-                /** @description Error interno del servidor al crear y despachar la misión */
+                /** @description Error interno del servidor al procesar la misión */
                 500: {
                     headers: {
                         [name: string]: unknown;
@@ -5403,6 +5520,10 @@ export interface paths {
                     prioridad?: "BAJA" | "MEDIA" | "ALTA" | "CRITICA";
                     /** @description Búsqueda textual insensible a mayúsculas por código, descripción, dirección o contacto */
                     busqueda?: string;
+                    /** @description Filtrar por UUID de incidente vinculado */
+                    incidenteId?: string;
+                    /** @description Filtrar por UUID del asistente social asignado */
+                    asistenteSocialId?: string;
                 };
                 header?: {
                     /** @description Token Bearer del usuario con permiso 'asistencia_social:leer' */
@@ -5473,12 +5594,78 @@ export interface paths {
                                  */
                                 incidenteId: string | null;
                                 /**
+                                 * @description Código del incidente vinculado si aplica
+                                 * @example INC-2026-0006
+                                 */
+                                incidenteCodigo?: string | null;
+                                /**
                                  * Format: uuid
                                  * @example null
                                  */
                                 asistenteSocialId: string | null;
                                 /** @example null */
                                 asistenteSocialNombre: string | null;
+                                /** @description Desglose demográfico por familia y condición habitacional (null en modo aproximado) */
+                                detallesEvaluacion: {
+                                    familias?: {
+                                        id?: string;
+                                        referencia?: string;
+                                        nucleoFamiliarTotal: number;
+                                        /** @default 0 */
+                                        cantidadNinos: number | null;
+                                        /** @default 0 */
+                                        cantidadAdultosMayores: number | null;
+                                        /** @default 0 */
+                                        personasDiscapacitadas: number | null;
+                                        /** @default 0 */
+                                        personasElectrodependientes: number | null;
+                                        /** @default 0 */
+                                        mascotasAfectadas: number | null;
+                                        /** @enum {string|null} */
+                                        nivelCompromisoVivienda?: "SIN_DANO" | "LEVE" | "MODERADO" | "GRAVE_INHABITABLE" | null;
+                                        contactoNombre?: string | null;
+                                        contactoTelefono?: string | null;
+                                        contactoRut?: string | null;
+                                    }[];
+                                    nucleoFamiliarTotal?: number | null;
+                                    familiasAfectadas?: number | null;
+                                    cantidadNinos?: number | null;
+                                    cantidadAdultosMayores?: number | null;
+                                    personasDiscapacitadas?: number | null;
+                                    personasElectrodependientes?: number | null;
+                                    mascotasAfectadas?: number | null;
+                                    /** @enum {string|null} */
+                                    nivelCompromisoVivienda?: "SIN_DANO" | "LEVE" | "MODERADO" | "GRAVE_INHABITABLE" | null;
+                                    danosEstimados?: string | null;
+                                } | null;
+                                /**
+                                 * @description Folio oficial de la Ficha Básica de Emergencia (FIBE) registrado en terreno
+                                 * @example FIBE-2026-0001
+                                 */
+                                folioFibe?: string | null;
+                                /**
+                                 * @description Nivel de daño en vivienda confirmado en la evaluación FIBE
+                                 * @example MODERADO
+                                 * @enum {string|null}
+                                 */
+                                nivelDanoVivienda?: "SIN_DANO" | "LEVE" | "MODERADO" | "GRAVE_INHABITABLE" | null;
+                                /**
+                                 * @description Observaciones sociales registradas durante el levantamiento FIBE
+                                 * @example Grupo familiar con adulto mayor postrado; requiere reposición de enseres.
+                                 */
+                                observacionesFibe?: string | null;
+                                /**
+                                 * Format: date-time
+                                 * @description Fecha y hora de registro oficial de la Ficha FIBE
+                                 * @example 2026-10-05T14:30:00.000Z
+                                 */
+                                fibeRegistradaEn?: string | null;
+                                /**
+                                 * Format: uuid
+                                 * @description UUID del funcionario que registró la Ficha FIBE
+                                 * @example 00000000-0000-4000-8000-000000000019
+                                 */
+                                fibeRegistradaPorId?: string | null;
                                 /** @description Funcionario responsable de la creación del evento */
                                 creadoPor: {
                                     /**
@@ -5633,6 +5820,45 @@ export interface paths {
                          * @example null
                          */
                         incidenteId?: string | null;
+                        /**
+                         * Format: uuid
+                         * @description Identificador opcional de un usuario con rol ASISTENTE_SOCIAL disponible para asignación inmediata al crear el evento (H31 Opción A)
+                         * @example null
+                         */
+                        asistenteSocialId?: string | null;
+                        /** @description Desglose demográfico por familia y condición habitacional opcional (homologado con H38/H39). Si incluye familias, sus totales sobrescriben personasAfectadas y familiasAfectadas. */
+                        detallesEvaluacion?: {
+                            familias?: {
+                                id?: string;
+                                referencia?: string;
+                                nucleoFamiliarTotal: number;
+                                /** @default 0 */
+                                cantidadNinos?: number | null;
+                                /** @default 0 */
+                                cantidadAdultosMayores?: number | null;
+                                /** @default 0 */
+                                personasDiscapacitadas?: number | null;
+                                /** @default 0 */
+                                personasElectrodependientes?: number | null;
+                                /** @default 0 */
+                                mascotasAfectadas?: number | null;
+                                /** @enum {string|null} */
+                                nivelCompromisoVivienda?: "SIN_DANO" | "LEVE" | "MODERADO" | "GRAVE_INHABITABLE" | null;
+                                contactoNombre?: string | null;
+                                contactoTelefono?: string | null;
+                                contactoRut?: string | null;
+                            }[];
+                            nucleoFamiliarTotal?: number | null;
+                            familiasAfectadas?: number | null;
+                            cantidadNinos?: number | null;
+                            cantidadAdultosMayores?: number | null;
+                            personasDiscapacitadas?: number | null;
+                            personasElectrodependientes?: number | null;
+                            mascotasAfectadas?: number | null;
+                            /** @enum {string|null} */
+                            nivelCompromisoVivienda?: "SIN_DANO" | "LEVE" | "MODERADO" | "GRAVE_INHABITABLE" | null;
+                            danosEstimados?: string | null;
+                        } | null;
                     };
                 };
             };
@@ -5696,12 +5922,78 @@ export interface paths {
                                  */
                                 incidenteId: string | null;
                                 /**
+                                 * @description Código del incidente vinculado si aplica
+                                 * @example INC-2026-0006
+                                 */
+                                incidenteCodigo?: string | null;
+                                /**
                                  * Format: uuid
                                  * @example null
                                  */
                                 asistenteSocialId: string | null;
                                 /** @example null */
                                 asistenteSocialNombre: string | null;
+                                /** @description Desglose demográfico por familia y condición habitacional (null en modo aproximado) */
+                                detallesEvaluacion: {
+                                    familias?: {
+                                        id?: string;
+                                        referencia?: string;
+                                        nucleoFamiliarTotal: number;
+                                        /** @default 0 */
+                                        cantidadNinos: number | null;
+                                        /** @default 0 */
+                                        cantidadAdultosMayores: number | null;
+                                        /** @default 0 */
+                                        personasDiscapacitadas: number | null;
+                                        /** @default 0 */
+                                        personasElectrodependientes: number | null;
+                                        /** @default 0 */
+                                        mascotasAfectadas: number | null;
+                                        /** @enum {string|null} */
+                                        nivelCompromisoVivienda?: "SIN_DANO" | "LEVE" | "MODERADO" | "GRAVE_INHABITABLE" | null;
+                                        contactoNombre?: string | null;
+                                        contactoTelefono?: string | null;
+                                        contactoRut?: string | null;
+                                    }[];
+                                    nucleoFamiliarTotal?: number | null;
+                                    familiasAfectadas?: number | null;
+                                    cantidadNinos?: number | null;
+                                    cantidadAdultosMayores?: number | null;
+                                    personasDiscapacitadas?: number | null;
+                                    personasElectrodependientes?: number | null;
+                                    mascotasAfectadas?: number | null;
+                                    /** @enum {string|null} */
+                                    nivelCompromisoVivienda?: "SIN_DANO" | "LEVE" | "MODERADO" | "GRAVE_INHABITABLE" | null;
+                                    danosEstimados?: string | null;
+                                } | null;
+                                /**
+                                 * @description Folio oficial de la Ficha Básica de Emergencia (FIBE) registrado en terreno
+                                 * @example FIBE-2026-0001
+                                 */
+                                folioFibe?: string | null;
+                                /**
+                                 * @description Nivel de daño en vivienda confirmado en la evaluación FIBE
+                                 * @example MODERADO
+                                 * @enum {string|null}
+                                 */
+                                nivelDanoVivienda?: "SIN_DANO" | "LEVE" | "MODERADO" | "GRAVE_INHABITABLE" | null;
+                                /**
+                                 * @description Observaciones sociales registradas durante el levantamiento FIBE
+                                 * @example Grupo familiar con adulto mayor postrado; requiere reposición de enseres.
+                                 */
+                                observacionesFibe?: string | null;
+                                /**
+                                 * Format: date-time
+                                 * @description Fecha y hora de registro oficial de la Ficha FIBE
+                                 * @example 2026-10-05T14:30:00.000Z
+                                 */
+                                fibeRegistradaEn?: string | null;
+                                /**
+                                 * Format: uuid
+                                 * @description UUID del funcionario que registró la Ficha FIBE
+                                 * @example 00000000-0000-4000-8000-000000000019
+                                 */
+                                fibeRegistradaPorId?: string | null;
                                 /** @description Funcionario responsable de la creación del evento */
                                 creadoPor: {
                                     /**
@@ -5742,6 +6034,465 @@ export interface paths {
                 };
                 /** @description Acceso denegado. Se requiere permiso 'asistencia_social:crear' */
                 403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Asistente social especificado no encontrado */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description El usuario seleccionado no posee rol ASISTENTE_SOCIAL activo o no está disponible */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Error interno del servidor */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/eventos-atp/asistencia-social/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Asignar asistente social a evento de asistencia social
+         * @description Asigna un asistente social disponible (rol ASISTENTE_SOCIAL) a un evento de asistencia social en estado PENDIENTE, realizando la transición atómica a ASIGNADO y emitiendo el evento WebSocket asistencia_social:actualizada.
+         */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: {
+                    /** @description Token Bearer del usuario con permiso 'asistencia_social:crear' */
+                    authorization?: string;
+                    /** @description UUID del usuario autenticado (Encargado o Administrador) */
+                    "x-user-id"?: string;
+                };
+                path: {
+                    /** @description UUID del evento de asistencia social */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            /** @description UUID del asistente social disponible a asignar */
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        /**
+                         * Format: uuid
+                         * @description UUID del usuario con rol ASISTENTE_SOCIAL en estado disponible
+                         * @example 00000000-0000-4000-8000-000000000006
+                         */
+                        asistenteSocialId: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Asistente social asignado exitosamente; evento actualizado a estado ASIGNADO */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example Asistente social asignado exitosamente al evento de asistencia social. */
+                            message: string;
+                            data: {
+                                /**
+                                 * Format: uuid
+                                 * @example 70000000-0000-4000-8000-000000000001
+                                 */
+                                id: string;
+                                /** @example AS-2026-0001 */
+                                codigo: string;
+                                /** @example Familia de 4 integrantes con vivienda inundada. */
+                                descripcion: string;
+                                /** @example VIVIENDA_ANEGADA */
+                                tipoAfectacion: string;
+                                /** @example 4 */
+                                personasAfectadas: number;
+                                /** @example 1 */
+                                familiasAfectadas: number;
+                                /** @example Calle Los Alerces 1420, Sector Collico */
+                                direccionTexto: string;
+                                /** @example -39.8234 */
+                                latitud: number;
+                                /** @example -73.2189 */
+                                longitud: number;
+                                /**
+                                 * @example ALTA
+                                 * @enum {string}
+                                 */
+                                prioridad: "BAJA" | "MEDIA" | "ALTA" | "CRITICA";
+                                /**
+                                 * @example PENDIENTE
+                                 * @enum {string}
+                                 */
+                                estado: "PENDIENTE" | "ASIGNADO" | "EN_EVALUACION_FIBE" | "FINALIZADO" | "DESCARTADO";
+                                /** @example María González */
+                                contactoNombre: string | null;
+                                /** @example +56912345678 */
+                                contactoTelefono: string | null;
+                                /** @example 12.345.678-9 */
+                                contactoRut: string | null;
+                                /**
+                                 * Format: uuid
+                                 * @example 30000000-0000-4000-8000-000000000001
+                                 */
+                                delegacionId: string | null;
+                                /** @example Delegación Municipal Costa */
+                                delegacionNombre: string | null;
+                                /**
+                                 * Format: uuid
+                                 * @example null
+                                 */
+                                incidenteId: string | null;
+                                /**
+                                 * @description Código del incidente vinculado si aplica
+                                 * @example INC-2026-0006
+                                 */
+                                incidenteCodigo?: string | null;
+                                /**
+                                 * Format: uuid
+                                 * @example null
+                                 */
+                                asistenteSocialId: string | null;
+                                /** @example null */
+                                asistenteSocialNombre: string | null;
+                                /** @description Desglose demográfico por familia y condición habitacional (null en modo aproximado) */
+                                detallesEvaluacion: {
+                                    familias?: {
+                                        id?: string;
+                                        referencia?: string;
+                                        nucleoFamiliarTotal: number;
+                                        /** @default 0 */
+                                        cantidadNinos: number | null;
+                                        /** @default 0 */
+                                        cantidadAdultosMayores: number | null;
+                                        /** @default 0 */
+                                        personasDiscapacitadas: number | null;
+                                        /** @default 0 */
+                                        personasElectrodependientes: number | null;
+                                        /** @default 0 */
+                                        mascotasAfectadas: number | null;
+                                        /** @enum {string|null} */
+                                        nivelCompromisoVivienda?: "SIN_DANO" | "LEVE" | "MODERADO" | "GRAVE_INHABITABLE" | null;
+                                        contactoNombre?: string | null;
+                                        contactoTelefono?: string | null;
+                                        contactoRut?: string | null;
+                                    }[];
+                                    nucleoFamiliarTotal?: number | null;
+                                    familiasAfectadas?: number | null;
+                                    cantidadNinos?: number | null;
+                                    cantidadAdultosMayores?: number | null;
+                                    personasDiscapacitadas?: number | null;
+                                    personasElectrodependientes?: number | null;
+                                    mascotasAfectadas?: number | null;
+                                    /** @enum {string|null} */
+                                    nivelCompromisoVivienda?: "SIN_DANO" | "LEVE" | "MODERADO" | "GRAVE_INHABITABLE" | null;
+                                    danosEstimados?: string | null;
+                                } | null;
+                                /**
+                                 * @description Folio oficial de la Ficha Básica de Emergencia (FIBE) registrado en terreno
+                                 * @example FIBE-2026-0001
+                                 */
+                                folioFibe?: string | null;
+                                /**
+                                 * @description Nivel de daño en vivienda confirmado en la evaluación FIBE
+                                 * @example MODERADO
+                                 * @enum {string|null}
+                                 */
+                                nivelDanoVivienda?: "SIN_DANO" | "LEVE" | "MODERADO" | "GRAVE_INHABITABLE" | null;
+                                /**
+                                 * @description Observaciones sociales registradas durante el levantamiento FIBE
+                                 * @example Grupo familiar con adulto mayor postrado; requiere reposición de enseres.
+                                 */
+                                observacionesFibe?: string | null;
+                                /**
+                                 * Format: date-time
+                                 * @description Fecha y hora de registro oficial de la Ficha FIBE
+                                 * @example 2026-10-05T14:30:00.000Z
+                                 */
+                                fibeRegistradaEn?: string | null;
+                                /**
+                                 * Format: uuid
+                                 * @description UUID del funcionario que registró la Ficha FIBE
+                                 * @example 00000000-0000-4000-8000-000000000019
+                                 */
+                                fibeRegistradaPorId?: string | null;
+                                /** @description Funcionario responsable de la creación del evento */
+                                creadoPor: {
+                                    /**
+                                     * Format: uuid
+                                     * @example 00000000-0000-4000-8000-000000000003
+                                     */
+                                    id: string;
+                                    /** @example Encargado de Operaciones */
+                                    nombre: string;
+                                };
+                                /**
+                                 * Format: date-time
+                                 * @example 2026-10-05T12:00:00.000Z
+                                 */
+                                creadoEn: string;
+                                /**
+                                 * Format: date-time
+                                 * @example 2026-10-05T12:00:00.000Z
+                                 */
+                                actualizadoEn: string;
+                            };
+                        };
+                    };
+                };
+                /** @description Identificador o cuerpo de solicitud inválido */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description No autenticado */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Acceso denegado. Se requiere permiso 'asistencia_social:crear' */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Evento de asistencia social o usuario asistente social no encontrado */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Conflicto de estado (evento no está en PENDIENTE) o el usuario seleccionado no tiene rol ASISTENTE_SOCIAL / no está disponible */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Error interno del servidor */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        trace?: never;
+    };
+    "/api/eventos-atp/asistencia-social/{id}/fibe": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Registrar Ficha Básica de Emergencia (FIBE) en caso social (HU-71)
+         * @description Registra o actualiza los datos oficiales recopilados en terreno de la Ficha Básica de Emergencia (FIBE) para un caso de asistencia social en estado ASIGNADO o EN_EVALUACION_FIBE, validando unicidad de folio_fibe, transicionando el estado a EN_EVALUACION_FIBE, registrando auditoría y emitiendo asistencia_social:actualizada vía WebSocket.
+         */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: {
+                    /** @description Token Bearer del usuario con permiso 'asistencia_social:fibe:gestionar' */
+                    authorization?: string;
+                    /** @description UUID del usuario autenticado (Asistente Social o Administrador) */
+                    "x-user-id"?: string;
+                };
+                path: {
+                    /** @description UUID del evento de asistencia social */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            /** @description Folio oficial FIBE obligatorio y datos confirmados de integrantes evaluados, daño en vivienda y observaciones sociales */
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["RegistrarFichaFibeInput"];
+                };
+            };
+            responses: {
+                /** @description Ficha FIBE registrada exitosamente; evento actualizado a estado EN_EVALUACION_FIBE */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RegistrarFichaFibeResponse"];
+                    };
+                };
+                /** @description Identificador o datos de la Ficha FIBE inválidos */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description No autenticado */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Acceso denegado. Se requiere permiso 'asistencia_social:fibe:gestionar' */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Evento de asistencia social no encontrado */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Conflicto de negocio: folio_fibe duplicado en el sistema o estado del evento inválido (debe estar en ASIGNADO o EN_EVALUACION_FIBE) */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Error interno del servidor */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        trace?: never;
+    };
+    "/api/incidentes/{id}/asistencia-social": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Derivar incidente resuelto a Asistencia Social (FIBE / DGRD) (HU-25)
+         * @description Deriva un incidente en estado RESUELTO con afectación a personas (personas_afectadas > 0) o marca social (requiere_asistencia_social = true) hacia Asistencia Social (DGRD / FIBE), creando o actualizando un registro en evento_asistencia_social en estado ASIGNADO, copiando contacto y dirección del incidente, registrando el hito DERIVACION_ASISTENCIA_SOCIAL en mision_hito y emitiendo asistencia_social:creada vía WebSocket.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: {
+                    /** @description Token Bearer del usuario con permiso 'asistencia_social:crear' */
+                    authorization?: string;
+                    /** @description UUID del usuario autenticado (Encargado o Administrador) */
+                    "x-user-id"?: string;
+                };
+                path: {
+                    /** @description UUID del incidente resuelto */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            /** @description UUID del asistente social disponible a asignar y observaciones/prioridad opcionales */
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["DerivarAsistenciaSocialIncidenteInput"];
+                };
+            };
+            responses: {
+                /** @description Evento de asistencia social previo en estado PENDIENTE o ASIGNADO actualizado y profesional asignado en estado ASIGNADO */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DerivarAsistenciaSocialIncidenteResponse"];
+                    };
+                };
+                /** @description Nuevo evento de asistencia social creado en estado ASIGNADO a partir del incidente resuelto */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DerivarAsistenciaSocialIncidenteResponse"];
+                    };
+                };
+                /** @description Identificador de incidente o cuerpo de solicitud inválido */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description No autenticado */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Acceso denegado. Se requiere permiso 'asistencia_social:crear' */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Incidente o usuario asistente social no encontrado */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Incidente no está en estado RESUELTO, no registra afectación/marca social, el profesional no posee rol ASISTENTE_SOCIAL disponible o el evento social vinculado ya está en evaluación FIBE / finalizado */
+                409: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -7059,6 +7810,244 @@ export interface paths {
         /**
          * Actualizar estado operativo y/o geolocalización de una patrulla (HU-16)
          * @description Modifica el estado operativo canónico (DISPONIBLE, EN_VERIFICACION, EN_PREVENCION, EN_RECUPERACION, EN_MISION, NO_DISPONIBLE) y/o las coordenadas de la patrulla, notificando en tiempo real a las salas WebSocket 'encargado' y 'supervisor'.
+         */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Identificador único UUID de la patrulla verificadora */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        /**
+                         * @description Nuevo estado operativo canónico
+                         * @example DISPONIBLE
+                         * @enum {string}
+                         */
+                        estado: "DISPONIBLE" | "EN_VERIFICACION" | "EN_PREVENCION" | "EN_RECUPERACION" | "EN_MISION" | "NO_DISPONIBLE";
+                        /** @description Justificación o motivo operacional del cambio de estado */
+                        motivo?: string;
+                        /**
+                         * @description Nueva coordenada de latitud WGS84
+                         * @example -39.819588
+                         */
+                        latitud?: number;
+                        /**
+                         * @description Nueva coordenada de longitud WGS84
+                         * @example -73.245209
+                         */
+                        longitud?: number;
+                    };
+                };
+            };
+            responses: {
+                /** @description Estado de la patrulla actualizado exitosamente */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @description Mensaje de confirmación */
+                            message: string;
+                            /** @description Patrulla verificadora con estado actualizado */
+                            data: {
+                                /**
+                                 * Format: uuid
+                                 * @description UUID de la patrulla verificadora
+                                 */
+                                id: string;
+                                /** @description Código identificador único de la patrulla (ej. PV-NORTE-01) */
+                                codigo?: string;
+                                /** @description Nombre identificador de la patrulla */
+                                nombre: string;
+                                /**
+                                 * @description Estado operativo canónico de la patrulla
+                                 * @enum {string}
+                                 */
+                                estado: "DISPONIBLE" | "EN_VERIFICACION" | "EN_PREVENCION" | "EN_RECUPERACION" | "EN_MISION" | "NO_DISPONIBLE";
+                                /** @description Coordenada latitud WGS84 actual de la patrulla */
+                                latitud: number | null;
+                                /** @description Coordenada longitud WGS84 actual de la patrulla */
+                                longitud: number | null;
+                                /** @description Timestamp ISO de última actualización de coordenadas */
+                                ultimaActualizacionUbicacion: string | null;
+                                /** @description Delegación territorial asignada */
+                                delegacion: {
+                                    /** Format: uuid */
+                                    id: string;
+                                    nombre: string;
+                                    codigo: string | null;
+                                } | null;
+                                /** @description Vehículo institucional individual asignado */
+                                vehiculo?: {
+                                    /**
+                                     * Format: uuid
+                                     * @description UUID del recurso vehicular asignado
+                                     */
+                                    id: string;
+                                    /** @description Nombre o descripción del vehículo */
+                                    nombre: string;
+                                    /** @description Metadatos técnicos como patente */
+                                    detalles?: {
+                                        [key: string]: unknown;
+                                    };
+                                    /** @description Estado de disponibilidad del vehículo */
+                                    estado: string;
+                                } | null;
+                                /** @description Funcionario líder responsable de la patrulla (usuario_lider_id) */
+                                lider: {
+                                    /** Format: uuid */
+                                    id: string;
+                                    nombre: string;
+                                    /** Format: email */
+                                    email: string;
+                                    telefono: string | null;
+                                    rut: string | null;
+                                } | null;
+                                /** @description Lista de funcionarios de terreno conformando la patrulla */
+                                integrantes: {
+                                    /**
+                                     * Format: uuid
+                                     * @description UUID de ficha en tabla personal
+                                     */
+                                    id: string;
+                                    /**
+                                     * Format: uuid
+                                     * @description UUID de usuario en tabla usuario
+                                     */
+                                    usuarioId: string;
+                                    /** @description Nombre completo del funcionario */
+                                    nombre: string;
+                                    /**
+                                     * Format: email
+                                     * @description Correo institucional
+                                     */
+                                    email: string;
+                                    /** @description Teléfono de contacto o móvil de terreno */
+                                    telefono: string | null;
+                                    /** @description RUT del funcionario */
+                                    rut: string | null;
+                                    /** @description Cargo del funcionario */
+                                    cargo: string | null;
+                                    /** @description Especialidad técnica */
+                                    especialidad: string | null;
+                                    /** @description Rol dentro de la patrulla (ej. OPERATIVO, LIDER, CONDUCTOR) */
+                                    rolEnPatrulla: string;
+                                    /** @description Estado operativo individual del personal */
+                                    estadoOperativo: string;
+                                }[];
+                                /** @description Misión táctica e incidente en curso actualmente atendido por la patrulla */
+                                misionActiva: {
+                                    /**
+                                     * Format: uuid
+                                     * @description UUID de la misión activa
+                                     */
+                                    id: string;
+                                    /** @description Código oficial de la misión (ej. MIS-2026-0001) */
+                                    codigo: string;
+                                    /** @description Título de la misión */
+                                    titulo: string;
+                                    /** @description Tipo de misión (VERIFICACION, PREVENCION, etc.) */
+                                    tipoMision: string;
+                                    /** @description Estado de la misión (PLANIFICADA, DESPACHADA, EN_CURSO) */
+                                    estado: string;
+                                    /** @description Prioridad del incidente o misión */
+                                    prioridad: string;
+                                    /**
+                                     * Format: uuid
+                                     * @description UUID del incidente formal asociado
+                                     */
+                                    incidenteId: string | null;
+                                    /** @description Código del incidente formal (ej. INC-2026-0001) */
+                                    incidenteCodigo: string | null;
+                                    /** @description Folio de seguimiento del incidente */
+                                    incidenteFolio: string | null;
+                                    /** @description Tipo de afectación del incidente */
+                                    incidenteTipoAfectacion: string | null;
+                                    /** @description Dirección o ubicación del incidente */
+                                    incidenteDireccion: string | null;
+                                } | null;
+                                /** @description Fecha ISO de conformación de la patrulla */
+                                creadoEn: string;
+                                /** @description Fecha ISO de última actualización */
+                                actualizadoEn: string;
+                                /**
+                                 * @description Indica si la patrulla se encuentra activa operacionalmente
+                                 * @default true
+                                 */
+                                activo: boolean;
+                                /** @description Timestamp ISO de baja lógica si fue desactivada */
+                                eliminadoEn?: string | null;
+                                /**
+                                 * Format: uuid
+                                 * @description UUID del usuario que realizó la baja lógica
+                                 */
+                                eliminadoPorId?: string | null;
+                            };
+                        };
+                    };
+                };
+                /** @description Datos de entrada o identificador inválidos */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description No autenticado o token inválido */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Acceso denegado. Se requiere permiso 'misiones:leer' */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Patrulla verificadora no encontrada */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Error interno del servidor */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        trace?: never;
+    };
+    "/api/patrullas/{id}/estado": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Actualizar estado operativo de una patrulla (alias directo)
+         * @description Alias directo hacia PATCH /api/patrullas/{id} para mutación de estado operativo y/o geolocalización de una patrulla verificadora.
          */
         patch: {
             parameters: {
@@ -8679,8 +9668,8 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Rechazar asignación de misión por Delegado de Cuadrilla (HU-41)
-         * @description Permite al Delegado de cuadrilla rechazar una misión asignada ingresando una justificación técnica obligatoria (mínimo 5 caracteres según Regla §3.3). Ejecuta una transacción atómica que: (1) actualiza mision.estado = 'RECHAZADA' y persiste justificacion_rechazo, (2) devuelve la cuadrilla a DISPONIBLE y libera su dotación, (3) retorna el incidente a VERIFICANDO o REPORTADO para reasignación, y (4) registra el hito 'RECHAZADA' en mision_hito. Emite la alerta prioritaria WebSocket mision:rechazada hacia la sala encargado. Requiere permiso 'misiones:terreno:ejecutar'.
+         * Rechazar misión por patrulla verificadora (HU-69) o cuadrilla operativa (HU-41)
+         * @description Permite a una patrulla verificadora (HU-69, permiso 'misiones:terreno:verificar') o a un Delegado de Cuadrilla (HU-41, permiso 'misiones:terreno:ejecutar') rechazar una misión asignada ingresando una justificación técnica obligatoria (mínimo 5 caracteres según Regla Crítica §3.3). Ejecuta una transacción atómica que: (1) actualiza mision.estado = 'RECHAZADA' y persiste justificacion_rechazo, (2) devuelve la patrulla o cuadrilla a DISPONIBLE (liberando su dotación si corresponde), (3) retorna el incidente a VERIFICANDO o REPORTADO para reasignación, y (4) registra el hito 'RECHAZADA' en mision_hito. Emite la alerta prioritaria WebSocket mision:rechazada hacia la sala encargado.
          */
         post: {
             parameters: {
@@ -8698,7 +9687,7 @@ export interface paths {
                 };
             };
             responses: {
-                /** @description Misión rechazada exitosamente, cuadrilla liberada e incidente retornado para reasignación */
+                /** @description Misión rechazada exitosamente, unidad liberada e incidente retornado para reasignación */
                 200: {
                     headers: {
                         [name: string]: unknown;
@@ -8721,7 +9710,7 @@ export interface paths {
                     };
                     content?: never;
                 };
-                /** @description Acceso denegado. Se requiere permiso 'misiones:terreno:ejecutar' y pertenecer a la cuadrilla asignada (o rol Administrador) */
+                /** @description Acceso denegado. Se requiere permiso 'misiones:terreno:verificar' o 'misiones:terreno:ejecutar' y pertenecer a la unidad asignada (o rol Administrador) */
                 403: {
                     headers: {
                         [name: string]: unknown;
@@ -8735,7 +9724,7 @@ export interface paths {
                     };
                     content?: never;
                 };
-                /** @description Conflicto: la misión ya fue rechazada, no está en estado DESPACHADA, o no tiene una cuadrilla asignada */
+                /** @description Conflicto: la misión ya fue rechazada, no está en estado DESPACHADA, o no tiene una patrulla/cuadrilla asignada */
                 409: {
                     headers: {
                         [name: string]: unknown;
@@ -9111,6 +10100,223 @@ export interface paths {
                     content?: never;
                 };
                 /** @description Error interno del servidor */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/eventos-atp": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Crear Evento de Alerta Temprana Preventiva (ATP)
+         * @description Registra el marco oficial de un Evento ATP, persiste su alcance territorial en evento_atp_delegacion dentro de una sola transacción PostgreSQL y emite el evento WebSocket evento_atp:creado a las salas administrativas, operativas y del mapa. Requiere rol Administrador o el permiso eventos_atp:crear.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Datos requeridos para crear el Evento ATP */
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /**
+                         * @description Código identificador único. Si se omite (o se envía vacío), se genera automáticamente con formato ATP-YYYY-####
+                         * @example ATP-2026-0001
+                         */
+                        codigo?: string | null;
+                        /**
+                         * @description Nombre descriptivo del fenómeno o evento
+                         * @example Sistema Frontal Mayo 2026
+                         */
+                        nombre: string;
+                        /**
+                         * @description Descripción detallada del fenómeno y su impacto esperado
+                         * @example Sistema frontal con precipitaciones intensas y vientos moderados a fuertes durante 48 horas.
+                         */
+                        descripcion: string;
+                        /**
+                         * @description Clasificación principal de la amenaza
+                         * @example METEOROLOGICA
+                         * @enum {string}
+                         */
+                        tipoAmenaza: "METEOROLOGICA" | "MAREJADAS" | "REMOCION_EN_MASA" | "INUNDACION" | "INCENDIO_FORESTAL" | "SISMICA" | "OTRO";
+                        /**
+                         * @description Nivel oficial de alerta comunal
+                         * @example AMARILLA
+                         * @enum {string}
+                         */
+                        nivelAlerta: "VERDE" | "AMARILLA" | "ROJA";
+                        /**
+                         * Format: date-time
+                         * @description Fecha y hora de inicio del evento
+                         * @example 2026-05-01T10:00
+                         */
+                        fechaInicio: string;
+                        /**
+                         * Format: date-time
+                         * @description Fecha y hora estimada de término del evento
+                         * @example 2026-05-03T18:00
+                         */
+                        fechaTermino: string;
+                        /**
+                         * @description Delegaciones municipales afectadas. Arreglo vacío u omitido representa alcance comunal centralizado
+                         * @default []
+                         * @example [
+                         *       "30000000-0000-4000-8000-000000000001"
+                         *     ]
+                         */
+                        delegacionIds?: string[];
+                    };
+                };
+            };
+            responses: {
+                /** @description Evento ATP creado exitosamente */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @example Evento ATP registrado exitosamente. */
+                            message: string;
+                            data: {
+                                /**
+                                 * Format: uuid
+                                 * @description Identificador único del Evento ATP
+                                 * @example 50000000-0000-4000-8000-000000000001
+                                 */
+                                id: string;
+                                /**
+                                 * @description Código único del Evento ATP
+                                 * @example ATP-2026-0001
+                                 */
+                                codigo: string;
+                                /**
+                                 * @description Nombre del evento
+                                 * @example Sistema Frontal Mayo 2026
+                                 */
+                                nombre: string;
+                                /** @description Descripción detallada del evento */
+                                descripcion: string;
+                                /**
+                                 * @description Tipo de amenaza del evento
+                                 * @example METEOROLOGICA
+                                 * @enum {string}
+                                 */
+                                tipoAmenaza: "METEOROLOGICA" | "MAREJADAS" | "REMOCION_EN_MASA" | "INUNDACION" | "INCENDIO_FORESTAL" | "SISMICA" | "OTRO";
+                                /**
+                                 * @description Nivel de alerta comunal
+                                 * @example AMARILLA
+                                 * @enum {string}
+                                 */
+                                nivelAlerta: "VERDE" | "AMARILLA" | "ROJA";
+                                /**
+                                 * Format: date-time
+                                 * @description Fecha y hora de inicio en formato ISO-8601
+                                 * @example 2026-05-01T10:00:00.000Z
+                                 */
+                                fechaInicio: string;
+                                /**
+                                 * Format: date-time
+                                 * @description Fecha y hora de término estimada en formato ISO-8601
+                                 * @example 2026-05-03T18:00:00.000Z
+                                 */
+                                fechaTermino: string;
+                                /**
+                                 * @description Estado actual del Evento ATP
+                                 * @example ACTIVO
+                                 * @enum {string}
+                                 */
+                                estado: "ACTIVO" | "CERRADO" | "CANCELADO";
+                                /** @description Delegaciones municipales afectadas. Arreglo vacío indica alcance comunal centralizado */
+                                delegaciones: {
+                                    /**
+                                     * Format: uuid
+                                     * @description Identificador único de la delegación municipal
+                                     * @example 30000000-0000-4000-8000-000000000001
+                                     */
+                                    id: string;
+                                    /**
+                                     * @description Código institucional de la delegación
+                                     * @example DEL_NORTE
+                                     */
+                                    codigo: string;
+                                    /**
+                                     * @description Nombre legible de la delegación
+                                     * @example Delegación Municipal Norte
+                                     */
+                                    nombre: string;
+                                }[];
+                                /**
+                                 * Format: uuid
+                                 * @description Identificador del usuario que registró el evento
+                                 * @example 00000000-0000-4000-8000-000000000001
+                                 */
+                                creadoPorId: string | null;
+                                /**
+                                 * Format: date-time
+                                 * @description Fecha y hora de creación en formato ISO-8601
+                                 * @example 2026-05-01T09:55:00.000Z
+                                 */
+                                creadoEn: string;
+                                /**
+                                 * Format: date-time
+                                 * @description Fecha y hora de última actualización en formato ISO-8601
+                                 * @example 2026-05-01T09:55:00.000Z
+                                 */
+                                actualizadoEn: string;
+                            };
+                        };
+                    };
+                };
+                /** @description Datos inválidos, fechas inconsistentes o delegaciones inexistentes */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description No autenticado. Se requiere cabecera Authorization válida */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Acceso denegado. Se requiere rol Administrador o permiso eventos_atp:crear */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Conflicto por código de Evento ATP duplicado */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Error interno del servidor al procesar la solicitud */
                 500: {
                     headers: {
                         [name: string]: unknown;
@@ -11531,6 +12737,28 @@ export interface components {
                 totalReportesTerreno?: number;
                 /** @description Indica si se requiere derivación para ficha FIBE */
                 requiereAsistenciaSocial: boolean;
+                /**
+                 * @description Cantidad de personas afectadas constatadas en terreno o asistencia social (HU-25)
+                 * @example 4
+                 */
+                personasAfectadas?: number;
+                /** @description Resumen del evento activo de asistencia social DGRD/FIBE vinculado al incidente (HU-25) */
+                eventoAsistenciaSocial?: {
+                    /** Format: uuid */
+                    id: string;
+                    /** @example AS-2026-0001 */
+                    codigo: string;
+                    /** @enum {string} */
+                    estado: "PENDIENTE" | "ASIGNADO" | "EN_EVALUACION_FIBE" | "FINALIZADO" | "DESCARTADO";
+                    /** Format: uuid */
+                    asistenteSocialId: string | null;
+                    asistenteSocialNombre: string | null;
+                    personasAfectadas: number;
+                    familiasAfectadas: number;
+                    /** @enum {string} */
+                    prioridad: "BAJA" | "MEDIA" | "ALTA" | "CRITICA";
+                    actualizadoEn: string;
+                } | null;
                 /** @description Fecha y hora de cierre del incidente (si aplica) */
                 fechaCierre?: string | null;
                 /** @description Motivo fundado cuando el incidente fue declarado NO_ABORDABLE */
@@ -11557,6 +12785,17 @@ export interface components {
                  * @default false
                  */
                 verificado: boolean;
+                /** @description Indica si la cuadrilla operativa finalizó sus faenas y envió el informe técnico final (HU-68) */
+                faenasCuadrillaCompletadas?: boolean;
+                /** @description Estado final del terreno informado por la cuadrilla al cierre (HU-68) */
+                estadoTerrenoFinal?: string | null;
+                /** @description Horas hombre invertidas reportadas en el último cierre de cuadrilla (HU-68) */
+                horasHombreRegistradas?: number | null;
+                /**
+                 * @description Último dictamen técnico emitido por la patrulla verificadora (HU-39)
+                 * @enum {string|null}
+                 */
+                dictamenTerreno?: "REQUIERE_CUADRILLA" | "NO_ABORDABLE" | null;
                 /** @description Indica si el incidente fue verificado o reclasificado en terreno */
                 reclasificadoEnTerreno?: boolean;
                 /** @description Motivo o justificación técnica de la evaluación en terreno */
@@ -11621,6 +12860,28 @@ export interface components {
                 /** @description Justificación técnica de cambio de prioridad en terreno (HU-38) */
                 justificacionPrioridad?: string | null;
                 requiereAsistenciaSocial: boolean;
+                /**
+                 * @description Cantidad de personas afectadas constatadas en terreno o asistencia social (HU-25)
+                 * @example 4
+                 */
+                personasAfectadas?: number;
+                /** @description Resumen del evento activo de asistencia social DGRD/FIBE vinculado al incidente (HU-25) */
+                eventoAsistenciaSocial?: {
+                    /** Format: uuid */
+                    id: string;
+                    /** @example AS-2026-0001 */
+                    codigo: string;
+                    /** @enum {string} */
+                    estado: "PENDIENTE" | "ASIGNADO" | "EN_EVALUACION_FIBE" | "FINALIZADO" | "DESCARTADO";
+                    /** Format: uuid */
+                    asistenteSocialId: string | null;
+                    asistenteSocialNombre: string | null;
+                    personasAfectadas: number;
+                    familiasAfectadas: number;
+                    /** @enum {string} */
+                    prioridad: "BAJA" | "MEDIA" | "ALTA" | "CRITICA";
+                    actualizadoEn: string;
+                } | null;
                 /** @description Fecha y hora de cierre del incidente (ej. al declararse NO_ABORDABLE o RESUELTO) */
                 fechaCierre?: string | null;
                 /** @description Motivo técnico fundado registrado por la patrulla verificadora si fue declarado NO_ABORDABLE (HU-39 / HU-86) */
@@ -11786,6 +13047,17 @@ export interface components {
                  * @default false
                  */
                 verificado: boolean;
+                /** @description Indica si la cuadrilla operativa finalizó sus faenas y envió el informe técnico final (HU-68) */
+                faenasCuadrillaCompletadas?: boolean;
+                /** @description Estado final del terreno informado por la cuadrilla al cierre (HU-68) */
+                estadoTerrenoFinal?: string | null;
+                /** @description Horas hombre invertidas reportadas en el último cierre de cuadrilla (HU-68) */
+                horasHombreRegistradas?: number | null;
+                /**
+                 * @description Último dictamen técnico emitido por la patrulla verificadora (HU-39)
+                 * @enum {string|null}
+                 */
+                dictamenTerreno?: "REQUIERE_CUADRILLA" | "NO_ABORDABLE" | null;
                 /**
                  * @description Indica si fue verificado o reclasificado en terreno
                  * @default false
@@ -11823,9 +13095,16 @@ export interface components {
                     dictamen?: "REQUIERE_CUADRILLA" | "NO_ABORDABLE" | null;
                     motivoNoAbordable?: string | null;
                     tipoReporte?: string | null;
+                    estadoTerreno?: string | null;
+                    etiquetaReporte?: string | null;
+                    horasHombre?: number | null;
+                    requiereApoyoAdicional?: boolean;
+                    materialesConsumidos?: components["schemas"]["MaterialConsumidoDetalle"][] | null;
                     versionReporte: number | null;
                     esRectificacion: boolean;
                 } | null;
+                /** @description Bitácora cronológica de hitos de las misiones del incidente (mision_hito), incluyendo derivaciones a Asistencia Social (DGRD) */
+                bitacoraHitos?: components["schemas"]["HitoIncidenteDetalle"][];
                 creadoEn: string;
                 actualizadoEn: string;
             };
@@ -11857,6 +13136,20 @@ export interface components {
             stockAnterior?: number;
             /** @description Stock en inventario posterior al descuento */
             stockPosterior?: number;
+        };
+        HitoIncidenteDetalle: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            misionId: string;
+            misionCodigo: string;
+            hito: string;
+            descripcion: string;
+            registradoPor: string | null;
+            metadatos?: {
+                [key: string]: unknown;
+            } | null;
+            creadoEn: string;
         };
         CrearIncidenteManualInput: {
             /**
@@ -12053,7 +13346,7 @@ export interface components {
             };
         };
         EvaluacionTerrenoInput: {
-            /** @description Listado de familias u hogares individualizados con su vivienda asociada */
+            /** @description Listado de familias u hogares preliminares individualizados con su vivienda y contacto opcional */
             familias?: components["schemas"]["FamiliaAfectadaInput"][];
             /**
              * @description Cantidad total de integrantes del núcleo familiar o personas afectadas en el punto
@@ -12171,10 +13464,16 @@ export interface components {
             personas_electrodependientes?: number;
             mascotasAfectadas?: number;
             mascotas_afectadas?: number;
-            /** @enum {string} */
-            nivelCompromisoVivienda?: "SIN_DANO" | "LEVE" | "MODERADO" | "GRAVE_INHABITABLE";
-            /** @enum {string} */
-            nivel_compromiso_vivienda?: "SIN_DANO" | "LEVE" | "MODERADO" | "GRAVE_INHABITABLE";
+            /** @enum {string|null} */
+            nivelCompromisoVivienda?: "SIN_DANO" | "LEVE" | "MODERADO" | "GRAVE_INHABITABLE" | null;
+            /** @enum {string|null} */
+            nivel_compromiso_vivienda?: "SIN_DANO" | "LEVE" | "MODERADO" | "GRAVE_INHABITABLE" | null;
+            contactoNombre?: string | null;
+            contacto_nombre?: string | null;
+            contactoTelefono?: string | null;
+            contacto_telefono?: string | null;
+            contactoRut?: string | null;
+            contacto_rut?: string | null;
         };
         RiesgosActivosEvaluacion: {
             /** @default false */
@@ -12190,7 +13489,109 @@ export interface components {
             aislamientoVial: boolean;
             aislamiento_vial?: boolean;
         };
-        CalcularPrioridadInput: components["schemas"]["EvaluacionTerrenoInput"] & {
+        CalcularPrioridadInput: {
+            /** @description Listado de familias u hogares preliminares individualizados con su vivienda y contacto opcional */
+            familias?: components["schemas"]["FamiliaAfectadaInput"][];
+            /**
+             * @description Cantidad total de integrantes del núcleo familiar o personas afectadas en el punto
+             * @example 4
+             */
+            nucleoFamiliarTotal?: number;
+            nucleo_familiar_total?: number;
+            personasAfectadas?: number;
+            personas_afectadas?: number;
+            /**
+             * @description Cantidad de núcleos familiares u hogares afectados
+             * @example 1
+             */
+            familiasAfectadas?: number;
+            familias_afectadas?: number;
+            /**
+             * @description Cantidad de niños, niñas y adolescentes (< 14 años) afectados
+             * @example 2
+             */
+            cantidadNinos?: number;
+            cantidad_ninos?: number;
+            /**
+             * @description Cantidad de personas adultas mayores (>= 65 años) afectadas
+             * @example 1
+             */
+            cantidadAdultosMayores?: number;
+            cantidad_adultos_mayores?: number;
+            /**
+             * @description Cantidad de personas con discapacidad o movilidad reducida afectadas
+             * @example 1
+             */
+            personasDiscapacitadas?: number;
+            personas_discapacitadas?: number;
+            /**
+             * @description Cantidad de pacientes electrodependientes con soporte vital en el lugar
+             * @example 0
+             */
+            personasElectrodependientes?: number;
+            personas_electrodependientes?: number;
+            /**
+             * @description Cantidad de mascotas o animales domésticos afectados o en riesgo
+             * @example 2
+             */
+            mascotasAfectadas?: number;
+            mascotas_afectadas?: number;
+            /**
+             * @description Cantidad de inmuebles/viviendas con algún grado de afectación
+             * @example 1
+             */
+            viviendasAfectadas?: number;
+            viviendas_afectadas?: number;
+            /**
+             * @description Nivel de daño estructural o habitacional constatado
+             * @example MODERADO
+             * @enum {string}
+             */
+            nivelCompromisoVivienda?: "SIN_DANO" | "LEVE" | "MODERADO" | "GRAVE_INHABITABLE";
+            /** @enum {string} */
+            nivel_compromiso_vivienda?: "SIN_DANO" | "LEVE" | "MODERADO" | "GRAVE_INHABITABLE";
+            /**
+             * @description Indica si se requiere evacuación preventiva o inmediata de los ocupantes
+             * @example false
+             */
+            requiereEvacuacion?: boolean;
+            requiere_evacuacion?: boolean;
+            /**
+             * @deprecated
+             * @description (Deprecado) Indica si la patrulla solicita despacho de cuadrilla pesada o recursos adicionales
+             * @example false
+             */
+            requiereApoyoAdicional?: boolean;
+            requiere_apoyo_adicional?: boolean;
+            riesgosActivos?: components["schemas"]["RiesgosActivosEvaluacion"];
+            riesgos_activos?: components["schemas"]["RiesgosActivosEvaluacion"];
+            riesgoElectrico?: boolean;
+            riesgo_electrico?: boolean;
+            riesgoEstructural?: boolean;
+            riesgo_estructural?: boolean;
+            riesgoQuimicoSanitario?: boolean;
+            riesgo_quimico_sanitario?: boolean;
+            aislamientoVial?: boolean;
+            aislamiento_vial?: boolean;
+            /**
+             * @description Observaciones detalladas y notas técnicas levantadas por la patrulla en terreno
+             * @example Ingreso de agua a primer nivel de vivienda. Adulto mayor requiere traslado asistido.
+             */
+            detallesAdicionales?: string | null;
+            detalles_adicionales?: string | null;
+            observaciones?: string | null;
+            /**
+             * @description Maniobras preliminares ejecutadas por la patrulla verificadora
+             * @example Corte preventivo de suministro eléctrico e inspección perimetral.
+             */
+            accionesRealizadas?: string | null;
+            acciones_realizadas?: string | null;
+            /**
+             * @description Descripción preliminar de daños materiales constatados
+             * @example Anegamiento de piso flotante y pérdida de enseres menores.
+             */
+            danosEstimados?: string | null;
+            danos_estimados?: string | null;
             evaluacion?: components["schemas"]["EvaluacionTerrenoInput"];
         };
         CalcularPrioridadResponse: {
@@ -12230,7 +13631,109 @@ export interface components {
                 };
             };
         };
-        ActualizarPrioridadIncidenteInput: components["schemas"]["EvaluacionTerrenoInput"] & {
+        ActualizarPrioridadIncidenteInput: {
+            /** @description Listado de familias u hogares preliminares individualizados con su vivienda y contacto opcional */
+            familias?: components["schemas"]["FamiliaAfectadaInput"][];
+            /**
+             * @description Cantidad total de integrantes del núcleo familiar o personas afectadas en el punto
+             * @example 4
+             */
+            nucleoFamiliarTotal?: number;
+            nucleo_familiar_total?: number;
+            personasAfectadas?: number;
+            personas_afectadas?: number;
+            /**
+             * @description Cantidad de núcleos familiares u hogares afectados
+             * @example 1
+             */
+            familiasAfectadas?: number;
+            familias_afectadas?: number;
+            /**
+             * @description Cantidad de niños, niñas y adolescentes (< 14 años) afectados
+             * @example 2
+             */
+            cantidadNinos?: number;
+            cantidad_ninos?: number;
+            /**
+             * @description Cantidad de personas adultas mayores (>= 65 años) afectadas
+             * @example 1
+             */
+            cantidadAdultosMayores?: number;
+            cantidad_adultos_mayores?: number;
+            /**
+             * @description Cantidad de personas con discapacidad o movilidad reducida afectadas
+             * @example 1
+             */
+            personasDiscapacitadas?: number;
+            personas_discapacitadas?: number;
+            /**
+             * @description Cantidad de pacientes electrodependientes con soporte vital en el lugar
+             * @example 0
+             */
+            personasElectrodependientes?: number;
+            personas_electrodependientes?: number;
+            /**
+             * @description Cantidad de mascotas o animales domésticos afectados o en riesgo
+             * @example 2
+             */
+            mascotasAfectadas?: number;
+            mascotas_afectadas?: number;
+            /**
+             * @description Cantidad de inmuebles/viviendas con algún grado de afectación
+             * @example 1
+             */
+            viviendasAfectadas?: number;
+            viviendas_afectadas?: number;
+            /**
+             * @description Nivel de daño estructural o habitacional constatado
+             * @example MODERADO
+             * @enum {string}
+             */
+            nivelCompromisoVivienda?: "SIN_DANO" | "LEVE" | "MODERADO" | "GRAVE_INHABITABLE";
+            /** @enum {string} */
+            nivel_compromiso_vivienda?: "SIN_DANO" | "LEVE" | "MODERADO" | "GRAVE_INHABITABLE";
+            /**
+             * @description Indica si se requiere evacuación preventiva o inmediata de los ocupantes
+             * @example false
+             */
+            requiereEvacuacion?: boolean;
+            requiere_evacuacion?: boolean;
+            /**
+             * @deprecated
+             * @description (Deprecado) Indica si la patrulla solicita despacho de cuadrilla pesada o recursos adicionales
+             * @example false
+             */
+            requiereApoyoAdicional?: boolean;
+            requiere_apoyo_adicional?: boolean;
+            riesgosActivos?: components["schemas"]["RiesgosActivosEvaluacion"];
+            riesgos_activos?: components["schemas"]["RiesgosActivosEvaluacion"];
+            riesgoElectrico?: boolean;
+            riesgo_electrico?: boolean;
+            riesgoEstructural?: boolean;
+            riesgo_estructural?: boolean;
+            riesgoQuimicoSanitario?: boolean;
+            riesgo_quimico_sanitario?: boolean;
+            aislamientoVial?: boolean;
+            aislamiento_vial?: boolean;
+            /**
+             * @description Observaciones detalladas y notas técnicas levantadas por la patrulla en terreno
+             * @example Ingreso de agua a primer nivel de vivienda. Adulto mayor requiere traslado asistido.
+             */
+            detallesAdicionales?: string | null;
+            detalles_adicionales?: string | null;
+            observaciones?: string | null;
+            /**
+             * @description Maniobras preliminares ejecutadas por la patrulla verificadora
+             * @example Corte preventivo de suministro eléctrico e inspección perimetral.
+             */
+            accionesRealizadas?: string | null;
+            acciones_realizadas?: string | null;
+            /**
+             * @description Descripción preliminar de daños materiales constatados
+             * @example Anegamiento de piso flotante y pérdida de enseres menores.
+             */
+            danosEstimados?: string | null;
+            danos_estimados?: string | null;
             /**
              * @description Nivel de prioridad asignado por la patrulla verificadora
              * @example CRITICA
@@ -12445,6 +13948,8 @@ export interface components {
              */
             requiereAsistenciaSocial?: boolean;
             requiere_asistencia_social?: boolean;
+            /** @description Desglose preliminar por familia u hogar afectado. Cuando requiere_asistencia_social es true, se exige al menos 1 familia coherente con nombre y teléfono de contacto preliminares (no constituye una FIBE). */
+            familias?: components["schemas"]["FamiliaAfectadaInput"][];
             /** @description Listado opcional de UUIDs de evidencias fotográficas previamente cargadas (integración preparada para HU-43) */
             adjuntoIds?: string[];
             adjunto_ids?: string[];
@@ -12742,6 +14247,13 @@ export interface components {
              * @example false
              */
             requiere_asistencia_social: boolean;
+            /**
+             * @description Cantidad de personas afectadas constatadas o actualizadas al cerrar la misión de cuadrilla (opcional; si se omite hereda reportes previos del incidente)
+             * @example 4
+             */
+            personas_afectadas?: number;
+            /** @description Desglose preliminar opcional por familia afectada para derivación social DGRD / FIBE */
+            familias?: components["schemas"]["FamiliaAfectadaInput"][];
             /** @description Listado opcional de UUIDs de evidencias multimedia cargadas vía POST /api/evidencia/adjuntos */
             adjunto_ids?: string[];
             /** @description Metadatos opcionales de archivos multimedia asociados al informe técnico final */
@@ -13308,6 +14820,58 @@ export interface components {
              */
             eliminadoPorId: string;
         };
+        FamiliaAfectadaSocial: {
+            id?: string;
+            referencia?: string;
+            nucleoFamiliarTotal: number;
+            /** @default 0 */
+            cantidadNinos: number | null;
+            /** @default 0 */
+            cantidadAdultosMayores: number | null;
+            /** @default 0 */
+            personasDiscapacitadas: number | null;
+            /** @default 0 */
+            personasElectrodependientes: number | null;
+            /** @default 0 */
+            mascotasAfectadas: number | null;
+            /** @enum {string|null} */
+            nivelCompromisoVivienda?: "SIN_DANO" | "LEVE" | "MODERADO" | "GRAVE_INHABITABLE" | null;
+            contactoNombre?: string | null;
+            contactoTelefono?: string | null;
+            contactoRut?: string | null;
+        };
+        DetallesEvaluacionSocial: {
+            familias?: {
+                id?: string;
+                referencia?: string;
+                nucleoFamiliarTotal: number;
+                /** @default 0 */
+                cantidadNinos: number | null;
+                /** @default 0 */
+                cantidadAdultosMayores: number | null;
+                /** @default 0 */
+                personasDiscapacitadas: number | null;
+                /** @default 0 */
+                personasElectrodependientes: number | null;
+                /** @default 0 */
+                mascotasAfectadas: number | null;
+                /** @enum {string|null} */
+                nivelCompromisoVivienda?: "SIN_DANO" | "LEVE" | "MODERADO" | "GRAVE_INHABITABLE" | null;
+                contactoNombre?: string | null;
+                contactoTelefono?: string | null;
+                contactoRut?: string | null;
+            }[];
+            nucleoFamiliarTotal?: number | null;
+            familiasAfectadas?: number | null;
+            cantidadNinos?: number | null;
+            cantidadAdultosMayores?: number | null;
+            personasDiscapacitadas?: number | null;
+            personasElectrodependientes?: number | null;
+            mascotasAfectadas?: number | null;
+            /** @enum {string|null} */
+            nivelCompromisoVivienda?: "SIN_DANO" | "LEVE" | "MODERADO" | "GRAVE_INHABITABLE" | null;
+            danosEstimados?: string | null;
+        };
         CrearEventoAsistenciaSocialInput: {
             /**
              * @description Descripción de la situación de excepcionalidad y motivos del levantamiento de FIBE
@@ -13380,6 +14944,45 @@ export interface components {
              * @example null
              */
             incidenteId?: string | null;
+            /**
+             * Format: uuid
+             * @description Identificador opcional de un usuario con rol ASISTENTE_SOCIAL disponible para asignación inmediata al crear el evento (H31 Opción A)
+             * @example null
+             */
+            asistenteSocialId?: string | null;
+            /** @description Desglose demográfico por familia y condición habitacional opcional (homologado con H38/H39). Si incluye familias, sus totales sobrescriben personasAfectadas y familiasAfectadas. */
+            detallesEvaluacion?: {
+                familias?: {
+                    id?: string;
+                    referencia?: string;
+                    nucleoFamiliarTotal: number;
+                    /** @default 0 */
+                    cantidadNinos: number | null;
+                    /** @default 0 */
+                    cantidadAdultosMayores: number | null;
+                    /** @default 0 */
+                    personasDiscapacitadas: number | null;
+                    /** @default 0 */
+                    personasElectrodependientes: number | null;
+                    /** @default 0 */
+                    mascotasAfectadas: number | null;
+                    /** @enum {string|null} */
+                    nivelCompromisoVivienda?: "SIN_DANO" | "LEVE" | "MODERADO" | "GRAVE_INHABITABLE" | null;
+                    contactoNombre?: string | null;
+                    contactoTelefono?: string | null;
+                    contactoRut?: string | null;
+                }[];
+                nucleoFamiliarTotal?: number | null;
+                familiasAfectadas?: number | null;
+                cantidadNinos?: number | null;
+                cantidadAdultosMayores?: number | null;
+                personasDiscapacitadas?: number | null;
+                personasElectrodependientes?: number | null;
+                mascotasAfectadas?: number | null;
+                /** @enum {string|null} */
+                nivelCompromisoVivienda?: "SIN_DANO" | "LEVE" | "MODERADO" | "GRAVE_INHABITABLE" | null;
+                danosEstimados?: string | null;
+            } | null;
         };
         EventoAsistenciaSocialResponse: {
             /**
@@ -13432,12 +15035,78 @@ export interface components {
              */
             incidenteId: string | null;
             /**
+             * @description Código del incidente vinculado si aplica
+             * @example INC-2026-0006
+             */
+            incidenteCodigo?: string | null;
+            /**
              * Format: uuid
              * @example null
              */
             asistenteSocialId: string | null;
             /** @example null */
             asistenteSocialNombre: string | null;
+            /** @description Desglose demográfico por familia y condición habitacional (null en modo aproximado) */
+            detallesEvaluacion: {
+                familias?: {
+                    id?: string;
+                    referencia?: string;
+                    nucleoFamiliarTotal: number;
+                    /** @default 0 */
+                    cantidadNinos: number | null;
+                    /** @default 0 */
+                    cantidadAdultosMayores: number | null;
+                    /** @default 0 */
+                    personasDiscapacitadas: number | null;
+                    /** @default 0 */
+                    personasElectrodependientes: number | null;
+                    /** @default 0 */
+                    mascotasAfectadas: number | null;
+                    /** @enum {string|null} */
+                    nivelCompromisoVivienda?: "SIN_DANO" | "LEVE" | "MODERADO" | "GRAVE_INHABITABLE" | null;
+                    contactoNombre?: string | null;
+                    contactoTelefono?: string | null;
+                    contactoRut?: string | null;
+                }[];
+                nucleoFamiliarTotal?: number | null;
+                familiasAfectadas?: number | null;
+                cantidadNinos?: number | null;
+                cantidadAdultosMayores?: number | null;
+                personasDiscapacitadas?: number | null;
+                personasElectrodependientes?: number | null;
+                mascotasAfectadas?: number | null;
+                /** @enum {string|null} */
+                nivelCompromisoVivienda?: "SIN_DANO" | "LEVE" | "MODERADO" | "GRAVE_INHABITABLE" | null;
+                danosEstimados?: string | null;
+            } | null;
+            /**
+             * @description Folio oficial de la Ficha Básica de Emergencia (FIBE) registrado en terreno
+             * @example FIBE-2026-0001
+             */
+            folioFibe?: string | null;
+            /**
+             * @description Nivel de daño en vivienda confirmado en la evaluación FIBE
+             * @example MODERADO
+             * @enum {string|null}
+             */
+            nivelDanoVivienda?: "SIN_DANO" | "LEVE" | "MODERADO" | "GRAVE_INHABITABLE" | null;
+            /**
+             * @description Observaciones sociales registradas durante el levantamiento FIBE
+             * @example Grupo familiar con adulto mayor postrado; requiere reposición de enseres.
+             */
+            observacionesFibe?: string | null;
+            /**
+             * Format: date-time
+             * @description Fecha y hora de registro oficial de la Ficha FIBE
+             * @example 2026-10-05T14:30:00.000Z
+             */
+            fibeRegistradaEn?: string | null;
+            /**
+             * Format: uuid
+             * @description UUID del funcionario que registró la Ficha FIBE
+             * @example 00000000-0000-4000-8000-000000000019
+             */
+            fibeRegistradaPorId?: string | null;
             /** @description Funcionario responsable de la creación del evento */
             creadoPor: {
                 /**
@@ -13511,12 +15180,78 @@ export interface components {
                  */
                 incidenteId: string | null;
                 /**
+                 * @description Código del incidente vinculado si aplica
+                 * @example INC-2026-0006
+                 */
+                incidenteCodigo?: string | null;
+                /**
                  * Format: uuid
                  * @example null
                  */
                 asistenteSocialId: string | null;
                 /** @example null */
                 asistenteSocialNombre: string | null;
+                /** @description Desglose demográfico por familia y condición habitacional (null en modo aproximado) */
+                detallesEvaluacion: {
+                    familias?: {
+                        id?: string;
+                        referencia?: string;
+                        nucleoFamiliarTotal: number;
+                        /** @default 0 */
+                        cantidadNinos: number | null;
+                        /** @default 0 */
+                        cantidadAdultosMayores: number | null;
+                        /** @default 0 */
+                        personasDiscapacitadas: number | null;
+                        /** @default 0 */
+                        personasElectrodependientes: number | null;
+                        /** @default 0 */
+                        mascotasAfectadas: number | null;
+                        /** @enum {string|null} */
+                        nivelCompromisoVivienda?: "SIN_DANO" | "LEVE" | "MODERADO" | "GRAVE_INHABITABLE" | null;
+                        contactoNombre?: string | null;
+                        contactoTelefono?: string | null;
+                        contactoRut?: string | null;
+                    }[];
+                    nucleoFamiliarTotal?: number | null;
+                    familiasAfectadas?: number | null;
+                    cantidadNinos?: number | null;
+                    cantidadAdultosMayores?: number | null;
+                    personasDiscapacitadas?: number | null;
+                    personasElectrodependientes?: number | null;
+                    mascotasAfectadas?: number | null;
+                    /** @enum {string|null} */
+                    nivelCompromisoVivienda?: "SIN_DANO" | "LEVE" | "MODERADO" | "GRAVE_INHABITABLE" | null;
+                    danosEstimados?: string | null;
+                } | null;
+                /**
+                 * @description Folio oficial de la Ficha Básica de Emergencia (FIBE) registrado en terreno
+                 * @example FIBE-2026-0001
+                 */
+                folioFibe?: string | null;
+                /**
+                 * @description Nivel de daño en vivienda confirmado en la evaluación FIBE
+                 * @example MODERADO
+                 * @enum {string|null}
+                 */
+                nivelDanoVivienda?: "SIN_DANO" | "LEVE" | "MODERADO" | "GRAVE_INHABITABLE" | null;
+                /**
+                 * @description Observaciones sociales registradas durante el levantamiento FIBE
+                 * @example Grupo familiar con adulto mayor postrado; requiere reposición de enseres.
+                 */
+                observacionesFibe?: string | null;
+                /**
+                 * Format: date-time
+                 * @description Fecha y hora de registro oficial de la Ficha FIBE
+                 * @example 2026-10-05T14:30:00.000Z
+                 */
+                fibeRegistradaEn?: string | null;
+                /**
+                 * Format: uuid
+                 * @description UUID del funcionario que registró la Ficha FIBE
+                 * @example 00000000-0000-4000-8000-000000000019
+                 */
+                fibeRegistradaPorId?: string | null;
                 /** @description Funcionario responsable de la creación del evento */
                 creadoPor: {
                     /**
@@ -13547,6 +15282,662 @@ export interface components {
             /** @example 1 */
             totalPaginas: number;
         };
+        EventoAsistenciaSocialResumen: {
+            /** Format: uuid */
+            id: string;
+            /** @example AS-2026-0001 */
+            codigo: string;
+            /** @enum {string} */
+            estado: "PENDIENTE" | "ASIGNADO" | "EN_EVALUACION_FIBE" | "FINALIZADO" | "DESCARTADO";
+            /** Format: uuid */
+            asistenteSocialId: string | null;
+            asistenteSocialNombre: string | null;
+            personasAfectadas: number;
+            familiasAfectadas: number;
+            /** @enum {string} */
+            prioridad: "BAJA" | "MEDIA" | "ALTA" | "CRITICA";
+            actualizadoEn: string;
+        };
+        DerivarAsistenciaSocialIncidenteInput: {
+            /**
+             * Format: uuid
+             * @description UUID del usuario con rol ASISTENTE_SOCIAL en estado disponible
+             * @example 00000000-0000-4000-8000-000000000019
+             */
+            asistenteSocialId: string;
+            /**
+             * @description Observaciones operativas del Encargado para orientar el levantamiento de la Ficha Básica de Emergencia (FIBE) por la DGRD
+             * @example Priorizar visita domiciliaria para levantamiento de FIBE.
+             */
+            observaciones?: string | null;
+            /**
+             * @description Prioridad social opcional; si se omite se hereda la prioridad vigente del incidente
+             * @example ALTA
+             * @enum {string}
+             */
+            prioridad?: "BAJA" | "MEDIA" | "ALTA" | "CRITICA";
+        };
+        HitoDerivacionSocial: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            misionId: string;
+            /** @example DERIVACION_ASISTENCIA_SOCIAL */
+            hito: string;
+            /** @example Incidente INC-2026-0006 derivado a Asistencia Social (DGRD / FIBE) mediante evento AS-2026-0001, asignado a Claudia Rojas Vidal. */
+            descripcion: string;
+            /** Format: uuid */
+            registradoPorId: string | null;
+            metadatos?: {
+                [key: string]: unknown;
+            } | null;
+            /** Format: date-time */
+            creadoEn: string;
+        };
+        DerivarAsistenciaSocialIncidenteResponse: {
+            /** @example Incidente derivado a Asistencia Social y profesional asignado para levantamiento de ficha FIBE. */
+            message: string;
+            /**
+             * @description Indica si se creó un nuevo registro en evento_asistencia_social o se actualizó uno previo en PENDIENTE/ASIGNADO
+             * @example CREADO
+             * @enum {string}
+             */
+            accion: "CREADO" | "ACTUALIZADO";
+            data: {
+                /**
+                 * Format: uuid
+                 * @example 70000000-0000-4000-8000-000000000001
+                 */
+                id: string;
+                /** @example AS-2026-0001 */
+                codigo: string;
+                /** @example Familia de 4 integrantes con vivienda inundada. */
+                descripcion: string;
+                /** @example VIVIENDA_ANEGADA */
+                tipoAfectacion: string;
+                /** @example 4 */
+                personasAfectadas: number;
+                /** @example 1 */
+                familiasAfectadas: number;
+                /** @example Calle Los Alerces 1420, Sector Collico */
+                direccionTexto: string;
+                /** @example -39.8234 */
+                latitud: number;
+                /** @example -73.2189 */
+                longitud: number;
+                /**
+                 * @example ALTA
+                 * @enum {string}
+                 */
+                prioridad: "BAJA" | "MEDIA" | "ALTA" | "CRITICA";
+                /**
+                 * @example PENDIENTE
+                 * @enum {string}
+                 */
+                estado: "PENDIENTE" | "ASIGNADO" | "EN_EVALUACION_FIBE" | "FINALIZADO" | "DESCARTADO";
+                /** @example María González */
+                contactoNombre: string | null;
+                /** @example +56912345678 */
+                contactoTelefono: string | null;
+                /** @example 12.345.678-9 */
+                contactoRut: string | null;
+                /**
+                 * Format: uuid
+                 * @example 30000000-0000-4000-8000-000000000001
+                 */
+                delegacionId: string | null;
+                /** @example Delegación Municipal Costa */
+                delegacionNombre: string | null;
+                /**
+                 * Format: uuid
+                 * @example null
+                 */
+                incidenteId: string | null;
+                /**
+                 * @description Código del incidente vinculado si aplica
+                 * @example INC-2026-0006
+                 */
+                incidenteCodigo?: string | null;
+                /**
+                 * Format: uuid
+                 * @example null
+                 */
+                asistenteSocialId: string | null;
+                /** @example null */
+                asistenteSocialNombre: string | null;
+                /** @description Desglose demográfico por familia y condición habitacional (null en modo aproximado) */
+                detallesEvaluacion: {
+                    familias?: {
+                        id?: string;
+                        referencia?: string;
+                        nucleoFamiliarTotal: number;
+                        /** @default 0 */
+                        cantidadNinos: number | null;
+                        /** @default 0 */
+                        cantidadAdultosMayores: number | null;
+                        /** @default 0 */
+                        personasDiscapacitadas: number | null;
+                        /** @default 0 */
+                        personasElectrodependientes: number | null;
+                        /** @default 0 */
+                        mascotasAfectadas: number | null;
+                        /** @enum {string|null} */
+                        nivelCompromisoVivienda?: "SIN_DANO" | "LEVE" | "MODERADO" | "GRAVE_INHABITABLE" | null;
+                        contactoNombre?: string | null;
+                        contactoTelefono?: string | null;
+                        contactoRut?: string | null;
+                    }[];
+                    nucleoFamiliarTotal?: number | null;
+                    familiasAfectadas?: number | null;
+                    cantidadNinos?: number | null;
+                    cantidadAdultosMayores?: number | null;
+                    personasDiscapacitadas?: number | null;
+                    personasElectrodependientes?: number | null;
+                    mascotasAfectadas?: number | null;
+                    /** @enum {string|null} */
+                    nivelCompromisoVivienda?: "SIN_DANO" | "LEVE" | "MODERADO" | "GRAVE_INHABITABLE" | null;
+                    danosEstimados?: string | null;
+                } | null;
+                /**
+                 * @description Folio oficial de la Ficha Básica de Emergencia (FIBE) registrado en terreno
+                 * @example FIBE-2026-0001
+                 */
+                folioFibe?: string | null;
+                /**
+                 * @description Nivel de daño en vivienda confirmado en la evaluación FIBE
+                 * @example MODERADO
+                 * @enum {string|null}
+                 */
+                nivelDanoVivienda?: "SIN_DANO" | "LEVE" | "MODERADO" | "GRAVE_INHABITABLE" | null;
+                /**
+                 * @description Observaciones sociales registradas durante el levantamiento FIBE
+                 * @example Grupo familiar con adulto mayor postrado; requiere reposición de enseres.
+                 */
+                observacionesFibe?: string | null;
+                /**
+                 * Format: date-time
+                 * @description Fecha y hora de registro oficial de la Ficha FIBE
+                 * @example 2026-10-05T14:30:00.000Z
+                 */
+                fibeRegistradaEn?: string | null;
+                /**
+                 * Format: uuid
+                 * @description UUID del funcionario que registró la Ficha FIBE
+                 * @example 00000000-0000-4000-8000-000000000019
+                 */
+                fibeRegistradaPorId?: string | null;
+                /** @description Funcionario responsable de la creación del evento */
+                creadoPor: {
+                    /**
+                     * Format: uuid
+                     * @example 00000000-0000-4000-8000-000000000003
+                     */
+                    id: string;
+                    /** @example Encargado de Operaciones */
+                    nombre: string;
+                };
+                /**
+                 * Format: date-time
+                 * @example 2026-10-05T12:00:00.000Z
+                 */
+                creadoEn: string;
+                /**
+                 * Format: date-time
+                 * @example 2026-10-05T12:00:00.000Z
+                 */
+                actualizadoEn: string;
+            };
+            hito: components["schemas"]["HitoDerivacionSocial"] & unknown;
+        };
+        CrearEventoAtpInput: {
+            /**
+             * @description Código identificador único. Si se omite (o se envía vacío), se genera automáticamente con formato ATP-YYYY-####
+             * @example ATP-2026-0001
+             */
+            codigo?: string | null;
+            /**
+             * @description Nombre descriptivo del fenómeno o evento
+             * @example Sistema Frontal Mayo 2026
+             */
+            nombre: string;
+            /**
+             * @description Descripción detallada del fenómeno y su impacto esperado
+             * @example Sistema frontal con precipitaciones intensas y vientos moderados a fuertes durante 48 horas.
+             */
+            descripcion: string;
+            /**
+             * @description Clasificación principal de la amenaza
+             * @example METEOROLOGICA
+             * @enum {string}
+             */
+            tipoAmenaza: "METEOROLOGICA" | "MAREJADAS" | "REMOCION_EN_MASA" | "INUNDACION" | "INCENDIO_FORESTAL" | "SISMICA" | "OTRO";
+            /**
+             * @description Nivel oficial de alerta comunal
+             * @example AMARILLA
+             * @enum {string}
+             */
+            nivelAlerta: "VERDE" | "AMARILLA" | "ROJA";
+            /**
+             * Format: date-time
+             * @description Fecha y hora de inicio del evento
+             * @example 2026-05-01T10:00
+             */
+            fechaInicio: string;
+            /**
+             * Format: date-time
+             * @description Fecha y hora estimada de término del evento
+             * @example 2026-05-03T18:00
+             */
+            fechaTermino: string;
+            /**
+             * @description Delegaciones municipales afectadas. Arreglo vacío u omitido representa alcance comunal centralizado
+             * @default []
+             * @example [
+             *       "30000000-0000-4000-8000-000000000001"
+             *     ]
+             */
+            delegacionIds: string[];
+        };
+        EventoAtpResponse: {
+            /**
+             * Format: uuid
+             * @description Identificador único del Evento ATP
+             * @example 50000000-0000-4000-8000-000000000001
+             */
+            id: string;
+            /**
+             * @description Código único del Evento ATP
+             * @example ATP-2026-0001
+             */
+            codigo: string;
+            /**
+             * @description Nombre del evento
+             * @example Sistema Frontal Mayo 2026
+             */
+            nombre: string;
+            /** @description Descripción detallada del evento */
+            descripcion: string;
+            /**
+             * @description Tipo de amenaza del evento
+             * @example METEOROLOGICA
+             * @enum {string}
+             */
+            tipoAmenaza: "METEOROLOGICA" | "MAREJADAS" | "REMOCION_EN_MASA" | "INUNDACION" | "INCENDIO_FORESTAL" | "SISMICA" | "OTRO";
+            /**
+             * @description Nivel de alerta comunal
+             * @example AMARILLA
+             * @enum {string}
+             */
+            nivelAlerta: "VERDE" | "AMARILLA" | "ROJA";
+            /**
+             * Format: date-time
+             * @description Fecha y hora de inicio en formato ISO-8601
+             * @example 2026-05-01T10:00:00.000Z
+             */
+            fechaInicio: string;
+            /**
+             * Format: date-time
+             * @description Fecha y hora de término estimada en formato ISO-8601
+             * @example 2026-05-03T18:00:00.000Z
+             */
+            fechaTermino: string;
+            /**
+             * @description Estado actual del Evento ATP
+             * @example ACTIVO
+             * @enum {string}
+             */
+            estado: "ACTIVO" | "CERRADO" | "CANCELADO";
+            /** @description Delegaciones municipales afectadas. Arreglo vacío indica alcance comunal centralizado */
+            delegaciones: {
+                /**
+                 * Format: uuid
+                 * @description Identificador único de la delegación municipal
+                 * @example 30000000-0000-4000-8000-000000000001
+                 */
+                id: string;
+                /**
+                 * @description Código institucional de la delegación
+                 * @example DEL_NORTE
+                 */
+                codigo: string;
+                /**
+                 * @description Nombre legible de la delegación
+                 * @example Delegación Municipal Norte
+                 */
+                nombre: string;
+            }[];
+            /**
+             * Format: uuid
+             * @description Identificador del usuario que registró el evento
+             * @example 00000000-0000-4000-8000-000000000001
+             */
+            creadoPorId: string | null;
+            /**
+             * Format: date-time
+             * @description Fecha y hora de creación en formato ISO-8601
+             * @example 2026-05-01T09:55:00.000Z
+             */
+            creadoEn: string;
+            /**
+             * Format: date-time
+             * @description Fecha y hora de última actualización en formato ISO-8601
+             * @example 2026-05-01T09:55:00.000Z
+             */
+            actualizadoEn: string;
+        };
+        CrearEventoAtpResponse: {
+            /** @example Evento ATP registrado exitosamente. */
+            message: string;
+            data: {
+                /**
+                 * Format: uuid
+                 * @description Identificador único del Evento ATP
+                 * @example 50000000-0000-4000-8000-000000000001
+                 */
+                id: string;
+                /**
+                 * @description Código único del Evento ATP
+                 * @example ATP-2026-0001
+                 */
+                codigo: string;
+                /**
+                 * @description Nombre del evento
+                 * @example Sistema Frontal Mayo 2026
+                 */
+                nombre: string;
+                /** @description Descripción detallada del evento */
+                descripcion: string;
+                /**
+                 * @description Tipo de amenaza del evento
+                 * @example METEOROLOGICA
+                 * @enum {string}
+                 */
+                tipoAmenaza: "METEOROLOGICA" | "MAREJADAS" | "REMOCION_EN_MASA" | "INUNDACION" | "INCENDIO_FORESTAL" | "SISMICA" | "OTRO";
+                /**
+                 * @description Nivel de alerta comunal
+                 * @example AMARILLA
+                 * @enum {string}
+                 */
+                nivelAlerta: "VERDE" | "AMARILLA" | "ROJA";
+                /**
+                 * Format: date-time
+                 * @description Fecha y hora de inicio en formato ISO-8601
+                 * @example 2026-05-01T10:00:00.000Z
+                 */
+                fechaInicio: string;
+                /**
+                 * Format: date-time
+                 * @description Fecha y hora de término estimada en formato ISO-8601
+                 * @example 2026-05-03T18:00:00.000Z
+                 */
+                fechaTermino: string;
+                /**
+                 * @description Estado actual del Evento ATP
+                 * @example ACTIVO
+                 * @enum {string}
+                 */
+                estado: "ACTIVO" | "CERRADO" | "CANCELADO";
+                /** @description Delegaciones municipales afectadas. Arreglo vacío indica alcance comunal centralizado */
+                delegaciones: {
+                    /**
+                     * Format: uuid
+                     * @description Identificador único de la delegación municipal
+                     * @example 30000000-0000-4000-8000-000000000001
+                     */
+                    id: string;
+                    /**
+                     * @description Código institucional de la delegación
+                     * @example DEL_NORTE
+                     */
+                    codigo: string;
+                    /**
+                     * @description Nombre legible de la delegación
+                     * @example Delegación Municipal Norte
+                     */
+                    nombre: string;
+                }[];
+                /**
+                 * Format: uuid
+                 * @description Identificador del usuario que registró el evento
+                 * @example 00000000-0000-4000-8000-000000000001
+                 */
+                creadoPorId: string | null;
+                /**
+                 * Format: date-time
+                 * @description Fecha y hora de creación en formato ISO-8601
+                 * @example 2026-05-01T09:55:00.000Z
+                 */
+                creadoEn: string;
+                /**
+                 * Format: date-time
+                 * @description Fecha y hora de última actualización en formato ISO-8601
+                 * @example 2026-05-01T09:55:00.000Z
+                 */
+                actualizadoEn: string;
+            };
+        };
+        CrearMisionVerificacionInput: {
+            /**
+             * Format: uuid
+             * @description Identificador único UUID del incidente a verificar
+             * @example 50000000-0000-4000-8000-000000000001
+             */
+            incidenteId: string;
+            /**
+             * Format: uuid
+             * @description Identificador único UUID de la patrulla verificadora disponible
+             * @example f1000000-0000-4000-8000-000000000001
+             */
+            patrullaId: string;
+            /**
+             * @description Tipo de misión operativa a despachar (fijo en VERIFICACION para evaluación preliminar)
+             * @default VERIFICACION
+             * @example VERIFICACION
+             * @enum {string}
+             */
+            tipoMision: "VERIFICACION";
+            /**
+             * @description Título descriptivo opcional para la misión de verificación
+             * @example Verificación en terreno: Aniego en Las Ánimas
+             */
+            titulo?: string;
+            /**
+             * @description Instrucciones tácticas preliminares para la patrulla
+             * @example Evaluar anegamiento en calzada y riesgo de ingreso a viviendas.
+             */
+            descripcion?: string | null;
+            /**
+             * @description Nivel de prioridad o urgencia táctica (si se omite, hereda la del incidente)
+             * @example ALTA
+             * @enum {string}
+             */
+            prioridad?: "BAJA" | "MEDIA" | "ALTA" | "CRITICA";
+        };
+        CrearMisionResponse: {
+            /** @example Misión de verificación creada y patrulla despachada exitosamente. */
+            message: string;
+            data: {
+                mision: components["schemas"]["MisionCreadaResumen"];
+                incidente: {
+                    /** Format: uuid */
+                    id: string;
+                    codigo: string;
+                    estado: string;
+                };
+                patrulla: {
+                    /** Format: uuid */
+                    id: string;
+                    nombre: string;
+                    estado: string;
+                };
+                hitoInicial: {
+                    /** Format: uuid */
+                    id: string;
+                    hito: string;
+                    descripcion: string;
+                    creadoEn: string;
+                };
+                /**
+                 * NotificacionMisionDetalle
+                 * @description Trazabilidad completa de la notificación de misión despachada
+                 */
+                notificacion?: {
+                    /**
+                     * Format: uuid
+                     * @description Identificador único de la notificación
+                     */
+                    id: string;
+                    /**
+                     * Format: uuid
+                     * @description Identificador de la misión asociada
+                     */
+                    misionId: string;
+                    /**
+                     * Format: uuid
+                     * @description Identificador de la patrulla destinataria
+                     */
+                    patrullaId: string;
+                    /**
+                     * @description Estado actual del ciclo de vida de la notificación
+                     * @enum {string}
+                     */
+                    estado: "PENDIENTE_ENVIO" | "ENVIADA" | "RECIBIDA" | "LEIDA";
+                    /**
+                     * @description Contador de emisiones hacia la patrulla
+                     * @example 1
+                     */
+                    intentosEnvio: number;
+                    /** @description Marca temporal UTC de registro en base de datos */
+                    creadaAt: string;
+                    /** @description Marca temporal UTC de emisión hacia la sala de la patrulla */
+                    enviadaAt: string | null;
+                    /** @description Marca temporal UTC del acuse de recibo técnico automático */
+                    recibidaAt: string | null;
+                    /** @description Marca temporal UTC del acuse de lectura operativa */
+                    leidaAt: string | null;
+                };
+            };
+        };
+        MisionCreadaResumen: {
+            /** Format: uuid */
+            id: string;
+            /** @example MIS-2026-0005 */
+            codigo: string;
+            titulo: string;
+            descripcion: string | null;
+            /** @enum {string} */
+            tipoMision: "VERIFICACION" | "ATENCION_CUADRILLA" | "PREVENCION" | "RECUPERACION" | "ASISTENCIA_SOCIAL";
+            /**
+             * @example DESPACHADA
+             * @enum {string}
+             */
+            estado: "PLANIFICADA" | "DESPACHADA" | "EN_CURSO" | "COMPLETADA" | "CANCELADA" | "RECHAZADA";
+            /** @enum {string} */
+            prioridad: "BAJA" | "MEDIA" | "ALTA" | "CRITICA";
+            /** Format: uuid */
+            incidenteId: string;
+            /** Format: uuid */
+            patrullaId?: string | null;
+            /** Format: uuid */
+            cuadrillaId?: string | null;
+            /** Format: uuid */
+            encargadoId: string | null;
+            /** Format: uuid */
+            creadoPorId?: string | null;
+            fechaInicio?: string | null;
+            creadoEn: string;
+        };
+        AsignarCuadrillaMisionInput: {
+            /**
+             * @description Tipo de misión táctica a despachar
+             * @example ATENCION_CUADRILLA
+             * @enum {string}
+             */
+            tipoMision: "ATENCION_CUADRILLA";
+            /**
+             * Format: uuid
+             * @description UUID del incidente en estado REPORTADO o VERIFICANDO a atender
+             * @example 30000000-0000-4000-8000-000000000001
+             */
+            incidenteId: string;
+            /**
+             * Format: uuid
+             * @description UUID de la cuadrilla operativa disponible a despachar
+             * @example 50000000-0000-4000-8000-000000000001
+             */
+            cuadrillaId: string;
+            /**
+             * @description Título descriptivo de la misión operativa (se autogenera si se omite)
+             * @example Atención y despeje táctico - Incidente INC-2026-001
+             */
+            titulo?: string;
+            /**
+             * @description Instrucciones tácticas u observaciones impartidas a la cuadrilla
+             * @example Despejar ramas caídas sobre tendido eléctrico en sector Las Ánimas.
+             */
+            descripcion?: string;
+            /**
+             * @description Nivel de prioridad. Si se omite, se hereda de la misión de verificación activa de la patrulla o del incidente.
+             * @example ALTA
+             * @enum {string}
+             */
+            prioridad?: "BAJA" | "MEDIA" | "ALTA" | "CRITICA";
+        };
+        AsignarCuadrillaMisionResponse: {
+            /** @example Cuadrilla asignada y despachada exitosamente al incidente. Patrulla verificadora liberada. */
+            message: string;
+            data: {
+                mision: components["schemas"]["MisionCreadaResumen"];
+                cuadrilla: {
+                    /** Format: uuid */
+                    id: string;
+                    nombre: string;
+                    /** @example EN_MISION */
+                    estado: string;
+                    /** Format: uuid */
+                    delegacionId?: string | null;
+                };
+                incidente: {
+                    /** Format: uuid */
+                    id: string;
+                    codigo: string;
+                    /** @example EN_ATENCION */
+                    estado: string;
+                    prioridad: string;
+                };
+                patrullaLiberada: components["schemas"]["PatrullaLiberada"];
+                hitoCuadrilla: {
+                    /** Format: uuid */
+                    id: string;
+                    /** Format: uuid */
+                    misionId: string;
+                    /** @example CUADRILLA_DESPACHADA */
+                    hito: string;
+                    descripcion: string;
+                    creadoEn: string;
+                };
+                hitoPatrulla?: {
+                    /** Format: uuid */
+                    id: string;
+                    /** Format: uuid */
+                    misionId: string;
+                    /** @example VERIFICACION_FINALIZADA */
+                    hito: string;
+                    descripcion: string;
+                    creadoEn: string;
+                } | null;
+            };
+        };
+        /** @description Datos de la patrulla verificadora previa que fue liberada automáticamente (null si no había patrulla) */
+        PatrullaLiberada: {
+            /** Format: uuid */
+            id: string;
+            nombre: string;
+            /** @example DISPONIBLE */
+            estado: string;
+            /** Format: uuid */
+            misionPreviaId?: string | null;
+        } | null;
         TipoIncidenteCatalogoItem: {
             /**
              * Format: uuid
@@ -13693,6 +16084,87 @@ export interface components {
             data: {
                 incidente: components["schemas"]["IncidenteReclasificadoResumen"];
                 hito: components["schemas"]["MisionHitoTipologia"];
+            };
+        };
+        RechazarMisionBody: {
+            /**
+             * @description Justificación técnica obligatoria del rechazo de la misión (mínimo 5 caracteres según Regla §3.3)
+             * @example Camión tolva presenta falla hidráulica en ruta de salida desde base.
+             */
+            justificacion_rechazo: string;
+            /**
+             * @description Latitud WGS84 opcional de la unidad al momento del rechazo (-90 a 90)
+             * @example -39.81422
+             */
+            latitud?: number;
+            /**
+             * @description Longitud WGS84 opcional de la unidad al momento del rechazo (-180 a 180)
+             * @example -73.24589
+             */
+            longitud?: number;
+        };
+        RechazarMisionResponse: {
+            /** @example Misión rechazada exitosamente. La unidad ha vuelto a estado DISPONIBLE y el incidente ha retornado para su reasignación. */
+            message: string;
+            data: {
+                mision: {
+                    /** Format: uuid */
+                    id: string;
+                    codigo: string;
+                    /** @enum {string} */
+                    tipoMision?: "VERIFICACION" | "ATENCION_CUADRILLA" | "PREVENCION" | "RECUPERACION" | "ASISTENCIA_SOCIAL";
+                    /**
+                     * @example RECHAZADA
+                     * @enum {string}
+                     */
+                    estado: "PLANIFICADA" | "DESPACHADA" | "EN_CURSO" | "COMPLETADA" | "CANCELADA" | "RECHAZADA";
+                    justificacionRechazo: string;
+                    fechaCierre?: string;
+                    actualizadoEn: string;
+                };
+                patrulla?: {
+                    /** Format: uuid */
+                    id: string;
+                    nombre: string;
+                    /** @example DISPONIBLE */
+                    estado: string;
+                    /** Format: uuid */
+                    delegacionId?: string | null;
+                    /** Format: uuid */
+                    usuarioLiderId?: string | null;
+                } | null;
+                cuadrilla?: {
+                    /** Format: uuid */
+                    id: string;
+                    nombre: string;
+                    /** @example DISPONIBLE */
+                    estado: string;
+                    /** Format: uuid */
+                    delegacionId?: string | null;
+                    /** Format: uuid */
+                    usuarioDelegadoId?: string | null;
+                } | null;
+                incidente: {
+                    /** Format: uuid */
+                    id: string;
+                    codigo: string;
+                    /** @example VERIFICANDO */
+                    estado: string;
+                    prioridad?: string;
+                } | null;
+                hito: {
+                    /** Format: uuid */
+                    id: string;
+                    /** Format: uuid */
+                    misionId?: string;
+                    hito: string;
+                    descripcion: string;
+                    /** Format: uuid */
+                    registradoPorId?: string | null;
+                    latitud?: number | null;
+                    longitud?: number | null;
+                    creadoEn: string;
+                };
             };
         };
         AceptarMisionInput: {
@@ -15279,285 +17751,176 @@ export interface components {
              */
             confirmacionPassword: string;
         };
-        AsignarCuadrillaMisionResponse: {
-            /** @example Cuadrilla asignada y despachada exitosamente al incidente. Patrulla verificadora liberada. */
+        RegistrarFichaFibeResponse: {
+            /** @example Ficha FIBE registrada exitosamente en el expediente de asistencia social. */
             message: string;
             data: {
-                mision: components["schemas"]["MisionCreadaResumen"];
-                cuadrilla: {
-                    /** Format: uuid */
-                    id: string;
-                    nombre: string;
-                    /** @example EN_MISION */
-                    estado: string;
-                    /** Format: uuid */
-                    delegacionId?: string | null;
-                };
-                incidente: {
-                    /** Format: uuid */
-                    id: string;
-                    codigo: string;
-                    /** @example EN_ATENCION */
-                    estado: string;
-                    prioridad: string;
-                };
-                patrullaLiberada: components["schemas"]["PatrullaLiberada"];
-                hitoCuadrilla: {
-                    /** Format: uuid */
-                    id: string;
-                    /** Format: uuid */
-                    misionId: string;
-                    /** @example CUADRILLA_DESPACHADA */
-                    hito: string;
-                    descripcion: string;
-                    creadoEn: string;
-                };
-                hitoPatrulla?: {
-                    /** Format: uuid */
-                    id: string;
-                    /** Format: uuid */
-                    misionId: string;
-                    /** @example VERIFICACION_FINALIZADA */
-                    hito: string;
-                    descripcion: string;
-                    creadoEn: string;
+                /**
+                 * Format: uuid
+                 * @example 70000000-0000-4000-8000-000000000001
+                 */
+                id: string;
+                /** @example AS-2026-0001 */
+                codigo: string;
+                /** @example Familia de 4 integrantes con vivienda inundada. */
+                descripcion: string;
+                /** @example VIVIENDA_ANEGADA */
+                tipoAfectacion: string;
+                /** @example 4 */
+                personasAfectadas: number;
+                /** @example 1 */
+                familiasAfectadas: number;
+                /** @example Calle Los Alerces 1420, Sector Collico */
+                direccionTexto: string;
+                /** @example -39.8234 */
+                latitud: number;
+                /** @example -73.2189 */
+                longitud: number;
+                /**
+                 * @example ALTA
+                 * @enum {string}
+                 */
+                prioridad: "BAJA" | "MEDIA" | "ALTA" | "CRITICA";
+                /**
+                 * @example PENDIENTE
+                 * @enum {string}
+                 */
+                estado: "PENDIENTE" | "ASIGNADO" | "EN_EVALUACION_FIBE" | "FINALIZADO" | "DESCARTADO";
+                /** @example María González */
+                contactoNombre: string | null;
+                /** @example +56912345678 */
+                contactoTelefono: string | null;
+                /** @example 12.345.678-9 */
+                contactoRut: string | null;
+                /**
+                 * Format: uuid
+                 * @example 30000000-0000-4000-8000-000000000001
+                 */
+                delegacionId: string | null;
+                /** @example Delegación Municipal Costa */
+                delegacionNombre: string | null;
+                /**
+                 * Format: uuid
+                 * @example null
+                 */
+                incidenteId: string | null;
+                /**
+                 * @description Código del incidente vinculado si aplica
+                 * @example INC-2026-0006
+                 */
+                incidenteCodigo?: string | null;
+                /**
+                 * Format: uuid
+                 * @example null
+                 */
+                asistenteSocialId: string | null;
+                /** @example null */
+                asistenteSocialNombre: string | null;
+                /** @description Desglose demográfico por familia y condición habitacional (null en modo aproximado) */
+                detallesEvaluacion: {
+                    familias?: {
+                        id?: string;
+                        referencia?: string;
+                        nucleoFamiliarTotal: number;
+                        /** @default 0 */
+                        cantidadNinos: number | null;
+                        /** @default 0 */
+                        cantidadAdultosMayores: number | null;
+                        /** @default 0 */
+                        personasDiscapacitadas: number | null;
+                        /** @default 0 */
+                        personasElectrodependientes: number | null;
+                        /** @default 0 */
+                        mascotasAfectadas: number | null;
+                        /** @enum {string|null} */
+                        nivelCompromisoVivienda?: "SIN_DANO" | "LEVE" | "MODERADO" | "GRAVE_INHABITABLE" | null;
+                        contactoNombre?: string | null;
+                        contactoTelefono?: string | null;
+                        contactoRut?: string | null;
+                    }[];
+                    nucleoFamiliarTotal?: number | null;
+                    familiasAfectadas?: number | null;
+                    cantidadNinos?: number | null;
+                    cantidadAdultosMayores?: number | null;
+                    personasDiscapacitadas?: number | null;
+                    personasElectrodependientes?: number | null;
+                    mascotasAfectadas?: number | null;
+                    /** @enum {string|null} */
+                    nivelCompromisoVivienda?: "SIN_DANO" | "LEVE" | "MODERADO" | "GRAVE_INHABITABLE" | null;
+                    danosEstimados?: string | null;
                 } | null;
-            };
-        };
-        MisionCreadaResumen: {
-            /** Format: uuid */
-            id: string;
-            /** @example MIS-2026-0005 */
-            codigo: string;
-            titulo: string;
-            descripcion: string | null;
-            /** @enum {string} */
-            tipoMision: "VERIFICACION" | "ATENCION_CUADRILLA" | "PREVENCION" | "RECUPERACION" | "ASISTENCIA_SOCIAL";
-            /**
-             * @example DESPACHADA
-             * @enum {string}
-             */
-            estado: "PLANIFICADA" | "DESPACHADA" | "EN_CURSO" | "COMPLETADA" | "CANCELADA" | "RECHAZADA";
-            /** @enum {string} */
-            prioridad: "BAJA" | "MEDIA" | "ALTA" | "CRITICA";
-            /** Format: uuid */
-            incidenteId: string;
-            /** Format: uuid */
-            patrullaId?: string | null;
-            /** Format: uuid */
-            cuadrillaId?: string | null;
-            /** Format: uuid */
-            encargadoId: string | null;
-            /** Format: uuid */
-            creadoPorId?: string | null;
-            fechaInicio?: string | null;
-            creadoEn: string;
-        };
-        /** @description Datos de la patrulla verificadora previa que fue liberada automáticamente (null si no había patrulla) */
-        PatrullaLiberada: {
-            /** Format: uuid */
-            id: string;
-            nombre: string;
-            /** @example DISPONIBLE */
-            estado: string;
-            /** Format: uuid */
-            misionPreviaId?: string | null;
-        } | null;
-        AsignarCuadrillaMisionInput: {
-            /**
-             * @description Tipo de misión táctica a despachar
-             * @example ATENCION_CUADRILLA
-             * @enum {string}
-             */
-            tipoMision: "ATENCION_CUADRILLA";
-            /**
-             * Format: uuid
-             * @description UUID del incidente en estado REPORTADO o VERIFICANDO a atender
-             * @example 30000000-0000-4000-8000-000000000001
-             */
-            incidenteId: string;
-            /**
-             * Format: uuid
-             * @description UUID de la cuadrilla operativa disponible a despachar
-             * @example 50000000-0000-4000-8000-000000000001
-             */
-            cuadrillaId: string;
-            /**
-             * @description Título descriptivo de la misión operativa (se autogenera si se omite)
-             * @example Atención y despeje táctico - Incidente INC-2026-001
-             */
-            titulo?: string;
-            /**
-             * @description Instrucciones tácticas u observaciones impartidas a la cuadrilla
-             * @example Despejar ramas caídas sobre tendido eléctrico en sector Las Ánimas.
-             */
-            descripcion?: string;
-            /**
-             * @description Nivel de prioridad. Si se omite, se hereda de la misión de verificación activa de la patrulla o del incidente.
-             * @example ALTA
-             * @enum {string}
-             */
-            prioridad?: "BAJA" | "MEDIA" | "ALTA" | "CRITICA";
-        };
-        CrearMisionResponse: {
-            /** @example Misión de verificación creada y patrulla despachada exitosamente. */
-            message: string;
-            data: {
-                mision: components["schemas"]["MisionCreadaResumen"];
-                incidente: {
-                    /** Format: uuid */
+                /**
+                 * @description Folio oficial de la Ficha Básica de Emergencia (FIBE) registrado en terreno
+                 * @example FIBE-2026-0001
+                 */
+                folioFibe?: string | null;
+                /**
+                 * @description Nivel de daño en vivienda confirmado en la evaluación FIBE
+                 * @example MODERADO
+                 * @enum {string|null}
+                 */
+                nivelDanoVivienda?: "SIN_DANO" | "LEVE" | "MODERADO" | "GRAVE_INHABITABLE" | null;
+                /**
+                 * @description Observaciones sociales registradas durante el levantamiento FIBE
+                 * @example Grupo familiar con adulto mayor postrado; requiere reposición de enseres.
+                 */
+                observacionesFibe?: string | null;
+                /**
+                 * Format: date-time
+                 * @description Fecha y hora de registro oficial de la Ficha FIBE
+                 * @example 2026-10-05T14:30:00.000Z
+                 */
+                fibeRegistradaEn?: string | null;
+                /**
+                 * Format: uuid
+                 * @description UUID del funcionario que registró la Ficha FIBE
+                 * @example 00000000-0000-4000-8000-000000000019
+                 */
+                fibeRegistradaPorId?: string | null;
+                /** @description Funcionario responsable de la creación del evento */
+                creadoPor: {
+                    /**
+                     * Format: uuid
+                     * @example 00000000-0000-4000-8000-000000000003
+                     */
                     id: string;
-                    codigo: string;
-                    estado: string;
-                };
-                patrulla: {
-                    /** Format: uuid */
-                    id: string;
+                    /** @example Encargado de Operaciones */
                     nombre: string;
-                    estado: string;
-                };
-                hitoInicial: {
-                    /** Format: uuid */
-                    id: string;
-                    hito: string;
-                    descripcion: string;
-                    creadoEn: string;
                 };
                 /**
-                 * NotificacionMisionDetalle
-                 * @description Trazabilidad completa de la notificación de misión despachada
+                 * Format: date-time
+                 * @example 2026-10-05T12:00:00.000Z
                  */
-                notificacion?: {
-                    /**
-                     * Format: uuid
-                     * @description Identificador único de la notificación
-                     */
-                    id: string;
-                    /**
-                     * Format: uuid
-                     * @description Identificador de la misión asociada
-                     */
-                    misionId: string;
-                    /**
-                     * Format: uuid
-                     * @description Identificador de la patrulla destinataria
-                     */
-                    patrullaId: string;
-                    /**
-                     * @description Estado actual del ciclo de vida de la notificación
-                     * @enum {string}
-                     */
-                    estado: "PENDIENTE_ENVIO" | "ENVIADA" | "RECIBIDA" | "LEIDA";
-                    /**
-                     * @description Contador de emisiones hacia la patrulla
-                     * @example 1
-                     */
-                    intentosEnvio: number;
-                    /** @description Marca temporal UTC de registro en base de datos */
-                    creadaAt: string;
-                    /** @description Marca temporal UTC de emisión hacia la sala de la patrulla */
-                    enviadaAt: string | null;
-                    /** @description Marca temporal UTC del acuse de recibo técnico automático */
-                    recibidaAt: string | null;
-                    /** @description Marca temporal UTC del acuse de lectura operativa */
-                    leidaAt: string | null;
-                };
+                creadoEn: string;
+                /**
+                 * Format: date-time
+                 * @example 2026-10-05T12:00:00.000Z
+                 */
+                actualizadoEn: string;
             };
         };
-        CrearMisionVerificacionInput: {
+        RegistrarFichaFibeInput: {
             /**
-             * Format: uuid
-             * @description Identificador único UUID del incidente a verificar
-             * @example 50000000-0000-4000-8000-000000000001
+             * @description Folio oficial único de la Ficha Básica de Emergencia (FIBE) recopilada en terreno (alfanumérico y guiones)
+             * @example FIBE-2026-0001
              */
-            incidenteId: string;
+            folioFibe: string;
             /**
-             * Format: uuid
-             * @description Identificador único UUID de la patrulla verificadora disponible
-             * @example f1000000-0000-4000-8000-000000000001
+             * @description Cantidad oficial de integrantes familiares evaluados; si se omite, conserva el valor actual del evento social
+             * @example 4
              */
-            patrullaId: string;
+            personasAfectadas?: number | null;
             /**
-             * @description Tipo de misión operativa a despachar (fijo en VERIFICACION para evaluación preliminar)
-             * @default VERIFICACION
-             * @example VERIFICACION
+             * @description Nivel de daño en vivienda confirmado en la Ficha FIBE; si se omite, reutiliza el valor preliminar del evento social si existe
+             * @example MODERADO
              * @enum {string}
              */
-            tipoMision: "VERIFICACION";
+            nivelDanoVivienda?: "SIN_DANO" | "LEVE" | "MODERADO" | "GRAVE_INHABITABLE";
             /**
-             * @description Título descriptivo opcional para la misión de verificación
-             * @example Verificación en terreno: Aniego en Las Ánimas
+             * @description Observaciones sociales de la emergencia recopiladas en terreno (opcional)
+             * @example Vivienda con filtración severa en techumbre; se coordina entrega de kit básico.
              */
-            titulo?: string;
-            /**
-             * @description Instrucciones tácticas preliminares para la patrulla
-             * @example Evaluar anegamiento en calzada y riesgo de ingreso a viviendas.
-             */
-            descripcion?: string | null;
-            /**
-             * @description Nivel de prioridad o urgencia táctica (si se omite, hereda la del incidente)
-             * @example ALTA
-             * @enum {string}
-             */
-            prioridad?: "BAJA" | "MEDIA" | "ALTA" | "CRITICA";
-        };
-        RechazarMisionResponse: {
-            /** @example Misión rechazada exitosamente. La cuadrilla ha vuelto a estado DISPONIBLE y el incidente ha retornado a VERIFICANDO para su reasignación. */
-            message: string;
-            data: {
-                mision: {
-                    /** Format: uuid */
-                    id: string;
-                    codigo: string;
-                    /** @enum {string} */
-                    tipoMision: "VERIFICACION" | "ATENCION_CUADRILLA" | "PREVENCION" | "RECUPERACION" | "ASISTENCIA_SOCIAL";
-                    /**
-                     * @example RECHAZADA
-                     * @enum {string}
-                     */
-                    estado: "PLANIFICADA" | "DESPACHADA" | "EN_CURSO" | "COMPLETADA" | "CANCELADA" | "RECHAZADA";
-                    justificacionRechazo: string;
-                    fechaCierre: string;
-                    actualizadoEn: string;
-                };
-                cuadrilla: {
-                    /** Format: uuid */
-                    id: string;
-                    nombre: string;
-                    /** @example DISPONIBLE */
-                    estado: string;
-                    /** Format: uuid */
-                    delegacionId?: string | null;
-                    /** Format: uuid */
-                    usuarioDelegadoId?: string | null;
-                };
-                incidente: {
-                    /** Format: uuid */
-                    id: string;
-                    codigo: string;
-                    /** @example VERIFICANDO */
-                    estado: string;
-                    prioridad: string;
-                } | null;
-                hito: components["schemas"]["MisionHitoRegistrado"];
-            };
-        };
-        RechazarMisionBody: {
-            /**
-             * @description Justificación técnica obligatoria del rechazo de la misión (mínimo 5 caracteres según Regla §3.3)
-             * @example Camión tolva presenta falla hidráulica en ruta de salida desde base.
-             */
-            justificacion_rechazo: string;
-            /**
-             * @description Latitud WGS84 opcional de la cuadrilla al momento del rechazo (-90 a 90)
-             * @example -39.81422
-             */
-            latitud?: number;
-            /**
-             * @description Longitud WGS84 opcional de la cuadrilla al momento del rechazo (-180 a 180)
-             * @example -73.24589
-             */
-            longitud?: number;
+            observacionesSociales?: string | null;
         };
         AdjuntoCreadoResponse: {
             /**

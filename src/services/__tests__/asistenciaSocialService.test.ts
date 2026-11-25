@@ -4,6 +4,7 @@ import {
   obtenerEventosAsistenciaSocial,
   asignarAsistenteSocial,
   derivarIncidenteAAsistenciaSocial,
+  registrarFichaFibe,
   AsistenciaSocialServiceError,
   filtrarEventosMock,
 } from '../asistenciaSocialService';
@@ -529,5 +530,120 @@ describe('asistenciaSocialService', () => {
         asistenteSocialId: 'asoc-1',
       })
     ).rejects.toMatchObject({ statusCode: 422 });
+  });
+
+  it('debe registrar la Ficha FIBE (HU-71) con PATCH y manejar errores 403, 404 y 409', async () => {
+    const mockEventoActualizado = {
+      id: '70000000-0000-4000-8000-000000000050',
+      codigo: 'AS-2026-0050',
+      descripcion: 'Vivienda con anegamiento severo',
+      tipoAfectacion: 'VIVIENDA_ANEGADA',
+      personasAfectadas: 4,
+      familiasAfectadas: 1,
+      direccionTexto: 'Calle Los Alerces 1420',
+      latitud: -39.8234,
+      longitud: -73.2189,
+      prioridad: 'ALTA',
+      estado: 'EN_EVALUACION_FIBE',
+      contactoNombre: 'María González',
+      contactoTelefono: '+56912345678',
+      contactoRut: null,
+      delegacionId: null,
+      delegacionNombre: null,
+      incidenteId: null,
+      asistenteSocialId: 'asoc-1',
+      asistenteSocialNombre: 'Camila Valenzuela',
+      folioFibe: 'FIBE-2026-0001',
+      nivelDanoVivienda: 'MODERADO',
+      observacionesFibe: 'Requiere reposición de enseres.',
+      fibeRegistradaEn: '2026-10-05T14:30:00.000Z',
+      fibeRegistradaPorId: 'asoc-1',
+      creadoPor: { id: 'user-1', nombre: 'Encargado' },
+      creadoEn: '2026-10-05T12:00:00.000Z',
+      actualizadoEn: '2026-10-05T14:30:00.000Z',
+    };
+
+    const patchSpy = vi.spyOn(apiClient, 'PATCH').mockResolvedValueOnce({
+      data: {
+        message: 'Ficha FIBE registrada exitosamente.',
+        data: mockEventoActualizado,
+      },
+      error: undefined,
+      response: new Response(null, { status: 200 }),
+    } as never);
+
+    const resultado = await registrarFichaFibe(
+      '70000000-0000-4000-8000-000000000050',
+      {
+        folioFibe: ' fibe-2026-0001 ',
+        personasAfectadas: 4,
+        nivelDanoVivienda: 'MODERADO',
+        observacionesSociales: 'Requiere reposición de enseres.',
+      },
+      'asoc-1'
+    );
+
+    expect(patchSpy).toHaveBeenCalledWith(
+      '/api/eventos-atp/asistencia-social/{id}/fibe',
+      expect.objectContaining({
+        params: expect.objectContaining({
+          path: { id: '70000000-0000-4000-8000-000000000050' },
+        }),
+        body: {
+          folioFibe: 'FIBE-2026-0001',
+          personasAfectadas: 4,
+          nivelDanoVivienda: 'MODERADO',
+          observacionesSociales: 'Requiere reposición de enseres.',
+        },
+      })
+    );
+    expect(resultado.estado).toBe('EN_EVALUACION_FIBE');
+    expect(resultado.folioFibe).toBe('FIBE-2026-0001');
+    expect(resultado.nivelDanoVivienda).toBe('MODERADO');
+
+    // Error 409 folio duplicado -> incluye fieldErrors.folioFibe
+    vi.spyOn(apiClient, 'PATCH').mockResolvedValueOnce({
+      data: undefined,
+      error: { message: 'El folio FIBE-2026-0001 ya está registrado en otro expediente.' },
+      response: new Response(null, { status: 409 }),
+    } as never);
+
+    try {
+      await registrarFichaFibe('70000000-0000-4000-8000-000000000050', {
+        folioFibe: 'FIBE-2026-0001',
+      });
+      expect.fail('Debió lanzar AsistenciaSocialServiceError');
+    } catch (err) {
+      expect(err).toBeInstanceOf(AsistenciaSocialServiceError);
+      const serviceErr = err as AsistenciaSocialServiceError;
+      expect(serviceErr.statusCode).toBe(409);
+      expect(serviceErr.fieldErrors?.folioFibe).toContain('folio');
+    }
+
+    // Error 403 sin permiso asistencia_social:fibe:gestionar
+    vi.spyOn(apiClient, 'PATCH').mockResolvedValueOnce({
+      data: undefined,
+      error: { message: 'Permiso asistencia_social:fibe:gestionar requerido' },
+      response: new Response(null, { status: 403 }),
+    } as never);
+
+    await expect(
+      registrarFichaFibe('70000000-0000-4000-8000-000000000050', {
+        folioFibe: 'FIBE-2026-0002',
+      })
+    ).rejects.toMatchObject({ statusCode: 403 });
+
+    // Error 404 caso inexistente
+    vi.spyOn(apiClient, 'PATCH').mockResolvedValueOnce({
+      data: undefined,
+      error: { message: 'Evento no encontrado' },
+      response: new Response(null, { status: 404 }),
+    } as never);
+
+    await expect(
+      registrarFichaFibe('70000000-0000-4000-8000-000000000999', {
+        folioFibe: 'FIBE-2026-0003',
+      })
+    ).rejects.toMatchObject({ statusCode: 404 });
   });
 });

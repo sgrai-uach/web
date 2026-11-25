@@ -9,6 +9,8 @@ import type {
   ListarEventosAsistenciaSocialResponse,
   FiltrosEventosAsistenciaSocialState,
   PrioridadEventoSocial,
+  NivelCompromisoViviendaSocial,
+  RegistrarFichaFibeDTO,
 } from '@/types/asistenciaSocial';
 
 export const ENDPOINT_DERIVAR_INCIDENTE_SOCIAL = '/api/incidentes/{id}/asistencia-social' as const;
@@ -45,6 +47,11 @@ function normalizarEventoSocial(
     incidente_id?: string | null;
     asistente_social_id?: string | null;
     asistente_social_nombre?: string | null;
+    folio_fibe?: string | null;
+    nivel_dano_vivienda?: NivelCompromisoViviendaSocial | null;
+    observaciones_fibe?: string | null;
+    fibe_registrada_en?: string | null;
+    fibe_registrada_por_id?: string | null;
     creado_en?: string;
     actualizado_en?: string;
   }
@@ -72,6 +79,23 @@ function normalizarEventoSocial(
       item.asistenteSocialNombre !== undefined
         ? item.asistenteSocialNombre
         : (item.asistente_social_nombre ?? null),
+    folioFibe: item.folioFibe !== undefined ? item.folioFibe : (item.folio_fibe ?? null),
+    nivelDanoVivienda:
+      item.nivelDanoVivienda !== undefined
+        ? item.nivelDanoVivienda
+        : (item.nivel_dano_vivienda ?? null),
+    observacionesFibe:
+      item.observacionesFibe !== undefined
+        ? item.observacionesFibe
+        : (item.observaciones_fibe ?? null),
+    fibeRegistradaEn:
+      item.fibeRegistradaEn !== undefined
+        ? item.fibeRegistradaEn
+        : (item.fibe_registrada_en ?? null),
+    fibeRegistradaPorId:
+      item.fibeRegistradaPorId !== undefined
+        ? item.fibeRegistradaPorId
+        : (item.fibe_registrada_por_id ?? null),
     creadoEn: item.creadoEn ?? item.creado_en ?? new Date().toISOString(),
     actualizadoEn: item.actualizadoEn ?? item.actualizado_en ?? new Date().toISOString(),
     detallesEvaluacion: detalles,
@@ -824,6 +848,223 @@ export async function derivarIncidenteAAsistenciaSocial(
           creadoEn: ahora,
         },
       };
+    }
+
+    throw new AsistenciaSocialServiceError(
+      'Error inesperado al conectar con el servicio de asistencia social.'
+    );
+  }
+}
+
+/**
+ * Registra o actualiza los datos oficiales de la Ficha Básica de Emergencia (FIBE)
+ * para un caso de asistencia social en estado ASIGNADO o EN_EVALUACION_FIBE (HU-71).
+ */
+export async function registrarFichaFibe(
+  eventoId: string,
+  payload: RegistrarFichaFibeDTO,
+  userId?: string
+): Promise<EventoAsistenciaSocialItem> {
+  const folioNormalizado = payload.folioFibe.trim().toUpperCase();
+  const body: {
+    folioFibe: string;
+    personasAfectadas?: number | null;
+    nivelDanoVivienda?: NivelCompromisoViviendaSocial;
+    observacionesSociales?: string | null;
+  } = {
+    folioFibe: folioNormalizado,
+  };
+
+  if (payload.personasAfectadas !== undefined && payload.personasAfectadas !== null) {
+    body.personasAfectadas = Number(payload.personasAfectadas);
+  }
+
+  if (payload.nivelDanoVivienda !== undefined) {
+    body.nivelDanoVivienda = payload.nivelDanoVivienda;
+  }
+
+  if (payload.observacionesSociales !== undefined) {
+    const obsTrim = payload.observacionesSociales?.trim() ?? '';
+    body.observacionesSociales = obsTrim.length > 0 ? obsTrim : null;
+  }
+
+  try {
+    const { data, error, response } = await apiClient.PATCH(
+      '/api/eventos-atp/asistencia-social/{id}/fibe',
+      {
+        params: {
+          path: { id: eventoId },
+          header: {
+            ...(userId ? { 'x-user-id': userId } : {}),
+          },
+        },
+        headers: {
+          ...(userId ? { 'x-user-id': userId } : {}),
+        },
+        body,
+      }
+    );
+
+    if (response?.status === 200 && data) {
+      const rawData =
+        (data as unknown as { data?: EventoAsistenciaSocialItem }).data ||
+        (data as unknown as EventoAsistenciaSocialItem);
+      const respData = normalizarEventoSocial(rawData);
+      eventosSocialesMemoria = eventosSocialesMemoria.map((item) =>
+        item.id === respData.id ? respData : item
+      );
+      return respData;
+    }
+
+    const statusCode = response?.status || 500;
+    const errorBody = (error || {}) as {
+      message?: string;
+      errors?: Array<{ campo: string; mensaje: string }>;
+    };
+
+    if (statusCode === 403) {
+      throw new AsistenciaSocialServiceError(
+        errorBody.message ||
+          'No cuenta con el permiso requerido (asistencia_social:fibe:gestionar) para registrar la Ficha FIBE.',
+        { statusCode: 403 }
+      );
+    }
+
+    if (statusCode === 404) {
+      throw new AsistenciaSocialServiceError(
+        errorBody.message || 'El evento de asistencia social no existe o fue eliminado.',
+        { statusCode: 404 }
+      );
+    }
+
+    if (statusCode === 409) {
+      const msg =
+        errorBody.message ||
+        'Conflicto al registrar la Ficha FIBE: el folio ya existe o el caso no está en estado válido.';
+      const esFolioDuplicado = msg.toLowerCase().includes('folio');
+      throw new AsistenciaSocialServiceError(msg, {
+        statusCode: 409,
+        ...(esFolioDuplicado ? { fieldErrors: { folioFibe: msg } } : {}),
+      });
+    }
+
+    if (statusCode === 400 && Array.isArray(errorBody.errors)) {
+      const fieldErrors: Record<string, string> = {};
+      errorBody.errors.forEach((err: { campo: string; mensaje: string }) => {
+        if (err.campo) fieldErrors[err.campo] = err.mensaje;
+      });
+      throw new AsistenciaSocialServiceError(
+        errorBody.message || 'Error de validación en los datos de la Ficha FIBE.',
+        {
+          statusCode: 400,
+          errors: errorBody.errors,
+          fieldErrors,
+        }
+      );
+    }
+
+    const apiErr = formatApiError(errorBody);
+    throw new AsistenciaSocialServiceError(
+      apiErr.message || `Error HTTP ${statusCode}: No fue posible registrar la Ficha FIBE.`,
+      { statusCode }
+    );
+  } catch (err: unknown) {
+    if (err instanceof AsistenciaSocialServiceError) {
+      throw err;
+    }
+
+    const isNetworkError =
+      err instanceof TypeError &&
+      (err.message.includes('fetch') ||
+        err.message.includes('Failed to fetch') ||
+        err.message.includes('NetworkError'));
+
+    if (isNetworkError) {
+      const folioDuplicado = eventosSocialesMemoria.find(
+        (item) =>
+          item.id !== eventoId &&
+          item.estado !== 'DESCARTADO' &&
+          item.folioFibe &&
+          item.folioFibe.toUpperCase() === folioNormalizado
+      );
+
+      if (folioDuplicado) {
+        const msg = `El folio FIBE ${folioNormalizado} ya está registrado en el expediente ${folioDuplicado.codigo}.`;
+        throw new AsistenciaSocialServiceError(msg, {
+          statusCode: 409,
+          fieldErrors: { folioFibe: msg },
+        });
+      }
+
+      const existente = eventosSocialesMemoria.find((item) => item.id === eventoId);
+      if (
+        existente &&
+        existente.estado !== 'ASIGNADO' &&
+        existente.estado !== 'EN_EVALUACION_FIBE'
+      ) {
+        throw new AsistenciaSocialServiceError(
+          'Solo se puede registrar la Ficha FIBE en casos en estado ASIGNADO o EN_EVALUACION_FIBE.',
+          { statusCode: 409 }
+        );
+      }
+
+      const ahora = new Date().toISOString();
+      const actualizado: EventoAsistenciaSocialItem = existente
+        ? {
+            ...existente,
+            estado: 'EN_EVALUACION_FIBE',
+            folioFibe: folioNormalizado,
+            personasAfectadas:
+              body.personasAfectadas !== undefined && body.personasAfectadas !== null
+                ? body.personasAfectadas
+                : existente.personasAfectadas,
+            nivelDanoVivienda:
+              body.nivelDanoVivienda ?? existente.nivelDanoVivienda ?? null,
+            observacionesFibe:
+              body.observacionesSociales !== undefined
+                ? body.observacionesSociales
+                : (existente.observacionesFibe ?? null),
+            fibeRegistradaEn: existente.fibeRegistradaEn ?? ahora,
+            fibeRegistradaPorId: userId ?? existente.fibeRegistradaPorId ?? null,
+            actualizadoEn: ahora,
+          }
+        : {
+            id: eventoId,
+            codigo: 'AS-2026-0000',
+            descripcion: '',
+            tipoAfectacion: 'OTRO_EXCEPCIONAL',
+            personasAfectadas: body.personasAfectadas ?? 0,
+            familiasAfectadas: 1,
+            direccionTexto: '',
+            latitud: -39.814,
+            longitud: -73.245,
+            prioridad: 'MEDIA',
+            estado: 'EN_EVALUACION_FIBE',
+            contactoNombre: null,
+            contactoTelefono: null,
+            contactoRut: null,
+            delegacionId: null,
+            delegacionNombre: null,
+            incidenteId: null,
+            asistenteSocialId: userId ?? null,
+            asistenteSocialNombre: 'Asistente Social',
+            folioFibe: folioNormalizado,
+            nivelDanoVivienda: body.nivelDanoVivienda ?? null,
+            observacionesFibe: body.observacionesSociales ?? null,
+            fibeRegistradaEn: ahora,
+            fibeRegistradaPorId: userId ?? null,
+            creadoPor: {
+              id: userId || '00000000-0000-4000-8000-000000000003',
+              nombre: 'Encargado de Operaciones',
+            },
+            creadoEn: ahora,
+            actualizadoEn: ahora,
+          };
+
+      eventosSocialesMemoria = eventosSocialesMemoria.map((item) =>
+        item.id === eventoId ? actualizado : item
+      );
+      return actualizado;
     }
 
     throw new AsistenciaSocialServiceError(

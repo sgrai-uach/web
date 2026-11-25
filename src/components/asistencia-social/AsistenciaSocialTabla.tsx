@@ -9,9 +9,10 @@ import type {
 import { TIPOS_AFECTACION_SOCIAL } from '@/types/asistenciaSocial';
 import Pagination from '@/components/common/Pagination';
 import Button from '@/components/ui/Button';
-import { MapPin, Users, Phone, User, Calendar, Eye, UserCheck, CheckCircle2 } from 'lucide-react';
+import { MapPin, Users, Phone, User, Calendar, Eye, UserCheck, CheckCircle2, FileCheck2 } from 'lucide-react';
 import EventoAsistenciaSocialDetalleModal from './EventoAsistenciaSocialDetalleModal';
 import ModalAsignarAsistenteSocial from './ModalAsignarAsistenteSocial';
+import RegistrarFichaFibeModal from './RegistrarFichaFibeModal';
 
 interface AsistenciaSocialTablaProps {
   eventos: EventoAsistenciaSocialItem[];
@@ -25,6 +26,7 @@ interface AsistenciaSocialTablaProps {
   onCambiarLimite?: (nuevoLimite: number) => void;
   cargando?: boolean;
   puedeAsignar?: boolean;
+  puedeGestionarFibe?: boolean;
   usuarioId?: string;
   onEventoActualizado?: (evento: EventoAsistenciaSocialItem) => void;
 }
@@ -107,16 +109,25 @@ export default function AsistenciaSocialTabla({
   onCambiarLimite,
   cargando = false,
   puedeAsignar = false,
+  puedeGestionarFibe = false,
   usuarioId,
   onEventoActualizado,
 }: AsistenciaSocialTablaProps) {
   const [eventoSeleccionado, setEventoSeleccionado] = useState<EventoAsistenciaSocialItem | null>(null);
   const [eventoParaAsignar, setEventoParaAsignar] = useState<EventoAsistenciaSocialItem | null>(null);
+  const [eventoParaFibe, setEventoParaFibe] = useState<EventoAsistenciaSocialItem | null>(null);
   const [confirmacionMensaje, setConfirmacionMensaje] = useState<string | null>(null);
 
   const handleAsignacionExitosa = (actualizado: EventoAsistenciaSocialItem) => {
     setConfirmacionMensaje(
       `Caso ${actualizado.codigo} asignado a ${actualizado.asistenteSocialNombre || 'asistente social'}.`
+    );
+    onEventoActualizado?.(actualizado);
+  };
+
+  const handleFibeRegistrada = (actualizado: EventoAsistenciaSocialItem) => {
+    setConfirmacionMensaje(
+      `Ficha FIBE (${actualizado.folioFibe || 'registrada'}) guardada para el caso ${actualizado.codigo}. Estado actualizado a En Evaluación FIBE.`
     );
     onEventoActualizado?.(actualizado);
   };
@@ -371,6 +382,18 @@ export default function AsistenciaSocialTabla({
                             Asig.: {evento.asistenteSocialNombre}
                           </span>
                         )}
+                        {evento.folioFibe && (
+                          <span
+                            style={{
+                              fontSize: '11px',
+                              fontFamily: 'monospace',
+                              fontWeight: 700,
+                              color: '#283593',
+                            }}
+                          >
+                            FIBE: {evento.folioFibe}
+                          </span>
+                        )}
                       </div>
                     </td>
 
@@ -414,6 +437,36 @@ export default function AsistenciaSocialTabla({
                             <span>Asignar Asistente</span>
                           </Button>
                         )}
+                        {puedeGestionarFibe &&
+                          (evento.estado === 'ASIGNADO' ||
+                            evento.estado === 'EN_EVALUACION_FIBE') && (
+                            <Button
+                              type="button"
+                              variant="primary"
+                              size="sm"
+                              onClick={() => setEventoParaFibe(evento)}
+                              style={{
+                                backgroundColor: 'var(--color-accent-mint, #4FAE9B)',
+                                color: 'var(--color-white, #FFFFFF)',
+                                padding: '4px 10px',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '5px',
+                              }}
+                              title={
+                                evento.estado === 'EN_EVALUACION_FIBE'
+                                  ? `Editar Ficha FIBE de ${evento.codigo}`
+                                  : `Registrar Ficha FIBE para ${evento.codigo}`
+                              }
+                            >
+                              <FileCheck2 size={14} />
+                              <span>
+                                {evento.estado === 'EN_EVALUACION_FIBE'
+                                  ? 'Editar Ficha FIBE'
+                                  : 'Registrar Ficha FIBE'}
+                              </span>
+                            </Button>
+                          )}
                         <Button
                           type="button"
                           variant="ghost"
@@ -448,7 +501,7 @@ export default function AsistenciaSocialTabla({
           onCambiarPagina={onCambiarPagina}
           totalItems={meta.total}
           limite={meta.limite}
-          onCambiarLimite={onCambiarLimite || (() => {})}
+          onCambiarLimite={onCambiarLimite || (() => { })}
           nombreEntidad="casos registrados"
         />
       )}
@@ -465,6 +518,18 @@ export default function AsistenciaSocialTabla({
         />
       )}
 
+      {/* Modal Registro / Edición de Ficha FIBE (HU-71) */}
+      {eventoParaFibe && (
+        <RegistrarFichaFibeModal
+          key={eventoParaFibe.id}
+          isOpen={true}
+          onClose={() => setEventoParaFibe(null)}
+          evento={eventoParaFibe}
+          usuarioId={usuarioId}
+          onRegistrada={handleFibeRegistrada}
+        />
+      )}
+
       {/* Modal Ficha Técnica del Evento Seleccionado */}
       <EventoAsistenciaSocialDetalleModal
         isOpen={Boolean(eventoSeleccionado)}
@@ -472,27 +537,31 @@ export default function AsistenciaSocialTabla({
         datos={
           eventoSeleccionado
             ? {
-                codigo: eventoSeleccionado.codigo,
-                descripcion: eventoSeleccionado.descripcion,
-                tipoAfectacion: eventoSeleccionado.tipoAfectacion,
-                prioridad: eventoSeleccionado.prioridad,
-                personasAfectadas: eventoSeleccionado.personasAfectadas,
-                familiasAfectadas: eventoSeleccionado.familiasAfectadas,
-                direccionTexto: eventoSeleccionado.direccionTexto,
-                latitud: eventoSeleccionado.latitud,
-                longitud: eventoSeleccionado.longitud,
-                delegacionNombre: eventoSeleccionado.delegacionNombre,
-                incidenteId: eventoSeleccionado.incidenteId,
-                contactoNombre: eventoSeleccionado.contactoNombre,
-                contactoTelefono: eventoSeleccionado.contactoTelefono,
-                contactoRut: eventoSeleccionado.contactoRut,
-                creadoPorNombre: eventoSeleccionado.creadoPor?.nombre,
-                creadoEn: eventoSeleccionado.creadoEn,
-                actualizadoEn: eventoSeleccionado.actualizadoEn,
-                estado: eventoSeleccionado.estado,
-                asistenteSocialNombre: eventoSeleccionado.asistenteSocialNombre,
-                detallesEvaluacion: eventoSeleccionado.detallesEvaluacion ?? null,
-              }
+              codigo: eventoSeleccionado.codigo,
+              descripcion: eventoSeleccionado.descripcion,
+              tipoAfectacion: eventoSeleccionado.tipoAfectacion,
+              prioridad: eventoSeleccionado.prioridad,
+              personasAfectadas: eventoSeleccionado.personasAfectadas,
+              familiasAfectadas: eventoSeleccionado.familiasAfectadas,
+              direccionTexto: eventoSeleccionado.direccionTexto,
+              latitud: eventoSeleccionado.latitud,
+              longitud: eventoSeleccionado.longitud,
+              delegacionNombre: eventoSeleccionado.delegacionNombre,
+              incidenteId: eventoSeleccionado.incidenteId,
+              contactoNombre: eventoSeleccionado.contactoNombre,
+              contactoTelefono: eventoSeleccionado.contactoTelefono,
+              contactoRut: eventoSeleccionado.contactoRut,
+              creadoPorNombre: eventoSeleccionado.creadoPor?.nombre,
+              creadoEn: eventoSeleccionado.creadoEn,
+              actualizadoEn: eventoSeleccionado.actualizadoEn,
+              estado: eventoSeleccionado.estado,
+              asistenteSocialNombre: eventoSeleccionado.asistenteSocialNombre,
+              detallesEvaluacion: eventoSeleccionado.detallesEvaluacion ?? null,
+              folioFibe: eventoSeleccionado.folioFibe ?? null,
+              nivelDanoVivienda: eventoSeleccionado.nivelDanoVivienda ?? null,
+              observacionesFibe: eventoSeleccionado.observacionesFibe ?? null,
+              fibeRegistradaEn: eventoSeleccionado.fibeRegistradaEn ?? null,
+            }
             : null
         }
       />
