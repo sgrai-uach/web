@@ -24,6 +24,7 @@ import {
   fueTipologiaModificada,
 } from '@/lib/utils/estadoUtils';
 import Button from '@/components/ui/Button';
+import Chip from '@/components/ui/Chip';
 import { getSocket } from '@/lib/socket/client';
 import {
   getTrazabilidadEstado,
@@ -330,12 +331,20 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
                   nuevoTipo && prev.codigo
                     ? `Verificación: ${nuevoTipo} - ${prev.codigo}`
                     : m.titulo;
-                if (esCierreVerificacion) {
+                const esMisionCerradaAhora =
+                  esCierreVerificacion &&
+                  (reporteEntrante?.misionId
+                    ? m.id === reporteEntrante.misionId
+                    : ['PLANIFICADA', 'DESPACHADA', 'EN_CURSO'].includes(m.estado));
+                if (esMisionCerradaAhora) {
                   return {
                     ...m,
                     titulo: tituloAct,
                     estado: 'COMPLETADA',
                     fechaCierre: fechaCierreEntrante || m.fechaCierre || new Date().toISOString(),
+                    patrulla: m.patrulla
+                      ? { ...m.patrulla, estado: 'DISPONIBLE' }
+                      : null,
                   };
                 }
                 return { ...m, titulo: tituloAct };
@@ -571,24 +580,9 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
                       Intervención Táctica Operativa
                     </strong>
                     {detalle.estado === 'VERIFICANDO' && estaVerificadoConcluido && (
-                      <span
-                        style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '4px',
-                          backgroundColor: 'var(--color-success-bg, #E8F5E9)',
-                          color: 'var(--color-success, #2E7D32)',
-                          border: '1px solid #C8E6C9',
-                          fontSize: '0.6875rem',
-                          fontWeight: 700,
-                          padding: '1px 6px',
-                          textTransform: 'uppercase',
-                          letterSpacing: '0.02em',
-                        }}
-                      >
-                        <CheckCircle2 size={12} />
-                        <span>Verificación Completada</span>
-                      </span>
+                      <Chip variant="success" size="sm" icon={<CheckCircle2 size={12} />}>
+                        Verificación Completada
+                      </Chip>
                     )}
                   </div>
                   <div style={{ fontSize: '0.75rem', color: 'var(--color-text-dark, #2B2B2B)', marginTop: '2px' }}>

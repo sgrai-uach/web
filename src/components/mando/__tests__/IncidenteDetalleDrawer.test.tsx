@@ -930,8 +930,114 @@ describe('Componente IncidenteDetalleDrawer e integración HU-17', () => {
     const seccionUltimo = screen.getByTestId('incidente-ultimo-reporte-section');
     expect(seccionUltimo.textContent).toContain('Dictamen: Requiere Cuadrilla');
     expect(seccionUltimo.textContent).toContain('Requiere Ficha FIBE');
+    expect(seccionUltimo.textContent).toContain('Critico');
     expect(seccionUltimo.textContent).toContain('6 personas (Modificado; antes: 4)');
     expect(screen.getByText('Despachar Cuadrilla')).toBeDefined();
+  });
+
+  it('al recibir VERIFICACION_CIERRE por socket actualiza ultimoReporte, libera patrulla y preserva misiones históricas RECHAZADA (BUG-H39-WEB-02/06)', async () => {
+    const detalleConHistorica: IncidenteDetalle = {
+      ...mockDetalleIncidente,
+      estado: 'VERIFICANDO',
+      ultimoReporte: {
+        origen: 'REPORTE_TERRENO',
+        reporteId: 'rep-h38-previo',
+        misionId: 'm-activa-1',
+        misionCodigo: 'MIS-2026-0102',
+        evaluadorNombre: 'Patrulla Previa',
+        creadoEn: '2026-11-15T13:00:00Z',
+        resumen: 'Evaluación previa H38',
+        prioridadAsignada: 'ALTA',
+        versionReporte: 1,
+        esRectificacion: false,
+      },
+      misiones: [
+        {
+          id: 'm-rechazada-hist',
+          codigo: 'MIS-2026-0101',
+          titulo: 'Verificación previa rechazada',
+          tipoMision: 'VERIFICACION',
+          estado: 'RECHAZADA',
+          prioridad: 'ALTA',
+          creadoEn: '2026-11-15T12:00:00Z',
+          fechaCierre: '2026-11-15T12:10:00Z',
+          motivoRechazo: 'Unidad en otra emergencia',
+          patrulla: { id: 'pat-old', nombre: 'Patrulla Histórica', estado: 'DISPONIBLE' },
+          cuadrilla: null,
+        },
+        {
+          id: 'm-activa-1',
+          codigo: 'MIS-2026-0102',
+          titulo: 'Verificación en curso',
+          tipoMision: 'VERIFICACION',
+          estado: 'EN_CURSO',
+          prioridad: 'ALTA',
+          creadoEn: '2026-11-15T12:30:00Z',
+          fechaCierre: null,
+          motivoRechazo: null,
+          patrulla: { id: 'pat-1', nombre: 'Patrulla Activa', estado: 'EN_VERIFICACION' },
+          cuadrilla: null,
+        },
+      ],
+    };
+
+    vi.spyOn(incidentesService, 'obtenerDetalleIncidente').mockResolvedValueOnce({
+      exito: true,
+      datos: detalleConHistorica,
+      mensaje: 'OK',
+    });
+
+    render(
+      <IncidenteDetalleDrawer
+        incidenteId="i1000000-0000-4000-8000-000000000001"
+        incidenteCodigo="INC-2026-0042"
+        userId="user-test"
+        onCerrar={vi.fn()}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('INC-2026-0042')).toBeDefined();
+    });
+
+    act(() => {
+      const handler = socketListeners['incidente:actualizado']?.[0];
+      handler?.({
+        evento: 'incidente:actualizado',
+        datos: {
+          id: 'i1000000-0000-4000-8000-000000000001',
+          nuevoEstado: 'VERIFICANDO',
+          dictamen: 'REQUIERE_CUADRILLA',
+          requiereAsistenciaSocial: true,
+          fechaCierre: '2026-11-15T14:30:00Z',
+          reporteTerreno: {
+            id: 'rep-cierre-socket',
+            misionId: 'm-activa-1',
+            tipoReporte: 'VERIFICACION_CIERRE',
+            dictamen: 'REQUIERE_CUADRILLA',
+            estadoTerreno: 'CRITICO',
+            requiereAsistenciaSocial: true,
+            versionReporte: 2,
+            esRectificacion: false,
+            resumenTecnico: 'Cierre en vivo con requerimiento de cuadrilla.',
+            personasAfectadas: 5,
+            evaluador: { id: 'u-p', nombre: 'Patrullero Socket' },
+            creadoEn: '2026-11-15T14:30:00Z',
+          },
+        },
+      });
+    });
+
+    await waitFor(() => {
+      const seccionUltimo = screen.getByTestId('incidente-ultimo-reporte-section');
+      expect(seccionUltimo.textContent).toContain('Dictamen: Requiere Cuadrilla');
+      expect(seccionUltimo.textContent).toContain('Critico');
+    });
+
+    // La misión histórica rechazada conserva su estado y no se sobrescribe a Completada
+    expect(screen.getByLabelText('Desplegar misiones rechazadas (1)')).toBeDefined();
+    // El badge de Verificación Completada aparece estandarizado
+    expect(screen.getByText('Verificación Completada')).toBeDefined();
   });
 
   it('muestra banner de cierre No Abordable y motivo técnico cuando dictamen es NO_ABORDABLE (H39)', async () => {

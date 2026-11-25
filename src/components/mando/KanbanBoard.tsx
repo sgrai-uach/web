@@ -196,6 +196,12 @@ export const KanbanBoard: React.FC = () => {
             value: motivoNoAbordable,
           });
         }
+        if (rep.estadoTerreno) {
+          detallesToast.push({
+            label: 'Estado del terreno',
+            value: formatearEstado(rep.estadoTerreno),
+          });
+        }
         if (personas !== null) {
           detallesToast.push({
             label: 'Personas afectadas',

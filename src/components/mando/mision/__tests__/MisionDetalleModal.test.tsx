@@ -908,6 +908,7 @@ describe('Componente MisionDetalleModal (HU-17)', () => {
     expect(screen.getByTestId('badge-dictamen-rep-cierre-cuad').textContent).toContain(
       'Dictamen: Requiere Cuadrilla'
     );
+    expect(cardCierre.textContent).toContain('Inundado accesible');
     expect(screen.getByTestId('badge-personas-modificadas').textContent).toContain(
       'Modificado respecto a prioridad (Antes: 4)'
     );

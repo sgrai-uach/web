@@ -553,6 +553,7 @@ describe('useIncidentesKanban - HU-20 y BUG-04', () => {
       id: 'inc-cierre-cuadrilla',
       codigo: 'INC-2026-392',
       codigoSeguimiento: '20260392',
+      tieneMisionEnCurso: true,
       creadoEn: '2026-11-15T08:00:00Z',
     };
 
@@ -617,6 +618,7 @@ describe('useIncidentesKanban - HU-20 y BUG-04', () => {
     expect(primero.prioridad).toBe('ALTA');
     expect(primero.requiereAsistenciaSocial).toBe(true);
     expect(primero.dictamenTerreno).toBe('REQUIERE_CUADRILLA');
+    expect(primero.tieneMisionEnCurso).toBe(false);
   });
 
   it('BUG-H35-WEB-07: resuelve el vínculo misión-incidente vía obtenerDetalleMision solo si la misión no estaba vinculada', async () => {

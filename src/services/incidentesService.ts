@@ -27,7 +27,6 @@ export interface RiesgosActivosEvaluacion {
 
 export type IncidenteResumen = ListarIncidentesResponse['data'][number] & {
   tipoIncidenteId?: string | null;
-  dictamenTerreno?: DictamenAtencionTerreno | null;
   cambioPrioridadMotivo?: string | null;
 };
 export type MisionDetalle = IncidenteDetalleResponse['data']['misiones'][number];

@@ -675,6 +675,11 @@ export const IncidenteMisionesSection: React.FC<IncidenteMisionesSectionProps> =
                   >
                     {requiereFibeCierre ? 'Requiere Ficha FIBE' : 'No requiere Ficha FIBE'}
                   </Chip>
+                  {ultimoReporte.estadoTerreno && (
+                    <Chip variant="neutral" size="sm">
+                      Terreno: {formatearEstado(ultimoReporte.estadoTerreno)}
+                    </Chip>
+                  )}
                 </div>
               )}
 

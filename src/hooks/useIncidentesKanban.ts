@@ -524,6 +524,10 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
               datos.reporteTerreno?.dictamen ??
               incActual.dictamenTerreno ??
               (esCierreNoAbordable ? 'NO_ABORDABLE' : undefined);
+            const esCierreVerificacion =
+              esCierreNoAbordable ||
+              dictamenResuelto === 'REQUIERE_CUADRILLA' ||
+              datos.reporteTerreno?.tipoReporte === 'VERIFICACION_CIERRE';
             const motivoNoAbordableResuelto =
               datos.motivoNoAbordable !== undefined
                 ? datos.motivoNoAbordable
@@ -572,10 +576,10 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
               reclasificadoEnTerreno: reclasificado,
               justificacionReclasificacion: nuevaJustificacionReclasificacion,
               tieneMisionDespachada:
-                esCierreNoAbordable || esTransicionAVerificando
+                esCierreVerificacion || esTransicionAVerificando
                   ? false
                   : incActual.tieneMisionDespachada,
-              tieneMisionEnCurso: esCierreNoAbordable
+              tieneMisionEnCurso: esCierreVerificacion
                 ? false
                 : esTransicionAVerificando
                   ? true
