@@ -180,4 +180,20 @@ describe('OperativosRecuperacionView (HU-73)', () => {
       await screen.findByText(/No se encontraron operativos de recuperación/i)
     ).toBeInTheDocument();
   });
+
+  it('debe restringir rango invertido de fechas con min y max en los inputs de fecha', async () => {
+    vi.spyOn(recuperacionService, 'listarOperativosRecuperacion').mockResolvedValue(mockListado);
+
+    render(<OperativosRecuperacionView delegaciones={mockDelegaciones} />);
+    await screen.findByText('REC-2026-0001');
+
+    const inputDesde = screen.getByLabelText('Desde') as HTMLInputElement;
+    const inputHasta = screen.getByLabelText('Hasta') as HTMLInputElement;
+
+    fireEvent.change(inputDesde, { target: { value: '2026-11-20' } });
+    expect(inputHasta).toHaveAttribute('min', '2026-11-20');
+
+    fireEvent.change(inputHasta, { target: { value: '2026-11-24' } });
+    expect(inputDesde).toHaveAttribute('max', '2026-11-24');
+  });
 });

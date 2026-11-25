@@ -3,6 +3,7 @@
 import React from 'react';
 import type { FiltrosKanban } from '@/hooks/useIncidentesKanban';
 import type { PrioridadIncidente } from '@/services/incidentesService';
+import { obtenerTiposAfectacion } from '@/services/avisosService';
 import { useCatalogos } from '@/hooks/useCatalogos';
 import {
   FilterBar,
@@ -41,15 +42,8 @@ const OPCIONES_PRIORIDAD = [
   { valor: 'BAJA', etiqueta: 'Prioridad Baja' },
 ] as const;
 
-const OPCIONES_AFECTACION = [
+const OPCIONES_AFECTACION_BASE = [
   { valor: '', etiqueta: 'Todos los Tipos de Afectación' },
-  { valor: 'Inundación', etiqueta: 'Inundación' },
-  { valor: 'Anegamiento', etiqueta: 'Anegamiento' },
-  { valor: 'Caída de árbol', etiqueta: 'Caída de árbol' },
-  { valor: 'Derrumbe', etiqueta: 'Derrumbe' },
-  { valor: 'Corte de camino', etiqueta: 'Corte de camino' },
-  { valor: 'Incendio', etiqueta: 'Incendio' },
-  { valor: 'Peligro estructural', etiqueta: 'Peligro estructural' },
 ] as const;
 
 const OPCIONES_ORIGEN = [
@@ -67,6 +61,33 @@ export const KanbanFiltros: React.FC<KanbanFiltrosProps> = ({
   contadoresPorEstado,
 }) => {
   const { nombresDelegaciones } = useCatalogos();
+  const [tiposAfectacion, setTiposAfectacion] = React.useState<string[]>([]);
+
+  React.useEffect(() => {
+    let activo = true;
+    obtenerTiposAfectacion().then((tipos) => {
+      if (!activo || !Array.isArray(tipos)) return;
+      const nombres = tipos
+        .map((t) =>
+          typeof t === 'string'
+            ? t
+            : (t as unknown as { nombre?: string })?.nombre ?? ''
+        )
+        .filter((nombre): nombre is string => Boolean(nombre));
+      setTiposAfectacion(nombres);
+    });
+    return () => {
+      activo = false;
+    };
+  }, []);
+
+  const opcionesAfectacion = React.useMemo(
+    () => [
+      ...OPCIONES_AFECTACION_BASE,
+      ...tiposAfectacion.map((tipo) => ({ valor: tipo, etiqueta: tipo })),
+    ],
+    [tiposAfectacion]
+  );
 
   const opcionesEstadoConContador = React.useMemo(() => {
     return OPCIONES_ESTADO.map((opt) => ({
@@ -266,7 +287,7 @@ export const KanbanFiltros: React.FC<KanbanFiltrosProps> = ({
           id="filtro-incidente-tipo"
           label="Tipo de Afectación:"
           value={filtros.tipoAfectacion || ''}
-          options={OPCIONES_AFECTACION}
+          options={opcionesAfectacion}
           onChange={handleTipoChange}
         />
 

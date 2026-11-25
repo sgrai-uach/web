@@ -125,7 +125,7 @@ export const OperativosRecuperacionTabla: React.FC<OperativosRecuperacionTablaPr
                 <td className={styles.td} title={resumenTexto || undefined}>
                   <div className={styles.insumosCell}>
                     <span className={styles.insumosTotal}>
-                      {item.cantidadInsumosAsignados} unidades
+                      {item.cantidadInsumosAsignados ?? 0} unidades
                     </span>
                     {resumenTexto && (
                       <span className={styles.insumosResumen}>{resumenTexto}</span>

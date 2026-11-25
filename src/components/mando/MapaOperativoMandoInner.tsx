@@ -5,13 +5,13 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import type { IncidenteResumen } from '@/services/incidentesService';
 import type { EventoPrevencionDTO } from '@/types/evento-prevencion';
-import type { EventoRecuperacionResponse } from '@/types/recuperacion';
+import type { EventoRecuperacionResponse, DetalleEventoRecuperacionResponse } from '@/types/recuperacion';
 import type { CuadrillaItem } from '@/types/cuadrilla';
 
 interface MapaOperativoMandoInnerProps {
   incidentes?: IncidenteResumen[];
   eventosPrevencion?: EventoPrevencionDTO[];
-  eventosRecuperacion?: EventoRecuperacionResponse[];
+  eventosRecuperacion?: (EventoRecuperacionResponse | DetalleEventoRecuperacionResponse)[];
   cuadrillas?: CuadrillaItem[];
 
   onSelectIncidente?: (id: string) => void;
@@ -235,7 +235,7 @@ export default function MapaOperativoMandoInner({
           ? prev.recursos
               .map(
                 (r: { nombre?: string; cantidadAsignada?: number }) =>
-                  `<li style="margin-bottom: 2px;"><strong>${r.nombre || 'Recurso'}:</strong> ${r.cantidadAsignada || 0} un.</li>`
+                  `<li style="margin-bottom: 2px;"><strong>${escapeHtml(r.nombre) || 'Recurso'}:</strong> ${Number(r.cantidadAsignada) || 0} un.</li>`
               )
               .join('')
           : '<li>Equipamiento táctico estándar</li>';
@@ -243,30 +243,30 @@ export default function MapaOperativoMandoInner({
         const popupHtml = `
           <div style="font-family: inherit; font-size: 13px; color: #2B2B2B; min-width: 250px; max-width: 280px; padding: 2px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; border-bottom: 2px solid #D97706; padding-bottom: 4px;">
-              <strong style="color: #B45309; font-size: 14px;">${prev.codigo}</strong>
+              <strong style="color: #B45309; font-size: 14px;">${escapeHtml(prev.codigo)}</strong>
               <span style="background-color: #FEF3C7; color: #92400E; padding: 2px 6px; font-size: 10px; font-weight: 700; border: 1px solid #FCD34D;">
-                ${prev.prioridad}
+                ${escapeHtml(prev.prioridad)}
               </span>
             </div>
 
-            <div style="font-weight: 700; color: #14505A; margin-bottom: 4px;">${prev.nombre}</div>
+            <div style="font-weight: 700; color: #14505A; margin-bottom: 4px;">${escapeHtml(prev.nombre)}</div>
             <div style="font-size: 12px; color: #3B3F45; margin-bottom: 4px;">
-              <strong>Sector:</strong> ${prev.sector || 'Valdivia'}
-              ${prev.direccionTexto ? `<br><strong>Dirección:</strong> ${prev.direccionTexto}` : ''}
-              ${prev.puntoCritico ? `<br><strong style="color: #B45309;">Punto Crítico:</strong> ${prev.puntoCritico.codigo}` : ''}
+              <strong>Sector:</strong> ${escapeHtml(prev.sector) || 'Valdivia'}
+              ${prev.direccionTexto ? `<br><strong>Dirección:</strong> ${escapeHtml(prev.direccionTexto)}` : ''}
+              ${prev.puntoCritico ? `<br><strong style="color: #B45309;">Punto Crítico:</strong> ${escapeHtml(prev.puntoCritico.codigo)}` : ''}
             </div>
 
             <div style="background-color: #FFFBEB; border: 1px solid #FDE68A; padding: 6px; margin-bottom: 6px; font-size: 11px;">
               <div style="color: #92400E; font-weight: 700; margin-bottom: 2px;">
                 Patrulla Asignada:
               </div>
-              <div>${prev.patrulla.nombre} (<strong>${prev.patrulla.estado}</strong>)</div>
-              ${prev.mision ? `<div style="margin-top: 2px; color: #555;">Misión: <strong>${prev.mision.codigo}</strong> (${prev.mision.estado})</div>` : ''}
+              <div>${escapeHtml(prev.patrulla.nombre)} (<strong>${escapeHtml(prev.patrulla.estado)}</strong>)</div>
+              ${prev.mision ? `<div style="margin-top: 2px; color: #555;">Misión: <strong>${escapeHtml(prev.mision.codigo)}</strong> (${escapeHtml(prev.mision.estado)})</div>` : ''}
             </div>
 
             <div style="font-size: 11px; margin-bottom: 4px;">
               <strong>Instrucciones:</strong>
-              <p style="margin: 2px 0 0 0; color: #555;">${prev.descripcion}</p>
+              <p style="margin: 2px 0 0 0; color: #555;">${escapeHtml(prev.descripcion)}</p>
             </div>
 
             <div style="font-size: 11px;">
@@ -301,7 +301,7 @@ export default function MapaOperativoMandoInner({
           ? rec.recursos
               .map(
                 (r: { nombre?: string; cantidadAsignada?: number }) =>
-                  `<li style="margin-bottom: 2px;"><strong>${r.nombre || 'Recurso'}:</strong> ${r.cantidadAsignada || 0} un.</li>`
+                  `<li style="margin-bottom: 2px;"><strong>${escapeHtml(r.nombre) || 'Recurso'}:</strong> ${Number(r.cantidadAsignada) || 0} un.</li>`
               )
               .join('')
           : '<li>Sin recursos registrados</li>';
@@ -309,29 +309,29 @@ export default function MapaOperativoMandoInner({
         const popupHtml = `
           <div style="font-family: inherit; font-size: 13px; color: #2B2B2B; min-width: 250px; max-width: 280px; padding: 2px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; border-bottom: 2px solid #0D9488; padding-bottom: 4px;">
-              <strong style="color: #0F766E; font-size: 14px;">${rec.codigo}</strong>
+              <strong style="color: #0F766E; font-size: 14px;">${escapeHtml(rec.codigo)}</strong>
               <span style="background-color: #CCFBF1; color: #0F766E; padding: 2px 6px; font-size: 10px; font-weight: 700; border: 1px solid #99F6E4;">
-                ${rec.prioridad}
+                ${escapeHtml(rec.prioridad)}
               </span>
             </div>
 
-            <div style="font-weight: 700; color: #14505A; margin-bottom: 4px;">${rec.nombre}</div>
+            <div style="font-weight: 700; color: #14505A; margin-bottom: 4px;">${escapeHtml(rec.nombre)}</div>
             <div style="font-size: 12px; color: #3B3F45; margin-bottom: 4px;">
-              <strong>Sector:</strong> ${rec.sector || 'Valdivia'}
-              ${rec.direccionTexto ? `<br><strong>Dirección:</strong> ${rec.direccionTexto}` : ''}
+              <strong>Sector:</strong> ${escapeHtml(rec.sector) || 'Valdivia'}
+              ${rec.direccionTexto ? `<br><strong>Dirección:</strong> ${escapeHtml(rec.direccionTexto)}` : ''}
             </div>
 
             <div style="background-color: #F0FDF4; border: 1px solid #BBF7D0; padding: 6px; margin-bottom: 6px; font-size: 11px;">
               <div style="color: #166534; font-weight: 700; margin-bottom: 2px;">
                 Patrulla Asignada:
               </div>
-              <div>${rec.patrulla?.nombre || 'Patrulla'} (${rec.patrulla?.estado || 'EN_RECUPERACION'})</div>
-              ${rec.mision ? `<div style="margin-top: 2px; color: #555;">Misión: <strong>${rec.mision.codigo}</strong> (${rec.mision.estado})</div>` : ''}
+              <div>${escapeHtml(rec.patrulla?.nombre) || 'Patrulla'} (${escapeHtml(rec.patrulla?.estado) || 'EN_RECUPERACION'})</div>
+              ${rec.mision ? `<div style="margin-top: 2px; color: #555;">Misión: <strong>${escapeHtml(rec.mision.codigo)}</strong> (${escapeHtml(rec.mision.estado)})</div>` : ''}
             </div>
 
             ${rec.familiasAfectadas ? `
             <div style="font-size: 11px; margin-bottom: 6px;">
-              <strong>Familias Beneficiadas:</strong> ${rec.familiasAfectadas}
+              <strong>Familias Beneficiadas:</strong> ${Number(rec.familiasAfectadas) || 0}
             </div>` : ''}
 
             <div style="font-size: 11px;">
@@ -339,6 +339,12 @@ export default function MapaOperativoMandoInner({
               <ul style="margin: 4px 0 0 16px; padding: 0;">
                 ${recursosList}
               </ul>
+            </div>
+
+            <div style="margin-top: 8px; padding-top: 6px; border-top: 1px solid #DFE3E8; text-align: center;">
+              <a href="/eventos-atp/recuperacion/${encodeURIComponent(rec.id)}" style="display: block; background-color: #1B6F7D; color: #FFFFFF; padding: 5px 8px; text-decoration: none; font-weight: 700; font-size: 11px;">
+                Ver Detalle y Asignar Recursos &rarr;
+              </a>
             </div>
           </div>
         `;

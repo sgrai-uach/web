@@ -100,6 +100,7 @@ describe('useRecuperacionSocket (HU-29)', () => {
       (socket as unknown as { _trigger: (ev: string) => void })._trigger('connect');
     });
 
+    expect(socket.emit).toHaveBeenCalledWith('unirse', 'encargado');
     expect(socket.emit).toHaveBeenCalledWith('unirse', 'sala:encargados');
     expect(socket.emit).toHaveBeenCalledWith('unirse', 'mapa');
   });
@@ -126,6 +127,114 @@ describe('useRecuperacionSocket (HU-29)', () => {
     expect(result.current.ultimoEvento).toContain('Collico');
   });
 
+  it('debe invocar onRecuperacionActualizada cuando payload contiene evento.id coincidente (BUG-H32-WEB-02)', () => {
+    const socket = getSocket();
+    const onRecuperacionActualizada = vi.fn();
+
+    const payloadBackend = {
+      evento: {
+        id: 'rec-123',
+        codigo: 'REC-2026-0001',
+        nombre: 'Entrega en Collico',
+        estado: 'EN_EJECUCION',
+      },
+      mision: { id: 'mis-1', codigo: 'MIS-2026-0002' },
+      patrulla: { id: 'pat-1', nombre: 'Patrulla Beta' },
+      recursos: [{ recursoId: 'rec-1', cantidadAsignada: 5 }],
+      asignadoEn: '2026-10-04T22:35:00.000Z',
+    };
+
+    const { result } = renderHook(() =>
+      useRecuperacionSocket({
+        eventoId: 'rec-123',
+        onRecuperacionActualizada,
+      })
+    );
+
+    act(() => {
+      (socket as unknown as { _trigger: (ev: string, p: unknown) => void })._trigger(
+        'recuperacion:actualizada',
+        payloadBackend
+      );
+    });
+
+    expect(onRecuperacionActualizada).toHaveBeenCalledWith(payloadBackend);
+    expect(result.current.ultimoEvento).toContain('REC-2026-0001');
+  });
+
+  it('no debe invocar onRecuperacionActualizada si eventoId no coincide', () => {
+    const socket = getSocket();
+    const onRecuperacionActualizada = vi.fn();
+
+    const payloadOtroEvento = {
+      evento: {
+        id: 'rec-999',
+        codigo: 'REC-2026-0999',
+        nombre: 'Otro evento',
+      },
+    };
+
+    renderHook(() =>
+      useRecuperacionSocket({
+        eventoId: 'rec-123',
+        onRecuperacionActualizada,
+      })
+    );
+
+    act(() => {
+      (socket as unknown as { _trigger: (ev: string, p: unknown) => void })._trigger(
+        'recuperacion:actualizada',
+        payloadOtroEvento
+      );
+    });
+
+    expect(onRecuperacionActualizada).not.toHaveBeenCalled();
+  });
+
+  it('debe invocar onRecursoActualizado al recibir evento recurso:actualizado (HU-32)', () => {
+    const socket = getSocket();
+    const onRecursoActualizado = vi.fn();
+
+    renderHook(() =>
+      useRecuperacionSocket({
+        onRecursoActualizado,
+      })
+    );
+
+    const payloadRecurso = { id: 'rec-1', cantidadDisponible: 15, stock: 15 };
+
+    act(() => {
+      (socket as unknown as { _trigger: (ev: string, p: unknown) => void })._trigger(
+        'recurso:actualizado',
+        payloadRecurso
+      );
+    });
+
+    expect(onRecursoActualizado).toHaveBeenCalledWith(payloadRecurso);
+  });
+
+  it('debe invocar onPatrullaActualizada al recibir evento patrulla:actualizada (HU-32)', () => {
+    const socket = getSocket();
+    const onPatrullaActualizada = vi.fn();
+
+    renderHook(() =>
+      useRecuperacionSocket({
+        onPatrullaActualizada,
+      })
+    );
+
+    const payloadPatrulla = { id: 'pat-1', estado: 'EN_RECUPERACION' };
+
+    act(() => {
+      (socket as unknown as { _trigger: (ev: string, p: unknown) => void })._trigger(
+        'patrulla:actualizada',
+        payloadPatrulla
+      );
+    });
+
+    expect(onPatrullaActualizada).toHaveBeenCalledWith(payloadPatrulla);
+  });
+
   it('debe limpiar listeners y abandonar salas operativas al desmontar el hook', () => {
     const socket = getSocket();
 
@@ -136,7 +245,30 @@ describe('useRecuperacionSocket (HU-29)', () => {
     expect(socket.off).toHaveBeenCalledWith('connect', expect.any(Function));
     expect(socket.off).toHaveBeenCalledWith('disconnect', expect.any(Function));
     expect(socket.off).toHaveBeenCalledWith('recuperacion:creada', expect.any(Function));
+    expect(socket.off).toHaveBeenCalledWith('recuperacion:actualizada', expect.any(Function));
+    expect(socket.off).toHaveBeenCalledWith('recurso:actualizado', expect.any(Function));
+    expect(socket.off).toHaveBeenCalledWith('patrulla:actualizada', expect.any(Function));
+    expect(socket.emit).toHaveBeenCalledWith('salir', 'encargado');
     expect(socket.emit).toHaveBeenCalledWith('salir', 'sala:encargados');
     expect(socket.emit).toHaveBeenCalledWith('salir', 'mapa');
+  });
+
+  it('BUG-INT-30: si el socket ya está conectado al montar, emite salas y difiere setConectado(true) mediante microtask', async () => {
+    const socket = getSocket() as unknown as {
+      connected: boolean;
+      emit: ReturnType<typeof vi.fn>;
+    };
+    socket.connected = true;
+
+    const { result } = renderHook(() => useRecuperacionSocket());
+
+    expect(socket.emit).toHaveBeenCalledWith('unirse', 'sala:encargados');
+    expect(socket.emit).toHaveBeenCalledWith('unirse', 'mapa');
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(result.current.conectado).toBe(true);
   });
 });

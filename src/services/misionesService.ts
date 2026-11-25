@@ -65,6 +65,8 @@ export const misionesService = {
     type ListarMisionesQuery = NonNullable<
       paths['/api/misiones']['get']['parameters']['query']
     >;
+    type ListarMisionesHeader =
+      paths['/api/misiones']['get']['parameters']['header'];
 
     const query: ListarMisionesQuery = {
       page: filtros.page || 1,
@@ -105,9 +107,9 @@ export const misionesService = {
       const { data, error, response } = await apiClient.GET('/api/misiones', {
         params: {
           query,
-          header: {
-            authorization: token ? `Bearer ${token}` : '',
-          },
+          header: (token
+            ? { authorization: `Bearer ${token}` }
+            : {}) as ListarMisionesHeader,
         },
         headers: {
           'x-user-id': userId,
@@ -425,6 +427,14 @@ export const misionesService = {
           mensaje:
             (error as { message?: string })?.message ||
             `Error HTTP ${response.status} al despachar patrulla verificadora.`,
+        };
+      }
+
+      if (!('patrulla' in data.data)) {
+        return {
+          exito: false,
+          codigoError: 500,
+          mensaje: 'La respuesta de despacho no incluyó los datos de la patrulla verificadora.',
         };
       }
 
