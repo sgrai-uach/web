@@ -173,6 +173,13 @@ describe('fueTipologiaModificada y detección de ratificación sin cambios', () 
     ).toBe(
       'Informe técnico enviado y misión cerrada. Dictamen: No Abordable. Motivo: Sin acceso'
     );
+    expect(
+      limpiarDescripcionBitacora(
+        'Reporte de evaluación #5 (Rectificación): Prioridad actualizada en terreno de BAJA a CRITICA (Sugerida: ALTA).'
+      )
+    ).toBe(
+      'Reporte de evaluación #5 (Rectificación): Prioridad actualizada en terreno de Baja a Crítica (Sugerida: Alta).'
+    );
   });
 });
 

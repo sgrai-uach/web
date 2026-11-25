@@ -4,14 +4,14 @@ import React, { useState } from 'react';
 import dynamic from 'next/dynamic';
 import type { IncidenteResumen } from '@/services/incidentesService';
 import type { EventoPrevencionDTO } from '@/types/evento-prevencion';
-import type { EventoRecuperacionResponse } from '@/types/recuperacion';
+import type { EventoRecuperacionResponse, DetalleEventoRecuperacionResponse } from '@/types/recuperacion';
 import type { CuadrillaItem } from '@/types/cuadrilla';
 import Button from '@/components/ui/Button';
 import { ShieldAlert, Truck, Layers } from 'lucide-react';
 
 export interface MapaOperativoMandoProps {
   incidentes?: IncidenteResumen[];
-  eventosRecuperacion?: EventoRecuperacionResponse[];
+  eventosRecuperacion?: (EventoRecuperacionResponse | DetalleEventoRecuperacionResponse)[];
   eventosPrevencion?: EventoPrevencionDTO[];
   cuadrillas?: CuadrillaItem[];
   onSelectIncidente?: (id: string) => void;

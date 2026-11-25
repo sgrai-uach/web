@@ -344,18 +344,19 @@ export const MisionReportesSection: React.FC<MisionReportesSectionProps> = ({
     }
   };
 
-  const hitosReclasificacion = bitacora.filter((h) => h.hito === 'TIPOLOGIA_RECLASIFICADA');
-  const hitoReclasificacion =
-    hitosReclasificacion.length > 0
+  const hitoReclasificacion = useMemo(() => {
+    const hitosReclasificacion = bitacora.filter((h) => h.hito === 'TIPOLOGIA_RECLASIFICADA');
+    return hitosReclasificacion.length > 0
       ? hitosReclasificacion[hitosReclasificacion.length - 1]
       : undefined;
+  }, [bitacora]);
   const totalInformes = reportesOrdenados.length + (hitoReclasificacion ? 1 : 0);
 
   let justificacionExtraida: string | null = null;
   let tipoAnteriorMeta: string | null = null;
   let tipoNuevoMeta: string | null = null;
   if (hitoReclasificacion) {
-    const match = hitoReclasificacion.descripcion.match(/Justificación:\s*(.+)$/i);
+    const match = hitoReclasificacion.descripcion.match(/Justificación:\s*([\s\S]+)$/i);
     justificacionExtraida = match ? match[1].trim() : hitoReclasificacion.descripcion;
     const meta = hitoReclasificacion.metadatos;
     if (meta && typeof meta === 'object') {

@@ -76,7 +76,7 @@ export async function obtenerTiposAfectacion(): Promise<string[]> {
     if (error || !data?.data || !Array.isArray(data.data) || data.data.length === 0) {
       return TIPOS_AFECTACION_DEFAULT;
     }
-    return data.data;
+    return data.data.map((t) => (typeof t === 'string' ? t : t.nombre));
   } catch {
     return TIPOS_AFECTACION_DEFAULT;
   }
@@ -314,15 +314,12 @@ export async function descartarAviso(
  * Retorna opciones normalizadas con UUIDs canónicos garantizados.
  */
 export async function obtenerTiposIncidentes(): Promise<TipoIncidenteOpcion[]> {
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
   try {
-    const res = await fetch(`${baseUrl}/api/incidentes/tipos`);
-    if (!res.ok) {
+    const { data, error } = await apiClient.GET('/api/incidentes/tipos');
+    if (error || !data?.data || !Array.isArray(data.data)) {
       throw new Error('Error al consultar tipos de incidentes');
     }
-    const json = await res.json();
-    const lista = Array.isArray(json.data) ? json.data : [];
-    return normalizarListaTiposIncidentes(lista);
+    return normalizarListaTiposIncidentes(data.data);
   } catch {
     return CATALOGO_TIPOS_INCIDENTE_DEFAULT;
   }

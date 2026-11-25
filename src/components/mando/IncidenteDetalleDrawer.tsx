@@ -95,6 +95,7 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
 
   const cargarDetalle = useCallback(() => {
     if (!incidenteId) return;
+    setDetalle(null);
     setCargando(true);
     setError(null);
 
@@ -112,10 +113,12 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
           });
           setDetalle({ ...res.datos, misiones: misionesHidratadas });
         } else {
+          setDetalle(null);
           setError(res.mensaje || 'Error al obtener el detalle del incidente.');
         }
       })
       .catch(() => {
+        setDetalle(null);
         setError('Error de comunicación con el servidor al cargar el incidente.');
       })
       .finally(() => {
@@ -240,48 +243,74 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
                 ? (rawDatos.estado as IncidenteDetalle['estado'])
                 : prev.estado;
           const justificacionPrioridad =
-            typeof rawDatos?.justificacionPrioridad === 'string'
-              ? rawDatos.justificacionPrioridad
-              : prev.justificacionPrioridad;
+            rawDatos?.justificacionPrioridad === null
+              ? null
+              : typeof rawDatos?.justificacionPrioridad === 'string'
+                ? rawDatos.justificacionPrioridad
+                : prev.justificacionPrioridad;
           const prioridadSugerida =
-            typeof rawDatos?.prioridadSugerida === 'string'
-              ? (rawDatos.prioridadSugerida as IncidenteDetalle['prioridadSugerida'])
-              : prev.prioridadSugerida;
+            rawDatos?.prioridadSugerida === null
+              ? null
+              : typeof rawDatos?.prioridadSugerida === 'string'
+                ? (rawDatos.prioridadSugerida as IncidenteDetalle['prioridadSugerida'])
+                : prev.prioridadSugerida;
+          const reporteEntrante =
+            rawDatos?.reporteTerreno && typeof rawDatos.reporteTerreno === 'object'
+              ? (rawDatos.reporteTerreno as ReporteEvaluacionTerreno)
+              : null;
           const justificacion =
-            typeof rawDatos?.justificacion === 'string'
+            !reporteEntrante && typeof rawDatos?.justificacion === 'string'
               ? rawDatos.justificacion
-              : justificacionPrioridad || prev.justificacionReclasificacion;
-          const huboCambioPrioridad = Boolean(
-            (rawDatos?.prioridad && rawDatos.prioridad !== prev.prioridad) ||
-              (prioridadSugerida && nuevaPrioridad !== prioridadSugerida)
-          );
+              : prev.justificacionReclasificacion;
 
           let nuevosReportes = prev.reportesEvaluacionTerreno || [];
+          let nuevoUltimoReporte = prev.ultimoReporte;
           let esCierreVerificacion = nuevoEstado === 'NO_ABORDABLE';
-          let reporteEntranteRef: ReporteEvaluacionTerreno | null = null;
-          if (rawDatos?.reporteTerreno && typeof rawDatos.reporteTerreno === 'object') {
-            const repentrante = rawDatos.reporteTerreno as ReporteEvaluacionTerreno;
-            reporteEntranteRef = repentrante;
-            if (esReporteVerificacionCierre(repentrante)) {
+          if (reporteEntrante) {
+            if (esReporteVerificacionCierre(reporteEntrante)) {
               esCierreVerificacion = true;
             }
-            const yaExiste = nuevosReportes.some((r) => r.id === repentrante.id);
+            const yaExiste = nuevosReportes.some((r) => r.id === reporteEntrante.id);
             nuevosReportes = yaExiste
-              ? nuevosReportes.map((r) => (r.id === repentrante.id ? repentrante : r))
-              : [repentrante, ...nuevosReportes];
+              ? nuevosReportes.map((r) => (r.id === reporteEntrante.id ? reporteEntrante : r))
+              : [reporteEntrante, ...nuevosReportes];
+            const misionRef = prev.misiones.find((m) => m.id === reporteEntrante.misionId);
+            nuevoUltimoReporte = {
+              origen: 'REPORTE_TERRENO',
+              reporteId: reporteEntrante.id,
+              misionId: reporteEntrante.misionId,
+              misionCodigo: misionRef?.codigo || prev.ultimoReporte?.misionCodigo || '',
+              evaluadorNombre: reporteEntrante.evaluador.nombre,
+              creadoEn: reporteEntrante.creadoEn,
+              resumen:
+                reporteEntrante.accionesRealizadas ||
+                reporteEntrante.observaciones ||
+                reporteEntrante.resumenTecnico,
+              prioridadAsignada: reporteEntrante.prioridadAsignada,
+              versionReporte: reporteEntrante.versionReporte,
+              esRectificacion: reporteEntrante.esRectificacion,
+              tipoReporte: reporteEntrante.tipoReporte,
+              dictamen: reporteEntrante.dictamen,
+              motivoNoAbordable: reporteEntrante.motivoNoAbordable,
+              estadoTerreno: reporteEntrante.estadoTerreno,
+              requiereAsistenciaSocial: reporteEntrante.requiereAsistenciaSocial,
+              personasAfectadas: reporteEntrante.personasAfectadas,
+              personasAfectadasPrevias: reporteEntrante.personasAfectadasPrevias,
+              personasAfectadasModificadas: reporteEntrante.personasAfectadasModificadas,
+            };
           }
 
           const dictamenEntrante =
             typeof rawDatos?.dictamen === 'string'
               ? (rawDatos.dictamen as DictamenAtencionTerreno)
-              : reporteEntranteRef?.dictamen ?? prev.dictamenTerreno;
+              : reporteEntrante?.dictamen ?? prev.dictamenTerreno;
 
           const motivoNoAbordableEntrante =
             typeof rawDatos?.motivoNoAbordable === 'string'
               ? rawDatos.motivoNoAbordable
               : typeof rawDatos?.motivo_no_abordable === 'string'
                 ? rawDatos.motivo_no_abordable
-                : reporteEntranteRef?.motivoNoAbordable ?? prev.motivoNoAbordable;
+                : reporteEntrante?.motivoNoAbordable ?? prev.motivoNoAbordable;
 
           const fechaCierreEntrante =
             typeof rawDatos?.fechaCierre === 'string'
@@ -317,8 +346,8 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
             requiereAsistenciaSocial:
               typeof rawDatos?.requiereAsistenciaSocial === 'boolean'
                 ? rawDatos.requiereAsistenciaSocial
-                : reporteEntranteRef?.requiereAsistenciaSocial !== undefined
-                  ? reporteEntranteRef.requiereAsistenciaSocial
+                : reporteEntrante?.requiereAsistenciaSocial !== undefined
+                  ? reporteEntrante.requiereAsistenciaSocial
                   : prev.requiereAsistenciaSocial,
             verificado:
               typeof rawDatos?.verificado === 'boolean'
@@ -335,16 +364,12 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
                 ? rawDatos.tipoIncidenteId
                 : prev.tipoIncidenteId,
             reportesEvaluacionTerreno: nuevosReportes,
+            ultimoReporte: nuevoUltimoReporte,
             reclasificadoEnTerreno: Boolean(
               fueTipologiaModificada(prev.tipoAfectacion, nuevoTipo) ||
                 prev.reclasificadoEnTerreno
             ),
             justificacionReclasificacion: justificacion,
-            cambioPrioridadMotivo: huboCambioPrioridad
-              ? justificacionPrioridad ||
-                justificacion ||
-                'Ajustada tras verificación presencial en terreno'
-              : prev.cambioPrioridadMotivo,
             actualizadoEn:
               typeof rawDatos?.actualizadoEn === 'string'
                 ? rawDatos.actualizadoEn
@@ -392,20 +417,6 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
       }
     };
 
-    const handleIncidenteActualizado = (payload: unknown) => {
-      const p = payload as Record<string, unknown> | null | undefined;
-      const raw = (p?.datos || p?.data || p) as Record<string, unknown> | null | undefined;
-      const id =
-        typeof raw?.id === 'string'
-          ? raw.id
-          : typeof raw?.incidenteId === 'string'
-            ? raw.incidenteId
-            : undefined;
-      if (id === incidenteId) {
-        cargarDetalle();
-      }
-    };
-
     const handleAdjuntoCreado = (rawPayload: unknown) => {
       const p = rawPayload as Record<string, unknown> | null | undefined;
       const candidato = (p?.datos || p?.data || rawPayload) as unknown;
@@ -420,7 +431,6 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
     socket.on('incidente:actualizado', handleActualizadoSocket);
     socket.on('notificacion:trazabilidad_actualizada', handleTrazabilidad);
     socket.on('mision:rechazada', handleMisionRechazada);
-    socket.on('incidente:actualizado', handleIncidenteActualizado);
     socket.on('adjunto:creado', handleAdjuntoCreado);
 
     return () => {
@@ -428,7 +438,6 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
       socket.off('incidente:actualizado', handleActualizadoSocket);
       socket.off('notificacion:trazabilidad_actualizada', handleTrazabilidad);
       socket.off('mision:rechazada', handleMisionRechazada);
-      socket.off('incidente:actualizado', handleIncidenteActualizado);
       socket.off('adjunto:creado', handleAdjuntoCreado);
     };
   }, [incidenteId, cargarDetalle]);
@@ -716,6 +725,7 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
                 <IncidenteUbicacionSection detalle={detalle} />
                 <IncidenteInformanteSection detalle={detalle} />
                 <IncidenteMisionesSection
+                  key={detalle.id}
                   misiones={detalle.misiones}
                   reportesEvaluacionTerreno={detalle.reportesEvaluacionTerreno}
                   incidenteEstado={detalle.estado}

@@ -59,7 +59,7 @@ export const IncidenteCard: React.FC<IncidenteCardProps> = ({
   );
 
   const justificacionPrioridadTexto =
-    incidente.justificacionPrioridad || incidente.cambioPrioridadMotivo;
+    incidente.justificacionPrioridad;
 
   const tooltipPrioridad = prioridadFueModificadaManual
     ? `Prioridad ajustada manualmente en terreno: ${formatearPrioridad(incidente.prioridad)}${
@@ -177,13 +177,14 @@ export const IncidenteCard: React.FC<IncidenteCardProps> = ({
             )}
           {(incidente.reclasificadoEnTerreno || incidente.verificado) && (
             <Chip
+              data-testid="badge-verificado"
               variant="success"
               size="sm"
               icon={<CheckCircle2 size={11} strokeWidth={2.2} />}
               title={
                 incidente.reclasificadoEnTerreno
                   ? incidente.justificacionReclasificacion
-                    ? `Tipología reclasificada en terreno: ${incidente.justificacionReclasificacion}${incidente.cambioPrioridadMotivo || incidente.justificacionPrioridad ? ` (Prioridad ajustada: ${formatearPrioridad(incidente.prioridad)})` : ''}`
+                    ? `Tipología reclasificada en terreno: ${incidente.justificacionReclasificacion}${incidente.justificacionPrioridad ? ` (Prioridad ajustada: ${formatearPrioridad(incidente.prioridad)})` : ''}`
                     : `Tipología rectificada por patrulla en terreno (Prioridad: ${formatearPrioridad(incidente.prioridad)})`
                   : incidente.justificacionPrioridad
                     ? `Evaluación en terreno con ajuste de prioridad: ${incidente.justificacionPrioridad} (Prioridad: ${formatearPrioridad(incidente.prioridad)})`

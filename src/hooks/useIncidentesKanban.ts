@@ -97,6 +97,7 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
   useEffect(() => {
     onCuadrillaActualizadaRef.current = optionsObj.onCuadrillaActualizada;
   }, [optionsObj.onCuadrillaActualizada]);
+
   let sessionUserId: string | undefined;
   let sessionSetUser: ((id: string) => void) | undefined;
   try {
@@ -267,7 +268,7 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
         columnasAConsultar.forEach((estado, idx) => {
           const res = resultados[idx];
           if (res.exito) {
-            nuevasColumnas[estado] = ordenarIncidentesColumna(res.incidentes, estado);
+            nuevasColumnas[estado] = res.incidentes;
             nuevasPaginaciones[estado] = res.paginacion || null;
           }
         });
@@ -288,11 +289,45 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
             return true;
           });
           if (aMoverAVerificando.length > 0) {
-            nuevasColumnas.VERIFICANDO = [...aMoverAVerificando, ...nuevasColumnas.VERIFICANDO];
+            const idsEnVerificando = new Set(nuevasColumnas.VERIFICANDO.map((i) => i.id));
+            const nuevosEnVerificando = aMoverAVerificando.filter(
+              (inc) => !idsEnVerificando.has(inc.id)
+            );
+            nuevasColumnas.VERIFICANDO = ordenarIncidentesColumna(
+              [...nuevosEnVerificando, ...nuevasColumnas.VERIFICANDO],
+              'VERIFICANDO'
+            );
+            if (nuevasPaginaciones.REPORTADO) {
+              nuevasPaginaciones.REPORTADO = {
+                ...nuevasPaginaciones.REPORTADO,
+                total: Math.max(0, nuevasPaginaciones.REPORTADO.total - aMoverAVerificando.length),
+              };
+            }
+            if (nuevasPaginaciones.VERIFICANDO && nuevosEnVerificando.length > 0) {
+              nuevasPaginaciones.VERIFICANDO = {
+                ...nuevasPaginaciones.VERIFICANDO,
+                total: nuevasPaginaciones.VERIFICANDO.total + nuevosEnVerificando.length,
+              };
+            }
           }
         }
 
-        setColumnas(nuevasColumnas);
+        // Preservar la marca local de misión despachada mientras el backend la propaga
+        setColumnas((prev) => {
+          const preservadas: Record<EstadoIncidente, IncidenteResumen[]> = { ...nuevasColumnas };
+          columnasAConsultar.forEach((estado) => {
+            preservadas[estado] = ordenarIncidentesColumna(
+              nuevasColumnas[estado].map((inc) => {
+                const previo = prev[estado]?.find((p) => p.id === inc.id);
+                return previo?.tieneMisionDespachada
+                  ? { ...inc, tieneMisionDespachada: true }
+                  : inc;
+              }),
+              estado
+            );
+          });
+          return preservadas;
+        });
         setPaginacionColumna(nuevasPaginaciones);
       } catch {
         setError('Error al conectar con el servidor.');
@@ -457,7 +492,9 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
             columnaOrigenDetectada = est;
             const incActual = prev[est][idx];
             tipoAnteriorDetectado = incActual.tipoAfectacion;
-            const nuevaPrioridad = datos.prioridad || incActual.prioridad;
+            const esSintetico = Boolean(payload.esSintetico);
+            const nuevaPrioridad =
+              !esSintetico && datos.prioridad ? datos.prioridad : incActual.prioridad;
             const nuevaPrioridadSugerida =
               datos.prioridadSugerida !== undefined
                 ? datos.prioridadSugerida
@@ -467,10 +504,6 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
                 ? datos.justificacionPrioridad
                 : incActual.justificacionPrioridad;
             const nuevoTipo = datos.tipoAfectacion || incActual.tipoAfectacion;
-            const huboCambioPrioridad = Boolean(
-              (datos.prioridad && datos.prioridad !== incActual.prioridad) ||
-              (nuevaPrioridadSugerida && nuevaPrioridad !== nuevaPrioridadSugerida)
-            );
             const huboCambioTipologia = fueTipologiaModificada(
               incActual.tipoAfectacion,
               datos.tipoAfectacion
@@ -478,6 +511,11 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
             const reclasificado = Boolean(
               huboCambioTipologia ||
               incActual.reclasificadoEnTerreno
+            );
+            const esTransicionAVerificando =
+              datos.nuevoEstado === 'VERIFICANDO' && est === 'REPORTADO';
+            const yaContabaMision = Boolean(
+              incActual.tieneMisionDespachada || (incActual.totalMisiones || 0) > 0
             );
 
             const totalReportesPrevios = Number(incActual.totalReportesTerreno ?? 0);
@@ -503,6 +541,25 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
             const fechaCierreResuelta =
               datos.fechaCierre !== undefined ? datos.fechaCierre : incActual.fechaCierre;
 
+            const nuevoVerificado =
+              datos.verificado !== undefined
+                ? datos.verificado
+                : esSintetico
+                  ? Boolean(incActual.verificado)
+                  : Boolean(
+                      incActual.verificado ||
+                        datos.reporteTerreno ||
+                        huboCambioTipologia ||
+                        datos.justificacion ||
+                        esCierreNoAbordable ||
+                        datos.dictamen
+                    );
+
+            const nuevaJustificacionReclasificacion =
+              !esSintetico && !datos.reporteTerreno && (huboCambioTipologia || datos.justificacion)
+                ? datos.justificacion || incActual.justificacionReclasificacion
+                : incActual.justificacionReclasificacion;
+
             incidenteEncontrado = {
               ...incActual,
               estado: datos.nuevoEstado,
@@ -516,28 +573,24 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
                   : incActual.requiereAsistenciaSocial,
               tipoAfectacion: nuevoTipo,
               tipoIncidenteId: datos.tipoIncidenteId || incActual.tipoIncidenteId,
-              verificado:
-                datos.verificado !== undefined
-                  ? datos.verificado
-                  : payload.esSintetico
-                    ? Boolean(incActual.verificado)
-                    : true,
+              verificado: nuevoVerificado,
               dictamenTerreno: dictamenResuelto,
               motivoNoAbordable: motivoNoAbordableResuelto,
               fechaCierre: fechaCierreResuelta,
-              tieneMisionEnCurso: esCierreNoAbordable ? false : incActual.tieneMisionEnCurso,
-              tieneMisionDespachada: esCierreNoAbordable ? false : incActual.tieneMisionDespachada,
               reclasificadoEnTerreno: reclasificado,
-              justificacionReclasificacion:
-                datos.justificacion || incActual.justificacionReclasificacion,
-              cambioPrioridadMotivo: huboCambioPrioridad
-                ? nuevaJustificacionPrioridad ||
-                  datos.justificacion ||
-                  'Ajustada tras verificación presencial en terreno'
-                : incActual.cambioPrioridadMotivo,
+              justificacionReclasificacion: nuevaJustificacionReclasificacion,
+              tieneMisionDespachada:
+                esCierreNoAbordable || esTransicionAVerificando
+                  ? false
+                  : incActual.tieneMisionDespachada,
+              tieneMisionEnCurso: esCierreNoAbordable
+                ? false
+                : esTransicionAVerificando
+                  ? true
+                  : incActual.tieneMisionEnCurso,
               totalMisiones:
-                datos.nuevoEstado === 'VERIFICANDO' && est === 'REPORTADO'
-                  ? Math.max(1, (incActual.totalMisiones || 0) + 1)
+                esTransicionAVerificando && !yaContabaMision
+                  ? 1
                   : incActual.totalMisiones,
               actualizadoEn: datos.actualizadoEn || new Date().toISOString(),
             };
@@ -685,8 +738,18 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
   const handleMisionRechazada = useCallback(
     (payload: MisionRechazadaPayload) => {
       if (payload.incidenteId) {
-        let columnaOrigenDetectada: EstadoIncidente | null = null;
-        let columnaDestinoDetectada: EstadoIncidente = 'REPORTADO';
+        const columnaOrigenDetectada =
+          ESTADOS_KANBAN.find((est) =>
+            columnasRef.current[est].some((i) => i.id === payload.incidenteId)
+          ) ?? null;
+        const incidenteActual = columnaOrigenDetectada
+          ? columnasRef.current[columnaOrigenDetectada].find((i) => i.id === payload.incidenteId)
+          : undefined;
+        const esRechazoCuadrilla =
+          payload.tipoMision === 'ATENCION_CUADRILLA' ||
+          Boolean(payload.cuadrillaId || payload.cuadrillaNombre);
+        const columnaDestinoDetectada: EstadoIncidente =
+          esRechazoCuadrilla && incidenteActual?.verificado ? 'VERIFICANDO' : 'REPORTADO';
 
         setColumnas((prev) => {
           let incidenteEncontrado: IncidenteResumen | null = null;
@@ -696,14 +759,8 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
             const idx = prev[est].findIndex((i) => i.id === payload.incidenteId);
             if (idx !== -1) {
               const actual = prev[est][idx];
-              const esRechazoCuadrilla =
-                payload.tipoMision === 'ATENCION_CUADRILLA' ||
-                Boolean(payload.cuadrillaId || payload.cuadrillaNombre);
-
               const estadoDestino: EstadoIncidente =
                 esRechazoCuadrilla && actual.verificado ? 'VERIFICANDO' : 'REPORTADO';
-
-              columnaDestinoDetectada = estadoDestino;
               incidenteEncontrado = {
                 ...actual,
                 estado: estadoDestino,
@@ -711,7 +768,6 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
                 actualizadoEn: payload.rechazadoEn || new Date().toISOString(),
               };
               columnaOrigen = est;
-              columnaOrigenDetectada = est;
               break;
             }
           }
@@ -737,12 +793,8 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
           };
         });
 
-        setPaginacionColumna((prev) => {
-          if (!columnaOrigenDetectada || columnaOrigenDetectada === columnaDestinoDetectada) {
-            return prev;
-          }
-
-          return {
+        if (columnaOrigenDetectada && columnaOrigenDetectada !== columnaDestinoDetectada) {
+          setPaginacionColumna((prev) => ({
             ...prev,
             [columnaDestinoDetectada]: prev[columnaDestinoDetectada]
               ? {
@@ -756,8 +808,8 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
                   total: Math.max(0, prev[columnaOrigenDetectada]!.total - 1),
                 }
               : null,
-          };
-        });
+          }));
+        }
       }
 
       onMisionRechazadaRef.current?.(payload);
@@ -771,7 +823,6 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
     },
     []
   );
-
   const marcarIncidenteMisionDespachada = useCallback(
     (incidenteId: string, despachada: boolean = true) => {
       setColumnas((prev) => ({

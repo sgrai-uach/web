@@ -16,7 +16,6 @@ import {
   HeartHandshake,
   WifiOff,
 } from 'lucide-react';
-import Heading from '@/components/ui/Heading';
 import Button from '@/components/ui/Button';
 import Chip from '@/components/ui/Chip';
 import { DrawerSectionHeader } from './DrawerSectionHeader';

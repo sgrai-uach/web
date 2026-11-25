@@ -3,7 +3,13 @@ import { renderHook, act, waitFor } from '@testing-library/react';
 import { useIncidentesKanban } from '../useIncidentesKanban';
 import * as incidentesService from '@/services/incidentesService';
 import * as misionesService from '@/services/misionesService';
-import { useEncargadoKanbanSocket, type UseEncargadoKanbanSocketOptions } from '../useEncargadoKanbanSocket';
+import {
+  useEncargadoKanbanSocket,
+  type UseEncargadoKanbanSocketOptions,
+  type IncidenteCreadoPayload,
+  type IncidenteActualizadoPayload,
+  type MisionRechazadaPayload,
+} from '../useEncargadoKanbanSocket';
 import {
   clearTrazabilidadCache,
   getIncidentePorMision,
@@ -17,9 +23,9 @@ vi.mock('@/services/incidentesService', () => ({
 }));
 
 let socketCallbacks: {
-  onIncidenteCreado?: (p: any) => void;
-  onIncidenteActualizado?: (p: any) => void;
-  onMisionRechazada?: (p: any) => void;
+  onIncidenteCreado?: (p: IncidenteCreadoPayload) => void;
+  onIncidenteActualizado?: (p: IncidenteActualizadoPayload) => void;
+  onMisionRechazada?: (p: MisionRechazadaPayload) => void;
 } = {};
 
 vi.mock('@/services/misionesService', () => ({
@@ -207,9 +213,6 @@ describe('useIncidentesKanban - HU-20 y BUG-04', () => {
     expect(tarjetaActualizada.prioridad).toBe('ALTA');
     expect(tarjetaActualizada.reclasificadoEnTerreno).toBe(true);
     expect(tarjetaActualizada.justificacionReclasificacion).toBe(
-      'Tras evaluación presencial se constata desborde de cauce con ingreso de agua a viviendas.'
-    );
-    expect(tarjetaActualizada.cambioPrioridadMotivo).toBe(
       'Tras evaluación presencial se constata desborde de cauce con ingreso de agua a viviendas.'
     );
   });
@@ -618,7 +621,7 @@ describe('useIncidentesKanban - HU-20 y BUG-04', () => {
 
   it('BUG-H35-WEB-07: resuelve el vínculo misión-incidente vía obtenerDetalleMision solo si la misión no estaba vinculada', async () => {
     let socketOptions: UseEncargadoKanbanSocketOptions | undefined;
-    vi.mocked(useEncargadoKanbanSocket).mockImplementation((opts) => {
+    vi.mocked(useEncargadoKanbanSocket).mockImplementationOnce((opts) => {
       socketOptions = opts;
       return { conectado: true, ultimoEvento: null };
     });
@@ -734,7 +737,7 @@ describe('useIncidentesKanban - HU-20 y BUG-04', () => {
 
   it('HU-41: revierte incidente verificado desde EN_ATENCION hacia VERIFICANDO ante mision:rechazada de cuadrilla', async () => {
     let socketOptions: UseEncargadoKanbanSocketOptions | undefined;
-    vi.mocked(useEncargadoKanbanSocket).mockImplementation((opts) => {
+    vi.mocked(useEncargadoKanbanSocket).mockImplementationOnce((opts) => {
       socketOptions = opts;
       return { conectado: true, ultimoEvento: null };
     });
@@ -828,7 +831,7 @@ describe('useIncidentesKanban - HU-20 y BUG-04', () => {
 
   it('HU-41: revierte incidente sin verificación previa desde EN_ATENCION hacia REPORTADO ante mision:rechazada de cuadrilla', async () => {
     let socketOptions: UseEncargadoKanbanSocketOptions | undefined;
-    vi.mocked(useEncargadoKanbanSocket).mockImplementation((opts) => {
+    vi.mocked(useEncargadoKanbanSocket).mockImplementationOnce((opts) => {
       socketOptions = opts;
       return { conectado: true, ultimoEvento: null };
     });
@@ -909,5 +912,335 @@ describe('useIncidentesKanban - HU-20 y BUG-04', () => {
     expect(result.current.columnas.REPORTADO[0].estado).toBe('REPORTADO');
     expect(result.current.paginacionColumna.EN_ATENCION?.total).toBe(0);
     expect(result.current.paginacionColumna.REPORTADO?.total).toBe(1);
+  });
+
+  it('BUG-H37-WEB-01: NO debe marcar verificado ni reclasificadoEnTerreno ni duplicar totalMisiones ante incidente:actualizado sin reclasificación', async () => {
+    const mockReportadoConMision: incidentesService.IncidenteResumen = {
+      id: 'inc-h37-01',
+      codigo: 'INC-2026-3701',
+      codigoSeguimiento: '37013701',
+      tipoAfectacion: 'Anegamiento',
+      descripcion: 'Agua en calle',
+      direccion: 'Calle Picarte 100',
+      latitud: -39.814,
+      longitud: -73.245,
+      estado: 'REPORTADO',
+      prioridad: 'MEDIA',
+      requiereAsistenciaSocial: false,
+      fuenteOrigen: 'WEB',
+      informanteNombre: 'Luis',
+      delegacionNombre: 'Centro',
+      totalMisiones: 1,
+      tieneMisionDespachada: true,
+      tieneMisionEnCurso: false,
+      verificado: false,
+      reclasificadoEnTerreno: false,
+      creadoEn: '2026-11-10T10:00:00Z',
+      actualizadoEn: '2026-11-10T10:00:00Z',
+    };
+
+    vi.mocked(incidentesService.listarIncidentes).mockImplementation(async (query) => {
+      if (query.estado === 'REPORTADO') {
+        return {
+          exito: true,
+          incidentes: [mockReportadoConMision],
+          paginacion: {
+            total: 1,
+            pagina: 1,
+            limite: 20,
+            totalPaginas: 1,
+            tieneSiguiente: false,
+            tieneAnterior: false,
+          },
+          mensaje: 'OK',
+        };
+      }
+      return {
+        exito: true,
+        incidentes: [],
+        paginacion: {
+          total: 0,
+          pagina: 1,
+          limite: 20,
+          totalPaginas: 0,
+          tieneSiguiente: false,
+          tieneAnterior: false,
+        },
+        mensaje: 'OK',
+      };
+    });
+
+    const { result } = renderHook(() => useIncidentesKanban());
+
+    await waitFor(() => {
+      expect(result.current.columnas.REPORTADO.length).toBe(1);
+    });
+
+    act(() => {
+      socketCallbacks.onIncidenteActualizado?.({
+        evento: 'incidente:actualizado',
+        datos: {
+          id: 'inc-h37-01',
+          codigo: 'INC-2026-3701',
+          nuevoEstado: 'VERIFICANDO',
+          prioridad: 'MEDIA',
+          actualizadoEn: '2026-11-10T10:05:00Z',
+        },
+        emitidoEn: '2026-11-10T10:05:00Z',
+      });
+    });
+
+    expect(result.current.columnas.REPORTADO.length).toBe(0);
+    expect(result.current.columnas.VERIFICANDO.length).toBe(1);
+    const movido = result.current.columnas.VERIFICANDO[0];
+    expect(movido.verificado).toBe(false);
+    expect(movido.reclasificadoEnTerreno).toBe(false);
+    expect(movido.tieneMisionDespachada).toBe(false);
+    expect(movido.tieneMisionEnCurso).toBe(true);
+    expect(movido.totalMisiones).toBe(1);
+  });
+
+  it('debe revertir el incidente a REPORTADO, limpiar tieneMisionDespachada y actualizar contadores ante mision:rechazada (HU-69)', async () => {
+    const mockVerificando: incidentesService.IncidenteResumen = {
+      id: 'inc-200',
+      codigo: 'INC-2026-200',
+      codigoSeguimiento: '20002000',
+      tipoAfectacion: 'Derrumbe',
+      descripcion: 'Deslizamiento de tierra',
+      direccion: 'Av. Picarte 1200',
+      latitud: -39.82,
+      longitud: -73.23,
+      estado: 'VERIFICANDO',
+      prioridad: 'CRITICA',
+      requiereAsistenciaSocial: false,
+      fuenteOrigen: 'WEB',
+      informanteNombre: 'María',
+      delegacionNombre: 'Sur',
+      totalMisiones: 1,
+      tieneMisionDespachada: true,
+      creadoEn: '2026-10-01T11:00:00Z',
+      actualizadoEn: '2026-10-01T11:00:00Z',
+    };
+
+    vi.mocked(incidentesService.listarIncidentes).mockImplementation(async (query) => {
+      if (query.estado === 'VERIFICANDO') {
+        return {
+          exito: true,
+          incidentes: [mockVerificando],
+          paginacion: {
+            total: 1,
+            pagina: 1,
+            limite: 20,
+            totalPaginas: 1,
+            tieneSiguiente: false,
+            tieneAnterior: false,
+          },
+          mensaje: 'OK',
+        };
+      }
+      return {
+        exito: true,
+        incidentes: [],
+        paginacion: {
+          total: 0,
+          pagina: 1,
+          limite: 20,
+          totalPaginas: 0,
+          tieneSiguiente: false,
+          tieneAnterior: false,
+        },
+        mensaje: 'OK',
+      };
+    });
+
+    const onMisionRechazadaCallback = vi.fn();
+    const { result } = renderHook(() =>
+      useIncidentesKanban({ onMisionRechazada: onMisionRechazadaCallback })
+    );
+
+    await waitFor(() => {
+      expect(result.current.columnas.VERIFICANDO.length).toBe(1);
+    });
+
+    const calls = vi.mocked(useEncargadoKanbanSocket).mock.calls;
+    const socketOptions = calls[calls.length - 1]?.[0] as UseEncargadoKanbanSocketOptions;
+    expect(socketOptions?.onMisionRechazada).toBeDefined();
+
+    const payloadRechazo = {
+      misionId: 'mis-200',
+      codigo: 'MIS-2026-200',
+      tipoMision: 'VERIFICACION',
+      motivo: 'Patrulla con falla mecánica',
+      justificacionRechazo: 'Patrulla con falla mecánica',
+      incidenteId: 'inc-200',
+      incidenteCodigo: 'INC-2026-200',
+      rechazadoEn: '2026-10-01T12:00:00Z',
+    };
+
+    await act(async () => {
+      socketOptions.onMisionRechazada?.(payloadRechazo);
+    });
+
+    expect(result.current.columnas.VERIFICANDO.length).toBe(0);
+    expect(result.current.columnas.REPORTADO.length).toBe(1);
+
+    const incidenteRevertido = result.current.columnas.REPORTADO[0];
+    expect(incidenteRevertido.id).toBe('inc-200');
+    expect(incidenteRevertido.estado).toBe('REPORTADO');
+    expect(incidenteRevertido.tieneMisionDespachada).toBe(false);
+
+    expect(result.current.paginacionColumna.VERIFICANDO?.total).toBe(0);
+    expect(result.current.paginacionColumna.REPORTADO?.total).toBe(1);
+    expect(onMisionRechazadaCallback).toHaveBeenCalledWith(payloadRechazo);
+  });
+
+  it('debe preservar tieneMisionDespachada tras invocar recargar() (BUG-H69-WEB-03)', async () => {
+    const mockReportado: incidentesService.IncidenteResumen = {
+      id: 'inc-300',
+      codigo: 'INC-2026-300',
+      codigoSeguimiento: '30003000',
+      tipoAfectacion: 'Árbol caído',
+      descripcion: 'Obstrucción de vía',
+      direccion: 'Sector Costanera',
+      latitud: -39.81,
+      longitud: -73.24,
+      estado: 'REPORTADO',
+      prioridad: 'ALTA',
+      requiereAsistenciaSocial: false,
+      fuenteOrigen: 'WEB',
+      informanteNombre: 'Carlos',
+      delegacionNombre: 'Costa',
+      totalMisiones: 0,
+      creadoEn: '2026-10-01T09:00:00Z',
+      actualizadoEn: '2026-10-01T09:00:00Z',
+    };
+
+    vi.mocked(incidentesService.listarIncidentes).mockImplementation(async (query) => {
+      if (query.estado === 'REPORTADO') {
+        return {
+          exito: true,
+          incidentes: [{ ...mockReportado }],
+          paginacion: {
+            total: 1,
+            pagina: 1,
+            limite: 20,
+            totalPaginas: 1,
+            tieneSiguiente: false,
+            tieneAnterior: false,
+          },
+          mensaje: 'OK',
+        };
+      }
+      return {
+        exito: true,
+        incidentes: [],
+        paginacion: {
+          total: 0,
+          pagina: 1,
+          limite: 20,
+          totalPaginas: 0,
+          tieneSiguiente: false,
+          tieneAnterior: false,
+        },
+        mensaje: 'OK',
+      };
+    });
+
+    const { result } = renderHook(() => useIncidentesKanban());
+
+    await waitFor(() => {
+      expect(result.current.columnas.REPORTADO.length).toBe(1);
+    });
+
+    act(() => {
+      result.current.marcarIncidenteMisionDespachada('inc-300', true);
+    });
+
+    expect(result.current.columnas.REPORTADO[0].tieneMisionDespachada).toBe(true);
+
+    await act(async () => {
+      await result.current.recargar();
+    });
+
+    expect(result.current.columnas.REPORTADO[0].tieneMisionDespachada).toBe(true);
+  });
+
+  it('BUG-H38-WEB-02: evento sintético sin prioridad conserva prioridad y verificado del incidente en Kanban', async () => {
+    const mockReportadoCritica: incidentesService.IncidenteResumen = {
+      id: 'inc-h38-sint-1',
+      codigo: 'INC-2026-3802',
+      codigoSeguimiento: '38023802',
+      tipoAfectacion: 'Inundación',
+      descripcion: 'Agua en vivienda',
+      direccion: 'Av. Francia 200',
+      latitud: -39.82,
+      longitud: -73.24,
+      estado: 'REPORTADO',
+      prioridad: 'CRITICA',
+      requiereAsistenciaSocial: false,
+      fuenteOrigen: 'WEB',
+      informanteNombre: 'Ana',
+      delegacionNombre: 'Centro',
+      totalMisiones: 1,
+      verificado: false,
+      creadoEn: '2026-11-10T10:00:00Z',
+      actualizadoEn: '2026-11-10T10:00:00Z',
+    };
+
+    vi.mocked(incidentesService.listarIncidentes).mockImplementation(async (query) => {
+      if (query.estado === 'REPORTADO') {
+        return {
+          exito: true,
+          incidentes: [mockReportadoCritica],
+          paginacion: {
+            total: 1,
+            pagina: 1,
+            limite: 20,
+            totalPaginas: 1,
+            tieneSiguiente: false,
+            tieneAnterior: false,
+          },
+          mensaje: 'OK',
+        };
+      }
+      return {
+        exito: true,
+        incidentes: [],
+        paginacion: {
+          total: 0,
+          pagina: 1,
+          limite: 20,
+          totalPaginas: 0,
+          tieneSiguiente: false,
+          tieneAnterior: false,
+        },
+        mensaje: 'OK',
+      };
+    });
+
+    const { result } = renderHook(() => useIncidentesKanban());
+
+    await waitFor(() => {
+      expect(result.current.columnas.REPORTADO.length).toBe(1);
+    });
+
+    act(() => {
+      socketCallbacks.onIncidenteActualizado?.({
+        evento: 'incidente:actualizado',
+        esSintetico: true,
+        datos: {
+          id: 'inc-h38-sint-1',
+          codigo: 'INC-2026-3802',
+          nuevoEstado: 'VERIFICANDO',
+          actualizadoEn: '2026-11-10T10:05:00Z',
+        },
+        emitidoEn: '2026-11-10T10:05:00Z',
+      });
+    });
+
+    expect(result.current.columnas.VERIFICANDO.length).toBe(1);
+    const movido = result.current.columnas.VERIFICANDO[0];
+    expect(movido.prioridad).toBe('CRITICA');
+    expect(movido.verificado).toBe(false);
   });
 });

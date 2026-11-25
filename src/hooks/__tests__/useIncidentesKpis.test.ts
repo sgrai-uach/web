@@ -184,7 +184,7 @@ describe('useIncidentesKpis', () => {
     });
   });
 
-  it('debe refrescar los KPIs al recibir el evento mision:rechazada vía WebSockets (HU-41)', async () => {
+  it('debe refrescar los KPIs al recibir el evento mision:rechazada vía WebSockets', async () => {
     renderHook(() => useIncidentesKpis());
 
     await waitFor(() => {
@@ -193,11 +193,7 @@ describe('useIncidentesKpis', () => {
 
     const socket = getSocket() as unknown as { _trigger: (ev: string, data?: unknown) => void };
     await act(async () => {
-      socket._trigger('mision:rechazada', {
-        misionId: 'mis-cuad-1',
-        incidenteId: 'inc-123',
-        tipoMision: 'ATENCION_CUADRILLA',
-      });
+      socket._trigger('mision:rechazada', { misionId: 'm-1', incidenteId: 'inc-123' });
     });
 
     await waitFor(() => {
