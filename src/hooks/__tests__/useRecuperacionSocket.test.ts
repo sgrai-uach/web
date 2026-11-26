@@ -252,4 +252,23 @@ describe('useRecuperacionSocket (HU-29)', () => {
     expect(socket.emit).toHaveBeenCalledWith('salir', 'sala:encargados');
     expect(socket.emit).toHaveBeenCalledWith('salir', 'mapa');
   });
+
+  it('BUG-INT-30: si el socket ya está conectado al montar, emite salas y difiere setConectado(true) mediante microtask', async () => {
+    const socket = getSocket() as unknown as {
+      connected: boolean;
+      emit: ReturnType<typeof vi.fn>;
+    };
+    socket.connected = true;
+
+    const { result } = renderHook(() => useRecuperacionSocket());
+
+    expect(socket.emit).toHaveBeenCalledWith('unirse', 'sala:encargados');
+    expect(socket.emit).toHaveBeenCalledWith('unirse', 'mapa');
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(result.current.conectado).toBe(true);
+  });
 });

@@ -83,10 +83,6 @@ export type TipoReporteTerreno = 'EVALUACION_PRIORIDAD' | 'VERIFICACION_CIERRE' 
 export type DictamenAtencionTerreno = 'REQUIERE_CUADRILLA' | 'NO_ABORDABLE';
 
 export type ReporteTerrenoDetalle = Omit<ReporteTerrenoOpenApi, 'detallesEvaluacion'> & {
-  tipoReporte?: TipoReporteTerreno | null;
-  dictamen?: DictamenAtencionTerreno | null;
-  motivoNoAbordable?: string | null;
-  requiereAsistenciaSocial?: boolean;
   personasAfectadasPrevias?: number | null;
   personasAfectadasModificadas?: boolean;
   detallesEvaluacion?: EvaluacionTerrenoMisionDetalle;

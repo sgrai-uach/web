@@ -568,6 +568,44 @@ describe('useEncargadoKanbanSocket', () => {
     expect(result.current.ultimoEvento).toBe('Misión rechazada: MIS-2026-0005');
   });
 
+  it('BUG-H41-WEB-04: ignora payloads null o vacíos en mision:rechazada y normaliza fallback tipo_mision', () => {
+    const socket = getSocket();
+    const onMisionRechazada = vi.fn();
+
+    const { result } = renderHook(() =>
+      useEncargadoKanbanSocket({
+        onMisionRechazada,
+      })
+    );
+
+    const trigger = (socket as unknown as { _trigger: (ev: string, p: unknown) => void })._trigger;
+
+    act(() => {
+      trigger('mision:rechazada', null);
+      trigger('mision:rechazada', {});
+    });
+
+    expect(onMisionRechazada).not.toHaveBeenCalled();
+    expect(result.current.ultimoEvento).toBeNull();
+
+    act(() => {
+      trigger('mision:rechazada', {
+        misionId: 'mis-snake-1',
+        codigo: 'MIS-2026-0099',
+        tipo_mision: 'ATENCION_CUADRILLA',
+        motivo: 'Corte de camino',
+        incidenteId: 'inc-99',
+      });
+    });
+
+    expect(onMisionRechazada).toHaveBeenCalledWith(
+      expect.objectContaining({
+        misionId: 'mis-snake-1',
+        tipoMision: 'ATENCION_CUADRILLA',
+      })
+    );
+  });
+
   it('HU-41: escucha cuadrilla:actualizada e invoca onCuadrillaActualizada cuando la cuadrilla vuelve a DISPONIBLE', () => {
     const socket = getSocket();
     const onCuadrillaActualizada = vi.fn();

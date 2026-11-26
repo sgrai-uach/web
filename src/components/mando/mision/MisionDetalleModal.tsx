@@ -103,10 +103,11 @@ export const MisionDetalleModal: React.FC<MisionDetalleModalProps> = ({
     }
   }, [cargando, mision, enfocarReportes, reporteDestacadoId]);
 
-  // Sincronización en tiempo real de nuevos reportes, rectificaciones y adjuntos en la misión abierta
+  // Sincronización en tiempo real de nuevos reportes, rectificaciones, rechazo y adjuntos de la misión abierta
   useEffect(() => {
     if (!misionId) return;
 
+    let activo = true;
     const socket = getSocket();
 
     const asegurarSalasEncargado = () => {
@@ -169,7 +170,7 @@ export const MisionDetalleModal: React.FC<MisionDetalleModalProps> = ({
 
       if (requiereRecarga) {
         void obtenerDetalleMision(misionId, userId).then((res) => {
-          if (res.exito && res.datos) {
+          if (activo && res.exito && res.datos) {
             setMision(res.datos);
           }
         });
@@ -220,9 +221,11 @@ export const MisionDetalleModal: React.FC<MisionDetalleModalProps> = ({
               ? repRaw.justificacionPrioridad
               : null,
           detallesEvaluacion:
-            repRaw.evaluacion && typeof repRaw.evaluacion === 'object'
-              ? (repRaw.evaluacion as ReporteTerrenoDetalle['detallesEvaluacion'])
-              : undefined,
+            repRaw.detallesEvaluacion && typeof repRaw.detallesEvaluacion === 'object'
+              ? (repRaw.detallesEvaluacion as ReporteTerrenoDetalle['detallesEvaluacion'])
+              : repRaw.evaluacion && typeof repRaw.evaluacion === 'object'
+                ? (repRaw.evaluacion as ReporteTerrenoDetalle['detallesEvaluacion'])
+                : undefined,
           evaluador:
             repRaw.evaluador && typeof repRaw.evaluador === 'object'
               ? {
@@ -268,16 +271,32 @@ export const MisionDetalleModal: React.FC<MisionDetalleModalProps> = ({
 
         const esCierre =
           esReporteVerificacionCierre(nuevoReporte) || rawDatos?.nuevoEstado === 'NO_ABORDABLE';
+        const fechaCierreEntrante =
+          typeof rawDatos?.fechaCierre === 'string'
+            ? rawDatos.fechaCierre
+            : typeof rawDatos?.fecha_cierre === 'string'
+              ? rawDatos.fecha_cierre
+              : undefined;
+        const motivoNoAbordableEntrante =
+          typeof rawDatos?.motivoNoAbordable === 'string'
+            ? rawDatos.motivoNoAbordable
+            : typeof rawDatos?.motivo_no_abordable === 'string'
+              ? rawDatos.motivo_no_abordable
+              : nuevoReporte.motivoNoAbordable ?? undefined;
 
         return {
           ...prev,
           estado: esCierre ? 'COMPLETADA' : prev.estado,
           fechaCierre:
-            esCierre && typeof rawDatos?.fechaCierre === 'string'
-              ? rawDatos.fechaCierre
+            esCierre && fechaCierreEntrante
+              ? fechaCierreEntrante
               : esCierre && !prev.fechaCierre
                 ? new Date().toISOString()
                 : prev.fechaCierre,
+          patrulla:
+            esCierre && prev.patrulla
+              ? { ...prev.patrulla, estado: 'DISPONIBLE' }
+              : prev.patrulla,
           prioridad:
             typeof rawDatos?.prioridad === 'string'
               ? (rawDatos.prioridad as MisionDetalleCompleto['prioridad'])
@@ -311,20 +330,131 @@ export const MisionDetalleModal: React.FC<MisionDetalleModalProps> = ({
                     : typeof rawDatos?.justificacionPrioridad === 'string'
                       ? rawDatos.justificacionPrioridad
                       : prev.incidente.justificacionPrioridad,
+                motivoNoAbordable:
+                  motivoNoAbordableEntrante !== undefined
+                    ? motivoNoAbordableEntrante
+                    : prev.incidente.motivoNoAbordable,
+                fechaCierre:
+                  esCierre && rawDatos?.nuevoEstado === 'NO_ABORDABLE'
+                    ? fechaCierreEntrante ?? prev.incidente.fechaCierre ?? new Date().toISOString()
+                    : prev.incidente.fechaCierre,
               }
             : null,
+          evaluaciones:
+            esCierre && prev.evaluaciones
+              ? {
+                  ...prev.evaluaciones,
+                  reporteVerificacionEnviado: true,
+                  dictamenVerificacion:
+                    nuevoReporte.dictamen ?? prev.evaluaciones.dictamenVerificacion,
+                }
+              : prev.evaluaciones,
           reportesTerreno: nuevosReportes,
         };
+      });
+    };
+
+    const handleMisionActualizada = (payload: unknown) => {
+      const p = payload as Record<string, unknown> | null | undefined;
+      const rawDatos = (p?.datos || p?.data || p) as Record<string, unknown> | null | undefined;
+      const idEvento = String(
+        rawDatos?.misionId ??
+          rawDatos?.id ??
+          (rawDatos?.mision as Record<string, unknown> | undefined)?.id ??
+          ''
+      );
+      if (!idEvento || idEvento !== misionId) return;
+
+      const hitoRaw = rawDatos?.hito as Record<string, unknown> | undefined;
+      if (hitoRaw && typeof hitoRaw === 'object') {
+        setMision((prev) => {
+          if (!prev) return prev;
+          const hitoId = String(hitoRaw.id || `hito-${Date.now()}`);
+          const yaExiste = prev.bitacoraTiempos.some((h) => h.id === hitoId);
+          const tsIso =
+            typeof hitoRaw.timestamp === 'string'
+              ? hitoRaw.timestamp
+              : typeof hitoRaw.creadoEn === 'string'
+                ? hitoRaw.creadoEn
+                : new Date().toISOString();
+          const fechaObj = new Date(tsIso);
+          const fechaStr =
+            typeof hitoRaw.fecha === 'string'
+              ? hitoRaw.fecha
+              : fechaObj.toISOString().slice(0, 10);
+          const horaStr =
+            typeof hitoRaw.hora === 'string'
+              ? hitoRaw.hora
+              : fechaObj.toISOString().slice(11, 19);
+          const nuevoHito: MisionDetalleCompleto['bitacoraTiempos'][number] = {
+            id: hitoId,
+            hito: String(hitoRaw.hito || 'ACTUALIZACION'),
+            descripcion:
+              typeof hitoRaw.descripcion === 'string' ? hitoRaw.descripcion : '',
+            fecha: fechaStr,
+            hora: horaStr,
+            timestamp: tsIso,
+            metadatos:
+              hitoRaw.metadatos && typeof hitoRaw.metadatos === 'object'
+                ? (hitoRaw.metadatos as Record<string, unknown>)
+                : null,
+          };
+          const nuevoEstado =
+            typeof rawDatos?.estado === 'string'
+              ? (rawDatos.estado as MisionDetalleCompleto['estado'])
+              : prev.estado;
+          return {
+            ...prev,
+            estado: nuevoEstado,
+            patrulla:
+              nuevoEstado === 'COMPLETADA' && prev.patrulla
+                ? { ...prev.patrulla, estado: 'DISPONIBLE' }
+                : prev.patrulla,
+            bitacoraTiempos: yaExiste
+              ? prev.bitacoraTiempos
+              : [...prev.bitacoraTiempos, nuevoHito],
+          };
+        });
+      } else {
+        void (async () => {
+          const res = await obtenerDetalleMision(misionId, userId);
+          if (activo && res.exito && res.datos) {
+            setMision(res.datos);
+          }
+        })();
+      }
+    };
+
+    const handleMisionRechazada = (payload: unknown) => {
+      const p = payload as Record<string, unknown> | null | undefined;
+      const raw = (p?.datos || p?.data || p) as Record<string, unknown> | null | undefined;
+      const idPayload =
+        typeof raw?.misionId === 'string'
+          ? raw.misionId
+          : typeof raw?.id === 'string'
+            ? raw.id
+            : undefined;
+      if (idPayload !== misionId) return;
+
+      void obtenerDetalleMision(misionId, userId).then((res) => {
+        if (activo && res.exito && res.datos) {
+          setMision(res.datos);
+        }
       });
     };
 
     socket.on('connect', asegurarSalasEncargado);
     socket.on('adjunto:creado', handleAdjuntoCreado);
     socket.on('incidente:actualizado', handleIncidenteActualizado);
+    socket.on('mision:actualizada', handleMisionActualizada);
+    socket.on('mision:rechazada', handleMisionRechazada);
     return () => {
+      activo = false;
       socket.off('connect', asegurarSalasEncargado);
       socket.off('adjunto:creado', handleAdjuntoCreado);
       socket.off('incidente:actualizado', handleIncidenteActualizado);
+      socket.off('mision:actualizada', handleMisionActualizada);
+      socket.off('mision:rechazada', handleMisionRechazada);
     };
   }, [misionId, userId]);
 

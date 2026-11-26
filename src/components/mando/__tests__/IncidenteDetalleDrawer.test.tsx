@@ -4,6 +4,8 @@ import { render, screen, fireEvent, waitFor, within, act } from '@testing-librar
 import { IncidenteDetalleDrawer } from '../IncidenteDetalleDrawer';
 import * as incidentesService from '@/services/incidentesService';
 import * as misionesService from '@/services/misionesService';
+import { cuadrillasService } from '@/services/cuadrillasService';
+import { AuthContext } from '@/context/AuthContext';
 import type { IncidenteDetalle } from '@/services/incidentesService';
 import type { MisionDetalleCompleto } from '@/types/misiones';
 import {
@@ -421,6 +423,7 @@ describe('Componente IncidenteDetalleDrawer e integración HU-17', () => {
       prioridad: 'CRITICA',
       reclasificadoEnTerreno: true,
       justificacionReclasificacion: 'Desborde de río constatado con riesgo inminente a personas.',
+      cambioPrioridadMotivo: 'Desborde de río constatado con riesgo inminente a personas.',
     };
 
     vi.spyOn(incidentesService, 'obtenerDetalleIncidente').mockResolvedValueOnce({
@@ -929,8 +932,114 @@ describe('Componente IncidenteDetalleDrawer e integración HU-17', () => {
     const seccionUltimo = screen.getByTestId('incidente-ultimo-reporte-section');
     expect(seccionUltimo.textContent).toContain('Dictamen: Requiere Cuadrilla');
     expect(seccionUltimo.textContent).toContain('Requiere Ficha FIBE');
+    expect(seccionUltimo.textContent).toContain('Critico');
     expect(seccionUltimo.textContent).toContain('6 personas (Modificado; antes: 4)');
     expect(screen.getByText('Despachar Cuadrilla')).toBeDefined();
+  });
+
+  it('al recibir VERIFICACION_CIERRE por socket actualiza ultimoReporte, libera patrulla y preserva misiones históricas RECHAZADA (BUG-H39-WEB-02/06)', async () => {
+    const detalleConHistorica: IncidenteDetalle = {
+      ...mockDetalleIncidente,
+      estado: 'VERIFICANDO',
+      ultimoReporte: {
+        origen: 'REPORTE_TERRENO',
+        reporteId: 'rep-h38-previo',
+        misionId: 'm-activa-1',
+        misionCodigo: 'MIS-2026-0102',
+        evaluadorNombre: 'Patrulla Previa',
+        creadoEn: '2026-11-15T13:00:00Z',
+        resumen: 'Evaluación previa H38',
+        prioridadAsignada: 'ALTA',
+        versionReporte: 1,
+        esRectificacion: false,
+      },
+      misiones: [
+        {
+          id: 'm-rechazada-hist',
+          codigo: 'MIS-2026-0101',
+          titulo: 'Verificación previa rechazada',
+          tipoMision: 'VERIFICACION',
+          estado: 'RECHAZADA',
+          prioridad: 'ALTA',
+          creadoEn: '2026-11-15T12:00:00Z',
+          fechaCierre: '2026-11-15T12:10:00Z',
+          motivoRechazo: 'Unidad en otra emergencia',
+          patrulla: { id: 'pat-old', nombre: 'Patrulla Histórica', estado: 'DISPONIBLE' },
+          cuadrilla: null,
+        },
+        {
+          id: 'm-activa-1',
+          codigo: 'MIS-2026-0102',
+          titulo: 'Verificación en curso',
+          tipoMision: 'VERIFICACION',
+          estado: 'EN_CURSO',
+          prioridad: 'ALTA',
+          creadoEn: '2026-11-15T12:30:00Z',
+          fechaCierre: null,
+          motivoRechazo: null,
+          patrulla: { id: 'pat-1', nombre: 'Patrulla Activa', estado: 'EN_VERIFICACION' },
+          cuadrilla: null,
+        },
+      ],
+    };
+
+    vi.spyOn(incidentesService, 'obtenerDetalleIncidente').mockResolvedValueOnce({
+      exito: true,
+      datos: detalleConHistorica,
+      mensaje: 'OK',
+    });
+
+    render(
+      <IncidenteDetalleDrawer
+        incidenteId="i1000000-0000-4000-8000-000000000001"
+        incidenteCodigo="INC-2026-0042"
+        userId="user-test"
+        onCerrar={vi.fn()}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('INC-2026-0042')).toBeDefined();
+    });
+
+    act(() => {
+      const handler = socketListeners['incidente:actualizado']?.[0];
+      handler?.({
+        evento: 'incidente:actualizado',
+        datos: {
+          id: 'i1000000-0000-4000-8000-000000000001',
+          nuevoEstado: 'VERIFICANDO',
+          dictamen: 'REQUIERE_CUADRILLA',
+          requiereAsistenciaSocial: true,
+          fechaCierre: '2026-11-15T14:30:00Z',
+          reporteTerreno: {
+            id: 'rep-cierre-socket',
+            misionId: 'm-activa-1',
+            tipoReporte: 'VERIFICACION_CIERRE',
+            dictamen: 'REQUIERE_CUADRILLA',
+            estadoTerreno: 'CRITICO',
+            requiereAsistenciaSocial: true,
+            versionReporte: 2,
+            esRectificacion: false,
+            resumenTecnico: 'Cierre en vivo con requerimiento de cuadrilla.',
+            personasAfectadas: 5,
+            evaluador: { id: 'u-p', nombre: 'Patrullero Socket' },
+            creadoEn: '2026-11-15T14:30:00Z',
+          },
+        },
+      });
+    });
+
+    await waitFor(() => {
+      const seccionUltimo = screen.getByTestId('incidente-ultimo-reporte-section');
+      expect(seccionUltimo.textContent).toContain('Dictamen: Requiere Cuadrilla');
+      expect(seccionUltimo.textContent).toContain('Critico');
+    });
+
+    // La misión histórica rechazada conserva su estado y no se sobrescribe a Completada
+    expect(screen.getByLabelText('Desplegar misiones rechazadas (1)')).toBeDefined();
+    // El badge de Verificación Completada aparece estandarizado
+    expect(screen.getByText('Verificación Completada')).toBeDefined();
   });
 
   it('muestra banner de cierre No Abordable y motivo técnico cuando dictamen es NO_ABORDABLE (H39)', async () => {
@@ -1202,7 +1311,6 @@ describe('Componente IncidenteDetalleDrawer e integración HU-17', () => {
             estado: 'EN_VERIFICACION',
           },
           trazabilidadNotificacion: 'LEIDA',
-          trazabilidadNotificacion: 'LEIDA',
         },
       ],
     };
@@ -1436,5 +1544,179 @@ describe('Componente IncidenteDetalleDrawer e integración HU-17', () => {
       expect(screen.getByTestId('incidente-evidencias-section')).toBeDefined();
       expect(screen.getByText('foto_dano.webp')).toBeDefined();
     });
+  });
+
+  it('BUG-H41-WEB-02: ante mision:rechazada refresca silenciosamente sin ocultar detalle ni resetear el formulario de ModalAsignarCuadrilla', async () => {
+    vi.spyOn(cuadrillasService, 'obtenerCuadrillas').mockResolvedValue({
+      cuadrillas: [],
+      meta: { total: 0, pagina: 1, limite: 100, paginasTotales: 0 },
+    } as never);
+
+    const detalleVerificando: incidentesService.IncidenteDetalle = {
+      ...mockDetalleIncidente,
+      estado: 'VERIFICANDO',
+      misiones: [
+        {
+          id: 'm-verif-1',
+          codigo: 'MIS-2026-0010',
+          titulo: 'Verificación',
+          descripcion: null,
+          tipoMision: 'VERIFICACION',
+          estado: 'COMPLETADA',
+          prioridad: 'ALTA',
+          justificacionRechazo: null,
+          patrulla: { id: 'pat-1', nombre: 'Patrulla 1', estado: 'DISPONIBLE' },
+          cuadrilla: null,
+          fechaInicio: null,
+          fechaCierre: null,
+          creadoEn: '2026-10-02T13:00:00Z',
+        },
+      ],
+    };
+
+    const detalleActualizadoTrasRechazo: incidentesService.IncidenteDetalle = {
+      ...detalleVerificando,
+      misiones: [
+        ...detalleVerificando.misiones,
+        {
+          id: 'm-rech-2',
+          codigo: 'MIS-2026-0011',
+          titulo: 'Atención',
+          descripcion: null,
+          tipoMision: 'ATENCION_CUADRILLA',
+          estado: 'RECHAZADA',
+          prioridad: 'ALTA',
+          justificacionRechazo: 'Falla hidráulica en camión tolva',
+          patrulla: null,
+          cuadrilla: { id: 'c1', nombre: 'Cuadrilla Alfa 1', estado: 'DISPONIBLE' },
+          fechaInicio: null,
+          fechaCierre: '2026-10-02T15:00:00Z',
+          creadoEn: '2026-10-02T14:30:00Z',
+        },
+      ],
+    };
+
+    vi.spyOn(incidentesService, 'obtenerDetalleIncidente')
+      .mockResolvedValueOnce({
+        exito: true,
+        datos: detalleVerificando,
+        mensaje: 'OK',
+      })
+      .mockResolvedValueOnce({
+        exito: true,
+        datos: detalleActualizadoTrasRechazo,
+        mensaje: 'OK',
+      });
+
+    render(
+      <IncidenteDetalleDrawer
+        incidenteId={detalleVerificando.id}
+        userId="user-test"
+        onCerrar={vi.fn()}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('INC-2026-0042')).toBeDefined();
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: /Despachar Cuadrilla Operativa/i }));
+
+    await waitFor(() => {
+      expect(
+        screen.getByLabelText(/Instrucciones Específicas para la Cuadrilla/i)
+      ).toBeDefined();
+    });
+
+    const inputInstrucciones = screen.getByLabelText(
+      /Instrucciones Específicas para la Cuadrilla/i
+    ) as HTMLTextAreaElement;
+    fireEvent.change(inputInstrucciones, { target: { value: 'Instrucción en progreso' } });
+    expect(inputInstrucciones.value).toBe('Instrucción en progreso');
+
+    await act(async () => {
+      socketListeners['mision:rechazada']?.forEach((cb) =>
+        cb({
+          misionId: 'm-rech-2',
+          codigo: 'MIS-2026-0011',
+          incidenteId: detalleVerificando.id,
+        })
+      );
+      await new Promise((r) => setTimeout(r, 150));
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId('aviso-rechazo-cuadrilla-reasignacion')).toBeDefined();
+    });
+
+    // No parpadeó ni reinició la descripción del modal hijo
+    expect(screen.queryByText('Cargando información detallada del incidente...')).toBeNull();
+    expect(
+      (
+        screen.getByLabelText(
+          /Instrucciones Específicas para la Cuadrilla/i
+        ) as HTMLTextAreaElement
+      ).value
+    ).toBe('Instrucción en progreso');
+  });
+
+  it('BUG-H41-WEB-05: prioriza los permisos de AuthContext autenticado sobre usePuedeAsignarMision', async () => {
+    vi.spyOn(incidentesService, 'obtenerDetalleIncidente').mockResolvedValueOnce({
+      exito: true,
+      datos: {
+        ...mockDetalleIncidente,
+        estado: 'VERIFICANDO',
+        misiones: [
+          {
+            ...mockDetalleIncidente.misiones[0],
+            estado: 'RECHAZADA',
+            justificacionRechazo: 'Falla mecánica',
+          },
+        ],
+      },
+      mensaje: 'OK',
+    });
+
+    render(
+      <AuthContext.Provider
+        value={{
+          usuario: {
+            id: 'u-callcenter',
+            nombre: 'Operador Call Center',
+            email: 'cc@valdivia.cl',
+            rut: '11.111.111-1',
+            rolId: 'r-cc',
+            rolNombre: 'Call Center',
+            rolCodigo: 'CALL_CENTER',
+            permisos: ['incidentes:leer'],
+            delegacionId: null,
+            delegacionNombre: null,
+          },
+          token: 'jwt',
+          cargando: false,
+          estaAutenticado: true,
+          tienePermiso: () => false,
+          tieneAlgunPermiso: () => false,
+          login: vi.fn(),
+          logout: vi.fn(),
+          refrescarPerfil: vi.fn(),
+        }}
+      >
+        <IncidenteDetalleDrawer
+          incidenteId={mockDetalleIncidente.id}
+          userId="u-callcenter"
+          onCerrar={vi.fn()}
+        />
+      </AuthContext.Provider>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('INC-2026-0042')).toBeDefined();
+    });
+
+    expect(screen.queryByRole('button', { name: /Despachar Cuadrilla Operativa/i })).toBeNull();
+    expect(screen.getByTestId('aviso-rechazo-cuadrilla-reasignacion').textContent).toContain(
+      'Encargado autorizado'
+    );
   });
 });

@@ -25,6 +25,7 @@ import {
   fueTipologiaModificada,
 } from '@/lib/utils/estadoUtils';
 import Button from '@/components/ui/Button';
+import Chip from '@/components/ui/Chip';
 import { getSocket } from '@/lib/socket/client';
 import {
   getTrazabilidadEstado,
@@ -85,46 +86,58 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
     detalleRef.current = detalle;
   }, [detalle]);
 
-  // Verificación de permisos RBAC ('misiones:asignar')
-  const tienePermisoAsignar =
-    puedeAsignar ||
-    !auth ||
-    auth.tienePermiso('misiones:asignar') ||
-    auth.usuario?.rolCodigo === 'ENCARGADO' ||
-    auth.usuario?.rolCodigo === 'ADMINISTRADOR';
+  // Verificación de permisos RBAC ('misiones:asignar'), priorizando AuthContext cuando hay usuario autenticado real
+  const tienePermisoAsignar = auth?.usuario
+    ? auth.tienePermiso('misiones:asignar') ||
+      auth.usuario.rolCodigo === 'ENCARGADO' ||
+      auth.usuario.rolCodigo === 'ADMINISTRADOR' ||
+      auth.usuario.rolCodigo === 'ADMIN'
+    : puedeAsignar;
 
-  const cargarDetalle = useCallback(() => {
-    if (!incidenteId) return;
-    setDetalle(null);
-    setCargando(true);
-    setError(null);
+  const cargarDetalle = useCallback(
+    (silencioso = false) => {
+      if (!incidenteId) return;
+      const usarSilencioso = silencioso && detalleRef.current?.id === incidenteId;
 
-    obtenerDetalleIncidente(incidenteId, userId)
-      .then((res) => {
-        if (res.exito && res.datos) {
-          const incId = res.datos.id;
-          const misionesHidratadas = res.datos.misiones.map((m) => {
-            vincularMisionIncidente(m.id, incId);
-            if (m.trazabilidadNotificacion) {
-              setTrazabilidadEstado(m.id, m.trazabilidadNotificacion, incId);
-            }
-            const consolidado = getTrazabilidadEstado(m.id) ?? m.trazabilidadNotificacion;
-            return consolidado ? { ...m, trazabilidadNotificacion: consolidado } : m;
-          });
-          setDetalle({ ...res.datos, misiones: misionesHidratadas });
-        } else {
-          setDetalle(null);
-          setError(res.mensaje || 'Error al obtener el detalle del incidente.');
-        }
-      })
-      .catch(() => {
+      if (!usarSilencioso) {
         setDetalle(null);
-        setError('Error de comunicación con el servidor al cargar el incidente.');
-      })
-      .finally(() => {
-        setCargando(false);
-      });
-  }, [incidenteId, userId]);
+        setCargando(true);
+        setError(null);
+      }
+
+      obtenerDetalleIncidente(incidenteId, userId)
+        .then((res) => {
+          if (res.exito && res.datos) {
+            const incId = res.datos.id;
+            const misionesHidratadas = res.datos.misiones.map((m) => {
+              vincularMisionIncidente(m.id, incId);
+              if (m.trazabilidadNotificacion) {
+                setTrazabilidadEstado(m.id, m.trazabilidadNotificacion, incId);
+              }
+              const consolidado = getTrazabilidadEstado(m.id) ?? m.trazabilidadNotificacion;
+              return consolidado ? { ...m, trazabilidadNotificacion: consolidado } : m;
+            });
+            setDetalle({ ...res.datos, misiones: misionesHidratadas });
+            setError(null);
+          } else if (!usarSilencioso) {
+            setDetalle(null);
+            setError(res.mensaje || 'Error al obtener el detalle del incidente.');
+          }
+        })
+        .catch(() => {
+          if (!usarSilencioso) {
+            setDetalle(null);
+            setError('Error de comunicación con el servidor al cargar el incidente.');
+          }
+        })
+        .finally(() => {
+          if (!usarSilencioso) {
+            setCargando(false);
+          }
+        });
+    },
+    [incidenteId, userId]
+  );
 
   useEffect(() => {
     let isMounted = true;
@@ -262,6 +275,10 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
             !reporteEntrante && typeof rawDatos?.justificacion === 'string'
               ? rawDatos.justificacion
               : prev.justificacionReclasificacion;
+          const huboCambioPrioridad = Boolean(
+            (rawDatos?.prioridad && rawDatos.prioridad !== prev.prioridad) ||
+              (prioridadSugerida && nuevaPrioridad !== prioridadSugerida)
+          );
 
           let nuevosReportes = prev.reportesEvaluacionTerreno || [];
           let nuevoUltimoReporte = prev.ultimoReporte;
@@ -303,7 +320,8 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
           const dictamenEntrante =
             typeof rawDatos?.dictamen === 'string'
               ? (rawDatos.dictamen as DictamenAtencionTerreno)
-              : reporteEntrante?.dictamen ?? prev.dictamenTerreno;
+              : (reporteEntrante?.dictamen as DictamenAtencionTerreno | undefined) ??
+                prev.dictamenTerreno;
 
           const motivoNoAbordableEntrante =
             typeof rawDatos?.motivoNoAbordable === 'string'
@@ -328,12 +346,20 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
                   nuevoTipo && prev.codigo
                     ? `Verificación: ${nuevoTipo} - ${prev.codigo}`
                     : m.titulo;
-                if (esCierreVerificacion) {
+                const esMisionCerradaAhora =
+                  esCierreVerificacion &&
+                  (reporteEntrante?.misionId
+                    ? m.id === reporteEntrante.misionId
+                    : ['PLANIFICADA', 'DESPACHADA', 'EN_CURSO'].includes(m.estado));
+                if (esMisionCerradaAhora) {
                   return {
                     ...m,
                     titulo: tituloAct,
                     estado: 'COMPLETADA',
                     fechaCierre: fechaCierreEntrante || m.fechaCierre || new Date().toISOString(),
+                    patrulla: m.patrulla
+                      ? { ...m.patrulla, estado: 'DISPONIBLE' }
+                      : null,
                   };
                 }
                 return { ...m, titulo: tituloAct };
@@ -370,6 +396,11 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
                 prev.reclasificadoEnTerreno
             ),
             justificacionReclasificacion: justificacion,
+            cambioPrioridadMotivo: huboCambioPrioridad
+              ? justificacionPrioridad ||
+                justificacion ||
+                'Ajustada tras verificación presencial en terreno'
+              : prev.cambioPrioridadMotivo,
             actualizadoEn:
               typeof rawDatos?.actualizadoEn === 'string'
                 ? rawDatos.actualizadoEn
@@ -408,12 +439,19 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
       });
     };
 
+    let refrescoTimer: ReturnType<typeof setTimeout> | null = null;
     const handleMisionRechazada = (payload: unknown) => {
       const p = payload as Record<string, unknown> | null | undefined;
       const raw = (p?.datos || p?.data || p) as Record<string, unknown> | null | undefined;
       const incId = typeof raw?.incidenteId === 'string' ? raw.incidenteId : undefined;
       if (incId === incidenteId) {
-        cargarDetalle();
+        if (refrescoTimer) {
+          clearTimeout(refrescoTimer);
+        }
+        refrescoTimer = setTimeout(() => {
+          refrescoTimer = null;
+          cargarDetalle(true);
+        }, 80);
       }
     };
 
@@ -423,7 +461,7 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
       if (!esPayloadAdjuntoCreadoValido(candidato)) return;
 
       if (candidato.incidenteId === incidenteId) {
-        cargarDetalle();
+        cargarDetalle(true);
       }
     };
 
@@ -434,6 +472,9 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
     socket.on('adjunto:creado', handleAdjuntoCreado);
 
     return () => {
+      if (refrescoTimer) {
+        clearTimeout(refrescoTimer);
+      }
       socket.off('connect', asegurarSalasEncargado);
       socket.off('incidente:actualizado', handleActualizadoSocket);
       socket.off('notificacion:trazabilidad_actualizada', handleTrazabilidad);
@@ -507,7 +548,7 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
             incidenteId={incidenteId}
             onCerrar={onCerrar}
             onAsignarPatrulla={() => setModalAsignarPatrullaAbierto(true)}
-            puedeAsignar={puedeAsignar}
+            puedeAsignar={tienePermisoAsignar}
           />
 
           {/* Banner informativo de cierre por No Abordabilidad en terreno (HU-39 / HU-86) */}
@@ -587,24 +628,9 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
                       Intervención Táctica Operativa
                     </strong>
                     {detalle.estado === 'VERIFICANDO' && estaVerificadoConcluido && (
-                      <span
-                        style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '4px',
-                          backgroundColor: 'var(--color-success-bg, #E8F5E9)',
-                          color: 'var(--color-success, #2E7D32)',
-                          border: '1px solid #C8E6C9',
-                          fontSize: '0.6875rem',
-                          fontWeight: 700,
-                          padding: '1px 6px',
-                          textTransform: 'uppercase',
-                          letterSpacing: '0.02em',
-                        }}
-                      >
-                        <CheckCircle2 size={12} />
-                        <span>Verificación Completada</span>
-                      </span>
+                      <Chip variant="success" size="sm" icon={<CheckCircle2 size={12} />}>
+                        Verificación Completada
+                      </Chip>
                     )}
                   </div>
                   <div style={{ fontSize: '0.75rem', color: 'var(--color-text-dark, #2B2B2B)', marginTop: '2px' }}>
@@ -741,7 +767,7 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
                   }}
                   onVerDetalleCuadrilla={onSelectCuadrilla}
                   onAsignarPatrulla={() => setModalAsignarPatrullaAbierto(true)}
-                  puedeAsignar={puedeAsignar}
+                  puedeAsignar={tienePermisoAsignar}
                 />
                 <IncidenteEvidenciasSection
                   adjuntos={(detalle as IncidenteDetalle & { adjuntos?: AdjuntoEvidencia[] }).adjuntos}

@@ -3,6 +3,7 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import { MisionDetalleModal } from '../MisionDetalleModal';
 import * as misionesService from '@/services/misionesService';
+import * as socketClient from '@/lib/socket/client';
 import type { MisionDetalleCompleto } from '@/types/misiones';
 
 let socketListeners: Record<string, ((...args: unknown[]) => void)[]> = {};
@@ -23,13 +24,15 @@ const mockSocket = {
 };
 
 vi.mock('@/lib/socket/client', () => ({
-  getSocket: () => mockSocket,
+  getSocket: vi.fn(() => mockSocket),
 }));
 
 describe('Componente MisionDetalleModal (HU-17)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     socketListeners = {};
+    mockSocket.connected = true;
+    vi.mocked(socketClient.getSocket).mockReturnValue(mockSocket as never);
   });
 
   const mockMision: MisionDetalleCompleto = {
@@ -930,6 +933,7 @@ describe('Componente MisionDetalleModal (HU-17)', () => {
     expect(screen.getByTestId('badge-dictamen-rep-cierre-cuad').textContent).toContain(
       'Dictamen: Requiere Cuadrilla'
     );
+    expect(cardCierre.textContent).toContain('Inundado accesible');
     expect(screen.getByTestId('badge-personas-modificadas').textContent).toContain(
       'Modificado respecto a prioridad (Antes: 4)'
     );
@@ -1260,5 +1264,63 @@ describe('Componente MisionDetalleModal (HU-17)', () => {
     expect(cardInforme.textContent).toContain('Primera línea de constatación.');
     expect(cardInforme.textContent).toContain('Segunda línea con detalle de anegamiento.');
     expect(cardInforme.textContent).not.toContain('Justificación antigua descartada');
+  });
+
+  it('BUG-H41-WEB-02: refresca silenciosamente la misión abierta al recibir mision:rechazada por WebSocket', async () => {
+    const listeners: Record<string, ((...args: unknown[]) => void)[]> = {};
+    const mockSocketLocal = {
+      connected: true,
+      on: vi.fn((event: string, cb: (...args: unknown[]) => void) => {
+        if (!listeners[event]) listeners[event] = [];
+        listeners[event].push(cb);
+        return mockSocketLocal;
+      }),
+      off: vi.fn((event: string, cb: (...args: unknown[]) => void) => {
+        if (listeners[event]) {
+          listeners[event] = listeners[event].filter((h) => h !== cb);
+        }
+        return mockSocketLocal;
+      }),
+      emit: vi.fn(),
+    };
+    vi.mocked(socketClient.getSocket).mockReturnValue(mockSocketLocal as never);
+
+    const misionRechazadaActualizada: MisionDetalleCompleto = {
+      ...mockMision,
+      estado: 'RECHAZADA',
+      justificacionRechazo: 'Falla hidráulica crítica en ruta.',
+    };
+
+    vi.spyOn(misionesService, 'obtenerDetalleMision')
+      .mockResolvedValueOnce({
+        exito: true,
+        datos: mockMision,
+        mensaje: 'OK',
+      })
+      .mockResolvedValueOnce({
+        exito: true,
+        datos: misionRechazadaActualizada,
+        mensaje: 'OK',
+      });
+
+    render(<MisionDetalleModal misionId={mockMision.id} onCerrar={vi.fn()} />);
+
+    await waitFor(() => {
+      expect(screen.getByText('MIS-2026-0001')).toBeDefined();
+    });
+
+    await act(async () => {
+      listeners['mision:rechazada']?.forEach((cb) =>
+        cb({
+          misionId: mockMision.id,
+          codigo: 'MIS-2026-0001',
+        })
+      );
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText('Falla hidráulica crítica en ruta.')).toBeDefined();
+    });
+    expect(screen.queryByTestId('mision-skeleton-loader')).toBeNull();
   });
 });

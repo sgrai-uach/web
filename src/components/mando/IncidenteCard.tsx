@@ -184,7 +184,7 @@ export const IncidenteCard: React.FC<IncidenteCardProps> = ({
               title={
                 incidente.reclasificadoEnTerreno
                   ? incidente.justificacionReclasificacion
-                    ? `Tipología reclasificada en terreno: ${incidente.justificacionReclasificacion}${incidente.justificacionPrioridad ? ` (Prioridad ajustada: ${formatearPrioridad(incidente.prioridad)})` : ''}`
+                    ? `Tipología reclasificada en terreno: ${incidente.justificacionReclasificacion}${incidente.cambioPrioridadMotivo || incidente.justificacionPrioridad ? ` (Prioridad ajustada: ${formatearPrioridad(incidente.prioridad)})` : ''}`
                     : `Tipología rectificada por patrulla en terreno (Prioridad: ${formatearPrioridad(incidente.prioridad)})`
                   : incidente.justificacionPrioridad
                     ? `Evaluación en terreno con ajuste de prioridad: ${incidente.justificacionPrioridad} (Prioridad: ${formatearPrioridad(incidente.prioridad)})`

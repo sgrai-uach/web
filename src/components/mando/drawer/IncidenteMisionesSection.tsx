@@ -275,6 +275,32 @@ export const IncidenteMisionesSection: React.FC<IncidenteMisionesSectionProps> =
         )}
 
         {/* Trazabilidad de Notificación en Tiempo Real (HU-35) */}
+
+        {/* Bloque Destacado de Rechazo de Misión */}
+        {mision.justificacionRechazo && (
+          <div
+            style={{
+              marginTop: '0.6rem',
+              padding: '8px 10px',
+              backgroundColor: 'var(--color-danger-bg, #FFEBEE)',
+              border: '1px solid #FFCDD2',
+              borderLeft: '3px solid var(--color-danger, #D32F2F)',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '3px' }}>
+              <AlertTriangle size={14} color="var(--color-danger, #D32F2F)" aria-hidden="true" />
+              <strong style={{ fontSize: '0.8125rem', color: 'var(--color-danger, #D32F2F)' }}>
+                {mision.cuadrilla || mision.tipoMision === 'ATENCION_CUADRILLA'
+                  ? 'Motivo de Rechazo por la Cuadrilla:'
+                  : 'Motivo de Rechazo en Terreno:'}
+              </strong>
+            </div>
+            <p style={{ margin: 0, fontSize: '0.8125rem', color: 'var(--color-charcoal, #3B3F45)' }}>
+              {mision.justificacionRechazo}
+            </p>
+          </div>
+        )}
+
         {mision.trazabilidadNotificacion && TRAZABILIDAD_CONFIG[mision.trazabilidadNotificacion] ? (
           (() => {
             const cfg = TRAZABILIDAD_CONFIG[mision.trazabilidadNotificacion];
@@ -512,29 +538,6 @@ export const IncidenteMisionesSection: React.FC<IncidenteMisionesSectionProps> =
           )
         )}
 
-        {/* Bloque Destacado de Rechazo de Misión */}
-        {mision.justificacionRechazo && (
-          <div
-            style={{
-              marginTop: '0.6rem',
-              padding: '8px 10px',
-              backgroundColor: 'var(--color-danger-bg, #FFEBEE)',
-              border: '1px solid #FFCDD2',
-              borderLeft: '3px solid var(--color-danger, #D32F2F)',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '3px' }}>
-              <AlertTriangle size={14} color="var(--color-danger, #D32F2F)" aria-hidden="true" />
-              <strong style={{ fontSize: '0.8125rem', color: 'var(--color-danger, #D32F2F)' }}>
-                Motivo de Rechazo en Terreno:
-              </strong>
-            </div>
-            <p style={{ margin: 0, fontSize: '0.8125rem', color: 'var(--color-charcoal, #3B3F45)' }}>
-              {mision.justificacionRechazo}
-            </p>
-          </div>
-        )}
-
         {/* Acceso Directo al Último Reporte de Terreno y a Todos los Reportes de la Misión (HU-38) */}
         {(() => {
           const reportesMision = reportesPorMision.get(mision.id) || [];
@@ -690,6 +693,11 @@ export const IncidenteMisionesSection: React.FC<IncidenteMisionesSectionProps> =
                   >
                     {requiereFibeCierre ? 'Requiere Ficha FIBE' : 'No requiere Ficha FIBE'}
                   </Chip>
+                  {ultimoReporte.estadoTerreno && (
+                    <Chip variant="neutral" size="sm">
+                      Terreno: {formatearEstado(ultimoReporte.estadoTerreno)}
+                    </Chip>
+                  )}
                 </div>
               )}
 
@@ -1019,8 +1027,14 @@ export const IncidenteMisionesSection: React.FC<IncidenteMisionesSectionProps> =
             style={{ flexShrink: 0, marginTop: '2px' }}
           />
           <span>
-            La cuadrilla asignada previamente rechazó la misión en terreno. Revise la justificación abajo y utilice{' '}
-            <strong>Despachar Cuadrilla</strong> para reasignar la emergencia de inmediato.
+            {puedeAsignar ? (
+              <>
+                La cuadrilla asignada previamente rechazó la misión en terreno. Revise la justificación abajo y utilice{' '}
+                <strong>Despachar Cuadrilla</strong> para reasignar la emergencia de inmediato.
+              </>
+            ) : (
+              'La cuadrilla asignada previamente rechazó la misión en terreno. Revise la justificación abajo; la emergencia quedó disponible para reasignación por un Encargado autorizado.'
+            )}
           </span>
         </div>
       )}

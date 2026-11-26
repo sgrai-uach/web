@@ -16,7 +16,7 @@ import type {
   DetalleEventoRecuperacionResponse,
   RecursoAsignadoItem,
 } from '@/types/recuperacion';
-import type {
+import {
   MisionRechazadaPayload,
   CuadrillaActualizadaPayload,
   IncidenteActualizadoPayload,
@@ -87,120 +87,8 @@ export const KanbanBoard: React.FC = () => {
   const refrescarKpisRef = React.useRef<((mostrarCargando?: boolean) => void) | null>(null);
   const setIncidenteSeleccionadoIdRef = React.useRef<((id: string | null) => void) | null>(null);
 
-  const cargarCuadrillas = useCallback(() => {
-    let isMounted = true;
-    cuadrillasService
-      .obtenerCuadrillas({ pagina: 1, limite: 100 })
-      .then((res) => {
-        if (isMounted && res.cuadrillas) {
-          setCuadrillasOperativas(res.cuadrillas);
-        }
-      })
-      .catch(() => {});
-    return () => {
-      isMounted = false;
-    };
-  }, []);
-
-  const cargarEventosRecuperacion = useCallback(() => {
-    let isMounted = true;
-    listarEventosRecuperacion({ limite: 100 })
-      .then((res) => {
-        if (isMounted && res.data) {
-          setEventosRecuperacion(res.data);
-        }
-      })
-      .catch(() => {});
-    return () => {
-      isMounted = false;
-    };
-  }, []);
-
-  useEffect(() => {
-    const cancelCuadrillas = cargarCuadrillas();
-    const cancelRecuperacion = cargarEventosRecuperacion();
-    return () => {
-      cancelCuadrillas?.();
-      cancelRecuperacion?.();
-    };
-  }, [cargarCuadrillas, cargarEventosRecuperacion]);
-
   const ultimosToastsRechazoRef = React.useRef<Map<string, number>>(new Map());
-
-  const handleMisionRechazadaSocket = React.useCallback(
-    (payload: MisionRechazadaPayload) => {
-      const claveDedup = payload.misionId || payload.codigo;
-      const ahora = Date.now();
-      if (claveDedup) {
-        const ultimaVez = ultimosToastsRechazoRef.current.get(claveDedup);
-        if (ultimaVez && ahora - ultimaVez < 5000) {
-          return;
-        }
-        ultimosToastsRechazoRef.current.set(claveDedup, ahora);
-      }
-
-      const esCuadrilla =
-        payload.tipoMision === 'ATENCION_CUADRILLA' ||
-        Boolean(payload.cuadrillaId || payload.cuadrillaNombre);
-
-      const unidadTexto = esCuadrilla
-        ? payload.cuadrillaNombre
-          ? `La cuadrilla ${payload.cuadrillaNombre}`
-          : 'La cuadrilla operativa'
-        : payload.patrullaNombre
-          ? `La patrulla ${payload.patrullaNombre}`
-          : 'La patrulla verificadora';
-
-      const motivoTexto =
-        payload.motivo || payload.justificacionRechazo || 'Sin justificación especificada';
-
-      showWarning(
-        esCuadrilla
-          ? `${unidadTexto} rechazó la misión asignada. La unidad volvió a estado Disponible y la emergencia quedó lista para reasignación táctica.`
-          : `${unidadTexto} rechazó la misión asignada. El incidente retorna a estado Reportado para su reasignación táctica.`,
-        esCuadrilla ? 'Misión Rechazada por Cuadrilla' : 'Misión Rechazada por Patrulla',
-        {
-          icon: 'rechazo',
-          codeBadge: payload.codigo,
-          details: [
-            { label: 'Motivo de rechazo', value: motivoTexto },
-            ...(payload.incidenteCodigo
-              ? [{ label: 'Incidente', value: payload.incidenteCodigo }]
-              : []),
-          ],
-          action: payload.incidenteId
-            ? {
-                label: 'Ver incidente',
-                onClick: () => setIncidenteSeleccionadoIdRef.current?.(payload.incidenteId!),
-              }
-            : undefined,
-        }
-      );
-
-      refrescarKpisRef.current?.(false);
-      cargarCuadrillas();
-    },
-    [showWarning, cargarCuadrillas]
-  );
-
-  const handleCuadrillaActualizadaSocket = React.useCallback(
-    (payload: CuadrillaActualizadaPayload) => {
-      setCuadrillasOperativas((prev) => {
-        const existe = prev.some((c) => c.id === payload.id);
-        if (!existe) return prev;
-        return prev.map((c) =>
-          c.id === payload.id
-            ? {
-                ...c,
-                estado: payload.estado as CuadrillaItem['estado'],
-                nombre: payload.nombre || c.nombre,
-              }
-            : c
-        );
-      });
-    },
-    []
-  );
+  const ultimaCargaCuadrillasRef = React.useRef<number>(0);
 
   const ultimosToastsReporteRef = React.useRef<Map<string, number>>(new Map());
 
@@ -268,6 +156,12 @@ export const KanbanBoard: React.FC = () => {
           detallesToast.push({
             label: 'Motivo técnico',
             value: motivoNoAbordable,
+          });
+        }
+        if (rep.estadoTerreno) {
+          detallesToast.push({
+            label: 'Estado del terreno',
+            value: formatearEstado(rep.estadoTerreno),
           });
         }
         if (personas !== null) {
@@ -491,6 +385,128 @@ export const KanbanBoard: React.FC = () => {
     [showInfo, showWarning, esToastIncidenteDuplicado]
   );
 
+  const cargarCuadrillas = useCallback(() => {
+    const ahora = Date.now();
+    if (ahora - ultimaCargaCuadrillasRef.current < 300) {
+      return () => {};
+    }
+    ultimaCargaCuadrillasRef.current = ahora;
+
+    let isMounted = true;
+    cuadrillasService
+      .obtenerCuadrillas({ pagina: 1, limite: 100 })
+      .then((res) => {
+        if (isMounted && res.cuadrillas) {
+          setCuadrillasOperativas(res.cuadrillas);
+        }
+      })
+      .catch(() => { });
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const cargarEventosRecuperacion = useCallback(() => {
+    let isMounted = true;
+    listarEventosRecuperacion({ limite: 100 })
+      .then((res) => {
+        if (isMounted && res.data) {
+          setEventosRecuperacion(res.data);
+        }
+      })
+      .catch(() => { });
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    const cancelCuadrillas = cargarCuadrillas();
+    const cancelRecuperacion = cargarEventosRecuperacion();
+    return () => {
+      cancelCuadrillas?.();
+      cancelRecuperacion?.();
+    };
+  }, [cargarCuadrillas, cargarEventosRecuperacion]);
+
+  const handleMisionRechazadaSocket = React.useCallback(
+    (payload: MisionRechazadaPayload) => {
+      const claveDedup = payload.misionId || payload.codigo;
+      const ahora = Date.now();
+      if (claveDedup) {
+        const ultimaVez = ultimosToastsRechazoRef.current.get(claveDedup);
+        if (ultimaVez && ahora - ultimaVez < 5000) {
+          return;
+        }
+        ultimosToastsRechazoRef.current.set(claveDedup, ahora);
+      }
+
+      const esCuadrilla =
+        payload.tipoMision === 'ATENCION_CUADRILLA' ||
+        Boolean(payload.cuadrillaId || payload.cuadrillaNombre);
+
+      const unidadTexto = esCuadrilla
+        ? payload.cuadrillaNombre
+          ? `La cuadrilla ${payload.cuadrillaNombre}`
+          : 'La cuadrilla operativa'
+        : payload.patrullaNombre
+          ? `La patrulla ${payload.patrullaNombre}`
+          : 'La patrulla verificadora';
+
+      const motivoTexto =
+        payload.motivo || payload.justificacionRechazo || 'Sin justificación especificada';
+
+      showWarning(
+        esCuadrilla
+          ? `${unidadTexto} rechazó la misión asignada. La unidad volvió a estado Disponible y la emergencia quedó lista para reasignación.`
+          : `${unidadTexto} rechazó la misión asignada. El incidente retorna a estado Reportado para su reasignación táctica.`,
+        esCuadrilla ? 'Misión Rechazada por Cuadrilla' : 'Misión Rechazada por Patrulla',
+        {
+          icon: 'rechazo',
+          codeBadge: payload.codigo,
+          details: [
+            { label: 'Motivo de rechazo', value: motivoTexto },
+            ...(payload.incidenteCodigo
+              ? [{ label: 'Incidente', value: payload.incidenteCodigo }]
+              : []),
+          ],
+          action: payload.incidenteId
+            ? {
+              label: 'Ver incidente',
+              onClick: () => setIncidenteSeleccionadoIdRef.current?.(payload.incidenteId!),
+            }
+            : undefined,
+        }
+      );
+
+      refrescarKpisRef.current?.(false);
+      if (esCuadrilla) {
+        cargarCuadrillas();
+      }
+    },
+    [showWarning, cargarCuadrillas]
+  );
+
+  const handleCuadrillaActualizadaSocket = React.useCallback(
+    (payload: CuadrillaActualizadaPayload) => {
+      setCuadrillasOperativas((prev) => {
+        const existe = prev.some((c) => c.id === payload.id);
+        if (!existe) return prev;
+        return prev.map((c) =>
+          c.id === payload.id
+            ? {
+                ...c,
+                estado: payload.estado as CuadrillaItem['estado'],
+                nombre: payload.nombre || c.nombre,
+                ...(payload.estado === 'DISPONIBLE' ? { misionActiva: undefined } : {}),
+              }
+            : c
+        );
+      });
+    },
+    []
+  );
+
   const {
     userId,
     setUserId,
@@ -537,7 +553,7 @@ export const KanbanBoard: React.FC = () => {
   // Actualizar cuadrillas operativas ante eventos socket en tiempo real (BUG-H22-WEB-04)
   useEffect(() => {
     if (ultimoEvento) {
-      cargarCuadrillas();
+      return cargarCuadrillas();
     }
   }, [ultimoEvento, cargarCuadrillas]);
 
@@ -801,7 +817,11 @@ export const KanbanBoard: React.FC = () => {
             onSelectCuadrilla={(cuadrillaId) => setCuadrillaSeleccionadaId(cuadrillaId)}
             onIncidenteActualizado={(incId, nuevoEstado) => {
               if (incId && nuevoEstado) {
-                moverIncidenteAEstado(incId, nuevoEstado);
+                if (nuevoEstado === 'REPORTADO') {
+                  marcarIncidenteMisionDespachada(incId, true);
+                } else {
+                  moverIncidenteAEstado(incId, nuevoEstado);
+                }
               }
               recargar();
               refrescarKpis();

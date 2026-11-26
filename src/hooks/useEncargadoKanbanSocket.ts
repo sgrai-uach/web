@@ -109,7 +109,7 @@ export interface UseEncargadoKanbanSocketOptions {
 /**
  * Hook para la conexión en tiempo real del Encargado de Centro de Mando.
  * Se une a la sala 'sala:encargados' y escucha la creación y actualización de incidentes,
- * rechazos y trazabilidad de misiones y disponibilidad de cuadrillas.
+ * rechazos de misiones, disponibilidad de cuadrillas y trazabilidad.
  */
 export function useEncargadoKanbanSocket({
   onIncidenteCreado,
@@ -374,9 +374,9 @@ export function useEncargadoKanbanSocket({
       } else if (normalizedPayload.datos.tipoAfectacion && normalizedPayload.datos.justificacion) {
         const sinCambiosTipologia = normalizedPayload.datos.tipoAnterior
           ? !fueTipologiaModificada(
-              normalizedPayload.datos.tipoAnterior,
-              normalizedPayload.datos.tipoAfectacion
-            )
+            normalizedPayload.datos.tipoAnterior,
+            normalizedPayload.datos.tipoAfectacion
+          )
           : esJustificacionSinCambios(normalizedPayload.datos.justificacion);
 
         setUltimoEvento(
@@ -454,37 +454,35 @@ export function useEncargadoKanbanSocket({
           : typeof raw?.id === 'string'
             ? raw.id
             : '';
+      const codigo = typeof raw?.codigo === 'string' ? raw.codigo : '';
+      const claveDedup = misionId || codigo;
       const ahora = Date.now();
 
-      if (!misionId && typeof raw?.codigo !== 'string') return;
+      if (!claveDedup) return;
 
       // Deduplicación reactiva ante emisiones múltiples por broadcast o varias salas concurrentes
-      if (misionId) {
-        const ultimaVez = eventosProcesadosRef.current.get(misionId);
-        if (ultimaVez && ahora - ultimaVez < 5000) {
-          return;
-        }
-        eventosProcesadosRef.current.set(misionId, ahora);
-        if (eventosProcesadosRef.current.size > 100) {
-          for (const [key, timestamp] of eventosProcesadosRef.current.entries()) {
-            if (ahora - timestamp > 10000) {
-              eventosProcesadosRef.current.delete(key);
-            }
+      const ultimaVez = eventosProcesadosRef.current.get(claveDedup);
+      if (ultimaVez && ahora - ultimaVez < 5000) {
+        return;
+      }
+      eventosProcesadosRef.current.set(claveDedup, ahora);
+      if (eventosProcesadosRef.current.size > 100) {
+        for (const [key, timestamp] of eventosProcesadosRef.current.entries()) {
+          if (ahora - timestamp > 10000) {
+            eventosProcesadosRef.current.delete(key);
           }
         }
       }
 
-      const tipoMisionNormalizado =
-        typeof raw?.tipoMision === 'string' ? raw.tipoMision : 'VERIFICACION';
-      const incluyeCuadrilla =
-        tipoMisionNormalizado === 'ATENCION_CUADRILLA' ||
-        raw?.cuadrillaId !== undefined ||
-        raw?.cuadrillaNombre !== undefined;
-
       const normalizedPayload: MisionRechazadaPayload = {
         misionId,
-        codigo: typeof raw?.codigo === 'string' ? raw.codigo : '',
-        tipoMision: tipoMisionNormalizado,
+        codigo,
+        tipoMision:
+          typeof raw?.tipoMision === 'string'
+            ? raw.tipoMision
+            : typeof raw?.tipo_mision === 'string'
+              ? raw.tipo_mision
+              : 'VERIFICACION',
         motivo:
           typeof raw?.motivo === 'string'
             ? raw.motivo
@@ -497,12 +495,14 @@ export function useEncargadoKanbanSocket({
             : typeof raw?.motivo === 'string'
               ? raw.motivo
               : undefined,
-        ...(incluyeCuadrilla
+        ...(raw && 'cuadrillaId' in raw
+          ? { cuadrillaId: typeof raw.cuadrillaId === 'string' ? raw.cuadrillaId : null }
+          : {}),
+        ...(raw && 'cuadrillaNombre' in raw
           ? {
-              cuadrillaId: typeof raw?.cuadrillaId === 'string' ? raw.cuadrillaId : null,
-              cuadrillaNombre:
-                typeof raw?.cuadrillaNombre === 'string' ? raw.cuadrillaNombre : null,
-            }
+            cuadrillaNombre:
+              typeof raw.cuadrillaNombre === 'string' ? raw.cuadrillaNombre : null,
+          }
           : {}),
         patrullaId: typeof raw?.patrullaId === 'string' ? raw.patrullaId : null,
         patrullaNombre: typeof raw?.patrullaNombre === 'string' ? raw.patrullaNombre : null,

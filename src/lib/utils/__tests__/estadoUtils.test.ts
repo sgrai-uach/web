@@ -255,5 +255,3 @@ describe('H39: formatearDictamenTerreno, esReporteVerificacionCierre y comparati
     ).toEqual({ personasPrevias: 3, fueModificado: true });
   });
 });
-
-

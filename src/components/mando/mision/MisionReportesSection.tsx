@@ -697,6 +697,12 @@ export const MisionReportesSection: React.FC<MisionReportesSectionProps> = ({
                         </Chip>
                       )}
 
+                      {reporte.estadoTerreno && (
+                        <Chip variant="neutral" size="sm" title="Estado reportado en terreno">
+                          {formatearEstado(reporte.estadoTerreno)}
+                        </Chip>
+                      )}
+
                       {!esCierre && hogaresCount ? (
                         <Chip variant="neutral" size="sm" title="Familias / Hogares evaluados en terreno">
                           {hogaresCount} {hogaresCount === 1 ? 'hogar' : 'hogares'}
@@ -786,6 +792,15 @@ export const MisionReportesSection: React.FC<MisionReportesSectionProps> = ({
                         }}
                       >
                         <div className={styles.dataGrid}>
+                          {reporte.estadoTerreno && (
+                            <div className={styles.dataItem}>
+                              <span className={styles.dataLabel}>Estado del Terreno</span>
+                              <span className={styles.dataValue} style={{ fontWeight: 700 }}>
+                                {formatearEstado(reporte.estadoTerreno)}
+                              </span>
+                            </div>
+                          )}
+
                           <div className={styles.dataItem}>
                             <span className={styles.dataLabel}>Personas Damnificadas</span>
                             <div
