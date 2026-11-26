@@ -356,7 +356,6 @@ export const DetalleEventoRecuperacionClient: React.FC<DetalleEventoRecuperacion
           } else if (err.tipoConflicto === 'EVENTO_CERRADO') {
             setBannerConflicto('No se pueden asignar misiones ni recursos a un evento de recuperación cerrado.');
             showError('Evento de recuperación completado o cancelado.');
-            cargarDetalleEvento();
           } else {
             setBannerConflicto(err.message);
             showError(err.message);

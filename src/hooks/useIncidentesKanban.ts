@@ -633,7 +633,10 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
   // Función para mover un incidente de columna de forma inmediata e imperativa
   const moverIncidenteAEstado = useCallback(
     (incidenteId: string, nuevoEstado: EstadoIncidente, prioridad?: PrioridadIncidente) => {
-      let columnaOrigenDetectada: EstadoIncidente | null = null;
+      const columnaOrigenDetectada: EstadoIncidente | null =
+        ESTADOS_KANBAN.find((est) =>
+          columnasRef.current[est].some((i) => i.id === incidenteId)
+        ) ?? null;
 
       setColumnas((prev) => {
         let incidenteEncontrado: IncidenteResumen | null = null;
@@ -643,7 +646,6 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
           const idx = prev[est].findIndex((i) => i.id === incidenteId);
           if (idx !== -1) {
             columnaOrigen = est;
-            columnaOrigenDetectada = est;
             incidenteEncontrado = {
               ...prev[est][idx],
               estado: nuevoEstado,
@@ -677,30 +679,29 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
       });
 
       // Actualizar contadores locales de paginación dinámicamente según origen y destino
-      setPaginacionColumna((prev) => {
-        const origen = columnaOrigenDetectada || ('REPORTADO' as EstadoIncidente);
-        if (origen === nuevoEstado) return prev;
+      if (columnaOrigenDetectada && columnaOrigenDetectada !== nuevoEstado) {
+        setPaginacionColumna((prev) => {
+          const metaOrigen = prev[columnaOrigenDetectada];
+          const metaDestino = prev[nuevoEstado];
 
-        const metaOrigen = prev[origen];
-        const metaDestino = prev[nuevoEstado];
-
-        return {
-          ...prev,
-          [origen]: metaOrigen
-            ? { ...metaOrigen, total: Math.max(0, metaOrigen.total - 1) }
-            : null,
-          [nuevoEstado]: metaDestino
-            ? { ...metaDestino, total: metaDestino.total + 1 }
-            : {
-                total: 1,
-                pagina: 1,
-                limite: 20,
-                totalPaginas: 1,
-                tieneSiguiente: false,
-                tieneAnterior: false,
-              },
-        };
-      });
+          return {
+            ...prev,
+            [columnaOrigenDetectada]: metaOrigen
+              ? { ...metaOrigen, total: Math.max(0, metaOrigen.total - 1) }
+              : null,
+            [nuevoEstado]: metaDestino
+              ? { ...metaDestino, total: metaDestino.total + 1 }
+              : {
+                  total: 1,
+                  pagina: 1,
+                  limite: 20,
+                  totalPaginas: 1,
+                  tieneSiguiente: false,
+                  tieneAnterior: false,
+                },
+          };
+        });
+      }
     },
     []
   );
