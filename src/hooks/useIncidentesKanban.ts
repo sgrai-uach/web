@@ -440,6 +440,13 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
         actualizadoEn: datos.creadoEn,
       };
 
+      if (!columnasRef.current.REPORTADO.some((i) => i.id === nuevoResumen.id)) {
+        columnasRef.current = {
+          ...columnasRef.current,
+          REPORTADO: [nuevoResumen, ...columnasRef.current.REPORTADO],
+        };
+      }
+
       setColumnas((prev) => {
         // Evitar duplicados si ya existe
         const yaExiste = prev.REPORTADO.some((i) => i.id === nuevoResumen.id);
@@ -472,24 +479,18 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
       const { datos } = payload;
       if (!datos || !datos.id) return;
 
-      let columnaOrigenDetectada: EstadoIncidente | null =
-        ESTADOS_KANBAN.find((est) =>
-          columnasRef.current[est].some((i) => i.id === datos.id)
-        ) ?? null;
-
-      const incPrevio = columnaOrigenDetectada
-        ? columnasRef.current[columnaOrigenDetectada].find((i) => i.id === datos.id)
-        : undefined;
-      let tipoAnteriorDetectado = incPrevio?.tipoAfectacion;
+      let columnaOrigenDetectada: EstadoIncidente | null = null;
+      let incPrevioDetectado: IncidenteResumen | undefined;
 
       for (const est of ESTADOS_KANBAN) {
         const incExistente = columnasRef.current[est].find((i) => i.id === datos.id);
         if (incExistente) {
           columnaOrigenDetectada = est;
-          tipoAnteriorDetectado = incExistente.tipoAfectacion;
+          incPrevioDetectado = incExistente;
           break;
         }
       }
+      const tipoAnteriorDetectado = incPrevioDetectado?.tipoAfectacion;
 
       setColumnas((prev) => {
         let incidenteEncontrado: IncidenteResumen | null = null;
@@ -523,6 +524,8 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
             );
             const esRetornoVerificandoDesdeAtencion =
               est === 'EN_ATENCION' && datos.nuevoEstado === 'VERIFICANDO';
+            const esRetornoAReportado =
+              est !== 'REPORTADO' && datos.nuevoEstado === 'REPORTADO';
             const esTransicionAVerificando =
               datos.nuevoEstado === 'VERIFICANDO' && est === 'REPORTADO';
             const yaContabaMision = Boolean(
@@ -598,14 +601,15 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
               tieneMisionDespachada:
                 esCierreVerificacion ||
                 esTransicionAVerificando ||
-                esRetornoVerificandoDesdeAtencion
+                esRetornoVerificandoDesdeAtencion ||
+                esRetornoAReportado
                   ? false
                   : incActual.tieneMisionDespachada,
               tieneMisionEnCurso: esCierreVerificacion
                 ? false
                 : esTransicionAVerificando
                   ? true
-                  : esRetornoVerificandoDesdeAtencion
+                  : esRetornoVerificandoDesdeAtencion || esRetornoAReportado
                     ? false
                     : incActual.tieneMisionEnCurso,
               totalMisiones:
@@ -642,6 +646,20 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
           [datos.nuevoEstado]: ordenarIncidentesColumna([incidenteEncontrado, ...prev[datos.nuevoEstado]], datos.nuevoEstado),
         };
       });
+
+      // Mantener columnasRef sincronizado ante ráfagas de eventos en el mismo lote React 19
+      if (columnaOrigenDetectada && columnaOrigenDetectada !== datos.nuevoEstado && incPrevioDetectado) {
+        columnasRef.current = {
+          ...columnasRef.current,
+          [columnaOrigenDetectada]: columnasRef.current[columnaOrigenDetectada].filter(
+            (i) => i.id !== datos.id
+          ),
+          [datos.nuevoEstado]: [
+            { ...incPrevioDetectado, estado: datos.nuevoEstado },
+            ...columnasRef.current[datos.nuevoEstado],
+          ],
+        };
+      }
 
       // Actualizar dinámicamente paginacionColumna si cambió de columna
       if (columnaOrigenDetectada && columnaOrigenDetectada !== datos.nuevoEstado) {
@@ -735,6 +753,25 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
         };
       });
 
+      // Sincronizar columnasRef inmediatamente para evitar doble conteo ante eventos consecutivos
+      if (columnaOrigenDetectada && columnaOrigenDetectada !== nuevoEstado) {
+        const incRef = columnasRef.current[columnaOrigenDetectada].find(
+          (i) => i.id === incidenteId
+        );
+        if (incRef) {
+          columnasRef.current = {
+            ...columnasRef.current,
+            [columnaOrigenDetectada]: columnasRef.current[columnaOrigenDetectada].filter(
+              (i) => i.id !== incidenteId
+            ),
+            [nuevoEstado]: [
+              { ...incRef, estado: nuevoEstado, prioridad: prioridad || incRef.prioridad },
+              ...columnasRef.current[nuevoEstado],
+            ],
+          };
+        }
+      }
+
       // Actualizar contadores locales de paginación dinámicamente según origen y destino
       if (columnaOrigenDetectada && columnaOrigenDetectada !== nuevoEstado) {
         setPaginacionColumna((prev) => {
@@ -787,6 +824,7 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
         setColumnas((prev) => {
           let incidenteEncontrado: IncidenteResumen | null = null;
           let columnaOrigen: EstadoIncidente | null = null;
+          let destinoFinal: EstadoIncidente | null = null;
 
           for (const est of ESTADOS_KANBAN) {
             const idx = prev[est].findIndex((i) => i.id === payload.incidenteId);
@@ -799,19 +837,21 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
                 ...actual,
                 estado: estadoDestino,
                 tieneMisionDespachada: false,
+                tieneMisionEnCurso: false,
                 actualizadoEn: payload.rechazadoEn || new Date().toISOString(),
               };
               columnaOrigen = est;
+              destinoFinal = estadoDestino;
               break;
             }
           }
 
-          if (!incidenteEncontrado || !columnaOrigen) return prev;
+          if (!incidenteEncontrado || !columnaOrigen || !destinoFinal) return prev;
 
-          if (columnaOrigen === columnaDestinoDetectada) {
+          if (columnaOrigen === destinoFinal) {
             return {
               ...prev,
-              [columnaDestinoDetectada]: prev[columnaDestinoDetectada].map((i) =>
+              [destinoFinal]: prev[destinoFinal].map((i) =>
                 i.id === payload.incidenteId ? incidenteEncontrado! : i
               ),
             };
@@ -820,12 +860,35 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
           return {
             ...prev,
             [columnaOrigen]: prev[columnaOrigen].filter((i) => i.id !== payload.incidenteId),
-            [columnaDestinoDetectada]: ordenarIncidentesColumna(
-              [incidenteEncontrado, ...prev[columnaDestinoDetectada]],
-              columnaDestinoDetectada
+            [destinoFinal]: ordenarIncidentesColumna(
+              [incidenteEncontrado, ...prev[destinoFinal]],
+              destinoFinal
             ),
           };
         });
+
+        // Sincronizar columnasRef antes de que llegue el evento incidente:actualizado complementario de sgrai-api
+        if (
+          columnaOrigenDetectada &&
+          columnaOrigenDetectada !== columnaDestinoDetectada &&
+          incidentePrevio
+        ) {
+          columnasRef.current = {
+            ...columnasRef.current,
+            [columnaOrigenDetectada]: columnasRef.current[columnaOrigenDetectada].filter(
+              (i) => i.id !== payload.incidenteId
+            ),
+            [columnaDestinoDetectada]: [
+              {
+                ...incidentePrevio,
+                estado: columnaDestinoDetectada,
+                tieneMisionDespachada: false,
+                tieneMisionEnCurso: false,
+              },
+              ...columnasRef.current[columnaDestinoDetectada],
+            ],
+          };
+        }
 
         if (!columnaOrigenDetectada) {
           void ejecutarConsultaRef.current(false);

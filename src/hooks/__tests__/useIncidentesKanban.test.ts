@@ -1534,4 +1534,180 @@ describe('useIncidentesKanban - HU-20 y BUG-04', () => {
       })
     );
   });
+
+  it('BUG-INT-33: evita doble conteo en paginacionColumna cuando mision:rechazada e incidente:actualizado llegan en el mismo lote React 19', async () => {
+    const mockEnAtencion: incidentesService.IncidenteResumen = {
+      id: 'inc-batch-33',
+      codigo: 'INC-2026-3301',
+      codigoSeguimiento: '33013301',
+      tipoAfectacion: 'Inundación',
+      descripcion: 'Aniego en calzada',
+      direccion: 'Av. Picarte 500',
+      latitud: -39.814,
+      longitud: -73.245,
+      estado: 'EN_ATENCION',
+      prioridad: 'ALTA',
+      requiereAsistenciaSocial: false,
+      fuenteOrigen: 'WEB',
+      informanteNombre: 'Juan',
+      delegacionNombre: 'Norte',
+      totalMisiones: 2,
+      verificado: true,
+      tieneMisionDespachada: true,
+      tieneMisionEnCurso: true,
+      creadoEn: '2026-11-26T10:00:00Z',
+      actualizadoEn: '2026-11-26T10:00:00Z',
+    };
+
+    vi.mocked(incidentesService.listarIncidentes).mockImplementation(async (query) => {
+      if (query.estado === 'EN_ATENCION') {
+        return {
+          exito: true,
+          incidentes: [mockEnAtencion],
+          paginacion: {
+            total: 1,
+            pagina: 1,
+            limite: 20,
+            totalPaginas: 1,
+            tieneSiguiente: false,
+            tieneAnterior: false,
+          },
+          mensaje: 'OK',
+        };
+      }
+      return {
+        exito: true,
+        incidentes: [],
+        paginacion: {
+          total: 0,
+          pagina: 1,
+          limite: 20,
+          totalPaginas: 0,
+          tieneSiguiente: false,
+          tieneAnterior: false,
+        },
+        mensaje: 'OK',
+      };
+    });
+
+    const { result } = renderHook(() => useIncidentesKanban());
+
+    await waitFor(() => {
+      expect(result.current.columnas.EN_ATENCION.length).toBe(1);
+    });
+
+    // Secuencia exacta emitida por rechazarMisionService en sgrai-api dentro del mismo lote
+    act(() => {
+      socketCallbacks.onMisionRechazada?.({
+        misionId: 'mis-cuad-33',
+        codigo: 'MIS-2026-3301',
+        tipoMision: 'ATENCION_CUADRILLA',
+        motivo: 'Falla hidráulica en camión tolva.',
+        cuadrillaId: 'cuad-1',
+        cuadrillaNombre: 'Cuadrilla 1',
+        incidenteId: 'inc-batch-33',
+        incidenteCodigo: 'INC-2026-3301',
+        rechazadoEn: '2026-11-26T16:00:00Z',
+      });
+      socketCallbacks.onIncidenteActualizado?.({
+        evento: 'incidente:actualizado',
+        datos: {
+          id: 'inc-batch-33',
+          codigo: 'INC-2026-3301',
+          nuevoEstado: 'VERIFICANDO',
+          prioridad: 'ALTA',
+          verificado: true,
+          actualizadoEn: '2026-11-26T16:00:00Z',
+        },
+        emitidoEn: '2026-11-26T16:00:00Z',
+      });
+    });
+
+    expect(result.current.columnas.EN_ATENCION.length).toBe(0);
+    expect(result.current.columnas.VERIFICANDO.length).toBe(1);
+    expect(result.current.columnas.VERIFICANDO[0].tieneMisionEnCurso).toBe(false);
+    expect(result.current.columnas.VERIFICANDO[0].tieneMisionDespachada).toBe(false);
+    expect(result.current.paginacionColumna.EN_ATENCION?.total).toBe(0);
+    expect(result.current.paginacionColumna.VERIFICANDO?.total).toBe(1);
+  });
+
+  it('BUG-INT-33: restablece tieneMisionEnCurso y tieneMisionDespachada en false al retornar a REPORTADO tras rechazo', async () => {
+    const mockDirectoEnCurso: incidentesService.IncidenteResumen = {
+      id: 'inc-rech-33',
+      codigo: 'INC-2026-3302',
+      codigoSeguimiento: '33023302',
+      tipoAfectacion: 'Árbol caído',
+      descripcion: 'Rama en calzada',
+      direccion: 'Av. España 200',
+      latitud: -39.81,
+      longitud: -73.24,
+      estado: 'EN_ATENCION',
+      prioridad: 'MEDIA',
+      requiereAsistenciaSocial: false,
+      fuenteOrigen: 'WEB',
+      informanteNombre: 'Ana',
+      delegacionNombre: 'Sur',
+      totalMisiones: 1,
+      verificado: false,
+      tieneMisionDespachada: true,
+      tieneMisionEnCurso: true,
+      creadoEn: '2026-11-26T10:00:00Z',
+      actualizadoEn: '2026-11-26T10:00:00Z',
+    };
+
+    vi.mocked(incidentesService.listarIncidentes).mockImplementation(async (query) => {
+      if (query.estado === 'EN_ATENCION') {
+        return {
+          exito: true,
+          incidentes: [mockDirectoEnCurso],
+          paginacion: {
+            total: 1,
+            pagina: 1,
+            limite: 20,
+            totalPaginas: 1,
+            tieneSiguiente: false,
+            tieneAnterior: false,
+          },
+          mensaje: 'OK',
+        };
+      }
+      return {
+        exito: true,
+        incidentes: [],
+        paginacion: {
+          total: 0,
+          pagina: 1,
+          limite: 20,
+          totalPaginas: 0,
+          tieneSiguiente: false,
+          tieneAnterior: false,
+        },
+        mensaje: 'OK',
+      };
+    });
+
+    const { result } = renderHook(() => useIncidentesKanban());
+
+    await waitFor(() => {
+      expect(result.current.columnas.EN_ATENCION.length).toBe(1);
+    });
+
+    act(() => {
+      socketCallbacks.onMisionRechazada?.({
+        misionId: 'mis-cuad-33-2',
+        codigo: 'MIS-2026-3302',
+        tipoMision: 'ATENCION_CUADRILLA',
+        motivo: 'Motosierra con falla.',
+        cuadrillaId: 'cuad-2',
+        cuadrillaNombre: 'Cuadrilla 2',
+        incidenteId: 'inc-rech-33',
+        incidenteCodigo: 'INC-2026-3302',
+      });
+    });
+
+    expect(result.current.columnas.REPORTADO.length).toBe(1);
+    expect(result.current.columnas.REPORTADO[0].estado).toBe('REPORTADO');
+    expect(result.current.columnas.REPORTADO[0].tieneMisionDespachada).toBe(false);
+    expect(result.current.columnas.REPORTADO[0].tieneMisionEnCurso).toBe(false);
+  });
 });
