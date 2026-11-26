@@ -33,10 +33,10 @@ export interface DelegacionOpcion {
 
 /** Delegaciones municipales de Valdivia (valores base para fallback o selección rápida) */
 export const DELEGACIONES_VALDIVIA_DEFAULT: DelegacionOpcion[] = [
-  { id: 'del-norte', codigo: 'NORTE', nombre: 'Delegación Norte' },
-  { id: 'del-sur', codigo: 'SUR', nombre: 'Delegación Sur' },
-  { id: 'del-costa', codigo: 'COSTA', nombre: 'Delegación Costa' },
-  { id: 'del-callecalle', codigo: 'CALLE_CALLE', nombre: 'Delegación Calle Calle' },
+  { id: '30000000-0000-4000-8000-000000000001', codigo: 'DEL_NORTE', nombre: 'Delegación Norte' },
+  { id: '30000000-0000-4000-8000-000000000002', codigo: 'DEL_SUR', nombre: 'Delegación Sur' },
+  { id: '30000000-0000-4000-8000-000000000003', codigo: 'DEL_COSTA', nombre: 'Delegación Costa' },
+  { id: '30000000-0000-4000-8000-000000000004', codigo: 'DEL_CALLE_CALLE', nombre: 'Delegación Calle Calle' },
 ];
 
 export type CategoriaKpiEstado =

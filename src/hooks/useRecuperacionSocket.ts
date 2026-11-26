@@ -13,6 +13,8 @@ export interface UseRecuperacionSocketOptions {
   enabled?: boolean;
 }
 
+let activeRecuperacionSubscribers = 0;
+
 /**
  * Hook de tiempo real para escuchar la creación, despacho y actualización de eventos de recuperación (HU-29 y HU-32).
  * Se une a las salas operativas ('sala:encargados' y 'mapa') y escucha eventos de WebSocket.
@@ -53,6 +55,7 @@ export function useRecuperacionSocket({
     if (!enabled) return;
 
     let activo = true;
+    activeRecuperacionSubscribers += 1;
     const socket = getSocket();
 
     if (!socket.connected) {
@@ -141,18 +144,21 @@ export function useRecuperacionSocket({
 
     return () => {
       activo = false;
+      activeRecuperacionSubscribers = Math.max(0, activeRecuperacionSubscribers - 1);
       socket.off('connect', onConnect);
       socket.off('disconnect', onDisconnect);
       socket.off('recuperacion:creada', handleRecuperacionCreada);
       socket.off('recuperacion:actualizada', handleRecuperacionActualizada);
       socket.off('recurso:actualizado', handleRecursoActualizado);
       socket.off('patrulla:actualizada', handlePatrullaActualizada);
-      socket.emit('salir', 'encargado');
-      socket.emit('leave', 'encargado');
-      socket.emit('salir', 'sala:encargados');
-      socket.emit('leave', 'sala:encargados');
-      socket.emit('salir', 'mapa');
-      socket.emit('leave', 'mapa');
+      if (activeRecuperacionSubscribers === 0) {
+        socket.emit('salir', 'encargado');
+        socket.emit('leave', 'encargado');
+        socket.emit('salir', 'sala:encargados');
+        socket.emit('leave', 'sala:encargados');
+        socket.emit('salir', 'mapa');
+        socket.emit('leave', 'mapa');
+      }
     };
   }, [enabled, eventoId]);
 

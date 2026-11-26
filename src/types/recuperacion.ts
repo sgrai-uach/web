@@ -130,9 +130,6 @@ export type ListarOperativosRecuperacionApiResponse =
 export type OperativoRecuperacionListadoItem =
   ListarOperativosRecuperacionApiResponse['data'][number];
 
-export type RecursoResumenTipo =
-  NonNullable<OperativoRecuperacionListadoItem['recursosResumen']>[number];
-
 export type PaginacionMetaH34 = NonNullable<ListarOperativosRecuperacionApiResponse['meta']>;
 
 export type DetalleOperativoRecuperacionApiResponse =

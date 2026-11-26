@@ -70,6 +70,38 @@ export const KanbanBoard: React.FC = () => {
   const [vistaActiva, setVistaActiva] = useState<VistaCentroIncidentes>(
     vistaInicial === 'recuperacion' || vistaInicial === 'mapa' ? vistaInicial : 'kanban'
   );
+  const [recuperacionRefreshSignal, setRecuperacionRefreshSignal] = useState(0);
+
+  const cambiarVistaActiva = useCallback((nuevaVista: VistaCentroIncidentes) => {
+    setVistaActiva(nuevaVista);
+    if (typeof window === 'undefined') return;
+
+    const sp = new URLSearchParams(window.location.search);
+    if (nuevaVista === 'kanban') {
+      sp.delete('vista');
+    } else {
+      sp.set('vista', nuevaVista);
+    }
+
+    if (nuevaVista !== 'recuperacion') {
+      [
+        'page',
+        'limit',
+        'delegacionId',
+        'estado',
+        'prioridad',
+        'busqueda',
+        'fechaDesde',
+        'fechaHasta',
+        'ordenarPor',
+        'orden',
+      ].forEach((k) => sp.delete(k));
+    }
+
+    const q = sp.toString();
+    const url = q ? `${window.location.pathname}?${q}` : window.location.pathname;
+    window.history.replaceState(null, '', url);
+  }, []);
   const [misionesModalAbierto, setMisionesModalAbierto] = useState(false);
   const [patrullasModalAbierto, setPatrullasModalAbierto] = useState(false);
   const [misionSeleccionadaId, setMisionSeleccionadaId] = useState<string | null>(null);
@@ -89,9 +121,9 @@ export const KanbanBoard: React.FC = () => {
 
   useEffect(() => {
     if (!puedeVerKanban && puedeLeerRecuperacion && vistaActiva !== 'recuperacion') {
-      queueMicrotask(() => setVistaActiva('recuperacion'));
+      queueMicrotask(() => cambiarVistaActiva('recuperacion'));
     }
-  }, [puedeVerKanban, puedeLeerRecuperacion, vistaActiva]);
+  }, [puedeVerKanban, puedeLeerRecuperacion, vistaActiva, cambiarVistaActiva]);
 
   const [estadoEnfocado, setEstadoEnfocado] = useState<EstadoIncidente | null>(null);
   const refrescarKpisRef = React.useRef<((mostrarCargando?: boolean) => void) | null>(null);
@@ -665,7 +697,7 @@ export const KanbanBoard: React.FC = () => {
           {/* Selector de visualización entre filtros y tablero */}
           <KanbanViewSwitcher
             vistaActiva={vistaActiva}
-            onCambiarVista={setVistaActiva}
+            onCambiarVista={cambiarVistaActiva}
           />
 
           {error && !esForbidden && (
@@ -680,6 +712,7 @@ export const KanbanBoard: React.FC = () => {
             <main style={{ marginTop: 'var(--space-4, 16px)' }}>
               <OperativosRecuperacionView
                 delegaciones={delegaciones}
+                refreshSignal={recuperacionRefreshSignal}
                 onCrearRecuperacion={
                   puedeCrearEventoAtp ? () => setModalRecuperacionAbierto(true) : undefined
                 }
@@ -804,7 +837,10 @@ export const KanbanBoard: React.FC = () => {
             userId={userId}
             onSuccess={(eventoCreado) => {
               setEventosRecuperacion((prev) => [eventoCreado, ...prev]);
-              setVistaActiva('mapa');
+              setRecuperacionRefreshSignal((prev) => prev + 1);
+              if (vistaActiva !== 'recuperacion') {
+                cambiarVistaActiva('mapa');
+              }
               handleRefrescoCompleto();
             }}
           />

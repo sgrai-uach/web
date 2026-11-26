@@ -3,27 +3,20 @@
 import React from 'react';
 import { ArrowUpDown, ArrowUp, ArrowDown, Eye } from 'lucide-react';
 import Button from '@/components/ui/Button';
-import { Chip, type ChipVariant } from '@/components/ui/Chip';
+import { Chip } from '@/components/ui/Chip';
 import { obtenerVarianteChipPrioridad } from '@/lib/utils/chipVariants';
 import type {
   OperativoRecuperacionListadoItem,
   OrdenarPorRecuperacion,
   DireccionOrdenRecuperacion,
-  EstadoRecuperacion,
 } from '@/types/recuperacion';
 import {
   ETIQUETA_ESTADO_RECUPERACION,
   ETIQUETA_PRIORIDAD_RECUPERACION,
+  VARIANTE_ESTADO_RECUPERACION,
   formatearFechaChilena,
 } from './recuperacionLabels';
 import styles from './OperativosRecuperacion.module.css';
-
-const VARIANTE_ESTADO_RECUPERACION: Record<EstadoRecuperacion, ChipVariant> = {
-  PLANIFICADA: 'info',
-  EN_EJECUCION: 'warning',
-  COMPLETADA: 'success',
-  CANCELADA: 'danger',
-};
 
 export interface OperativosRecuperacionTablaProps {
   operativos: OperativoRecuperacionListadoItem[];
@@ -95,13 +88,24 @@ export const OperativosRecuperacionTabla: React.FC<OperativosRecuperacionTablaPr
                     .join(', ')
                 : null;
 
+            const totalInsumos = item.cantidadInsumosAsignados ?? 0;
             const isSelected = selectedId === item.id;
+
+            const handleRowKeyDown = (e: React.KeyboardEvent<HTMLTableRowElement>) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                onSelectOperativo(item.id);
+              }
+            };
 
             return (
               <tr
                 key={item.id}
-                className={`${styles.row} ${isSelected ? styles.rowSelected : ''}`}
+                tabIndex={0}
+                aria-label={`Operativo ${item.codigo}: ${item.nombre}`}
+                className={`${styles.row} ${isSelected ? styles.rowSelected : ''}`.trim()}
                 onClick={() => onSelectOperativo(item.id)}
+                onKeyDown={handleRowKeyDown}
               >
                 <td className={styles.td}>
                   <span className={styles.codigoBadge}>{item.codigo}</span>
@@ -131,7 +135,7 @@ export const OperativosRecuperacionTabla: React.FC<OperativosRecuperacionTablaPr
                 <td className={styles.td} title={resumenTexto || undefined}>
                   <div className={styles.insumosCell}>
                     <span className={styles.insumosTotal}>
-                      {item.cantidadInsumosAsignados ?? 0} unidades
+                      {totalInsumos} {totalInsumos === 1 ? 'unidad' : 'unidades'}
                     </span>
                     {resumenTexto && (
                       <span className={styles.insumosResumen}>{resumenTexto}</span>
@@ -147,11 +151,11 @@ export const OperativosRecuperacionTabla: React.FC<OperativosRecuperacionTablaPr
                     type="button"
                     variant="outline"
                     size="sm"
+                    icon={<Eye size={14} />}
                     onClick={() => onSelectOperativo(item.id)}
                     aria-label={`Ver detalle de ${item.codigo}`}
                   >
-                    <Eye size={14} style={{ marginRight: '4px' }} />
-                    <span>Detalle</span>
+                    Detalle
                   </Button>
                 </td>
               </tr>

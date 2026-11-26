@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import {
   X,
   Info,
@@ -11,8 +11,10 @@ import {
 } from 'lucide-react';
 import Heading from '@/components/ui/Heading';
 import Button from '@/components/ui/Button';
+import { Chip } from '@/components/ui/Chip';
 import InlineNotice from '@/components/ui/InlineNotice';
 import { useOptionalToast } from '@/components/ui/Toast';
+import { obtenerVarianteChipPrioridad } from '@/lib/utils/chipVariants';
 import {
   obtenerDetalleOperativoRecuperacion,
   RecuperacionServiceError,
@@ -21,6 +23,7 @@ import type { OperativoRecuperacionDetalle } from '@/types/recuperacion';
 import {
   ETIQUETA_ESTADO_RECUPERACION,
   ETIQUETA_PRIORIDAD_RECUPERACION,
+  VARIANTE_ESTADO_RECUPERACION,
   formatearFechaChilena,
 } from './recuperacionLabels';
 import styles from './OperativoRecuperacionDrawer.module.css';
@@ -35,6 +38,17 @@ export const OperativoRecuperacionDrawer: React.FC<OperativoRecuperacionDrawerPr
   onCerrar,
 }) => {
   const toast = useOptionalToast();
+  const onCerrarRef = useRef(onCerrar);
+  const toastRef = useRef(toast);
+
+  useEffect(() => {
+    onCerrarRef.current = onCerrar;
+  }, [onCerrar]);
+
+  useEffect(() => {
+    toastRef.current = toast;
+  }, [toast]);
+
   const [estadoCarga, setEstadoCarga] = useState<{
     id: string | null;
     detalle: OperativoRecuperacionDetalle | null;
@@ -60,10 +74,10 @@ export const OperativoRecuperacionDrawer: React.FC<OperativoRecuperacionDrawerPr
       .catch((err: unknown) => {
         if (!activo) return;
         if (err instanceof RecuperacionServiceError && err.statusCode === 404) {
-          toast?.showError(
+          toastRef.current?.showError(
             err.message || 'El operativo de recuperación solicitado no fue encontrado.'
           );
-          onCerrar();
+          onCerrarRef.current();
           return;
         }
         setEstadoCarga({
@@ -79,18 +93,18 @@ export const OperativoRecuperacionDrawer: React.FC<OperativoRecuperacionDrawerPr
     return () => {
       activo = false;
     };
-  }, [operativoId, onCerrar, toast]);
+  }, [operativoId]);
 
   useEffect(() => {
     if (!operativoId) return;
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
-        onCerrar();
+        onCerrarRef.current();
       }
     };
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [operativoId, onCerrar]);
+  }, [operativoId]);
 
   if (!operativoId) return null;
 
@@ -118,7 +132,7 @@ export const OperativoRecuperacionDrawer: React.FC<OperativoRecuperacionDrawerPr
             size="sm"
             onClick={onCerrar}
             aria-label="Cerrar panel de detalle"
-            style={{ color: '#FFFFFF', borderColor: 'rgba(255,255,255,0.3)' }}
+            className={styles.closeBtn}
           >
             <X size={16} />
           </Button>
@@ -126,7 +140,7 @@ export const OperativoRecuperacionDrawer: React.FC<OperativoRecuperacionDrawerPr
 
         <div className={styles.body}>
           {cargando && (
-            <div className={styles.loadingCenter}>
+            <div className={styles.loadingCenter} role="status">
               <Loader2 size={28} className={styles.spinIcon} />
               <span>Cargando información del operativo...</span>
             </div>
@@ -154,15 +168,25 @@ export const OperativoRecuperacionDrawer: React.FC<OperativoRecuperacionDrawerPr
                 <div className={styles.infoGrid}>
                   <div className={styles.infoItem}>
                     <span className={styles.infoLabel}>Estado</span>
-                    <span className={styles.infoValue}>
-                      {ETIQUETA_ESTADO_RECUPERACION[detalle.estado] || detalle.estado}
-                    </span>
+                    <div className={styles.infoValue}>
+                      <Chip
+                        variant={VARIANTE_ESTADO_RECUPERACION[detalle.estado] || 'neutral'}
+                        size="md"
+                      >
+                        {ETIQUETA_ESTADO_RECUPERACION[detalle.estado] || detalle.estado}
+                      </Chip>
+                    </div>
                   </div>
                   <div className={styles.infoItem}>
                     <span className={styles.infoLabel}>Prioridad</span>
-                    <span className={styles.infoValue}>
-                      {ETIQUETA_PRIORIDAD_RECUPERACION[detalle.prioridad] || detalle.prioridad}
-                    </span>
+                    <div className={styles.infoValue}>
+                      <Chip
+                        variant={obtenerVarianteChipPrioridad(detalle.prioridad)}
+                        size="md"
+                      >
+                        {ETIQUETA_PRIORIDAD_RECUPERACION[detalle.prioridad] || detalle.prioridad}
+                      </Chip>
+                    </div>
                   </div>
                   <div className={styles.infoItem}>
                     <span className={styles.infoLabel}>Sector</span>

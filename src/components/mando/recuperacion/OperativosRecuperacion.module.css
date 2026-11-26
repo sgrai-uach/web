@@ -121,6 +121,12 @@
   background-color: #F6F8FA;
 }
 
+.row:focus-visible {
+  outline: 2px solid var(--color-primary-teal, #1B6F7D);
+  outline-offset: -2px;
+  background-color: #F6F8FA;
+}
+
 .rowSelected {
   background-color: var(--color-info-bg, #E0F2F1);
 }
@@ -166,72 +172,6 @@
   text-overflow: ellipsis;
 }
 
-.estadoBadge {
-  display: inline-flex;
-  align-items: center;
-  padding: 3px 8px;
-  font-size: var(--font-size-xs, 0.75rem);
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.4px;
-  border-radius: var(--radius-none, 0px);
-  white-space: nowrap;
-}
-
-.estadoPLANIFICADA {
-  background-color: var(--color-info-bg, #E0F2F1);
-  color: var(--color-primary-teal-dark, #14505A);
-  border: 1px solid #B2DFDB;
-}
-
-.estadoEN_EJECUCION {
-  background-color: var(--color-warning-bg, #FFF3E0);
-  color: var(--color-warning, #E65100);
-  border: 1px solid #FFCC80;
-}
-
-.estadoCOMPLETADA {
-  background-color: var(--color-success-bg, #E8F5E9);
-  color: var(--color-success, #2E7D32);
-  border: 1px solid #A5D6A7;
-}
-
-.estadoCANCELADA {
-  background-color: var(--color-danger-bg, #FFEBEE);
-  color: var(--color-danger, #D32F2F);
-  border: 1px solid #EF9A9A;
-}
-
-.prioridadBadge {
-  display: inline-flex;
-  align-items: center;
-  padding: 2px 6px;
-  font-size: 0.7rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  border-radius: var(--radius-none, 0px);
-}
-
-.prioridadCRITICA {
-  background-color: var(--color-danger-bg, #FFEBEE);
-  color: var(--color-danger, #D32F2F);
-}
-
-.prioridadALTA {
-  background-color: var(--color-warning-bg, #FFF3E0);
-  color: var(--color-warning, #E65100);
-}
-
-.prioridadMEDIA {
-  background-color: var(--color-info-bg, #E0F2F1);
-  color: var(--color-primary-teal, #1B6F7D);
-}
-
-.prioridadBAJA {
-  background-color: var(--color-bg-light, #ECEFF3);
-  color: var(--color-text-muted, #5F676E);
-}
-
 .insumosCell {
   display: flex;
   flex-direction: column;
@@ -258,6 +198,29 @@
   color: var(--color-text-muted, #5F676E);
   background-color: var(--color-white, #FFFFFF);
   border: 1px solid var(--border-color-neutral, #DFE3E8);
+}
+
+.errorState {
+  padding: var(--space-6, 24px);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3, 12px);
+  background-color: var(--color-white, #FFFFFF);
+  border: 1px solid var(--border-color-neutral, #DFE3E8);
+}
+
+.errorActions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2, 8px);
+}
+
+.emptyActions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2, 8px);
+  flex-wrap: wrap;
 }
 
 .spinIcon {

@@ -1,3 +1,4 @@
+import type { ChipVariant } from '@/components/ui/Chip';
 import type { EstadoRecuperacion, PrioridadRecuperacion } from '@/types/recuperacion';
 
 export const ESTADOS_RECUPERACION_OPCIONES: Array<{
@@ -27,19 +28,18 @@ export const ETIQUETA_ESTADO_RECUPERACION: Record<EstadoRecuperacion, string> = 
   CANCELADA: 'Cancelada',
 };
 
+export const VARIANTE_ESTADO_RECUPERACION: Record<EstadoRecuperacion, ChipVariant> = {
+  PLANIFICADA: 'info',
+  EN_EJECUCION: 'warning',
+  COMPLETADA: 'success',
+  CANCELADA: 'danger',
+};
+
 export const ETIQUETA_PRIORIDAD_RECUPERACION: Record<PrioridadRecuperacion, string> = {
   BAJA: 'Baja',
   MEDIA: 'Media',
   ALTA: 'Alta',
   CRITICA: 'Crítica',
-};
-
-export const ETIQUETA_TIPO_RECURSO: Record<string, string> = {
-  MATERIAL: 'Materiales',
-  EQUIPAMIENTO: 'Equipamiento',
-  VEHICULO: 'Vehículos',
-  HERRAMIENTA: 'Herramientas',
-  INSUMO: 'Insumos',
 };
 
 export function formatearFechaChilena(iso: string | null | undefined): string {
@@ -54,9 +54,4 @@ export function formatearFechaChilena(iso: string | null | undefined): string {
   const minutos = String(fecha.getMinutes()).padStart(2, '0');
 
   return `${dia}/${mes}/${anio} ${horas}:${minutos}`;
-}
-
-export function formatearTipoRecurso(tipo?: string | null): string {
-  if (!tipo) return 'Insumos';
-  return ETIQUETA_TIPO_RECURSO[tipo.toUpperCase()] || tipo;
 }

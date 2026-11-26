@@ -45,6 +45,15 @@
   padding: 2px 8px;
 }
 
+.closeBtn {
+  color: var(--color-white, #FFFFFF);
+  border-color: rgba(255, 255, 255, 0.35);
+}
+
+.closeBtn:hover {
+  background-color: rgba(255, 255, 255, 0.12);
+}
+
 .body {
   flex: 1;
   overflow-y: auto;

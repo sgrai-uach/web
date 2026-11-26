@@ -271,4 +271,26 @@ describe('useRecuperacionSocket (HU-29)', () => {
 
     expect(result.current.conectado).toBe(true);
   });
+
+  it('BUG-H73-WEB-05: no emite salir/leave mientras quede otro suscriptor activo en useRecuperacionSocket', () => {
+    const socket = getSocket() as unknown as {
+      connected: boolean;
+      emit: ReturnType<typeof vi.fn>;
+    };
+    socket.connected = true;
+
+    const hook1 = renderHook(() => useRecuperacionSocket());
+    const hook2 = renderHook(() => useRecuperacionSocket());
+
+    vi.clearAllMocks();
+    hook2.unmount();
+
+    expect(socket.emit).not.toHaveBeenCalledWith('salir', 'encargado');
+    expect(socket.emit).not.toHaveBeenCalledWith('leave', 'mapa');
+
+    hook1.unmount();
+
+    expect(socket.emit).toHaveBeenCalledWith('salir', 'encargado');
+    expect(socket.emit).toHaveBeenCalledWith('leave', 'mapa');
+  });
 });

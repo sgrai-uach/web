@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
-import { PackagePlus, RefreshCw, Loader2, Package } from 'lucide-react';
+import React, { useState, useCallback } from 'react';
+import { PackagePlus, RefreshCw, Loader2, Package, RotateCcw } from 'lucide-react';
 import Heading from '@/components/ui/Heading';
 import Button from '@/components/ui/Button';
 import InlineNotice from '@/components/ui/InlineNotice';
@@ -24,6 +24,7 @@ export interface OperativosRecuperacionViewProps {
 export const OperativosRecuperacionView: React.FC<OperativosRecuperacionViewProps> = ({
   delegaciones,
   onCrearRecuperacion,
+  refreshSignal = 0,
 }) => {
   const {
     operativos,
@@ -42,9 +43,22 @@ export const OperativosRecuperacionView: React.FC<OperativosRecuperacionViewProp
     error,
     esForbidden,
     recargar,
-  } = useOperativosRecuperacion({ enabled: true });
+  } = useOperativosRecuperacion({ enabled: true, refreshSignal });
 
   const [operativoSeleccionadoId, setOperativoSeleccionadoId] = useState<string | null>(null);
+
+  const handleCerrarDrawer = useCallback(() => {
+    setOperativoSeleccionadoId(null);
+  }, []);
+
+  const hayFiltrosActivos = Boolean(
+    filtros.delegacionId ||
+      filtros.estado ||
+      filtros.prioridad ||
+      filtros.busqueda.trim() ||
+      filtros.fechaDesde ||
+      filtros.fechaHasta
+  );
 
   if (esForbidden) {
     return (
@@ -71,15 +85,16 @@ export const OperativosRecuperacionView: React.FC<OperativosRecuperacionViewProp
             type="button"
             variant="outline"
             size="sm"
+            icon={
+              <RefreshCw
+                size={14}
+                className={cargando ? styles.spinIcon : undefined}
+              />
+            }
             onClick={recargar}
             disabled={cargando}
           >
-            <RefreshCw
-              size={14}
-              style={{ marginRight: '6px' }}
-              className={cargando ? styles.spinIcon : undefined}
-            />
-            <span>Actualizar</span>
+            Actualizar
           </Button>
 
           {onCrearRecuperacion && (
@@ -87,10 +102,10 @@ export const OperativosRecuperacionView: React.FC<OperativosRecuperacionViewProp
               type="button"
               variant="primary"
               size="sm"
+              icon={<PackagePlus size={14} />}
               onClick={onCrearRecuperacion}
             >
-              <PackagePlus size={14} style={{ marginRight: '6px' }} />
-              <span>Nuevo Operativo de Recuperación</span>
+              Nuevo Operativo de Recuperación
             </Button>
           )}
         </div>
@@ -103,32 +118,60 @@ export const OperativosRecuperacionView: React.FC<OperativosRecuperacionViewProp
         onLimpiarFiltros={limpiarFiltros}
       />
 
-      {error && !esForbidden && (
-        <InlineNotice variant="error">{error}</InlineNotice>
-      )}
-
       {cargando ? (
         <div className={styles.loadingState} role="status" aria-live="polite">
           <Loader2 size={28} className={styles.spinIcon} />
           <span>Cargando operativos de recuperación...</span>
         </div>
+      ) : error ? (
+        <div className={styles.errorState} role="alert">
+          <InlineNotice variant="error">{error}</InlineNotice>
+          <div className={styles.errorActions}>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              icon={<RefreshCw size={14} />}
+              onClick={recargar}
+            >
+              Reintentar
+            </Button>
+          </div>
+        </div>
       ) : operativos.length === 0 ? (
         <EmptyState
           icon={<Package size={32} />}
           title="No se encontraron operativos de recuperación"
-          description="No hay operativos registrados que coincidan con los filtros seleccionados."
+          description={
+            hayFiltrosActivos
+              ? 'No hay operativos registrados que coincidan con los filtros seleccionados.'
+              : 'Aún no se han registrado operativos de recuperación en el sistema.'
+          }
           action={
-            onCrearRecuperacion ? (
-              <Button
-                type="button"
-                variant="primary"
-                size="sm"
-                onClick={onCrearRecuperacion}
-              >
-                <PackagePlus size={14} style={{ marginRight: '6px' }} />
-                <span>Registrar Operativo de Recuperación</span>
-              </Button>
-            ) : undefined
+            <div className={styles.emptyActions}>
+              {hayFiltrosActivos && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  icon={<RotateCcw size={14} />}
+                  onClick={limpiarFiltros}
+                >
+                  Limpiar filtros
+                </Button>
+              )}
+              {onCrearRecuperacion && (
+                <Button
+                  type="button"
+                  variant="primary"
+                  size="sm"
+                  icon={<PackagePlus size={14} />}
+                  onClick={onCrearRecuperacion}
+                >
+                  Registrar Operativo de Recuperación
+                </Button>
+              )}
+            </div>
           }
         />
       ) : (
@@ -157,7 +200,7 @@ export const OperativosRecuperacionView: React.FC<OperativosRecuperacionViewProp
 
       <OperativoRecuperacionDrawer
         operativoId={operativoSeleccionadoId}
-        onCerrar={() => setOperativoSeleccionadoId(null)}
+        onCerrar={handleCerrarDrawer}
       />
     </section>
   );

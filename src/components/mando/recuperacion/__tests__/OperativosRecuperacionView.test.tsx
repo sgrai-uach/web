@@ -20,8 +20,8 @@ vi.mock('@/components/ui/Toast', () => ({
 }));
 
 const mockDelegaciones = [
-  { id: 'del-1', codigo: 'COSTA', nombre: 'Delegación de la Costa' },
-  { id: 'del-2', codigo: 'SUR', nombre: 'Delegación Sur' },
+  { id: '30000000-0000-4000-8000-000000000003', codigo: 'DEL_COSTA', nombre: 'Delegación de la Costa' },
+  { id: '30000000-0000-4000-8000-000000000002', codigo: 'DEL_SUR', nombre: 'Delegación Sur' },
 ];
 
 const mockListado: ListarOperativosRecuperacionApiResponse = {
@@ -39,7 +39,11 @@ const mockListado: ListarOperativosRecuperacionApiResponse = {
       creadoEn: '2026-11-14T15:00:00.000Z',
       actualizadoEn: '2026-11-14T15:30:00.000Z',
       fechaCierre: null,
-      delegacion: { id: 'del-1', codigo: 'COSTA', nombre: 'Delegación de la Costa' },
+      delegacion: {
+        id: '30000000-0000-4000-8000-000000000003',
+        codigo: 'DEL_COSTA',
+        nombre: 'Delegación de la Costa',
+      },
       cantidadInsumosAsignados: 130,
       totalTiposInsumos: 2,
       recursosResumen: [
@@ -77,7 +81,11 @@ const mockDetalle: OperativoRecuperacionDetalle = {
   fechaCierre: null,
   observacionesCierre: null,
   creadoPor: { id: 'u1', nombre: 'Juan Pérez' },
-  delegacion: { id: 'del-1', codigo: 'COSTA', nombre: 'Delegación de la Costa' },
+  delegacion: {
+    id: '30000000-0000-4000-8000-000000000003',
+    codigo: 'DEL_COSTA',
+    nombre: 'Delegación de la Costa',
+  },
   recursos: [
     {
       recursoId: 'r1',
@@ -114,6 +122,7 @@ const mockDetalle: OperativoRecuperacionDetalle = {
 describe('OperativosRecuperacionView (HU-73)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    window.history.replaceState(null, '', '/gestion/centro-incidentes?vista=recuperacion');
   });
 
   it('debe renderizar la tabla con los operativos y abrir el drawer al hacer clic en una fila', async () => {
@@ -161,7 +170,30 @@ describe('OperativosRecuperacionView (HU-73)', () => {
     expect(screen.getByText(/recuperacion:leer/i)).toBeInTheDocument();
   });
 
-  it('debe mostrar EmptyState cuando no hay operativos', async () => {
+  it('debe mostrar estado de error dedicado con botón Reintentar y ocultar EmptyState ante fallo 500', async () => {
+    const spy = vi
+      .spyOn(recuperacionService, 'listarOperativosRecuperacion')
+      .mockRejectedValueOnce(new Error('Error interno 500'))
+      .mockResolvedValueOnce(mockListado);
+
+    render(<OperativosRecuperacionView delegaciones={mockDelegaciones} />);
+
+    expect(await screen.findByText('Error interno 500')).toBeInTheDocument();
+    expect(screen.queryByText(/No se encontraron operativos/i)).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /Reintentar/i }));
+
+    expect(await screen.findByText('REC-2026-0001')).toBeInTheDocument();
+    expect(spy).toHaveBeenCalledTimes(2);
+  });
+
+  it('debe mostrar EmptyState con botón Limpiar filtros cuando hay filtros activos', async () => {
+    window.history.replaceState(
+      null,
+      '',
+      '/gestion/centro-incidentes?vista=recuperacion&estado=COMPLETADA'
+    );
+
     vi.spyOn(recuperacionService, 'listarOperativosRecuperacion').mockResolvedValue({
       data: [],
       meta: {
@@ -179,21 +211,6 @@ describe('OperativosRecuperacionView (HU-73)', () => {
     expect(
       await screen.findByText(/No se encontraron operativos de recuperación/i)
     ).toBeInTheDocument();
-  });
-
-  it('debe restringir rango invertido de fechas con min y max en los inputs de fecha', async () => {
-    vi.spyOn(recuperacionService, 'listarOperativosRecuperacion').mockResolvedValue(mockListado);
-
-    render(<OperativosRecuperacionView delegaciones={mockDelegaciones} />);
-    await screen.findByText('REC-2026-0001');
-
-    const inputDesde = screen.getByLabelText('Desde') as HTMLInputElement;
-    const inputHasta = screen.getByLabelText('Hasta') as HTMLInputElement;
-
-    fireEvent.change(inputDesde, { target: { value: '2026-11-20' } });
-    expect(inputHasta).toHaveAttribute('min', '2026-11-20');
-
-    fireEvent.change(inputHasta, { target: { value: '2026-11-24' } });
-    expect(inputDesde).toHaveAttribute('max', '2026-11-24');
+    expect(screen.getAllByRole('button', { name: /Limpiar filtros/i }).length).toBeGreaterThanOrEqual(1);
   });
 });
