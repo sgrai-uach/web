@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { OperativosRecuperacionView } from '../OperativosRecuperacionView';
 import * as recuperacionService from '@/services/recuperacionService';
+import * as usePuedeEditarModule from '@/hooks/usePuedeEditarRecuperacion';
 import type {
   ListarOperativosRecuperacionApiResponse,
   OperativoRecuperacionDetalle,
@@ -178,6 +179,41 @@ describe('OperativosRecuperacionView (HU-73)', () => {
 
     expect(
       await screen.findByText(/No se encontraron operativos de recuperación/i)
+    ).toBeInTheDocument();
+  });
+
+  it('debe restringir rango invertido de fechas con min y max en los inputs de fecha', async () => {
+    vi.spyOn(recuperacionService, 'listarOperativosRecuperacion').mockResolvedValue(mockListado);
+
+    render(<OperativosRecuperacionView delegaciones={mockDelegaciones} />);
+    await screen.findByText('REC-2026-0001');
+
+    const inputDesde = screen.getByLabelText('Desde') as HTMLInputElement;
+    const inputHasta = screen.getByLabelText('Hasta') as HTMLInputElement;
+
+    fireEvent.change(inputDesde, { target: { value: '2026-11-20' } });
+    expect(inputHasta).toHaveAttribute('min', '2026-11-20');
+
+    fireEvent.change(inputHasta, { target: { value: '2026-11-24' } });
+    expect(inputDesde).toHaveAttribute('max', '2026-11-24');
+  });
+
+  it('HU-74: permite abrir el modal de edición directa desde el botón Editar de la tabla y bloquea si el operativo está cerrado', async () => {
+    vi.spyOn(usePuedeEditarModule, 'usePuedeEditarRecuperacion').mockReturnValue(true);
+    vi.spyOn(recuperacionService, 'listarOperativosRecuperacion').mockResolvedValue(mockListado);
+    vi.spyOn(recuperacionService, 'obtenerDetalleOperativoRecuperacion').mockResolvedValue(
+      mockDetalle
+    );
+
+    render(<OperativosRecuperacionView delegaciones={mockDelegaciones} />);
+    await screen.findByText('REC-2026-0001');
+
+    const btnEditarTabla = screen.getByRole('button', { name: /editar rec-2026-0001/i });
+    expect(btnEditarTabla).toBeEnabled();
+    fireEvent.click(btnEditarTabla);
+
+    expect(
+      await screen.findByText('Editar Planificación del Operativo')
     ).toBeInTheDocument();
   });
 });

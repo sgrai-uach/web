@@ -34,6 +34,7 @@ export interface RecursoAsignadoItem {
   recursoId: string;
   nombre: string;
   cantidadAsignada: number;
+  misionId?: string | null;
 }
 
 export interface EventoRecuperacionResponse {
@@ -50,25 +51,27 @@ export interface EventoRecuperacionResponse {
   longitud: number;
   estado: EstadoRecuperacion;
   familiasAfectadas: number;
-  delegacion: {
+  delegacion?: {
     id: string;
     codigo: string;
     nombre: string;
   } | null;
-  mision: {
+  mision?: {
     id: string;
     codigo: string;
     titulo: string;
     estado: string;
     tipoMision: string;
-  };
-  patrulla: {
+  } | null;
+  misiones?: MisionRecuperacionItem[];
+  patrulla?: {
     id: string;
     nombre: string;
     estado: string;
-  };
+  } | null;
   recursos: RecursoAsignadoItem[];
-  creadoPorId: string;
+  recursosAsignados?: RecursoAsignadoItem[];
+  creadoPorId?: string;
   creadoEn: string;
   actualizadoEn: string;
 }
@@ -81,7 +84,7 @@ export interface CrearEventoRecuperacionApiResponse {
 export interface PatrullaVerificadoraItem {
   id: string;
   nombre: string;
-  estado: 'DISPONIBLE' | 'EN_VERIFICACION' | 'EN_RECUPERACION' | 'NO_DISPONIBLE';
+  estado: 'DISPONIBLE' | 'EN_VERIFICACION' | 'EN_MISION' | 'EN_PREVENCION' | 'EN_RECUPERACION' | 'NO_DISPONIBLE';
   delegacionId?: string | null;
   delegacionNombre?: string | null;
 }
@@ -128,9 +131,9 @@ export type OperativoRecuperacionListadoItem =
   ListarOperativosRecuperacionApiResponse['data'][number];
 
 export type RecursoResumenTipo =
-  OperativoRecuperacionListadoItem['recursosResumen'][number];
+  NonNullable<OperativoRecuperacionListadoItem['recursosResumen']>[number];
 
-export type PaginacionMetaH34 = ListarOperativosRecuperacionApiResponse['meta'];
+export type PaginacionMetaH34 = NonNullable<ListarOperativosRecuperacionApiResponse['meta']>;
 
 export type DetalleOperativoRecuperacionApiResponse =
   paths['/api/eventos-atp/recuperacion/{id}']['get']['responses'][200]['content']['application/json'];
@@ -139,10 +142,10 @@ export type OperativoRecuperacionDetalle =
   DetalleOperativoRecuperacionApiResponse['data'];
 
 export type OperativoRecuperacionRecursoDetalle =
-  OperativoRecuperacionDetalle['recursos'][number];
+  NonNullable<OperativoRecuperacionDetalle['recursos']>[number];
 
 export type OperativoRecuperacionHistorialItem =
-  OperativoRecuperacionDetalle['historial'][number];
+  NonNullable<OperativoRecuperacionDetalle['historial']>[number];
 
 /* -------------------------------------------------------------------------- */
 /* HU-74: Edición de planificación de operativos de recuperación               */
@@ -159,3 +162,89 @@ export type EditarOperativoRecuperacionApiResponse =
 export type EditarOperativoRecuperacionData =
   EditarOperativoRecuperacionApiResponse['data'];
 
+/**
+ * Modelos para Detalle y Asignación de Recursos a Evento de Recuperación (HU-32).
+ */
+export type DetalleEventoRecuperacionDTO =
+  paths['/api/eventos-atp/recuperacion/{id}']['get']['responses'][200]['content']['application/json']['data'];
+
+export type AsignarRecursosRecuperacionInputDTO =
+  NonNullable<paths['/api/eventos-atp/recuperacion/{id}/asignar']['post']['requestBody']>['content']['application/json'];
+
+export type AsignarRecursosRecuperacionResponseDTO =
+  paths['/api/eventos-atp/recuperacion/{id}/asignar']['post']['responses'][200]['content']['application/json'];
+
+export type EventoRecuperacionListadoItemDTO =
+  paths['/api/eventos-atp/recuperacion']['get']['responses'][200]['content']['application/json']['data'][number];
+
+export type EventoRecuperacionListadoResponseDTO =
+  paths['/api/eventos-atp/recuperacion']['get']['responses'][200]['content']['application/json'];
+
+export interface MisionRecuperacionItem {
+  id: string;
+  codigo: string;
+  titulo: string;
+  estado: string;
+  tipoMision: string;
+  creadoEn: string;
+  patrulla?: {
+    id: string;
+    nombre: string;
+    estado: string;
+  } | null;
+  recursos?: Array<{
+    recursoId: string;
+    nombre: string;
+    cantidadAsignada: number;
+  }>;
+}
+
+export interface DetalleEventoRecuperacionResponse {
+  id: string;
+  codigo: string;
+  nombre: string;
+  descripcion?: string | null;
+  sector: string;
+  direccionTexto?: string | null;
+  prioridad: PrioridadRecuperacion;
+  contactoNombre?: string | null;
+  contactoTelefono?: string | null;
+  latitud: number;
+  longitud: number;
+  estado: EstadoRecuperacion;
+  familiasAfectadas: number;
+  delegacion?: {
+    id: string;
+    codigo: string;
+    nombre: string;
+  } | null;
+  mision?: {
+    id: string;
+    codigo: string;
+    titulo: string;
+    estado: string;
+    tipoMision: string;
+  } | null;
+  misiones: MisionRecuperacionItem[];
+  patrulla?: {
+    id: string;
+    nombre: string;
+    estado: string;
+  } | null;
+  recursosAsignados: RecursoAsignadoItem[];
+  recursos: RecursoAsignadoItem[];
+  creadoPorId?: string;
+  creadoEn: string;
+  actualizadoEn: string;
+}
+
+export interface GetEventoRecuperacionApiResponse {
+  message?: string;
+  data: DetalleEventoRecuperacionResponse;
+}
+
+export type AsignarRecursoItemInput = AsignarRecursosRecuperacionInputDTO['recursos'][number];
+
+export type AsignarRecursosRecuperacionInput = AsignarRecursosRecuperacionInputDTO;
+
+export type AsignarRecursosRecuperacionResponse = AsignarRecursosRecuperacionResponseDTO;

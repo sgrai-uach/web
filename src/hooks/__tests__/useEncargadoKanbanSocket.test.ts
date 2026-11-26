@@ -63,6 +63,7 @@ describe('useEncargadoKanbanSocket', () => {
     expect(socket.on).toHaveBeenCalledWith('disconnect', expect.any(Function));
     expect(socket.on).toHaveBeenCalledWith('incidente:creado', expect.any(Function));
     expect(socket.on).toHaveBeenCalledWith('incidente:actualizado', expect.any(Function));
+    expect(socket.on).toHaveBeenCalledWith('mision:rechazada', expect.any(Function));
     expect(socket.on).toHaveBeenCalledWith('notificacion:trazabilidad_actualizada', expect.any(Function));
 
     // Simular evento connect
@@ -144,6 +145,42 @@ describe('useEncargadoKanbanSocket', () => {
     expect(onIncidenteActualizado).toHaveBeenCalledWith(payload);
   });
 
+  it('debe procesar reclasificación de tipología en terreno emitiendo string amigable en ultimoEvento', () => {
+    const socket = getSocket();
+    const onIncidenteActualizado = vi.fn();
+
+    const { result } = renderHook(() =>
+      useEncargadoKanbanSocket({
+        onIncidenteActualizado,
+      })
+    );
+
+    const payloadReclasificado = {
+      evento: 'incidente:actualizado' as const,
+      datos: {
+        id: '50000000-0000-4000-8000-000000000001',
+        codigo: 'INC-2026-001',
+        nuevoEstado: 'VERIFICANDO' as const,
+        prioridad: 'ALTA' as const,
+        tipoIncidenteId: '40000000-0000-4000-8000-000000000001',
+        tipoAfectacion: 'Inundación',
+        justificacion: 'Tras evaluación presencial se constata desborde de cauce con ingreso de agua.',
+        actualizadoEn: '2026-11-10T03:30:00.000Z',
+      },
+      emitidoEn: '2026-11-10T03:30:00.000Z',
+    };
+
+    act(() => {
+      (socket as unknown as { _trigger: (ev: string, p: unknown) => void })._trigger(
+        'incidente:actualizado',
+        payloadReclasificado
+      );
+    });
+
+    expect(onIncidenteActualizado).toHaveBeenCalledWith(payloadReclasificado);
+    expect(result.current.ultimoEvento).toContain('Tipología reclasificada: INC-2026-001 a Inundación (Prioridad: Alta)');
+  });
+
   it('debe escuchar notificacion:trazabilidad_actualizada e invocar el callback onNotificacionTrazabilidadActualizada', () => {
     const socket = getSocket();
     const onNotificacionTrazabilidadActualizada = vi.fn();
@@ -179,6 +216,67 @@ describe('useEncargadoKanbanSocket', () => {
     expect(getTrazabilidadEstado('mis-100')).toBe('RECIBIDA');
   });
 
+  it('debe escuchar mision:rechazada e invocar el callback onMisionRechazada', () => {
+    const socket = getSocket();
+    const onMisionRechazada = vi.fn();
+
+    renderHook(() =>
+      useEncargadoKanbanSocket({
+        onMisionRechazada,
+      })
+    );
+
+    const payload = {
+      misionId: 'mis-100',
+      codigo: 'MIS-2026-0001',
+      tipoMision: 'VERIFICACION',
+      motivo: 'Móvil en pana mecánica en ruta',
+      justificacionRechazo: 'Móvil en pana mecánica en ruta',
+      patrullaId: 'pat-1',
+      patrullaNombre: 'Patrulla 02',
+      incidenteId: 'inc-123',
+      incidenteCodigo: 'INC-12345678',
+      rechazadoPorId: null,
+      rechazadoEn: '2026-09-22T10:45:00Z',
+    };
+
+    act(() => {
+      (socket as unknown as { _trigger: (ev: string, p: unknown) => void })._trigger(
+        'mision:rechazada',
+        payload
+      );
+    });
+
+    expect(onMisionRechazada).toHaveBeenCalledWith(payload);
+  });
+
+  it('debe deduplicar eventos de mision:rechazada recibidos repetidamente dentro de la ventana de tiempo', () => {
+    const socket = getSocket();
+    const onMisionRechazada = vi.fn();
+
+    renderHook(() =>
+      useEncargadoKanbanSocket({
+        onMisionRechazada,
+      })
+    );
+
+    const payload = {
+      misionId: 'mis-dup-1',
+      codigo: 'MIS-2026-0002',
+      tipoMision: 'VERIFICACION',
+      motivo: 'Falla mecánica',
+      patrullaNombre: 'Patrulla 01',
+    };
+
+    act(() => {
+      const helper = socket as unknown as { _trigger: (ev: string, p: unknown) => void };
+      helper._trigger('mision:rechazada', payload);
+      helper._trigger('mision:rechazada', payload);
+    });
+
+    expect(onMisionRechazada).toHaveBeenCalledTimes(1);
+  });
+
   it('debe limpiar listeners y emitir salir al desmontar', () => {
     const socket = getSocket();
 
@@ -190,11 +288,112 @@ describe('useEncargadoKanbanSocket', () => {
     expect(socket.off).toHaveBeenCalledWith('disconnect', expect.any(Function));
     expect(socket.off).toHaveBeenCalledWith('incidente:creado', expect.any(Function));
     expect(socket.off).toHaveBeenCalledWith('incidente:actualizado', expect.any(Function));
+    expect(socket.off).toHaveBeenCalledWith('mision:rechazada', expect.any(Function));
     expect(socket.off).toHaveBeenCalledWith('notificacion:trazabilidad_actualizada', expect.any(Function));
     expect(socket.emit).toHaveBeenCalledWith('leave', 'encargado');
     expect(socket.emit).toHaveBeenCalledWith('salir', 'sala:encargados');
     expect(socket.emit).toHaveBeenCalledWith('leave', 'mapa');
     expect(socket.emit).toHaveBeenCalledWith('salir', 'mapa');
+  });
+
+  it('debe deduplicar eventos incidente:actualizado repetidos por múltiples salas', () => {
+    const socket = getSocket();
+    const onIncidenteActualizado = vi.fn();
+
+    renderHook(() =>
+      useEncargadoKanbanSocket({
+        onIncidenteActualizado,
+      })
+    );
+
+    const payload = {
+      evento: 'incidente:actualizado' as const,
+      datos: {
+        id: 'inc-dup-1',
+        codigo: 'INC-948888-846',
+        nuevoEstado: 'VERIFICANDO' as const,
+        prioridad: 'MEDIA' as const,
+        actualizadoEn: '2026-11-13T12:00:00Z',
+      },
+      emitidoEn: '2026-11-13T12:00:00Z',
+    };
+
+    act(() => {
+      const trigger = (socket as unknown as { _trigger: (ev: string, p: unknown) => void })._trigger;
+      trigger('incidente:actualizado', payload);
+      trigger('incidente:actualizado', payload);
+      trigger('incidente:actualizado', payload);
+    });
+
+    expect(onIncidenteActualizado).toHaveBeenCalledTimes(1);
+  });
+
+  it('debe marcar esSintetico: true al sintetizar actualización desde mision:actualizada en EN_CURSO', () => {
+    const socket = getSocket();
+    const onIncidenteActualizado = vi.fn();
+
+    renderHook(() =>
+      useEncargadoKanbanSocket({
+        onIncidenteActualizado,
+      })
+    );
+
+    act(() => {
+      const trigger = (socket as unknown as { _trigger: (ev: string, p: unknown) => void })._trigger;
+      trigger('mision:actualizada', {
+        incidenteId: 'inc-mision-1',
+        estado: 'EN_CURSO',
+        tipoMision: 'VERIFICACION',
+        codigo: 'MIS-001',
+      });
+      trigger('mision:actualizada', {
+        incidenteId: 'inc-mision-1',
+        estado: 'EN_CURSO',
+        tipoMision: 'VERIFICACION',
+        codigo: 'MIS-001',
+      });
+    });
+
+    expect(onIncidenteActualizado).toHaveBeenCalledTimes(1);
+    expect(onIncidenteActualizado).toHaveBeenCalledWith(
+      expect.objectContaining({
+        esSintetico: true,
+        datos: expect.objectContaining({
+          id: 'inc-mision-1',
+          nuevoEstado: 'VERIFICANDO',
+        }),
+      })
+    );
+  });
+
+  it('debe reflejar en ultimoEvento cuando la tipología fue confirmada sin cambios', () => {
+    const socket = getSocket();
+    const onIncidenteActualizado = vi.fn();
+
+    const { result } = renderHook(() =>
+      useEncargadoKanbanSocket({
+        onIncidenteActualizado,
+      })
+    );
+
+    act(() => {
+      const trigger = (socket as unknown as { _trigger: (ev: string, p: unknown) => void })._trigger;
+      trigger('incidente:actualizado', {
+        evento: 'incidente:actualizado',
+        datos: {
+          id: 'inc-rat-1',
+          codigo: 'INC-948888-846',
+          nuevoEstado: 'VERIFICANDO',
+          prioridad: 'MEDIA',
+          tipoAnterior: 'Deslizamiento',
+          tipoAfectacion: 'Deslizamiento',
+          justificacion: 'Tipología constatada y ratificada en terreno sin variaciones.',
+          actualizadoEn: '2026-11-13T15:21:38Z',
+        },
+      });
+    });
+
+    expect(result.current.ultimoEvento).toContain('Tipología confirmada sin cambios: INC-948888-846 (Deslizamiento');
   });
 
   it('BUG-H35-WEB-07: ignora payloads malformados o con estado inválido en notificacion:trazabilidad_actualizada', () => {

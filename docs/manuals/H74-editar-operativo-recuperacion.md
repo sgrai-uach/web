@@ -8,7 +8,7 @@ Este manual documenta el flujo de **Edición de Planificación de Operativos de 
 
 - **Roles a los que está dirigido:** Encargado de Operaciones y Administrador General.
 - **Objetivo de la funcionalidad:** Permitir modificar la descripción de tareas, la fecha estimada de término, la patrulla verificadora asignada y la dotación de insumos/recursos de un operativo de recuperación en curso para adaptarlo a nuevas necesidades en terreno o disponibilidad logística.
-- **Ruta de acceso en la plataforma web:** `/gestion/centro-incidentes` (pestaña **Recuperación** → panel lateral de detalle del operativo → botón **Editar Planificación**).
+- **Ruta de acceso en la plataforma web:** `/gestion/centro-incidentes` (pestaña **Recuperación** → botón **Editar** en la columna de acciones de la tabla, o dentro del panel lateral de detalle → botón **Editar Planificación**).
 
 ---
 
@@ -24,19 +24,18 @@ Este manual documenta el flujo de **Edición de Planificación de Operativos de 
 
 ## 3. Pasos para Editar un Operativo de Recuperación
 
-1. **Abrir el detalle del operativo:**
-   En `/gestion/centro-incidentes`, seleccione la pestaña **Recuperación** (ver [H73 - Listar y Consultar Operativos de Recuperación](./H73-listar-operativos-recuperacion.md)) y haga clic sobre el operativo que desea ajustar.
-2. **Presionar "Editar Planificación":**
-   En la barra superior del panel lateral derecho, haga clic en el botón **Editar Planificación**.
-   *(Captura pendiente: `assets/H74-editar-operativo-recuperacion/01-boton-editar-detalle.png`)*
-3. **Modificar los campos requeridos en el modal:**
+1. **Acceder a la edición desde la tabla o el detalle:**
+   En `/gestion/centro-incidentes`, seleccione la pestaña **Recuperación** (ver [H73 - Listar y Consultar Operativos de Recuperación](./H73-listar-operativos-recuperacion.md)) y elija una de estas dos vías:
+   - Hacer clic directamente en el botón **Editar** de la columna **Acciones** en la fila del operativo.
+   - O hacer clic en la fila / botón **Detalle** para abrir el panel lateral derecho y presionar **Editar Planificación** en la barra superior.
+   *(Nota: las capturas de pantalla en `assets/H74-editar-operativo-recuperacion/` se adjuntan en la validación visual de QA.)*
+2. **Modificar los campos requeridos en el modal:**
    El formulario se precarga automáticamente con la planificación vigente:
    - **Descripción de tareas e indicaciones:** Texto entre 3 y 1000 caracteres. Al guardar, también actualiza la descripción de la misión vinculada.
    - **Fecha estimada de término:** Fecha y hora límite estimada (no puede ser anterior a la fecha de creación del operativo).
    - **Patrulla verificadora asignada:** Permite reasignar el operativo a otra patrulla en estado `DISPONIBLE`. La patrulla anterior queda liberada automáticamente (si no posee otras misiones activas).
    - **Dotación de insumos y recursos:** Permite agregar, quitar o ajustar cantidades de recursos. El guardado realiza un reemplazo declarativo completo y ajusta el stock en bodega por diferencia.
-   *(Captura pendiente: `assets/H74-editar-operativo-recuperacion/02-modal-editar-planificacion.png`)*
-4. **Guardar cambios:**
+3. **Guardar cambios:**
    Presione **Guardar Planificación**. El sistema confirmará la actualización mediante una notificación, cerrará el modal y refrescará el detalle y el listado en tiempo real.
 
 ---

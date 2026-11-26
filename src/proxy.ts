@@ -117,8 +117,13 @@ export function proxy(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  // 5. Si el usuario autenticado tiene un rol exclusivo de terreno e intenta ingresar a /gestion, redirigir a /terreno
-  if (pathname === '/gestion' || pathname.startsWith('/gestion/')) {
+  // 5. Si el usuario autenticado tiene un rol exclusivo de terreno e intenta ingresar a /gestion o /eventos-atp, redirigir a /terreno
+  if (
+    pathname === '/gestion' ||
+    pathname.startsWith('/gestion/') ||
+    pathname === '/eventos-atp' ||
+    pathname.startsWith('/eventos-atp/')
+  ) {
     const rolCodigo = obtenerRolDesdeToken(token);
     if (esRolDeTerreno(rolCodigo)) {
       return NextResponse.redirect(new URL('/terreno', request.url));

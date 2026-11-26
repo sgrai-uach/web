@@ -268,4 +268,113 @@ describe('HU-74: OperativoRecuperacionDrawer y ModalEditarOperativoRecuperacion'
     ).toBeInTheDocument();
     expect(onClose).not.toHaveBeenCalled();
   });
+
+  it('BUG-H74-WEB-01: no debe sobrescribir cambios no guardados si operativo cambia de referencia/actualizadoEn mientras el modal está abierto', async () => {
+    const { rerender } = render(
+      <ModalEditarOperativoRecuperacion
+        isOpen={true}
+        operativo={mockOperativoBase}
+        onClose={vi.fn()}
+        onSuccess={vi.fn()}
+      />
+    );
+
+    const textarea = await screen.findByLabelText(/descripción de tareas/i);
+    fireEvent.change(textarea, {
+      target: { value: 'Borrador del encargado que no debe perderse' },
+    });
+
+    rerender(
+      <ModalEditarOperativoRecuperacion
+        isOpen={true}
+        operativo={{
+          ...mockOperativoBase,
+          descripcion: 'Descripción remota',
+          actualizadoEn: '2026-11-18T05:00:00.000Z',
+        }}
+        onClose={vi.fn()}
+        onSuccess={vi.fn()}
+      />
+    );
+
+    expect(textarea).toHaveValue('Borrador del encargado que no debe perderse');
+    expect(
+      await screen.findByText(/recibió una actualización externa/i)
+    ).toBeInTheDocument();
+  });
+
+  it('BUG-H74-WEB-03: debe incluir opción vacía cuando patrulla es null y bloquear inputs en estado COMPLETADA', async () => {
+    render(
+      <ModalEditarOperativoRecuperacion
+        isOpen={true}
+        operativo={{
+          ...mockOperativoBase,
+          estado: 'COMPLETADA',
+          patrulla: null as unknown as OperativoRecuperacionDetalle['patrulla'],
+        }}
+        onClose={vi.fn()}
+        onSuccess={vi.fn()}
+      />
+    );
+
+    expect(
+      await screen.findByRole('option', { name: /seleccione una patrulla/i })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/edición de planificación está bloqueada/i)
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText(/descripción de tareas/i)).toBeDisabled();
+    expect(
+      screen.getByRole('button', { name: /guardar planificación/i })
+    ).toBeDisabled();
+  });
+
+  it('BUG-H74-WEB-04: debe validar fechaEstimadaFin anterior a creadoEn y mapear errores 400 por fila (recursos.0.cantidad)', async () => {
+    vi.mocked(editarOperativoRecuperacion).mockRejectedValueOnce(
+      new RecuperacionServiceError('Datos inválidos.', {
+        statusCode: 400,
+        fieldErrors: {
+          'recursos.0.cantidad': 'La cantidad debe ser mayor a 0',
+        },
+      })
+    );
+
+    render(
+      <ModalEditarOperativoRecuperacion
+        isOpen={true}
+        operativo={mockOperativoBase}
+        userId="00000000-0000-4000-8000-000000000001"
+        onClose={vi.fn()}
+        onSuccess={vi.fn()}
+      />
+    );
+
+    const inputFecha = await screen.findByLabelText(/fecha estimada de término/i);
+    fireEvent.change(inputFecha, { target: { value: '2026-11-17T10:00' } });
+    fireEvent.click(screen.getByRole('button', { name: /guardar planificación/i }));
+
+    expect(
+      await screen.findByText(/no puede ser anterior a la fecha de creación/i)
+    ).toBeInTheDocument();
+
+    // Corregir fecha y enviar cantidad modificada para probar mapeo de error 400 por fila
+    fireEvent.change(inputFecha, { target: { value: '2026-11-22T15:00' } });
+    const inputCantidad = screen.getByLabelText(/cantidad fila 1/i);
+    fireEvent.change(inputCantidad, { target: { value: '9' } });
+    fireEvent.click(screen.getByRole('button', { name: /guardar planificación/i }));
+
+    await waitFor(() => {
+      expect(editarOperativoRecuperacion).toHaveBeenCalledWith(
+        mockOperativoBase.id,
+        expect.objectContaining({
+          recursos: [{ recursoId: '80000000-0000-4000-8000-000000000001', cantidad: 9 }],
+        }),
+        '00000000-0000-4000-8000-000000000001'
+      );
+    });
+
+    expect(
+      (await screen.findAllByText('La cantidad debe ser mayor a 0')).length
+    ).toBeGreaterThanOrEqual(1);
+  });
 });

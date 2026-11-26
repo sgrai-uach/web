@@ -29,13 +29,11 @@ export async function crearRecurso(
   payload: CrearRecursoDTO,
   userId: string = DEFAULT_ADMIN_USER_ID
 ): Promise<RecursoCreado> {
+  // El API ahora autentica con Authorization Bearer (JWT): el identificador de usuario
+  // se conserva por compatibilidad de firma y ya no se envía como cabecera x-user-id.
+  void userId;
   try {
     const { data, error, response } = await apiClient.POST('/api/recursos', {
-      params: {
-        header: {
-          'x-user-id': userId,
-        },
-      },
       body: payload,
     });
 

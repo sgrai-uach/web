@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useContext, useEffect, useRef, useState } from 'react';
 import {
   X,
   Info,
@@ -14,6 +14,8 @@ import Heading from '@/components/ui/Heading';
 import Button from '@/components/ui/Button';
 import InlineNotice from '@/components/ui/InlineNotice';
 import { useOptionalToast } from '@/components/ui/Toast';
+import { AuthContext } from '@/context/AuthContext';
+import { SimulatedSessionContext } from '@/context/SimulatedSessionContext';
 import { usePuedeEditarRecuperacion } from '@/hooks/usePuedeEditarRecuperacion';
 import { useRecuperacionSocket } from '@/hooks/useRecuperacionSocket';
 import {
@@ -44,6 +46,11 @@ export const OperativoRecuperacionDrawer: React.FC<OperativoRecuperacionDrawerPr
   onOperativoActualizado,
 }) => {
   const toast = useOptionalToast();
+  const auth = useContext(AuthContext);
+  const simulated = useContext(SimulatedSessionContext);
+  const activeUserId = auth?.estaAutenticado
+    ? auth.usuario?.id
+    : simulated?.usuarioActivo?.id;
   const puedeEditar = usePuedeEditarRecuperacion();
   const [modalEditarAbierto, setModalEditarAbierto] = useState(false);
   const [reloadNonce, setReloadNonce] = useState(0);
@@ -53,6 +60,22 @@ export const OperativoRecuperacionDrawer: React.FC<OperativoRecuperacionDrawerPr
     error: string | null;
   }>({ id: null, detalle: null, error: null });
 
+  const onCerrarRef = useRef(onCerrar);
+  const toastRef = useRef(toast);
+
+  useEffect(() => {
+    onCerrarRef.current = onCerrar;
+  }, [onCerrar]);
+
+  useEffect(() => {
+    toastRef.current = toast;
+  }, [toast]);
+
+  const handleCerrarDrawer = useCallback(() => {
+    setModalEditarAbierto(false);
+    onCerrarRef.current();
+  }, []);
+
   const cargando = Boolean(operativoId) && estadoCarga.id !== operativoId;
   const detalle =
     operativoId && estadoCarga.id === operativoId ? estadoCarga.detalle : null;
@@ -61,6 +84,12 @@ export const OperativoRecuperacionDrawer: React.FC<OperativoRecuperacionDrawerPr
 
   const esEstadoBloqueado =
     detalle?.estado === 'COMPLETADA' || detalle?.estado === 'CANCELADA';
+
+  useEffect(() => {
+    queueMicrotask(() => {
+      setModalEditarAbierto(false);
+    });
+  }, [operativoId]);
 
   useEffect(() => {
     if (!operativoId) return;
@@ -75,10 +104,11 @@ export const OperativoRecuperacionDrawer: React.FC<OperativoRecuperacionDrawerPr
       .catch((err: unknown) => {
         if (!activo) return;
         if (err instanceof RecuperacionServiceError && err.statusCode === 404) {
-          toast?.showError(
+          toastRef.current?.showError(
             err.message || 'El operativo de recuperación solicitado no fue encontrado.'
           );
-          onCerrar();
+          setModalEditarAbierto(false);
+          onCerrarRef.current();
           return;
         }
         setEstadoCarga({
@@ -94,7 +124,7 @@ export const OperativoRecuperacionDrawer: React.FC<OperativoRecuperacionDrawerPr
     return () => {
       activo = false;
     };
-  }, [operativoId, reloadNonce, onCerrar, toast]);
+  }, [operativoId, reloadNonce]);
 
   useRecuperacionSocket({
     enabled: Boolean(operativoId),
@@ -112,12 +142,12 @@ export const OperativoRecuperacionDrawer: React.FC<OperativoRecuperacionDrawerPr
     if (!operativoId) return;
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape' && !modalEditarAbierto) {
-        onCerrar();
+        handleCerrarDrawer();
       }
     };
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [operativoId, modalEditarAbierto, onCerrar]);
+  }, [operativoId, modalEditarAbierto, handleCerrarDrawer]);
 
   const handleEdicionExitosa = (actualizado: EditarOperativoRecuperacionData) => {
     setEstadoCarga((prev) => {
@@ -148,7 +178,7 @@ export const OperativoRecuperacionDrawer: React.FC<OperativoRecuperacionDrawerPr
       role="dialog"
       aria-modal="true"
       aria-label="Detalle de operativo de recuperación"
-      onClick={onCerrar}
+      onClick={handleCerrarDrawer}
     >
       <aside className={styles.drawer} onClick={(e) => e.stopPropagation()}>
         <header className={styles.header}>
@@ -164,7 +194,7 @@ export const OperativoRecuperacionDrawer: React.FC<OperativoRecuperacionDrawerPr
             type="button"
             variant="ghost"
             size="sm"
-            onClick={onCerrar}
+            onClick={handleCerrarDrawer}
             aria-label="Cerrar panel de detalle"
             style={{ color: '#FFFFFF', borderColor: 'rgba(255,255,255,0.3)' }}
           >
@@ -265,6 +295,18 @@ export const OperativoRecuperacionDrawer: React.FC<OperativoRecuperacionDrawerPr
                       {formatearFechaChilena(detalle.fechaCierre)}
                     </span>
                   </div>
+                  <div className={styles.infoItem}>
+                    <span className={styles.infoLabel}>Última actualización</span>
+                    <span className={styles.infoValue}>
+                      {formatearFechaChilena(detalle.actualizadoEn)}
+                    </span>
+                  </div>
+                  {detalle.actualizadoPorId && (
+                    <div className={styles.infoItem}>
+                      <span className={styles.infoLabel}>Actualizado por (ID)</span>
+                      <span className={styles.infoValue}>{detalle.actualizadoPorId}</span>
+                    </div>
+                  )}
                 </div>
 
                 {detalle.observacionesCierre && (
@@ -380,8 +422,10 @@ export const OperativoRecuperacionDrawer: React.FC<OperativoRecuperacionDrawerPr
 
       {detalle && (
         <ModalEditarOperativoRecuperacion
+          key={operativoId}
           isOpen={modalEditarAbierto}
           operativo={detalle}
+          userId={activeUserId}
           onClose={() => setModalEditarAbierto(false)}
           onSuccess={handleEdicionExitosa}
         />

@@ -410,4 +410,555 @@ describe('Componente MisionDetalleModal (HU-17)', () => {
       screen.queryByLabelText('Visor de evidencia: evidencia_1.jpg')
     ).toBeNull();
   });
+
+  it('debe renderizar el informe técnico de reclasificación de tipología en terreno y evitar enums crudos', async () => {
+    const mockMisionConReclasificacion: MisionDetalleCompleto = {
+      ...mockMision,
+      id: 'm1000000-0000-4000-8000-000000000770',
+      codigo: 'MIS-2026-7700',
+      titulo: 'Verificación: Corte de agua potable - INC-592395-562',
+      tipoMision: 'VERIFICACION',
+      estado: 'EN_CURSO',
+      prioridad: 'MEDIA',
+      patrulla: {
+        id: 'pat-1',
+        nombre: 'papappap',
+        estado: 'EN_VERIFICACION',
+        delegacionNombre: 'Calle Calle',
+        lider: {
+          id: 'u-lider',
+          nombre: 'Cristóbal Felipe Veas Huequemán',
+          email: 'patrulla@valdivia.cl',
+        },
+      },
+      cuadrilla: null,
+      incidente: {
+        id: 'inc-770',
+        codigo: 'INC-592395-562',
+        codigoSeguimiento: '17780027',
+        tipoAfectacion: 'Corte de agua potable',
+        descripcion: 'Matriz rota',
+        direccion: 'Arauco 642, Villa Coltauco',
+        latitud: -39.82,
+        longitud: -73.24,
+        estado: 'VERIFICANDO',
+        prioridad: 'MEDIA',
+        requiereAsistenciaSocial: false,
+        delegacionNombre: 'Calle Calle',
+      },
+      bitacoraTiempos: [
+        {
+          hito: 'CREACION',
+          fecha: '2026-11-10',
+          hora: '01:03:24',
+          timestamp: '2026-11-10T01:03:24.000Z',
+          descripcion: 'Misión planificada y registrada en el sistema',
+        },
+        {
+          hito: 'TIPOLOGIA_RECLASIFICADA',
+          fecha: '2026-11-10',
+          hora: '05:15:00',
+          timestamp: '2026-11-10T05:15:00.000Z',
+          descripcion:
+            'Tipología reclasificada en terreno a: Corte de agua potable. Justificación: Se constata rotura de matriz con suspensión de suministro.',
+        },
+      ],
+      reportesTerreno: [],
+    };
+
+    vi.spyOn(misionesService, 'obtenerDetalleMision').mockResolvedValueOnce({
+      exito: true,
+      datos: mockMisionConReclasificacion,
+      mensaje: 'OK',
+    });
+
+    render(
+      <MisionDetalleModal
+        misionId="m1000000-0000-4000-8000-000000000770"
+        onCerrar={vi.fn()}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('MIS-2026-7700')).toBeDefined();
+    });
+
+    // Validar tipo formateado amigable (no enum VERIFICACION)
+    expect(screen.getByText('Verificación en terreno')).toBeDefined();
+
+    // Validar estados formateados en español
+    expect(screen.getAllByText('En verificación').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('Media').length).toBeGreaterThanOrEqual(1);
+
+    // Validar hito de reclasificación en bitácora
+    expect(screen.getByText('Tipología reclasificada en terreno')).toBeDefined();
+
+    // Validar tarjeta destacada de informe técnico en terreno
+    const cardInforme = screen.getByTestId('reporte-verificacion-reclasificacion');
+    expect(cardInforme).toBeDefined();
+    expect(cardInforme.textContent).toContain('Corte de agua potable');
+    expect(cardInforme.textContent).toContain('rotura de matriz');
+    expect(cardInforme.textContent).toContain('Cristóbal Felipe Veas');
+
+    // Validar interacción de colapsar / desplegar informe de evaluación
+    const triggerToggle = screen.getByLabelText(/Colapsar informe de evaluación en terreno/i);
+    expect(triggerToggle.getAttribute('aria-expanded')).toBe('true');
+
+    // Al hacer clic, se colapsa
+    fireEvent.click(triggerToggle);
+    expect(triggerToggle.getAttribute('aria-expanded')).toBe('false');
+    expect(screen.queryByText('Se constata rotura de matriz con suspensión de suministro.')).toBeNull();
+
+    // Al volver a hacer clic, se despliega nuevamente
+    fireEvent.click(triggerToggle);
+    expect(triggerToggle.getAttribute('aria-expanded')).toBe('true');
+    expect(screen.getByText('Se constata rotura de matriz con suspensión de suministro.')).toBeDefined();
+  });
+
+  it('debe renderizar los reportes de evaluación en terreno con versión (Inicial y Rectificación), comparativa de prioridad sugerida vs confirmada, justificación y desglose demográfico (HU-38)', async () => {
+    const mockMisionConEvaluaciones: MisionDetalleCompleto = {
+      ...mockMision,
+      id: 'm-eval-38',
+      codigo: 'MIS-2026-0038',
+      tipoMision: 'VERIFICACION',
+      prioridad: 'CRITICA',
+      reportesTerreno: [
+        {
+          id: 'rep-38-1',
+          misionId: 'm-eval-38',
+          versionReporte: 1,
+          esRectificacion: false,
+          etiquetaReporte: 'Reporte de Evaluación #1 (Inicial)',
+          prioridadSugerida: 'MEDIA',
+          prioridadAsignada: 'ALTA',
+          justificacionPrioridad: 'Crecida rápida del estero cercano a vivienda.',
+          detallesEvaluacion: {
+            nucleoFamiliarTotal: 3,
+            cantidadNinos: 1,
+            nivelCompromisoVivienda: 'LEVE',
+          },
+          evaluador: {
+            id: 'u002',
+            nombre: 'Patrullero Terreno',
+            email: 'patrulla@valdivia.cl',
+            rut: '15.222.333-4',
+          },
+          resumenTecnico: 'Primer reporte de evaluación en terreno.',
+          accionesRealizadas: 'Inspección perimetral.',
+          requiereApoyoAdicional: false,
+          danosEstimados: 'Humedad en patio.',
+          observaciones: 'Se mantiene monitoreo.',
+          personasAfectadas: 3,
+          estadoTerreno: 'EN_PROGRESO',
+          adjuntos: [],
+          creadoEn: '2026-11-11T10:00:00.000Z',
+          actualizadoEn: '2026-11-11T10:00:00.000Z',
+        },
+        {
+          id: 'rep-38-2',
+          misionId: 'm-eval-38',
+          versionReporte: 2,
+          esRectificacion: true,
+          etiquetaReporte: 'Reporte de Evaluación #2 (Rectificación)',
+          prioridadSugerida: 'ALTA',
+          prioridadAsignada: 'CRITICA',
+          justificacionPrioridad: 'El agua ingresó a la vivienda donde reside persona con discapacidad y niños.',
+          detallesEvaluacion: {
+            nucleoFamiliarTotal: 5,
+            familiasAfectadas: 1,
+            cantidadNinos: 2,
+            cantidadAdultosMayores: 1,
+            personasDiscapacitadas: 1,
+            mascotasAfectadas: 3,
+            viviendasAfectadas: 1,
+            nivelCompromisoVivienda: 'GRAVE_INHABITABLE',
+            requiereEvacuacion: true,
+            requiereAsistenciaSocial: true,
+            riesgosActivos: {
+              riesgoElectrico: true,
+              riesgoEstructural: true,
+            },
+            detallesAdicionales: 'Adulto mayor requiere traslado asistido inmediato.',
+          },
+          evaluador: {
+            id: 'u002',
+            nombre: 'Patrullero Terreno',
+            email: 'patrulla@valdivia.cl',
+            rut: '15.222.333-4',
+          },
+          resumenTecnico: 'Rectificación por agravamiento de inundación.',
+          accionesRealizadas: 'Corte de suministro eléctrico.',
+          requiereApoyoAdicional: true,
+          danosEstimados: 'Vivienda anegada en primer nivel.',
+          observaciones: 'Adulto mayor requiere traslado asistido inmediato.',
+          personasAfectadas: 5,
+          estadoTerreno: 'TRABAJANDO',
+          adjuntos: [],
+          creadoEn: '2026-11-11T10:25:00.000Z',
+          actualizadoEn: '2026-11-11T10:25:00.000Z',
+        },
+      ],
+    };
+
+    vi.spyOn(misionesService, 'obtenerDetalleMision').mockResolvedValueOnce({
+      exito: true,
+      datos: mockMisionConEvaluaciones,
+      mensaje: 'OK',
+    });
+
+    render(
+      <MisionDetalleModal
+        misionId="m-eval-38"
+        enfocarReportes={true}
+        reporteDestacadoId="rep-38-2"
+        onCerrar={vi.fn()}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('MIS-2026-0038')).toBeDefined();
+    });
+
+    // Verificar etiquetas de versión e indicador de múltiples versiones
+    expect(screen.getByText('2 versiones registradas')).toBeDefined();
+    expect(screen.getByText('Reporte de Evaluación #2 (Rectificación)')).toBeDefined();
+    expect(screen.getByText('Reporte de Evaluación #1 (Inicial)')).toBeDefined();
+    expect(screen.getByText('Vigente')).toBeDefined();
+    expect(screen.getByText('Histórico')).toBeDefined();
+
+    // Verificar comparativa de prioridad y justificación en el reporte #2
+    const bloquePrioridad2 = screen.getByTestId('comparativa-prioridad-rep-38-2');
+    expect(bloquePrioridad2.textContent).toContain('Alta');
+    expect(bloquePrioridad2.textContent).toContain('Crítica (Ajustada manualmente)');
+    expect(bloquePrioridad2.textContent).toContain(
+      'El agua ingresó a la vivienda donde reside persona con discapacidad y niños.'
+    );
+
+    // Verificar desglose demográfico del formulario en terreno
+    const desglose2 = screen.getByTestId('desglose-evaluacion-terreno-rep-38-2');
+    expect(desglose2.textContent).toContain('5 (1 familia)');
+    expect(desglose2.textContent).toContain('Grave / Inhabitable (1 vivienda)');
+    expect(desglose2.textContent).toContain('Requiere Evacuación');
+    expect(desglose2.textContent).toContain('Requiere Ficha FIBE');
+    expect(desglose2.textContent).toContain('Riesgo Eléctrico');
+    expect(desglose2.textContent).toContain('Riesgo Estructural');
+
+    // Verificar que al abrir enfocado en rep-38-2, el reporte #1 (rep-38-1) está colapsado por defecto
+    expect(screen.queryByTestId('comparativa-prioridad-rep-38-1')).toBeNull();
+    const toggleRep1 = screen.getByTestId('toggle-reporte-rep-38-1');
+    expect(toggleRep1.getAttribute('aria-expanded')).toBe('false');
+
+    // Al hacer clic en el encabezado del reporte #1, se despliega su contenido
+    fireEvent.click(toggleRep1);
+    expect(toggleRep1.getAttribute('aria-expanded')).toBe('true');
+    expect(screen.getByTestId('comparativa-prioridad-rep-38-1')).toBeDefined();
+  });
+
+  it('debe renderizar el desglose estructurado de múltiples familias con referencias, severidad y FIBE', async () => {
+    const misionConMultiplesFamilias: MisionDetalleCompleto = {
+      ...mockMision,
+      tipoMision: 'VERIFICACION',
+      reportesTerreno: [
+        {
+          id: 'rep-familias-multiples',
+          misionId: 'mis-mock-01',
+          versionReporte: 1,
+          esRectificacion: false,
+          prioridadSugerida: 'ALTA',
+          prioridadAsignada: 'CRITICA',
+          justificacionPrioridad: 'Dos viviendas anegadas con familias en riesgo.',
+          evaluador: {
+            id: 'eval-01',
+            nombre: 'Patrullero Soto',
+            email: 'soto@valdivia.cl',
+            rut: '12.345.678-9',
+          },
+          resumenTecnico: 'Constatación de dos viviendas en lote común.',
+          accionesRealizadas: 'Demarcación y evaluación preliminar FIBE.',
+          requiereApoyoAdicional: true,
+          danosEstimados: 'Moderados',
+          observaciones: 'Coordinar con asistente social.',
+          personasAfectadas: 7,
+          estadoTerreno: 'EN_PROCESO',
+          adjuntos: [],
+          creadoEn: '2026-11-12T10:00:00Z',
+          actualizadoEn: '2026-11-12T10:00:00Z',
+          detallesEvaluacion: {
+            familias: [
+              {
+                id: 'fam-1',
+                referencia: 'Familia Muñoz - Casa Principal',
+                nucleoFamiliarTotal: 4,
+                cantidadNinos: 2,
+                cantidadAdultosMayores: 1,
+                personasDiscapacitadas: 0,
+                mascotasAfectadas: 1,
+                nivelCompromisoVivienda: 'GRAVE_INHABITABLE',
+                requiereAsistenciaSocial: true,
+              },
+              {
+                id: 'fam-2',
+                referencia: 'Familia Díaz - Cabaña Interior',
+                nucleoFamiliarTotal: 3,
+                cantidadNinos: 0,
+                cantidadAdultosMayores: 0,
+                personasDiscapacitadas: 1,
+                mascotasAfectadas: 2,
+                nivelCompromisoVivienda: 'MODERADO_PARCIAL',
+                requiereAsistenciaSocial: false,
+              },
+            ],
+            nucleoFamiliarTotal: 7,
+            familiasAfectadas: 2,
+            viviendasAfectadas: 2,
+            nivelCompromisoVivienda: 'GRAVE_INHABITABLE',
+            requiereAsistenciaSocial: true,
+            riesgosActivos: {
+              riesgoElectrico: true,
+            },
+          },
+        },
+      ],
+    };
+
+    vi.spyOn(misionesService, 'obtenerDetalleMision').mockResolvedValueOnce({
+      exito: true,
+      datos: misionConMultiplesFamilias,
+      mensaje: 'OK',
+    });
+
+    render(
+      <MisionDetalleModal
+        misionId="mis-mock-01"
+        onCerrar={vi.fn()}
+      />
+    );
+
+    // Esperar a que el modal cargue y verificar chip de cantidad de hogares en la cabecera del reporte
+    await waitFor(() => {
+      expect(screen.getByText('2 hogares')).toBeDefined();
+    });
+
+    // Verificar presencia del contenedor de listado de familias
+    const contenedorFamilias = screen.getByTestId('familias-listado-rep-familias-multiples');
+    expect(contenedorFamilias).toBeDefined();
+
+    // Verificar ítems de familias individuales con sus referencias
+    const itemFam1 = screen.getByTestId('familia-item-rep-familias-multiples-0');
+    expect(itemFam1.textContent).toContain('Familia Muñoz - Casa Principal');
+    expect(itemFam1.textContent).toContain('Integrantes: 4 pers.');
+    expect(itemFam1.textContent).toContain('Niños/Adolescentes: 2');
+    expect(itemFam1.textContent).toContain('Adultos mayores: 1');
+    expect(itemFam1.textContent).toContain('Grave / Inhabitable');
+    expect(itemFam1.textContent).toContain('Requiere FIBE');
+
+    const itemFam2 = screen.getByTestId('familia-item-rep-familias-multiples-1');
+    expect(itemFam2.textContent).toContain('Familia Díaz - Cabaña Interior');
+    expect(itemFam2.textContent).toContain('Integrantes: 3 pers.');
+    expect(itemFam2.textContent).toContain('Discapacidad: 1');
+    expect(itemFam2.textContent).toContain('Mascotas: 2');
+    expect(itemFam2.textContent).toContain('Daño moderado (Parcial)');
+
+    // Verificar consolidado general
+    const desgloseGeneral = screen.getByTestId('desglose-evaluacion-terreno-rep-familias-multiples');
+    expect(desgloseGeneral.textContent).toContain('Consolidado General de Afectación');
+    expect(desgloseGeneral.textContent).toContain('7 (2 familias)');
+  });
+
+  it('indica explícitamente cuando la tipología no fue modificada en Diagnóstico Técnico y Bitácora Cronológica', async () => {
+    const mockMisionRatificada: MisionDetalleCompleto = {
+      ...mockMision,
+      id: 'm-rat-1',
+      codigo: 'MIS-2026-0999',
+      tipoMision: 'VERIFICACION',
+      incidente: {
+        id: 'inc-999',
+        codigo: 'INC-948888-846',
+        tipoAfectacion: 'Deslizamiento',
+        estado: 'VERIFICANDO',
+        prioridad: 'MEDIA',
+        direccion: 'Sector Norte',
+      },
+      bitacoraTiempos: [
+        {
+          id: 'hito-rat-1',
+          hito: 'TIPOLOGIA_RECLASIFICADA',
+          descripcion:
+            'Tipología reclasificada en terreno a: Deslizamiento. Justificación: Tipología constatada y ratificada en terreno sin variaciones.',
+          fecha: '2026-11-13',
+          hora: '15:21:38',
+          timestamp: '2026-11-13T15:21:38Z',
+          metadatos: {
+            tipoAnterior: 'Deslizamiento',
+            tipoNuevo: 'Deslizamiento',
+          },
+        },
+      ],
+    };
+
+    vi.spyOn(misionesService, 'obtenerDetalleMision').mockResolvedValueOnce({
+      exito: true,
+      datos: mockMisionRatificada,
+      mensaje: 'OK',
+    });
+
+    render(
+      <MisionDetalleModal misionId="m-rat-1" onCerrar={vi.fn()} />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('MIS-2026-0999')).toBeDefined();
+    });
+
+    // Imagen 3: Diagnóstico Técnico y Tipología Constatada sin flecha X → X
+    const cardInforme = screen.getByTestId('reporte-verificacion-reclasificacion');
+    expect(cardInforme.textContent).toContain('Deslizamiento (confirmada sin modificaciones por la patrulla)');
+    expect(cardInforme.textContent).not.toContain('Deslizamiento → Deslizamiento');
+
+    // Imagen 4: Bitácora Cronológica debe indicar que no hubo cambios
+    expect(screen.getByText('Tipología constatada en terreno (sin cambios)')).toBeDefined();
+    expect(
+      screen.getByText(
+        /Tipología confirmada en terreno sin modificaciones: Deslizamiento\./i
+      )
+    ).toBeDefined();
+  });
+
+  it('formatea bitácora cronológica con textos amigables sin enums crudos ni prefijos duplicados', async () => {
+    const mockMisionBitacoraAmigable: MisionDetalleCompleto = {
+      ...mockMision,
+      id: 'm-bitacora-amigable',
+      codigo: 'MIS-2026-0777',
+      bitacoraTiempos: [
+        {
+          id: 'h-1',
+          hito: 'MISION_DESPACHADA',
+          descripcion: 'Misión de verificación asignada y despachada a la patrulla Patrulla Lenteja.',
+          fecha: '2026-11-16',
+          hora: '21:30:15',
+          timestamp: '2026-11-16T21:30:15Z',
+        },
+        {
+          id: 'h-2',
+          hito: 'PRIORIDAD_ASIGNADA',
+          descripcion: 'Reporte de evaluación #1: Prioridad asignada en terreno a BAJA (Sugerida: CRITICA). Justificación: Ajuste presencial.',
+          fecha: '2026-11-16',
+          hora: '21:32:56',
+          timestamp: '2026-11-16T21:32:56Z',
+        },
+        {
+          id: 'h-3',
+          hito: 'VERIFICACION_COMPLETADA',
+          descripcion: 'Informe técnico enviado y misión cerrada. Dictamen: NO_ABORDABLE. Motivo: Predio privado cerrado.',
+          fecha: '2026-11-16',
+          hora: '23:30:33',
+          timestamp: '2026-11-16T23:30:33Z',
+        },
+      ],
+    };
+
+    vi.spyOn(misionesService, 'obtenerDetalleMision').mockResolvedValueOnce({
+      exito: true,
+      datos: mockMisionBitacoraAmigable,
+      mensaje: 'OK',
+    });
+
+    render(<MisionDetalleModal misionId="m-bitacora-amigable" onCerrar={vi.fn()} />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Verificación completada')).toBeDefined();
+    });
+
+    expect(
+      screen.getByText('Misión de verificación asignada y despachada a la Patrulla Lenteja.')
+    ).toBeDefined();
+    expect(
+      screen.getByText(
+        'Reporte de evaluación #1: Prioridad asignada en terreno a Baja (Sugerida: Crítica). Justificación: Ajuste presencial.'
+      )
+    ).toBeDefined();
+    expect(
+      screen.getByText(
+        'Informe técnico enviado y misión cerrada. Dictamen: No Abordable. Motivo: Predio privado cerrado.'
+      )
+    ).toBeDefined();
+  });
+
+  it('BUG-H37-WEB-05: selecciona el hito TIPOLOGIA_RECLASIFICADA más reciente y extrae justificaciones multilínea con saltos de línea', async () => {
+    const mockMisionDosReclasificaciones: MisionDetalleCompleto = {
+      ...mockMision,
+      id: 'm1000000-0000-4000-8000-000000000771',
+      codigo: 'MIS-2026-7701',
+      tipoMision: 'VERIFICACION',
+      estado: 'EN_CURSO',
+      prioridad: 'ALTA',
+      patrulla: {
+        id: 'pat-1',
+        nombre: 'Patrulla Norte',
+        estado: 'EN_VERIFICACION',
+        delegacionNombre: 'Las Ánimas',
+        lider: {
+          id: 'u-lider',
+          nombre: 'Inspector Terreno',
+          email: 'inspector@valdivia.cl',
+        },
+      },
+      cuadrilla: null,
+      incidente: {
+        id: 'inc-771',
+        codigo: 'INC-2026-0771',
+        codigoSeguimiento: '77100001',
+        tipoAfectacion: 'Inundación',
+        descripcion: 'Desborde constatado',
+        direccion: 'Av. España 123',
+        latitud: -39.81,
+        longitud: -73.24,
+        estado: 'VERIFICANDO',
+        prioridad: 'ALTA',
+        requiereAsistenciaSocial: false,
+        delegacionNombre: 'Las Ánimas',
+      },
+      bitacoraTiempos: [
+        {
+          hito: 'TIPOLOGIA_RECLASIFICADA',
+          fecha: '2026-11-10',
+          hora: '05:00:00',
+          timestamp: '2026-11-10T05:00:00.000Z',
+          descripcion:
+            'Tipología reclasificada en terreno a: Anegamiento. Justificación: Justificación antigua descartada.',
+        },
+        {
+          hito: 'TIPOLOGIA_RECLASIFICADA',
+          fecha: '2026-11-10',
+          hora: '05:25:00',
+          timestamp: '2026-11-10T05:25:00.000Z',
+          descripcion:
+            'Tipología reclasificada en terreno a: Inundación. Justificación: Primera línea de constatación.\nSegunda línea con detalle de anegamiento.',
+        },
+      ],
+      reportesTerreno: [],
+    };
+
+    vi.spyOn(misionesService, 'obtenerDetalleMision').mockResolvedValueOnce({
+      exito: true,
+      datos: mockMisionDosReclasificaciones,
+      mensaje: 'OK',
+    });
+
+    render(
+      <MisionDetalleModal
+        misionId="m1000000-0000-4000-8000-000000000771"
+        onCerrar={vi.fn()}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('MIS-2026-7701')).toBeDefined();
+    });
+
+    const cardInforme = screen.getByTestId('reporte-verificacion-reclasificacion');
+    expect(cardInforme.textContent).toContain('Primera línea de constatación.');
+    expect(cardInforme.textContent).toContain('Segunda línea con detalle de anegamiento.');
+    expect(cardInforme.textContent).not.toContain('Justificación antigua descartada');
+  });
 });

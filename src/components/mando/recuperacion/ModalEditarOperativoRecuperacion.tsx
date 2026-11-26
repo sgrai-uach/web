@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Boxes, CalendarClock, Plus, Trash2, Truck } from 'lucide-react';
 import Modal from '@/components/common/Modal';
 import Button from '@/components/ui/Button';
@@ -28,7 +28,16 @@ import styles from './ModalEditarOperativoRecuperacion.module.css';
 interface FilaRecursoEdicion {
   idTemporal: string;
   recursoId: string;
-  cantidad: number;
+  cantidad: string;
+}
+
+interface SnapshotInicialEdicion {
+  id: string;
+  actualizadoEn: string;
+  descripcion: string;
+  fechaEstimadaFin: string;
+  patrullaId: string;
+  recursos: Array<{ recursoId: string; cantidad: number }>;
 }
 
 export interface ModalEditarOperativoRecuperacionProps {
@@ -75,28 +84,83 @@ export const ModalEditarOperativoRecuperacion: React.FC<
 
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [erroresCampos, setErroresCampos] = useState<Record<string, string>>({});
+  const [erroresFilasRecursos, setErroresFilasRecursos] = useState<Record<number, string>>({});
   const [errorGeneral, setErrorGeneral] = useState<string | null>(null);
+  const [conflictoEstadoBloqueado, setConflictoEstadoBloqueado] = useState<boolean>(false);
+  const [avisoActualizacionRemota, setAvisoActualizacionRemota] = useState<boolean>(false);
 
+  const estabaAbiertoRef = useRef<boolean>(false);
+  const snapshotInicialRef = useRef<SnapshotInicialEdicion | null>(null);
+
+  const esEstadoCerrado =
+    operativo.estado === 'COMPLETADA' ||
+    operativo.estado === 'CANCELADA' ||
+    conflictoEstadoBloqueado;
+
+  // Inicializa el formulario solo al abrir el modal o al cambiar de operativo.id (BUG-H74-WEB-01).
+  useEffect(() => {
+    if (!isOpen) {
+      estabaAbiertoRef.current = false;
+      snapshotInicialRef.current = null;
+      return;
+    }
+
+    const recienAbierto = !estabaAbiertoRef.current;
+    const cambioOperativo = snapshotInicialRef.current?.id !== operativo.id;
+
+    if (recienAbierto || cambioOperativo) {
+      estabaAbiertoRef.current = true;
+      const descInit = operativo.descripcion ?? '';
+      const fechaInit = isoToDatetimeLocal(operativo.fechaEstimadaFin);
+      const patrullaInit = operativo.patrulla?.id ?? '';
+      const recursosInit = (operativo.recursos ?? []).map((r) => ({
+        recursoId: r.recursoId,
+        cantidad: r.cantidadAsignada,
+      }));
+
+      snapshotInicialRef.current = {
+        id: operativo.id,
+        actualizadoEn: operativo.actualizadoEn,
+        descripcion: descInit.trim(),
+        fechaEstimadaFin: fechaInit,
+        patrullaId: patrullaInit,
+        recursos: recursosInit,
+      };
+
+      queueMicrotask(() => {
+        setDescripcion(descInit);
+        setFechaEstimadaFin(fechaInit);
+        setPatrullaId(patrullaInit);
+        setFilasRecursos(
+          (operativo.recursos ?? []).map((rec, idx) => ({
+            idTemporal: `rec-init-${idx}-${rec.recursoId}`,
+            recursoId: rec.recursoId,
+            cantidad: String(rec.cantidadAsignada),
+          }))
+        );
+        setErroresCampos({});
+        setErroresFilasRecursos({});
+        setErrorGeneral(null);
+        setConflictoEstadoBloqueado(false);
+        setAvisoActualizacionRemota(false);
+      });
+    } else if (
+      snapshotInicialRef.current &&
+      operativo.actualizadoEn !== snapshotInicialRef.current.actualizadoEn
+    ) {
+      queueMicrotask(() => {
+        setAvisoActualizacionRemota(true);
+      });
+    }
+  }, [isOpen, operativo]);
+
+  // Carga catálogos solo al abrir el modal o cambiar userId (no en re-renders del operativo).
   useEffect(() => {
     if (!isOpen) return;
 
     let activo = true;
-
     queueMicrotask(() => {
-      if (!activo) return;
-      setDescripcion(operativo.descripcion ?? '');
-      setFechaEstimadaFin(isoToDatetimeLocal(operativo.fechaEstimadaFin));
-      setPatrullaId(operativo.patrulla?.id ?? '');
-      setFilasRecursos(
-        operativo.recursos.map((rec, idx) => ({
-          idTemporal: `rec-init-${idx}-${rec.recursoId}`,
-          recursoId: rec.recursoId,
-          cantidad: rec.cantidadAsignada,
-        }))
-      );
-      setErroresCampos({});
-      setErrorGeneral(null);
-      setCargandoCatalogos(true);
+      if (activo) setCargandoCatalogos(true);
     });
 
     void (async () => {
@@ -131,7 +195,15 @@ export const ModalEditarOperativoRecuperacion: React.FC<
     return () => {
       activo = false;
     };
-  }, [isOpen, operativo, userId]);
+  }, [isOpen, userId]);
+
+  const inventarioMap = useMemo(() => {
+    const map = new Map<string, RecursoItem>();
+    for (const r of inventario) {
+      map.set(r.id, r);
+    }
+    return map;
+  }, [inventario]);
 
   const opcionesPatrulla = useMemo(() => {
     const mapa = new Map<string, { value: string; label: string }>();
@@ -153,21 +225,32 @@ export const ModalEditarOperativoRecuperacion: React.FC<
       }
     }
 
-    return Array.from(mapa.values());
-  }, [operativo.patrulla, patrullas]);
+    const opciones = Array.from(mapa.values());
+    if (!operativo.patrulla || patrullaId === '') {
+      return [{ value: '', label: 'Seleccione una patrulla...' }, ...opciones];
+    }
+    return opciones;
+  }, [operativo.patrulla, patrullas, patrullaId]);
 
   const opcionesRecursos = useMemo(() => {
+    const asignadosIds = new Set((operativo.recursos ?? []).map((r) => r.recursoId));
     const mapa = new Map<string, { value: string; label: string }>();
 
     for (const r of inventario) {
+      const noDisponible =
+        r.estado === 'NO_DISPONIBLE' || r.estado === 'EN_MANTENCION';
+      if (noDisponible && !asignadosIds.has(r.id)) {
+        continue;
+      }
       const stock = r.cantidadDisponible ?? 0;
+      const etiquetaIndividual = r.esIndividual ? ' · Activo único' : '';
       mapa.set(r.id, {
         value: r.id,
-        label: `${r.nombre} (Stock bodega: ${stock})`,
+        label: `${r.nombre} (Stock bodega: ${stock}${etiquetaIndividual})`,
       });
     }
 
-    for (const r of operativo.recursos) {
+    for (const r of operativo.recursos ?? []) {
       if (!mapa.has(r.recursoId)) {
         mapa.set(r.recursoId, {
           value: r.recursoId,
@@ -185,41 +268,56 @@ export const ModalEditarOperativoRecuperacion: React.FC<
   const handleAgregarRecurso = () => {
     setFilasRecursos((prev) => [
       ...prev,
-      { idTemporal: `rec-new-${Date.now()}-${Math.random()}`, recursoId: '', cantidad: 1 },
+      { idTemporal: `rec-new-${Date.now()}-${Math.random()}`, recursoId: '', cantidad: '1' },
     ]);
   };
 
   const handleEliminarRecurso = (idTemporal: string) => {
     setFilasRecursos((prev) => prev.filter((item) => item.idTemporal !== idTemporal));
+    setErroresFilasRecursos({});
   };
 
   const handleCambiarRecurso = (
     idTemporal: string,
     campo: 'recursoId' | 'cantidad',
-    valor: string | number
+    valor: string
   ) => {
     setFilasRecursos((prev) =>
-      prev.map((item) =>
-        item.idTemporal === idTemporal ? { ...item, [campo]: valor } : item
-      )
+      prev.map((item) => {
+        if (item.idTemporal !== idTemporal) return item;
+        if (campo === 'recursoId') {
+          const recursoMeta = inventarioMap.get(valor);
+          return {
+            ...item,
+            recursoId: valor,
+            cantidad: recursoMeta?.esIndividual ? '1' : item.cantidad,
+          };
+        }
+        return { ...item, cantidad: valor };
+      })
     );
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (esEstadoCerrado) return;
+
     setErroresCampos({});
+    setErroresFilasRecursos({});
     setErrorGeneral(null);
 
+    const snapshot = snapshotInicialRef.current;
     const payload: EditarOperativoRecuperacionInput = {};
     const nuevosErrores: Record<string, string> = {};
+    const nuevosErroresFilas: Record<number, string> = {};
 
-    const descInicial = (operativo.descripcion ?? '').trim();
+    const descInicial = snapshot?.descripcion ?? (operativo.descripcion ?? '').trim();
     const descActual = descripcion.trim();
     if (descActual !== descInicial) {
       payload.descripcion = descActual === '' ? null : descActual;
     }
 
-    const fechaInicial = isoToDatetimeLocal(operativo.fechaEstimadaFin);
+    const fechaInicial = snapshot?.fechaEstimadaFin ?? isoToDatetimeLocal(operativo.fechaEstimadaFin);
     if (fechaEstimadaFin !== fechaInicial) {
       if (fechaEstimadaFin === '') {
         payload.fechaEstimadaFin = null;
@@ -237,40 +335,54 @@ export const ModalEditarOperativoRecuperacion: React.FC<
       }
     }
 
-    const patrullaInicial = operativo.patrulla?.id ?? '';
+    const patrullaInicial = snapshot?.patrullaId ?? (operativo.patrulla?.id ?? '');
     if (patrullaId && patrullaId !== patrullaInicial) {
       payload.patrullaId = patrullaId;
     }
 
-    // Validar filas de recursos y verificar si hubo cambios respecto a la dotación inicial
     const recursosActualesNormalizados: Array<{ recursoId: string; cantidad: number }> = [];
     const vistos = new Set<string>();
 
-    for (const fila of filasRecursos) {
+    filasRecursos.forEach((fila, idx) => {
       if (!fila.recursoId) {
-        nuevosErrores.recursos = 'Debe seleccionar un recurso en todas las filas agregadas.';
-        break;
+        nuevosErroresFilas[idx] = 'Debe seleccionar un recurso.';
+        return;
       }
       if (vistos.has(fila.recursoId)) {
-        nuevosErrores.recursos = 'No puede repetir el mismo recurso en múltiples filas.';
-        break;
+        nuevosErroresFilas[idx] = 'Este recurso ya fue agregado en otra fila.';
+        return;
       }
-      if (!Number.isInteger(fila.cantidad) || fila.cantidad < 1) {
-        nuevosErrores.recursos = 'Todas las cantidades de recursos deben ser enteros mayores o iguales a 1.';
-        break;
+      const cantidadStr = fila.cantidad.trim();
+      if (!/^\d+$/.test(cantidadStr)) {
+        nuevosErroresFilas[idx] = 'La cantidad debe ser un número entero mayor o igual a 1.';
+        return;
+      }
+      const cantidadNum = Number(cantidadStr);
+      if (!Number.isSafeInteger(cantidadNum) || cantidadNum < 1) {
+        nuevosErroresFilas[idx] = 'La cantidad debe ser un número entero mayor o igual a 1.';
+        return;
+      }
+      const recursoMeta = inventarioMap.get(fila.recursoId);
+      if (recursoMeta?.esIndividual && cantidadNum !== 1) {
+        nuevosErroresFilas[idx] = 'Los activos individuales solo admiten cantidad 1.';
+        return;
       }
       vistos.add(fila.recursoId);
       recursosActualesNormalizados.push({
         recursoId: fila.recursoId,
-        cantidad: fila.cantidad,
+        cantidad: cantidadNum,
       });
-    }
+    });
 
-    if (!nuevosErrores.recursos) {
-      const recursosIniciales = operativo.recursos.map((r) => ({
-        recursoId: r.recursoId,
-        cantidad: r.cantidadAsignada,
-      }));
+    if (Object.keys(nuevosErroresFilas).length > 0) {
+      nuevosErrores.recursos = 'Revise las filas de recursos marcadas con error.';
+    } else {
+      const recursosIniciales =
+        snapshot?.recursos ??
+        (operativo.recursos ?? []).map((r) => ({
+          recursoId: r.recursoId,
+          cantidad: r.cantidadAsignada,
+        }));
       if (
         normalizarRecursosParaComparacion(recursosActualesNormalizados) !==
         normalizarRecursosParaComparacion(recursosIniciales)
@@ -279,8 +391,9 @@ export const ModalEditarOperativoRecuperacion: React.FC<
       }
     }
 
-    if (Object.keys(nuevosErrores).length > 0) {
+    if (Object.keys(nuevosErrores).length > 0 || Object.keys(nuevosErroresFilas).length > 0) {
       setErroresCampos(nuevosErrores);
+      setErroresFilasRecursos(nuevosErroresFilas);
       return;
     }
 
@@ -315,8 +428,24 @@ export const ModalEditarOperativoRecuperacion: React.FC<
       onClose();
     } catch (err: unknown) {
       if (err instanceof RecuperacionServiceError) {
+        if (err.tipoConflicto === 'ESTADO_BLOQUEADO') {
+          setConflictoEstadoBloqueado(true);
+        }
         if (err.fieldErrors && Object.keys(err.fieldErrors).length > 0) {
-          setErroresCampos(err.fieldErrors);
+          const mapeados: Record<string, string> = {};
+          const filasErr: Record<number, string> = {};
+          for (const [key, msg] of Object.entries(err.fieldErrors)) {
+            const matchFila = /^recursos\.(\d+)\./.exec(key);
+            if (matchFila) {
+              const filaIdx = Number(matchFila[1]);
+              filasErr[filaIdx] = msg;
+              if (!mapeados.recursos) mapeados.recursos = msg;
+            } else {
+              mapeados[key] = msg;
+            }
+          }
+          setErroresCampos(mapeados);
+          setErroresFilasRecursos(filasErr);
         }
         setErrorGeneral(err.message);
         toast?.showError(err.message);
@@ -355,7 +484,7 @@ export const ModalEditarOperativoRecuperacion: React.FC<
             form="form-editar-operativo-recuperacion"
             variant="primary"
             size="md"
-            disabled={isSubmitting || cargandoCatalogos}
+            disabled={isSubmitting || cargandoCatalogos || esEstadoCerrado}
           >
             {isSubmitting ? 'Guardando cambios...' : 'Guardar Planificación'}
           </Button>
@@ -373,6 +502,18 @@ export const ModalEditarOperativoRecuperacion: React.FC<
           <span className={styles.metaNombre}>{operativo.nombre}</span>
         </div>
 
+        {esEstadoCerrado && (
+          <InlineNotice variant="warning">
+            Este operativo se encuentra en estado cerrado ({operativo.estado}). La edición de planificación está bloqueada.
+          </InlineNotice>
+        )}
+
+        {avisoActualizacionRemota && !esEstadoCerrado && (
+          <InlineNotice variant="info">
+            Este operativo recibió una actualización externa mientras lo editabas. Tus cambios actuales en el formulario se conservan.
+          </InlineNotice>
+        )}
+
         {errorGeneral && (
           <InlineNotice variant="error">{errorGeneral}</InlineNotice>
         )}
@@ -385,7 +526,7 @@ export const ModalEditarOperativoRecuperacion: React.FC<
           rows={3}
           error={erroresCampos.descripcion}
           helperText="Mínimo 3 caracteres y máximo 1000. También actualiza la misión asociada."
-          disabled={isSubmitting}
+          disabled={isSubmitting || esEstadoCerrado}
         />
 
         <div className={styles.section}>
@@ -400,7 +541,7 @@ export const ModalEditarOperativoRecuperacion: React.FC<
             onChange={(e) => setFechaEstimadaFin(e.target.value)}
             error={erroresCampos.fechaEstimadaFin}
             helperText="Opcional. No puede ser anterior a la fecha de creación del operativo."
-            disabled={isSubmitting}
+            disabled={isSubmitting || esEstadoCerrado}
           />
         </div>
 
@@ -416,7 +557,7 @@ export const ModalEditarOperativoRecuperacion: React.FC<
             options={opcionesPatrulla}
             error={erroresCampos.patrullaId}
             helperText="Si selecciona otra patrulla disponible, la patrulla actual quedará liberada automáticamente."
-            disabled={isSubmitting || cargandoCatalogos}
+            disabled={isSubmitting || cargandoCatalogos || esEstadoCerrado}
           />
         </div>
 
@@ -431,7 +572,7 @@ export const ModalEditarOperativoRecuperacion: React.FC<
               variant="outline"
               size="sm"
               onClick={handleAgregarRecurso}
-              disabled={isSubmitting}
+              disabled={isSubmitting || esEstadoCerrado}
             >
               <Plus size={14} style={{ marginRight: '4px' }} />
               <span>Agregar recurso</span>
@@ -442,46 +583,54 @@ export const ModalEditarOperativoRecuperacion: React.FC<
           </p>
 
           <div className={styles.recursosList}>
-            {filasRecursos.map((fila, idx) => (
-              <div key={fila.idTemporal} className={styles.recursoRow}>
-                <Select
-                  label={idx === 0 ? 'Recurso / Insumo' : undefined}
-                  aria-label={`Recurso fila ${idx + 1}`}
-                  value={fila.recursoId}
-                  onChange={(e) =>
-                    handleCambiarRecurso(fila.idTemporal, 'recursoId', e.target.value)
-                  }
-                  options={opcionesRecursos}
-                  disabled={isSubmitting || cargandoCatalogos}
-                />
-                <Input
-                  label={idx === 0 ? 'Cantidad' : undefined}
-                  aria-label={`Cantidad fila ${idx + 1}`}
-                  type="number"
-                  min={1}
-                  step={1}
-                  value={fila.cantidad}
-                  onChange={(e) =>
-                    handleCambiarRecurso(
-                      fila.idTemporal,
-                      'cantidad',
-                      Number.parseInt(e.target.value, 10) || 0
-                    )
-                  }
-                  disabled={isSubmitting}
-                />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  aria-label={`Quitar recurso fila ${idx + 1}`}
-                  onClick={() => handleEliminarRecurso(fila.idTemporal)}
-                  disabled={isSubmitting}
-                >
-                  <Trash2 size={15} />
-                </Button>
-              </div>
-            ))}
+            {filasRecursos.map((fila, idx) => {
+              const recursoMeta = inventarioMap.get(fila.recursoId);
+              const esIndividual = Boolean(recursoMeta?.esIndividual);
+              return (
+                <div key={fila.idTemporal}>
+                  <div className={styles.recursoRow}>
+                    <Select
+                      label={idx === 0 ? 'Recurso / Insumo' : undefined}
+                      aria-label={`Recurso fila ${idx + 1}`}
+                      value={fila.recursoId}
+                      onChange={(e) =>
+                        handleCambiarRecurso(fila.idTemporal, 'recursoId', e.target.value)
+                      }
+                      options={opcionesRecursos}
+                      disabled={isSubmitting || cargandoCatalogos || esEstadoCerrado}
+                    />
+                    <Input
+                      label={idx === 0 ? 'Cantidad' : undefined}
+                      aria-label={`Cantidad fila ${idx + 1}`}
+                      type="number"
+                      min={1}
+                      max={esIndividual ? 1 : undefined}
+                      step={1}
+                      value={fila.cantidad}
+                      onChange={(e) =>
+                        handleCambiarRecurso(fila.idTemporal, 'cantidad', e.target.value)
+                      }
+                      disabled={isSubmitting || esEstadoCerrado || esIndividual}
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      aria-label={`Quitar recurso fila ${idx + 1}`}
+                      onClick={() => handleEliminarRecurso(fila.idTemporal)}
+                      disabled={isSubmitting || esEstadoCerrado}
+                    >
+                      <Trash2 size={15} />
+                    </Button>
+                  </div>
+                  {erroresFilasRecursos[idx] && (
+                    <span className={styles.errorText} role="alert">
+                      {erroresFilasRecursos[idx]}
+                    </span>
+                  )}
+                </div>
+              );
+            })}
           </div>
 
           {erroresCampos.recursos && (

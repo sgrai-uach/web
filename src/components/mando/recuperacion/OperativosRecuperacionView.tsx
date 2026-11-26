@@ -1,11 +1,13 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useCallback, useContext, useRef, useState } from 'react';
 import { PackagePlus, RefreshCw, Loader2, Package } from 'lucide-react';
 import Heading from '@/components/ui/Heading';
 import Button from '@/components/ui/Button';
 import InlineNotice from '@/components/ui/InlineNotice';
 import { useOptionalToast } from '@/components/ui/Toast';
+import { AuthContext } from '@/context/AuthContext';
+import { SimulatedSessionContext } from '@/context/SimulatedSessionContext';
 import AccesoDenegadoState from '@/components/common/AccesoDenegadoState';
 import EmptyState from '@/components/common/EmptyState';
 import Pagination from '@/components/common/Pagination';
@@ -50,25 +52,47 @@ export const OperativosRecuperacionView: React.FC<OperativosRecuperacionViewProp
   } = useOperativosRecuperacion({ enabled: true });
 
   const toast = useOptionalToast();
+  const auth = useContext(AuthContext);
+  const simulated = useContext(SimulatedSessionContext);
+  const activeUserId = auth?.estaAutenticado
+    ? auth.usuario?.id
+    : simulated?.usuarioActivo?.id;
   const puedeEditar = usePuedeEditarRecuperacion();
   const [operativoSeleccionadoId, setOperativoSeleccionadoId] = useState<string | null>(null);
   const [operativoEditando, setOperativoEditando] =
     useState<OperativoRecuperacionDetalle | null>(null);
   const [cargandoEdicionId, setCargandoEdicionId] = useState<string | null>(null);
+  const edicionRequestSeqRef = useRef<number>(0);
+
+  const handleCerrarDrawer = useCallback(() => {
+    setOperativoSeleccionadoId(null);
+  }, []);
 
   const handleAbrirEdicionDirecta = async (id: string) => {
+    const requestSeq = ++edicionRequestSeqRef.current;
     setCargandoEdicionId(id);
     try {
       const detalle = await obtenerDetalleOperativoRecuperacion(id);
+      if (requestSeq !== edicionRequestSeqRef.current) return;
+      if (detalle.estado === 'COMPLETADA' || detalle.estado === 'CANCELADA') {
+        toast?.showError(
+          'No se permite editar un operativo en estado COMPLETADA o CANCELADA.'
+        );
+        recargar();
+        return;
+      }
       setOperativoEditando(detalle);
     } catch (err: unknown) {
+      if (requestSeq !== edicionRequestSeqRef.current) return;
       toast?.showError(
         err instanceof Error
           ? err.message
           : 'No fue posible cargar el operativo para editar.'
       );
     } finally {
-      setCargandoEdicionId(null);
+      if (requestSeq === edicionRequestSeqRef.current) {
+        setCargandoEdicionId(null);
+      }
     }
   };
 
@@ -186,7 +210,7 @@ export const OperativosRecuperacionView: React.FC<OperativosRecuperacionViewProp
 
       <OperativoRecuperacionDrawer
         operativoId={operativoSeleccionadoId}
-        onCerrar={() => setOperativoSeleccionadoId(null)}
+        onCerrar={handleCerrarDrawer}
         onOperativoActualizado={recargar}
       />
 
@@ -194,6 +218,7 @@ export const OperativosRecuperacionView: React.FC<OperativosRecuperacionViewProp
         <ModalEditarOperativoRecuperacion
           isOpen={true}
           operativo={operativoEditando}
+          userId={activeUserId}
           onClose={() => setOperativoEditando(null)}
           onSuccess={() => {
             setOperativoEditando(null);

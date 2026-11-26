@@ -132,6 +132,7 @@ export const OperativosRecuperacionFiltros: React.FC<OperativosRecuperacionFiltr
             type="date"
             className={styles.dateInput}
             value={filtros.fechaDesde}
+            max={filtros.fechaHasta || undefined}
             onChange={(e) =>
               onFiltrosChange((prev) => ({ ...prev, fechaDesde: e.target.value }))
             }
@@ -147,6 +148,7 @@ export const OperativosRecuperacionFiltros: React.FC<OperativosRecuperacionFiltr
             type="date"
             className={styles.dateInput}
             value={filtros.fechaHasta}
+            min={filtros.fechaDesde || undefined}
             onChange={(e) =>
               onFiltrosChange((prev) => ({ ...prev, fechaHasta: e.target.value }))
             }

@@ -3,10 +3,13 @@
 import React from 'react';
 import { ArrowUpDown, ArrowUp, ArrowDown, Eye, Pencil } from 'lucide-react';
 import Button from '@/components/ui/Button';
+import { Chip, type ChipVariant } from '@/components/ui/Chip';
+import { obtenerVarianteChipPrioridad } from '@/lib/utils/chipVariants';
 import type {
   OperativoRecuperacionListadoItem,
   OrdenarPorRecuperacion,
   DireccionOrdenRecuperacion,
+  EstadoRecuperacion,
 } from '@/types/recuperacion';
 import {
   ETIQUETA_ESTADO_RECUPERACION,
@@ -14,6 +17,13 @@ import {
   formatearFechaChilena,
 } from './recuperacionLabels';
 import styles from './OperativosRecuperacion.module.css';
+
+const VARIANTE_ESTADO_RECUPERACION: Record<EstadoRecuperacion, ChipVariant> = {
+  PLANIFICADA: 'info',
+  EN_EJECUCION: 'warning',
+  COMPLETADA: 'success',
+  CANCELADA: 'danger',
+};
 
 export interface OperativosRecuperacionTablaProps {
   operativos: OperativoRecuperacionListadoItem[];
@@ -115,23 +125,19 @@ export const OperativosRecuperacionTabla: React.FC<OperativosRecuperacionTablaPr
                   {item.delegacion?.nombre || 'Sin delegación'}
                 </td>
                 <td className={styles.td}>
-                  <span
-                    className={`${styles.estadoBadge} ${styles[`estado${item.estado}`]}`}
-                  >
+                  <Chip variant={VARIANTE_ESTADO_RECUPERACION[item.estado] || 'neutral'} size="sm">
                     {ETIQUETA_ESTADO_RECUPERACION[item.estado] || item.estado}
-                  </span>
+                  </Chip>
                 </td>
                 <td className={styles.td}>
-                  <span
-                    className={`${styles.prioridadBadge} ${styles[`prioridad${item.prioridad}`]}`}
-                  >
+                  <Chip variant={obtenerVarianteChipPrioridad(item.prioridad)} size="sm">
                     {ETIQUETA_PRIORIDAD_RECUPERACION[item.prioridad] || item.prioridad}
-                  </span>
+                  </Chip>
                 </td>
                 <td className={styles.td} title={resumenTexto || undefined}>
                   <div className={styles.insumosCell}>
                     <span className={styles.insumosTotal}>
-                      {item.cantidadInsumosAsignados} unidades
+                      {item.cantidadInsumosAsignados ?? 0} unidades
                     </span>
                     {resumenTexto && (
                       <span className={styles.insumosResumen}>{resumenTexto}</span>
@@ -158,12 +164,12 @@ export const OperativosRecuperacionTabla: React.FC<OperativosRecuperacionTablaPr
                     {puedeEditar && onEditarOperativo && (
                       <Button
                         type="button"
-                        variant="secondary"
+                        variant="teal"
                         size="sm"
                         disabled={
                           item.estado === 'COMPLETADA' ||
                           item.estado === 'CANCELADA' ||
-                          cargandoEdicionId === item.id
+                          Boolean(cargandoEdicionId)
                         }
                         title={
                           item.estado === 'COMPLETADA' || item.estado === 'CANCELADA'
@@ -172,16 +178,9 @@ export const OperativosRecuperacionTabla: React.FC<OperativosRecuperacionTablaPr
                         }
                         onClick={() => onEditarOperativo(item.id)}
                         aria-label={`Editar ${item.codigo}`}
-                        style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '4px',
-                          backgroundColor: 'var(--color-primary-teal)',
-                          color: 'var(--color-white)',
-                        }}
+                        icon={<Pencil size={13} aria-hidden="true" />}
                       >
-                        <Pencil size={13} aria-hidden="true" />
-                        <span>{cargandoEdicionId === item.id ? 'Cargando...' : 'Editar'}</span>
+                        {cargandoEdicionId === item.id ? 'Cargando...' : 'Editar'}
                       </Button>
                     )}
                   </div>
