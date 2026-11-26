@@ -44,13 +44,15 @@ import { PanelPatrullasModal } from './patrullas/PanelPatrullasModal';
 import { ModalCrearEventoPrevencion } from './ModalCrearEventoPrevencion';
 import { ModalCrearEventoRecuperacion } from './ModalCrearEventoRecuperacion';
 import { MapaOperativoMando } from './MapaOperativoMando';
-import { KanbanViewSwitcher } from './KanbanViewSwitcher';
+import { KanbanViewSwitcher, type VistaCentroIncidentes } from './KanbanViewSwitcher';
+import { OperativosRecuperacionView } from './recuperacion/OperativosRecuperacionView';
 import CuadrillaDetalleDrawer from '@/components/admin/cuadrillas/CuadrillaDetalleDrawer';
 import { cuadrillasService } from '@/services/cuadrillasService';
 import { listarEventosRecuperacion } from '@/services/recuperacionService';
 import type { CuadrillaItem } from '@/types/cuadrilla';
 import { usePuedeAsignarMision } from '@/hooks/usePuedeAsignarMision';
 import { usePuedeCrearEventoAtp } from '@/hooks/usePuedeCrearEventoAtp';
+import { usePuedeVerKanban, usePuedeLeerRecuperacion } from '@/hooks/usePermisosMando';
 import { extraerEstadoInicialNotificacion } from '@/lib/socket/trazabilidadConfig';
 import { setTrazabilidadEstado } from '@/lib/socket/trazabilidadStore';
 import InlineNotice from '@/components/ui/InlineNotice';
@@ -67,7 +69,10 @@ const TITULOS_COLUMNAS = {
 export const KanbanBoard: React.FC = () => {
   const { showInfo, showWarning } = useToast();
   const searchParams = useSearchParams();
-  const [vistaActiva, setVistaActiva] = useState<'kanban' | 'mapa'>('kanban');
+  const vistaInicial = searchParams.get('vista');
+  const [vistaActiva, setVistaActiva] = useState<VistaCentroIncidentes>(
+    vistaInicial === 'recuperacion' || vistaInicial === 'mapa' ? vistaInicial : 'kanban'
+  );
   const [misionesModalAbierto, setMisionesModalAbierto] = useState(false);
   const [patrullasModalAbierto, setPatrullasModalAbierto] = useState(false);
   const [misionSeleccionadaId, setMisionSeleccionadaId] = useState<string | null>(null);
@@ -82,6 +87,14 @@ export const KanbanBoard: React.FC = () => {
   const [incidenteParaAsignar, setIncidenteParaAsignar] = useState<IncidenteResumen | null>(null);
   const puedeAsignar = usePuedeAsignarMision();
   const puedeCrearEventoAtp = usePuedeCrearEventoAtp();
+  const puedeVerKanban = usePuedeVerKanban();
+  const puedeLeerRecuperacion = usePuedeLeerRecuperacion();
+
+  useEffect(() => {
+    if (!puedeVerKanban && puedeLeerRecuperacion && vistaActiva !== 'recuperacion') {
+      queueMicrotask(() => setVistaActiva('recuperacion'));
+    }
+  }, [puedeVerKanban, puedeLeerRecuperacion, vistaActiva]);
 
   const [estadoEnfocado, setEstadoEnfocado] = useState<EstadoIncidente | null>(null);
   const refrescarKpisRef = React.useRef<((mostrarCargando?: boolean) => void) | null>(null);
@@ -421,13 +434,14 @@ export const KanbanBoard: React.FC = () => {
   }, []);
 
   useEffect(() => {
+    if (!puedeVerKanban) return;
     const cancelCuadrillas = cargarCuadrillas();
     const cancelRecuperacion = cargarEventosRecuperacion();
     return () => {
       cancelCuadrillas?.();
       cancelRecuperacion?.();
     };
-  }, [cargarCuadrillas, cargarEventosRecuperacion]);
+  }, [puedeVerKanban, cargarCuadrillas, cargarEventosRecuperacion]);
 
   const handleMisionRechazadaSocket = React.useCallback(
     (payload: MisionRechazadaPayload) => {
@@ -531,6 +545,7 @@ export const KanbanBoard: React.FC = () => {
     setIncidenteSeleccionadoId,
     trazabilidadPorIncidente,
   } = useIncidentesKanban({
+    enabled: puedeVerKanban,
     onMisionRechazada: handleMisionRechazadaSocket,
     onCuadrillaActualizada: handleCuadrillaActualizadaSocket,
     onReporteTerrenoRecibido: handleReporteTerrenoRecibido,
@@ -565,7 +580,7 @@ export const KanbanBoard: React.FC = () => {
     delegaciones,
     refrescarKpis,
     conectado: conectadoKpis,
-  } = useIncidentesKpis({ userId });
+  } = useIncidentesKpis({ userId, enabled: puedeVerKanban });
 
   useEffect(() => {
     refrescarKpisRef.current = refrescarKpis;
@@ -731,30 +746,34 @@ export const KanbanBoard: React.FC = () => {
         puedeCrearEventoAtp={puedeCrearEventoAtp}
       />
 
-      {esForbidden ? (
+      {esForbidden && vistaActiva !== 'recuperacion' && !puedeLeerRecuperacion ? (
         <AccesoDenegado />
       ) : (
         <>
-          <IncidentesKpiCards
-            kpis={kpis}
-            cargando={cargandoKpis}
-            delegacionId={delegacionId}
-            onDelegacionChange={handleDelegacionChange}
-            delegaciones={delegaciones}
-            onRefrescar={handleRefrescoCompleto}
-            estadoSeleccionado={estadoEnfocado}
-            onSelectEstado={handleSelectEstado}
-            conectado={conectadoKpis || conectado}
-          />
+          {vistaActiva !== 'recuperacion' && !esForbidden && puedeVerKanban && (
+            <>
+              <IncidentesKpiCards
+                kpis={kpis}
+                cargando={cargandoKpis}
+                delegacionId={delegacionId}
+                onDelegacionChange={handleDelegacionChange}
+                delegaciones={delegaciones}
+                onRefrescar={handleRefrescoCompleto}
+                estadoSeleccionado={estadoEnfocado}
+                onSelectEstado={handleSelectEstado}
+                conectado={conectadoKpis || conectado}
+              />
 
-          <KanbanFiltros
-            filtros={filtros}
-            onFiltrosChange={setFiltros}
-            onLimpiarFiltros={limpiarFiltros}
-            onRecargar={handleRefrescoCompleto}
-            contadoresPorEstado={contadoresPorEstado}
-            cargando={cargando}
-          />
+              <KanbanFiltros
+                filtros={filtros}
+                onFiltrosChange={setFiltros}
+                onLimpiarFiltros={limpiarFiltros}
+                onRecargar={handleRefrescoCompleto}
+                contadoresPorEstado={contadoresPorEstado}
+                cargando={cargando}
+              />
+            </>
+          )}
 
           {/* Selector de visualización entre filtros y tablero */}
           <KanbanViewSwitcher
@@ -770,7 +789,18 @@ export const KanbanBoard: React.FC = () => {
             </div>
           )}
 
-          {vistaActiva === 'kanban' ? (
+          {vistaActiva === 'recuperacion' ? (
+            <main style={{ marginTop: 'var(--space-4, 16px)' }}>
+              <OperativosRecuperacionView
+                delegaciones={delegaciones}
+                onCrearRecuperacion={
+                  puedeCrearEventoAtp ? () => setModalRecuperacionAbierto(true) : undefined
+                }
+              />
+            </main>
+          ) : esForbidden || !puedeVerKanban ? (
+            <AccesoDenegado />
+          ) : vistaActiva === 'kanban' ? (
             <main className={styles.kanbanArea}>
               <div className={styles.kanbanBoard}>
                 {estadosVisibles.map((estado) => (

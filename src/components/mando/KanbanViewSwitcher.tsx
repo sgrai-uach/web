@@ -2,11 +2,13 @@
 
 import React from 'react';
 import Button from '@/components/ui/Button';
-import { Kanban, MapPin } from 'lucide-react';
+import { Kanban, MapPin, PackageCheck } from 'lucide-react';
+
+export type VistaCentroIncidentes = 'kanban' | 'mapa' | 'recuperacion';
 
 interface KanbanViewSwitcherProps {
-  vistaActiva: 'kanban' | 'mapa';
-  onCambiarVista: (vista: 'kanban' | 'mapa') => void;
+  vistaActiva: VistaCentroIncidentes;
+  onCambiarVista: (vista: VistaCentroIncidentes) => void;
   className?: string;
 }
 
@@ -80,6 +82,29 @@ export const KanbanViewSwitcher: React.FC<KanbanViewSwitcherProps> = ({
         >
           <MapPin size={14} style={{ marginRight: '6px' }} />
           <span>Mapa Operativo</span>
+        </Button>
+
+        <Button
+          type="button"
+          variant={vistaActiva === 'recuperacion' ? 'secondary' : 'ghost'}
+          size="sm"
+          onClick={() => onCambiarVista('recuperacion')}
+          aria-pressed={vistaActiva === 'recuperacion'}
+          style={{
+            backgroundColor:
+              vistaActiva === 'recuperacion'
+                ? 'var(--color-charcoal, #3B3F45)'
+                : 'transparent',
+            color:
+              vistaActiva === 'recuperacion'
+                ? '#FFFFFF'
+                : 'var(--color-charcoal, #3B3F45)',
+            borderRadius: 0,
+            border: 'none',
+          }}
+        >
+          <PackageCheck size={14} style={{ marginRight: '6px' }} />
+          <span>Recuperación</span>
         </Button>
       </div>
     </div>

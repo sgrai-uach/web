@@ -46,7 +46,7 @@ const MODULOS_SISTEMA: ModuloConfig[] = [
       'Monitoreo táctico georreferenciado, ciclo ICS de incidentes y asignación en tiempo real de cuadrillas y patrullas de terreno.',
     href: '/gestion/centro-incidentes',
     icon: MapPin,
-    requiredPermissions: ['incidentes:kanban', 'misiones:asignar'],
+    requiredPermissions: ['incidentes:kanban', 'misiones:asignar', 'recuperacion:leer'],
     accionPrimaria: 'Abrir Tablero Kanban',
   },
   {

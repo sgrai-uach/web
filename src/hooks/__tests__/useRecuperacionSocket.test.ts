@@ -253,6 +253,27 @@ describe('useRecuperacionSocket (HU-29)', () => {
     expect(socket.emit).toHaveBeenCalledWith('salir', 'mapa');
   });
 
+  it('debe invocar onRecuperacionActualizada al recibir evento WebSocket recuperacion:actualizada', () => {
+    const socket = getSocket();
+    const onRecuperacionActualizada = vi.fn();
+
+    const { result } = renderHook(() =>
+      useRecuperacionSocket({
+        onRecuperacionActualizada,
+      })
+    );
+
+    act(() => {
+      (socket as unknown as { _trigger: (ev: string, p: unknown) => void })._trigger(
+        'recuperacion:actualizada',
+        mockEvento
+      );
+    });
+
+    expect(onRecuperacionActualizada).toHaveBeenCalledWith(mockEvento);
+    expect(result.current.ultimoEvento).toContain('Recuperación actualizada: REC-2026-0001');
+  });
+
   it('BUG-INT-30: si el socket ya está conectado al montar, emite salas y difiere setConectado(true) mediante microtask', async () => {
     const socket = getSocket() as unknown as {
       connected: boolean;

@@ -1,0 +1,90 @@
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4, 16px);
+}
+
+.metaBanner {
+  background-color: var(--color-bg-light, #ECEFF3);
+  border-left: 3px solid var(--color-primary-teal, #1B6F7D);
+  padding: var(--space-3, 12px);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.metaCodigo {
+  font-family: monospace;
+  font-size: var(--font-size-xs, 0.75rem);
+  font-weight: 700;
+  color: var(--color-primary-teal-dark, #14505A);
+}
+
+.metaNombre {
+  font-size: var(--font-size-base, 0.875rem);
+  font-weight: 700;
+  color: var(--color-text-dark, #2B2B2B);
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2, 8px);
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2, 8px);
+}
+
+.sectionLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--font-size-sm, 0.8125rem);
+  font-weight: 700;
+  color: var(--color-charcoal, #3B3F45);
+}
+
+.helperNote {
+  font-size: var(--font-size-xs, 0.75rem);
+  color: var(--color-text-muted, #5F676E);
+  margin: 0;
+}
+
+.recursosList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2, 8px);
+}
+
+.recursoRow {
+  display: grid;
+  grid-template-columns: 1fr 110px auto;
+  gap: var(--space-2, 8px);
+  align-items: end;
+  padding: var(--space-2, 8px);
+  background-color: var(--color-bg-light, #ECEFF3);
+  border: 1px solid var(--border-color-neutral, #DFE3E8);
+}
+
+.errorText {
+  font-size: var(--font-size-xs, 0.75rem);
+  color: var(--color-danger, #D32F2F);
+  font-weight: 600;
+}
+
+.actionsRow {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2, 8px);
+  width: 100%;
+}
+
+@media (max-width: 600px) {
+  .recursoRow {
+    grid-template-columns: 1fr;
+  }
+}
