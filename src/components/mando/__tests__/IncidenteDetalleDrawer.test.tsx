@@ -1719,4 +1719,145 @@ describe('Componente IncidenteDetalleDrawer e integración HU-17', () => {
       'Encargado autorizado'
     );
   });
+
+  it('BUG-H43-WEB-01: inserta adjunto:creado optimistamente, recarga en segundo plano sin skeleton y consolida sin duplicados', async () => {
+    const adjuntoExistente = {
+      id: 'adj-rep-1',
+      nombreArchivo: 'reporte-foto.jpg',
+      url: '/uploads/evidencia/reporte-foto.jpg',
+      tipoMime: 'image/jpeg',
+      tamanoBytes: 1200,
+      creadoEn: '2026-10-02T14:15:00Z',
+    };
+
+    const detalleConReporte = {
+      ...mockDetalleIncidente,
+      adjuntos: [adjuntoExistente],
+      reportesEvaluacionTerreno: [
+        {
+          id: 'rep-1',
+          misionId: mockMisionDetalle.id,
+          evaluador: {
+            id: 'u-pat-1',
+            nombre: 'Patrulla Alfa',
+            email: 'patrulla@valdivia.cl',
+          },
+          condicionAcceso: null,
+          riesgosPresentes: [],
+          necesidadesDetectadas: [],
+          personasAfectadas: 0,
+          danosEstimados: null,
+          observaciones: null,
+          tipoReporte: 'PRELIMINAR' as const,
+          dictamen: null,
+          motivoNoAbordable: null,
+          requiereAsistenciaSocial: false,
+          resumenTecnico: null,
+          estadoTerreno: null,
+          adjuntos: [adjuntoExistente],
+          creadoEn: '2026-10-02T14:15:00Z',
+        },
+      ],
+    };
+
+    const nuevoAdjunto = {
+      id: 'adj-ws-1',
+      incidenteId: mockDetalleIncidente.id,
+      reporteTerrenoId: null,
+      misionId: mockMisionDetalle.id,
+      nombreArchivo: 'nueva-evidencia-ws.jpg',
+      url: '/uploads/evidencia/nueva-evidencia-ws.jpg',
+      tipoMime: 'image/jpeg',
+      tamanoBytes: 2400,
+      creadoEn: '2026-10-02T14:30:00Z',
+    };
+
+    vi.spyOn(incidentesService, 'obtenerDetalleIncidente')
+      .mockResolvedValueOnce({
+        exito: true,
+        datos: detalleConReporte,
+        mensaje: 'OK',
+      })
+      .mockResolvedValueOnce({
+        exito: true,
+        datos: {
+          ...detalleConReporte,
+          adjuntos: [nuevoAdjunto, adjuntoExistente],
+        },
+        mensaje: 'OK',
+      });
+
+    render(
+      <IncidenteDetalleDrawer
+        incidenteId={mockDetalleIncidente.id}
+        userId="u1"
+        onCerrar={vi.fn()}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('INC-2026-0042')).toBeDefined();
+    });
+
+    expect(screen.getAllByText('reporte-foto.jpg')).toHaveLength(1);
+
+    await act(async () => {
+      socketListeners['adjunto:creado']?.forEach((cb) => cb({ datos: nuevoAdjunto }));
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText('nueva-evidencia-ws.jpg')).toBeDefined();
+    });
+    expect(screen.queryByTestId('drawer-skeleton')).toBeNull();
+  });
+
+  it('BUG-H43-WEB-04: presionar Escape con el Lightbox abierto cierra el visor sin cerrar el Drawer', async () => {
+    const onCerrar = vi.fn();
+    vi.spyOn(incidentesService, 'obtenerDetalleIncidente').mockResolvedValueOnce({
+      exito: true,
+      datos: {
+        ...mockDetalleIncidente,
+        adjuntos: [
+          {
+            id: 'adj-esc-1',
+            nombreArchivo: 'evidencia-esc.jpg',
+            url: '/uploads/evidencia/evidencia-esc.jpg',
+            tipoMime: 'image/jpeg',
+            tamanoBytes: 1800,
+            creadoEn: '2026-10-02T14:20:00Z',
+          },
+        ],
+      },
+      mensaje: 'OK',
+    });
+
+    render(
+      <IncidenteDetalleDrawer
+        incidenteId={mockDetalleIncidente.id}
+        userId="u1"
+        onCerrar={onCerrar}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('evidencia-esc.jpg')).toBeDefined();
+    });
+
+    fireEvent.click(screen.getByTitle(/Ver archivo evidencia-esc\.jpg/i));
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole('dialog', { name: /Visor de evidencia: evidencia-esc\.jpg/i })
+      ).toBeDefined();
+    });
+
+    fireEvent.keyDown(window, { key: 'Escape' });
+
+    await waitFor(() => {
+      expect(
+        screen.queryByRole('dialog', { name: /Visor de evidencia: evidencia-esc\.jpg/i })
+      ).toBeNull();
+    });
+    expect(onCerrar).not.toHaveBeenCalled();
+  });
 });

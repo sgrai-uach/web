@@ -1323,4 +1323,98 @@ describe('Componente MisionDetalleModal (HU-17)', () => {
     });
     expect(screen.queryByTestId('mision-skeleton-loader')).toBeNull();
   });
+
+  it('BUG-H43-WEB-01: al recibir adjunto:creado con incidenteId coincidente sin reporteTerrenoId recarga y muestra adjuntos directos', async () => {
+    const nuevoAdjuntoDirecto = {
+      id: 'adj-directo-1',
+      incidenteId: mockMision.incidente?.id ?? 'i001',
+      reporteTerrenoId: null,
+      misionId: mockMision.id,
+      nombreArchivo: 'evidencia-directa-mision.jpg',
+      url: '/uploads/evidencia/evidencia-directa-mision.jpg',
+      tipoMime: 'image/jpeg',
+      tamanoBytes: 3100,
+      creadoEn: '2026-10-02T15:10:00.000Z',
+    };
+
+    const obtenerSpy = vi
+      .spyOn(misionesService, 'obtenerDetalleMision')
+      .mockResolvedValueOnce({
+        exito: true,
+        datos: mockMision,
+        mensaje: 'OK',
+      })
+      .mockResolvedValueOnce({
+        exito: true,
+        datos: {
+          ...mockMision,
+          adjuntos: [nuevoAdjuntoDirecto],
+        },
+        mensaje: 'OK',
+      });
+
+    render(<MisionDetalleModal misionId={mockMision.id} onCerrar={vi.fn()} />);
+
+    await waitFor(() => {
+      expect(screen.getByText('MIS-2026-0001')).toBeDefined();
+    });
+
+    await act(async () => {
+      socketListeners['adjunto:creado']?.forEach((cb) =>
+        cb({ datos: nuevoAdjuntoDirecto })
+      );
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText('evidencia-directa-mision.jpg')).toBeDefined();
+    });
+    expect(obtenerSpy).toHaveBeenCalledTimes(2);
+    expect(
+      screen.getByLabelText('Evidencias directas de la misión')
+    ).toBeDefined();
+  });
+
+  it('BUG-H43-WEB-04: presionar Escape con el Lightbox abierto cierra solo el Lightbox y mantiene abierto el Modal', async () => {
+    const onCerrar = vi.fn();
+    vi.spyOn(misionesService, 'obtenerDetalleMision').mockResolvedValueOnce({
+      exito: true,
+      datos: {
+        ...mockMision,
+        adjuntos: [
+          {
+            id: 'adj-modal-esc',
+            nombreArchivo: 'foto-modal-esc.jpg',
+            url: '/uploads/evidencia/foto-modal-esc.jpg',
+            tipoMime: 'image/jpeg',
+            tamanoBytes: 1500,
+            creadoEn: '2026-10-02T15:15:00.000Z',
+          },
+        ],
+      },
+      mensaje: 'OK',
+    });
+
+    render(<MisionDetalleModal misionId={mockMision.id} onCerrar={onCerrar} />);
+
+    await waitFor(() => {
+      expect(screen.getByText('foto-modal-esc.jpg')).toBeDefined();
+    });
+
+    fireEvent.click(screen.getByTitle(/Ver archivo foto-modal-esc\.jpg/i));
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole('dialog', { name: /Visor de evidencia: foto-modal-esc\.jpg/i })
+      ).toBeDefined();
+    });
+
+    fireEvent.keyDown(window, { key: 'Escape' });
+
+    await waitFor(() => {
+      expect(
+        screen.queryByRole('dialog', { name: /Visor de evidencia: foto-modal-esc\.jpg/i })
+      ).toBeNull();
+    });
+    expect(onCerrar).not.toHaveBeenCalled();
+  });
 });

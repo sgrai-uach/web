@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useEffect, useState, useRef } from 'react';
-import { AlertTriangle, ShieldAlert, FileQuestion } from 'lucide-react';
+import React, { useEffect, useState, useRef, useMemo } from 'react';
+import { AlertTriangle, ShieldAlert, FileQuestion, Paperclip } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import Heading from '@/components/ui/Heading';
 import { getSocket } from '@/lib/socket/client';
@@ -23,6 +23,7 @@ import { MisionContextoSection } from './MisionContextoSection';
 import { MisionEquipoSection } from './MisionEquipoSection';
 import { MisionBitacoraSection } from './MisionBitacoraSection';
 import { MisionReportesSection } from './MisionReportesSection';
+import { MisionEvidenciasGallery } from './MisionEvidenciasGallery';
 import styles from '@/styles/mision-detalle.module.css';
 
 interface MisionDetalleModalProps {
@@ -45,6 +46,11 @@ export const MisionDetalleModal: React.FC<MisionDetalleModalProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [codigoError, setCodigoError] = useState<number | undefined>(undefined);
   const seccionReportesRef = useRef<HTMLDivElement | null>(null);
+  const misionRef = useRef<MisionDetalleCompleto | null>(null);
+
+  useEffect(() => {
+    misionRef.current = mision;
+  }, [mision]);
 
   useEffect(() => {
     let activo = true;
@@ -127,6 +133,9 @@ export const MisionDetalleModal: React.FC<MisionDetalleModalProps> = ({
       const candidato = (p?.datos || p?.data || rawPayload) as unknown;
       if (!esPayloadAdjuntoCreadoValido(candidato)) return;
 
+      const misionActual = misionRef.current;
+      if (!misionActual || misionActual.id !== misionId) return;
+
       const nuevoAdjunto: AdjuntoEvidencia = {
         id: candidato.id,
         nombreArchivo: candidato.nombreArchivo,
@@ -136,39 +145,50 @@ export const MisionDetalleModal: React.FC<MisionDetalleModalProps> = ({
         creadoEn: candidato.creadoEn,
       };
 
-      let requiereRecarga = false;
-
-      setMision((prev) => {
-        if (!prev || prev.id !== misionId) return prev;
-
-        if (candidato.reporteTerrenoId) {
-          const existeReporte = (prev.reportesTerreno || []).some(
+      const pertenecePorReporte = Boolean(
+        candidato.reporteTerrenoId &&
+          (misionActual.reportesTerreno || []).some(
             (r) => r.id === candidato.reporteTerrenoId
-          );
-          if (existeReporte) {
-            return {
-              ...prev,
-              reportesTerreno: prev.reportesTerreno.map((rep) => {
-                if (rep.id !== candidato.reporteTerrenoId) return rep;
-                if (rep.adjuntos.some((a) => a.id === nuevoAdjunto.id)) return rep;
-                return {
-                  ...rep,
-                  adjuntos: [...rep.adjuntos, nuevoAdjunto],
-                };
-              }),
-            };
-          }
-          requiereRecarga = true;
-          return prev;
-        }
+          )
+      );
+      const pertenecePorIncidente = Boolean(
+        candidato.incidenteId && misionActual.incidente?.id === candidato.incidenteId
+      );
+      const pertenecePorMision = Boolean(
+        candidato.misionId && candidato.misionId === misionActual.id
+      );
 
-        if (candidato.incidenteId && prev.incidente?.id === candidato.incidenteId) {
-          requiereRecarga = true;
-        }
-        return prev;
-      });
+      if (pertenecePorReporte) {
+        setMision((prev) => {
+          if (!prev || prev.id !== misionId) return prev;
+          return {
+            ...prev,
+            reportesTerreno: prev.reportesTerreno.map((rep) => {
+              if (rep.id !== candidato.reporteTerrenoId) return rep;
+              if (rep.adjuntos.some((a) => a.id === nuevoAdjunto.id)) return rep;
+              return {
+                ...rep,
+                adjuntos: [...rep.adjuntos, nuevoAdjunto],
+              };
+            }),
+          };
+        });
+        return;
+      }
 
-      if (requiereRecarga) {
+      if (pertenecePorIncidente || pertenecePorMision) {
+        setMision((prev) => {
+          if (!prev || prev.id !== misionId) return prev;
+          const directos = prev.adjuntos ?? [];
+          if (directos.some((a) => a.id === nuevoAdjunto.id)) return prev;
+          return {
+            ...prev,
+            adjuntos: [nuevoAdjunto, ...directos],
+          };
+        });
+      }
+
+      if (candidato.reporteTerrenoId || pertenecePorIncidente || pertenecePorMision) {
         void obtenerDetalleMision(misionId, userId).then((res) => {
           if (activo && res.exito && res.datos) {
             setMision(res.datos);
@@ -470,6 +490,16 @@ export const MisionDetalleModal: React.FC<MisionDetalleModalProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [onCerrar]);
 
+  const adjuntosDirectos = useMemo<AdjuntoEvidencia[]>(() => {
+    if (!mision) return [];
+    const idsEnReportes = new Set(
+      (mision.reportesTerreno ?? []).flatMap((rep) =>
+        (rep.adjuntos ?? []).map((adj) => adj.id)
+      )
+    );
+    return (mision.adjuntos ?? []).filter((adj) => !idsEnReportes.has(adj.id));
+  }, [mision]);
+
   if (!misionId) return null;
 
   return (
@@ -572,6 +602,22 @@ export const MisionDetalleModal: React.FC<MisionDetalleModalProps> = ({
                 reporteDestacadoId={reporteDestacadoId}
                 seccionRef={seccionReportesRef}
               />
+
+              {adjuntosDirectos.length > 0 && (
+                <section className={styles.seccionBloque} aria-label="Evidencias directas de la misión">
+                  <div className={styles.seccionHeader}>
+                    <div className={styles.seccionTituloGroup}>
+                      <Paperclip size={18} color="var(--color-primary-teal, #1B6F7D)" />
+                      <Heading as="h3" variant="h4" color="teal" noMargin>
+                        Evidencias de la Misión / Incidente ({adjuntosDirectos.length})
+                      </Heading>
+                    </div>
+                  </div>
+                  <div className={styles.seccionBody}>
+                    <MisionEvidenciasGallery adjuntos={adjuntosDirectos} />
+                  </div>
+                </section>
+              )}
             </div>
 
             <footer className={styles.modalFooter}>

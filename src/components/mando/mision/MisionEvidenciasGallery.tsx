@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { Image as ImageIcon, FileText, Film } from 'lucide-react';
 import type { AdjuntoEvidencia } from '@/types/misiones';
+import { resolverUrlEvidencia } from '@/lib/utils/mediaUrl';
 import { MisionEvidenciaLightbox } from './MisionEvidenciaLightbox';
 import styles from '@/styles/mision-detalle.module.css';
 
@@ -14,8 +15,6 @@ export const MisionEvidenciasGallery: React.FC<MisionEvidenciasGalleryProps> = (
   adjuntos,
 }) => {
   const [adjuntoSeleccionado, setAdjuntoSeleccionado] = useState<AdjuntoEvidencia | null>(null);
-
-  const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
   const formatTamano = (bytes: number) => {
     if (bytes < 1024) return `${bytes} B`;
@@ -46,7 +45,7 @@ export const MisionEvidenciasGallery: React.FC<MisionEvidenciasGalleryProps> = (
 
       <div className={styles.galeriaGrid}>
         {adjuntos.map((adj) => {
-          const mediaUrl = adj.url.startsWith('http') ? adj.url : `${API_BASE}${adj.url}`;
+          const mediaUrl = resolverUrlEvidencia(adj.url);
           const esImagen = adj.tipoMime.startsWith('image/');
           const esVideo = adj.tipoMime.startsWith('video/');
           const esPdf = adj.tipoMime === 'application/pdf';

@@ -2,6 +2,8 @@
 
 import React, { useEffect } from 'react';
 import { X, Download, FileText } from 'lucide-react';
+import Button from '@/components/ui/Button';
+import { resolverUrlEvidencia } from '@/lib/utils/mediaUrl';
 import type { AdjuntoEvidencia } from '@/types/misiones';
 import styles from '@/styles/mision-detalle.module.css';
 
@@ -15,20 +17,22 @@ export const MisionEvidenciaLightbox: React.FC<MisionEvidenciaLightboxProps> = (
   onCerrar,
 }) => {
   useEffect(() => {
+    if (!adjunto) return;
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
+        e.preventDefault();
+        e.stopImmediatePropagation();
         onCerrar();
       }
     };
 
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [onCerrar]);
+    window.addEventListener('keydown', handleKeyDown, true);
+    return () => window.removeEventListener('keydown', handleKeyDown, true);
+  }, [adjunto, onCerrar]);
 
   if (!adjunto) return null;
 
-  const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
-  const mediaUrl = adjunto.url.startsWith('http') ? adjunto.url : `${API_BASE}${adjunto.url}`;
+  const mediaUrl = resolverUrlEvidencia(adjunto.url);
 
   const formatTamano = (bytes: number) => {
     if (bytes < 1024) return `${bytes} B`;
@@ -81,26 +85,17 @@ export const MisionEvidenciaLightbox: React.FC<MisionEvidenciaLightboxProps> = (
               className={styles.lightboxVideo}
               aria-label={adjunto.nombreArchivo}
             />
-            <a
+            <Button
+              variant="primary"
+              size="md"
               href={mediaUrl}
               target="_blank"
               rel="noopener noreferrer"
               download={adjunto.nombreArchivo}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '0.5rem',
-                backgroundColor: 'var(--color-accent-mint, #4FAE9B)',
-                color: '#FFFFFF',
-                padding: '8px 16px',
-                textDecoration: 'none',
-                fontWeight: 700,
-                fontSize: '14px',
-              }}
+              icon={<Download size={16} />}
             >
-              <Download size={16} />
               <span>Descargar Video</span>
-            </a>
+            </Button>
           </div>
         ) : esPdf ? (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem' }}>
@@ -109,26 +104,17 @@ export const MisionEvidenciaLightbox: React.FC<MisionEvidenciaLightboxProps> = (
               title={adjunto.nombreArchivo}
               className={styles.lightboxPdf}
             />
-            <a
+            <Button
+              variant="primary"
+              size="md"
               href={mediaUrl}
               target="_blank"
               rel="noopener noreferrer"
               download={adjunto.nombreArchivo}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '0.5rem',
-                backgroundColor: 'var(--color-accent-mint, #4FAE9B)',
-                color: '#FFFFFF',
-                padding: '8px 16px',
-                textDecoration: 'none',
-                fontWeight: 700,
-                fontSize: '14px',
-              }}
+              icon={<Download size={16} />}
             >
-              <Download size={16} />
               <span>Descargar PDF</span>
-            </a>
+            </Button>
           </div>
         ) : (
           <div
@@ -145,26 +131,17 @@ export const MisionEvidenciaLightbox: React.FC<MisionEvidenciaLightboxProps> = (
           >
             <FileText size={48} />
             <p style={{ margin: 0, fontSize: '1rem' }}>{adjunto.nombreArchivo}</p>
-            <a
+            <Button
+              variant="primary"
+              size="md"
               href={mediaUrl}
               target="_blank"
               rel="noopener noreferrer"
               download={adjunto.nombreArchivo}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '0.5rem',
-                backgroundColor: 'var(--color-accent-mint, #4FAE9B)',
-                color: '#FFFFFF',
-                padding: '8px 16px',
-                textDecoration: 'none',
-                fontWeight: 700,
-                fontSize: '14px',
-              }}
+              icon={<Download size={16} />}
             >
-              <Download size={16} />
               <span>Descargar Archivo</span>
-            </a>
+            </Button>
           </div>
         )}
       </div>

@@ -13,6 +13,7 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
   href?: string;
   target?: string;
   rel?: string;
+  download?: string | boolean;
   fullWidth?: boolean;
   loading?: boolean;
   icon?: React.ReactNode;
@@ -26,6 +27,7 @@ export default function Button({
   href,
   target,
   rel,
+  download,
   fullWidth = false,
   loading = false,
   disabled = false,
@@ -60,7 +62,11 @@ export default function Button({
   );
 
   if (href && !isActuallyDisabled) {
-    const isMultiZoneOrExternal = href.startsWith('/terreno') || href.startsWith('http');
+    const isMultiZoneOrExternal =
+      href.startsWith('/terreno') ||
+      href.startsWith('/uploads') ||
+      href.startsWith('http') ||
+      Boolean(download);
 
     if (isMultiZoneOrExternal) {
       return (
@@ -68,6 +74,7 @@ export default function Button({
           href={href}
           target={target}
           rel={rel}
+          download={download}
           className={classList}
           aria-busy={loading}
           {...(restProps as React.AnchorHTMLAttributes<HTMLAnchorElement>)}

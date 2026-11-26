@@ -20,6 +20,7 @@ export type EvaluadorTerreno = ReporteTerrenoOpenApi['evaluador'];
 export interface AdjuntoCreadoPayload extends AdjuntoEvidencia {
   incidenteId: string | null;
   reporteTerrenoId: string | null;
+  misionId?: string | null;
 }
 
 export function esPayloadAdjuntoCreadoValido(
@@ -27,14 +28,38 @@ export function esPayloadAdjuntoCreadoValido(
 ): payload is AdjuntoCreadoPayload {
   if (!payload || typeof payload !== 'object') return false;
   const p = payload as Record<string, unknown>;
-  return (
-    typeof p.id === 'string' &&
-    typeof p.nombreArchivo === 'string' &&
-    typeof p.url === 'string' &&
-    typeof p.tipoMime === 'string' &&
-    typeof p.tamanoBytes === 'number' &&
-    typeof p.creadoEn === 'string'
-  );
+  if (
+    typeof p.id !== 'string' ||
+    p.id.trim().length === 0 ||
+    typeof p.nombreArchivo !== 'string' ||
+    p.nombreArchivo.trim().length === 0 ||
+    typeof p.url !== 'string' ||
+    p.url.trim().length === 0 ||
+    typeof p.tipoMime !== 'string' ||
+    p.tipoMime.trim().length === 0 ||
+    typeof p.tamanoBytes !== 'number' ||
+    !Number.isFinite(p.tamanoBytes) ||
+    p.tamanoBytes < 0 ||
+    typeof p.creadoEn !== 'string' ||
+    p.creadoEn.trim().length === 0
+  ) {
+    return false;
+  }
+
+  const url = p.url.trim();
+  const esProtocoloSeguro =
+    url.startsWith('/') || url.startsWith('http://') || url.startsWith('https://');
+  if (!esProtocoloSeguro) {
+    return false;
+  }
+
+  const esIdOpcionalValido = (v: unknown) =>
+    v === undefined || v === null || (typeof v === 'string' && v.trim().length > 0);
+  if (!esIdOpcionalValido(p.incidenteId) || !esIdOpcionalValido(p.reporteTerrenoId)) {
+    return false;
+  }
+
+  return true;
 }
 
 export interface FamiliaAfectadaMisionDetalle {

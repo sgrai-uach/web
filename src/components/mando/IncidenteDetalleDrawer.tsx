@@ -461,7 +461,28 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
       if (!esPayloadAdjuntoCreadoValido(candidato)) return;
 
       if (candidato.incidenteId === incidenteId) {
-        cargarDetalle(true);
+        const nuevoAdjunto: AdjuntoEvidencia = {
+          id: candidato.id,
+          nombreArchivo: candidato.nombreArchivo,
+          url: candidato.url,
+          tipoMime: candidato.tipoMime,
+          tamanoBytes: candidato.tamanoBytes,
+          creadoEn: candidato.creadoEn,
+        };
+
+        setDetalle((prev) => {
+          if (!prev || prev.id !== incidenteId) return prev;
+          const actuales = prev.adjuntos ?? [];
+          if (actuales.some((item) => item.id === nuevoAdjunto.id)) {
+            return prev;
+          }
+          return {
+            ...prev,
+            adjuntos: [nuevoAdjunto, ...actuales],
+          };
+        });
+
+        void cargarDetalle(true);
       }
     };
 
@@ -519,6 +540,21 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
     // Mantener en estado REPORTADO hasta que la patrulla acepte en terreno
     onIncidenteActualizado?.(data.incidente.id, 'REPORTADO');
   };
+
+  const adjuntosConsolidados = useMemo<AdjuntoEvidencia[]>(() => {
+    if (!detalle) return [];
+    const directos = detalle.adjuntos ?? [];
+    const deReportes = (detalle.reportesEvaluacionTerreno ?? []).flatMap(
+      (rep) => rep.adjuntos ?? []
+    );
+    const mapa = new Map<string, AdjuntoEvidencia>();
+    for (const item of [...directos, ...deReportes]) {
+      if (item?.id && !mapa.has(item.id)) {
+        mapa.set(item.id, item);
+      }
+    }
+    return Array.from(mapa.values());
+  }, [detalle]);
 
   if (!incidenteId) return null;
 
@@ -769,9 +805,7 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
                   onAsignarPatrulla={() => setModalAsignarPatrullaAbierto(true)}
                   puedeAsignar={tienePermisoAsignar}
                 />
-                <IncidenteEvidenciasSection
-                  adjuntos={(detalle as IncidenteDetalle & { adjuntos?: AdjuntoEvidencia[] }).adjuntos}
-                />
+                <IncidenteEvidenciasSection adjuntos={adjuntosConsolidados} />
                 <IncidenteRecursosSection recursos={detalle.recursosAsociados} />
               </>
             )}

@@ -119,9 +119,9 @@ Para garantizar una experiencia de usuario clara y sin ambigüedades:
   > **"Sin reportes aún"**  
   > *"La unidad aún no ha emitido informes técnicos en terreno. Los reportes y evaluaciones aparecerán aquí a medida que el equipo los sincronice."*
 
-- **Reporte de terreno sin fotografías adjuntas:**  
+- **Reporte de terreno sin evidencias multimedia adjuntas:**  
   Si el funcionario evaluador emitió un reporte exclusivamente textual, la sección de evidencias exhibe amigablemente:  
-  > *"Sin evidencias fotográficas adjuntas"*
+  > *"Sin evidencias multimedia adjuntas"*
 
 ---
 
