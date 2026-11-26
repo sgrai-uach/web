@@ -7,6 +7,9 @@ import type {
   EditarOperativoRecuperacionData,
 } from '@/types/recuperacion';
 
+const SALAS_RECUPERACION = ['encargado', 'sala:encargados', 'mapa'] as const;
+const roomRefCounts = new Map<string, number>();
+
 export interface UseRecuperacionSocketOptions {
   onRecuperacionCreada?: (evento: EventoRecuperacionResponse) => void;
   onRecuperacionActualizada?: (evento: EditarOperativoRecuperacionData) => void;
@@ -63,15 +66,15 @@ export function useRecuperacionSocket({
     }
 
     const emitirSalas = () => {
-      socket.emit('unirse', 'encargado');
-      socket.emit('join', 'encargado');
-      socket.emit('unirse', 'sala:encargados');
-      socket.emit('join', 'sala:encargados');
-      socket.emit('unirse', 'encargado');
-      socket.emit('join', 'encargado');
-      socket.emit('unirse', 'mapa');
-      socket.emit('join', 'mapa');
+      for (const sala of SALAS_RECUPERACION) {
+        socket.emit('unirse', sala);
+        socket.emit('join', sala);
+      }
     };
+
+    for (const sala of SALAS_RECUPERACION) {
+      roomRefCounts.set(sala, (roomRefCounts.get(sala) ?? 0) + 1);
+    }
 
     const onConnect = () => {
       setConectado(true);
@@ -165,12 +168,16 @@ export function useRecuperacionSocket({
       socket.off('recuperacion:actualizada', handleRecuperacionActualizada);
       socket.off('recurso:actualizado', handleRecursoActualizado);
       socket.off('patrulla:actualizada', handlePatrullaActualizada);
-      socket.emit('salir', 'encargado');
-      socket.emit('leave', 'encargado');
-      socket.emit('salir', 'sala:encargados');
-      socket.emit('leave', 'sala:encargados');
-      socket.emit('salir', 'mapa');
-      socket.emit('leave', 'mapa');
+      for (const sala of SALAS_RECUPERACION) {
+        const nextCount = (roomRefCounts.get(sala) ?? 1) - 1;
+        if (nextCount <= 0) {
+          roomRefCounts.delete(sala);
+          socket.emit('salir', sala);
+          socket.emit('leave', sala);
+        } else {
+          roomRefCounts.set(sala, nextCount);
+        }
+      }
     };
   }, [enabled, eventoId]);
 

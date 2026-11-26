@@ -5046,8 +5046,8 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Listar eventos de recuperación territorial para el mapa operativo
-         * @description Consulta todos los eventos de recuperación comunales registrados con sus misiones tácticas desplegadas, patrullas asignadas y recursos para su renderizado táctico georreferenciado en el mapa operativo.
+         * Listar operativos de recuperación post-desastre (H73)
+         * @description Retorna una lista paginada y filtrable de todos los operativos de recuperación registrados para seguimiento del Encargado. Responde bajo el estándar de contratos H34 (page, limit, total, totalPages) e incluye el desglose de insumos asignados.
          */
         get: {
             parameters: {
@@ -5072,52 +5072,41 @@ export interface paths {
                     fechaDesde?: string;
                     /** @description Fecha máxima de registro (filtro temporal ISO 8601) */
                     fechaHasta?: string;
-                    /** @description Campo de ordenamiento */
-                    ordenarPor?: "codigo" | "prioridad" | "creadoEn" | "familiasAfectadas";
-                    /** @description Dirección de ordenamiento */
+                    /** @description Criterio de ordenamiento */
+                    ordenarPor?: "creadoEn" | "codigo" | "prioridad" | "familiasAfectadas";
+                    /** @description Sentido del ordenamiento */
                     orden?: "asc" | "desc";
                 };
-                header?: {
-                    /** @description Token JWT en formato 'Bearer <token>' */
-                    authorization?: string;
-                    "x-user-id"?: string;
-                };
+                header?: never;
                 path?: never;
                 cookie?: never;
             };
             requestBody?: never;
             responses: {
-                /** @description Listado de eventos de recuperación obtenido exitosamente */
+                /** @description Listado de operativos de recuperación obtenido exitosamente */
                 200: {
                     headers: {
                         [name: string]: unknown;
                     };
                     content: {
                         "application/json": {
-                            /** @example Eventos de recuperación obtenidos exitosamente. */
-                            message?: string;
-                            /** @example 4 */
-                            total?: number;
-                            meta?: {
-                                total: number;
-                                page: number;
-                                limit: number;
-                                totalPages: number;
-                                hasNext: boolean;
-                                hasPrev: boolean;
-                            };
+                            /** @example Listado de operativos de recuperación obtenido exitosamente */
+                            message: string;
                             data: {
                                 /**
                                  * Format: uuid
-                                 * @description Identificador único UUID del evento de recuperación
+                                 * @description Identificador único UUID del operativo de recuperación
                                  */
                                 id: string;
                                 /**
-                                 * @description Código oficial único del evento (ej. REC-2026-0001)
+                                 * @description Código oficial del operativo (ej. REC-2026-0001)
                                  * @example REC-2026-0001
                                  */
                                 codigo: string;
-                                /** @example Entrega de frazadas y techumbre en Sector Collico */
+                                /**
+                                 * @description Título descriptivo del despliegue
+                                 * @example Entrega de frazadas y techumbre en Sector Collico
+                                 */
                                 nombre: string;
                                 /** @example Familias afectadas por temporal de viento */
                                 descripcion: string | null;
@@ -5130,14 +5119,6 @@ export interface paths {
                                  * @enum {string}
                                  */
                                 prioridad: "BAJA" | "MEDIA" | "ALTA" | "CRITICA";
-                                /** @example Juan Pérez (Presidente JJVV) */
-                                contactoNombre: string | null;
-                                /** @example +56912345678 */
-                                contactoTelefono: string | null;
-                                /** @example -39.8142 */
-                                latitud: number;
-                                /** @example -73.2459 */
-                                longitud: number;
                                 /**
                                  * @example PLANIFICADA
                                  * @enum {string}
@@ -5145,89 +5126,81 @@ export interface paths {
                                 estado: "PLANIFICADA" | "EN_EJECUCION" | "COMPLETADA" | "CANCELADA";
                                 /** @example 4 */
                                 familiasAfectadas: number;
-                                /** @description Delegación territorial asignada */
+                                /** @description Delegación municipal territorial asociada */
                                 delegacion: {
                                     /** Format: uuid */
                                     id: string;
                                     codigo: string;
                                     nombre: string;
                                 } | null;
-                                /** @description Misión táctica despachada a terreno */
-                                mision?: {
-                                    /**
-                                     * Format: uuid
-                                     * @example 60000000-0000-4000-8000-000000000001
-                                     */
-                                    id: string;
-                                    /** @example MIS-2026-0042 */
-                                    codigo: string;
-                                    /** @example Entrega de frazadas y techumbre en Sector Collico */
-                                    titulo: string;
-                                    /** @example DESPACHADA */
-                                    estado: string;
-                                    /** @example RECUPERACION */
-                                    tipoMision: string;
-                                };
-                                /** @description Patrulla asignada a la operación */
-                                patrulla?: {
-                                    /**
-                                     * Format: uuid
-                                     * @example 50000000-0000-4000-8000-000000000001
-                                     */
-                                    id: string;
-                                    /** @example Patrulla Verificadora Alfa */
-                                    nombre: string;
-                                    /** @example EN_RECUPERACION */
-                                    estado: string;
-                                };
-                                /** @description Recursos reservados o descontados para la entrega */
-                                recursos?: {
+                                /**
+                                 * @description Cantidad total de unidades de insumos asignadas a la operación
+                                 * @example 15
+                                 */
+                                cantidadInsumosAsignados: number;
+                                /**
+                                 * @description Cantidad de tipos de insumo distintos asignados
+                                 * @example 2
+                                 */
+                                totalTiposInsumos: number;
+                                /** @description Desglose de recursos asignados por tipo y cantidad */
+                                recursosResumen: {
                                     /**
                                      * Format: uuid
                                      * @example 00000000-0000-4000-8000-000000000001
                                      */
                                     recursoId: string;
-                                    /** @example Sacos de Arena 25kg */
+                                    /** @example Frazadas Térmicas */
                                     nombre: string;
                                     /** @example 10 */
                                     cantidadAsignada: number;
                                 }[];
-                                cantidadInsumosAsignados?: number;
-                                totalTiposInsumos?: number;
-                                recursosResumen?: {
-                                    recursoId: string;
-                                    nombre: string;
-                                    cantidadAsignada: number;
-                                }[];
-                                /**
-                                 * Format: uuid
-                                 * @description Identificador del Encargado que creó el evento
-                                 */
-                                creadoPorId?: string;
                                 /** @description Fecha de registro ISO 8601 */
                                 creadoEn: string;
-                                /** @description Fecha de actualización ISO 8601 */
+                                /** @description Fecha de última modificación ISO 8601 */
                                 actualizadoEn: string;
+                                /** @description Fecha de cierre o finalización si concluyó */
                                 fechaCierre?: string | null;
                             }[];
+                            meta: {
+                                /** @description Total de registros coincidentes */
+                                total: number;
+                                /** @description Página actual */
+                                page: number;
+                                /** @description Elementos por página */
+                                limit: number;
+                                /** @description Total de páginas */
+                                totalPages: number;
+                                /** @description ¿Existe página siguiente? */
+                                hasNext: boolean;
+                                /** @description ¿Existe página anterior? */
+                                hasPrev: boolean;
+                            };
                         };
                     };
                 };
-                /** @description No autenticado o token inválido */
+                /** @description Parámetros de consulta o paginación inválidos */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description No autenticado / sesión ausente o expirada */
                 401: {
                     headers: {
                         [name: string]: unknown;
                     };
                     content?: never;
                 };
-                /** @description Acceso denegado. Se requiere permiso 'misiones:leer', 'recuperacion:crear' o 'misiones:asignar' */
+                /** @description Acceso denegado. Se requiere permiso 'recuperacion:leer' */
                 403: {
                     headers: {
                         [name: string]: unknown;
                     };
                     content?: never;
                 };
-                /** @description Error interno del servidor */
+                /** @description Error interno del servidor al procesar la consulta */
                 500: {
                     headers: {
                         [name: string]: unknown;
@@ -5394,7 +5367,7 @@ export interface paths {
                                     nombre: string;
                                 } | null;
                                 /** @description Misión táctica despachada a terreno */
-                                mision?: {
+                                mision: {
                                     /**
                                      * Format: uuid
                                      * @example 60000000-0000-4000-8000-000000000001
@@ -5408,9 +5381,9 @@ export interface paths {
                                     estado: string;
                                     /** @example RECUPERACION */
                                     tipoMision: string;
-                                };
+                                } | null;
                                 /** @description Patrulla asignada a la operación */
-                                patrulla?: {
+                                patrulla: {
                                     /**
                                      * Format: uuid
                                      * @example 50000000-0000-4000-8000-000000000001
@@ -5420,9 +5393,9 @@ export interface paths {
                                     nombre: string;
                                     /** @example EN_RECUPERACION */
                                     estado: string;
-                                };
+                                } | null;
                                 /** @description Recursos reservados o descontados para la entrega */
-                                recursos?: {
+                                recursos: {
                                     /**
                                      * Format: uuid
                                      * @example 00000000-0000-4000-8000-000000000001
@@ -5433,23 +5406,22 @@ export interface paths {
                                     /** @example 10 */
                                     cantidadAsignada: number;
                                 }[];
-                                cantidadInsumosAsignados?: number;
-                                totalTiposInsumos?: number;
-                                recursosResumen?: {
-                                    recursoId: string;
-                                    nombre: string;
-                                    cantidadAsignada: number;
-                                }[];
                                 /**
                                  * Format: uuid
                                  * @description Identificador del Encargado que creó el evento
                                  */
-                                creadoPorId?: string;
+                                creadoPorId: string;
+                                /** @description Fecha estimada de término ISO 8601 */
+                                fechaEstimadaFin?: string | null;
+                                /**
+                                 * Format: uuid
+                                 * @description Identificador del usuario que realizó la última edición
+                                 */
+                                actualizadoPorId?: string | null;
                                 /** @description Fecha de registro ISO 8601 */
                                 creadoEn: string;
                                 /** @description Fecha de actualización ISO 8601 */
                                 actualizadoEn: string;
-                                fechaCierre?: string | null;
                             };
                         };
                     };
@@ -5512,29 +5484,29 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Obtener detalle completo de un evento de recuperación comunal (HU-32)
-         * @description Permite consultar la información integral de un evento de recuperación territorial, incluyendo su localización, misiones tácticas desplegadas y el listado de insumos y recursos asignados.
+         * Obtener detalle completo de operativo de recuperación (H73 / H74)
+         * @description Retorna la información exhaustiva de un operativo de recuperación: recursos detallados asignados, misión táctica, patrulla en terreno, fecha estimada de término y la línea de tiempo unificada del historial.
          */
         get: {
             parameters: {
                 query?: never;
                 header?: never;
                 path: {
-                    /** @description UUID del evento de recuperación */
+                    /** @description UUID del operativo de recuperación a consultar */
                     id: string;
                 };
                 cookie?: never;
             };
             requestBody?: never;
             responses: {
-                /** @description Detalle del evento de recuperación obtenido exitosamente */
+                /** @description Detalle del operativo de recuperación obtenido exitosamente */
                 200: {
                     headers: {
                         [name: string]: unknown;
                     };
                     content: {
                         "application/json": {
-                            /** @example Detalle del evento de recuperación obtenido exitosamente. */
+                            /** @example Detalle de operativo de recuperación obtenido exitosamente */
                             message: string;
                             data: {
                                 /**
@@ -5579,115 +5551,122 @@ export interface paths {
                                     codigo: string;
                                     nombre: string;
                                 } | null;
-                                /** @description Misiones tácticas vinculadas al evento */
-                                misiones?: {
+                                /** @description Funcionario que creó el evento */
+                                creadoPor: {
                                     /** Format: uuid */
                                     id: string;
+                                    nombre: string;
+                                } | null;
+                                /** @description Misión táctica despachada a terreno */
+                                mision: {
+                                    /**
+                                     * Format: uuid
+                                     * @example 60000000-0000-4000-8000-000000000001
+                                     */
+                                    id: string;
+                                    /** @example MIS-2026-0042 */
                                     codigo: string;
+                                    /** @example Entrega de frazadas y techumbre en Sector Collico */
                                     titulo: string;
+                                    /** @example DESPACHADA */
                                     estado: string;
+                                    /** @example RECUPERACION */
                                     tipoMision: string;
-                                    patrulla?: {
+                                } | null;
+                                /** @description Patrulla asignada a la operación */
+                                patrulla: {
+                                    /**
+                                     * Format: uuid
+                                     * @example 50000000-0000-4000-8000-000000000001
+                                     */
+                                    id: string;
+                                    /** @example Patrulla Verificadora Alfa */
+                                    nombre: string;
+                                    /** @example EN_RECUPERACION */
+                                    estado: string;
+                                } | null;
+                                /** @description Detalle completo de recursos e insumos asignados */
+                                recursos: {
+                                    /**
+                                     * Format: uuid
+                                     * @example 00000000-0000-4000-8000-000000000001
+                                     */
+                                    recursoId: string;
+                                    /** @example Sacos de Arena 25kg */
+                                    nombre: string;
+                                    /** @example 10 */
+                                    cantidadAsignada: number;
+                                }[];
+                                /** @example 15 */
+                                cantidadInsumosAsignados: number;
+                                /** @example 2 */
+                                totalTiposInsumos: number;
+                                /** @description Línea de tiempo cronológica de hitos y avances */
+                                historial: {
+                                    /** @example h-001 */
+                                    id: string;
+                                    /**
+                                     * @example CREACION
+                                     * @enum {string}
+                                     */
+                                    tipo: "CREACION" | "HITO_MISION" | "REPORTE_TERRENO" | "ESTADO_OPERATIVO";
+                                    /** @example Operativo Planificado y Despachado */
+                                    titulo: string;
+                                    /** @example Se despacha patrulla verificadora con insumos */
+                                    descripcion: string | null;
+                                    /** @description Funcionario responsable del registro */
+                                    registradoPor: {
                                         /** Format: uuid */
                                         id: string;
                                         nombre: string;
-                                        estado: string;
                                     } | null;
+                                    /** @description Marca de tiempo ISO 8601 del evento */
                                     creadoEn: string;
                                 }[];
-                                /** @description Historial de insumos y herramientas asignados */
-                                recursosAsignados?: {
-                                    /** Format: uuid */
-                                    id: string;
-                                    /** Format: uuid */
-                                    recursoId: string;
-                                    nombre: string;
-                                    esIndividual: boolean;
-                                    cantidadAsignada: number;
-                                    /** Format: uuid */
-                                    misionId?: string | null;
-                                    creadoEn: string;
-                                }[];
-                                creadoPor?: {
-                                    id: string;
-                                    nombre: string;
-                                } | null;
-                                mision?: {
-                                    id: string;
-                                    codigo: string;
-                                    titulo: string;
-                                    estado: string;
-                                    tipoMision: string;
-                                } | null;
-                                patrulla?: {
-                                    id: string;
-                                    nombre: string;
-                                    estado: string;
-                                } | null;
-                                recursos?: {
-                                    recursoId: string;
-                                    nombre: string;
-                                    cantidadAsignada: number;
-                                }[];
-                                cantidadInsumosAsignados?: number;
-                                totalTiposInsumos?: number;
-                                historial?: {
-                                    id: string;
-                                    tipo: "CREACION" | "HITO_MISION" | "REPORTE_TERRENO" | "ESTADO_OPERATIVO";
-                                    titulo: string;
-                                    descripcion: string | null;
-                                    registradoPor: {
-                                        id: string;
-                                        nombre: string;
-                                    } | null;
-                                    creadoEn: string;
-                                }[];
-                                /**
-                                 * Format: uuid
-                                 * @description Identificador del creador
-                                 */
-                                creadoPorId?: string;
                                 /** @description Fecha de registro ISO 8601 */
                                 creadoEn: string;
-                                /** @description Fecha de última actualización ISO 8601 */
+                                /** @description Fecha de última modificación ISO 8601 */
                                 actualizadoEn: string;
+                                /** @description Fecha estimada de finalización de entrega */
                                 fechaEstimadaFin?: string | null;
                                 actualizadoPorId?: string | null;
+                                /** @description Fecha de finalización de entrega */
                                 fechaCierre?: string | null;
+                                /** @description Observaciones finales de cierre */
                                 observacionesCierre?: string | null;
                             };
                         };
                     };
                 };
-                /** @description Identificador de evento inválido */
+                /** @description Identificador UUID de operativo inválido */
                 400: {
                     headers: {
                         [name: string]: unknown;
                     };
                     content?: never;
                 };
-                /** @description No autenticado */
+                /** @description No autenticado / sesión ausente o expirada */
                 401: {
                     headers: {
                         [name: string]: unknown;
                     };
                     content?: never;
                 };
-                /** @description Acceso denegado */
+                /** @description Acceso denegado. Se requiere permiso 'recuperacion:leer' */
                 403: {
                     headers: {
                         [name: string]: unknown;
                     };
                     content?: never;
                 };
-                /** @description Evento de recuperación no encontrado */
+                /** @description Operativo de recuperación no encontrado */
                 404: {
                     headers: {
                         [name: string]: unknown;
                     };
                     content?: never;
                 };
-                /** @description Error interno del servidor */
+                /** @description Error interno del servidor al consultar el operativo */
                 500: {
                     headers: {
                         [name: string]: unknown;
@@ -5703,19 +5682,14 @@ export interface paths {
         head?: never;
         /**
          * Editar planificación de un operativo de recuperación activo (HU-74)
-         * @description Permite al Encargado modificar la descripción de tareas, fecha estimada de término, dotación de insumos/recursos y/o patrulla verificadora asignada a un operativo de recuperación activo. Bloquea la edición con 409 Conflict si el operativo está en estado COMPLETADA o CANCELADA, libera la patrulla anterior si no tiene otras misiones activas, registra auditoría (actualizado_en, actualizado_por_id) y hito de reasignación, sincroniza la descripción de la misión vinculada y emite eventos en tiempo real ('recuperacion:actualizada', 'mision:asignada', 'mision:reasignada').
+         * @description Permite al Encargado modificar la descripción de tareas, fecha estimada de término, dotación de insumos/recursos y/o patrulla verificadora asignada a un operativo de recuperación activo. Bloquea la edición con 409 Conflict si el operativo está en estado COMPLETADA o CANCELADA, libera la patrulla anterior si no tiene otras misiones activas, registra auditoría (actualizado_en, actualizado_por_id) y hito de reasignación, sincroniza la descripción de la misión vinculada y emite eventos en tiempo real ('recuperacion:actualizada', 'recurso:actualizado', 'patrulla:actualizada', 'mision:asignada', 'mision:reasignada').
          */
         patch: {
             parameters: {
                 query?: never;
-                header?: {
-                    /** @description Token Bearer JWT emitido por el endpoint de inicio de sesión */
-                    authorization?: string;
-                    /** @description UUID del usuario autenticado (Encargado o Administrador) */
-                    "x-user-id"?: string;
-                };
+                header?: never;
                 path: {
-                    /** @description UUID del operativo de recuperación */
+                    /** @description UUID del operativo de recuperación a consultar */
                     id: string;
                 };
                 cookie?: never;
@@ -5829,7 +5803,7 @@ export interface paths {
                                     estado: string;
                                     /** @example RECUPERACION */
                                     tipoMision: string;
-                                };
+                                } | null;
                                 /** @description Patrulla asignada a la operación */
                                 patrulla: {
                                     /**
@@ -5841,7 +5815,7 @@ export interface paths {
                                     nombre: string;
                                     /** @example EN_RECUPERACION */
                                     estado: string;
-                                };
+                                } | null;
                                 /** @description Recursos reservados o descontados para la entrega */
                                 recursos: {
                                     /**
@@ -5881,14 +5855,14 @@ export interface paths {
                     };
                     content?: never;
                 };
-                /** @description No autenticado / cabecera X-User-Id o token ausente o inválido */
+                /** @description No autenticado / token Bearer ausente o inválido */
                 401: {
                     headers: {
                         [name: string]: unknown;
                     };
                     content?: never;
                 };
-                /** @description Acceso denegado. Se requiere permiso 'recuperacion:editar' */
+                /** @description Acceso denegado. Se requiere permiso 'recuperacion:crear', 'recuperacion:editar' o rol Encargado */
                 403: {
                     headers: {
                         [name: string]: unknown;
@@ -5909,7 +5883,7 @@ export interface paths {
                     };
                     content?: never;
                 };
-                /** @description Error interno del servidor */
+                /** @description Error interno del servidor al procesar la edición del operativo */
                 500: {
                     headers: {
                         [name: string]: unknown;
@@ -5938,7 +5912,7 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
-                    /** @description UUID del evento de recuperación */
+                    /** @description UUID del operativo de recuperación a consultar */
                     id: string;
                 };
                 cookie?: never;
@@ -14814,7 +14788,7 @@ export interface components {
                 estado: string;
                 /** @example RECUPERACION */
                 tipoMision: string;
-            };
+            } | null;
             /** @description Patrulla asignada a la operación */
             patrulla: {
                 /**
@@ -14826,7 +14800,7 @@ export interface components {
                 nombre: string;
                 /** @example EN_RECUPERACION */
                 estado: string;
-            };
+            } | null;
             /** @description Recursos reservados o descontados para la entrega */
             recursos: {
                 /**
@@ -14844,6 +14818,13 @@ export interface components {
              * @description Identificador del Encargado que creó el evento
              */
             creadoPorId: string;
+            /** @description Fecha estimada de término ISO 8601 */
+            fechaEstimadaFin?: string | null;
+            /**
+             * Format: uuid
+             * @description Identificador del usuario que realizó la última edición
+             */
+            actualizadoPorId?: string | null;
             /** @description Fecha de registro ISO 8601 */
             creadoEn: string;
             /** @description Fecha de actualización ISO 8601 */
@@ -14913,7 +14894,7 @@ export interface components {
                     estado: string;
                     /** @example RECUPERACION */
                     tipoMision: string;
-                };
+                } | null;
                 /** @description Patrulla asignada a la operación */
                 patrulla: {
                     /**
@@ -14925,7 +14906,7 @@ export interface components {
                     nombre: string;
                     /** @example EN_RECUPERACION */
                     estado: string;
-                };
+                } | null;
                 /** @description Recursos reservados o descontados para la entrega */
                 recursos: {
                     /**
@@ -14943,17 +14924,471 @@ export interface components {
                  * @description Identificador del Encargado que creó el evento
                  */
                 creadoPorId: string;
+                /** @description Fecha estimada de término ISO 8601 */
+                fechaEstimadaFin?: string | null;
+                /**
+                 * Format: uuid
+                 * @description Identificador del usuario que realizó la última edición
+                 */
+                actualizadoPorId?: string | null;
                 /** @description Fecha de registro ISO 8601 */
                 creadoEn: string;
                 /** @description Fecha de actualización ISO 8601 */
                 actualizadoEn: string;
             };
         };
-        ListarEventosRecuperacionResponse: {
-            /** @example Eventos de recuperación obtenidos exitosamente. */
-            message: string;
+        OperativoRecuperacionItem: {
+            /**
+             * Format: uuid
+             * @description Identificador único UUID del operativo de recuperación
+             */
+            id: string;
+            /**
+             * @description Código oficial del operativo (ej. REC-2026-0001)
+             * @example REC-2026-0001
+             */
+            codigo: string;
+            /**
+             * @description Título descriptivo del despliegue
+             * @example Entrega de frazadas y techumbre en Sector Collico
+             */
+            nombre: string;
+            /** @example Familias afectadas por temporal de viento */
+            descripcion: string | null;
+            /** @example Collico */
+            sector: string;
+            /** @example Calle Balmaceda 1245 con Las Palmeras */
+            direccionTexto: string | null;
+            /**
+             * @example ALTA
+             * @enum {string}
+             */
+            prioridad: "BAJA" | "MEDIA" | "ALTA" | "CRITICA";
+            /**
+             * @example PLANIFICADA
+             * @enum {string}
+             */
+            estado: "PLANIFICADA" | "EN_EJECUCION" | "COMPLETADA" | "CANCELADA";
             /** @example 4 */
-            total: number;
+            familiasAfectadas: number;
+            /** @description Delegación municipal territorial asociada */
+            delegacion: {
+                /** Format: uuid */
+                id: string;
+                codigo: string;
+                nombre: string;
+            } | null;
+            /**
+             * @description Cantidad total de unidades de insumos asignadas a la operación
+             * @example 15
+             */
+            cantidadInsumosAsignados: number;
+            /**
+             * @description Cantidad de tipos de insumo distintos asignados
+             * @example 2
+             */
+            totalTiposInsumos: number;
+            /** @description Desglose de recursos asignados por tipo y cantidad */
+            recursosResumen: {
+                /**
+                 * Format: uuid
+                 * @example 00000000-0000-4000-8000-000000000001
+                 */
+                recursoId: string;
+                /** @example Frazadas Térmicas */
+                nombre: string;
+                /** @example 10 */
+                cantidadAsignada: number;
+            }[];
+            /** @description Fecha de registro ISO 8601 */
+            creadoEn: string;
+            /** @description Fecha de última modificación ISO 8601 */
+            actualizadoEn: string;
+            /** @description Fecha de cierre o finalización si concluyó */
+            fechaCierre?: string | null;
+        };
+        ListarRecuperacionesResponse: {
+            /** @example Listado de operativos de recuperación obtenido exitosamente */
+            message: string;
+            data: {
+                /**
+                 * Format: uuid
+                 * @description Identificador único UUID del operativo de recuperación
+                 */
+                id: string;
+                /**
+                 * @description Código oficial del operativo (ej. REC-2026-0001)
+                 * @example REC-2026-0001
+                 */
+                codigo: string;
+                /**
+                 * @description Título descriptivo del despliegue
+                 * @example Entrega de frazadas y techumbre en Sector Collico
+                 */
+                nombre: string;
+                /** @example Familias afectadas por temporal de viento */
+                descripcion: string | null;
+                /** @example Collico */
+                sector: string;
+                /** @example Calle Balmaceda 1245 con Las Palmeras */
+                direccionTexto: string | null;
+                /**
+                 * @example ALTA
+                 * @enum {string}
+                 */
+                prioridad: "BAJA" | "MEDIA" | "ALTA" | "CRITICA";
+                /**
+                 * @example PLANIFICADA
+                 * @enum {string}
+                 */
+                estado: "PLANIFICADA" | "EN_EJECUCION" | "COMPLETADA" | "CANCELADA";
+                /** @example 4 */
+                familiasAfectadas: number;
+                /** @description Delegación municipal territorial asociada */
+                delegacion: {
+                    /** Format: uuid */
+                    id: string;
+                    codigo: string;
+                    nombre: string;
+                } | null;
+                /**
+                 * @description Cantidad total de unidades de insumos asignadas a la operación
+                 * @example 15
+                 */
+                cantidadInsumosAsignados: number;
+                /**
+                 * @description Cantidad de tipos de insumo distintos asignados
+                 * @example 2
+                 */
+                totalTiposInsumos: number;
+                /** @description Desglose de recursos asignados por tipo y cantidad */
+                recursosResumen: {
+                    /**
+                     * Format: uuid
+                     * @example 00000000-0000-4000-8000-000000000001
+                     */
+                    recursoId: string;
+                    /** @example Frazadas Térmicas */
+                    nombre: string;
+                    /** @example 10 */
+                    cantidadAsignada: number;
+                }[];
+                /** @description Fecha de registro ISO 8601 */
+                creadoEn: string;
+                /** @description Fecha de última modificación ISO 8601 */
+                actualizadoEn: string;
+                /** @description Fecha de cierre o finalización si concluyó */
+                fechaCierre?: string | null;
+            }[];
+            meta: {
+                /** @description Total de registros coincidentes */
+                total: number;
+                /** @description Página actual */
+                page: number;
+                /** @description Elementos por página */
+                limit: number;
+                /** @description Total de páginas */
+                totalPages: number;
+                /** @description ¿Existe página siguiente? */
+                hasNext: boolean;
+                /** @description ¿Existe página anterior? */
+                hasPrev: boolean;
+            };
+        };
+        RecuperacionDetalleResponse: {
+            /**
+             * Format: uuid
+             * @example 70000000-0000-4000-8000-000000000001
+             */
+            id: string;
+            /** @example REC-2026-0001 */
+            codigo: string;
+            /** @example Entrega de frazadas y techumbre en Sector Collico */
+            nombre: string;
+            /** @example Familias afectadas por temporal de viento */
+            descripcion: string | null;
+            /** @example Collico */
+            sector: string;
+            /** @example Calle Balmaceda 1245 con Las Palmeras */
+            direccionTexto: string | null;
+            /**
+             * @example ALTA
+             * @enum {string}
+             */
+            prioridad: "BAJA" | "MEDIA" | "ALTA" | "CRITICA";
+            /** @example Juan Pérez (Presidente JJVV) */
+            contactoNombre: string | null;
+            /** @example +56912345678 */
+            contactoTelefono: string | null;
+            /** @example -39.8142 */
+            latitud: number;
+            /** @example -73.2459 */
+            longitud: number;
+            /**
+             * @example PLANIFICADA
+             * @enum {string}
+             */
+            estado: "PLANIFICADA" | "EN_EJECUCION" | "COMPLETADA" | "CANCELADA";
+            /** @example 4 */
+            familiasAfectadas: number;
+            /** @description Delegación territorial asignada */
+            delegacion: {
+                /** Format: uuid */
+                id: string;
+                codigo: string;
+                nombre: string;
+            } | null;
+            /** @description Funcionario que creó el evento */
+            creadoPor: {
+                /** Format: uuid */
+                id: string;
+                nombre: string;
+            } | null;
+            /** @description Misión táctica despachada a terreno */
+            mision: {
+                /**
+                 * Format: uuid
+                 * @example 60000000-0000-4000-8000-000000000001
+                 */
+                id: string;
+                /** @example MIS-2026-0042 */
+                codigo: string;
+                /** @example Entrega de frazadas y techumbre en Sector Collico */
+                titulo: string;
+                /** @example DESPACHADA */
+                estado: string;
+                /** @example RECUPERACION */
+                tipoMision: string;
+            } | null;
+            /** @description Patrulla asignada a la operación */
+            patrulla: {
+                /**
+                 * Format: uuid
+                 * @example 50000000-0000-4000-8000-000000000001
+                 */
+                id: string;
+                /** @example Patrulla Verificadora Alfa */
+                nombre: string;
+                /** @example EN_RECUPERACION */
+                estado: string;
+            } | null;
+            /** @description Detalle completo de recursos e insumos asignados */
+            recursos: {
+                /**
+                 * Format: uuid
+                 * @example 00000000-0000-4000-8000-000000000001
+                 */
+                recursoId: string;
+                /** @example Sacos de Arena 25kg */
+                nombre: string;
+                /** @example 10 */
+                cantidadAsignada: number;
+            }[];
+            /** @example 15 */
+            cantidadInsumosAsignados: number;
+            /** @example 2 */
+            totalTiposInsumos: number;
+            /** @description Línea de tiempo cronológica de hitos y avances */
+            historial: {
+                /** @example h-001 */
+                id: string;
+                /**
+                 * @example CREACION
+                 * @enum {string}
+                 */
+                tipo: "CREACION" | "HITO_MISION" | "REPORTE_TERRENO" | "ESTADO_OPERATIVO";
+                /** @example Operativo Planificado y Despachado */
+                titulo: string;
+                /** @example Se despacha patrulla verificadora con insumos */
+                descripcion: string | null;
+                /** @description Funcionario responsable del registro */
+                registradoPor: {
+                    /** Format: uuid */
+                    id: string;
+                    nombre: string;
+                } | null;
+                /** @description Marca de tiempo ISO 8601 del evento */
+                creadoEn: string;
+            }[];
+            /** @description Fecha de registro ISO 8601 */
+            creadoEn: string;
+            /** @description Fecha de última modificación ISO 8601 */
+            actualizadoEn: string;
+            /** @description Fecha estimada de finalización de entrega */
+            fechaEstimadaFin?: string | null;
+            actualizadoPorId?: string | null;
+            /** @description Fecha de finalización de entrega */
+            fechaCierre?: string | null;
+            /** @description Observaciones finales de cierre */
+            observacionesCierre?: string | null;
+        };
+        ObtenerRecuperacionDetalleResponse: {
+            /** @example Detalle de operativo de recuperación obtenido exitosamente */
+            message: string;
+            data: {
+                /**
+                 * Format: uuid
+                 * @example 70000000-0000-4000-8000-000000000001
+                 */
+                id: string;
+                /** @example REC-2026-0001 */
+                codigo: string;
+                /** @example Entrega de frazadas y techumbre en Sector Collico */
+                nombre: string;
+                /** @example Familias afectadas por temporal de viento */
+                descripcion: string | null;
+                /** @example Collico */
+                sector: string;
+                /** @example Calle Balmaceda 1245 con Las Palmeras */
+                direccionTexto: string | null;
+                /**
+                 * @example ALTA
+                 * @enum {string}
+                 */
+                prioridad: "BAJA" | "MEDIA" | "ALTA" | "CRITICA";
+                /** @example Juan Pérez (Presidente JJVV) */
+                contactoNombre: string | null;
+                /** @example +56912345678 */
+                contactoTelefono: string | null;
+                /** @example -39.8142 */
+                latitud: number;
+                /** @example -73.2459 */
+                longitud: number;
+                /**
+                 * @example PLANIFICADA
+                 * @enum {string}
+                 */
+                estado: "PLANIFICADA" | "EN_EJECUCION" | "COMPLETADA" | "CANCELADA";
+                /** @example 4 */
+                familiasAfectadas: number;
+                /** @description Delegación territorial asignada */
+                delegacion: {
+                    /** Format: uuid */
+                    id: string;
+                    codigo: string;
+                    nombre: string;
+                } | null;
+                /** @description Funcionario que creó el evento */
+                creadoPor: {
+                    /** Format: uuid */
+                    id: string;
+                    nombre: string;
+                } | null;
+                /** @description Misión táctica despachada a terreno */
+                mision: {
+                    /**
+                     * Format: uuid
+                     * @example 60000000-0000-4000-8000-000000000001
+                     */
+                    id: string;
+                    /** @example MIS-2026-0042 */
+                    codigo: string;
+                    /** @example Entrega de frazadas y techumbre en Sector Collico */
+                    titulo: string;
+                    /** @example DESPACHADA */
+                    estado: string;
+                    /** @example RECUPERACION */
+                    tipoMision: string;
+                } | null;
+                /** @description Patrulla asignada a la operación */
+                patrulla: {
+                    /**
+                     * Format: uuid
+                     * @example 50000000-0000-4000-8000-000000000001
+                     */
+                    id: string;
+                    /** @example Patrulla Verificadora Alfa */
+                    nombre: string;
+                    /** @example EN_RECUPERACION */
+                    estado: string;
+                } | null;
+                /** @description Detalle completo de recursos e insumos asignados */
+                recursos: {
+                    /**
+                     * Format: uuid
+                     * @example 00000000-0000-4000-8000-000000000001
+                     */
+                    recursoId: string;
+                    /** @example Sacos de Arena 25kg */
+                    nombre: string;
+                    /** @example 10 */
+                    cantidadAsignada: number;
+                }[];
+                /** @example 15 */
+                cantidadInsumosAsignados: number;
+                /** @example 2 */
+                totalTiposInsumos: number;
+                /** @description Línea de tiempo cronológica de hitos y avances */
+                historial: {
+                    /** @example h-001 */
+                    id: string;
+                    /**
+                     * @example CREACION
+                     * @enum {string}
+                     */
+                    tipo: "CREACION" | "HITO_MISION" | "REPORTE_TERRENO" | "ESTADO_OPERATIVO";
+                    /** @example Operativo Planificado y Despachado */
+                    titulo: string;
+                    /** @example Se despacha patrulla verificadora con insumos */
+                    descripcion: string | null;
+                    /** @description Funcionario responsable del registro */
+                    registradoPor: {
+                        /** Format: uuid */
+                        id: string;
+                        nombre: string;
+                    } | null;
+                    /** @description Marca de tiempo ISO 8601 del evento */
+                    creadoEn: string;
+                }[];
+                /** @description Fecha de registro ISO 8601 */
+                creadoEn: string;
+                /** @description Fecha de última modificación ISO 8601 */
+                actualizadoEn: string;
+                /** @description Fecha estimada de finalización de entrega */
+                fechaEstimadaFin?: string | null;
+                actualizadoPorId?: string | null;
+                /** @description Fecha de finalización de entrega */
+                fechaCierre?: string | null;
+                /** @description Observaciones finales de cierre */
+                observacionesCierre?: string | null;
+            };
+        };
+        EditarEventoRecuperacionInput: {
+            /**
+             * @description Nueva descripción de tareas e indicaciones operativas
+             * @example Ampliación de entrega de kits de techumbre y frazadas en sector Collico Alto
+             */
+            descripcion?: string | null;
+            /**
+             * Format: date-time
+             * @description Fecha estimada de término del operativo en formato ISO-8601
+             * @example 2026-11-20T18:00:00.000Z
+             */
+            fechaEstimadaFin?: string | null;
+            /** @description Nueva dotación completa de insumos/recursos asignados al operativo */
+            recursos?: {
+                /**
+                 * Format: uuid
+                 * @description UUID del recurso logístico en inventario
+                 * @example 00000000-0000-4000-8000-000000000001
+                 */
+                recursoId: string;
+                /**
+                 * @description Cantidad de unidades requeridas para entrega en el evento
+                 * @example 10
+                 */
+                cantidad: number;
+            }[];
+            /**
+             * Format: uuid
+             * @description UUID de la nueva patrulla verificadora disponible asignada al operativo
+             * @example 50000000-0000-4000-8000-000000000002
+             */
+            patrullaId?: string;
+        };
+        EditarEventoRecuperacionResponse: {
+            /** @example Planificación del operativo de recuperación actualizada exitosamente. */
+            message: string;
             data: {
                 /**
                  * Format: uuid
@@ -15015,7 +15450,7 @@ export interface components {
                     estado: string;
                     /** @example RECUPERACION */
                     tipoMision: string;
-                };
+                } | null;
                 /** @description Patrulla asignada a la operación */
                 patrulla: {
                     /**
@@ -15027,7 +15462,7 @@ export interface components {
                     nombre: string;
                     /** @example EN_RECUPERACION */
                     estado: string;
-                };
+                } | null;
                 /** @description Recursos reservados o descontados para la entrega */
                 recursos: {
                     /**
@@ -15045,95 +15480,16 @@ export interface components {
                  * @description Identificador del Encargado que creó el evento
                  */
                 creadoPorId: string;
+                /** @description Fecha estimada de término ISO 8601 */
+                fechaEstimadaFin?: string | null;
+                /**
+                 * Format: uuid
+                 * @description Identificador del usuario que realizó la última edición
+                 */
+                actualizadoPorId?: string | null;
                 /** @description Fecha de registro ISO 8601 */
                 creadoEn: string;
                 /** @description Fecha de actualización ISO 8601 */
-                actualizadoEn: string;
-            }[];
-        };
-        RecuperacionDetalleResponse: {
-            /** @example Detalle del evento de recuperación obtenido exitosamente. */
-            message: string;
-            data: {
-                /**
-                 * Format: uuid
-                 * @example 70000000-0000-4000-8000-000000000001
-                 */
-                id: string;
-                /** @example REC-2026-0001 */
-                codigo: string;
-                /** @example Entrega de frazadas y techumbre en Sector Collico */
-                nombre: string;
-                /** @example Familias afectadas por temporal de viento */
-                descripcion: string | null;
-                /** @example Collico */
-                sector: string;
-                /** @example Calle Balmaceda 1245 con Las Palmeras */
-                direccionTexto: string | null;
-                /**
-                 * @example ALTA
-                 * @enum {string}
-                 */
-                prioridad: "BAJA" | "MEDIA" | "ALTA" | "CRITICA";
-                /** @example Juan Pérez (Presidente JJVV) */
-                contactoNombre: string | null;
-                /** @example +56912345678 */
-                contactoTelefono: string | null;
-                /** @example -39.8142 */
-                latitud: number;
-                /** @example -73.2459 */
-                longitud: number;
-                /**
-                 * @example PLANIFICADA
-                 * @enum {string}
-                 */
-                estado: "PLANIFICADA" | "EN_EJECUCION" | "COMPLETADA" | "CANCELADA";
-                /** @example 4 */
-                familiasAfectadas: number;
-                /** @description Delegación territorial asignada */
-                delegacion: {
-                    /** Format: uuid */
-                    id: string;
-                    codigo: string;
-                    nombre: string;
-                } | null;
-                /** @description Misiones tácticas vinculadas al evento */
-                misiones: {
-                    /** Format: uuid */
-                    id: string;
-                    codigo: string;
-                    titulo: string;
-                    estado: string;
-                    tipoMision: string;
-                    patrulla?: {
-                        /** Format: uuid */
-                        id: string;
-                        nombre: string;
-                        estado: string;
-                    } | null;
-                    creadoEn: string;
-                }[];
-                /** @description Historial de insumos y herramientas asignados */
-                recursosAsignados: {
-                    /** Format: uuid */
-                    id: string;
-                    /** Format: uuid */
-                    recursoId: string;
-                    nombre: string;
-                    esIndividual: boolean;
-                    cantidadAsignada: number;
-                    /** Format: uuid */
-                    misionId?: string | null;
-                    creadoEn: string;
-                }[];
-                /**
-                 * Format: uuid
-                 * @description Identificador del creador
-                 */
-                creadoPorId: string;
-                /** @description Fecha de registro ISO 8601 */
-                creadoEn: string;
-                /** @description Fecha de última actualización ISO 8601 */
                 actualizadoEn: string;
             };
         };
