@@ -640,7 +640,7 @@ describe('Componente MisionDetalleModal (HU-17)', () => {
     expect(desglose2.textContent).toContain('5 (1 familia)');
     expect(desglose2.textContent).toContain('Grave / Inhabitable (1 vivienda)');
     expect(desglose2.textContent).toContain('Requiere Evacuación');
-    expect(desglose2.textContent).toContain('Requiere Ficha FIBE');
+    expect(desglose2.textContent).not.toContain('Requiere Ficha FIBE');
     expect(desglose2.textContent).toContain('Riesgo Eléctrico');
     expect(desglose2.textContent).toContain('Riesgo Estructural');
 
@@ -751,7 +751,7 @@ describe('Componente MisionDetalleModal (HU-17)', () => {
     expect(itemFam1.textContent).toContain('Niños/Adolescentes: 2');
     expect(itemFam1.textContent).toContain('Adultos mayores: 1');
     expect(itemFam1.textContent).toContain('Grave / Inhabitable');
-    expect(itemFam1.textContent).toContain('Requiere FIBE');
+    expect(itemFam1.textContent).not.toContain('Requiere FIBE');
 
     const itemFam2 = screen.getByTestId('familia-item-rep-familias-multiples-1');
     expect(itemFam2.textContent).toContain('Familia Díaz - Cabaña Interior');
@@ -823,6 +823,182 @@ describe('Componente MisionDetalleModal (HU-17)', () => {
         /Tipología confirmada en terreno sin modificaciones: Deslizamiento\./i
       )
     ).toBeDefined();
+  });
+
+  it('distingue reporte VERIFICACION_CIERRE con dictamen REQUIERE_CUADRILLA, comparativa de personas afectadas, FIBE y sección HU-43 (H39)', async () => {
+    const misionCierreCuadrilla: MisionDetalleCompleto = {
+      ...mockMision,
+      id: 'm-cierre-39',
+      codigo: 'MIS-2026-0039',
+      tipoMision: 'VERIFICACION',
+      estado: 'COMPLETADA',
+      reportesTerreno: [
+        {
+          id: 'rep-prio-base',
+          misionId: 'm-cierre-39',
+          tipoReporte: 'EVALUACION_PRIORIDAD',
+          versionReporte: 1,
+          esRectificacion: false,
+          etiquetaReporte: 'Reporte de Evaluación #1 (Inicial)',
+          prioridadSugerida: 'MEDIA',
+          prioridadAsignada: 'ALTA',
+          justificacionPrioridad: 'Riesgo de anegamiento.',
+          detallesEvaluacion: {
+            nucleoFamiliarTotal: 4,
+            familiasAfectadas: 1,
+            requiereAsistenciaSocial: true,
+          },
+          evaluador: {
+            id: 'u002',
+            nombre: 'Patrullero Terreno',
+            email: 'patrulla@valdivia.cl',
+            rut: '15.222.333-4',
+          },
+          resumenTecnico: 'Evaluación inicial.',
+          accionesRealizadas: null,
+          requiereApoyoAdicional: false,
+          danosEstimados: null,
+          observaciones: null,
+          personasAfectadas: 4,
+          estadoTerreno: 'EN_PROGRESO',
+          adjuntos: [],
+          creadoEn: '2026-11-15T10:00:00Z',
+          actualizadoEn: '2026-11-15T10:00:00Z',
+        },
+        {
+          id: 'rep-cierre-cuad',
+          misionId: 'm-cierre-39',
+          tipoReporte: 'VERIFICACION_CIERRE',
+          dictamen: 'REQUIERE_CUADRILLA',
+          requiereAsistenciaSocial: true,
+          etiquetaReporte: 'Informe de Verificación y Cierre #1',
+          evaluador: {
+            id: 'u002',
+            nombre: 'Patrullero Terreno',
+            email: 'patrulla@valdivia.cl',
+            rut: '15.222.333-4',
+          },
+          resumenTecnico: 'Se constata árbol caído sobre cerco perimetral y acceso bloqueado.',
+          accionesRealizadas: null,
+          requiereApoyoAdicional: false,
+          danosEstimados: 'Cerco dañado en 6 metros',
+          observaciones: 'Se requiere motosierrista y retiro de ramas.',
+          personasAfectadas: 6,
+          estadoTerreno: 'INUNDADO_ACCESIBLE',
+          adjuntos: [],
+          creadoEn: '2026-11-15T10:30:00Z',
+          actualizadoEn: '2026-11-15T10:30:00Z',
+        },
+      ],
+    };
+
+    vi.spyOn(misionesService, 'obtenerDetalleMision').mockResolvedValueOnce({
+      exito: true,
+      datos: misionCierreCuadrilla,
+      mensaje: 'OK',
+    });
+
+    render(<MisionDetalleModal misionId="m-cierre-39" onCerrar={vi.fn()} />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('reporte-verificacion-cierre-rep-cierre-cuad')).toBeDefined();
+    });
+
+    const cardCierre = screen.getByTestId('reporte-verificacion-cierre-rep-cierre-cuad');
+    expect(cardCierre.textContent).toContain('Informe de Verificación y Cierre #1');
+    expect(screen.getByTestId('badge-dictamen-rep-cierre-cuad').textContent).toContain(
+      'Dictamen: Requiere Cuadrilla'
+    );
+    expect(cardCierre.textContent).toContain('Inundado accesible');
+    expect(screen.getByTestId('badge-personas-modificadas').textContent).toContain(
+      'Modificado respecto a prioridad (Antes: 4)'
+    );
+    expect(screen.getByTestId('chip-fibe-verificacion-cierre').textContent).toContain(
+      'Requiere Ficha FIBE'
+    );
+    expect(screen.getByTestId('seccion-evidencias-h43').textContent).toContain('HU-43');
+  });
+
+  it('distingue reporte VERIFICACION_CIERRE con dictamen NO_ABORDABLE mostrando motivoNoAbordable y personas rescatadas sin cambios (H39)', async () => {
+    const misionCierreNoAbordable: MisionDetalleCompleto = {
+      ...mockMision,
+      id: 'm-cierre-noab',
+      codigo: 'MIS-2026-0086',
+      tipoMision: 'VERIFICACION',
+      estado: 'COMPLETADA',
+      reportesTerreno: [
+        {
+          id: 'rep-prio-2',
+          misionId: 'm-cierre-noab',
+          tipoReporte: 'EVALUACION_PRIORIDAD',
+          versionReporte: 1,
+          esRectificacion: false,
+          evaluador: {
+            id: 'u002',
+            nombre: 'Patrullero Terreno',
+            email: 'patrulla@valdivia.cl',
+          },
+          resumenTecnico: 'Evaluación inicial.',
+          accionesRealizadas: null,
+          requiereApoyoAdicional: false,
+          danosEstimados: null,
+          observaciones: null,
+          personasAfectadas: 2,
+          estadoTerreno: 'SIN_DANO',
+          adjuntos: [],
+          creadoEn: '2026-11-15T11:00:00Z',
+          actualizadoEn: '2026-11-15T11:00:00Z',
+        },
+        {
+          id: 'rep-cierre-noab',
+          misionId: 'm-cierre-noab',
+          tipoReporte: 'VERIFICACION_CIERRE',
+          dictamen: 'NO_ABORDABLE',
+          motivoNoAbordable: 'Faja fiscal externa de concesionaria Vial, fuera de competencia municipal.',
+          requiereAsistenciaSocial: false,
+          etiquetaReporte: 'Informe de Cierre — No Abordable',
+          evaluador: {
+            id: 'u002',
+            nombre: 'Patrullero Terreno',
+            email: 'patrulla@valdivia.cl',
+          },
+          resumenTecnico: 'Siniestro ubicado en faja fiscal de ruta concesionada.',
+          accionesRealizadas: null,
+          requiereApoyoAdicional: false,
+          danosEstimados: 'Sin daños municipales',
+          observaciones: 'Se informa al Encargado para cierre definitivo.',
+          personasAfectadas: 2,
+          estadoTerreno: 'FAJA_FISCAL_EXTERNA',
+          adjuntos: [],
+          creadoEn: '2026-11-15T11:20:00Z',
+          actualizadoEn: '2026-11-15T11:20:00Z',
+        },
+      ],
+    };
+
+    vi.spyOn(misionesService, 'obtenerDetalleMision').mockResolvedValueOnce({
+      exito: true,
+      datos: misionCierreNoAbordable,
+      mensaje: 'OK',
+    });
+
+    render(<MisionDetalleModal misionId="m-cierre-noab" onCerrar={vi.fn()} />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('reporte-verificacion-cierre-rep-cierre-noab')).toBeDefined();
+    });
+
+    const cardNoAb = screen.getByTestId('reporte-verificacion-cierre-rep-cierre-noab');
+    expect(screen.getByTestId('badge-dictamen-rep-cierre-noab').textContent).toContain(
+      'Dictamen: No Abordable'
+    );
+    expect(screen.getByTestId('motivo-no-abordable-rep-cierre-noab').textContent).toContain(
+      'Faja fiscal externa de concesionaria Vial, fuera de competencia municipal.'
+    );
+    expect(cardNoAb.textContent).toContain('(Rescatado del reporte de prioridad sin cambios)');
+    expect(screen.getByTestId('chip-fibe-verificacion-cierre').textContent).toContain(
+      'No requiere Ficha FIBE'
+    );
   });
 
   it('formatea bitácora cronológica con textos amigables sin enums crudos ni prefijos duplicados', async () => {

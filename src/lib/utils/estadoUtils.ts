@@ -50,6 +50,9 @@ export const MAPA_ESTADOS_LEGIBLES: Record<string, string> = {
   LLEGADA_A_SITIO: 'Llegada al lugar',
   EVALUACION_INICIADA: 'Evaluación iniciada',
   EVALUACION_FINALIZADA: 'Evaluación finalizada',
+  REPORTE_VERIFICACION_CIERRE: 'Informe técnico de verificación y cierre registrado',
+  CIERRE_VERIFICACION: 'Cierre de verificación en terreno',
+  INCIDENTE_NO_ABORDABLE: 'Incidente declarado no abordable en terreno',
   VERIFICACION_COMPLETADA: 'Verificación completada',
   CUADRILLA_DESPACHADA: 'Cuadrilla despachada',
   PATRULLA_LIBERADA: 'Patrulla verificadora liberada',
@@ -377,6 +380,141 @@ export function formatearNombrePatrulla(
   const limpio = nombre.trim();
   if (!limpio) return fallback;
   return /^patrulla\b/i.test(limpio) ? limpio : `Patrulla ${limpio}`;
+}
+
+/**
+ * Formatea el dictamen operativo del informe de verificación y cierre (HU-39 / HU-86).
+ */
+export function formatearDictamenTerreno(
+  dictamen?: string | null,
+  fallback = 'No especificado'
+): string {
+  if (!dictamen || typeof dictamen !== 'string' || dictamen.trim() === '') {
+    return fallback;
+  }
+  const limpio = dictamen.trim().toUpperCase();
+  const mapaDictamen: Record<string, string> = {
+    REQUIERE_CUADRILLA: 'Requiere Cuadrilla',
+    NO_ABORDABLE: 'No Abordable',
+  };
+  return mapaDictamen[limpio] || formatearEstado(dictamen, fallback);
+}
+
+/**
+ * Determina si un reporte de terreno corresponde al informe técnico de verificación y cierre (HU-39).
+ */
+export function esReporteVerificacionCierre(
+  reporte?: {
+    tipoReporte?: string | null;
+    dictamen?: string | null;
+    etiquetaReporte?: string | null;
+  } | null
+): boolean {
+  if (!reporte) return false;
+  if (typeof reporte.tipoReporte === 'string' && reporte.tipoReporte.trim().toUpperCase() === 'VERIFICACION_CIERRE') {
+    return true;
+  }
+  if (typeof reporte.dictamen === 'string') {
+    const dictNorm = reporte.dictamen.trim().toUpperCase();
+    if (dictNorm === 'REQUIERE_CUADRILLA' || dictNorm === 'NO_ABORDABLE') {
+      return true;
+    }
+  }
+  return false;
+}
+
+export interface ReporteComparativaPersonasInput {
+  id?: string;
+  misionId?: string;
+  tipoReporte?: string | null;
+  dictamen?: string | null;
+  etiquetaReporte?: string | null;
+  personasAfectadas?: number | null;
+  personasAfectadasPrevias?: number | null;
+  personasAfectadasModificadas?: boolean;
+  versionReporte?: number | null;
+  creadoEn?: string;
+  detallesEvaluacion?: { nucleoFamiliarTotal?: number } | null;
+  evaluacion?: { nucleoFamiliarTotal?: number } | null;
+}
+
+export interface ComparativaPersonasAfectadas {
+  personasPrevias: number | null;
+  fueModificado: boolean;
+}
+
+/**
+ * Compara la cantidad de personas afectadas del informe de cierre frente al reporte previo
+ * de asignación de prioridad en la misma misión (HU-39).
+ */
+export function calcularComparativaPersonasAfectadas(
+  reporteActual: ReporteComparativaPersonasInput,
+  listaReportes: ReporteComparativaPersonasInput[] = []
+): ComparativaPersonasAfectadas {
+  const actualVal =
+    typeof reporteActual.personasAfectadas === 'number'
+      ? reporteActual.personasAfectadas
+      : null;
+
+  if (typeof reporteActual.personasAfectadasPrevias === 'number') {
+    const prevVal = reporteActual.personasAfectadasPrevias;
+    return {
+      personasPrevias: prevVal,
+      fueModificado:
+        actualVal !== null
+          ? actualVal !== prevVal
+          : Boolean(reporteActual.personasAfectadasModificadas),
+    };
+  }
+
+  const reportesPrioridadPrevios = listaReportes
+    .filter((r) => {
+      if (r.id && reporteActual.id && r.id === reporteActual.id) return false;
+      if (r.misionId && reporteActual.misionId && r.misionId !== reporteActual.misionId) {
+        return false;
+      }
+      return !esReporteVerificacionCierre(r);
+    })
+    .sort((a, b) => {
+      const verA = Number(a.versionReporte ?? 0);
+      const verB = Number(b.versionReporte ?? 0);
+      if (verA !== verB) return verB - verA;
+      const tA = a.creadoEn ? new Date(a.creadoEn).getTime() : 0;
+      const tB = b.creadoEn ? new Date(b.creadoEn).getTime() : 0;
+      return tB - tA;
+    });
+
+  const previo = reportesPrioridadPrevios[0];
+  if (!previo) {
+    return {
+      personasPrevias: null,
+      fueModificado: Boolean(reporteActual.personasAfectadasModificadas),
+    };
+  }
+
+  const prevNucleo =
+    typeof previo.detallesEvaluacion?.nucleoFamiliarTotal === 'number'
+      ? previo.detallesEvaluacion.nucleoFamiliarTotal
+      : typeof previo.evaluacion?.nucleoFamiliarTotal === 'number'
+        ? previo.evaluacion.nucleoFamiliarTotal
+        : typeof previo.personasAfectadas === 'number'
+          ? previo.personasAfectadas
+          : null;
+
+  if (prevNucleo === null) {
+    return {
+      personasPrevias: null,
+      fueModificado: Boolean(reporteActual.personasAfectadasModificadas),
+    };
+  }
+
+  return {
+    personasPrevias: prevNucleo,
+    fueModificado:
+      actualVal !== null
+        ? actualVal !== prevNucleo
+        : Boolean(reporteActual.personasAfectadasModificadas),
+  };
 }
 
 /**

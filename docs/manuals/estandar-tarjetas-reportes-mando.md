@@ -12,7 +12,8 @@ Las tarjetas de reportes de terreno representan la evidencia técnica directa le
 
 1. **Geometría Rectangular Plana (`0px` border-radius):** En estricto apego al diseño institucional, ninguna tarjeta, chip, botón o contenedor de reporte debe poseer bordes redondeados (`border-radius: 0px`).
 2. **Borde Izquierdo Semántico (`border-left: 4px solid ...`):**
-   - **Verde Menta (`var(--color-accent-mint, #4FAE9B)`):** Reportes de evaluación de terreno normales / vigentes.
+   - **Verde Menta (`var(--color-accent-mint, #4FAE9B)`):** Reportes de evaluación de terreno normales / vigentes e informes `VERIFICACION_CIERRE` con dictamen `REQUIERE_CUADRILLA`.
+   - **Rojo Institucional (`var(--color-danger, #D32F2F)`):** Informes `VERIFICACION_CIERRE` donde la patrulla declaró el incidente como `NO_ABORDABLE`.
    - **Teal Institucional (`var(--color-primary-teal, #1B6F7D)`):** Informe técnico de reclasificación de tipología en terreno o reporte destacado / seleccionado.
    - **Ámbar / Naranja (`var(--color-warning, #E65100)`):** Reportes donde la patrulla ajustó manualmente la prioridad sugerida por el sistema.
    - **Gris neutro (`#DFE3E8` o `#CBD5E1`):** Reportes de versiones históricas previas.
@@ -52,11 +53,36 @@ Las tarjetas de reportes de terreno representan la evidencia técnica directa le
 │ │ • Familia #2 (Familia Pérez): 2 pers. | Vivienda: Grave / Inhabitable│ │
 │ │                                                                      │ │
 │ │ Totales consolidados: 6 personas · 2 viviendas · Compromiso máximo   │ │
-│ │ Peligros activos y requerimientos: [Riesgo Eléctrico] [Requiere FIBE]│ │
+│ │ Peligros activos y requerimientos: [Riesgo Eléctrico]                │ │
 │ └──────────────────────────────────────────────────────────────────────┘ │
 │                                                                          │
 │ Acciones Ejecutadas en el Sitio: "Zanjeo preventivo y corte eléctrico" │
 │ Galería de Evidencias (Adjuntos fotográficos y coordenadas GPS)          │
+└──────────────────────────────────────────────────────────────────────────┘
+```
+
+### 2.1 Anatomía del Informe de Verificación y Cierre (`tipoReporte === 'VERIFICACION_CIERRE'`, HU-39)
+
+```
+┌──────────────────────────────────────────────────────────────────────────┐
+│ [Icono] Nombre Evaluador [Informe de Verificación y Cierre]              │
+│         [Dictamen: Requiere Cuadrilla | No Abordable] [Vigente] [Hora]   │
+├──────────────────────────────────────────────────────────────────────────┤
+│ (Si NO_ABORDABLE) ┌─ Declaración Fundada de No Abordabilidad ──────────┐ │
+│                   │ Motivo técnico: "Predio privado inaccesible..."    │ │
+│                   └────────────────────────────────────────────────────┘ │
+│                                                                          │
+│ Diagnóstico y Resumen Técnico del Siniestro: "..."                       │
+│                                                                          │
+│ ┌─ Estado del Terreno, Personas y Asistencia Social ───────────────────┐ │
+│ │ Estado del Terreno: Inundado accesible                               │ │
+│ │ Personas Damnificadas: 6  [Modificado respecto a prioridad (Antes:4)]│ │
+│ │ Daños Materiales Estimados: "Cerco perimetral dañado"                │ │
+│ │ Asistencia Social (Ficha FIBE): [Requiere Ficha FIBE]                │ │
+│ └──────────────────────────────────────────────────────────────────────┘ │
+│                                                                          │
+│ Observaciones Generales: "..."                                           │
+│ Galería de Evidencias (Sección preparada para adjuntos HU-43)            │
 └──────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -70,7 +96,7 @@ Para evitar la ambigüedad donde se registraba el tamaño de una sola familia pe
   - **Identificador y Referencia Opcional:** `Familia #1`, `Familia #2` con campo opcional para apellido o número de casa (ej. `"Familia Pérez"`, `"Casa esquina"`, `"Depto 201"`).
   - **Caracterización de Integrantes:** Total de personas, desglose de niños, adultos mayores, personas con discapacidad, electrodependientes y mascotas.
   - **Vivienda Asociada:** Nivel de compromiso particular de la vivienda que habita dicha familia (*Sin daño habitacional, Daño leve (Habitable), Daño moderado (Parcial), Grave / Inhabitable, Destrucción total*), representado con Chips de variantes semánticas según severidad.
-  - **Derivación Social:** Indicador si este hogar requiere levantamiento de Ficha Básica de Emergencia (`Requiere FIBE`), marcado con chip amarillo institucional.
+  - **Derivación Social (H39):** La marcación oficial de requerimiento de Ficha Básica de Emergencia (`Requiere Ficha FIBE`) fue trasladada desde el reporte de evaluación de prioridad (H38) al informe de verificación y cierre (`VERIFICACION_CIERRE`, H39).
 - **Regla de Visualización:**
   - Cuando se registra **más de 1 familia** o cuando la única familia ingresada cuenta con una **referencia personalizada** (ej. `"Familia González"`), la interfaz despliega las **Tarjetas de Hogar Individuales**.
   - Si se trata de un reporte de 1 familia sin referencia personalizada, la interfaz mantiene la visualización unificada estándar para no añadir complejidad visual innecesaria.
@@ -80,7 +106,7 @@ Para evitar la ambigüedad donde se registraba el tamaño de una sola familia pe
   - La cantidad de viviendas afectadas (`viviendasAfectadas`) equivale a la cantidad de familias catastradas.
   - El nivel de compromiso global del incidente adopta el compromiso más grave constatado entre todas las familias.
 - **Integración en Panel Lateral de Incidente:**
-  - `IncidenteUltimoReporteSection`: Despliega métricas de familias afectadas y lista compacta de hogares evaluados con su severidad.
-  - `IncidenteMisionesSection`: El resumen demográfico rápido expone el número de hogares y pills por cada familia.
-  - `KanbanBoard`: Los toasts en tiempo real reflejan el número de familias y el aviso de Ficha FIBE.
+  - `IncidenteUltimoReporteSection`: Despliega métricas de familias afectadas y lista compacta de hogares evaluados en H38, o los chips de Dictamen y Ficha FIBE cuando corresponde a `VERIFICACION_CIERRE` (H39).
+  - `IncidenteMisionesSection`: El resumen demográfico rápido expone el número de hogares y pills por cada familia en H38, o la comparativa de personas afectadas, dictamen y Ficha FIBE en H39.
+  - `KanbanBoard`: Los toasts en tiempo real reflejan el número de familias en H38 y el dictamen junto al aviso de Ficha FIBE en H39.
 

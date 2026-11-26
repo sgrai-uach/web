@@ -6,6 +6,8 @@ import {
   Hourglass,
   SlidersHorizontal,
   ClipboardCheck,
+  Ban,
+  HardHat,
 } from 'lucide-react';
 import type {
   EstadoTrazabilidadNotificacion,
@@ -113,6 +115,30 @@ export const IncidenteCard: React.FC<IncidenteCardProps> = ({
         <span>{incidente.direccion}</span>
       </p>
 
+      {incidente.estado === 'NO_ABORDABLE' && incidente.motivoNoAbordable && (
+        <div
+          data-testid="card-motivo-no-abordable"
+          title={incidente.motivoNoAbordable}
+          style={{
+            marginTop: '0.35rem',
+            marginBottom: '0.4rem',
+            padding: '5px 8px',
+            backgroundColor: 'var(--color-danger-bg, #FFEBEE)',
+            borderLeft: '3px solid var(--color-danger, #D32F2F)',
+            fontSize: '0.75rem',
+            color: 'var(--color-charcoal, #3B3F45)',
+            lineHeight: 1.3,
+            display: '-webkit-box',
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: 'vertical',
+            overflow: 'hidden',
+          }}
+        >
+          <strong style={{ color: 'var(--color-danger, #D32F2F)' }}>Motivo:</strong>{' '}
+          {incidente.motivoNoAbordable}
+        </div>
+      )}
+
       <div className={styles.cardFooter}>
         <div className={styles.cardMetaTags}>
           {incidente.requiereAsistenciaSocial && (
@@ -124,6 +150,31 @@ export const IncidenteCard: React.FC<IncidenteCardProps> = ({
               FIBE
             </Chip>
           )}
+          {incidente.estado === 'NO_ABORDABLE' && (
+            <Chip
+              variant="danger"
+              size="sm"
+              icon={<Ban size={11} strokeWidth={2.2} />}
+              title={
+                incidente.motivoNoAbordable
+                  ? `Declarado No Abordable en terreno: ${incidente.motivoNoAbordable}`
+                  : 'Incidente declarado No Abordable en terreno'
+              }
+            >
+              No Abordable
+            </Chip>
+          )}
+          {incidente.dictamenTerreno === 'REQUIERE_CUADRILLA' &&
+            incidente.estado !== 'NO_ABORDABLE' && (
+              <Chip
+                variant="teal"
+                size="sm"
+                icon={<HardHat size={11} strokeWidth={2.2} />}
+                title="Verificación cerrada con dictamen: Requiere despacho de cuadrilla"
+              >
+                Requiere Cuadrilla
+              </Chip>
+            )}
           {(incidente.reclasificadoEnTerreno || incidente.verificado) && (
             <Chip
               data-testid="badge-verificado"
@@ -133,7 +184,7 @@ export const IncidenteCard: React.FC<IncidenteCardProps> = ({
               title={
                 incidente.reclasificadoEnTerreno
                   ? incidente.justificacionReclasificacion
-                    ? `Tipología reclasificada en terreno: ${incidente.justificacionReclasificacion}${incidente.justificacionPrioridad ? ` (Prioridad ajustada: ${formatearPrioridad(incidente.prioridad)})` : ''}`
+                    ? `Tipología reclasificada en terreno: ${incidente.justificacionReclasificacion}${incidente.cambioPrioridadMotivo || incidente.justificacionPrioridad ? ` (Prioridad ajustada: ${formatearPrioridad(incidente.prioridad)})` : ''}`
                     : `Tipología rectificada por patrulla en terreno (Prioridad: ${formatearPrioridad(incidente.prioridad)})`
                   : incidente.justificacionPrioridad
                     ? `Evaluación en terreno con ajuste de prioridad: ${incidente.justificacionPrioridad} (Prioridad: ${formatearPrioridad(incidente.prioridad)})`

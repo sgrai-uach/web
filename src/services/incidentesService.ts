@@ -10,6 +10,7 @@ import type {
   DelegacionOpcion,
 } from '@/types/incidentesKpis';
 import { DELEGACIONES_VALDIVIA_DEFAULT } from '@/types/incidentesKpis';
+import type { DictamenAtencionTerreno } from '@/types/misiones';
 
 export const DEFAULT_ENCARGADO_ID = '00000000-0000-4000-8000-000000000003';
 
@@ -24,22 +25,43 @@ export interface RiesgosActivosEvaluacion {
   aislamientoVial?: boolean;
 }
 
-export type IncidenteResumen = ListarIncidentesResponse['data'][number];
+export type IncidenteResumen = ListarIncidentesResponse['data'][number] & {
+  tipoIncidenteId?: string | null;
+  cambioPrioridadMotivo?: string | null;
+};
 export type MisionDetalle = IncidenteDetalleResponse['data']['misiones'][number];
-export type IncidenteDetalle = IncidenteDetalleResponse['data'];
 export type EstadoTrazabilidadNotificacion = NonNullable<
   MisionDetalle['trazabilidadNotificacion']
 >;
 export type ReporteEvaluacionTerreno = NonNullable<
-  IncidenteDetalle['reportesEvaluacionTerreno']
->[number];
+  IncidenteDetalleResponse['data']['reportesEvaluacionTerreno']
+>[number] & {
+  personasAfectadasPrevias?: number | null;
+  personasAfectadasModificadas?: boolean;
+};
 export type EvaluacionTerrenoDetalle = ReporteEvaluacionTerreno['evaluacion'];
 export type ReclasificacionTipologiaResumen = NonNullable<
-  IncidenteDetalle['reclasificacionTipologia']
+  IncidenteDetalleResponse['data']['reclasificacionTipologia']
 >;
 export type UltimoReporteIncidenteResumen = NonNullable<
-  IncidenteDetalle['ultimoReporte']
->;
+  IncidenteDetalleResponse['data']['ultimoReporte']
+> & {
+  estadoTerreno?: string | null;
+  requiereAsistenciaSocial?: boolean;
+  personasAfectadas?: number | null;
+  personasAfectadasPrevias?: number | null;
+  personasAfectadasModificadas?: boolean;
+};
+export type IncidenteDetalle = Omit<
+  IncidenteDetalleResponse['data'],
+  'reportesEvaluacionTerreno' | 'ultimoReporte'
+> & {
+  tipoIncidenteId?: string | null;
+  dictamenTerreno?: DictamenAtencionTerreno | null;
+  cambioPrioridadMotivo?: string | null;
+  reportesEvaluacionTerreno?: ReporteEvaluacionTerreno[];
+  ultimoReporte?: UltimoReporteIncidenteResumen | null;
+};
 export type PaginacionMeta = ListarIncidentesResponse['paginacion'];
 export type EstadoIncidente = IncidenteResumen['estado'];
 export type PrioridadIncidente = IncidenteResumen['prioridad'];

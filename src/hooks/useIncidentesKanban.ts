@@ -236,6 +236,18 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
           return;
         }
 
+        // Verificar si hubo errores de servidor/red (evitar mostrar tablero vacío silenciosamente)
+        const fallidos = resultados.filter((r) => !r.exito);
+        if (fallidos.length > 0) {
+          setError(
+            fallidos[0].mensaje ||
+              'Error al cargar los incidentes del tablero. Intente nuevamente.'
+          );
+          if (fallidos.length === resultados.length) {
+            return;
+          }
+        }
+
         const nuevasColumnas: Record<EstadoIncidente, IncidenteResumen[]> = {
           REPORTADO: [],
           VERIFICANDO: [],
@@ -265,7 +277,11 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
         if (nuevasColumnas.REPORTADO && nuevasColumnas.REPORTADO.length > 0) {
           const aMoverAVerificando: IncidenteResumen[] = [];
           nuevasColumnas.REPORTADO = nuevasColumnas.REPORTADO.filter((inc) => {
-            if (inc.tieneMisionEnCurso) {
+            if (
+              inc.tieneMisionEnCurso &&
+              inc.estado !== 'NO_ABORDABLE' &&
+              inc.estado !== 'RESUELTO'
+            ) {
               aMoverAVerificando.push({ ...inc, estado: 'VERIFICANDO' });
               return false;
             }
@@ -456,7 +472,7 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
       const { datos } = payload;
       if (!datos || !datos.id) return;
 
-      const columnaOrigenDetectada: EstadoIncidente | null =
+      let columnaOrigenDetectada: EstadoIncidente | null =
         ESTADOS_KANBAN.find((est) =>
           columnasRef.current[est].some((i) => i.id === datos.id)
         ) ?? null;
@@ -464,7 +480,16 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
       const incPrevio = columnaOrigenDetectada
         ? columnasRef.current[columnaOrigenDetectada].find((i) => i.id === datos.id)
         : undefined;
-      const tipoAnteriorDetectado = incPrevio?.tipoAfectacion;
+      let tipoAnteriorDetectado = incPrevio?.tipoAfectacion;
+
+      for (const est of ESTADOS_KANBAN) {
+        const incExistente = columnasRef.current[est].find((i) => i.id === datos.id);
+        if (incExistente) {
+          columnaOrigenDetectada = est;
+          tipoAnteriorDetectado = incExistente.tipoAfectacion;
+          break;
+        }
+      }
 
       setColumnas((prev) => {
         let incidenteEncontrado: IncidenteResumen | null = null;
@@ -512,18 +537,39 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
                 )
               : totalReportesPrevios;
 
+            const esCierreNoAbordable = datos.nuevoEstado === 'NO_ABORDABLE';
+            const dictamenResuelto =
+              datos.dictamen ??
+              datos.reporteTerreno?.dictamen ??
+              incActual.dictamenTerreno ??
+              (esCierreNoAbordable ? 'NO_ABORDABLE' : undefined);
+            const esCierreVerificacion =
+              esCierreNoAbordable ||
+              dictamenResuelto === 'REQUIERE_CUADRILLA' ||
+              datos.reporteTerreno?.tipoReporte === 'VERIFICACION_CIERRE';
+            const motivoNoAbordableResuelto =
+              datos.motivoNoAbordable !== undefined
+                ? datos.motivoNoAbordable
+                : datos.reporteTerreno?.motivoNoAbordable !== undefined
+                  ? datos.reporteTerreno.motivoNoAbordable
+                  : incActual.motivoNoAbordable;
+            const fechaCierreResuelta =
+              datos.fechaCierre !== undefined ? datos.fechaCierre : incActual.fechaCierre;
+
             const nuevoVerificado =
               datos.verificado !== undefined
                 ? datos.verificado
-                : esSintetico
-                  ? Boolean(incActual.verificado)
-                  : Boolean(
-                      incActual.verificado ||
-                        esRetornoVerificandoDesdeAtencion ||
-                        datos.reporteTerreno ||
-                        huboCambioTipologia ||
-                        datos.justificacion
-                    );
+                : esCierreNoAbordable
+                  ? true
+                  : esSintetico
+                    ? Boolean(incActual.verificado)
+                    : Boolean(
+                        incActual.verificado ||
+                          esRetornoVerificandoDesdeAtencion ||
+                          datos.reporteTerreno ||
+                          huboCambioTipologia ||
+                          datos.justificacion
+                      );
 
             const nuevaJustificacionReclasificacion =
               !esSintetico && !datos.reporteTerreno && (huboCambioTipologia || datos.justificacion)
@@ -542,18 +588,26 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
                   ? datos.requiereAsistenciaSocial
                   : incActual.requiereAsistenciaSocial,
               tipoAfectacion: nuevoTipo,
+              tipoIncidenteId: datos.tipoIncidenteId || incActual.tipoIncidenteId,
               verificado: nuevoVerificado,
+              dictamenTerreno: dictamenResuelto,
+              motivoNoAbordable: motivoNoAbordableResuelto,
+              fechaCierre: fechaCierreResuelta,
               reclasificadoEnTerreno: reclasificado,
               justificacionReclasificacion: nuevaJustificacionReclasificacion,
               tieneMisionDespachada:
-                esTransicionAVerificando || esRetornoVerificandoDesdeAtencion
+                esCierreVerificacion ||
+                esTransicionAVerificando ||
+                esRetornoVerificandoDesdeAtencion
                   ? false
                   : incActual.tieneMisionDespachada,
-              tieneMisionEnCurso: esTransicionAVerificando
-                ? true
-                : esRetornoVerificandoDesdeAtencion
-                  ? false
-                  : incActual.tieneMisionEnCurso,
+              tieneMisionEnCurso: esCierreVerificacion
+                ? false
+                : esTransicionAVerificando
+                  ? true
+                  : esRetornoVerificandoDesdeAtencion
+                    ? false
+                    : incActual.tieneMisionEnCurso,
               totalMisiones:
                 esTransicionAVerificando && !yaContabaMision
                   ? 1
@@ -568,12 +622,15 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
           return prev;
         }
 
-        // Si el estado no cambió de columna, solo actualizarlo in situ
+        // Si el estado no cambió de columna, solo actualizarlo in situ y mantener orden de verificación
         if (columnaOrigen === datos.nuevoEstado) {
           return {
             ...prev,
-            [columnaOrigen]: prev[columnaOrigen].map((i) =>
-              i.id === datos.id ? incidenteEncontrado! : i
+            [columnaOrigen]: ordenarIncidentesColumna(
+              prev[columnaOrigen].map((i) =>
+                i.id === datos.id ? incidenteEncontrado! : i
+              ),
+              columnaOrigen
             ),
           };
         }

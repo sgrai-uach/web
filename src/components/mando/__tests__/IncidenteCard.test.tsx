@@ -196,6 +196,7 @@ describe('IncidenteCard', () => {
       prioridad: 'ALTA',
       reclasificadoEnTerreno: true,
       justificacionReclasificacion: 'Desborde de río constatado en terreno con anegamiento de viviendas.',
+      cambioPrioridadMotivo: 'Desborde de río constatado en terreno con anegamiento de viviendas.',
     };
 
     render(<IncidenteCard incidente={incidenteReclasificado} onClick={vi.fn()} />);
@@ -208,6 +209,7 @@ describe('IncidenteCard', () => {
       /Tipología reclasificada en terreno: Desborde de río constatado en terreno/i
     );
     expect(tagVerificado).toBeDefined();
+    expect(tagVerificado.getAttribute('title')).toContain('Prioridad ajustada: Alta');
   });
 
   it('NO debe renderizar botón "Asignar Patrulla" si el incidente tiene una misión en curso activa (tieneMisionEnCurso: true)', () => {
@@ -270,6 +272,68 @@ describe('IncidenteCard', () => {
     expect(
       screen.getByTitle(/Tipología reclasificada en terreno: Inundación verificada presencialmente/i)
     ).toBeDefined();
+  });
+
+  it('debe mostrar indicador de prioridad ajustada manualmente y tooltip con justificación cuando prioridad difiere de prioridadSugerida (HU-38)', () => {
+    const incidenteConPrioridadAjustada: IncidenteResumen = {
+      ...mockIncidente,
+      prioridad: 'CRITICA',
+      prioridadSugerida: 'ALTA',
+      justificacionPrioridad: 'Avance rápido del agua hacia dormitorio de adulto mayor postrado.',
+      totalReportesTerreno: 2,
+      verificado: true,
+    };
+
+    render(<IncidenteCard incidente={incidenteConPrioridadAjustada} onClick={vi.fn()} />);
+
+    const indicadorAjustada = screen.getByTestId('indicador-prioridad-ajustada');
+    expect(indicadorAjustada).toBeDefined();
+    expect(indicadorAjustada.textContent).toContain('Ajustada');
+    expect(indicadorAjustada.getAttribute('title')).toContain(
+      'Prioridad ajustada manualmente en terreno: Crítica (Sugerida por sistema: Alta)'
+    );
+    expect(indicadorAjustada.getAttribute('title')).toContain(
+      'Avance rápido del agua hacia dormitorio de adulto mayor postrado.'
+    );
+
+    const badgeReportes = screen.getByTestId('badge-total-reportes-terreno');
+    expect(badgeReportes).toBeDefined();
+    expect(badgeReportes.textContent).toContain('2 reportes · Rectificado');
+  });
+
+  it('debe mostrar chip "No Abordable" y motivo de descarte cuando el incidente está en estado NO_ABORDABLE (H39)', () => {
+    const incidenteNoAbordable: IncidenteResumen = {
+      ...mockIncidente,
+      estado: 'NO_ABORDABLE',
+      requiereAsistenciaSocial: false,
+      dictamenTerreno: 'NO_ABORDABLE',
+      motivoNoAbordable: 'Falsa alarma constatada en terreno por patrulla.',
+      verificado: true,
+    };
+
+    render(<IncidenteCard incidente={incidenteNoAbordable} onClick={vi.fn()} />);
+
+    expect(screen.getByText('No Abordable')).toBeDefined();
+    const motivoBox = screen.getByTestId('card-motivo-no-abordable');
+    expect(motivoBox.textContent).toContain('Falsa alarma constatada en terreno por patrulla.');
+    expect(screen.queryByText('Requiere Cuadrilla')).toBeNull();
+  });
+
+  it('debe mostrar chips Verificado, FIBE y Requiere Cuadrilla cuando el dictamen de cierre requiere cuadrilla (H39)', () => {
+    const incidenteListoCuadrilla: IncidenteResumen = {
+      ...mockIncidente,
+      estado: 'VERIFICANDO',
+      prioridad: 'ALTA',
+      verificado: true,
+      requiereAsistenciaSocial: true,
+      dictamenTerreno: 'REQUIERE_CUADRILLA',
+    };
+
+    render(<IncidenteCard incidente={incidenteListoCuadrilla} onClick={vi.fn()} />);
+
+    expect(screen.getByText('Verificado')).toBeDefined();
+    expect(screen.getByText('FIBE')).toBeDefined();
+    expect(screen.getByText('Requiere Cuadrilla')).toBeDefined();
   });
 
   it('muestra el indicador directo de lectura/no lectura en la tarjeta Kanban según trazabilidadNotificacion', () => {

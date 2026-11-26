@@ -46,7 +46,7 @@ Dentro del **Modal de Detalle de Misión**, en la sección **`Informes Técnicos
 2. Cada tarjeta de reporte incluye:
    - **Comparativa de Prioridad y Justificación Técnica:** Prioridad sugerida por el sistema, prioridad confirmada por la patrulla y el motivo técnico ingresado ante discrepancias.
    - **Evaluación Demográfica y Condiciones en Terreno:** Núcleo familiar total, cantidad de familias, niños/as y adolescentes, adultos mayores, personas con discapacidad, pacientes electrodependientes, mascotas afectadas y nivel de daño en viviendas (`Sin daño habitacional`, `Daño leve`, `Daño moderado`, `Grave / Inhabitable`).
-   - **Alertas y Riesgos Activos:** Etiquetas destacadas cuando se constata `Requiere Evacuación`, `Requiere Ficha FIBE`, `Riesgo Eléctrico`, `Riesgo Estructural`, `Riesgo Químico / Sanitario` o `Aislamiento Vial`.
+   - **Alertas y Riesgos Activos:** Etiquetas destacadas cuando se constata `Requiere Evacuación`, `Riesgo Eléctrico`, `Riesgo Estructural`, `Riesgo Químico / Sanitario` o `Aislamiento Vial`. *(Nota: La marcación de requerimiento de Ficha FIBE se registra al cerrar la verificación en el informe técnico de [H39-informe-verificacion-cierre-mando.md](./H39-informe-verificacion-cierre-mando.md)).*
    - **Acciones, Daños, Observaciones y Evidencia Fotográfica:** Relato técnico completo y galería de fotografías adjuntas en terreno.
 
 ![Historial de reportes y desglose demográfico en Detalle de Misión](./assets/h38-evaluacion-prioridad-terreno-mando/mision-detalle-historial-reportes.png)
@@ -59,7 +59,7 @@ Dentro del **Modal de Detalle de Misión**, en la sección **`Informes Técnicos
 |---|---|---|
 | **La patrulla modifica y reenvía el reporte por agravamiento en terreno** | El sistema registra una nueva versión (`Reporte #2 — Rectificación`), conserva intacto el `Reporte #1 (Inicial)` como histórico y actualiza inmediatamente la prioridad en el Kanban y en el Drawer. | Revisar el bloque del último reporte vigente o hacer clic en `Ver Todos los Reportes (N)` para comparar qué indicadores cambiaron entre el reporte inicial y la rectificación. |
 | **La prioridad asignada por la patrulla difiere de la sugerida por el sistema** | Se activa el indicador `Ajustada` en la tarjeta Kanban, el badge `Sugerida: [Nivel]` en el Drawer y se destaca la justificación técnica obligatoria. | Evaluar la justificación presencial del patrullero para decidir el despacho inmediato de cuadrillas pesadas o recursos adicionales. |
-| **La evaluación en terreno marca afectación social / vulnerabilidad habitacional** | Se activa automáticamente el indicador **`FIBE`** en la tarjeta del incidente y en la cabecera del Drawer. | Coordinar la derivación del caso hacia el Panel de Asistencia Social (DGRD) para el levantamiento de la Ficha FIBE. |
+| **Cierre de verificación y derivación social (Ficha FIBE)** | El total de personas afectadas evaluado en H38 se rescata automáticamente para el informe final de cierre (H39), donde la patrulla confirma o actualiza dicho valor, define el dictamen y marca si corresponde levantamiento de Ficha FIBE. | Consultar el informe `VERIFICACION_CIERRE` detallado en el manual de [H39](./H39-informe-verificacion-cierre-mando.md). |
 
 ---
 

@@ -19,8 +19,12 @@ import { AsignarPatrullaModal } from './patrullas/AsignarPatrullaModal';
 import { useOptionalAuth } from '@/context/AuthContext';
 import { useOptionalToast } from '@/components/ui/Toast';
 import { usePuedeAsignarMision } from '@/hooks/usePuedeAsignarMision';
-import { fueTipologiaModificada } from '@/lib/utils/estadoUtils';
+import {
+  esReporteVerificacionCierre,
+  fueTipologiaModificada,
+} from '@/lib/utils/estadoUtils';
 import Button from '@/components/ui/Button';
+import Chip from '@/components/ui/Chip';
 import { getSocket } from '@/lib/socket/client';
 import {
   getTrazabilidadEstado,
@@ -35,9 +39,13 @@ import {
 } from '@/lib/socket/trazabilidadConfig';
 import { TrazabilidadIcon } from './TrazabilidadIcon';
 import InlineNotice from '@/components/ui/InlineNotice';
-import type { DespacharCuadrillaResponse, DespacharPatrullaResponseData } from '@/types/misiones';
+import type {
+  DespacharCuadrillaResponse,
+  DespacharPatrullaResponseData,
+  DictamenAtencionTerreno,
+} from '@/types/misiones';
 import type { EstadoIncidente } from '@/services/incidentesService';
-import { HardHat, CheckCircle2 } from 'lucide-react';
+import { HardHat, CheckCircle2, Ban } from 'lucide-react';
 import styles from '@/styles/mando.module.css';
 
 export interface IncidenteDetalleDrawerProps {
@@ -199,7 +207,7 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
     onIncidenteActualizado?.();
   };
 
-  // Sincronización en tiempo real ante reclasificación, cambios o trazabilidad mientras el drawer está abierto
+  // Sincronización en tiempo real ante reclasificación, trazabilidad o cambios mientras el drawer está abierto
   useEffect(() => {
     if (!incidenteId) return;
 
@@ -264,10 +272,18 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
             !reporteEntrante && typeof rawDatos?.justificacion === 'string'
               ? rawDatos.justificacion
               : prev.justificacionReclasificacion;
+          const huboCambioPrioridad = Boolean(
+            (rawDatos?.prioridad && rawDatos.prioridad !== prev.prioridad) ||
+              (prioridadSugerida && nuevaPrioridad !== prioridadSugerida)
+          );
 
           let nuevosReportes = prev.reportesEvaluacionTerreno || [];
           let nuevoUltimoReporte = prev.ultimoReporte;
+          let esCierreVerificacion = nuevoEstado === 'NO_ABORDABLE';
           if (reporteEntrante) {
+            if (esReporteVerificacionCierre(reporteEntrante)) {
+              esCierreVerificacion = true;
+            }
             const yaExiste = nuevosReportes.some((r) => r.id === reporteEntrante.id);
             nuevosReportes = yaExiste
               ? nuevosReportes.map((r) => (r.id === reporteEntrante.id ? reporteEntrante : r))
@@ -287,25 +303,89 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
               prioridadAsignada: reporteEntrante.prioridadAsignada,
               versionReporte: reporteEntrante.versionReporte,
               esRectificacion: reporteEntrante.esRectificacion,
+              tipoReporte: reporteEntrante.tipoReporte,
+              dictamen: reporteEntrante.dictamen,
+              motivoNoAbordable: reporteEntrante.motivoNoAbordable,
+              estadoTerreno: reporteEntrante.estadoTerreno,
+              requiereAsistenciaSocial: reporteEntrante.requiereAsistenciaSocial,
+              personasAfectadas: reporteEntrante.personasAfectadas,
+              personasAfectadasPrevias: reporteEntrante.personasAfectadasPrevias,
+              personasAfectadasModificadas: reporteEntrante.personasAfectadasModificadas,
             };
           }
+
+          const dictamenEntrante =
+            typeof rawDatos?.dictamen === 'string'
+              ? (rawDatos.dictamen as DictamenAtencionTerreno)
+              : (reporteEntrante?.dictamen as DictamenAtencionTerreno | undefined) ??
+                prev.dictamenTerreno;
+
+          const motivoNoAbordableEntrante =
+            typeof rawDatos?.motivoNoAbordable === 'string'
+              ? rawDatos.motivoNoAbordable
+              : typeof rawDatos?.motivo_no_abordable === 'string'
+                ? rawDatos.motivo_no_abordable
+                : reporteEntrante?.motivoNoAbordable ?? prev.motivoNoAbordable;
+
+          const fechaCierreEntrante =
+            typeof rawDatos?.fechaCierre === 'string'
+              ? rawDatos.fechaCierre
+              : typeof rawDatos?.fecha_cierre === 'string'
+                ? rawDatos.fecha_cierre
+                : prev.fechaCierre;
 
           return {
             ...prev,
             tipoAfectacion: nuevoTipo,
-            misiones: prev.misiones.map((m) =>
-              m.tipoMision === 'VERIFICACION' && nuevoTipo && prev.codigo
-                ? { ...m, titulo: `Verificación: ${nuevoTipo} - ${prev.codigo}` }
-                : m
-            ),
+            misiones: prev.misiones.map((m) => {
+              if (m.tipoMision === 'VERIFICACION') {
+                const tituloAct =
+                  nuevoTipo && prev.codigo
+                    ? `Verificación: ${nuevoTipo} - ${prev.codigo}`
+                    : m.titulo;
+                const esMisionCerradaAhora =
+                  esCierreVerificacion &&
+                  (reporteEntrante?.misionId
+                    ? m.id === reporteEntrante.misionId
+                    : ['PLANIFICADA', 'DESPACHADA', 'EN_CURSO'].includes(m.estado));
+                if (esMisionCerradaAhora) {
+                  return {
+                    ...m,
+                    titulo: tituloAct,
+                    estado: 'COMPLETADA',
+                    fechaCierre: fechaCierreEntrante || m.fechaCierre || new Date().toISOString(),
+                    patrulla: m.patrulla
+                      ? { ...m.patrulla, estado: 'DISPONIBLE' }
+                      : null,
+                  };
+                }
+                return { ...m, titulo: tituloAct };
+              }
+              return m;
+            }),
             prioridad: nuevaPrioridad,
             prioridadSugerida,
             justificacionPrioridad,
             requiereAsistenciaSocial:
               typeof rawDatos?.requiereAsistenciaSocial === 'boolean'
                 ? rawDatos.requiereAsistenciaSocial
-                : prev.requiereAsistenciaSocial,
+                : reporteEntrante?.requiereAsistenciaSocial !== undefined
+                  ? reporteEntrante.requiereAsistenciaSocial
+                  : prev.requiereAsistenciaSocial,
+            verificado:
+              typeof rawDatos?.verificado === 'boolean'
+                ? rawDatos.verificado
+                : esCierreVerificacion
+                  ? true
+                  : prev.verificado,
+            dictamenTerreno: dictamenEntrante,
+            motivoNoAbordable: motivoNoAbordableEntrante,
+            fechaCierre: fechaCierreEntrante,
             estado: nuevoEstado,
+            tipoIncidenteId:
+              typeof rawDatos?.tipoIncidenteId === 'string'
+                ? rawDatos.tipoIncidenteId
+                : prev.tipoIncidenteId,
             reportesEvaluacionTerreno: nuevosReportes,
             ultimoReporte: nuevoUltimoReporte,
             reclasificadoEnTerreno: Boolean(
@@ -313,6 +393,11 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
                 prev.reclasificadoEnTerreno
             ),
             justificacionReclasificacion: justificacion,
+            cambioPrioridadMotivo: huboCambioPrioridad
+              ? justificacionPrioridad ||
+                justificacion ||
+                'Ajustada tras verificación presencial en terreno'
+              : prev.cambioPrioridadMotivo,
             actualizadoEn:
               typeof rawDatos?.actualizadoEn === 'string'
                 ? rawDatos.actualizadoEn
@@ -367,8 +452,8 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
       }
     };
 
-    socket.on('incidente:actualizado', handleActualizadoSocket);
     socket.on('connect', asegurarSalasEncargado);
+    socket.on('incidente:actualizado', handleActualizadoSocket);
     socket.on('notificacion:trazabilidad_actualizada', handleTrazabilidad);
     socket.on('mision:rechazada', handleMisionRechazada);
 
@@ -376,8 +461,8 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
       if (refrescoTimer) {
         clearTimeout(refrescoTimer);
       }
-      socket.off('incidente:actualizado', handleActualizadoSocket);
       socket.off('connect', asegurarSalasEncargado);
+      socket.off('incidente:actualizado', handleActualizadoSocket);
       socket.off('notificacion:trazabilidad_actualizada', handleTrazabilidad);
       socket.off('mision:rechazada', handleMisionRechazada);
     };
@@ -451,6 +536,56 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
             puedeAsignar={tienePermisoAsignar}
           />
 
+          {/* Banner informativo de cierre por No Abordabilidad en terreno (HU-39 / HU-86) */}
+          {detalle && detalle.estado === 'NO_ABORDABLE' && (
+            <div
+              data-testid="banner-incidente-no-abordable"
+              role="alert"
+              style={{
+                backgroundColor: 'var(--color-danger-bg, #FFEBEE)',
+                padding: 'var(--space-3, 12px) var(--space-4, 16px)',
+                borderBottom: '2px solid #FFCDD2',
+                borderLeft: '4px solid var(--color-danger, #D32F2F)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '4px',
+              }}
+            >
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  flexWrap: 'wrap',
+                  gap: '6px',
+                }}
+              >
+                <strong
+                  style={{
+                    fontSize: '0.875rem',
+                    color: 'var(--color-danger, #D32F2F)',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                  }}
+                >
+                  <Ban size={15} aria-hidden="true" />
+                  <span>Caso cerrado en terreno como No Abordable</span>
+                </strong>
+                {detalle.fechaCierre && (
+                  <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted, #5F676E)' }}>
+                    Cierre: {new Date(detalle.fechaCierre).toLocaleString('es-CL')}
+                  </span>
+                )}
+              </div>
+              {detalle.motivoNoAbordable && (
+                <p style={{ margin: 0, fontSize: '0.8125rem', color: 'var(--color-text-dark, #2B2B2B)' }}>
+                  <strong>Motivo de no abordabilidad:</strong> {detalle.motivoNoAbordable}
+                </p>
+              )}
+            </div>
+          )}
+
           {/* Barra táctica de despacho de cuadrilla operativa (HU-21 / Regla ICS §3.2) */}
           {puedeDespacharCuadrilla && detalle && (
             <div
@@ -478,24 +613,9 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
                       Intervención Táctica Operativa
                     </strong>
                     {detalle.estado === 'VERIFICANDO' && estaVerificadoConcluido && (
-                      <span
-                        style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '4px',
-                          backgroundColor: 'var(--color-success-bg, #E8F5E9)',
-                          color: 'var(--color-success, #2E7D32)',
-                          border: '1px solid #C8E6C9',
-                          fontSize: '0.6875rem',
-                          fontWeight: 700,
-                          padding: '1px 6px',
-                          textTransform: 'uppercase',
-                          letterSpacing: '0.02em',
-                        }}
-                      >
-                        <CheckCircle2 size={12} />
-                        <span>Verificación Completada</span>
-                      </span>
+                      <Chip variant="success" size="sm" icon={<CheckCircle2 size={12} />}>
+                        Verificación Completada
+                      </Chip>
                     )}
                   </div>
                   <div style={{ fontSize: '0.75rem', color: 'var(--color-text-dark, #2B2B2B)', marginTop: '2px' }}>

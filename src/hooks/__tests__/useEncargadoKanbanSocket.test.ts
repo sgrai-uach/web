@@ -397,6 +397,115 @@ describe('useEncargadoKanbanSocket', () => {
     expect(result.current.ultimoEvento).toContain('Tipología confirmada sin cambios: INC-948888-846 (Deslizamiento');
   });
 
+  it('debe normalizar incidente:actualizado con dictamen NO_ABORDABLE, motivoNoAbordable y fechaCierre (H39)', () => {
+    const socket = getSocket();
+    const onIncidenteActualizado = vi.fn();
+
+    const { result } = renderHook(() =>
+      useEncargadoKanbanSocket({
+        onIncidenteActualizado,
+      })
+    );
+
+    act(() => {
+      const trigger = (socket as unknown as { _trigger: (ev: string, p: unknown) => void })._trigger;
+      trigger('incidente:actualizado', {
+        evento: 'incidente:actualizado',
+        datos: {
+          id: 'inc-noab-1',
+          codigo: 'INC-2026-860',
+          nuevoEstado: 'NO_ABORDABLE',
+          prioridad: 'BAJA',
+          dictamen: 'NO_ABORDABLE',
+          motivoNoAbordable: 'Predio privado cerrado sin acceso vehicular ni riesgo externo.',
+          fechaCierre: '2026-11-15T14:20:00Z',
+          verificado: true,
+          actualizadoEn: '2026-11-15T14:20:00Z',
+        },
+      });
+    });
+
+    expect(onIncidenteActualizado).toHaveBeenCalledWith(
+      expect.objectContaining({
+        datos: expect.objectContaining({
+          id: 'inc-noab-1',
+          nuevoEstado: 'NO_ABORDABLE',
+          dictamen: 'NO_ABORDABLE',
+          motivoNoAbordable: 'Predio privado cerrado sin acceso vehicular ni riesgo externo.',
+          fechaCierre: '2026-11-15T14:20:00Z',
+          verificado: true,
+        }),
+      })
+    );
+    expect(result.current.ultimoEvento).toContain('declarado No Abordable en terreno');
+  });
+
+  it('debe normalizar informe de cierre REQUIERE_CUADRILLA con FIBE y NO sintetizar evento para mision COMPLETADA (H39)', () => {
+    const socket = getSocket();
+    const onIncidenteActualizado = vi.fn();
+
+    const { result } = renderHook(() =>
+      useEncargadoKanbanSocket({
+        onIncidenteActualizado,
+      })
+    );
+
+    act(() => {
+      const trigger = (socket as unknown as { _trigger: (ev: string, p: unknown) => void })._trigger;
+      // mision:actualizada COMPLETADA no debe disparar payload sintético que pise estados
+      trigger('mision:actualizada', {
+        incidenteId: 'inc-cierre-1',
+        estado: 'COMPLETADA',
+        tipoMision: 'VERIFICACION',
+        codigo: 'MIS-2026-039',
+      });
+    });
+
+    expect(onIncidenteActualizado).not.toHaveBeenCalled();
+
+    act(() => {
+      const trigger = (socket as unknown as { _trigger: (ev: string, p: unknown) => void })._trigger;
+      trigger('incidente:actualizado', {
+        evento: 'incidente:actualizado',
+        datos: {
+          id: 'inc-cierre-1',
+          codigo: 'INC-2026-039',
+          nuevoEstado: 'VERIFICANDO',
+          prioridad: 'ALTA',
+          verificado: true,
+          requiereAsistenciaSocial: true,
+          dictamen: 'REQUIERE_CUADRILLA',
+          reporteTerreno: {
+            id: 'rep-cierre-1',
+            misionId: 'mis-039',
+            tipoReporte: 'VERIFICACION_CIERRE',
+            dictamen: 'REQUIERE_CUADRILLA',
+            etiquetaReporte: 'Informe de Verificación y Cierre',
+            requiereAsistenciaSocial: true,
+            personasAfectadas: 4,
+            estadoTerreno: 'CRITICO',
+            resumenTecnico: 'Árbol obstruye calzada y compromete acceso a vivienda.',
+          },
+          actualizadoEn: '2026-11-15T15:00:00Z',
+        },
+      });
+    });
+
+    expect(onIncidenteActualizado).toHaveBeenCalledTimes(1);
+    expect(onIncidenteActualizado).toHaveBeenCalledWith(
+      expect.objectContaining({
+        datos: expect.objectContaining({
+          id: 'inc-cierre-1',
+          nuevoEstado: 'VERIFICANDO',
+          verificado: true,
+          requiereAsistenciaSocial: true,
+          dictamen: 'REQUIERE_CUADRILLA',
+        }),
+      })
+    );
+    expect(result.current.ultimoEvento).toContain('Verificación finalizada en INC-2026-039: Requiere Cuadrilla');
+  });
+
   it('BUG-H35-WEB-07: ignora payloads malformados o con estado inválido en notificacion:trazabilidad_actualizada', () => {
     const socket = getSocket();
     const onNotificacionTrazabilidadActualizada = vi.fn();

@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo } from 'react';
 import {
+  Check,
   Eye,
   ShieldCheck,
   Users,
@@ -12,7 +13,7 @@ import {
   FileText,
   SlidersHorizontal,
   Route,
-  Check,
+  HeartHandshake,
   WifiOff,
 } from 'lucide-react';
 import Button from '@/components/ui/Button';
@@ -23,12 +24,18 @@ import type {
   ReporteEvaluacionTerreno,
 } from '@/services/incidentesService';
 import {
+  calcularComparativaPersonasAfectadas,
+  esReporteVerificacionCierre,
+  formatearDictamenTerreno,
   formatearEstado,
   formatearPrioridad,
   formatearTipoMision,
   formatearCompromisoVivienda,
 } from '@/lib/utils/estadoUtils';
-import { obtenerVarianteChipEstadoMision } from '@/lib/utils/chipVariants';
+import {
+  obtenerVarianteChipDictamen,
+  obtenerVarianteChipEstadoMision,
+} from '@/lib/utils/chipVariants';
 import { TRAZABILIDAD_CONFIG } from '@/lib/socket/trazabilidadConfig';
 import { TrazabilidadIcon } from '../TrazabilidadIcon';
 import styles from '@/styles/mando.module.css';
@@ -72,6 +79,9 @@ export const IncidenteMisionesSection: React.FC<IncidenteMisionesSectionProps> =
   const reportesPorMision = useMemo(() => {
     const mapa = new Map<string, ReporteEvaluacionTerreno[]>();
     const ordenados = [...reportesEvaluacionTerreno].sort((a, b) => {
+      const cierreA = esReporteVerificacionCierre(a) ? 1 : 0;
+      const cierreB = esReporteVerificacionCierre(b) ? 1 : 0;
+      if (cierreA !== cierreB) return cierreB - cierreA;
       const verA = Number(a.versionReporte ?? 0);
       const verB = Number(b.versionReporte ?? 0);
       if (verA !== verB) return verB - verA;
@@ -264,6 +274,8 @@ export const IncidenteMisionesSection: React.FC<IncidenteMisionesSectionProps> =
           </div>
         )}
 
+        {/* Trazabilidad de Notificación en Tiempo Real (HU-35) */}
+
         {/* Bloque Destacado de Rechazo de Misión */}
         {mision.justificacionRechazo && (
           <div
@@ -288,331 +300,6 @@ export const IncidenteMisionesSection: React.FC<IncidenteMisionesSectionProps> =
             </p>
           </div>
         )}
-
-        {/* Acceso Directo al Último Reporte de Terreno y a Todos los Reportes de la Misión (HU-38) */}
-        {(() => {
-          const reportesMision = reportesPorMision.get(mision.id) || [];
-          if (reportesMision.length === 0) return null;
-
-          const ultimoReporte = reportesMision[0];
-          const numVersion = Number(ultimoReporte.versionReporte || reportesMision.length);
-          const esRectificacion = Boolean(
-            ultimoReporte.esRectificacion || numVersion > 1
-          );
-          const etiquetaUltimo = esRectificacion
-            ? `Reporte #${numVersion} — Rectificación Vigente`
-            : 'Reporte #1 — Evaluación Inicial';
-
-          const prioridadAjustadaManual = Boolean(
-            (ultimoReporte.prioridadSugerida &&
-              ultimoReporte.prioridadAsignada &&
-              ultimoReporte.prioridadSugerida !== ultimoReporte.prioridadAsignada) ||
-              ultimoReporte.justificacionPrioridad
-          );
-
-          const evalData = (ultimoReporte.evaluacion || {}) as Record<string, unknown>;
-          const familiasRaw = Array.isArray(evalData.familias)
-            ? (evalData.familias as Record<string, unknown>[])
-            : undefined;
-          const familiasCount =
-            familiasRaw && familiasRaw.length > 0
-              ? familiasRaw.length
-              : typeof evalData.familiasAfectadas === 'number'
-                ? evalData.familiasAfectadas
-                : undefined;
-          const nucleoTotal =
-            typeof evalData.nucleoFamiliarTotal === 'number'
-              ? evalData.nucleoFamiliarTotal
-              : ultimoReporte.personasAfectadas;
-          const ninos =
-            typeof evalData.cantidadNinos === 'number' ? evalData.cantidadNinos : undefined;
-          const adultosMayores =
-            typeof evalData.cantidadAdultosMayores === 'number'
-              ? evalData.cantidadAdultosMayores
-              : undefined;
-          const discapacitados =
-            typeof evalData.personasDiscapacitadas === 'number'
-              ? evalData.personasDiscapacitadas
-              : undefined;
-          const mascotas =
-            typeof evalData.mascotasAfectadas === 'number'
-              ? evalData.mascotasAfectadas
-              : undefined;
-          const compromisoViv =
-            typeof evalData.nivelCompromisoVivienda === 'string'
-              ? evalData.nivelCompromisoVivienda
-              : undefined;
-
-          const handleIrAUltimoReporte = () => {
-            if (onVerReportesMision) {
-              onVerReportesMision(mision.id, ultimoReporte.id);
-            } else {
-              onVerDetalleMision?.(mision.id);
-            }
-          };
-
-          const handleIrATodosLosReportes = () => {
-            if (onVerReportesMision) {
-              onVerReportesMision(mision.id);
-            } else {
-              onVerDetalleMision?.(mision.id);
-            }
-          };
-
-          return (
-            <div
-              data-testid={`ultimo-reporte-mision-${mision.id}`}
-              style={{
-                marginTop: '0.65rem',
-                padding: '10px 12px',
-                backgroundColor: 'var(--color-white, #FFFFFF)',
-                border: '1px solid var(--border-color-neutral, #DFE3E8)',
-                borderLeft: '3px solid var(--color-primary-teal, #1B6F7D)',
-              }}
-            >
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  flexWrap: 'wrap',
-                  gap: '6px',
-                  marginBottom: '6px',
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <ClipboardCheck
-                    size={14}
-                    color="var(--color-primary-teal, #1B6F7D)"
-                    aria-hidden="true"
-                  />
-                  <strong
-                    style={{
-                      fontSize: '0.75rem',
-                      color: 'var(--color-primary-teal-dark, #14505A)',
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.3px',
-                    }}
-                  >
-                    Último Reporte Realizado: {etiquetaUltimo}
-                  </strong>
-                </div>
-
-                {formatFechaHora(ultimoReporte.creadoEn) && (
-                  <span
-                    style={{
-                      fontSize: '0.72rem',
-                      color: 'var(--color-text-muted, #5F676E)',
-                    }}
-                  >
-                    {formatFechaHora(ultimoReporte.creadoEn)}
-                  </span>
-                )}
-              </div>
-
-              {/* Comparativa de Prioridad Sugerida vs Asignada */}
-              {(ultimoReporte.prioridadSugerida || ultimoReporte.prioridadAsignada) && (
-                <div
-                  style={{
-                    display: 'flex',
-                    flexWrap: 'wrap',
-                    gap: '10px',
-                    fontSize: '0.78rem',
-                    marginBottom: '6px',
-                    color: 'var(--color-charcoal, #3B3F45)',
-                  }}
-                >
-                  {ultimoReporte.prioridadSugerida && (
-                    <span>
-                      <strong>Prioridad sugerida:</strong>{' '}
-                      {formatearPrioridad(ultimoReporte.prioridadSugerida)}
-                    </span>
-                  )}
-                  {ultimoReporte.prioridadAsignada && (
-                    <span>
-                      <strong>Prioridad confirmada:</strong>{' '}
-                      <span
-                        style={{
-                          fontWeight: 700,
-                          color: prioridadAjustadaManual
-                            ? 'var(--color-warning, #E65100)'
-                            : 'var(--color-primary-teal-dark, #14505A)',
-                        }}
-                      >
-                        {formatearPrioridad(ultimoReporte.prioridadAsignada)}
-                      </span>
-                    </span>
-                  )}
-                </div>
-              )}
-
-              {ultimoReporte.justificacionPrioridad && (
-                <p
-                  style={{
-                    margin: '0 0 6px 0',
-                    fontSize: '0.78rem',
-                    color: 'var(--color-charcoal, #3B3F45)',
-                    backgroundColor: 'var(--color-warning-bg, #FFF3E0)',
-                    padding: '4px 8px',
-                    borderLeft: '2px solid var(--color-warning, #E65100)',
-                  }}
-                >
-                  <SlidersHorizontal
-                    size={11}
-                    style={{ marginRight: '4px', verticalAlign: 'middle' }}
-                    aria-hidden="true"
-                  />
-                  <strong>Justificación prioridad:</strong> {ultimoReporte.justificacionPrioridad}
-                </p>
-              )}
-
-              {/* Resumen demográfico rápido */}
-              <div
-                style={{
-                  display: 'flex',
-                  flexWrap: 'wrap',
-                  gap: '8px',
-                  fontSize: '0.75rem',
-                  color: 'var(--color-charcoal, #3B3F45)',
-                  marginBottom: '6px',
-                }}
-              >
-                {familiasCount !== undefined && (
-                  <span>
-                    <strong>Hogares:</strong> {familiasCount}{' '}
-                    {familiasCount === 1 ? 'familia' : 'familias'}
-                  </span>
-                )}
-                <span>
-                  <strong>Núcleo familiar:</strong> {nucleoTotal} pers.
-                </span>
-                {ninos !== undefined && (
-                  <span>
-                    <strong>Niños:</strong> {ninos}
-                  </span>
-                )}
-                {adultosMayores !== undefined && (
-                  <span>
-                    <strong>Adultos mayores:</strong> {adultosMayores}
-                  </span>
-                )}
-                {discapacitados !== undefined && (
-                  <span>
-                    <strong>Discapacidad:</strong> {discapacitados}
-                  </span>
-                )}
-                {mascotas !== undefined && (
-                  <span>
-                    <strong>Mascotas:</strong> {mascotas}
-                  </span>
-                )}
-                {compromisoViv && (
-                  <span>
-                    <strong>Vivienda:</strong> {formatearCompromisoVivienda(compromisoViv)}
-                  </span>
-                )}
-              </div>
-
-              {/* Detalle compacto de familias si hay desglose */}
-              {familiasRaw &&
-                familiasRaw.length > 0 &&
-                (familiasRaw.length > 1 || Boolean(familiasRaw[0].referencia)) && (
-                  <div
-                    style={{
-                      display: 'flex',
-                      flexWrap: 'wrap',
-                      gap: '4px',
-                      marginBottom: '6px',
-                    }}
-                  >
-                    {familiasRaw.map((f, fIdx) => {
-                      const refLimpia = typeof f.referencia === 'string' ? f.referencia.trim() : '';
-                      const nombre = refLimpia
-                        ? refLimpia.toLowerCase().startsWith('fam')
-                          ? refLimpia
-                          : `Fam. ${refLimpia}`
-                        : `Fam. #${fIdx + 1}`;
-                      const pers =
-                        typeof f.nucleoFamiliarTotal === 'number'
-                          ? `${f.nucleoFamiliarTotal}p`
-                          : '';
-                      const comp =
-                        typeof f.nivelCompromisoVivienda === 'string'
-                          ? formatearCompromisoVivienda(f.nivelCompromisoVivienda)
-                          : '';
-                      return (
-                        <span
-                          key={fIdx}
-                          style={{
-                            fontSize: '0.72rem',
-                            backgroundColor: 'var(--color-bg-light, #ECEFF3)',
-                            padding: '2px 6px',
-                            border: '1px solid #DFE3E8',
-                            borderRadius: '0px',
-                            color: 'var(--color-charcoal-dark, #24272B)',
-                          }}
-                        >
-                          <strong>{nombre}:</strong> {[pers, comp].filter(Boolean).join(' · ')}
-                          {Boolean(f.requiereAsistenciaSocial) && ' (FIBE)'}
-                        </span>
-                      );
-                    })}
-                  </div>
-                )}
-
-              {ultimoReporte.resumenTecnico &&
-                !/^\s*Evaluaci[oó]n en Terreno #\d+/i.test(ultimoReporte.resumenTecnico) && (
-                  <p
-                    style={{
-                      margin: '0 0 8px 0',
-                      fontSize: '0.78rem',
-                      color: 'var(--color-text-dark, #2B2B2B)',
-                      lineHeight: 1.35,
-                    }}
-                  >
-                    {ultimoReporte.resumenTecnico}
-                  </p>
-                )}
-
-              <div
-                style={{
-                  display: 'flex',
-                  flexWrap: 'wrap',
-                  gap: '6px',
-                  justifyContent: 'flex-end',
-                }}
-              >
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={handleIrAUltimoReporte}
-                  title={`Abrir directamente el último reporte realizado de la misión ${mision.codigo}`}
-                  aria-label={`Ver último reporte de la misión ${mision.codigo}`}
-                >
-                  <FileText size={12} aria-hidden="true" style={{ marginRight: '4px' }} />
-                  <span>Ver Último Reporte</span>
-                </Button>
-
-                <Button
-                  type="button"
-                  variant="primary"
-                  size="sm"
-                  onClick={handleIrATodosLosReportes}
-                  title={`Ver todos los reportes de terreno (${reportesMision.length}) en el detalle de la misión ${mision.codigo}`}
-                  aria-label={`Ver todos los reportes de la misión ${mision.codigo}`}
-                >
-                  <ClipboardCheck size={12} aria-hidden="true" style={{ marginRight: '4px' }} />
-                  <span>
-                    {reportesMision.length > 1
-                      ? `Ver Todos los Reportes (${reportesMision.length})`
-                      : 'Ver Reportes en Misión (1)'}
-                  </span>
-                </Button>
-              </div>
-            </div>
-          );
-        })()}
 
         {mision.trazabilidadNotificacion && TRAZABILIDAD_CONFIG[mision.trazabilidadNotificacion] ? (
           (() => {
@@ -850,6 +537,396 @@ export const IncidenteMisionesSection: React.FC<IncidenteMisionesSectionProps> =
             </div>
           )
         )}
+
+        {/* Acceso Directo al Último Reporte de Terreno y a Todos los Reportes de la Misión (HU-38) */}
+        {(() => {
+          const reportesMision = reportesPorMision.get(mision.id) || [];
+          if (reportesMision.length === 0) return null;
+
+          const ultimoReporte = reportesMision[0];
+          const esCierre = esReporteVerificacionCierre(ultimoReporte);
+          const comparativaPersonas = esCierre
+            ? calcularComparativaPersonasAfectadas(ultimoReporte, reportesMision)
+            : null;
+          const numVersion = Number(ultimoReporte.versionReporte || reportesMision.length);
+          const esRectificacion = Boolean(
+            ultimoReporte.esRectificacion || numVersion > 1
+          );
+          const etiquetaUltimo = esCierre
+            ? ultimoReporte.etiquetaReporte || 'Informe de Verificación y Cierre'
+            : esRectificacion
+              ? `Reporte #${numVersion} — Rectificación Vigente`
+              : 'Reporte #1 — Evaluación Inicial';
+
+          const prioridadAjustadaManual = Boolean(
+            (ultimoReporte.prioridadSugerida &&
+              ultimoReporte.prioridadAsignada &&
+              ultimoReporte.prioridadSugerida !== ultimoReporte.prioridadAsignada) ||
+              ultimoReporte.justificacionPrioridad
+          );
+
+          const evalData = (ultimoReporte.evaluacion || {}) as Record<string, unknown>;
+          const requiereFibeCierre = Boolean(
+            ultimoReporte.requiereAsistenciaSocial ?? evalData.requiereAsistenciaSocial
+          );
+          const familiasRaw = Array.isArray(evalData.familias)
+            ? (evalData.familias as Record<string, unknown>[])
+            : undefined;
+          const familiasCount =
+            familiasRaw && familiasRaw.length > 0
+              ? familiasRaw.length
+              : typeof evalData.familiasAfectadas === 'number'
+                ? evalData.familiasAfectadas
+                : undefined;
+          const nucleoTotal =
+            typeof evalData.nucleoFamiliarTotal === 'number'
+              ? evalData.nucleoFamiliarTotal
+              : ultimoReporte.personasAfectadas;
+          const ninos =
+            typeof evalData.cantidadNinos === 'number' ? evalData.cantidadNinos : undefined;
+          const adultosMayores =
+            typeof evalData.cantidadAdultosMayores === 'number'
+              ? evalData.cantidadAdultosMayores
+              : undefined;
+          const discapacitados =
+            typeof evalData.personasDiscapacitadas === 'number'
+              ? evalData.personasDiscapacitadas
+              : undefined;
+          const mascotas =
+            typeof evalData.mascotasAfectadas === 'number'
+              ? evalData.mascotasAfectadas
+              : undefined;
+          const compromisoViv =
+            typeof evalData.nivelCompromisoVivienda === 'string'
+              ? evalData.nivelCompromisoVivienda
+              : undefined;
+
+          const handleIrAUltimoReporte = () => {
+            if (onVerReportesMision) {
+              onVerReportesMision(mision.id, ultimoReporte.id);
+            } else {
+              onVerDetalleMision?.(mision.id);
+            }
+          };
+
+          const handleIrATodosLosReportes = () => {
+            if (onVerReportesMision) {
+              onVerReportesMision(mision.id);
+            } else {
+              onVerDetalleMision?.(mision.id);
+            }
+          };
+
+          return (
+            <div
+              data-testid={`ultimo-reporte-mision-${mision.id}`}
+              style={{
+                marginTop: '0.65rem',
+                padding: '10px 12px',
+                backgroundColor: 'var(--color-white, #FFFFFF)',
+                border: '1px solid var(--border-color-neutral, #DFE3E8)',
+                borderLeft: '3px solid var(--color-primary-teal, #1B6F7D)',
+              }}
+            >
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  flexWrap: 'wrap',
+                  gap: '6px',
+                  marginBottom: '6px',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <ClipboardCheck
+                    size={14}
+                    color="var(--color-primary-teal, #1B6F7D)"
+                    aria-hidden="true"
+                  />
+                  <strong
+                    style={{
+                      fontSize: '0.75rem',
+                      color: 'var(--color-primary-teal-dark, #14505A)',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.3px',
+                    }}
+                  >
+                    Último Reporte Realizado: {etiquetaUltimo}
+                  </strong>
+                </div>
+
+                {formatFechaHora(ultimoReporte.creadoEn) && (
+                  <span
+                    style={{
+                      fontSize: '0.72rem',
+                      color: 'var(--color-text-muted, #5F676E)',
+                    }}
+                  >
+                    {formatFechaHora(ultimoReporte.creadoEn)}
+                  </span>
+                )}
+              </div>
+
+              {/* Badges de Dictamen y FIBE cuando es Informe de Verificación y Cierre (H39) */}
+              {esCierre && (
+                <div
+                  style={{
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    gap: '6px',
+                    marginBottom: '6px',
+                  }}
+                >
+                  {ultimoReporte.dictamen && (
+                    <Chip
+                      variant={obtenerVarianteChipDictamen(ultimoReporte.dictamen)}
+                      size="sm"
+                    >
+                      Dictamen: {formatearDictamenTerreno(ultimoReporte.dictamen)}
+                    </Chip>
+                  )}
+                  <Chip
+                    variant={requiereFibeCierre ? 'warning' : 'neutral'}
+                    size="sm"
+                    icon={<HeartHandshake size={11} />}
+                  >
+                    {requiereFibeCierre ? 'Requiere Ficha FIBE' : 'No requiere Ficha FIBE'}
+                  </Chip>
+                  {ultimoReporte.estadoTerreno && (
+                    <Chip variant="neutral" size="sm">
+                      Terreno: {formatearEstado(ultimoReporte.estadoTerreno)}
+                    </Chip>
+                  )}
+                </div>
+              )}
+
+              {esCierre && ultimoReporte.motivoNoAbordable && (
+                <p
+                  style={{
+                    margin: '0 0 6px 0',
+                    fontSize: '0.78rem',
+                    color: 'var(--color-charcoal, #3B3F45)',
+                    backgroundColor: 'var(--color-danger-bg, #FFEBEE)',
+                    padding: '4px 8px',
+                    borderLeft: '2px solid var(--color-danger, #D32F2F)',
+                  }}
+                >
+                  <strong>Motivo No Abordable:</strong> {ultimoReporte.motivoNoAbordable}
+                </p>
+              )}
+
+              {/* Comparativa de Prioridad Sugerida vs Asignada */}
+              {(ultimoReporte.prioridadSugerida || ultimoReporte.prioridadAsignada) && (
+                <div
+                  style={{
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    gap: '10px',
+                    fontSize: '0.78rem',
+                    marginBottom: '6px',
+                    color: 'var(--color-charcoal, #3B3F45)',
+                  }}
+                >
+                  {ultimoReporte.prioridadSugerida && (
+                    <span>
+                      <strong>Prioridad sugerida:</strong>{' '}
+                      {formatearPrioridad(ultimoReporte.prioridadSugerida)}
+                    </span>
+                  )}
+                  {ultimoReporte.prioridadAsignada && (
+                    <span>
+                      <strong>Prioridad confirmada:</strong>{' '}
+                      <span
+                        style={{
+                          fontWeight: 700,
+                          color: prioridadAjustadaManual
+                            ? 'var(--color-warning, #E65100)'
+                            : 'var(--color-primary-teal-dark, #14505A)',
+                        }}
+                      >
+                        {formatearPrioridad(ultimoReporte.prioridadAsignada)}
+                      </span>
+                    </span>
+                  )}
+                </div>
+              )}
+
+              {ultimoReporte.justificacionPrioridad && (
+                <p
+                  style={{
+                    margin: '0 0 6px 0',
+                    fontSize: '0.78rem',
+                    color: 'var(--color-charcoal, #3B3F45)',
+                    backgroundColor: 'var(--color-warning-bg, #FFF3E0)',
+                    padding: '4px 8px',
+                    borderLeft: '2px solid var(--color-warning, #E65100)',
+                  }}
+                >
+                  <SlidersHorizontal
+                    size={11}
+                    style={{ marginRight: '4px', verticalAlign: 'middle' }}
+                    aria-hidden="true"
+                  />
+                  <strong>Justificación prioridad:</strong> {ultimoReporte.justificacionPrioridad}
+                </p>
+              )}
+
+              {/* Resumen demográfico rápido */}
+              <div
+                style={{
+                  display: 'flex',
+                  flexWrap: 'wrap',
+                  gap: '8px',
+                  fontSize: '0.75rem',
+                  color: 'var(--color-charcoal, #3B3F45)',
+                  marginBottom: '6px',
+                }}
+              >
+                {!esCierre && familiasCount !== undefined && (
+                  <span>
+                    <strong>Hogares:</strong> {familiasCount}{' '}
+                    {familiasCount === 1 ? 'familia' : 'familias'}
+                  </span>
+                )}
+                <span>
+                  <strong>{esCierre ? 'Personas afectadas:' : 'Núcleo familiar:'}</strong> {nucleoTotal} pers.
+                  {esCierre && comparativaPersonas?.fueModificado && (
+                    <span style={{ color: 'var(--color-warning, #E65100)', fontWeight: 700 }}>
+                      {' '}
+                      {comparativaPersonas.personasPrevias !== null
+                        ? `(Modificado; antes: ${comparativaPersonas.personasPrevias})`
+                        : '(Modificado al cierre)'}
+                    </span>
+                  )}
+                </span>
+                {!esCierre && ninos !== undefined && (
+                  <span>
+                    <strong>Niños:</strong> {ninos}
+                  </span>
+                )}
+                {!esCierre && adultosMayores !== undefined && (
+                  <span>
+                    <strong>Adultos mayores:</strong> {adultosMayores}
+                  </span>
+                )}
+                {!esCierre && discapacitados !== undefined && (
+                  <span>
+                    <strong>Discapacidad:</strong> {discapacitados}
+                  </span>
+                )}
+                {!esCierre && mascotas !== undefined && (
+                  <span>
+                    <strong>Mascotas:</strong> {mascotas}
+                  </span>
+                )}
+                {!esCierre && compromisoViv && (
+                  <span>
+                    <strong>Vivienda:</strong> {formatearCompromisoVivienda(compromisoViv)}
+                  </span>
+                )}
+              </div>
+
+              {/* Detalle compacto de familias si hay desglose (solo en reportes de evaluación H38, sin FIBE) */}
+              {!esCierre &&
+                familiasRaw &&
+                familiasRaw.length > 0 &&
+                (familiasRaw.length > 1 || Boolean(familiasRaw[0].referencia)) && (
+                  <div
+                    style={{
+                      display: 'flex',
+                      flexWrap: 'wrap',
+                      gap: '4px',
+                      marginBottom: '6px',
+                    }}
+                  >
+                    {familiasRaw.map((f, fIdx) => {
+                      const refLimpia = typeof f.referencia === 'string' ? f.referencia.trim() : '';
+                      const nombre = refLimpia
+                        ? refLimpia.toLowerCase().startsWith('fam')
+                          ? refLimpia
+                          : `Fam. ${refLimpia}`
+                        : `Fam. #${fIdx + 1}`;
+                      const pers =
+                        typeof f.nucleoFamiliarTotal === 'number'
+                          ? `${f.nucleoFamiliarTotal}p`
+                          : '';
+                      const comp =
+                        typeof f.nivelCompromisoVivienda === 'string'
+                          ? formatearCompromisoVivienda(f.nivelCompromisoVivienda)
+                          : '';
+                      return (
+                        <span
+                          key={fIdx}
+                          style={{
+                            fontSize: '0.72rem',
+                            backgroundColor: 'var(--color-bg-light, #ECEFF3)',
+                            padding: '2px 6px',
+                            border: '1px solid #DFE3E8',
+                            borderRadius: '0px',
+                            color: 'var(--color-charcoal-dark, #24272B)',
+                          }}
+                        >
+                          <strong>{nombre}:</strong> {[pers, comp].filter(Boolean).join(' · ')}
+                        </span>
+                      );
+                    })}
+                  </div>
+                )}
+
+              {ultimoReporte.resumenTecnico &&
+                !/^\s*Evaluaci[oó]n en Terreno #\d+/i.test(ultimoReporte.resumenTecnico) && (
+                  <p
+                    style={{
+                      margin: '0 0 8px 0',
+                      fontSize: '0.78rem',
+                      color: 'var(--color-text-dark, #2B2B2B)',
+                      lineHeight: 1.35,
+                    }}
+                  >
+                    {ultimoReporte.resumenTecnico}
+                  </p>
+                )}
+
+              <div
+                style={{
+                  display: 'flex',
+                  flexWrap: 'wrap',
+                  gap: '6px',
+                  justifyContent: 'flex-end',
+                }}
+              >
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleIrAUltimoReporte}
+                  title={`Abrir directamente el último reporte realizado de la misión ${mision.codigo}`}
+                  aria-label={`Ver último reporte de la misión ${mision.codigo}`}
+                >
+                  <FileText size={12} aria-hidden="true" style={{ marginRight: '4px' }} />
+                  <span>Ver Último Reporte</span>
+                </Button>
+
+                <Button
+                  type="button"
+                  variant="primary"
+                  size="sm"
+                  onClick={handleIrATodosLosReportes}
+                  title={`Ver todos los reportes de terreno (${reportesMision.length}) en el detalle de la misión ${mision.codigo}`}
+                  aria-label={`Ver todos los reportes de la misión ${mision.codigo}`}
+                >
+                  <ClipboardCheck size={12} aria-hidden="true" style={{ marginRight: '4px' }} />
+                  <span>
+                    {reportesMision.length > 1
+                      ? `Ver Todos los Reportes (${reportesMision.length})`
+                      : 'Ver Reportes en Misión (1)'}
+                  </span>
+                </Button>
+              </div>
+            </div>
+          );
+        })()}
 
         {/* Acción de Detalle */}
         <div style={{ marginTop: '0.6rem', display: 'flex', justifyContent: 'flex-end', gap: '8px', flexWrap: 'wrap' }}>

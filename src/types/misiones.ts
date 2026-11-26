@@ -58,7 +58,13 @@ export interface EvaluacionTerrenoMisionDetalle {
   [key: string]: unknown;
 }
 
+export type TipoReporteTerreno = 'EVALUACION_PRIORIDAD' | 'VERIFICACION_CIERRE' | string;
+
+export type DictamenAtencionTerreno = 'REQUIERE_CUADRILLA' | 'NO_ABORDABLE';
+
 export type ReporteTerrenoDetalle = Omit<ReporteTerrenoOpenApi, 'detallesEvaluacion'> & {
+  personasAfectadasPrevias?: number | null;
+  personasAfectadasModificadas?: boolean;
   detallesEvaluacion?: EvaluacionTerrenoMisionDetalle;
 };
 

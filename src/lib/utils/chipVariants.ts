@@ -63,3 +63,15 @@ export function obtenerVarianteChipPrioridad(prioridad?: string | null): ChipVar
   }
 }
 
+export function obtenerVarianteChipDictamen(dictamen?: string | null): ChipVariant {
+  const norm = (dictamen || '').trim().toUpperCase();
+  switch (norm) {
+    case 'REQUIERE_CUADRILLA':
+      return 'teal';
+    case 'NO_ABORDABLE':
+      return 'danger';
+    default:
+      return 'neutral';
+  }
+}
+
