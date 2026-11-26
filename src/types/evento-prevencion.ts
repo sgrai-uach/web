@@ -50,12 +50,106 @@ export interface PuntoCriticoPrevencionDTO {
   id: string;
   codigo: string;
   nombre: string;
+  descripcion?: string | null;
+  tipoRiesgo?: string | null;
+  prioridad?: string | null;
+  latitud?: number;
+  longitud?: number;
+  ubicacionGeoJson?: { type: string; coordinates: number[] } | null;
+}
+
+export interface PuntoCriticoPrevencionDetalleDTO {
+  id: string;
+  codigo: string;
+  nombre: string;
+  descripcion?: string | null;
+  tipoRiesgo?: string | null;
+  prioridad?: string | null;
+  latitud: number;
+  longitud: number;
+  ubicacionGeoJson?: { type: string; coordinates: number[] } | null;
 }
 
 export interface DelegacionPrevencionDTO {
   id: string;
   codigo: string;
   nombre: string;
+}
+
+export interface MisionPrevencionDetalleDTO {
+  id: string;
+  codigo: string;
+  titulo: string;
+  estado: string;
+  tipoMision: string;
+  fechaInicio: string | null;
+  fechaCierre: string | null;
+}
+
+export interface CuadrillaPrevencionResumenDTO {
+  id: string;
+  nombre: string;
+  estado: string;
+}
+
+export interface RecursoAsignadoPrevencionDTO {
+  recursoId: string;
+  nombre: string;
+  cantidadAsignada: number;
+}
+
+export interface EventoPrevencionListItemDTO {
+  id: string;
+  codigo: string;
+  nombre: string;
+  descripcion: string | null;
+  sector: string | null;
+  direccionTexto: string | null;
+  prioridad: PrioridadEventoPrevencion;
+  estado: EstadoEventoPrevencion;
+  latitud: number;
+  longitud: number;
+  ubicacionGeoJson?: { type: string; coordinates: number[] } | null;
+  delegacion: DelegacionPrevencionDTO | null;
+  puntoCritico: PuntoCriticoPrevencionDetalleDTO | null;
+  patrulla: { id: string; nombre: string; estado: string } | null;
+  cuadrilla: CuadrillaPrevencionResumenDTO | null;
+  mision: MisionPrevencionDetalleDTO | null;
+  creadoPorId?: string;
+  recursos?: RecursoAsignadoPrevencionDTO[];
+  creadoEn: string;
+  actualizadoEn: string;
+}
+
+export interface PaginacionMetaH34 {
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+  hasNext: boolean;
+  hasPrev: boolean;
+}
+
+export interface ListarEventosPrevencionParams {
+  page?: number;
+  limit?: number;
+  delegacionId?: string;
+  estado?: EstadoEventoPrevencion;
+  busqueda?: string;
+}
+
+export interface ListarEventosPrevencionResponse {
+  message: string;
+  data: EventoPrevencionListItemDTO[];
+  meta: PaginacionMetaH34;
+}
+
+export interface FiltrosEventosPrevencionState {
+  busqueda: string;
+  delegacionId?: string;
+  estado?: EstadoEventoPrevencion;
+  pagina: number;
+  limite: number;
 }
 
 export interface EventoPrevencionDTO {
@@ -115,4 +209,11 @@ export const PRIORIDADES_PREVENCION: { valor: PrioridadEventoPrevencion; label: 
   { valor: 'MEDIA', label: 'Media', color: 'var(--color-primary-teal, #1B6F7D)' },
   { valor: 'ALTA', label: 'Alta', color: 'var(--color-warning, #E65100)' },
   { valor: 'CRITICA', label: 'Crítica', color: 'var(--color-danger, #D32F2F)' },
+];
+
+export const ESTADOS_PREVENCION: { valor: EstadoEventoPrevencion; label: string; color: string; bg: string }[] = [
+  { valor: 'PLANIFICADA', label: 'Planificada', color: '#B45309', bg: '#FEF3C7' },
+  { valor: 'EN_CURSO', label: 'En Ejecución', color: '#1B6F7D', bg: '#E0F2F1' },
+  { valor: 'COMPLETADA', label: 'Completada', color: '#2E7D32', bg: '#E8F5E9' },
+  { valor: 'CANCELADA', label: 'Cancelada', color: '#D32F2F', bg: '#FFEBEE' },
 ];

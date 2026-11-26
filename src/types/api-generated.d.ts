@@ -6255,7 +6255,174 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /**
+         * Listar eventos de prevención territorial (HU-76)
+         * @description Consulta el listado paginado y filtrable de eventos y misiones preventivas desplegadas en puntos críticos o sectores vulnerables de Valdivia.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    /**
+                     * @description Número de página (1-indexed)
+                     * @default 1
+                     */
+                    page?: number;
+                    /**
+                     * @description Cantidad de registros por página (máximo 100)
+                     * @default 20
+                     */
+                    limit?: number;
+                    /**
+                     * Format: uuid
+                     * @description Filtrar por delegación municipal territorial
+                     */
+                    delegacionId?: string;
+                    /**
+                     * @description Filtrar por estado operativo del evento
+                     * @enum {string}
+                     */
+                    estado?: "PLANIFICADA" | "EN_CURSO" | "COMPLETADA" | "CANCELADA";
+                    /**
+                     * @description Búsqueda textual por código, nombre, sector o punto crítico
+                     */
+                    busqueda?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            responses: {
+                /** @description Listado de eventos de prevención obtenido exitosamente */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            message: string;
+                            data: {
+                                id: string;
+                                codigo: string;
+                                nombre: string;
+                                descripcion: string | null;
+                                sector: string | null;
+                                direccionTexto: string | null;
+                                prioridad: "BAJA" | "MEDIA" | "ALTA" | "CRITICA";
+                                estado: "PLANIFICADA" | "EN_CURSO" | "COMPLETADA" | "CANCELADA";
+                                latitud: number;
+                                longitud: number;
+                                ubicacionGeoJson?: {
+                                    type: string;
+                                    coordinates: number[];
+                                } | null;
+                                delegacion: {
+                                    id: string;
+                                    codigo: string;
+                                    nombre: string;
+                                } | null;
+                                puntoCritico: {
+                                    id: string;
+                                    codigo: string;
+                                    nombre: string;
+                                    descripcion?: string | null;
+                                    tipoRiesgo?: string | null;
+                                    prioridad?: string | null;
+                                    latitud: number;
+                                    longitud: number;
+                                    ubicacionGeoJson?: {
+                                        type: string;
+                                        coordinates: number[];
+                                    } | null;
+                                } | null;
+                                patrulla: {
+                                    id: string;
+                                    nombre: string;
+                                    estado: string;
+                                } | null;
+                                cuadrilla: {
+                                    id: string;
+                                    nombre: string;
+                                    estado: string;
+                                } | null;
+                                mision: {
+                                    id: string;
+                                    codigo: string;
+                                    titulo: string;
+                                    estado: string;
+                                    tipoMision: string;
+                                    fechaInicio: string | null;
+                                    fechaCierre: string | null;
+                                } | null;
+                                creadoPorId: string;
+                                recursos?: {
+                                    recursoId: string;
+                                    nombre: string;
+                                    cantidadAsignada: number;
+                                }[];
+                                creadoEn: string;
+                                actualizadoEn: string;
+                            }[];
+                            meta: {
+                                total: number;
+                                page: number;
+                                limit: number;
+                                totalPages: number;
+                                hasNext: boolean;
+                                hasPrev: boolean;
+                            };
+                        };
+                    };
+                };
+                /** @description Solicitud inválida por parámetros incorrectos */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            message: string;
+                            errors?: {
+                                campo: string;
+                                mensaje: string;
+                            }[] | Record<string, string[]>;
+                        };
+                    };
+                };
+                /** @description No autenticado */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            message: string;
+                        };
+                    };
+                };
+                /** @description Acceso denegado. Se requiere el permiso 'prevencion:eventos:leer' */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            message: string;
+                        };
+                    };
+                };
+                /** @description Error interno del servidor */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            message: string;
+                        };
+                    };
+                };
+            };
+        };
         put?: never;
         /**
          * Crear evento de prevención territorial y despachar misión (HU-30)
