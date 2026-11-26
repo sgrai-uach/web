@@ -54,6 +54,10 @@ const nextConfig: NextConfig = {
         destination: `${apiBackendUrl}/api/:path*`,
       },
       {
+        source: "/uploads/:path*",
+        destination: `${apiBackendUrl}/uploads/:path*`,
+      },
+      {
         source: "/terreno",
         destination: `${pwaTerrenoUrl}/terreno`,
       },

@@ -3,6 +3,7 @@
 import React, { useEffect } from 'react';
 import { X, Download, FileText } from 'lucide-react';
 import type { AdjuntoEvidencia } from '@/types/misiones';
+import { resolverUrlEvidencia } from './evidenciaUrl';
 import styles from '@/styles/mision-detalle.module.css';
 
 interface MisionEvidenciaLightboxProps {
@@ -27,8 +28,7 @@ export const MisionEvidenciaLightbox: React.FC<MisionEvidenciaLightboxProps> = (
 
   if (!adjunto) return null;
 
-  const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
-  const mediaUrl = adjunto.url.startsWith('http') ? adjunto.url : `${API_BASE}${adjunto.url}`;
+  const mediaUrl = resolverUrlEvidencia(adjunto.url);
 
   const formatTamano = (bytes: number) => {
     if (bytes < 1024) return `${bytes} B`;
@@ -36,7 +36,7 @@ export const MisionEvidenciaLightbox: React.FC<MisionEvidenciaLightboxProps> = (
     return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
   };
 
-  const esImagen = adjunto.tipoMime.startsWith('image/');
+  const esImagen = Boolean(mediaUrl) && adjunto.tipoMime.startsWith('image/');
 
   return (
     <div
@@ -85,26 +85,28 @@ export const MisionEvidenciaLightbox: React.FC<MisionEvidenciaLightboxProps> = (
           >
             <FileText size={48} />
             <p style={{ margin: 0, fontSize: '1rem' }}>{adjunto.nombreArchivo}</p>
-            <a
-              href={mediaUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              download={adjunto.nombreArchivo}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '0.5rem',
-                backgroundColor: 'var(--color-accent-mint, #4FAE9B)',
-                color: '#FFFFFF',
-                padding: '8px 16px',
-                textDecoration: 'none',
-                fontWeight: 700,
-                fontSize: '14px',
-              }}
-            >
-              <Download size={16} />
-              <span>Descargar Archivo</span>
-            </a>
+            {mediaUrl ? (
+              <a
+                href={mediaUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                download={adjunto.nombreArchivo}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  backgroundColor: 'var(--color-accent-mint, #4FAE9B)',
+                  color: '#FFFFFF',
+                  padding: '8px 16px',
+                  textDecoration: 'none',
+                  fontWeight: 700,
+                  fontSize: '14px',
+                }}
+              >
+                <Download size={16} />
+                <span>Descargar Archivo</span>
+              </a>
+            ) : null}
           </div>
         )}
       </div>

@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import React from 'react';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import { MisionDetalleModal } from '../MisionDetalleModal';
+import { resolverUrlEvidencia } from '../evidenciaUrl';
 import * as misionesService from '@/services/misionesService';
 import * as socketClient from '@/lib/socket/client';
 import type { MisionDetalleCompleto } from '@/types/misiones';
@@ -1199,5 +1200,122 @@ describe('Componente MisionDetalleModal (HU-17)', () => {
     expect(screen.queryByTestId('mision-skeleton-loader')).toBeNull();
 
     spySocket.mockRestore();
+  });
+
+  it('BUG-INT-34: descarta respuesta obsoleta de mision:actualizada si el usuario cambió de misión antes de resolverse', async () => {
+    const listeners: Record<string, ((...args: unknown[]) => void)[]> = {};
+    const mockSocketLocal = {
+      connected: true,
+      on: vi.fn((event: string, cb: (...args: unknown[]) => void) => {
+        if (!listeners[event]) listeners[event] = [];
+        listeners[event].push(cb);
+        return mockSocketLocal;
+      }),
+      off: vi.fn((event: string, cb: (...args: unknown[]) => void) => {
+        if (listeners[event]) {
+          listeners[event] = listeners[event].filter((h) => h !== cb);
+        }
+        return mockSocketLocal;
+      }),
+      emit: vi.fn(),
+    };
+    const spySocket = vi
+      .spyOn(socketClient, 'getSocket')
+      .mockReturnValue(mockSocketLocal as never);
+
+    const misionB: MisionDetalleCompleto = {
+      ...mockMision,
+      id: 'm2000000-0000-4000-8000-000000000002',
+      codigo: 'MIS-2026-0002',
+      titulo: 'Misión B Vigente',
+    };
+
+    let resolverRefetchObsoleto!: (val: {
+      exito: true;
+      datos: MisionDetalleCompleto;
+      mensaje: string;
+    }) => void;
+    const promesaRefetchObsoleto = new Promise<{
+      exito: true;
+      datos: MisionDetalleCompleto;
+      mensaje: string;
+    }>((resolve) => {
+      resolverRefetchObsoleto = resolve;
+    });
+
+    vi.spyOn(misionesService, 'obtenerDetalleMision')
+      .mockResolvedValueOnce({
+        exito: true,
+        datos: mockMision,
+        mensaje: 'OK',
+      })
+      .mockImplementationOnce(() => promesaRefetchObsoleto)
+      .mockResolvedValueOnce({
+        exito: true,
+        datos: misionB,
+        mensaje: 'OK',
+      });
+
+    const { rerender } = render(
+      <MisionDetalleModal misionId={mockMision.id} onCerrar={vi.fn()} />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('MIS-2026-0001')).toBeDefined();
+    });
+
+    // Evento mision:actualizada sin hito dispara refetch en vuelo para Misión A
+    act(() => {
+      listeners['mision:actualizada']?.forEach((cb) =>
+        cb({ misionId: mockMision.id, estado: 'COMPLETADA' })
+      );
+    });
+
+    // Usuario cambia a Misión B antes de que resuelva el refetch de Misión A
+    rerender(<MisionDetalleModal misionId={misionB.id} onCerrar={vi.fn()} />);
+
+    await waitFor(() => {
+      expect(screen.getByText('MIS-2026-0002')).toBeDefined();
+      expect(screen.getByText('Misión B Vigente')).toBeDefined();
+    });
+
+    // Ahora resuelve tardíamente el refetch obsoleto de Misión A: NO debe sobrescribir Misión B
+    await act(async () => {
+      resolverRefetchObsoleto({
+        exito: true,
+        datos: { ...mockMision, titulo: 'Título Obsoleto Misión A' },
+        mensaje: 'OK',
+      });
+      await Promise.resolve();
+    });
+
+    expect(screen.getByText('MIS-2026-0002')).toBeDefined();
+    expect(screen.queryByText('Título Obsoleto Misión A')).toBeNull();
+
+    spySocket.mockRestore();
+  });
+
+  it('BUG-INT-35: resuelve URLs relativas /uploads sin hardcodear localhost:3000 y bloquea esquemas inseguros', async () => {
+    vi.spyOn(misionesService, 'obtenerDetalleMision').mockResolvedValueOnce({
+      exito: true,
+      datos: mockMision,
+      mensaje: 'OK',
+    });
+
+    render(<MisionDetalleModal misionId={mockMision.id} onCerrar={vi.fn()} />);
+
+    await waitFor(() => {
+      const img = screen.getByAltText('evidencia_1.jpg') as HTMLImageElement;
+      expect(img.getAttribute('src')).toBe('/uploads/evidencia_1.jpg');
+    });
+
+    expect(resolverUrlEvidencia('/uploads/evidencia/cierre.jpg')).toBe(
+      '/uploads/evidencia/cierre.jpg'
+    );
+    expect(resolverUrlEvidencia('https://sgrai.valdivia.cl/uploads/foto.jpg')).toBe(
+      'https://sgrai.valdivia.cl/uploads/foto.jpg'
+    );
+    expect(resolverUrlEvidencia('javascript:alert(1)')).toBe('');
+    expect(resolverUrlEvidencia('data:text/html,<script>alert(1)</script>')).toBe('');
   });
 });
