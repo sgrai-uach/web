@@ -276,4 +276,32 @@ describe('ModalAsignarCuadrilla (HU-21 / Regla ICS §3.2)', () => {
     // No debe haber texto de ayuda debajo
     expect(screen.queryByText(/Únicamente se listan dotaciones/i)).toBeNull();
   });
+
+  it('carga las cuadrillas disponibles bajo React StrictMode (regresión H41)', async () => {
+    const spyObtenerCuadrillas = vi
+      .spyOn(cuadrillasService, 'obtenerCuadrillas')
+      .mockResolvedValue({
+        cuadrillas: mockCuadrillasDisponibles,
+        meta: { total: 2, pagina: 1, limite: 10, paginasTotales: 1 },
+      });
+
+    render(
+      <React.StrictMode>
+        <ModalAsignarCuadrilla
+          isOpen={true}
+          onClose={vi.fn()}
+          incidente={mockIncidenteVerificacionConcluida}
+        />
+      </React.StrictMode>
+    );
+
+    await waitFor(() => {
+      expect(spyObtenerCuadrillas).toHaveBeenCalled();
+      expect(screen.getByText(/Cuadrilla Vías y Canales 1/i)).toBeDefined();
+    });
+
+    expect(
+      screen.queryByText('No hay cuadrillas operativas disponibles en este momento.')
+    ).toBeNull();
+  });
 });

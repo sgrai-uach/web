@@ -72,7 +72,6 @@ export const ModalAsignarCuadrilla: React.FC<ModalAsignarCuadrillaProps> = ({
 
   // Cargar cuadrillas disponibles y reiniciar campos únicamente al abrir o cambiar de incidente.id
   const incidenteRef = useRef(incidente);
-  const inicializadoParaIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     incidenteRef.current = incidente;
@@ -81,51 +80,45 @@ export const ModalAsignarCuadrilla: React.FC<ModalAsignarCuadrillaProps> = ({
   const incidenteIdActual = incidente?.id ?? null;
 
   useEffect(() => {
-    if (!isOpen || !incidenteIdActual) {
-      inicializadoParaIdRef.current = null;
-      return;
-    }
-
-    if (inicializadoParaIdRef.current === incidenteIdActual) {
-      return;
-    }
-    inicializadoParaIdRef.current = incidenteIdActual;
+    if (!isOpen || !incidenteIdActual) return;
 
     const incActual = incidenteRef.current;
     if (!incActual) return;
 
-    let isMounted = true;
+    let cancelado = false;
 
-    Promise.resolve()
-      .then(() => {
-        if (!isMounted) return;
-        setPrioridad((incActual.prioridad as PrioridadMision) || 'MEDIA');
-        setTitulo(`Atención táctica - ${incActual.codigo}`);
-        setDescripcion('');
-        setCuadrillaId('');
-        setErrorApi(null);
-        setErrorCargaCuadrillas(null);
-        setCargandoCuadrillas(true);
+    // La inicialización y el fetch deben ejecutarse en la primera pasada del
+    // efecto. En desarrollo, React StrictMode monta, desmonta y vuelve a montar:
+    // el flag `cancelado` solo descarta respuestas obsoletas y permite que la
+    // segunda pasada vuelva a consultar la API.
+    setPrioridad((incActual.prioridad as PrioridadMision) || 'MEDIA');
+    setTitulo(`Atención táctica - ${incActual.codigo}`);
+    setDescripcion('');
+    setCuadrillaId('');
+    setErrorApi(null);
+    setErrorCargaCuadrillas(null);
+    setCuadrillasDisponibles([]);
+    setCargandoCuadrillas(true);
 
-        return cuadrillasService.obtenerCuadrillas({
-          pagina: 1,
-          limite: 100,
-          estado: 'DISPONIBLE',
-        });
+    cuadrillasService
+      .obtenerCuadrillas({
+        pagina: 1,
+        limite: 100,
+        estado: 'DISPONIBLE',
       })
       .then((res) => {
-        if (!isMounted || !res) return;
+        if (cancelado) return;
         setCuadrillasDisponibles(res.cuadrillas || []);
         setCargandoCuadrillas(false);
       })
       .catch(() => {
-        if (!isMounted) return;
+        if (cancelado) return;
         setErrorCargaCuadrillas('No se pudo cargar la dotación de cuadrillas disponibles.');
         setCargandoCuadrillas(false);
       });
 
     return () => {
-      isMounted = false;
+      cancelado = true;
     };
   }, [isOpen, incidenteIdActual]);
 
