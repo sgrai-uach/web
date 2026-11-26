@@ -28,15 +28,25 @@ Este manual documenta el flujo de **Edición de Planificación de Operativos de 
    En `/gestion/centro-incidentes`, seleccione la pestaña **Recuperación** (ver [H73 - Listar y Consultar Operativos de Recuperación](./H73-listar-operativos-recuperacion.md)) y elija una de estas dos vías:
    - Hacer clic directamente en el botón **Editar** de la columna **Acciones** en la fila del operativo.
    - O hacer clic en la fila / botón **Detalle** para abrir el panel lateral derecho y presionar **Editar Planificación** en la barra superior.
-   *(Nota: las capturas de pantalla en `assets/H74-editar-operativo-recuperacion/` se adjuntan en la validación visual de QA.)*
+
+   ![Tabla de operativos con botón Editar y Drawer con acción Editar Planificación](./assets/H74-editar-operativo-recuperacion/01-tabla-y-drawer-editar.png)
+
 2. **Modificar los campos requeridos en el modal:**
    El formulario se precarga automáticamente con la planificación vigente:
    - **Descripción de tareas e indicaciones:** Texto entre 3 y 1000 caracteres. Al guardar, también actualiza la descripción de la misión vinculada.
    - **Fecha estimada de término:** Fecha y hora límite estimada (no puede ser anterior a la fecha de creación del operativo).
    - **Patrulla verificadora asignada:** Permite reasignar el operativo a otra patrulla en estado `DISPONIBLE`. La patrulla anterior queda liberada automáticamente (si no posee otras misiones activas).
    - **Dotación de insumos y recursos:** Permite agregar, quitar o ajustar cantidades de recursos. El guardado realiza un reemplazo declarativo completo y ajusta el stock en bodega por diferencia.
+
+   ![Modal de edición de planificación precargado con datos del operativo](./assets/H74-editar-operativo-recuperacion/02-modal-editar-planificacion.png)
+
 3. **Guardar cambios:**
    Presione **Guardar Planificación**. El sistema confirmará la actualización mediante una notificación, cerrará el modal y refrescará el detalle y el listado en tiempo real.
+
+4. **Bloqueo en operativos culminados o cancelados:**
+   Cuando el operativo se encuentra en estado `COMPLETADA` o `CANCELADA`, el botón **Editar** en la tabla y el botón **Editar Planificación** en el Drawer permanecen **inhabilitados** con el aviso correspondiente.
+
+   ![Drawer de operativo cerrado con botón Editar Planificación inhabilitado](./assets/H74-editar-operativo-recuperacion/03-operativo-bloqueado-completada.png)
 
 ---
 

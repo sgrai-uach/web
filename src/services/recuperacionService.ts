@@ -1,16 +1,17 @@
 import apiClient from '@/lib/api/client';
 import { DEFAULT_ENCARGADO_ID } from '@/services/incidentesService';
 import { formatApiError } from '@/lib/utils/errorUtils';
-import { getAuthCookie } from '@/lib/utils/cookieUtils';
 import type {
   CrearEventoRecuperacionInput,
   EventoRecuperacionResponse,
   ListarOperativosRecuperacionQuery,
   ListarOperativosRecuperacionApiResponse,
   OperativoRecuperacionDetalle,
+  OperativoRecuperacionListadoItem,
   DetalleEventoRecuperacionResponse,
   DetalleEventoRecuperacionDTO,
   MisionRecuperacionItem,
+  RecursoAsignadoItem,
   AsignarRecursosRecuperacionInput,
   AsignarRecursosRecuperacionResponse,
   EditarOperativoRecuperacionInput,
@@ -207,7 +208,7 @@ export async function listarOperativosRecuperacion(
 
     if (response.ok && data?.data) {
       const fallbackMeta = {
-        total: data.total ?? data.data.length,
+        total: data.meta?.total ?? data.data.length,
         page: query.page ?? 1,
         limit: query.limit ?? (data.data.length || 10),
         totalPages: 1,
@@ -352,6 +353,21 @@ export interface ListarEventosRecuperacionResponse {
   totalPages: number;
 }
 
+interface RawListadoRecuperacionItem extends OperativoRecuperacionListadoItem {
+  contactoNombre?: string | null;
+  contactoTelefono?: string | null;
+  latitud?: number;
+  longitud?: number;
+  mision?: DetalleEventoRecuperacionDTO['mision'] | null;
+  patrulla?: DetalleEventoRecuperacionDTO['patrulla'] | null;
+  recursos?: Array<{ recursoId: string; nombre: string; cantidadAsignada: number }>;
+}
+
+interface RawDetalleRecuperacionItem extends DetalleEventoRecuperacionDTO {
+  recursosAsignados?: RecursoAsignadoItem[];
+  misiones?: MisionRecuperacionItem[];
+}
+
 /**
  * Lista los eventos u operativos de recuperación comunal registrados (HU-73 / HU-32).
  * Consume: GET /api/eventos-atp/recuperacion
@@ -362,20 +378,23 @@ export async function listarEventosRecuperacion(
 ): Promise<ListarEventosRecuperacionResponse> {
   void _userId;
   try {
-    const token = typeof window !== 'undefined' ? getAuthCookie() : null;
     const { data, error, response } = await apiClient.GET('/api/eventos-atp/recuperacion', {
       params: {
-        header: {
-          authorization: token ? `Bearer ${token}` : '',
+        query: {
+          page: params?.pagina,
+          limit: params?.limite,
         },
       },
     });
 
     if (response.status === 200 && data) {
-      const items = (data.data || []).map((ev) => {
+      const rawData = data as ListarOperativosRecuperacionApiResponse & { total?: number };
+      const items = (rawData.data || []).map((rawEv) => {
+        const ev = rawEv as RawListadoRecuperacionItem;
         const mision = ev.mision ?? null;
         const patrulla = ev.patrulla ?? null;
-        const recursos = (ev.recursos || []).map((r) => ({
+        const fuenteRecursos = ev.recursos ?? ev.recursosResumen ?? [];
+        const recursos: RecursoAsignadoItem[] = fuenteRecursos.map((r) => ({
           id: r.recursoId,
           recursoId: r.recursoId,
           nombre: r.nombre,
@@ -399,12 +418,19 @@ export async function listarEventosRecuperacion(
             ]
           : [];
 
-        return {
-          ...ev,
+        const itemNormalizado: DetalleEventoRecuperacionResponse = {
+          id: ev.id,
+          codigo: ev.codigo,
+          nombre: ev.nombre,
           descripcion: ev.descripcion ?? null,
+          sector: ev.sector,
           direccionTexto: ev.direccionTexto ?? null,
+          prioridad: ev.prioridad,
           contactoNombre: ev.contactoNombre ?? null,
           contactoTelefono: ev.contactoTelefono ?? null,
+          latitud: ev.latitud ?? 0,
+          longitud: ev.longitud ?? 0,
+          estado: ev.estado,
           familiasAfectadas: ev.familiasAfectadas ?? 0,
           delegacion: ev.delegacion ?? null,
           mision,
@@ -412,15 +438,21 @@ export async function listarEventosRecuperacion(
           patrulla,
           recursos,
           recursosAsignados: recursos,
-        } as DetalleEventoRecuperacionResponse;
+          creadoEn: ev.creadoEn,
+          actualizadoEn: ev.actualizadoEn,
+        };
+        return itemNormalizado;
       });
 
+      const totalItems = rawData.total ?? rawData.meta?.total ?? items.length;
       return {
         data: items,
-        total: data.total ?? items.length,
-        page: params?.pagina ?? 1,
-        limit: params?.limite ?? (items.length || 100),
-        totalPages: params?.limite ? Math.ceil((data.total ?? items.length) / params.limite) : 1,
+        total: totalItems,
+        page: params?.pagina ?? rawData.meta?.page ?? 1,
+        limit: params?.limite ?? rawData.meta?.limit ?? (items.length || 100),
+        totalPages: params?.limite
+          ? Math.ceil(totalItems / params.limite)
+          : rawData.meta?.totalPages ?? 1,
       };
     }
 
@@ -462,18 +494,45 @@ export async function obtenerEventoRecuperacion(
     });
 
     if (response.status === 200 && data) {
-      const raw =
+      const raw = (
         typeof data === 'object' && data !== null && 'data' in data
-          ? (data as { data: DetalleEventoRecuperacionDTO }).data
-          : (data as DetalleEventoRecuperacionDTO);
+          ? (data as { data: RawDetalleRecuperacionItem }).data
+          : (data as unknown as RawDetalleRecuperacionItem)
+      );
 
-      const recursosAsignados = raw.recursosAsignados || [];
-      const misiones = (raw.misiones || []).map((m) => ({
-        ...m,
-        patrulla: m.patrulla ?? null,
-      }));
+      const recursosBase: RecursoAsignadoItem[] =
+        raw.recursosAsignados ??
+        (raw.recursos || []).map((r) => ({
+          id: r.recursoId,
+          recursoId: r.recursoId,
+          nombre: r.nombre,
+          cantidadAsignada: r.cantidadAsignada,
+          esIndividual: false,
+          misionId: raw.mision?.id ?? null,
+          creadoEn: raw.creadoEn,
+        }));
+
+      const misiones: MisionRecuperacionItem[] = raw.misiones
+        ? raw.misiones.map((m) => ({
+            ...m,
+            patrulla: m.patrulla ?? null,
+          }))
+        : raw.mision
+        ? [
+            {
+              id: raw.mision.id,
+              codigo: raw.mision.codigo,
+              titulo: raw.mision.titulo,
+              estado: raw.mision.estado,
+              tipoMision: raw.mision.tipoMision,
+              creadoEn: raw.creadoEn,
+              patrulla: raw.patrulla ?? null,
+              recursos: recursosBase,
+            },
+          ]
+        : [];
       const primeraMision = misiones[0] || null;
-      const patrulla = primeraMision?.patrulla ?? null;
+      const patrulla = raw.patrulla ?? primeraMision?.patrulla ?? null;
 
       const normalizado: DetalleEventoRecuperacionResponse = {
         ...raw,
@@ -483,21 +542,12 @@ export async function obtenerEventoRecuperacion(
         contactoTelefono: raw.contactoTelefono ?? null,
         delegacion: raw.delegacion ?? null,
         familiasAfectadas: raw.familiasAfectadas ?? 0,
-        mision: primeraMision
-          ? {
-              id: primeraMision.id,
-              codigo: primeraMision.codigo,
-              titulo: primeraMision.titulo,
-              estado: primeraMision.estado,
-              tipoMision: primeraMision.tipoMision,
-            }
-          : null,
+        mision: raw.mision ?? primeraMision,
         misiones,
         patrulla,
-        recursosAsignados,
-        recursos: recursosAsignados,
+        recursos: recursosBase,
+        recursosAsignados: recursosBase,
       };
-
       return normalizado;
     }
 
@@ -661,20 +711,20 @@ export async function asignarRecursosRecuperacion(
 /**
  * Edita la planificación de un operativo de recuperación en curso (HU-74).
  * Permite actualizar descripción, fechaEstimadaFin, recursos (reemplazo declarativo) y/o patrullaId.
- * Omite 'x-user-id' cuando userId es undefined para depender exclusivamente del Bearer JWT.
+ * La autenticación se envía automáticamente vía Authorization: Bearer <token> en apiClient.
  */
 export async function editarOperativoRecuperacion(
   id: string,
   input: EditarOperativoRecuperacionInput,
-  userId?: string
+  _userId?: string
 ): Promise<EditarOperativoRecuperacionApiResponse> {
+  void _userId;
   try {
     const { data, error, response } = await apiClient.PATCH(
       '/api/eventos-atp/recuperacion/{id}',
       {
         params: {
           path: { id },
-          ...(userId ? { header: { 'x-user-id': userId } } : {}),
         },
         body: input,
       }
