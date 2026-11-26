@@ -78,10 +78,19 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
   const [modalAsignarPatrullaAbierto, setModalAsignarPatrullaAbierto] = useState<boolean>(false);
   const puedeAsignar = usePuedeAsignarMision();
   const detalleRef = useRef<IncidenteDetalle | null>(null);
+  const solicitudDetalleSeqRef = useRef<number>(0);
+  const incidenteIdActualRef = useRef<string | null>(incidenteId);
 
   useEffect(() => {
     detalleRef.current = detalle;
   }, [detalle]);
+
+  useEffect(() => {
+    incidenteIdActualRef.current = incidenteId;
+    return () => {
+      solicitudDetalleSeqRef.current += 1;
+    };
+  }, [incidenteId]);
 
   // Verificación de permisos RBAC ('misiones:asignar'), priorizando AuthContext cuando hay usuario autenticado real
   const tienePermisoAsignar = auth?.usuario
@@ -94,7 +103,9 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
   const cargarDetalle = useCallback(
     (silencioso = false) => {
       if (!incidenteId) return;
-      const usarSilencioso = silencioso && detalleRef.current?.id === incidenteId;
+      const targetId = incidenteId;
+      const seq = ++solicitudDetalleSeqRef.current;
+      const usarSilencioso = silencioso && detalleRef.current?.id === targetId;
 
       if (!usarSilencioso) {
         setDetalle(null);
@@ -102,8 +113,14 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
         setError(null);
       }
 
-      obtenerDetalleIncidente(incidenteId, userId)
+      obtenerDetalleIncidente(targetId, userId)
         .then((res) => {
+          if (
+            seq !== solicitudDetalleSeqRef.current ||
+            incidenteIdActualRef.current !== targetId
+          ) {
+            return;
+          }
           if (res.exito && res.datos) {
             const incId = res.datos.id;
             const misionesHidratadas = res.datos.misiones.map((m) => {
@@ -122,12 +139,24 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
           }
         })
         .catch(() => {
+          if (
+            seq !== solicitudDetalleSeqRef.current ||
+            incidenteIdActualRef.current !== targetId
+          ) {
+            return;
+          }
           if (!usarSilencioso) {
             setDetalle(null);
             setError('Error de comunicación con el servidor al cargar el incidente.');
           }
         })
         .finally(() => {
+          if (
+            seq !== solicitudDetalleSeqRef.current ||
+            incidenteIdActualRef.current !== targetId
+          ) {
+            return;
+          }
           if (!usarSilencioso) {
             setCargando(false);
           }

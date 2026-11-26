@@ -349,7 +349,7 @@ export const MisionDetalleModal: React.FC<MisionDetalleModalProps> = ({
       } else {
         void (async () => {
           const res = await obtenerDetalleMision(misionId, userId);
-          if (res.exito && res.datos) {
+          if (activo && res.exito && res.datos) {
             setMision(res.datos);
           }
         })();

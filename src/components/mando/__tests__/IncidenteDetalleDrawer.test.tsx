@@ -1651,4 +1651,73 @@ describe('Componente IncidenteDetalleDrawer e integración HU-17', () => {
       'Encargado autorizado'
     );
   });
+
+  it('BUG-INT-34: descarta respuesta tardía del incidente A si el usuario ya cambió al incidente B', async () => {
+    const incidenteB: incidentesService.IncidenteDetalle = {
+      ...mockDetalleIncidente,
+      id: 'i2000000-0000-4000-8000-000000000002',
+      codigo: 'INC-2026-0099',
+      tipoAfectacion: 'Deslizamiento de tierra',
+    };
+
+    let resolverIncidenteA!: (val: {
+      exito: true;
+      datos: incidentesService.IncidenteDetalle;
+      mensaje: string;
+    }) => void;
+    const promesaIncidenteA = new Promise<{
+      exito: true;
+      datos: incidentesService.IncidenteDetalle;
+      mensaje: string;
+    }>((resolve) => {
+      resolverIncidenteA = resolve;
+    });
+
+    vi.spyOn(incidentesService, 'obtenerDetalleIncidente')
+      .mockImplementationOnce(() => promesaIncidenteA)
+      .mockResolvedValueOnce({
+        exito: true,
+        datos: incidenteB,
+        mensaje: 'OK',
+      });
+
+    const { rerender } = render(
+      <IncidenteDetalleDrawer
+        incidenteId={mockDetalleIncidente.id}
+        userId="user-test"
+        onCerrar={vi.fn()}
+      />
+    );
+
+    // Esperar a que microtask dispare la consulta A antes de cambiar a B
+    await waitFor(() => {
+      expect(incidentesService.obtenerDetalleIncidente).toHaveBeenCalledTimes(1);
+    });
+
+    rerender(
+      <IncidenteDetalleDrawer
+        incidenteId={incidenteB.id}
+        userId="user-test"
+        onCerrar={vi.fn()}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('INC-2026-0099')).toBeDefined();
+      expect(screen.getByText('Deslizamiento de tierra')).toBeDefined();
+    });
+
+    // Ahora llega tardíamente la respuesta del incidente A: NO debe sobrescribir el incidente B
+    await act(async () => {
+      resolverIncidenteA({
+        exito: true,
+        datos: mockDetalleIncidente,
+        mensaje: 'OK',
+      });
+      await Promise.resolve();
+    });
+
+    expect(screen.getByText('INC-2026-0099')).toBeDefined();
+    expect(screen.queryByText('INC-2026-0042')).toBeNull();
+  });
 });
