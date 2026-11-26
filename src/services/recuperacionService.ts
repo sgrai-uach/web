@@ -5,6 +5,9 @@ import { getAuthCookie } from '@/lib/utils/cookieUtils';
 import type {
   CrearEventoRecuperacionInput,
   EventoRecuperacionResponse,
+  ListarOperativosRecuperacionQuery,
+  ListarOperativosRecuperacionApiResponse,
+  OperativoRecuperacionDetalle,
   DetalleEventoRecuperacionResponse,
   DetalleEventoRecuperacionDTO,
   MisionRecuperacionItem,
@@ -160,6 +163,169 @@ export async function crearEventoRecuperacion(
       statusCode: formatted.statusCode,
       apiDetails: formatted,
     });
+  }
+}
+
+const toIsoBoundary = (val: string, endOfDay: boolean): string => {
+  if (/^\d{4}-\d{2}-\d{2}$/.test(val)) {
+    const d = new Date(`${val}T${endOfDay ? '23:59:59.999' : '00:00:00.000'}`);
+    return Number.isNaN(d.getTime()) ? val : d.toISOString();
+  }
+  return val;
+};
+
+/**
+ * Obtiene el listado paginado y filtrable de operativos de recuperación (HU-73).
+ */
+export async function listarOperativosRecuperacion(
+  query: ListarOperativosRecuperacionQuery = {}
+): Promise<{ data: ListarOperativosRecuperacionApiResponse['data']; meta: NonNullable<ListarOperativosRecuperacionApiResponse['meta']> }> {
+  try {
+    const cleanQuery: ListarOperativosRecuperacionQuery = {};
+    if (query.page !== undefined) cleanQuery.page = query.page;
+    if (query.limit !== undefined) cleanQuery.limit = query.limit;
+    if (query.delegacionId) cleanQuery.delegacionId = query.delegacionId;
+    if (query.estado) cleanQuery.estado = query.estado;
+    if (query.prioridad) cleanQuery.prioridad = query.prioridad;
+    if (query.busqueda && query.busqueda.trim()) cleanQuery.busqueda = query.busqueda.trim();
+    if (query.fechaDesde) cleanQuery.fechaDesde = toIsoBoundary(query.fechaDesde, false);
+    if (query.fechaHasta) cleanQuery.fechaHasta = toIsoBoundary(query.fechaHasta, true);
+    if (query.ordenarPor) cleanQuery.ordenarPor = query.ordenarPor;
+    if (query.orden) cleanQuery.orden = query.orden;
+
+    const { data, error, response } = await apiClient.GET(
+      '/api/eventos-atp/recuperacion',
+      {
+        params: {
+          query: cleanQuery,
+        },
+      }
+    );
+
+    if (response.ok && data?.data) {
+      const fallbackMeta = {
+        total: data.total ?? data.data.length,
+        page: query.page ?? 1,
+        limit: query.limit ?? (data.data.length || 10),
+        totalPages: 1,
+        hasNext: false,
+        hasPrev: false,
+      };
+      return {
+        data: data.data,
+        meta: data.meta ?? fallbackMeta,
+      };
+    }
+
+    const status = response.status;
+    const errorData = (error || {}) as { message?: string; error?: string };
+    const mensajeError =
+      errorData.message || errorData.error || `Error HTTP ${status} al listar los operativos de recuperación.`;
+
+    if (status === 401) {
+      throw new RecuperacionServiceError('Sesión expirada o no autenticada.', {
+        statusCode: 401,
+        apiDetails: errorData,
+      });
+    }
+
+    if (status === 403) {
+      throw new RecuperacionServiceError(
+        'No posee el permiso requerido: recuperacion:leer. Requiere rol Administrador, Encargado o Supervisor.',
+        {
+          statusCode: 403,
+          apiDetails: errorData,
+        }
+      );
+    }
+
+    throw new RecuperacionServiceError(mensajeError, {
+      statusCode: status,
+      apiDetails: errorData,
+    });
+  } catch (err: unknown) {
+    if (err instanceof RecuperacionServiceError) {
+      throw err;
+    }
+    const formatted = formatApiError(err);
+    throw new RecuperacionServiceError(
+      formatted.message || 'Error inesperado al listar los operativos de recuperación.',
+      {
+        statusCode: formatted.statusCode,
+        apiDetails: formatted,
+      }
+    );
+  }
+}
+
+/**
+ * Obtiene el detalle completo de un operativo de recuperación para el drawer lateral (HU-73).
+ */
+export async function obtenerDetalleOperativoRecuperacion(
+  id: string
+): Promise<OperativoRecuperacionDetalle> {
+  try {
+    const { data, error, response } = await apiClient.GET(
+      '/api/eventos-atp/recuperacion/{id}',
+      {
+        params: {
+          path: { id },
+        },
+      }
+    );
+
+    if (response.ok && data?.data) {
+      return data.data;
+    }
+
+    const status = response.status;
+    const errorData = (error || {}) as { message?: string; error?: string };
+    const mensajeError =
+      errorData.message || errorData.error || `Error HTTP ${status} al obtener el detalle del operativo.`;
+
+    if (status === 401) {
+      throw new RecuperacionServiceError('Sesión expirada o no autenticada.', {
+        statusCode: 401,
+        apiDetails: errorData,
+      });
+    }
+
+    if (status === 403) {
+      throw new RecuperacionServiceError(
+        'No posee el permiso requerido: recuperacion:leer. Requiere rol Administrador, Encargado o Supervisor.',
+        {
+          statusCode: 403,
+          apiDetails: errorData,
+        }
+      );
+    }
+
+    if (status === 404) {
+      throw new RecuperacionServiceError(
+        mensajeError || 'El operativo de recuperación solicitado no existe o fue eliminado.',
+        {
+          statusCode: 404,
+          apiDetails: errorData,
+        }
+      );
+    }
+
+    throw new RecuperacionServiceError(mensajeError, {
+      statusCode: status,
+      apiDetails: errorData,
+    });
+  } catch (err: unknown) {
+    if (err instanceof RecuperacionServiceError) {
+      throw err;
+    }
+    const formatted = formatApiError(err);
+    throw new RecuperacionServiceError(
+      formatted.message || 'Error inesperado al obtener el detalle del operativo de recuperación.',
+      {
+        statusCode: formatted.statusCode,
+        apiDetails: formatted,
+      }
+    );
   }
 }
 

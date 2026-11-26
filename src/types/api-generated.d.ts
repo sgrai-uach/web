@@ -5119,10 +5119,36 @@ export interface paths {
          */
         get: {
             parameters: {
-                query?: never;
-                header: {
+                query?: {
+                    /** @description Número de página (inicia en 1) */
+                    page?: number;
+                    /** @description Cantidad de elementos por página (máximo 100) */
+                    limit?: number;
+                    /** @description Alias legado de 'page' */
+                    pagina?: number;
+                    /** @description Alias legado de 'limit' */
+                    limite?: number;
+                    /** @description Filtrar por identificador de la delegación territorial correspondiente */
+                    delegacionId?: string;
+                    /** @description Filtrar por estado del ciclo de vida del operativo */
+                    estado?: "PLANIFICADA" | "EN_EJECUCION" | "COMPLETADA" | "CANCELADA";
+                    /** @description Filtrar por nivel de urgencia o prioridad operativa */
+                    prioridad?: "BAJA" | "MEDIA" | "ALTA" | "CRITICA";
+                    /** @description Búsqueda textual insensible a mayúsculas por código (REC-XXXX), título o sector */
+                    busqueda?: string;
+                    /** @description Fecha mínima de registro (filtro temporal ISO 8601) */
+                    fechaDesde?: string;
+                    /** @description Fecha máxima de registro (filtro temporal ISO 8601) */
+                    fechaHasta?: string;
+                    /** @description Campo de ordenamiento */
+                    ordenarPor?: "codigo" | "prioridad" | "creadoEn" | "familiasAfectadas";
+                    /** @description Dirección de ordenamiento */
+                    orden?: "asc" | "desc";
+                };
+                header?: {
                     /** @description Token JWT en formato 'Bearer <token>' */
-                    authorization: string;
+                    authorization?: string;
+                    "x-user-id"?: string;
                 };
                 path?: never;
                 cookie?: never;
@@ -5137,9 +5163,17 @@ export interface paths {
                     content: {
                         "application/json": {
                             /** @example Eventos de recuperación obtenidos exitosamente. */
-                            message: string;
+                            message?: string;
                             /** @example 4 */
-                            total: number;
+                            total?: number;
+                            meta?: {
+                                total: number;
+                                page: number;
+                                limit: number;
+                                totalPages: number;
+                                hasNext: boolean;
+                                hasPrev: boolean;
+                            };
                             data: {
                                 /**
                                  * Format: uuid
@@ -5187,7 +5221,7 @@ export interface paths {
                                     nombre: string;
                                 } | null;
                                 /** @description Misión táctica despachada a terreno */
-                                mision: {
+                                mision?: {
                                     /**
                                      * Format: uuid
                                      * @example 60000000-0000-4000-8000-000000000001
@@ -5203,7 +5237,7 @@ export interface paths {
                                     tipoMision: string;
                                 };
                                 /** @description Patrulla asignada a la operación */
-                                patrulla: {
+                                patrulla?: {
                                     /**
                                      * Format: uuid
                                      * @example 50000000-0000-4000-8000-000000000001
@@ -5215,7 +5249,7 @@ export interface paths {
                                     estado: string;
                                 };
                                 /** @description Recursos reservados o descontados para la entrega */
-                                recursos: {
+                                recursos?: {
                                     /**
                                      * Format: uuid
                                      * @example 00000000-0000-4000-8000-000000000001
@@ -5226,15 +5260,23 @@ export interface paths {
                                     /** @example 10 */
                                     cantidadAsignada: number;
                                 }[];
+                                cantidadInsumosAsignados?: number;
+                                totalTiposInsumos?: number;
+                                recursosResumen?: {
+                                    recursoId: string;
+                                    nombre: string;
+                                    cantidadAsignada: number;
+                                }[];
                                 /**
                                  * Format: uuid
                                  * @description Identificador del Encargado que creó el evento
                                  */
-                                creadoPorId: string;
+                                creadoPorId?: string;
                                 /** @description Fecha de registro ISO 8601 */
                                 creadoEn: string;
                                 /** @description Fecha de actualización ISO 8601 */
                                 actualizadoEn: string;
+                                fechaCierre?: string | null;
                             }[];
                         };
                     };
@@ -5420,7 +5462,7 @@ export interface paths {
                                     nombre: string;
                                 } | null;
                                 /** @description Misión táctica despachada a terreno */
-                                mision: {
+                                mision?: {
                                     /**
                                      * Format: uuid
                                      * @example 60000000-0000-4000-8000-000000000001
@@ -5436,7 +5478,7 @@ export interface paths {
                                     tipoMision: string;
                                 };
                                 /** @description Patrulla asignada a la operación */
-                                patrulla: {
+                                patrulla?: {
                                     /**
                                      * Format: uuid
                                      * @example 50000000-0000-4000-8000-000000000001
@@ -5448,7 +5490,7 @@ export interface paths {
                                     estado: string;
                                 };
                                 /** @description Recursos reservados o descontados para la entrega */
-                                recursos: {
+                                recursos?: {
                                     /**
                                      * Format: uuid
                                      * @example 00000000-0000-4000-8000-000000000001
@@ -5459,15 +5501,23 @@ export interface paths {
                                     /** @example 10 */
                                     cantidadAsignada: number;
                                 }[];
+                                cantidadInsumosAsignados?: number;
+                                totalTiposInsumos?: number;
+                                recursosResumen?: {
+                                    recursoId: string;
+                                    nombre: string;
+                                    cantidadAsignada: number;
+                                }[];
                                 /**
                                  * Format: uuid
                                  * @description Identificador del Encargado que creó el evento
                                  */
-                                creadoPorId: string;
+                                creadoPorId?: string;
                                 /** @description Fecha de registro ISO 8601 */
                                 creadoEn: string;
                                 /** @description Fecha de actualización ISO 8601 */
                                 actualizadoEn: string;
+                                fechaCierre?: string | null;
                             };
                         };
                     };
@@ -5598,7 +5648,7 @@ export interface paths {
                                     nombre: string;
                                 } | null;
                                 /** @description Misiones tácticas vinculadas al evento */
-                                misiones: {
+                                misiones?: {
                                     /** Format: uuid */
                                     id: string;
                                     codigo: string;
@@ -5614,7 +5664,7 @@ export interface paths {
                                     creadoEn: string;
                                 }[];
                                 /** @description Historial de insumos y herramientas asignados */
-                                recursosAsignados: {
+                                recursosAsignados?: {
                                     /** Format: uuid */
                                     id: string;
                                     /** Format: uuid */
@@ -5626,15 +5676,51 @@ export interface paths {
                                     misionId?: string | null;
                                     creadoEn: string;
                                 }[];
+                                creadoPor?: {
+                                    id: string;
+                                    nombre: string;
+                                } | null;
+                                mision?: {
+                                    id: string;
+                                    codigo: string;
+                                    titulo: string;
+                                    estado: string;
+                                    tipoMision: string;
+                                } | null;
+                                patrulla?: {
+                                    id: string;
+                                    nombre: string;
+                                    estado: string;
+                                } | null;
+                                recursos?: {
+                                    recursoId: string;
+                                    nombre: string;
+                                    cantidadAsignada: number;
+                                }[];
+                                cantidadInsumosAsignados?: number;
+                                totalTiposInsumos?: number;
+                                historial?: {
+                                    id: string;
+                                    tipo: "CREACION" | "HITO_MISION" | "REPORTE_TERRENO" | "ESTADO_OPERATIVO";
+                                    titulo: string;
+                                    descripcion: string | null;
+                                    registradoPor: {
+                                        id: string;
+                                        nombre: string;
+                                    } | null;
+                                    creadoEn: string;
+                                }[];
                                 /**
                                  * Format: uuid
                                  * @description Identificador del creador
                                  */
-                                creadoPorId: string;
+                                creadoPorId?: string;
                                 /** @description Fecha de registro ISO 8601 */
                                 creadoEn: string;
                                 /** @description Fecha de última actualización ISO 8601 */
                                 actualizadoEn: string;
+                                fechaCierre?: string | null;
+                                observacionesCierre?: string | null;
                             };
                         };
                     };

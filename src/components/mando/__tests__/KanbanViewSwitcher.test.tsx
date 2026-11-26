@@ -36,4 +36,16 @@ describe('KanbanViewSwitcher', () => {
 
     expect(onCambiarVista).toHaveBeenCalledWith('kanban');
   });
+
+  it('debe llamar a onCambiarVista con "recuperacion" al hacer clic en Recuperación', () => {
+    const onCambiarVista = vi.fn();
+    render(<KanbanViewSwitcher vistaActiva="kanban" onCambiarVista={onCambiarVista} />);
+
+    const btnRecuperacion = screen.getByRole('button', { name: /Recuperación/i });
+    expect(btnRecuperacion).toBeInTheDocument();
+    expect(btnRecuperacion).toHaveAttribute('aria-pressed', 'false');
+
+    fireEvent.click(btnRecuperacion);
+    expect(onCambiarVista).toHaveBeenCalledWith('recuperacion');
+  });
 });

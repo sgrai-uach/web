@@ -52,6 +52,7 @@ export interface FiltrosKanban {
 
 export interface UseIncidentesKanbanOptions {
   initialUserId?: string;
+  enabled?: boolean;
   onMisionRechazada?: (payload: MisionRechazadaPayload) => void;
   onCuadrillaActualizada?: (payload: CuadrillaActualizadaPayload) => void;
   onReporteTerrenoRecibido?: (payload: IncidenteActualizadoPayload) => void;
@@ -87,6 +88,7 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
     [options]
   );
   const initialUserId = optionsObj.initialUserId;
+  const enabled = optionsObj.enabled ?? true;
 
   const onMisionRechazadaRef = useRef(optionsObj.onMisionRechazada);
   useEffect(() => {
@@ -192,6 +194,10 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
   // Carga inicial o recarga completa por columnas
   const ejecutarConsulta = useCallback(
     async (mostrarCargando: boolean = false) => {
+      if (!enabled) {
+        setCargando(false);
+        return;
+      }
       if (mostrarCargando) {
         setCargando(true);
         setError(null);
@@ -334,7 +340,7 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
         setCargando(false);
       }
     },
-    [filtros, userId]
+    [filtros, userId, enabled]
   );
 
   const cargarTablero = useCallback(() => {
@@ -347,11 +353,14 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
   }, [ejecutarConsulta]);
 
   useEffect(() => {
+    if (!enabled) {
+      return;
+    }
     const timer = setTimeout(() => {
       ejecutarConsulta(false);
     }, 0);
     return () => clearTimeout(timer);
-  }, [ejecutarConsulta]);
+  }, [ejecutarConsulta, enabled]);
 
   // Cargar más registros en una columna específica (Paginación histórica)
   const cargarMas = useCallback(
@@ -917,7 +926,7 @@ export function useIncidentesKanban(options?: UseIncidentesKanbanOptions | strin
     setUserId,
     columnas,
     paginacionColumna,
-    cargando,
+    cargando: enabled ? cargando : false,
     cargandoColumna,
     error,
     esForbidden,

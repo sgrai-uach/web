@@ -61,7 +61,7 @@ export const NAV_GROUPS: NavGroup[] = [
         label: 'Centro de Mando',
         href: '/gestion/centro-incidentes',
         icon: MapPin,
-        requiredPermissions: ['incidentes:kanban', 'misiones:asignar'],
+        requiredPermissions: ['incidentes:kanban', 'misiones:asignar', 'recuperacion:leer'],
       },
       {
         id: 'asistente-social',

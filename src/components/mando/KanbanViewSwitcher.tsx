@@ -2,84 +2,63 @@
 
 import React from 'react';
 import Button from '@/components/ui/Button';
-import { Kanban, MapPin } from 'lucide-react';
+import { Kanban, MapPin, PackageCheck } from 'lucide-react';
+import styles from './KanbanViewSwitcher.module.css';
+
+export type VistaCentroIncidentes = 'kanban' | 'mapa' | 'recuperacion';
 
 interface KanbanViewSwitcherProps {
-  vistaActiva: 'kanban' | 'mapa';
-  onCambiarVista: (vista: 'kanban' | 'mapa') => void;
+  vistaActiva: VistaCentroIncidentes;
+  onCambiarVista: (vista: VistaCentroIncidentes) => void;
   className?: string;
 }
 
 export const KanbanViewSwitcher: React.FC<KanbanViewSwitcherProps> = ({
   vistaActiva,
   onCambiarVista,
-  className,
+  className = '',
 }) => {
   return (
-    <div
-      className={className}
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'flex-start',
-        marginTop: 'var(--space-2, 8px)',
-        marginBottom: 'var(--space-1, 4px)',
-      }}
-    >
+    <div className={`${styles.wrapper} ${className}`.trim()}>
       <div
         role="group"
         aria-label="Selector de visualización táctica"
-        style={{
-          display: 'inline-flex',
-          border: '1px solid var(--border-color-neutral-dark, #CCD2D9)',
-          backgroundColor: '#FFFFFF',
-          boxShadow: 'var(--shadow-sm, 0 1px 3px rgba(0, 0, 0, 0.08))',
-        }}
+        className={styles.group}
       >
         <Button
           type="button"
           variant={vistaActiva === 'kanban' ? 'secondary' : 'ghost'}
           size="sm"
+          icon={<Kanban size={14} />}
           onClick={() => onCambiarVista('kanban')}
           aria-pressed={vistaActiva === 'kanban'}
-          style={{
-            backgroundColor:
-              vistaActiva === 'kanban'
-                ? 'var(--color-charcoal, #3B3F45)'
-                : 'transparent',
-            color:
-              vistaActiva === 'kanban'
-                ? '#FFFFFF'
-                : 'var(--color-charcoal, #3B3F45)',
-            borderRadius: 0,
-            border: 'none',
-          }}
+          className={`${styles.tabButton} ${vistaActiva === 'kanban' ? styles.tabButtonActive : ''}`.trim()}
         >
-          <Kanban size={14} style={{ marginRight: '6px' }} />
-          <span>Tablero Kanban</span>
+          Tablero Kanban
         </Button>
 
         <Button
           type="button"
           variant={vistaActiva === 'mapa' ? 'secondary' : 'ghost'}
           size="sm"
+          icon={<MapPin size={14} />}
           onClick={() => onCambiarVista('mapa')}
           aria-pressed={vistaActiva === 'mapa'}
-          style={{
-            backgroundColor:
-              vistaActiva === 'mapa'
-                ? 'var(--color-charcoal, #3B3F45)'
-                : 'transparent',
-            color:
-              vistaActiva === 'mapa'
-                ? '#FFFFFF'
-                : 'var(--color-charcoal, #3B3F45)',
-            borderRadius: 0,
-            border: 'none',
-          }}
+          className={`${styles.tabButton} ${vistaActiva === 'mapa' ? styles.tabButtonActive : ''}`.trim()}
         >
-          <MapPin size={14} style={{ marginRight: '6px' }} />
-          <span>Mapa Operativo</span>
+          Mapa Operativo
+        </Button>
+
+        <Button
+          type="button"
+          variant={vistaActiva === 'recuperacion' ? 'secondary' : 'ghost'}
+          size="sm"
+          icon={<PackageCheck size={14} />}
+          onClick={() => onCambiarVista('recuperacion')}
+          aria-pressed={vistaActiva === 'recuperacion'}
+          className={`${styles.tabButton} ${vistaActiva === 'recuperacion' ? styles.tabButtonActive : ''}`.trim()}
+        >
+          Recuperación
         </Button>
       </div>
     </div>

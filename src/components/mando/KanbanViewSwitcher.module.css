@@ -1,0 +1,26 @@
+.wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  margin-top: var(--space-2, 8px);
+  margin-bottom: var(--space-1, 4px);
+}
+
+.group {
+  display: inline-flex;
+  border: 1px solid var(--border-color-neutral-dark, #CCD2D9);
+  background-color: var(--color-white, #FFFFFF);
+  box-shadow: var(--shadow-sm, 0 1px 3px rgba(0, 0, 0, 0.08));
+}
+
+.tabButton {
+  border-radius: var(--radius-none, 0px);
+  border: none;
+  background-color: transparent;
+  color: var(--color-charcoal, #3B3F45);
+}
+
+.tabButtonActive {
+  background-color: var(--color-charcoal, #3B3F45);
+  color: var(--color-white, #FFFFFF);
+}
