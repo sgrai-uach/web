@@ -23,7 +23,6 @@ export default function NuevoPuntoCriticoPage() {
     Boolean(usuarioActivo.esAdmin) ||
     usuarioActivo.id === DEFAULT_ADMIN_USER_ID ||
     hasPermission('puntos_criticos:crear') ||
-    hasPermission('eventos_atp:crear') ||
     hasPermission('puntos_criticos:gestionar');
 
   if (!tienePermiso) {

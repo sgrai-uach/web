@@ -19,7 +19,7 @@ describe('Servicio API Incidentes (Encargado)', () => {
   });
 
   describe('listarIncidentes', () => {
-    it('debe enviar la cabecera x-user-id y retornar incidentes con paginación en respuesta exitosa 200', async () => {
+    it('debe consultar por apiClient con Bearer y retornar incidentes con paginación en respuesta exitosa 200', async () => {
       const mockData = {
         message: 'Listado obtenido exitosamente',
         data: [
@@ -66,10 +66,6 @@ describe('Servicio API Incidentes (Encargado)', () => {
         expect.objectContaining({
           params: {
             query: { page: 1, estado: 'REPORTADO' },
-            header: { 'x-user-id': DEFAULT_ENCARGADO_ID },
-          },
-          headers: {
-            'x-user-id': DEFAULT_ENCARGADO_ID,
           },
         })
       );
@@ -192,7 +188,6 @@ describe('Servicio API Incidentes (Encargado)', () => {
         expect.objectContaining({
           params: {
             path: { id: 'a0000000-0000-4000-8000-000000000001' },
-            header: { 'x-user-id': DEFAULT_ENCARGADO_ID },
           },
         })
       );
@@ -288,6 +283,20 @@ describe('Servicio API Incidentes (Encargado)', () => {
       });
 
       const res = await obtenerKpisIncidentes();
+
+      expect(res.exito).toBe(false);
+      expect(res.codigoError).toBe(403);
+      expect(res.mensaje).toContain('No posees permisos de Encargado');
+    });
+
+    it('debe manejar error 403 de permisos insuficientes', async () => {
+      vi.mocked(apiClient.GET).mockResolvedValueOnce({
+        data: undefined,
+        error: undefined,
+        response: { ok: false, status: 403 } as Response,
+      });
+
+      const res = await obtenerKpisIncidentes({}, DEFAULT_ENCARGADO_ID);
 
       expect(res.exito).toBe(false);
       expect(res.codigoError).toBe(403);
