@@ -92,6 +92,12 @@ export interface CuadrillaPrevencionResumenDTO {
   estado: string;
 }
 
+export interface RecursoAsignadoPrevencionDTO {
+  recursoId: string;
+  nombre: string;
+  cantidadAsignada: number;
+}
+
 export interface EventoPrevencionListItemDTO {
   id: string;
   codigo: string;
@@ -109,6 +115,8 @@ export interface EventoPrevencionListItemDTO {
   patrulla: { id: string; nombre: string; estado: string } | null;
   cuadrilla: CuadrillaPrevencionResumenDTO | null;
   mision: MisionPrevencionDetalleDTO | null;
+  creadoPorId?: string;
+  recursos?: RecursoAsignadoPrevencionDTO[];
   creadoEn: string;
   actualizadoEn: string;
 }

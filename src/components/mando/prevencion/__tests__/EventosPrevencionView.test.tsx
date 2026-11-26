@@ -86,6 +86,20 @@ describe('EventosPrevencionView (HU-76)', () => {
     },
   };
 
+  it('no debe renderizar nada mientras isMounted sea false', () => {
+    vi.mocked(useSimulatedSession).mockReturnValue({
+      usuarioActivo: { id: 'usr-1', nombre: 'Encargado', rol: 'Encargado', esAdmin: false },
+      hasPermission: vi.fn(() => true),
+      isMounted: false,
+      perfilesSimulados: [],
+      cambiarPerfil: vi.fn(),
+    });
+
+    const { container } = render(<EventosPrevencionView />);
+    expect(container.firstChild).toBeNull();
+    expect(prevencionService.listarEventosPrevencion).not.toHaveBeenCalled();
+  });
+
   it('debe renderizar vista tabular con filtros cuando el usuario tiene permisos', async () => {
     vi.mocked(useSimulatedSession).mockReturnValue({
       usuarioActivo: { id: 'usr-1', nombre: 'Encargado', rol: 'Encargado', esAdmin: false },
@@ -107,7 +121,7 @@ describe('EventosPrevencionView (HU-76)', () => {
     expect(screen.getByText('Calle Calle')).toBeInTheDocument();
   });
 
-  it('debe renderizar AccesoDenegadoState si el usuario no tiene permisos', async () => {
+  it('debe renderizar AccesoDenegadoState sin disparar peticion HTTP si el usuario no tiene permisos', async () => {
     vi.mocked(useSimulatedSession).mockReturnValue({
       usuarioActivo: { id: 'usr-2', nombre: 'Informante', rol: 'Informante', esAdmin: false },
       hasPermission: vi.fn(() => false),
@@ -122,6 +136,7 @@ describe('EventosPrevencionView (HU-76)', () => {
     expect(
       screen.getByText(/No posee permisos suficientes para supervisar los eventos preventivos/i)
     ).toBeInTheDocument();
+    expect(prevencionService.listarEventosPrevencion).not.toHaveBeenCalled();
   });
 
   it('debe abrir el Drawer al seleccionar una fila de la tabla', async () => {
@@ -147,6 +162,36 @@ describe('EventosPrevencionView (HU-76)', () => {
     await waitFor(() => {
       expect(screen.getByRole('dialog')).toBeInTheDocument();
       expect(screen.getByRole('heading', { name: 'PREV-2026-0001' })).toBeInTheDocument();
+    });
+  });
+
+  it('debe mostrar mensaje de error con boton Reintentar ante fallos de carga', async () => {
+    vi.mocked(useSimulatedSession).mockReturnValue({
+      usuarioActivo: { id: 'usr-1', nombre: 'Encargado', rol: 'Encargado', esAdmin: false },
+      hasPermission: vi.fn(() => true),
+      isMounted: true,
+      perfilesSimulados: [],
+      cambiarPerfil: vi.fn(),
+    });
+
+    vi.mocked(prevencionService.listarEventosPrevencion).mockRejectedValueOnce(
+      new Error('Fallo de red en servidor')
+    );
+
+    render(<EventosPrevencionView />);
+
+    await waitFor(() => {
+      expect(screen.getByText(/Fallo de red en servidor/i)).toBeInTheDocument();
+    });
+
+    const botonReintentar = screen.getByRole('button', { name: /Reintentar/i });
+    expect(botonReintentar).toBeInTheDocument();
+
+    vi.mocked(prevencionService.listarEventosPrevencion).mockResolvedValueOnce(mockRespuesta);
+    fireEvent.click(botonReintentar);
+
+    await waitFor(() => {
+      expect(screen.getByText('PREV-2026-0001')).toBeInTheDocument();
     });
   });
 });

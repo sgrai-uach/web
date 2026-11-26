@@ -6285,6 +6285,12 @@ export interface paths {
                                     fechaInicio: string | null;
                                     fechaCierre: string | null;
                                 } | null;
+                                creadoPorId: string;
+                                recursos?: {
+                                    recursoId: string;
+                                    nombre: string;
+                                    cantidadAsignada: number;
+                                }[];
                                 creadoEn: string;
                                 actualizadoEn: string;
                             }[];
@@ -6307,7 +6313,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             message: string;
-                            errors?: Record<string, string[]>;
+                            errors?: {
+                                campo: string;
+                                mensaje: string;
+                            }[] | Record<string, string[]>;
                         };
                     };
                 };
@@ -6324,6 +6333,17 @@ export interface paths {
                 };
                 /** @description Acceso denegado. Se requiere el permiso 'prevencion:eventos:leer' */
                 403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            message: string;
+                        };
+                    };
+                };
+                /** @description Error interno del servidor */
+                500: {
                     headers: {
                         [name: string]: unknown;
                     };

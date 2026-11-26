@@ -12,6 +12,8 @@ interface EventosPrevencionTablaProps {
   eventoSeleccionadoId?: string | null;
   onSeleccionarEvento: (evento: EventoPrevencionListItemDTO) => void;
   cargando?: boolean;
+  tieneFiltrosActivos?: boolean;
+  onLimpiarFiltros?: () => void;
 }
 
 function formatearFecha(fechaIso?: string | null): string {
@@ -35,6 +37,8 @@ export const EventosPrevencionTabla: React.FC<EventosPrevencionTablaProps> = ({
   eventoSeleccionadoId,
   onSeleccionarEvento,
   cargando,
+  tieneFiltrosActivos,
+  onLimpiarFiltros,
 }) => {
   if (cargando) {
     return (
@@ -57,6 +61,13 @@ export const EventosPrevencionTabla: React.FC<EventosPrevencionTablaProps> = ({
           <span style={{ fontSize: '13px' }}>
             No hay registros que coincidan con los criterios de filtrado seleccionados.
           </span>
+          {tieneFiltrosActivos && onLimpiarFiltros && (
+            <div style={{ marginTop: '12px' }}>
+              <Button variant="outline" size="sm" onClick={onLimpiarFiltros}>
+                Limpiar filtros
+              </Button>
+            </div>
+          )}
         </div>
       </div>
     );
@@ -98,15 +109,6 @@ export const EventosPrevencionTabla: React.FC<EventosPrevencionTablaProps> = ({
                 key={ev.id}
                 onClick={() => onSeleccionarEvento(ev)}
                 className={`${styles.tableRow} ${isSelected ? styles.tableRowSelected : ''}`}
-                tabIndex={0}
-                role="button"
-                aria-label={`Ver detalle del evento preventivo ${ev.codigo}`}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    onSeleccionarEvento(ev);
-                  }
-                }}
               >
                 {/* Código de prevención */}
                 <td>
@@ -138,30 +140,29 @@ export const EventosPrevencionTabla: React.FC<EventosPrevencionTablaProps> = ({
                         gap: '4px',
                         fontSize: '12px',
                         color: 'var(--color-text-muted, #5F676E)',
-                        fontStyle: 'italic',
                       }}
                     >
                       <MapPin size={12} />
-                      <span>Coordenadas libres</span>
+                      <span>{ev.sector || 'Coordenadas libres'}</span>
                     </span>
                   )}
                 </td>
 
-                {/* Delegación */}
+                {/* Delegación territorial */}
                 <td>
-                  <span style={{ fontWeight: 500 }}>
-                    {ev.delegacion?.nombre || 'Sin delegación'}
+                  <span style={{ fontSize: '13px' }}>
+                    {ev.delegacion?.nombre || '—'}
                   </span>
                 </td>
 
-                {/* Estado */}
+                {/* Estado operativo con badge */}
                 <td>
                   <span
                     className={styles.badgeEstado}
                     style={{
-                      backgroundColor: estadoCfg.bg,
                       color: estadoCfg.color,
-                      border: `1px solid ${estadoCfg.color}`,
+                      backgroundColor: estadoCfg.bg,
+                      borderColor: estadoCfg.color,
                     }}
                   >
                     <span
@@ -173,38 +174,38 @@ export const EventosPrevencionTabla: React.FC<EventosPrevencionTablaProps> = ({
                   </span>
                 </td>
 
-                {/* Cuadrilla / Patrulla a cargo */}
+                {/* Unidad Operativa a Cargo */}
                 <td>
                   {unidadACargo ? (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                      <span style={{ fontWeight: 600, fontSize: '13px' }}>
+                    <div>
+                      <div style={{ fontWeight: 600, fontSize: '13px' }}>
                         {unidadACargo.nombre}
-                      </span>
-                      <span style={{ fontSize: '11px', color: 'var(--color-text-muted, #5F676E)' }}>
+                      </div>
+                      <div style={{ fontSize: '11px', color: 'var(--color-text-muted, #5F676E)' }}>
                         {unidadACargo.tipo}
-                      </span>
+                      </div>
                     </div>
                   ) : (
-                    <span className={styles.sinAsignar}>Sin asignar</span>
+                    <span style={{ fontSize: '12px', color: 'var(--color-text-muted, #5F676E)', fontStyle: 'italic' }}>
+                      Sin asignar
+                    </span>
                   )}
                 </td>
 
-                {/* Fechas */}
+                {/* Fechas de creación y ejecución */}
                 <td>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', fontSize: '12px' }}>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      <Calendar size={11} color="var(--color-text-muted, #5F676E)" />
-                      <span>Creación: {formatearFecha(ev.creadoEn)}</span>
-                    </span>
-                    {ev.mision?.fechaInicio && (
-                      <span style={{ color: 'var(--color-text-muted, #5F676E)', fontSize: '11px' }}>
-                        Inicio: {formatearFecha(ev.mision.fechaInicio)}
-                      </span>
-                    )}
+                  <div style={{ fontSize: '12px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <Calendar size={12} color="var(--color-text-muted, #5F676E)" />
+                    <span>{formatearFecha(ev.creadoEn)}</span>
                   </div>
+                  {ev.mision?.fechaInicio && (
+                    <div style={{ fontSize: '11px', color: 'var(--color-primary-teal, #1B6F7D)', marginTop: '2px' }}>
+                      Inicio: {formatearFecha(ev.mision.fechaInicio)}
+                    </div>
+                  )}
                 </td>
 
-                {/* Acciones */}
+                {/* Botón de acción hacia Drawer */}
                 <td style={{ textAlign: 'right' }}>
                   <Button
                     type="button"
@@ -215,6 +216,7 @@ export const EventosPrevencionTabla: React.FC<EventosPrevencionTablaProps> = ({
                       onSeleccionarEvento(ev);
                     }}
                     title={`Abrir panel de detalle para ${ev.codigo}`}
+                    aria-label={`Ver detalle de ${ev.codigo}`}
                   >
                     <Eye size={13} style={{ marginRight: '4px' }} />
                     <span>Detalle</span>

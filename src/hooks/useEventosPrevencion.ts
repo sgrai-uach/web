@@ -61,31 +61,40 @@ export function useEventosPrevencion(options: UseEventosPrevencionOptions = {}) 
     };
   }, [filtros.busqueda]);
 
+  // Referencia de secuencia para evitar race conditions en llamadas asíncronas
+  const requestIdRef = useRef<number>(0);
+
   const cargarEventos = useCallback(
     async (
-      f: FiltrosEventosPrevencionState,
+      pag: number,
+      lim: number,
+      delId: string | undefined,
+      est: EstadoEventoPrevencion | undefined,
       searchTerm: string
     ) => {
+      const currentRequestId = ++requestIdRef.current;
       setCargando(true);
       setError(null);
       try {
         const respuesta = await listarEventosPrevencion({
-          page: f.pagina,
-          limit: f.limite,
-          delegacionId: f.delegacionId,
-          estado: f.estado,
+          page: pag,
+          limit: lim,
+          delegacionId: delId,
+          estado: est,
           busqueda: searchTerm.trim() ? searchTerm.trim() : undefined,
         });
+
+        if (currentRequestId !== requestIdRef.current) return;
 
         setEventos(respuesta.data || []);
         setMeta(
           respuesta.meta || {
             total: respuesta.data?.length || 0,
-            page: f.pagina,
-            limit: f.limite,
-            totalPages: Math.max(1, Math.ceil((respuesta.data?.length || 0) / f.limite)),
+            page: pag,
+            limit: lim,
+            totalPages: Math.max(1, Math.ceil((respuesta.data?.length || 0) / lim)),
             hasNext: false,
-            hasPrev: f.pagina > 1,
+            hasPrev: pag > 1,
           }
         );
         setEsForbidden(false);
@@ -97,6 +106,8 @@ export function useEventosPrevencion(options: UseEventosPrevencionOptions = {}) 
           return actualizado || prev;
         });
       } catch (err: unknown) {
+        if (currentRequestId !== requestIdRef.current) return;
+
         if (err instanceof PrevencionServiceError && err.statusCode === 403) {
           setEsForbidden(true);
           setError('No posee permisos suficientes para consultar eventos preventivos.');
@@ -105,32 +116,27 @@ export function useEventosPrevencion(options: UseEventosPrevencionOptions = {}) 
           setError(mensaje);
         }
       } finally {
-        setCargando(false);
+        if (currentRequestId === requestIdRef.current) {
+          setCargando(false);
+        }
       }
     },
     []
   );
 
+  const { pagina, limite, delegacionId, estado } = filtros;
+
   useEffect(() => {
     if (!autoLoad) return;
 
-    let activo = true;
-    const timer = setTimeout(() => {
-      if (activo) {
-        cargarEventos(filtros, busquedaDebounced);
-      }
-    }, 0);
-
-    return () => {
-      activo = false;
-      clearTimeout(timer);
-    };
-  }, [autoLoad, cargarEventos, filtros, busquedaDebounced]);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    cargarEventos(pagina, limite, delegacionId, estado, busquedaDebounced);
+  }, [autoLoad, cargarEventos, pagina, limite, delegacionId, estado, busquedaDebounced]);
 
   // Recarga manual
   const recargar = useCallback(async () => {
-    await cargarEventos(filtros, busquedaDebounced);
-  }, [cargarEventos, filtros, busquedaDebounced]);
+    await cargarEventos(pagina, limite, delegacionId, estado, busquedaDebounced);
+  }, [cargarEventos, pagina, limite, delegacionId, estado, busquedaDebounced]);
 
   // Soporte reactivo WebSocket
   usePrevencionSocket({

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, usePathname } from 'next/navigation';
 import {
   useIncidentesKanban,
 } from '@/hooks/useIncidentesKanban';
@@ -65,8 +65,33 @@ const TITULOS_COLUMNAS = {
 export const KanbanBoard: React.FC = () => {
   const { showInfo, showWarning } = useToast();
   const searchParams = useSearchParams();
+  const pathname = usePathname();
   const tabInicial: VistaCentroIncidentes = searchParams?.get('tab') === 'prevencion' ? 'prevencion' : 'kanban';
   const [vistaActiva, setVistaActiva] = useState<VistaCentroIncidentes>(tabInicial);
+  const [refreshKeyPrevencion, setRefreshKeyPrevencion] = useState<number>(0);
+
+  const handleCambiarVista = useCallback(
+    (nuevaVista: VistaCentroIncidentes) => {
+      setVistaActiva(nuevaVista);
+      if (typeof window !== 'undefined') {
+        const params = new URLSearchParams(window.location.search);
+        if (nuevaVista === 'prevencion') {
+          params.set('tab', 'prevencion');
+        } else {
+          params.delete('tab');
+          params.delete('q');
+          params.delete('delegacionId');
+          params.delete('estado');
+          params.delete('page');
+          params.delete('limit');
+        }
+        const qs = params.toString();
+        const nuevaUrl = qs ? `${pathname}?${qs}` : pathname;
+        window.history.replaceState(null, '', nuevaUrl);
+      }
+    },
+    [pathname]
+  );
   const [misionesModalAbierto, setMisionesModalAbierto] = useState(false);
   const [patrullasModalAbierto, setPatrullasModalAbierto] = useState(false);
   const [misionSeleccionadaId, setMisionSeleccionadaId] = useState<string | null>(null);
@@ -594,6 +619,7 @@ export const KanbanBoard: React.FC = () => {
     recargar();
     cargarCuadrillas();
     cargarEventosRecuperacion();
+    setRefreshKeyPrevencion((k) => k + 1);
   };
 
   const contadoresPorEstado = useMemo(() => {
@@ -636,19 +662,21 @@ export const KanbanBoard: React.FC = () => {
             conectado={conectadoKpis || conectado}
           />
 
-          <KanbanFiltros
-            filtros={filtros}
-            onFiltrosChange={setFiltros}
-            onLimpiarFiltros={limpiarFiltros}
-            onRecargar={handleRefrescoCompleto}
-            contadoresPorEstado={contadoresPorEstado}
-            cargando={cargando}
-          />
+          {vistaActiva !== 'prevencion' && (
+            <KanbanFiltros
+              filtros={filtros}
+              onFiltrosChange={setFiltros}
+              onLimpiarFiltros={limpiarFiltros}
+              onRecargar={handleRefrescoCompleto}
+              contadoresPorEstado={contadoresPorEstado}
+              cargando={cargando}
+            />
+          )}
 
           {/* Selector de visualización entre filtros y tablero */}
           <KanbanViewSwitcher
             vistaActiva={vistaActiva}
-            onCambiarVista={setVistaActiva}
+            onCambiarVista={handleCambiarVista}
           />
 
           {error && !esForbidden && (
@@ -698,6 +726,7 @@ export const KanbanBoard: React.FC = () => {
             <main style={{ marginTop: 'var(--space-4, 16px)' }}>
               <EventosPrevencionView
                 onAbrirCrearPrevencion={() => setModalPrevencionAbierto(true)}
+                refreshKey={refreshKeyPrevencion}
               />
             </main>
           )}

@@ -25,6 +25,8 @@ Para acceder a la vista de eventos preventivos:
 3. En la barra superior de visualización táctica (`KanbanViewSwitcher`), haga clic en el tercer botón segmentado: **"Eventos Preventivos"** (identificado con el icono `ShieldAlert`).
 4. La URL se sincronizará automáticamente a `/gestion/centro-incidentes?tab=prevencion`.
 
+![Acceso y Vista Tabular de Eventos Preventivos](assets/H76-listar-eventos-prevencion/tabla-eventos-preventivos.png)
+
 ---
 
 ## 3. Descripción de Columnas de la Tabla Operativa
@@ -46,6 +48,8 @@ La tabla presenta la nómina completa de eventos preventivos con los siguientes 
 ## 4. Uso de Filtros y Búsqueda (Estándar H34)
 
 La barra superior de herramientas (`EventosPrevencionFiltros`) permite filtrar en tiempo real el listado conforme al estándar unificado de filtros H34:
+
+![Barra de Filtros y Búsqueda H34](assets/H76-listar-eventos-prevencion/filtros-estandar-h34.png)
 
 1. **Búsqueda por Texto Libre:**
    - Escriba en la caja de búsqueda términos como el código del evento (`PREV-2026-0001`), sector (`Angachilla`, `Collico`) o nombre del punto crítico (`Puente Calle Calle`).
@@ -71,10 +75,10 @@ La barra superior de herramientas (`EventosPrevencionFiltros`) permite filtrar e
 4. **Chips de Filtros Activos y Limpieza Global:**
    - Cada filtro aplicado genera una etiqueta (chip) con botón `[✕]` en la franja inferior.
    - Para restablecer todos los filtros simultáneamente, presione el botón **"Limpiar filtros"**.
-   - Los filtros aplicados se sincronizan de manera reactiva en la URL (`?tab=prevencion&q=...&delegacionId=...&estado=...&page=...`).
+   - Los filtros aplicados se sincronizan de manera reactiva en la URL (`?tab=prevencion&q=...&delegacionId=...&estado=...&page=...&limit=...`).
 
 5. **Paginación H34:**
-   - Al pie de la tabla, el paginador indica la cantidad total de eventos y permite navegar entre páginas (1..N) o cambiar el límite de registros desplegados (10, 20 o 50 por página).
+   - Al pie de la tabla, el paginador indica el rango visible y el total de eventos, permitiendo navegar entre páginas (1..N) o cambiar el límite de registros desplegados (10, 20 o 50 por página).
 
 ---
 
@@ -82,19 +86,24 @@ La barra superior de herramientas (`EventosPrevencionFiltros`) permite filtrar e
 
 Al hacer clic en cualquier fila de la tabla o en el botón `"Detalle"`, se abre un panel lateral deslizante hacia la derecha con información técnica detallada:
 
+![Panel Lateral de Detalle con Georreferenciación PostGIS](assets/H76-listar-eventos-prevencion/drawer-detalle-postgis.png)
+
 ### 5.1. Ficha del Punto Crítico Territorial
 - **Punto Crítico del Catálogo:** Despliega código, nombre oficial, tipo de riesgo (*Inundación*, *Anegamiento*, *Remoción en masa*), nivel de prioridad y descripción de vulnerabilidad.
 - **Regla Fallback (Coordenadas Libres):** Si el evento preventivo fue creado en un sector sin punto crítico formal (`puntoCritico = null`), el panel muestra un banner de aviso explicativo (*"Evento con coordenadas libres"*) y utiliza como respaldo el sector barrial, dirección de referencia y coordenadas registradas en el propio evento.
 
 ### 5.2. Georreferenciación y Cartografía PostGIS (EPSG:4326)
-- Despliega las coordenadas geográficas en formato decimal estándar WGS84 (`latitud, longitud`).
-- Incorpora un **mini-mapa interactivo en modo solo lectura (`readOnly`)**, centrado en el punto exacto de la intervención preventiva con marcador esmeralda.
+- Despliega las coordenadas geográficas en formato decimal estándar WGS84 (`latitud, longitud`), priorizando las del punto crítico georreferenciado o del evento.
+- Incorpora un **mini-mapa interactivo en modo solo lectura (`readOnly`)**, centrado en el punto exacto de la intervención preventiva con marcador.
 
 ### 5.3. Misión y Despacho Operativo
 - Código de misión operativa (ej. `MIS-2026-0001`), tipo de misión (`PREVENCION`), estado de avance y fechas de inicio/cierre.
 - Ficha de la unidad a cargo: nombre de la cuadrilla u operarios, o patrulla rápida asignada.
 
-### 5.4. Instrucciones de Mitigación y Cierre
+### 5.4. Recursos Logísticos Asignados
+- Si la operación preventiva cuenta con materiales o herramientas asignadas, el Drawer lista la denominación del recurso y la cantidad de unidades despachadas.
+
+### 5.5. Instrucciones de Mitigación y Cierre
 - Instrucciones preventivas redactadas durante la creación del evento.
 - Para cerrar el Drawer, presione el botón `[✕]` superior, haga clic en el fondo semitransparente o presione la tecla `Escape`.
 
@@ -103,8 +112,21 @@ Al hacer clic en cualquier fila de la tabla o en el botón `"Detalle"`, se abre 
 ## 6. Casos Especiales y Mensajes de Error
 
 1. **Acceso Restringido (HTTP 403 Forbidden):**
-   - Si un usuario sin el permiso `prevencion:eventos:leer` (ej. perfil *Informante* o *Call Center*) intenta ingresar a la pestaña de prevención, el sistema bloquea la vista y muestra la pantalla institucional de **Acceso Restringido (HTTP 403)** sin exponer los datos del inventario.
+   - Si un usuario sin el permiso `prevencion:eventos:leer` (ej. perfil *Informante* o *Call Center*) intenta ingresar a la pestaña de prevención, el sistema bloquea la vista y muestra la pantalla institucional de **Acceso Restringido (HTTP 403)** sin exponer los datos del inventario ni conectar suscripciones WebSocket.
 2. **Sesión Expirada (HTTP 401 Unauthorized):**
    - Si el token JWT ha expirado, el sistema redirige automáticamente al portal de inicio de sesión (`/login`).
-3. **Sin Resultados de Búsqueda:**
-   - Si la combinación de filtros no arroja registros coincidentes, la tabla muestra un estado vacío informativo con el botón para restablecer los criterios.
+3. **Error de Conexión o Fallo en Carga:**
+   - Ante una falla de comunicación con el servidor, la vista despliega un mensaje de error claro acompañado de un botón **"Reintentar"** para reanudar la consulta sin recargar toda la página.
+4. **Sin Resultados de Búsqueda y Limpieza Rápida:**
+   - Si la combinación de filtros no arroja registros coincidentes, la tabla muestra un estado vacío informativo junto a un botón interactivo **"Limpiar filtros"** para reestablecer inmediatamente la consulta.
+
+---
+
+## 7. Relación con Otros Repositorios y Servicios
+
+- **`sgrai-api` (Backend):**
+  - Expone el endpoint `GET /api/eventos-atp/prevencion` protegido bajo el permiso RBAC `prevencion:eventos:leer`.
+  - Las operaciones preventivas listadas provienen de las creadas mediante `POST /api/eventos-atp/prevencion` (HU-30).
+  - El borrado lógico de eventos (`activo = false`) implementado en la migración `046` de `sgrai-api` es respetado por el listado, mostrando exclusivamente registros activos.
+- **`sgrai-pwa` (Aplicación de Terreno):**
+  - Las cuadrillas y patrullas operativas asignadas a misiones preventivas reportan avances, estados y bitácoras fotográficas a través de la PWA móvil en terreno (`sgrai-pwa`), cuyos cambios impactan en vivo este tablero mediante notificaciones WebSocket (`evento_prevencion:actualizado`).

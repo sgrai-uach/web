@@ -19,6 +19,7 @@ const DICCIONARIO_PERMISOS_LEGIBLES: Record<string, string> = {
   'personal:leer': 'Consulta del Directorio de Personal',
   'personal:crear': 'Registro y Aprovisionamiento de Funcionarios',
   'personal:gestionar': 'Administración de Cuentas y Personal',
+  'prevencion:eventos:leer': 'Visualización y seguimiento de eventos y misiones preventivas en puntos críticos',
 };
 
 export interface AccesoDenegadoStateProps {

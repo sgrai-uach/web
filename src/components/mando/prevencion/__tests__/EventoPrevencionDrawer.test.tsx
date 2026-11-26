@@ -133,4 +133,28 @@ describe('EventoPrevencionDrawer (HU-76)', () => {
 
     expect(onClose).toHaveBeenCalled();
   });
+
+  it('debe renderizar recursos logisticos asignados si estan presentes en el evento', () => {
+    const eventoConRecursos: EventoPrevencionListItemDTO = {
+      ...mockEventoConPuntoCritico,
+      recursos: [
+        { recursoId: 'rec-1', nombre: 'Sacos de arena', cantidadAsignada: 50 },
+        { recursoId: 'rec-2', nombre: 'Pala punta de huevo', cantidadAsignada: 1 },
+      ],
+    };
+
+    render(
+      <EventoPrevencionDrawer
+        evento={eventoConRecursos}
+        isOpen={true}
+        onClose={vi.fn()}
+      />
+    );
+
+    expect(screen.getByText(/Recursos Asignados \(2\)/i)).toBeInTheDocument();
+    expect(screen.getByText('Sacos de arena')).toBeInTheDocument();
+    expect(screen.getByText('50 unidades')).toBeInTheDocument();
+    expect(screen.getByText('Pala punta de huevo')).toBeInTheDocument();
+    expect(screen.getByText('1 unidad')).toBeInTheDocument();
+  });
 });

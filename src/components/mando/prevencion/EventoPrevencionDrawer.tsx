@@ -11,8 +11,10 @@ import {
   Compass,
   Truck,
   Users,
+  Package,
 } from 'lucide-react';
 import Heading from '@/components/ui/Heading';
+import Button from '@/components/ui/Button';
 import type { EventoPrevencionListItemDTO } from '@/types/evento-prevencion';
 import { ESTADOS_PREVENCION } from '@/types/evento-prevencion';
 import styles from './EventoPrevencionDrawer.module.css';
@@ -51,15 +53,25 @@ export const EventoPrevencionDrawer: React.FC<EventoPrevencionDrawerProps> = ({
         onClose();
       }
     }
-    if (isOpen) {
-      document.addEventListener('keydown', handleKeyDown);
-    }
-    return () => {
-      document.removeEventListener('keydown', handleKeyDown);
-    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onClose]);
 
-  if (!isOpen || !evento) return null;
+  // Bloqueo de scroll en body mientras esté abierto
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isOpen]);
+
+  if (!isOpen || !evento) {
+    return null;
+  }
 
   const estadoCfg =
     ESTADOS_PREVENCION.find((e) => e.valor === evento.estado) || {
@@ -68,6 +80,12 @@ export const EventoPrevencionDrawer: React.FC<EventoPrevencionDrawerProps> = ({
       color: '#5F676E',
       bg: '#ECEFF3',
     };
+
+  // Coordenadas PostGIS: prioridad al punto crítico si existe, con fallback a las del evento
+  const latitudFinal = evento.puntoCritico?.latitud ?? evento.latitud;
+  const longitudFinal = evento.puntoCritico?.longitud ?? evento.longitud;
+  const ubicacionGeoJsonFinal = evento.puntoCritico?.ubicacionGeoJson ?? evento.ubicacionGeoJson;
+  const origenCoordenadas = evento.puntoCritico ? 'Punto Crítico' : 'Evento';
 
   return (
     <div
@@ -87,7 +105,7 @@ export const EventoPrevencionDrawer: React.FC<EventoPrevencionDrawerProps> = ({
           <div className={styles.headerTitleGroup}>
             <ShieldAlert size={22} color="var(--color-accent-mint, #4FAE9B)" aria-hidden="true" />
             <div className={styles.headerTitles}>
-              <Heading as="h2" variant="h4" color="white" id="drawer-prevencion-title" style={{ margin: 0 }}>
+              <Heading as="h2" variant="h4" color="white" id="drawer-prevencion-title" noMargin>
                 {evento.codigo}
               </Heading>
               <span className={styles.headerSubtitle}>
@@ -96,7 +114,9 @@ export const EventoPrevencionDrawer: React.FC<EventoPrevencionDrawerProps> = ({
             </div>
           </div>
 
-          <button
+          <Button
+            variant="ghost"
+            size="sm"
             type="button"
             onClick={onClose}
             className={styles.closeButton}
@@ -104,7 +124,7 @@ export const EventoPrevencionDrawer: React.FC<EventoPrevencionDrawerProps> = ({
             aria-label="Cerrar panel lateral"
           >
             <X size={20} />
-          </button>
+          </Button>
         </header>
 
         {/* Cuerpo del Drawer */}
@@ -140,10 +160,10 @@ export const EventoPrevencionDrawer: React.FC<EventoPrevencionDrawerProps> = ({
           {/* Sección 1: Información del Punto Crítico (o Fallback) */}
           <section className={styles.section} aria-labelledby="section-punto-critico-title">
             <div className={styles.sectionHeader}>
-              <h3 id="section-punto-critico-title" className={styles.sectionTitle}>
+              <Heading as="h3" variant="h5" color="teal" noMargin id="section-punto-critico-title" className={styles.sectionTitle}>
                 <AlertTriangle size={16} />
                 <span>Punto Crítico Territorial</span>
-              </h3>
+              </Heading>
               {evento.puntoCritico && (
                 <span className={styles.coordenadasPill}>
                   {evento.puntoCritico.codigo}
@@ -202,12 +222,12 @@ export const EventoPrevencionDrawer: React.FC<EventoPrevencionDrawerProps> = ({
           {/* Sección 2: Georreferenciación y Cartografía PostGIS */}
           <section className={styles.section} aria-labelledby="section-geo-title">
             <div className={styles.sectionHeader}>
-              <h3 id="section-geo-title" className={styles.sectionTitle}>
+              <Heading as="h3" variant="h5" color="teal" noMargin id="section-geo-title" className={styles.sectionTitle}>
                 <MapPin size={16} />
                 <span>Georreferenciación PostGIS (EPSG:4326)</span>
-              </h3>
+              </Heading>
               <span className={styles.coordenadasPill}>
-                {evento.latitud.toFixed(4)}, {evento.longitud.toFixed(4)}
+                {latitudFinal.toFixed(4)}, {longitudFinal.toFixed(4)}
               </span>
             </div>
 
@@ -220,7 +240,7 @@ export const EventoPrevencionDrawer: React.FC<EventoPrevencionDrawerProps> = ({
               <div className={styles.infoField}>
                 <span className={styles.label}>Geometría PostGIS</span>
                 <span className={styles.value}>
-                  {evento.ubicacionGeoJson?.type || 'Point'} WGS84
+                  {ubicacionGeoJsonFinal?.type || 'Point'} WGS84 ({origenCoordenadas})
                 </span>
               </div>
             </div>
@@ -228,8 +248,8 @@ export const EventoPrevencionDrawer: React.FC<EventoPrevencionDrawerProps> = ({
             {/* Mini-mapa interactivo en modo lectura */}
             <div className={styles.mapContainer}>
               <LocationPickerMap
-                latitud={evento.latitud}
-                longitud={evento.longitud}
+                latitud={latitudFinal}
+                longitud={longitudFinal}
                 readOnly={true}
                 height="220px"
                 ariaLabel={`Ubicación geográfica del evento preventivo ${evento.codigo}`}
@@ -240,10 +260,10 @@ export const EventoPrevencionDrawer: React.FC<EventoPrevencionDrawerProps> = ({
           {/* Sección 3: Misión y Unidad Operativa a Cargo */}
           <section className={styles.section} aria-labelledby="section-mision-title">
             <div className={styles.sectionHeader}>
-              <h3 id="section-mision-title" className={styles.sectionTitle}>
+              <Heading as="h3" variant="h5" color="teal" noMargin id="section-mision-title" className={styles.sectionTitle}>
                 <Compass size={16} />
                 <span>Misión y Despacho Operativo</span>
-              </h3>
+              </Heading>
               {evento.mision && (
                 <span className={styles.coordenadasPill}>
                   {evento.mision.codigo}
@@ -315,13 +335,44 @@ export const EventoPrevencionDrawer: React.FC<EventoPrevencionDrawerProps> = ({
             </div>
           </section>
 
-          {/* Sección 4: Instrucciones y Trazabilidad */}
+          {/* Sección 4: Recursos Logísticos Asignados */}
+          {evento.recursos && evento.recursos.length > 0 && (
+            <section className={styles.section} aria-labelledby="section-recursos-title">
+              <div className={styles.sectionHeader}>
+                <Heading as="h3" variant="h5" color="teal" noMargin id="section-recursos-title" className={styles.sectionTitle}>
+                  <Package size={16} />
+                  <span>Recursos Asignados ({evento.recursos.length})</span>
+                </Heading>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                {evento.recursos.map((rec) => (
+                  <div
+                    key={rec.recursoId}
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      padding: '8px 12px',
+                      backgroundColor: 'var(--color-bg-light, #ECEFF3)',
+                      fontSize: '13px',
+                    }}
+                  >
+                    <span style={{ fontWeight: 600 }}>{rec.nombre}</span>
+                    <span style={{ color: 'var(--color-primary-teal, #1B6F7D)', fontWeight: 700 }}>
+                      {rec.cantidadAsignada} {rec.cantidadAsignada === 1 ? 'unidad' : 'unidades'}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* Sección 5: Instrucciones y Trazabilidad */}
           <section className={styles.section} aria-labelledby="section-trazabilidad-title">
             <div className={styles.sectionHeader}>
-              <h3 id="section-trazabilidad-title" className={styles.sectionTitle}>
+              <Heading as="h3" variant="h5" color="teal" noMargin id="section-trazabilidad-title" className={styles.sectionTitle}>
                 <Calendar size={16} />
                 <span>Instrucciones y Trazabilidad</span>
-              </h3>
+              </Heading>
             </div>
 
             {evento.descripcion && (

@@ -49,7 +49,7 @@ describe('EventosPrevencionTabla (HU-76)', () => {
       codigo: 'PREV-2026-0002',
       nombre: 'Poda preventiva en faja cortafuego',
       descripcion: null,
-      sector: 'Niebla',
+      sector: null,
       direccionTexto: null,
       prioridad: 'MEDIA',
       estado: 'PLANIFICADA',
@@ -99,15 +99,23 @@ describe('EventosPrevencionTabla (HU-76)', () => {
     expect(onSeleccionarEvento).toHaveBeenCalledWith(mockEventos[0]);
   });
 
-  it('debe mostrar mensaje vacío cuando no hay eventos', () => {
+  it('debe mostrar mensaje vacío con botón Limpiar filtros cuando no hay eventos y hay filtros activos', () => {
+    const onLimpiarFiltros = vi.fn();
     render(
       <EventosPrevencionTabla
         eventos={[]}
         onSeleccionarEvento={vi.fn()}
+        tieneFiltrosActivos={true}
+        onLimpiarFiltros={onLimpiarFiltros}
       />
     );
 
     expect(screen.getByText(/No se encontraron eventos u operativos de prevención/i)).toBeInTheDocument();
+    const btnLimpiar = screen.getByRole('button', { name: /Limpiar filtros/i });
+    expect(btnLimpiar).toBeInTheDocument();
+
+    fireEvent.click(btnLimpiar);
+    expect(onLimpiarFiltros).toHaveBeenCalled();
   });
 
   it('debe mostrar skeleton de carga cuando cargando es true', () => {

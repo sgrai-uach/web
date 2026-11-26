@@ -12,6 +12,7 @@ import type {
 import { useEventosPrevencion } from '@/hooks/useEventosPrevencion';
 import Pagination from '@/components/common/Pagination';
 import AccesoDenegadoState from '@/components/common/AccesoDenegadoState';
+import Button from '@/components/ui/Button';
 import EventosPrevencionFiltros from './EventosPrevencionFiltros';
 import EventosPrevencionTabla from './EventosPrevencionTabla';
 import EventoPrevencionDrawer from './EventoPrevencionDrawer';
@@ -19,9 +20,16 @@ import styles from './EventosPrevencion.module.css';
 
 export interface EventosPrevencionViewProps {
   onAbrirCrearPrevencion?: () => void;
+  refreshKey?: number;
 }
 
-export const EventosPrevencionView: React.FC<EventosPrevencionViewProps> = () => {
+const ESTADOS_VALIDOS: EstadoEventoPrevencion[] = ['PLANIFICADA', 'EN_CURSO', 'COMPLETADA', 'CANCELADA'];
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+export const EventosPrevencionView: React.FC<EventosPrevencionViewProps> = ({
+  onAbrirCrearPrevencion,
+  refreshKey,
+}) => {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const { usuarioActivo, hasPermission, isMounted } = useSimulatedSession();
@@ -33,15 +41,15 @@ export const EventosPrevencionView: React.FC<EventosPrevencionViewProps> = () =>
 
   const puedeLeer = Boolean(
     isMounted &&
-      (hasPermission('prevencion:eventos:leer') ||
-        hasPermission('incidentes:kanban') ||
-        esAdmin)
+      (hasPermission('prevencion:eventos:leer') || esAdmin)
   );
 
   // Delegaciones para el selector
   const [delegaciones, setDelegaciones] = useState<CatalogoItem[]>(DELEGACIONES_FALLBACK);
 
   useEffect(() => {
+    if (!isMounted || !puedeLeer) return;
+
     let activo = true;
     async function cargarDelegaciones() {
       try {
@@ -57,18 +65,21 @@ export const EventosPrevencionView: React.FC<EventosPrevencionViewProps> = () =>
     return () => {
       activo = false;
     };
-  }, []);
+  }, [isMounted, puedeLeer]);
 
-  // Extraer filtros iniciales desde URL si existen
+  // Extraer filtros iniciales desde URL con validación estricta
   const initialFiltros = React.useMemo<Partial<FiltrosEventosPrevencionState>>(() => {
     const pageUrl = parseInt(searchParams?.get('page') || '1', 10);
+    const limitUrl = parseInt(searchParams?.get('limit') || '20', 10);
     const busquedaUrl = searchParams?.get('q') || '';
-    const delegacionUrl = searchParams?.get('delegacionId') || undefined;
-    const estadoUrl = (searchParams?.get('estado') as EstadoEventoPrevencion) || undefined;
+    const rawDelegacion = searchParams?.get('delegacionId') || undefined;
+    const delegacionUrl = rawDelegacion && UUID_REGEX.test(rawDelegacion) ? rawDelegacion : undefined;
+    const rawEstado = searchParams?.get('estado') as EstadoEventoPrevencion;
+    const estadoUrl = rawEstado && ESTADOS_VALIDOS.includes(rawEstado) ? rawEstado : undefined;
 
     return {
       pagina: Number.isNaN(pageUrl) || pageUrl < 1 ? 1 : pageUrl,
-      limite: 20,
+      limite: Number.isNaN(limitUrl) || limitUrl < 1 ? 20 : Math.min(limitUrl, 100),
       busqueda: busquedaUrl,
       delegacionId: delegacionUrl,
       estado: estadoUrl,
@@ -90,15 +101,26 @@ export const EventosPrevencionView: React.FC<EventosPrevencionViewProps> = () =>
     cambiarPagina,
     cambiarLimite,
     limpiarFiltros,
+    recargar,
+    hayFiltrosActivos,
   } = useEventosPrevencion({
     initialFiltros,
-    autoLoad: true,
+    autoLoad: Boolean(isMounted && puedeLeer),
   });
+
+  // Reaccionar a refreshKey del padre si se gatilla una actualización
+  const refreshKeyPrevRef = useRef<number | undefined>(refreshKey);
+  useEffect(() => {
+    if (refreshKey !== undefined && refreshKeyPrevRef.current !== undefined && refreshKey > refreshKeyPrevRef.current) {
+      recargar();
+    }
+    refreshKeyPrevRef.current = refreshKey;
+  }, [refreshKey, recargar]);
 
   // Sincronizar URL de forma suave (replaceState) conforme al estándar H34
   const ultimaUrlRef = useRef<string>('');
   useEffect(() => {
-    if (typeof window === 'undefined') return;
+    if (typeof window === 'undefined' || !isMounted || !puedeLeer) return;
 
     const params = new URLSearchParams(searchParams?.toString() || '');
     params.set('tab', 'prevencion');
@@ -127,6 +149,12 @@ export const EventosPrevencionView: React.FC<EventosPrevencionViewProps> = () =>
       params.delete('page');
     }
 
+    if (filtros.limite !== 20) {
+      params.set('limit', String(filtros.limite));
+    } else {
+      params.delete('limit');
+    }
+
     const nuevoQuery = params.toString();
     const nuevaUrl = nuevoQuery ? `${pathname}?${nuevoQuery}` : pathname;
 
@@ -134,10 +162,15 @@ export const EventosPrevencionView: React.FC<EventosPrevencionViewProps> = () =>
       ultimaUrlRef.current = nuevaUrl;
       window.history.replaceState(null, '', nuevaUrl);
     }
-  }, [pathname, searchParams, filtros]);
+  }, [pathname, searchParams, filtros, isMounted, puedeLeer]);
+
+  // Renderizar estado neutro mientras el contexto de sesión no esté montado
+  if (!isMounted) {
+    return null;
+  }
 
   // Si no tiene permisos, mostrar Acceso Denegado
-  if (isMounted && (!puedeLeer || esForbidden)) {
+  if (!puedeLeer || esForbidden) {
     return (
       <div className={styles.container}>
         <AccesoDenegadoState
@@ -163,9 +196,10 @@ export const EventosPrevencionView: React.FC<EventosPrevencionViewProps> = () =>
         onEstadoChange={cambiarEstado}
         onLimpiar={limpiarFiltros}
         totalResultados={meta.total}
+        onCrearNuevo={onAbrirCrearPrevencion}
       />
 
-      {/* Mensaje de error general si ocurre */}
+      {/* Mensaje de error con reintento si ocurre */}
       {error && !esForbidden && (
         <div
           style={{
@@ -175,26 +209,34 @@ export const EventosPrevencionView: React.FC<EventosPrevencionViewProps> = () =>
             borderLeft: '4px solid var(--color-danger, #D32F2F)',
             fontSize: '13px',
             fontWeight: 600,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '12px',
           }}
         >
-          {error}
+          <span>{error}</span>
+          <Button variant="destructive" size="sm" onClick={recargar}>
+            Reintentar
+          </Button>
         </div>
       )}
 
-      {/* Tabla Operativa */}
-      <EventosPrevencionTabla
-        eventos={eventos}
-        eventoSeleccionadoId={eventoSeleccionado?.id}
-        onSeleccionarEvento={(ev) => setEventoSeleccionado(ev)}
-        cargando={cargando}
-      />
+      {/* Tabla Operativa (no renderizar estado vacío debajo de un error de carga) */}
+      {(!error || esForbidden) && (
+        <EventosPrevencionTabla
+          eventos={eventos}
+          eventoSeleccionadoId={eventoSeleccionado?.id}
+          onSeleccionarEvento={(ev) => setEventoSeleccionado(ev)}
+          cargando={cargando}
+          tieneFiltrosActivos={hayFiltrosActivos}
+          onLimpiarFiltros={limpiarFiltros}
+        />
+      )}
 
       {/* Paginación H34 */}
-      {!cargando && meta.total > 0 && (
+      {!cargando && !error && meta.total > 0 && (
         <div className={styles.paginationWrapper}>
-          <div style={{ fontSize: '13px', color: 'var(--color-text-muted, #5F676E)' }}>
-            Mostrando {eventos.length} de {meta.total} eventos registrados
-          </div>
           <Pagination
             pagina={meta.page}
             totalPaginas={meta.totalPages}

@@ -243,6 +243,8 @@ export async function listarEventosPrevencion(
               fechaCierre: ev.mision.fechaCierre ?? null,
             }
           : null,
+        creadoPorId: ev.creadoPorId ?? undefined,
+        recursos: ev.recursos ?? [],
         ubicacionGeoJson: ev.ubicacionGeoJson ?? null,
       })) as EventoPrevencionListItemDTO[];
 
@@ -266,7 +268,7 @@ export async function listarEventosPrevencion(
     const errorData = (error || {}) as {
       message?: string;
       error?: string;
-      errors?: Record<string, string[]>;
+      errors?: Array<{ campo?: string; mensaje?: string }> | Record<string, string[]>;
     };
 
     const mensajeError =

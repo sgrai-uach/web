@@ -163,4 +163,100 @@ describe('useEventosPrevencion (HU-76)', () => {
     expect(result.current.esForbidden).toBe(true);
     expect(result.current.error).toBe('No posee permisos suficientes para consultar eventos preventivos.');
   });
+
+  it('debe aplicar debounce en la busqueda textual sin disparar requests en cada pulsacion', async () => {
+    vi.mocked(prevencionService.listarEventosPrevencion).mockResolvedValue(mockRespuesta);
+
+    const { result } = renderHook(() => useEventosPrevencion());
+
+    await waitFor(() => {
+      expect(result.current.cargando).toBe(false);
+    });
+    expect(prevencionService.listarEventosPrevencion).toHaveBeenCalledTimes(1);
+
+    // Escribir varias veces rápido
+    await act(async () => {
+      result.current.cambiarBusqueda('A');
+      result.current.cambiarBusqueda('An');
+      result.current.cambiarBusqueda('Ang');
+      result.current.cambiarBusqueda('Angachilla');
+    });
+
+    // Inmediatamente aún no se debe haber disparado la llamada
+    expect(prevencionService.listarEventosPrevencion).toHaveBeenCalledTimes(1);
+
+    // Esperar a que pase el debounce (300ms)
+    await waitFor(
+      () => {
+        expect(prevencionService.listarEventosPrevencion).toHaveBeenCalledTimes(2);
+      },
+      { timeout: 1000 }
+    );
+
+    expect(prevencionService.listarEventosPrevencion).toHaveBeenLastCalledWith(
+      expect.objectContaining({ busqueda: 'Angachilla' })
+    );
+  });
+
+  it('debe descartar respuestas fuera de orden para evitar race conditions mediante requestIdRef', async () => {
+    let resolverLento: (val: ListarEventosPrevencionResponse) => void;
+    const promesaLenta = new Promise<ListarEventosPrevencionResponse>((resolve) => {
+      resolverLento = resolve;
+    });
+
+    const respuestaRapida: ListarEventosPrevencionResponse = {
+      message: 'Respuesta Rapida',
+      data: [
+        {
+          ...mockRespuesta.data[0],
+          id: 'ev-rapido',
+          codigo: 'PREV-RAPIDO-01',
+        },
+      ],
+      meta: mockRespuesta.meta,
+    };
+
+    const respuestaLenta: ListarEventosPrevencionResponse = {
+      message: 'Respuesta Lenta',
+      data: [
+        {
+          ...mockRespuesta.data[0],
+          id: 'ev-lento',
+          codigo: 'PREV-LENTO-01',
+        },
+      ],
+      meta: mockRespuesta.meta,
+    };
+
+    // Montar primero con respuesta inmediata
+    vi.mocked(prevencionService.listarEventosPrevencion).mockResolvedValueOnce(mockRespuesta);
+    const { result } = renderHook(() => useEventosPrevencion());
+    await waitFor(() => {
+      expect(result.current.cargando).toBe(false);
+    });
+
+    // Simular que cambiarDelegacion('del-1') es lenta
+    vi.mocked(prevencionService.listarEventosPrevencion).mockReturnValueOnce(promesaLenta);
+    await act(async () => {
+      result.current.cambiarDelegacion('del-1');
+    });
+
+    // Y cambiarDelegacion('del-2') es rápida y resuelve antes
+    vi.mocked(prevencionService.listarEventosPrevencion).mockResolvedValueOnce(respuestaRapida);
+    await act(async () => {
+      result.current.cambiarDelegacion('del-2');
+    });
+
+    await waitFor(() => {
+      expect(result.current.eventos[0]?.codigo).toBe('PREV-RAPIDO-01');
+    });
+
+    // Luego resuelve la llamada de del-1
+    await act(async () => {
+      resolverLento!(respuestaLenta);
+    });
+
+    // La respuesta lenta no debe sobreescribir la respuesta rápida
+    expect(result.current.eventos[0]?.codigo).toBe('PREV-RAPIDO-01');
+  });
 });

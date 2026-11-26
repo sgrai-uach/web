@@ -110,4 +110,24 @@ describe('EventosPrevencionFiltros (HU-76)', () => {
 
     expect(onLimpiar).toHaveBeenCalled();
   });
+
+  it('debe renderizar botón de nuevo evento preventivo cuando se pasa onCrearNuevo', () => {
+    const onCrearNuevo = vi.fn();
+    render(
+      <EventosPrevencionFiltros
+        busqueda=""
+        delegaciones={mockDelegaciones}
+        onBusquedaChange={vi.fn()}
+        onDelegacionChange={vi.fn()}
+        onEstadoChange={vi.fn()}
+        onLimpiar={vi.fn()}
+        onCrearNuevo={onCrearNuevo}
+      />
+    );
+
+    const btnCrear = screen.getByRole('button', { name: /Nuevo Evento Preventivo/i });
+    expect(btnCrear).toBeInTheDocument();
+    fireEvent.click(btnCrear);
+    expect(onCrearNuevo).toHaveBeenCalled();
+  });
 });

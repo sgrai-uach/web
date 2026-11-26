@@ -1,13 +1,13 @@
 'use client';
 
 import React from 'react';
-import { Search, X } from 'lucide-react';
+import { Search, X, Plus } from 'lucide-react';
 import Button from '@/components/ui/Button';
-import type { EstadoEventoPrevencion } from '@/types/evento-prevencion';
 import type { CatalogoItem } from '@/types/catalogos';
+import type { EstadoEventoPrevencion } from '@/types/evento-prevencion';
 import styles from './EventosPrevencion.module.css';
 
-interface EventosPrevencionFiltrosProps {
+export interface EventosPrevencionFiltrosProps {
   busqueda: string;
   delegacionId?: string;
   estado?: EstadoEventoPrevencion;
@@ -17,6 +17,7 @@ interface EventosPrevencionFiltrosProps {
   onEstadoChange: (estado?: EstadoEventoPrevencion) => void;
   onLimpiar: () => void;
   totalResultados?: number;
+  onCrearNuevo?: () => void;
 }
 
 export const EventosPrevencionFiltros: React.FC<EventosPrevencionFiltrosProps> = ({
@@ -29,14 +30,17 @@ export const EventosPrevencionFiltros: React.FC<EventosPrevencionFiltrosProps> =
   onEstadoChange,
   onLimpiar,
   totalResultados,
+  onCrearNuevo,
 }) => {
-  const hayFiltrosActivos = Boolean(busqueda.trim() || delegacionId || estado);
+  const hayFiltrosActivos = Boolean(
+    busqueda.trim() || delegacionId || estado
+  );
 
   const delegacionSeleccionada = delegaciones.find((d) => d.id === delegacionId);
 
   return (
-    <div className={styles.filtrosCard}>
-      <div className={styles.filtrosRow}>
+    <div className={styles.filtrosBar}>
+      <div className={styles.filtrosHeader}>
         <div className={styles.filtrosInputs}>
           {/* Buscador textual con debounce */}
           <div className={styles.busquedaWrapper}>
@@ -51,7 +55,9 @@ export const EventosPrevencionFiltros: React.FC<EventosPrevencionFiltrosProps> =
               aria-label="Buscar eventos preventivos"
             />
             {busqueda && (
-              <button
+              <Button
+                variant="ghost"
+                size="sm"
                 type="button"
                 onClick={() => onBusquedaChange('')}
                 className={styles.btnLimpiarBusqueda}
@@ -59,7 +65,7 @@ export const EventosPrevencionFiltros: React.FC<EventosPrevencionFiltrosProps> =
                 aria-label="Limpiar búsqueda de texto"
               >
                 <X size={14} />
-              </button>
+              </Button>
             )}
           </div>
 
@@ -113,19 +119,34 @@ export const EventosPrevencionFiltros: React.FC<EventosPrevencionFiltrosProps> =
           </select>
         </div>
 
-        {/* Resumen de resultados y botón de limpieza global */}
-        {hayFiltrosActivos && (
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={onLimpiar}
-            title="Limpiar todos los filtros"
-          >
-            <X size={14} style={{ marginRight: '4px' }} />
-            <span>Limpiar filtros</span>
-          </Button>
-        )}
+        {/* Acciones: botón de creación institucional y botón de limpieza global */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          {hayFiltrosActivos && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={onLimpiar}
+              title="Limpiar todos los filtros"
+            >
+              <X size={14} style={{ marginRight: '4px' }} />
+              <span>Limpiar filtros</span>
+            </Button>
+          )}
+
+          {onCrearNuevo && (
+            <Button
+              type="button"
+              variant="primary"
+              size="sm"
+              onClick={onCrearNuevo}
+              title="Crear nueva operación preventiva"
+            >
+              <Plus size={14} style={{ marginRight: '4px' }} />
+              <span>Nuevo Evento Preventivo</span>
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Chips de filtros activos */}
@@ -138,42 +159,48 @@ export const EventosPrevencionFiltros: React.FC<EventosPrevencionFiltrosProps> =
           {busqueda.trim() && (
             <span className={styles.chipFiltro}>
               Texto: &ldquo;{busqueda.trim()}&rdquo;
-              <button
+              <Button
+                variant="ghost"
+                size="sm"
                 type="button"
                 onClick={() => onBusquedaChange('')}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'inline-flex', padding: 0 }}
                 aria-label="Quitar filtro de texto"
+                style={{ padding: '0 2px', height: 'auto', minHeight: 'unset', marginLeft: '4px' }}
               >
                 <X size={12} />
-              </button>
+              </Button>
             </span>
           )}
 
           {delegacionSeleccionada && (
             <span className={styles.chipFiltro}>
               Delegación: {delegacionSeleccionada.nombre}
-              <button
+              <Button
+                variant="ghost"
+                size="sm"
                 type="button"
                 onClick={() => onDelegacionChange(undefined)}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'inline-flex', padding: 0 }}
                 aria-label="Quitar filtro de delegación"
+                style={{ padding: '0 2px', height: 'auto', minHeight: 'unset', marginLeft: '4px' }}
               >
                 <X size={12} />
-              </button>
+              </Button>
             </span>
           )}
 
           {estado && (
             <span className={styles.chipFiltro}>
               Estado: {estado === 'EN_CURSO' ? 'En Ejecución' : estado}
-              <button
+              <Button
+                variant="ghost"
+                size="sm"
                 type="button"
                 onClick={() => onEstadoChange(undefined)}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'inline-flex', padding: 0 }}
                 aria-label="Quitar filtro de estado"
+                style={{ padding: '0 2px', height: 'auto', minHeight: 'unset', marginLeft: '4px' }}
               >
                 <X size={12} />
-              </button>
+              </Button>
             </span>
           )}
 
