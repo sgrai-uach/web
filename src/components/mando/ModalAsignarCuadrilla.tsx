@@ -87,35 +87,39 @@ export const ModalAsignarCuadrilla: React.FC<ModalAsignarCuadrillaProps> = ({
 
     let cancelado = false;
 
-    // La inicialización y el fetch deben ejecutarse en la primera pasada del
-    // efecto. En desarrollo, React StrictMode monta, desmonta y vuelve a montar:
-    // el flag `cancelado` solo descarta respuestas obsoletas y permite que la
-    // segunda pasada vuelva a consultar la API.
-    setPrioridad((incActual.prioridad as PrioridadMision) || 'MEDIA');
-    setTitulo(`Atención táctica - ${incActual.codigo}`);
-    setDescripcion('');
-    setCuadrillaId('');
-    setErrorApi(null);
-    setErrorCargaCuadrillas(null);
-    setCuadrillasDisponibles([]);
-    setCargandoCuadrillas(true);
+    // Diferir el reinicio de campos y la consulta mediante queueMicrotask evita
+    // renders síncronos en cascada dentro del efecto y, al prescindir de refs
+    // de bloqueo por ID, garantiza que el segundo montaje de React StrictMode
+    // ejecute normalmente la carga de cuadrillas disponibles.
+    queueMicrotask(() => {
+      if (cancelado) return;
 
-    cuadrillasService
-      .obtenerCuadrillas({
-        pagina: 1,
-        limite: 100,
-        estado: 'DISPONIBLE',
-      })
-      .then((res) => {
-        if (cancelado) return;
-        setCuadrillasDisponibles(res.cuadrillas || []);
-        setCargandoCuadrillas(false);
-      })
-      .catch(() => {
-        if (cancelado) return;
-        setErrorCargaCuadrillas('No se pudo cargar la dotación de cuadrillas disponibles.');
-        setCargandoCuadrillas(false);
-      });
+      setPrioridad((incActual.prioridad as PrioridadMision) || 'MEDIA');
+      setTitulo(`Atención táctica - ${incActual.codigo}`);
+      setDescripcion('');
+      setCuadrillaId('');
+      setErrorApi(null);
+      setErrorCargaCuadrillas(null);
+      setCuadrillasDisponibles([]);
+      setCargandoCuadrillas(true);
+
+      cuadrillasService
+        .obtenerCuadrillas({
+          pagina: 1,
+          limite: 100,
+          estado: 'DISPONIBLE',
+        })
+        .then((res) => {
+          if (cancelado) return;
+          setCuadrillasDisponibles(res.cuadrillas || []);
+          setCargandoCuadrillas(false);
+        })
+        .catch(() => {
+          if (cancelado) return;
+          setErrorCargaCuadrillas('No se pudo cargar la dotación de cuadrillas disponibles.');
+          setCargandoCuadrillas(false);
+        });
+    });
 
     return () => {
       cancelado = true;
