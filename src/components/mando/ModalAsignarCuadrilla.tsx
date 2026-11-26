@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import Modal from '@/components/common/Modal';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
@@ -70,39 +70,57 @@ export const ModalAsignarCuadrilla: React.FC<ModalAsignarCuadrillaProps> = ({
 
   const patrullaAsignada = misionVerificacion?.patrulla;
 
-  // Cargar cuadrillas disponibles y reiniciar campos al abrir
+  // Cargar cuadrillas disponibles y reiniciar campos únicamente al abrir o cambiar de incidente.id
+  const incidenteRef = useRef(incidente);
+
   useEffect(() => {
-    if (!isOpen || !incidente) return;
+    incidenteRef.current = incidente;
+  }, [incidente]);
 
-    let isMounted = true;
+  const incidenteIdActual = incidente?.id ?? null;
 
-    Promise.resolve().then(() => {
-      if (!isMounted) return;
-      setPrioridad((incidente.prioridad as PrioridadMision) || 'MEDIA');
-      setTitulo(`Atención táctica - ${incidente.codigo}`);
-      setDescripcion('');
-      setCuadrillaId('');
-      setErrorApi(null);
-      setErrorCargaCuadrillas(null);
-      setCargandoCuadrillas(true);
+  useEffect(() => {
+    if (!isOpen || !incidenteIdActual) return;
 
-      return cuadrillasService.obtenerCuadrillas({ pagina: 1, limite: 100, estado: 'DISPONIBLE' });
-    })
-    .then((res) => {
-      if (!isMounted || !res) return;
-      setCuadrillasDisponibles(res.cuadrillas || []);
-      setCargandoCuadrillas(false);
-    })
-    .catch(() => {
-      if (!isMounted) return;
-      setErrorCargaCuadrillas('No se pudo cargar la dotación de cuadrillas disponibles.');
-      setCargandoCuadrillas(false);
-    });
+    const incActual = incidenteRef.current;
+    if (!incActual) return;
+
+    let cancelado = false;
+
+    // La inicialización y el fetch deben ejecutarse en la primera pasada del
+    // efecto. En desarrollo, React StrictMode monta, desmonta y vuelve a montar:
+    // el flag `cancelado` solo descarta respuestas obsoletas y permite que la
+    // segunda pasada vuelva a consultar la API.
+    setPrioridad((incActual.prioridad as PrioridadMision) || 'MEDIA');
+    setTitulo(`Atención táctica - ${incActual.codigo}`);
+    setDescripcion('');
+    setCuadrillaId('');
+    setErrorApi(null);
+    setErrorCargaCuadrillas(null);
+    setCuadrillasDisponibles([]);
+    setCargandoCuadrillas(true);
+
+    cuadrillasService
+      .obtenerCuadrillas({
+        pagina: 1,
+        limite: 100,
+        estado: 'DISPONIBLE',
+      })
+      .then((res) => {
+        if (cancelado) return;
+        setCuadrillasDisponibles(res.cuadrillas || []);
+        setCargandoCuadrillas(false);
+      })
+      .catch(() => {
+        if (cancelado) return;
+        setErrorCargaCuadrillas('No se pudo cargar la dotación de cuadrillas disponibles.');
+        setCargandoCuadrillas(false);
+      });
 
     return () => {
-      isMounted = false;
+      cancelado = true;
     };
-  }, [isOpen, incidente]);
+  }, [isOpen, incidenteIdActual]);
 
   if (!isOpen || !incidente) return null;
 

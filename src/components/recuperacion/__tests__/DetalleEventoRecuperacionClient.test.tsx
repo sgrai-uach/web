@@ -405,4 +405,38 @@ describe('DetalleEventoRecuperacionClient (HU-32)', () => {
     ).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Confirmar y Despachar Misión/i })).not.toBeInTheDocument();
   });
+
+  it('9. BUG-INT-30: ante conflicto 409 EVENTO_CERRADO refresca el detalle una sola vez sin petición HTTP duplicada', async () => {
+    vi.mocked(asignarRecursosRecuperacion).mockRejectedValueOnce(
+      new RecuperacionServiceError('El evento de recuperación ya fue cerrado.', {
+        statusCode: 409,
+        tipoConflicto: 'EVENTO_CERRADO',
+      })
+    );
+
+    render(<DetalleEventoRecuperacionClient id="rec-1234" />);
+
+    await waitFor(() => {
+      expect(screen.getByText('REC-2026-0001')).toBeInTheDocument();
+    });
+
+    expect(obtenerEventoRecuperacion).toHaveBeenCalledTimes(1);
+
+    const selectorPatrulla = screen.getByLabelText(/Patrulla Verificadora Disponible/i);
+    fireEvent.change(selectorPatrulla, { target: { value: 'pat-disponible-1' } });
+
+    const selectorInsumo = screen.getAllByRole('combobox')[1];
+    fireEvent.change(selectorInsumo, { target: { value: 'rec-sacos' } });
+
+    const btnSubmit = screen.getByRole('button', { name: /Confirmar y Despachar Misión/i });
+    fireEvent.click(btnSubmit);
+
+    await waitFor(() => {
+      expect(
+        screen.getByText(/No se pueden asignar misiones ni recursos a un evento de recuperación cerrado/i)
+      ).toBeInTheDocument();
+    });
+
+    expect(obtenerEventoRecuperacion).toHaveBeenCalledTimes(2);
+  });
 });

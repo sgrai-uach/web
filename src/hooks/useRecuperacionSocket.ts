@@ -52,14 +52,14 @@ export function useRecuperacionSocket({
   useEffect(() => {
     if (!enabled) return;
 
+    let activo = true;
     const socket = getSocket();
 
     if (!socket.connected) {
       socket.connect();
     }
 
-    const unirseSalas = () => {
-      setConectado(true);
+    const emitirSalas = () => {
       socket.emit('unirse', 'encargado');
       socket.emit('join', 'encargado');
       socket.emit('unirse', 'sala:encargados');
@@ -69,7 +69,8 @@ export function useRecuperacionSocket({
     };
 
     const onConnect = () => {
-      unirseSalas();
+      setConectado(true);
+      emitirSalas();
     };
 
     const onDisconnect = () => {
@@ -77,7 +78,12 @@ export function useRecuperacionSocket({
     };
 
     if (socket.connected) {
-      unirseSalas();
+      emitirSalas();
+      queueMicrotask(() => {
+        if (activo) {
+          setConectado(true);
+        }
+      });
     }
 
     const handleRecuperacionCreada = (payload: EventoRecuperacionResponse | { data: EventoRecuperacionResponse }) => {
@@ -134,6 +140,7 @@ export function useRecuperacionSocket({
     socket.on('patrulla:actualizada', handlePatrullaActualizada);
 
     return () => {
+      activo = false;
       socket.off('connect', onConnect);
       socket.off('disconnect', onDisconnect);
       socket.off('recuperacion:creada', handleRecuperacionCreada);

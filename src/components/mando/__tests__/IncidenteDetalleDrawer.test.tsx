@@ -4,6 +4,8 @@ import { render, screen, fireEvent, waitFor, within, act } from '@testing-librar
 import { IncidenteDetalleDrawer } from '../IncidenteDetalleDrawer';
 import * as incidentesService from '@/services/incidentesService';
 import * as misionesService from '@/services/misionesService';
+import { cuadrillasService } from '@/services/cuadrillasService';
+import { AuthContext } from '@/context/AuthContext';
 import type { IncidenteDetalle } from '@/services/incidentesService';
 import type { MisionDetalleCompleto } from '@/types/misiones';
 import {
@@ -1474,5 +1476,179 @@ describe('Componente IncidenteDetalleDrawer e integración HU-17', () => {
     });
 
     expect(screen.queryByText('INC-2026-0042')).toBeNull();
+  });
+
+  it('BUG-H41-WEB-02: ante mision:rechazada refresca silenciosamente sin ocultar detalle ni resetear el formulario de ModalAsignarCuadrilla', async () => {
+    vi.spyOn(cuadrillasService, 'obtenerCuadrillas').mockResolvedValue({
+      cuadrillas: [],
+      meta: { total: 0, pagina: 1, limite: 100, paginasTotales: 0 },
+    } as never);
+
+    const detalleVerificando: incidentesService.IncidenteDetalle = {
+      ...mockDetalleIncidente,
+      estado: 'VERIFICANDO',
+      misiones: [
+        {
+          id: 'm-verif-1',
+          codigo: 'MIS-2026-0010',
+          titulo: 'Verificación',
+          descripcion: null,
+          tipoMision: 'VERIFICACION',
+          estado: 'COMPLETADA',
+          prioridad: 'ALTA',
+          justificacionRechazo: null,
+          patrulla: { id: 'pat-1', nombre: 'Patrulla 1', estado: 'DISPONIBLE' },
+          cuadrilla: null,
+          fechaInicio: null,
+          fechaCierre: null,
+          creadoEn: '2026-10-02T13:00:00Z',
+        },
+      ],
+    };
+
+    const detalleActualizadoTrasRechazo: incidentesService.IncidenteDetalle = {
+      ...detalleVerificando,
+      misiones: [
+        ...detalleVerificando.misiones,
+        {
+          id: 'm-rech-2',
+          codigo: 'MIS-2026-0011',
+          titulo: 'Atención',
+          descripcion: null,
+          tipoMision: 'ATENCION_CUADRILLA',
+          estado: 'RECHAZADA',
+          prioridad: 'ALTA',
+          justificacionRechazo: 'Falla hidráulica en camión tolva',
+          patrulla: null,
+          cuadrilla: { id: 'c1', nombre: 'Cuadrilla Alfa 1', estado: 'DISPONIBLE' },
+          fechaInicio: null,
+          fechaCierre: '2026-10-02T15:00:00Z',
+          creadoEn: '2026-10-02T14:30:00Z',
+        },
+      ],
+    };
+
+    vi.spyOn(incidentesService, 'obtenerDetalleIncidente')
+      .mockResolvedValueOnce({
+        exito: true,
+        datos: detalleVerificando,
+        mensaje: 'OK',
+      })
+      .mockResolvedValueOnce({
+        exito: true,
+        datos: detalleActualizadoTrasRechazo,
+        mensaje: 'OK',
+      });
+
+    render(
+      <IncidenteDetalleDrawer
+        incidenteId={detalleVerificando.id}
+        userId="user-test"
+        onCerrar={vi.fn()}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('INC-2026-0042')).toBeDefined();
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: /Despachar Cuadrilla Operativa/i }));
+
+    await waitFor(() => {
+      expect(
+        screen.getByLabelText(/Instrucciones Específicas para la Cuadrilla/i)
+      ).toBeDefined();
+    });
+
+    const inputInstrucciones = screen.getByLabelText(
+      /Instrucciones Específicas para la Cuadrilla/i
+    ) as HTMLTextAreaElement;
+    fireEvent.change(inputInstrucciones, { target: { value: 'Instrucción en progreso' } });
+    expect(inputInstrucciones.value).toBe('Instrucción en progreso');
+
+    await act(async () => {
+      socketListeners['mision:rechazada']?.forEach((cb) =>
+        cb({
+          misionId: 'm-rech-2',
+          codigo: 'MIS-2026-0011',
+          incidenteId: detalleVerificando.id,
+        })
+      );
+      await new Promise((r) => setTimeout(r, 150));
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId('aviso-rechazo-cuadrilla-reasignacion')).toBeDefined();
+    });
+
+    // No parpadeó ni reinició la descripción del modal hijo
+    expect(screen.queryByText('Cargando información detallada del incidente...')).toBeNull();
+    expect(
+      (
+        screen.getByLabelText(
+          /Instrucciones Específicas para la Cuadrilla/i
+        ) as HTMLTextAreaElement
+      ).value
+    ).toBe('Instrucción en progreso');
+  });
+
+  it('BUG-H41-WEB-05: prioriza los permisos de AuthContext autenticado sobre usePuedeAsignarMision', async () => {
+    vi.spyOn(incidentesService, 'obtenerDetalleIncidente').mockResolvedValueOnce({
+      exito: true,
+      datos: {
+        ...mockDetalleIncidente,
+        estado: 'VERIFICANDO',
+        misiones: [
+          {
+            ...mockDetalleIncidente.misiones[0],
+            estado: 'RECHAZADA',
+            justificacionRechazo: 'Falla mecánica',
+          },
+        ],
+      },
+      mensaje: 'OK',
+    });
+
+    render(
+      <AuthContext.Provider
+        value={{
+          usuario: {
+            id: 'u-callcenter',
+            nombre: 'Operador Call Center',
+            email: 'cc@valdivia.cl',
+            rut: '11.111.111-1',
+            rolId: 'r-cc',
+            rolNombre: 'Call Center',
+            rolCodigo: 'CALL_CENTER',
+            permisos: ['incidentes:leer'],
+            delegacionId: null,
+            delegacionNombre: null,
+          },
+          token: 'jwt',
+          cargando: false,
+          estaAutenticado: true,
+          tienePermiso: () => false,
+          tieneAlgunPermiso: () => false,
+          login: vi.fn(),
+          logout: vi.fn(),
+          refrescarPerfil: vi.fn(),
+        }}
+      >
+        <IncidenteDetalleDrawer
+          incidenteId={mockDetalleIncidente.id}
+          userId="u-callcenter"
+          onCerrar={vi.fn()}
+        />
+      </AuthContext.Provider>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('INC-2026-0042')).toBeDefined();
+    });
+
+    expect(screen.queryByRole('button', { name: /Despachar Cuadrilla Operativa/i })).toBeNull();
+    expect(screen.getByTestId('aviso-rechazo-cuadrilla-reasignacion').textContent).toContain(
+      'Encargado autorizado'
+    );
   });
 });

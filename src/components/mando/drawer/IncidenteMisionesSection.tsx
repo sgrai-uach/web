@@ -107,6 +107,21 @@ export const IncidenteMisionesSection: React.FC<IncidenteMisionesSectionProps> =
     Boolean(onAsignarPatrulla) &&
     puedeAsignar;
 
+  const tieneCuadrillaActiva = misiones.some(
+    (m) =>
+      (m.tipoMision === 'ATENCION_CUADRILLA' || Boolean(m.cuadrilla)) &&
+      ['PLANIFICADA', 'DESPACHADA', 'EN_CURSO'].includes(m.estado)
+  );
+
+  const tieneRechazoCuadrillaPendiente =
+    (incidenteEstado === 'VERIFICANDO' || incidenteEstado === 'REPORTADO') &&
+    !tieneCuadrillaActiva &&
+    misiones.some(
+      (m) =>
+        m.estado === 'RECHAZADA' &&
+        (m.tipoMision === 'ATENCION_CUADRILLA' || Boolean(m.cuadrilla))
+    );
+
   // 1. Separar misiones rechazadas vs misiones activas / vigentes
   const misionesRechazadas = misiones.filter(
     (m) => m.estado === 'RECHAZADA' || Boolean(m.justificacionRechazo)
@@ -260,6 +275,32 @@ export const IncidenteMisionesSection: React.FC<IncidenteMisionesSectionProps> =
         )}
 
         {/* Trazabilidad de Notificación en Tiempo Real (HU-35) */}
+
+        {/* Bloque Destacado de Rechazo de Misión */}
+        {mision.justificacionRechazo && (
+          <div
+            style={{
+              marginTop: '0.6rem',
+              padding: '8px 10px',
+              backgroundColor: 'var(--color-danger-bg, #FFEBEE)',
+              border: '1px solid #FFCDD2',
+              borderLeft: '3px solid var(--color-danger, #D32F2F)',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '3px' }}>
+              <AlertTriangle size={14} color="var(--color-danger, #D32F2F)" aria-hidden="true" />
+              <strong style={{ fontSize: '0.8125rem', color: 'var(--color-danger, #D32F2F)' }}>
+                {mision.cuadrilla || mision.tipoMision === 'ATENCION_CUADRILLA'
+                  ? 'Motivo de Rechazo por la Cuadrilla:'
+                  : 'Motivo de Rechazo en Terreno:'}
+              </strong>
+            </div>
+            <p style={{ margin: 0, fontSize: '0.8125rem', color: 'var(--color-charcoal, #3B3F45)' }}>
+              {mision.justificacionRechazo}
+            </p>
+          </div>
+        )}
+
         {mision.trazabilidadNotificacion && TRAZABILIDAD_CONFIG[mision.trazabilidadNotificacion] ? (
           (() => {
             const cfg = TRAZABILIDAD_CONFIG[mision.trazabilidadNotificacion];
@@ -495,29 +536,6 @@ export const IncidenteMisionesSection: React.FC<IncidenteMisionesSectionProps> =
               </span>
             </div>
           )
-        )}
-
-        {/* Bloque Destacado de Rechazo de Misión */}
-        {mision.justificacionRechazo && (
-          <div
-            style={{
-              marginTop: '0.6rem',
-              padding: '8px 10px',
-              backgroundColor: 'var(--color-danger-bg, #FFEBEE)',
-              border: '1px solid #FFCDD2',
-              borderLeft: '3px solid var(--color-danger, #D32F2F)',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '3px' }}>
-              <AlertTriangle size={14} color="var(--color-danger, #D32F2F)" aria-hidden="true" />
-              <strong style={{ fontSize: '0.8125rem', color: 'var(--color-danger, #D32F2F)' }}>
-                Motivo de Rechazo en Terreno:
-              </strong>
-            </div>
-            <p style={{ margin: 0, fontSize: '0.8125rem', color: 'var(--color-charcoal, #3B3F45)' }}>
-              {mision.justificacionRechazo}
-            </p>
-          </div>
         )}
 
         {/* Acceso Directo al Último Reporte de Terreno y a Todos los Reportes de la Misión (HU-38) */}
@@ -984,6 +1002,43 @@ export const IncidenteMisionesSection: React.FC<IncidenteMisionesSectionProps> =
         </div>
       )}
 
+      {tieneRechazoCuadrillaPendiente && (
+        <div
+          role="status"
+          data-testid="aviso-rechazo-cuadrilla-reasignacion"
+          style={{
+            backgroundColor: 'var(--color-warning-bg, #FFF3E0)',
+            border: '1px solid var(--color-warning, #E65100)',
+            borderLeft: '4px solid var(--color-warning, #E65100)',
+            padding: '10px 12px',
+            borderRadius: 0,
+            marginBottom: '0.75rem',
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: '8px',
+            fontSize: '0.8125rem',
+            color: 'var(--color-text-dark, #2B2B2B)',
+          }}
+        >
+          <AlertTriangle
+            size={16}
+            color="var(--color-warning, #E65100)"
+            aria-hidden="true"
+            style={{ flexShrink: 0, marginTop: '2px' }}
+          />
+          <span>
+            {puedeAsignar ? (
+              <>
+                La cuadrilla asignada previamente rechazó la misión en terreno. Revise la justificación abajo y utilice{' '}
+                <strong>Despachar Cuadrilla</strong> para reasignar la emergencia de inmediato.
+              </>
+            ) : (
+              'La cuadrilla asignada previamente rechazó la misión en terreno. Revise la justificación abajo; la emergencia quedó disponible para reasignación por un Encargado autorizado.'
+            )}
+          </span>
+        </div>
+      )}
+
       {misiones.length === 0 && !mostrarBotonDespacho && (
         <p style={{ color: 'var(--color-text-muted, #5F676E)', fontSize: '0.85rem', margin: 0 }}>
           No se han despachado misiones operativas para este caso.
@@ -1032,4 +1087,3 @@ export const IncidenteMisionesSection: React.FC<IncidenteMisionesSectionProps> =
     </div>
   );
 };
-

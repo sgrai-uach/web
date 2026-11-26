@@ -31,6 +31,7 @@ describe('formatearEstado', () => {
     expect(formatearEstado('EN_PREVENCION')).toBe('En prevención');
     expect(formatearEstado('EN_RECUPERACION')).toBe('En recuperación');
     expect(formatearEstado('DESACTIVADA')).toBe('Desactivada');
+    expect(formatearEstado('RECHAZADA')).toBe('Rechazada');
     expect(formatearEstado('REPORTADO')).toBe('Reportado');
     expect(formatearEstado('VERIFICANDO')).toBe('En verificación');
     expect(formatearEstado('EN_ATENCION')).toBe('En atención');
@@ -254,5 +255,3 @@ describe('H39: formatearDictamenTerreno, esReporteVerificacionCierre y comparati
     ).toEqual({ personasPrevias: 3, fueModificado: true });
   });
 });
-
-

@@ -83,46 +83,58 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
     detalleRef.current = detalle;
   }, [detalle]);
 
-  // Verificación de permisos RBAC ('misiones:asignar')
-  const tienePermisoAsignar =
-    puedeAsignar ||
-    !auth ||
-    auth.tienePermiso('misiones:asignar') ||
-    auth.usuario?.rolCodigo === 'ENCARGADO' ||
-    auth.usuario?.rolCodigo === 'ADMINISTRADOR';
+  // Verificación de permisos RBAC ('misiones:asignar'), priorizando AuthContext cuando hay usuario autenticado real
+  const tienePermisoAsignar = auth?.usuario
+    ? auth.tienePermiso('misiones:asignar') ||
+      auth.usuario.rolCodigo === 'ENCARGADO' ||
+      auth.usuario.rolCodigo === 'ADMINISTRADOR' ||
+      auth.usuario.rolCodigo === 'ADMIN'
+    : puedeAsignar;
 
-  const cargarDetalle = useCallback(() => {
-    if (!incidenteId) return;
-    setDetalle(null);
-    setCargando(true);
-    setError(null);
+  const cargarDetalle = useCallback(
+    (silencioso = false) => {
+      if (!incidenteId) return;
+      const usarSilencioso = silencioso && detalleRef.current?.id === incidenteId;
 
-    obtenerDetalleIncidente(incidenteId, userId)
-      .then((res) => {
-        if (res.exito && res.datos) {
-          const incId = res.datos.id;
-          const misionesHidratadas = res.datos.misiones.map((m) => {
-            vincularMisionIncidente(m.id, incId);
-            if (m.trazabilidadNotificacion) {
-              setTrazabilidadEstado(m.id, m.trazabilidadNotificacion, incId);
-            }
-            const consolidado = getTrazabilidadEstado(m.id) ?? m.trazabilidadNotificacion;
-            return consolidado ? { ...m, trazabilidadNotificacion: consolidado } : m;
-          });
-          setDetalle({ ...res.datos, misiones: misionesHidratadas });
-        } else {
-          setDetalle(null);
-          setError(res.mensaje || 'Error al obtener el detalle del incidente.');
-        }
-      })
-      .catch(() => {
+      if (!usarSilencioso) {
         setDetalle(null);
-        setError('Error de comunicación con el servidor al cargar el incidente.');
-      })
-      .finally(() => {
-        setCargando(false);
-      });
-  }, [incidenteId, userId]);
+        setCargando(true);
+        setError(null);
+      }
+
+      obtenerDetalleIncidente(incidenteId, userId)
+        .then((res) => {
+          if (res.exito && res.datos) {
+            const incId = res.datos.id;
+            const misionesHidratadas = res.datos.misiones.map((m) => {
+              vincularMisionIncidente(m.id, incId);
+              if (m.trazabilidadNotificacion) {
+                setTrazabilidadEstado(m.id, m.trazabilidadNotificacion, incId);
+              }
+              const consolidado = getTrazabilidadEstado(m.id) ?? m.trazabilidadNotificacion;
+              return consolidado ? { ...m, trazabilidadNotificacion: consolidado } : m;
+            });
+            setDetalle({ ...res.datos, misiones: misionesHidratadas });
+            setError(null);
+          } else if (!usarSilencioso) {
+            setDetalle(null);
+            setError(res.mensaje || 'Error al obtener el detalle del incidente.');
+          }
+        })
+        .catch(() => {
+          if (!usarSilencioso) {
+            setDetalle(null);
+            setError('Error de comunicación con el servidor al cargar el incidente.');
+          }
+        })
+        .finally(() => {
+          if (!usarSilencioso) {
+            setCargando(false);
+          }
+        });
+    },
+    [incidenteId, userId]
+  );
 
   useEffect(() => {
     let isMounted = true;
@@ -424,16 +436,37 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
       });
     };
 
+    let refrescoTimer: ReturnType<typeof setTimeout> | null = null;
+    const handleMisionRechazada = (payload: unknown) => {
+      const p = payload as Record<string, unknown> | null | undefined;
+      const raw = (p?.datos || p?.data || p) as Record<string, unknown> | null | undefined;
+      const incId = typeof raw?.incidenteId === 'string' ? raw.incidenteId : undefined;
+      if (incId === incidenteId) {
+        if (refrescoTimer) {
+          clearTimeout(refrescoTimer);
+        }
+        refrescoTimer = setTimeout(() => {
+          refrescoTimer = null;
+          cargarDetalle(true);
+        }, 80);
+      }
+    };
+
     socket.on('connect', asegurarSalasEncargado);
     socket.on('incidente:actualizado', handleActualizadoSocket);
     socket.on('notificacion:trazabilidad_actualizada', handleTrazabilidad);
+    socket.on('mision:rechazada', handleMisionRechazada);
 
     return () => {
+      if (refrescoTimer) {
+        clearTimeout(refrescoTimer);
+      }
       socket.off('connect', asegurarSalasEncargado);
       socket.off('incidente:actualizado', handleActualizadoSocket);
       socket.off('notificacion:trazabilidad_actualizada', handleTrazabilidad);
+      socket.off('mision:rechazada', handleMisionRechazada);
     };
-  }, [incidenteId]);
+  }, [incidenteId, cargarDetalle]);
 
   const handleAsignacionExitosa = (data: DespacharPatrullaResponseData) => {
     const estadoInicial = extraerEstadoInicialNotificacion(data);
@@ -500,7 +533,7 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
             incidenteId={incidenteId}
             onCerrar={onCerrar}
             onAsignarPatrulla={() => setModalAsignarPatrullaAbierto(true)}
-            puedeAsignar={puedeAsignar}
+            puedeAsignar={tienePermisoAsignar}
           />
 
           {/* Banner informativo de cierre por No Abordabilidad en terreno (HU-39 / HU-86) */}
@@ -719,7 +752,7 @@ export const IncidenteDetalleDrawer: React.FC<IncidenteDetalleDrawerProps> = ({
                   }}
                   onVerDetalleCuadrilla={onSelectCuadrilla}
                   onAsignarPatrulla={() => setModalAsignarPatrullaAbierto(true)}
-                  puedeAsignar={puedeAsignar}
+                  puedeAsignar={tienePermisoAsignar}
                 />
                 <IncidenteRecursosSection recursos={detalle.recursosAsociados} />
               </>
