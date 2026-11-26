@@ -61,12 +61,21 @@ export interface MisionRechazadaPayload {
   tipoMision: string;
   motivo: string;
   justificacionRechazo?: string;
+  cuadrillaId?: string | null;
+  cuadrillaNombre?: string | null;
   patrullaId?: string | null;
   patrullaNombre?: string | null;
   incidenteId?: string | null;
   incidenteCodigo?: string | null;
   rechazadoPorId?: string | null;
   rechazadoEn?: string;
+}
+
+export interface CuadrillaActualizadaPayload {
+  id: string;
+  nombre?: string;
+  estado: string;
+  delegacionId?: string | null;
 }
 
 export interface NotificacionTrazabilidadPayload {
@@ -86,18 +95,21 @@ export interface UseEncargadoKanbanSocketOptions {
   onIncidenteCreado?: (payload: IncidenteCreadoPayload) => void;
   onIncidenteActualizado?: (payload: IncidenteActualizadoPayload) => void;
   onMisionRechazada?: (payload: MisionRechazadaPayload) => void;
+  onCuadrillaActualizada?: (payload: CuadrillaActualizadaPayload) => void;
   onNotificacionTrazabilidadActualizada?: (payload: NotificacionTrazabilidadPayload) => void;
   enabled?: boolean;
 }
 
 /**
  * Hook para la conexión en tiempo real del Encargado de Centro de Mando.
- * Se une a la sala 'sala:encargados' y escucha la creación y actualización de incidentes, rechazos de misiones y trazabilidad.
+ * Se une a la sala 'sala:encargados' y escucha la creación y actualización de incidentes,
+ * rechazos de misiones, disponibilidad de cuadrillas y trazabilidad.
  */
 export function useEncargadoKanbanSocket({
   onIncidenteCreado,
   onIncidenteActualizado,
   onMisionRechazada,
+  onCuadrillaActualizada,
   onNotificacionTrazabilidadActualizada,
   enabled = true,
 }: UseEncargadoKanbanSocketOptions = {}) {
@@ -107,6 +119,7 @@ export function useEncargadoKanbanSocket({
   const creadoRef = useRef(onIncidenteCreado);
   const actualizadoRef = useRef(onIncidenteActualizado);
   const rechazadaRef = useRef(onMisionRechazada);
+  const cuadrillaActualizadaRef = useRef(onCuadrillaActualizada);
   const trazabilidadRef = useRef(onNotificacionTrazabilidadActualizada);
   const eventosProcesadosRef = useRef<Map<string, number>>(new Map());
 
@@ -121,6 +134,10 @@ export function useEncargadoKanbanSocket({
   useEffect(() => {
     rechazadaRef.current = onMisionRechazada;
   }, [onMisionRechazada]);
+
+  useEffect(() => {
+    cuadrillaActualizadaRef.current = onCuadrillaActualizada;
+  }, [onCuadrillaActualizada]);
 
   useEffect(() => {
     trazabilidadRef.current = onNotificacionTrazabilidadActualizada;
@@ -287,9 +304,9 @@ export function useEncargadoKanbanSocket({
       } else if (normalizedPayload.datos.tipoAfectacion && normalizedPayload.datos.justificacion) {
         const sinCambiosTipologia = normalizedPayload.datos.tipoAnterior
           ? !fueTipologiaModificada(
-              normalizedPayload.datos.tipoAnterior,
-              normalizedPayload.datos.tipoAfectacion
-            )
+            normalizedPayload.datos.tipoAnterior,
+            normalizedPayload.datos.tipoAfectacion
+          )
           : esJustificacionSinCambios(normalizedPayload.datos.justificacion);
 
         setUltimoEvento(
@@ -367,30 +384,35 @@ export function useEncargadoKanbanSocket({
           : typeof raw?.id === 'string'
             ? raw.id
             : '';
+      const codigo = typeof raw?.codigo === 'string' ? raw.codigo : '';
+      const claveDedup = misionId || codigo;
       const ahora = Date.now();
 
-      if (!misionId && typeof raw?.codigo !== 'string') return;
+      if (!claveDedup) return;
 
       // Deduplicación reactiva ante emisiones múltiples por broadcast o varias salas concurrentes
-      if (misionId) {
-        const ultimaVez = eventosProcesadosRef.current.get(misionId);
-        if (ultimaVez && ahora - ultimaVez < 5000) {
-          return;
-        }
-        eventosProcesadosRef.current.set(misionId, ahora);
-        if (eventosProcesadosRef.current.size > 100) {
-          for (const [key, timestamp] of eventosProcesadosRef.current.entries()) {
-            if (ahora - timestamp > 10000) {
-              eventosProcesadosRef.current.delete(key);
-            }
+      const ultimaVez = eventosProcesadosRef.current.get(claveDedup);
+      if (ultimaVez && ahora - ultimaVez < 5000) {
+        return;
+      }
+      eventosProcesadosRef.current.set(claveDedup, ahora);
+      if (eventosProcesadosRef.current.size > 100) {
+        for (const [key, timestamp] of eventosProcesadosRef.current.entries()) {
+          if (ahora - timestamp > 10000) {
+            eventosProcesadosRef.current.delete(key);
           }
         }
       }
 
       const normalizedPayload: MisionRechazadaPayload = {
         misionId,
-        codigo: typeof raw?.codigo === 'string' ? raw.codigo : '',
-        tipoMision: typeof raw?.tipoMision === 'string' ? raw.tipoMision : 'VERIFICACION',
+        codigo,
+        tipoMision:
+          typeof raw?.tipoMision === 'string'
+            ? raw.tipoMision
+            : typeof raw?.tipo_mision === 'string'
+              ? raw.tipo_mision
+              : 'VERIFICACION',
         motivo:
           typeof raw?.motivo === 'string'
             ? raw.motivo
@@ -403,6 +425,15 @@ export function useEncargadoKanbanSocket({
             : typeof raw?.motivo === 'string'
               ? raw.motivo
               : undefined,
+        ...(raw && 'cuadrillaId' in raw
+          ? { cuadrillaId: typeof raw.cuadrillaId === 'string' ? raw.cuadrillaId : null }
+          : {}),
+        ...(raw && 'cuadrillaNombre' in raw
+          ? {
+            cuadrillaNombre:
+              typeof raw.cuadrillaNombre === 'string' ? raw.cuadrillaNombre : null,
+          }
+          : {}),
         patrullaId: typeof raw?.patrullaId === 'string' ? raw.patrullaId : null,
         patrullaNombre: typeof raw?.patrullaNombre === 'string' ? raw.patrullaNombre : null,
         incidenteId: typeof raw?.incidenteId === 'string' ? raw.incidenteId : null,
@@ -415,6 +446,25 @@ export function useEncargadoKanbanSocket({
       setUltimoEvento(`Misión rechazada: ${normalizedPayload.codigo}`);
       if (rechazadaRef.current) {
         rechazadaRef.current(normalizedPayload);
+      }
+    };
+
+    const handleCuadrillaActualizada = (payload: unknown) => {
+      const p = payload as Record<string, unknown> | null | undefined;
+      const raw = (p?.datos || p?.data || p) as Record<string, unknown> | null | undefined;
+      const id = typeof raw?.id === 'string' ? raw.id : '';
+      const estado = typeof raw?.estado === 'string' ? raw.estado : '';
+      if (!id || !estado) return;
+
+      const normalizedPayload: CuadrillaActualizadaPayload = {
+        id,
+        nombre: typeof raw?.nombre === 'string' ? raw.nombre : undefined,
+        estado,
+        delegacionId: typeof raw?.delegacionId === 'string' ? raw.delegacionId : null,
+      };
+
+      if (cuadrillaActualizadaRef.current) {
+        cuadrillaActualizadaRef.current(normalizedPayload);
       }
     };
 
@@ -436,6 +486,7 @@ export function useEncargadoKanbanSocket({
     socket.on('mision:creada', handleMisionEvent);
     socket.on('mision:actualizada', handleMisionEvent);
     socket.on('mision:rechazada', handleMisionRechazada);
+    socket.on('cuadrilla:actualizada', handleCuadrillaActualizada);
     socket.on('notificacion:trazabilidad_actualizada', handleTrazabilidad);
 
     return () => {
@@ -446,6 +497,7 @@ export function useEncargadoKanbanSocket({
       socket.off('mision:creada', handleMisionEvent);
       socket.off('mision:actualizada', handleMisionEvent);
       socket.off('mision:rechazada', handleMisionRechazada);
+      socket.off('cuadrilla:actualizada', handleCuadrillaActualizada);
       socket.off('notificacion:trazabilidad_actualizada', handleTrazabilidad);
       socket.emit('leave', 'encargado');
       socket.emit('salir', 'sala:encargados');

@@ -125,6 +125,8 @@ describe('useIncidentesKpis', () => {
 
     expect(socket.emit).toHaveBeenCalledWith('join', 'sala:encargados');
     expect(socket.emit).toHaveBeenCalledWith('unirse', 'sala:encargados');
+    expect(socket.emit).toHaveBeenCalledWith('join', 'encargado');
+    expect(socket.emit).toHaveBeenCalledWith('unirse', 'encargado');
   });
 
   it('debe refrescar los KPIs al recibir el evento incidente:creado vía WebSockets', async () => {
@@ -161,7 +163,7 @@ describe('useIncidentesKpis', () => {
     });
   });
 
-  it('debe refrescar los KPIs al recibir el evento mision:rechazada vía WebSockets', async () => {
+  it('debe refrescar los KPIs al recibir el evento mision:rechazada vía WebSockets (HU-41 / HU-69)', async () => {
     renderHook(() => useIncidentesKpis());
 
     await waitFor(() => {
@@ -170,7 +172,11 @@ describe('useIncidentesKpis', () => {
 
     const socket = getSocket() as unknown as { _trigger: (ev: string, data?: unknown) => void };
     await act(async () => {
-      socket._trigger('mision:rechazada', { misionId: 'm-1', incidenteId: 'inc-123' });
+      socket._trigger('mision:rechazada', {
+        misionId: 'mis-cuad-1',
+        incidenteId: 'inc-123',
+        tipoMision: 'ATENCION_CUADRILLA',
+      });
     });
 
     await waitFor(() => {

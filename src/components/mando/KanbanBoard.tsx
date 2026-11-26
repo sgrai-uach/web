@@ -18,6 +18,7 @@ import type {
 } from '@/types/recuperacion';
 import {
   MisionRechazadaPayload,
+  CuadrillaActualizadaPayload,
   IncidenteActualizadoPayload,
   IncidenteCreadoPayload,
 } from '@/hooks/useEncargadoKanbanSocket';
@@ -85,46 +86,7 @@ export const KanbanBoard: React.FC = () => {
   const setIncidenteSeleccionadoIdRef = React.useRef<((id: string | null) => void) | null>(null);
 
   const ultimosToastsRechazoRef = React.useRef<Map<string, number>>(new Map());
-
-  const handleMisionRechazadaSocket = React.useCallback(
-    (payload: MisionRechazadaPayload) => {
-      const ahora = Date.now();
-      if (payload.misionId) {
-        const ultimaVez = ultimosToastsRechazoRef.current.get(payload.misionId);
-        if (ultimaVez && ahora - ultimaVez < 5000) {
-          return;
-        }
-        ultimosToastsRechazoRef.current.set(payload.misionId, ahora);
-      }
-
-      const patrullaTexto = payload.patrullaNombre
-        ? `La patrulla ${payload.patrullaNombre}`
-        : 'La patrulla verificadora';
-      const motivoTexto = payload.motivo || payload.justificacionRechazo || 'Sin justificación especificada';
-
-      showWarning(
-        `${patrullaTexto} rechazó la misión asignada. El incidente retorna a estado Reportado para su reasignación táctica.`,
-        'Misión Rechazada por Patrulla',
-        {
-          icon: 'rechazo',
-          codeBadge: payload.codigo,
-          details: [
-            { label: 'Motivo de rechazo', value: motivoTexto },
-            ...(payload.incidenteCodigo ? [{ label: 'Incidente', value: payload.incidenteCodigo }] : []),
-          ],
-          action: payload.incidenteId
-            ? {
-                label: 'Ver incidente',
-                onClick: () => setIncidenteSeleccionadoIdRef.current?.(payload.incidenteId!),
-              }
-            : undefined,
-        }
-      );
-
-      refrescarKpisRef.current?.(false);
-    },
-    [showWarning]
-  );
+  const ultimaCargaCuadrillasRef = React.useRef<number>(0);
 
   const ultimosToastsReporteRef = React.useRef<Map<string, number>>(new Map());
 
@@ -191,7 +153,7 @@ export const KanbanBoard: React.FC = () => {
       // Asistencia Social / FIBE
       const requiereFibe = Boolean(
         evalData.requiereAsistenciaSocial ||
-          (familiasRaw && familiasRaw.some((f) => f.requiereAsistenciaSocial))
+        (familiasRaw && familiasRaw.some((f) => f.requiereAsistenciaSocial))
       );
       if (requiereFibe) {
         detallesToast.push({
@@ -224,9 +186,8 @@ export const KanbanBoard: React.FC = () => {
         });
       }
 
-      const mensajeBase = `Se registró una ${
-        esRect ? 'rectificación' : 'evaluación inicial'
-      } para el incidente ${payload.datos.codigo || ''}.`;
+      const mensajeBase = `Se registró una ${esRect ? 'rectificación' : 'evaluación inicial'
+        } para el incidente ${payload.datos.codigo || ''}.`;
 
       const toastOptions = {
         icon: 'reporte' as const,
@@ -358,6 +319,12 @@ export const KanbanBoard: React.FC = () => {
   );
 
   const cargarCuadrillas = useCallback(() => {
+    const ahora = Date.now();
+    if (ahora - ultimaCargaCuadrillasRef.current < 300) {
+      return () => {};
+    }
+    ultimaCargaCuadrillasRef.current = ahora;
+
     let isMounted = true;
     cuadrillasService
       .obtenerCuadrillas({ pagina: 1, limite: 100 })
@@ -366,7 +333,7 @@ export const KanbanBoard: React.FC = () => {
           setCuadrillasOperativas(res.cuadrillas);
         }
       })
-      .catch(() => {});
+      .catch(() => { });
     return () => {
       isMounted = false;
     };
@@ -380,7 +347,7 @@ export const KanbanBoard: React.FC = () => {
           setEventosRecuperacion(res.data);
         }
       })
-      .catch(() => {});
+      .catch(() => { });
     return () => {
       isMounted = false;
     };
@@ -394,6 +361,84 @@ export const KanbanBoard: React.FC = () => {
       cancelRecuperacion?.();
     };
   }, [cargarCuadrillas, cargarEventosRecuperacion]);
+
+  const handleMisionRechazadaSocket = React.useCallback(
+    (payload: MisionRechazadaPayload) => {
+      const claveDedup = payload.misionId || payload.codigo;
+      const ahora = Date.now();
+      if (claveDedup) {
+        const ultimaVez = ultimosToastsRechazoRef.current.get(claveDedup);
+        if (ultimaVez && ahora - ultimaVez < 5000) {
+          return;
+        }
+        ultimosToastsRechazoRef.current.set(claveDedup, ahora);
+      }
+
+      const esCuadrilla =
+        payload.tipoMision === 'ATENCION_CUADRILLA' ||
+        Boolean(payload.cuadrillaId || payload.cuadrillaNombre);
+
+      const unidadTexto = esCuadrilla
+        ? payload.cuadrillaNombre
+          ? `La cuadrilla ${payload.cuadrillaNombre}`
+          : 'La cuadrilla operativa'
+        : payload.patrullaNombre
+          ? `La patrulla ${payload.patrullaNombre}`
+          : 'La patrulla verificadora';
+
+      const motivoTexto =
+        payload.motivo || payload.justificacionRechazo || 'Sin justificación especificada';
+
+      showWarning(
+        esCuadrilla
+          ? `${unidadTexto} rechazó la misión asignada. La unidad volvió a estado Disponible y la emergencia quedó lista para reasignación.`
+          : `${unidadTexto} rechazó la misión asignada. El incidente retorna a estado Reportado para su reasignación táctica.`,
+        esCuadrilla ? 'Misión Rechazada por Cuadrilla' : 'Misión Rechazada por Patrulla',
+        {
+          icon: 'rechazo',
+          codeBadge: payload.codigo,
+          details: [
+            { label: 'Motivo de rechazo', value: motivoTexto },
+            ...(payload.incidenteCodigo
+              ? [{ label: 'Incidente', value: payload.incidenteCodigo }]
+              : []),
+          ],
+          action: payload.incidenteId
+            ? {
+              label: 'Ver incidente',
+              onClick: () => setIncidenteSeleccionadoIdRef.current?.(payload.incidenteId!),
+            }
+            : undefined,
+        }
+      );
+
+      refrescarKpisRef.current?.(false);
+      if (esCuadrilla) {
+        cargarCuadrillas();
+      }
+    },
+    [showWarning, cargarCuadrillas]
+  );
+
+  const handleCuadrillaActualizadaSocket = React.useCallback(
+    (payload: CuadrillaActualizadaPayload) => {
+      setCuadrillasOperativas((prev) => {
+        const existe = prev.some((c) => c.id === payload.id);
+        if (!existe) return prev;
+        return prev.map((c) =>
+          c.id === payload.id
+            ? {
+                ...c,
+                estado: payload.estado as CuadrillaItem['estado'],
+                nombre: payload.nombre || c.nombre,
+                ...(payload.estado === 'DISPONIBLE' ? { misionActiva: undefined } : {}),
+              }
+            : c
+        );
+      });
+    },
+    []
+  );
 
   const {
     userId,
@@ -420,6 +465,7 @@ export const KanbanBoard: React.FC = () => {
     trazabilidadPorIncidente,
   } = useIncidentesKanban({
     onMisionRechazada: handleMisionRechazadaSocket,
+    onCuadrillaActualizada: handleCuadrillaActualizadaSocket,
     onReporteTerrenoRecibido: handleReporteTerrenoRecibido,
     onIncidenteCreadoSocket: handleIncidenteCreadoSocket,
     onIncidenteActualizadoSocket: handleIncidenteActualizadoSocket,

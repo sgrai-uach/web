@@ -28,6 +28,7 @@ describe('formatearEstado', () => {
     expect(formatearEstado('EN_PREVENCION')).toBe('En prevención');
     expect(formatearEstado('EN_RECUPERACION')).toBe('En recuperación');
     expect(formatearEstado('DESACTIVADA')).toBe('Desactivada');
+    expect(formatearEstado('RECHAZADA')).toBe('Rechazada');
     expect(formatearEstado('REPORTADO')).toBe('Reportado');
     expect(formatearEstado('VERIFICANDO')).toBe('En verificación');
     expect(formatearEstado('EN_ATENCION')).toBe('En atención');
@@ -178,5 +179,3 @@ describe('fueTipologiaModificada y detección de ratificación sin cambios', () 
     );
   });
 });
-
-

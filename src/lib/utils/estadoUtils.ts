@@ -418,6 +418,3 @@ export function limpiarDescripcionBitacora(desc?: string | null): string {
     // Evitar redundancia "a la patrulla Patrulla X"
     .replace(/\bpatrulla\s+Patrulla\b/gi, 'Patrulla');
 }
-
-
-
